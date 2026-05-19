@@ -280,7 +280,7 @@ def resolve_developer_supervisor_mode(
         mode_source = "apply_safe_actions"
     else:
         requested = "external_observe"
-        mode_source = "supervisor_scan"
+        mode_source = "scan_domain_routes"
 
     user_config = _read_opl_family_user_config()
     profile_developers = _profile_mas_developer_github_usernames(profile)

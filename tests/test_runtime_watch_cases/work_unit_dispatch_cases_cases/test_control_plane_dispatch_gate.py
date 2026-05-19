@@ -299,7 +299,7 @@ def test_watch_runtime_downstream_bundle_gate_allows_authorized_paper_repair_dis
     )
 
 
-def test_watch_runtime_supervisor_only_runtime_block_allows_managed_submission_refresh_dispatch(
+def test_watch_domain_route_only_runtime_block_allows_managed_submission_refresh_dispatch(
     tmp_path: Path,
     monkeypatch,
 ) -> None:

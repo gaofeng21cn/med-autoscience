@@ -243,7 +243,7 @@ def _safe_reconcile_command(trigger: Mapping[str, Any]) -> str | None:
         return None
     return _first_text(
         trigger.get("recommended_command"),
-        trigger.get("canonical_one_shot_supervisor_reconcile_command"),
+        trigger.get("canonical_one_shot_reconcile_domain_routes_command"),
     )
 
 

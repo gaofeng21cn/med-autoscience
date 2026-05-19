@@ -560,7 +560,7 @@ def test_study_runtime_status_parks_waiting_user_after_revision_intake_consumed_
                     ),
                 },
                 "last_controller_decision_authorization": {
-                    "source": "runtime_supervisor_scan_platform_repair",
+                    "source": "domain_route_scan_platform_repair",
                     "work_unit_id": "submission_authority_sync_closure",
                     "work_unit_fingerprint": "domain-transition::bundle_stage_finalize::submission_authority_sync_closure",
                     "route_target": "finalize",

@@ -315,7 +315,7 @@ def test_run_quality_repair_batch_prefers_latest_controller_decision_over_stale_
                 },
             },
             "last_controller_decision_authorization": {
-                "source": "runtime_supervisor_scan_platform_repair",
+                "source": "domain_route_scan_platform_repair",
                 "decision_id": "decision-003-stale",
                 "work_unit_id": "gate_needs_specificity",
                 "work_unit_fingerprint": "publication-blockers::stale",

@@ -195,7 +195,7 @@ Machine boundary:
 | field | meaning |
 | --- | --- |
 | `Machine source` | 指向 canonical contract，例如 `stage_route_contract.yaml` 或 stage knowledge contract，不让 Markdown 成为机器真相。 |
-| `Allowed Tools` | 只列 MAS owner callable surface，例如 `stage-knowledge-packet`、`stage-memory-closeout-route`、`runtime-supervisor-reconcile`、`ai-reviewer`、`publication_gate` 等。 |
+| `Allowed Tools` | 只列 MAS owner callable surface，例如 `stage-knowledge-packet`、`stage-memory-closeout-route`、`domain-route-reconcile`、`ai-reviewer`、`publication_gate` 等。 |
 | `Knowledge Packet` | 写清 stage 开始前必须读取的 memory/literature/evidence/review refs。 |
 | `Quality Gate` | 写清谁能给 PASS / FAIL / NEEDS_REVIEW，哪些 surface 只能做 projection。 |
 | `Closeout And Memory` | 写清哪些内容进入 evidence ledger、review ledger、controller decision、publication route memory 或 incident learning。 |

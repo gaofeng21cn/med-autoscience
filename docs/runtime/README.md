@@ -26,7 +26,7 @@ Machine boundary: 本目录是 MAS domain runtime-facing 文档索引。机器�
 - [Agent runtime interface](./contracts/agent_runtime_interface.md)
 - [Runtime handle and durable surface contract](./contracts/runtime_handle_and_durable_surface_contract.md)
 - [Runtime supervision loop](./control/runtime_supervision_loop.md)：MAS domain supervision / read-model / owner receipt 入口；不作为 generic scheduler/platform owner。
-- [Supervision scheduler contract](./control/supervision_scheduler_contract.md)：MAS direct/local diagnostic scheduler 残留与迁移桥；OPL-hosted production provider 生命周期归 OPL，后续有 replacement proof 后迁移或退役。
+- [Domain SLO scheduler projection contract](./control/domain_slo_scheduler_projection_contract.md)：MAS direct/local diagnostic scheduler 残留与迁移桥；OPL-hosted production provider 生命周期归 OPL，后续有 replacement proof 后迁移或退役。
 - [Study runtime control surface](./control/study_runtime_control_surface.md)
 - [Study progress projection](./projections/study_progress_projection.md)
 - [Progress Portal](./display/progress_portal.md)

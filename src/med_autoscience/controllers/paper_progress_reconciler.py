@@ -282,7 +282,7 @@ def _callable_contract(desired_state: Mapping[str, Any]) -> dict[str, Any] | Non
         return {
             "owner": owner,
             "action_type": "monitor_live_quality_repair",
-            "callable_surface": "runtime_supervisor_reconcile.monitor_live_quality_repair",
+            "callable_surface": "domain_route_reconcile.monitor_live_quality_repair",
             "required_inputs": ("paper_progress_state", "publication_supervisor_state"),
             "required_outputs": (),
             "artifact_delta_predicate": "live_artifact_delta_without_delivery_package_claim",

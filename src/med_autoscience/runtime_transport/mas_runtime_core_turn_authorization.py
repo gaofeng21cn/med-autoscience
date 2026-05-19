@@ -700,7 +700,7 @@ def _controller_action_command(*, action_name: str, quest_id: str) -> str | None
     if action_name in _SUPERVISOR_DISPATCH_ACTION_NAMES:
         return (
             '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
-            "python -m med_autoscience.cli runtime-supervisor-execute-dispatch "
+            "python -m med_autoscience.cli domain-owner-action-dispatch "
             '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --studies <study_id> '
             f"--action-types {action_name} --mode developer_apply_safe --apply --managed-runtime-worker"
         )

@@ -141,7 +141,7 @@ ALLOWED_OWNER_TOOLS = (
     "MAS controller-authorized CLI/MCP/product-entry/runtime surfaces",
     "stage-knowledge-packet",
     "stage-memory-closeout-route",
-    "runtime-supervisor-reconcile",
+    "domain-route-reconcile",
     "ai-reviewer-publication-eval",
     "publication-gate",
 )

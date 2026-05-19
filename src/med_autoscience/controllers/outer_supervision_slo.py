@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import runtime_dispatch_cost
-from med_autoscience.controllers.supervision_scheduler_parts import consumer_migration
+from med_autoscience.controllers.domain_slo_scheduler_projection_parts import consumer_migration
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -88,7 +88,7 @@ def build_outer_supervision_slo_projection(
         "state": state,
         "summary": _summary(state=state, age_seconds=age_seconds, blocked_reasons=blocked_reasons, missing_reasons=missing_reasons),
         "owner": "med_autoscience_outer_supervision_read_model",
-        "supervision_owner": _text(supervision.get("scheduler_owner")) or "mas_supervision_scheduler",
+        "supervision_owner": _text(supervision.get("scheduler_owner")) or "mas_legacy_domain_slo_diagnostic",
         "active_path_role": active_path_role,
         "consumer_migration": consumer_migration.build_consumer_migration_contract(
             adapter_id=adapter_id,
@@ -98,12 +98,12 @@ def build_outer_supervision_slo_projection(
         "adapter_id": adapter_id,
         "latest_outer_supervision_at": latest_event_at,
         "latest_scheduler_run_at": latest_run_at,
-        "latest_supervisor_reconcile_at": latest_reconcile_at,
+        "latest_reconcile_domain_routes_at": latest_reconcile_at,
         "age_seconds": age_seconds,
         "fresh_after_seconds": fresh_after_seconds,
         "stale_after_seconds": stale_after_seconds,
         "recommended_command": recommended_command,
-        "canonical_one_shot_supervisor_reconcile_command": recommended_command,
+        "canonical_one_shot_reconcile_domain_routes_command": recommended_command,
         "action_class": action_cost["action_class"],
         "will_start_llm": action_cost["will_start_llm"],
         "action_fingerprint": action_cost["action_fingerprint"],
@@ -163,12 +163,12 @@ def _recommended_reconcile_command(
 ) -> str | None:
     if blocked_reasons or state not in {"due", "stale", "missing"}:
         return None
-    return supervisor_reconcile_command(profile_ref=profile_ref, study_id=study_id)
+    return reconcile_domain_routes_command(profile_ref=profile_ref, study_id=study_id)
 
 
-def supervisor_reconcile_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
+def reconcile_domain_routes_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
     command = (
-        "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+        "uv run python -m med_autoscience.cli domain-route-reconcile "
         f"--profile {_quote(str(profile_ref) if profile_ref is not None else '<profile>')}"
     )
     resolved_study_id = _text(study_id)
@@ -190,7 +190,7 @@ def _blocked_reasons(supervision: Mapping[str, Any]) -> list[str]:
         if adapter_id == "hermes_gateway_cron":
             reasons.append("latest_hermes_cron_execution_failed")
     if status in {"not_loaded", "not_installed"} and supervision:
-        reasons.append(f"supervision_scheduler_{status}")
+        reasons.append(f"domain_slo_scheduler_projection_{status}")
         if adapter_id == "hermes_gateway_cron":
             reasons.append(f"hermes_supervision_{status}")
     return list(dict.fromkeys(reasons))
@@ -323,5 +323,5 @@ __all__ = [
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "build_outer_supervision_slo_projection",
-    "supervisor_reconcile_command",
+    "reconcile_domain_routes_command",
 ]

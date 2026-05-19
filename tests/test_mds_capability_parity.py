@@ -391,7 +391,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert continuity["mds_daemon_required"] is False
     assert continuity["active_scheduler"] == "opl_provider_runtime_manager"
     assert continuity["active_scheduler_adapter"] == "opl"
-    assert continuity["legacy_diagnostic_scheduler"] == "mas_supervision_scheduler"
+    assert continuity["legacy_diagnostic_scheduler"] == "mas_legacy_domain_slo_diagnostic"
     assert continuity["legacy_diagnostic_scheduler_adapter"] == "local"
     assert continuity["optional_scheduler_adapters"] == ["hermes_gateway_cron"]
     assert continuity["runtime_session_read_model"]["role"] == "read_model"

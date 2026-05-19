@@ -781,7 +781,7 @@ def test_quality_repair_batch_uses_runtime_authorization_for_submission_refresh_
             },
         },
         "last_controller_decision_authorization": {
-            "source": "runtime_supervisor_scan_platform_repair",
+            "source": "domain_route_scan_platform_repair",
             "decision_id": "decision-003-current",
             "work_unit_id": "submission_minimal_refresh",
             "work_unit_fingerprint": "publication-blockers::current",

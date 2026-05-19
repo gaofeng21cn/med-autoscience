@@ -442,7 +442,7 @@ def test_codex_exec_runner_prompt_prefers_current_ai_reviewer_decision_over_stal
     assert "return_to_ai_reviewer_workflow" in prompt
     assert "AI reviewer redrive execution contract" in prompt
     assert "materialize-ai-medical-prose-review" in prompt
-    assert "python -m med_autoscience.cli runtime-supervisor-execute-dispatch" in prompt
+    assert "python -m med_autoscience.cli domain-owner-action-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "analysis_claim_evidence_repair" not in prompt
     assert "run_quality_repair_batch" not in prompt

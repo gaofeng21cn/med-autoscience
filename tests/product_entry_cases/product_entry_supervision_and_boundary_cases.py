@@ -33,7 +33,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={
+            workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
                 "summary": "MAS scheduler local adapter runtime supervision 已在线。",
@@ -125,7 +125,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         "portfolio_root_exists",
         "mas_runtime_core_ready",
         "medical_overlay_ready",
-        "workspace_supervision_contract_ready",
+        "workspace_domain_route_contract_ready",
     ]
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
         "product-entry-status --profile " + str(profile_ref.resolve())
@@ -199,7 +199,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={
+            workspace_domain_route_contract={
                 "status": "retired_legacy_service_present",
                 "loaded": False,
                 "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；仅保留 tombstone/provenance refs。",
@@ -331,7 +331,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={
+            workspace_domain_route_contract={
                 "status": "retired_legacy_service_present",
                 "loaded": False,
                 "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；仅保留 tombstone/provenance refs。",
@@ -364,7 +364,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     assert payload["product_entry_preflight"]["ready_to_try_now"] is False
-    assert "workspace_supervision_contract_ready" in payload["product_entry_preflight"]["blocking_check_ids"]
+    assert "workspace_domain_route_contract_ready" in payload["product_entry_preflight"]["blocking_check_ids"]
     assert payload["operator_brief"]["verdict"] == "preflight_blocked"
     assert "已退役的 workspace-local runtime supervision service" in payload["product_entry_preflight"]["summary"]
     assert payload["product_entry_start"]["recommended_mode_id"] == "open_product_entry"

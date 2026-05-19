@@ -43,8 +43,8 @@
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "read_only_inventory_and_observability"
     },
-    "supervisor-reconcile": {
-      "kind": "focused_supervisor_reconcile_contract_gate",
+    "domain-route-reconcile": {
+      "kind": "focused_domain_route_reconcile_contract_gate",
       "paths": [
         "tests/test_runtime_watch.py",
         "tests/test_study_progress.py",
@@ -129,7 +129,7 @@
       "kind": "focused_outer_supervision_slo_contract_gate",
       "paths": [
         "tests/test_hermes_supervision.py",
-        "tests/test_supervision_scheduler.py",
+        "tests/test_domain_slo_scheduler_projection.py",
         "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_runtime_reconcile_trigger.py",
         "tests/test_recovery_intent_ledger.py",
@@ -191,8 +191,8 @@
       "paths": [
         "tests/test_autonomy_ai_doctor.py",
         "tests/test_runtime_health_kernel.py",
-        "tests/test_supervision_scheduler.py",
-        "tests/test_runtime_supervisor_scan.py",
+        "tests/test_domain_slo_scheduler_projection.py",
+        "tests/test_domain_route_scan.py",
         "tests/test_runtime_transport_mas_runtime_core.py",
         "tests/test_recovery_intent_ledger.py"
       ],
@@ -418,7 +418,7 @@
       "kind": "focused_mas_functional_consumer_boundary_gate",
       "paths": [
         "tests/test_test_lane_governance.py",
-        "tests/test_supervision_scheduler.py",
+        "tests/test_domain_slo_scheduler_projection.py",
         "tests/test_product_entry.py",
         "tests/test_cli_cases/sidecar_family_adapter_command.py"
       ],
@@ -1006,7 +1006,7 @@
         "declarative_pack_generated_surface": [
           "workspace_source_intake_shell",
           "workbench_portal_generic_shell",
-          "runtime_supervisor_scan_consume_dispatch_shell",
+          "domain_route_scan_materialize_dispatch_shell",
           "generic_cli_mcp_product_wrappers",
           "generic_daemon_or_scheduler_lifecycle",
           "generic_queue_attempt_retry_dead_letter",
@@ -1067,7 +1067,7 @@
         "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
         "terminal_attach_transport",
-        "runtime_supervisor_scan_consume_dispatch_shell",
+        "domain_route_scan_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -1167,7 +1167,7 @@
         "sidecar_export.functional_consumer_boundary.declarative_pack_compiler_input",
         "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
         "sidecar_export.functional_consumer_boundary.minimal_authority_function_manifest",
-        "supervision_scheduler.consumer_migration.functional_consumer_boundary",
+        "domain_slo_scheduler_projection.consumer_migration.functional_consumer_boundary",
         "family_contract_adoption.runtime_observability_export"
       ],
       "opl_functional_harness_consumer_coverage": {
@@ -1748,14 +1748,14 @@
           ]
         },
         {
-          "module_id": "runtime_supervisor_scan_consume_dispatch_shell",
+          "module_id": "domain_route_scan_materialize_dispatch_shell",
           "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
-            "src/med_autoscience/controllers/runtime_supervisor_scan.py",
-            "src/med_autoscience/controllers/runtime_supervisor_consumer.py",
-            "src/med_autoscience/controllers/runtime_supervisor_dispatch_executor.py",
-            "src/med_autoscience/controllers/runtime_supervisor_reconcile.py"
+            "src/med_autoscience/controllers/domain_route_scan.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+            "src/med_autoscience/controllers/domain_route_reconcile.py"
           ],
           "active_callers": [
             "watch-runtime one-shot tick",
@@ -1763,7 +1763,7 @@
             "sidecar dispatch"
           ],
           "active_caller_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
-          "migration_action": "declare_runtime_supervisor_policy_and_consume_opl_runtime_manager_loop",
+          "migration_action": "declare_domain_route_policy_and_consume_opl_runtime_manager_loop",
           "retention_reason": "MAS must keep owner-route facts, publication gate blockers, safe action refs, and no-forbidden-write evidence.",
           "opl_expected_primitives": [
             "opl_generic_runner",
@@ -1826,8 +1826,8 @@
           "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
-            "src/med_autoscience/controllers/supervision_scheduler.py",
-            "src/med_autoscience/controllers/supervision_scheduler_parts/"
+            "src/med_autoscience/controllers/domain_slo_scheduler_projection.py",
+            "src/med_autoscience/controllers/domain_slo_scheduler_projection_parts/"
           ],
           "active_callers": [
             "runtime-supervision-status default manager=opl"
@@ -2033,13 +2033,13 @@
       "paths": [
         "tests/test_mds_capability_parity.py",
         "tests/test_study_runtime_execution_evidence_adoption.py",
-        "tests/runtime_supervisor_scan_cases/test_evidence_adoption_projection.py",
-        "tests/runtime_supervisor_scan_cases/test_control_surface_artifact_delta.py",
-        "tests/test_runtime_supervisor_dispatch_executor.py",
+        "tests/domain_route_scan_cases/test_evidence_adoption_projection.py",
+        "tests/domain_route_scan_cases/test_control_surface_artifact_delta.py",
+        "tests/test_domain_owner_action_dispatch.py",
         "tests/test_runtime_reconcile_trigger.py",
         "tests/test_recovery_intent_ledger.py",
         "tests/test_runtime_watch.py",
-        "tests/test_cli_cases/runtime_supervisor_reconcile_command.py",
+        "tests/test_cli_cases/domain_route_reconcile_command.py",
         "tests/test_paper_autonomy_stability_evidence.py",
         "tests/test_real_workspace_soak_monitor.py",
         "tests/test_study_progress.py",
@@ -2100,7 +2100,7 @@
         "tests/test_real_paper_autonomy_soak_inventory.py",
         "tests/test_real_workspace_soak_monitor.py",
         "tests/test_real_paper_ai_first_soak.py",
-        "tests/test_cli_cases/runtime_supervisor_reconcile_command.py",
+        "tests/test_cli_cases/domain_route_reconcile_command.py",
         "tests/test_cli_cases/workspace_monolith_migration_command.py",
         "tests/test_workspace_git_boundary.py",
         "tests/test_runtime_lifecycle_migration.py"
@@ -2174,11 +2174,8 @@
         "dispatch_receipt_surface_kind": "mas_family_sidecar_dispatch_receipt",
         "bridge_policy": "controlled_bridge_to_mas_owner_surface",
         "allowed_task_kinds": [
-          "runtime_supervisor/reconcile-apply",
-          "runtime_supervisor/recover",
-          "runtime_supervision/recover",
-          "runtime/recover",
-          "runtime/reconcile-apply",
+          "domain_route/reconcile-apply",
+          "domain_route/recover",
           "autonomy/continue",
           "safe_reconcile/dry-run",
           "study_progress/read",

@@ -71,8 +71,8 @@ def test_read_supervision_status_reports_loaded_hermes_job(monkeypatch, tmp_path
     slo = result["outer_supervision_slo"]
     assert slo["surface_kind"] == "outer_supervision_slo"
     assert slo["state"] == "missing"
-    assert slo["canonical_one_shot_supervisor_reconcile_command"] == (
-        "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+    assert slo["canonical_one_shot_reconcile_domain_routes_command"] == (
+        "uv run python -m med_autoscience.cli domain-route-reconcile "
         "--profile '<profile>' --mode developer_apply_safe --dry-run"
     )
 
@@ -216,7 +216,7 @@ def test_outer_supervision_slo_projects_fresh_due_stale_missing_and_blocked(tmp_
     assert missing["state"] == "missing"
     assert blocked["state"] == "blocked"
     assert due["recommended_command"] == (
-        "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+        "uv run python -m med_autoscience.cli domain-route-reconcile "
         "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
     )
 
@@ -611,13 +611,13 @@ def test_ensure_supervision_tick_script_runs_full_same_tick_repair_loop(
     script_text = module._script_path(profile).read_text(encoding="utf-8")
     assert "COMMANDS = json.loads" in script_text
     assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime") in script_text
-    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan") in script_text
-    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume") in script_text
-    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch") in script_text
+    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan") in script_text
+    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize") in script_text
+    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch") in script_text
     assert "--apply-runtime-platform-repair" in script_text
-    assert script_text.index("watch-runtime") < script_text.index("supervisor-scan")
-    assert script_text.index("supervisor-scan") < script_text.index("supervisor-consume")
-    assert script_text.index("supervisor-consume") < script_text.index("supervisor-execute-dispatch")
+    assert script_text.index("watch-runtime") < script_text.index("domain-route-scan")
+    assert script_text.index("domain-route-scan") < script_text.index("domain-action-request-materialize")
+    assert script_text.index("domain-action-request-materialize") < script_text.index("domain-owner-action-dispatch")
 
 
 def test_ensure_supervision_repairs_legacy_watch_runtime_entry_before_triggering_run(
@@ -699,7 +699,7 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
     automation_path = tmp_path / "automation.toml"
     automation_path.write_text(
         'status = "ACTIVE"\n'
-        'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
+        'prompt = "developer_apply_safe mode=developer_apply_safe domain-route-scan --apply-safe-actions '
         '--developer-supervisor-mode developer_apply_safe"\n',
         encoding="utf-8",
     )
@@ -709,10 +709,10 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
     assert result["status"] == "incomplete"
     assert result["active"] is True
     assert result["missing_prompt_tokens"] == [
-        "supervisor-reconcile --mode developer_apply_safe --apply",
+        "domain-route-reconcile --mode developer_apply_safe --apply",
         "--apply-runtime-platform-repair",
-        "supervisor-consume --mode developer_apply_safe --apply",
-        "supervisor-execute-dispatch --mode developer_apply_safe --apply",
+        "domain-action-request-materialize --mode developer_apply_safe --apply",
+        "domain-owner-action-dispatch --mode developer_apply_safe --apply",
         "workspace_dynamic_active_studies",
         "new MAS tasks",
         "active_run_id",
@@ -745,10 +745,10 @@ def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(t
     automation_path = tmp_path / "automation.toml"
     automation_path.write_text(
         'status = "ACTIVE"\n'
-        'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
+        'prompt = "developer_apply_safe mode=developer_apply_safe domain-route-scan --apply-safe-actions '
         '--apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe '
-        'supervisor-consume --mode developer_apply_safe --apply '
-        'supervisor-execute-dispatch --mode developer_apply_safe --apply '
+        'domain-action-request-materialize --mode developer_apply_safe --apply '
+        'domain-owner-action-dispatch --mode developer_apply_safe --apply '
         'study_ids=002-dm-china-us-mortality-attribution,003-dpcc-primary-care-phenotype-treatment-gap '
         'action_queue why_not_applied"\n',
         encoding="utf-8",
@@ -761,7 +761,7 @@ def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(t
     assert result["scope_policy"] == "workspace_dynamic_active_studies"
     assert result["new_task_auto_enrollment_required"] is True
     assert result["missing_prompt_tokens"] == [
-        "supervisor-reconcile --mode developer_apply_safe --apply",
+        "domain-route-reconcile --mode developer_apply_safe --apply",
         "workspace_dynamic_active_studies",
         "new MAS tasks",
         "active_run_id",

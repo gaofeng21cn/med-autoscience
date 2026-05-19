@@ -326,7 +326,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={
+            workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
                 "summary": "MAS scheduler local adapter runtime supervision 已在线。",
@@ -383,9 +383,9 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             return {
                 "study_id": resolved_study_id,
                 "current_stage": "managed_runtime_supervision_gap",
-                "current_stage_summary": "MAS scheduler 托管监管存在缺口。",
-                "current_blockers": ["MAS scheduler 托管监管存在缺口。"],
-                "next_system_action": "先恢复 supervisor loop，再继续托管推进。",
+                "current_stage_summary": "OPL runtime manager 托管监管存在缺口。",
+                "current_blockers": ["OPL runtime manager 托管监管存在缺口。"],
+                "next_system_action": "先刷新 domain route tick，再继续托管推进。",
                 "study_macro_state": {
                     "surface": "study_macro_state",
                     "schema_version": 1,
@@ -410,19 +410,19 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "actual_write_active": False,
                     "user_action_required": False,
                     "state_label": "质量修复/复审中",
-                    "state_summary": "MAS scheduler 托管监管存在缺口。",
+                    "state_summary": "OPL runtime manager 托管监管存在缺口。",
                     "current_stage": "queued",
-                    "current_stage_summary": "MAS scheduler 托管监管存在缺口。",
-                    "current_blockers": ["MAS scheduler 托管监管存在缺口。"],
-                    "next_system_action": "先恢复 supervisor loop，再继续托管推进。",
+                    "current_stage_summary": "OPL runtime manager 托管监管存在缺口。",
+                    "current_blockers": ["OPL runtime manager 托管监管存在缺口。"],
+                    "next_system_action": "先刷新 domain route tick，再继续托管推进。",
                     "evidence": {"latest_events": [], "refs": {}},
                     "conditions": [],
                 },
                 "intervention_lane": {
                     "lane_id": "workspace_supervision_gap",
-                    "title": "优先恢复 MAS scheduler 托管监管",
+                    "title": "优先刷新 OPL runtime manager 托管监管",
                     "severity": "critical",
-                    "summary": "MAS scheduler 托管监管存在缺口。",
+                    "summary": "OPL runtime manager 托管监管存在缺口。",
                     "recommended_action_id": "refresh_supervision",
                 },
                 "operator_verdict": {
@@ -434,8 +434,8 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "decision_mode": "intervene_now",
                     "needs_intervention": True,
                     "focus_scope": "workspace",
-                    "summary": "MAS scheduler 托管监管存在缺口。",
-                    "reason_summary": "MAS scheduler 托管监管存在缺口。",
+                    "summary": "OPL runtime manager 托管监管存在缺口。",
+                    "reason_summary": "OPL runtime manager 托管监管存在缺口。",
                     "primary_step_id": "refresh_supervision",
                     "primary_surface_kind": "runtime_watch_refresh",
                     "primary_command": (
@@ -456,7 +456,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "recommended_commands": [
                     {
                         "step_id": "refresh_supervision",
-                        "title": "刷新 MAS scheduler supervision tick",
+                        "title": "刷新 OPL runtime manager domain route tick",
                         "surface_kind": "runtime_watch_refresh",
                         "command": (
                             "uv run python -m med_autoscience.cli watch --runtime-root "
@@ -471,12 +471,12 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "contract_kind": "study_recovery_contract",
                     "lane_id": "workspace_supervision_gap",
                     "action_mode": "refresh_supervision",
-                    "summary": "MAS scheduler 托管监管存在缺口。",
+                    "summary": "OPL runtime manager 托管监管存在缺口。",
                     "recommended_step_id": "refresh_supervision",
                     "steps": [
                         {
                             "step_id": "refresh_supervision",
-                            "title": "刷新 MAS scheduler supervision tick",
+                            "title": "刷新 OPL runtime manager domain route tick",
                             "surface_kind": "runtime_watch_refresh",
                             "command": (
                                 "uv run python -m med_autoscience.cli watch --runtime-root "
@@ -630,7 +630,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["workspace_status"] == "attention_required"
     assert payload["mainline_snapshot"]["current_stage_id"] == "f4_blocker_closeout"
     assert payload["mainline_snapshot"]["current_program_phase_id"] == "phase_1_mainline_established"
-    assert "MAS scheduler 托管监管存在缺口。" in payload["workspace_alerts"]
+    assert "OPL runtime manager 托管监管存在缺口。" in payload["workspace_alerts"]
     assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in payload["workspace_alerts"]
     assert any("距离上一次明确研究推进已经超过 12 小时" in item for item in payload["workspace_alerts"])
     assert payload["workspace_supervision"]["service"]["status"] == "not_loaded"
@@ -741,7 +741,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={
+            workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
                 "summary": "MAS scheduler local adapter runtime supervision 已在线。",

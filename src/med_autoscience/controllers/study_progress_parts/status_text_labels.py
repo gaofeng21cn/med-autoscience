@@ -20,7 +20,7 @@ _CURRENT_STAGE_LABELS = {
     "managed_runtime_recovering": "托管运行恢复中",
     "managed_runtime_degraded": "托管运行健康降级",
     "managed_runtime_escalated": "托管运行已升级告警",
-    "managed_runtime_supervision_gap": "MAS scheduler 托管监管存在缺口",
+    "managed_runtime_supervision_gap": "OPL runtime manager 托管监管存在缺口",
     "waiting_physician_decision": "等待用户判断",
     "waiting_user_decision": "等待用户判断",
     "publication_supervision": "论文可发表性监管",
@@ -167,7 +167,7 @@ _INTERVENTION_SEVERITY_LABELS = {
     "observe": "继续监督",
 }
 _RECOVERY_ACTION_MODE_LABELS = {
-    "refresh_supervision": "优先恢复 MAS scheduler 托管监管",
+    "refresh_supervision": "优先刷新 OPL runtime manager 托管监管",
     "continue_or_relaunch": "继续或重新拉起当前 study",
     "inspect_progress": "先读取当前进度与阻塞",
     "human_decision_review": "等待用户判断",

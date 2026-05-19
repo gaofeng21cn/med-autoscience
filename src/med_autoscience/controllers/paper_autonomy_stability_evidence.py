@@ -7,10 +7,10 @@ from typing import Any
 from med_autoscience.controllers import paper_progress_degradation_evidence
 from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers import real_workspace_soak_monitor
-from med_autoscience.controllers import runtime_supervisor_consumer
-from med_autoscience.controllers import runtime_supervisor_dispatch_executor
-from med_autoscience.controllers import runtime_supervisor_reconcile
-from med_autoscience.controllers import runtime_supervisor_scan
+from med_autoscience.controllers import domain_action_request_materializer
+from med_autoscience.controllers import domain_owner_action_dispatch
+from med_autoscience.controllers import domain_route_reconcile
+from med_autoscience.controllers import domain_route_scan
 from med_autoscience.controllers import workspace_monolith_migration
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
@@ -31,13 +31,13 @@ READ_ONLY_CONTRACT = {
     "allowed_actions": [
         "read_profiles",
         "read_status_surfaces",
-        "run_supervisor_reconcile_dry_run_without_receipt_write",
+        "run_reconcile_domain_routes_dry_run_without_receipt_write",
         "run_workspace_migration_dry_run",
         "build_real_workspace_soak_monitor_read_model",
     ],
     "prohibited_actions": [
         "runtime_relaunch",
-        "supervisor_reconcile_receipt_write",
+        "reconcile_domain_routes_receipt_write",
         "workspace_migration_apply",
         "current_package_write",
         "publication_eval_write",
@@ -127,7 +127,7 @@ def _profile_evidence(
         )
         return {
             **base,
-            "supervisor_reconcile_dry_run": _skipped("profile_unreadable"),
+            "reconcile_domain_routes_dry_run": _skipped("profile_unreadable"),
             "workspace_migration_dry_run": _skipped("profile_unreadable"),
             "real_workspace_soak_monitor": _skipped("profile_unreadable"),
             "paper_progress_degradation_evidence": _skipped("profile_unreadable"),
@@ -149,7 +149,7 @@ def _profile_evidence(
             **base,
             "profile_readable": False,
             "profile_error": blocker["reason"],
-            "supervisor_reconcile_dry_run": _skipped("profile_unreadable"),
+            "reconcile_domain_routes_dry_run": _skipped("profile_unreadable"),
             "workspace_migration_dry_run": _skipped("profile_unreadable"),
             "real_workspace_soak_monitor": _skipped("profile_unreadable"),
             "paper_progress_degradation_evidence": _skipped("profile_unreadable"),
@@ -163,7 +163,7 @@ def _profile_evidence(
         studies=studies,
         requested_study_ids=requested_study_ids,
     )
-    reconcile = _supervisor_reconcile_dry_run(profile=profile, study_ids=resolved_study_ids)
+    reconcile = _reconcile_domain_routes_dry_run(profile=profile, study_ids=resolved_study_ids)
     migration = _workspace_migration_dry_run(profile_path=profile_path)
     monitor = _workspace_soak_monitor(studies=studies)
     progress_degradation = paper_progress_degradation_evidence.build_profile_progress_degradation_evidence(
@@ -188,7 +188,7 @@ def _profile_evidence(
     return {
         **base,
         "resolved_study_ids": list(resolved_study_ids),
-        "supervisor_reconcile_dry_run": reconcile,
+        "reconcile_domain_routes_dry_run": reconcile,
         "workspace_migration_dry_run": migration,
         "real_workspace_soak_monitor": monitor,
         "paper_progress_degradation_evidence": progress_degradation,
@@ -197,13 +197,13 @@ def _profile_evidence(
     }
 
 
-def _supervisor_reconcile_dry_run(
+def _reconcile_domain_routes_dry_run(
     *,
     profile: WorkspaceProfile,
     study_ids: Sequence[str],
 ) -> dict[str, Any]:
     try:
-        before_scan = runtime_supervisor_scan.supervisor_scan(
+        before_scan = domain_route_scan.scan_domain_routes(
             profile=profile,
             study_ids=study_ids,
             apply_safe_actions=False,
@@ -211,27 +211,27 @@ def _supervisor_reconcile_dry_run(
             developer_supervisor_mode="developer_apply_safe",
             persist_surfaces=False,
         )
-        consumed = runtime_supervisor_consumer.supervisor_consume(
+        consumed = domain_action_request_materializer.materialize_domain_action_requests(
             profile=profile,
             study_ids=study_ids,
             mode="developer_apply_safe",
             apply=False,
         )
-        executed = runtime_supervisor_dispatch_executor.execute_default_executor_dispatches(
+        executed = domain_owner_action_dispatch.dispatch_domain_owner_actions(
             profile=profile,
             study_ids=study_ids,
             action_types=(),
             mode="developer_apply_safe",
             apply=False,
         )
-        resolved = runtime_supervisor_reconcile._resolve_study_ids(  # noqa: SLF001
+        resolved = domain_route_reconcile._resolve_study_ids(  # noqa: SLF001
             requested=study_ids,
             before_scan=before_scan,
             after_scan={},
             consumed=consumed,
             executed=executed,
         )
-        after_scan = runtime_supervisor_scan.supervisor_scan(
+        after_scan = domain_route_scan.scan_domain_routes(
             profile=profile,
             study_ids=resolved,
             apply_safe_actions=False,
@@ -239,7 +239,7 @@ def _supervisor_reconcile_dry_run(
             developer_supervisor_mode="developer_apply_safe",
             persist_surfaces=False,
         )
-        step_receipts = runtime_supervisor_reconcile._step_receipts(  # noqa: SLF001
+        step_receipts = domain_route_reconcile._step_receipts(  # noqa: SLF001
             before_scan=before_scan,
             consumed=consumed,
             executed=executed,
@@ -248,8 +248,8 @@ def _supervisor_reconcile_dry_run(
         study_receipts = [
             {
                 "study_id": study_id,
-                "before": runtime_supervisor_reconcile._study_projection(before_scan, study_id),  # noqa: SLF001
-                "after": runtime_supervisor_reconcile._study_projection(after_scan, study_id),  # noqa: SLF001
+                "before": domain_route_reconcile._study_projection(before_scan, study_id),  # noqa: SLF001
+                "after": domain_route_reconcile._study_projection(after_scan, study_id),  # noqa: SLF001
             }
             for study_id in resolved
         ]
@@ -374,7 +374,7 @@ def _profile_blockers(
         blockers.append(
             _blocker(
                 kind="runtime_truth",
-                reason=_text(reconcile.get("reason")) or "supervisor_reconcile_dry_run_blocked",
+                reason=_text(reconcile.get("reason")) or "reconcile_domain_routes_dry_run_blocked",
                 next_action=_text(reconcile.get("next_action")) or "repair_runtime_truth_or_profile_inputs",
                 profile_path=profile_path,
             )
@@ -455,7 +455,7 @@ def _resolved_study_ids(
     )
     if from_inventory:
         return from_inventory
-    return runtime_supervisor_scan.resolve_supervisor_scan_study_ids(profile)
+    return domain_route_scan.resolve_domain_route_scan_study_ids(profile)
 
 
 def _stable_blockers(scan_payload: Mapping[str, Any]) -> list[dict[str, str]]:

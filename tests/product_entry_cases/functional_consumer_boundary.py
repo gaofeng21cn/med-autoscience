@@ -217,7 +217,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert classification["declarative_pack_generated_surface"] == [
         "workspace_source_intake_shell",
         "workbench_portal_generic_shell",
-        "runtime_supervisor_scan_consume_dispatch_shell",
+        "domain_route_scan_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -290,8 +290,8 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",
     }
-    assert by_id["runtime_supervisor_scan_consume_dispatch_shell"]["migration_action"] == (
-        "declare_runtime_supervisor_policy_and_consume_opl_runtime_manager_loop"
+    assert by_id["domain_route_scan_materialize_dispatch_shell"]["migration_action"] == (
+        "declare_domain_route_policy_and_consume_opl_runtime_manager_loop"
     )
     wrapper_item = by_id["generic_cli_mcp_product_wrappers"]
     assert wrapper_item["active_callers"] == [

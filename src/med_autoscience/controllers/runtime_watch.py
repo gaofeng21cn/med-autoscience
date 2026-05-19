@@ -19,7 +19,7 @@ from med_autoscience.controllers import (
     publication_gate,
     runtime_health_kernel,
     runtime_supervision,
-    runtime_supervisor_scan,
+    domain_route_scan,
     runtime_watch_alerts,
     runtime_watch_outer_loop_dispatch,
     runtime_watch_recovery_policy,
@@ -230,9 +230,9 @@ def run_watch_for_runtime(
         ensure_study_runtimes=ensure_study_runtimes,
     )
     if apply and ensure_study_runtimes and apply_supervisor_platform_repair and profile is not None:
-        report["supervisor_platform_repair"] = runtime_supervisor_scan.supervisor_scan(
+        report["supervisor_platform_repair"] = domain_route_scan.scan_domain_routes(
             profile=profile,
-            study_ids=runtime_supervisor_scan.resolve_supervisor_scan_study_ids(profile),
+            study_ids=domain_route_scan.resolve_domain_route_scan_study_ids(profile),
             apply_safe_actions=True,
             apply_runtime_platform_repair=True,
             developer_supervisor_mode="developer_apply_safe",

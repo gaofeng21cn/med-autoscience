@@ -14,7 +14,7 @@ PROHIBITED_MANUSCRIPT_MARKERS = {
     "author_todo_or_placeholder_in_manuscript": ("TODO", "TBD", "author pending", "placeholder"),
     "package_anchor_in_manuscript": ("current_package", "submission_manifest", "package anchor"),
     "reviewer_facing_label_in_manuscript": ("reviewer-facing", "Reviewer-facing", "reviewer facing"),
-    "controller_prose_in_manuscript": ("controller decision", "owner_route", "runtime supervisor"),
+    "controller_prose_in_manuscript": ("controller decision", "owner_route", "domain route"),
 }
 
 

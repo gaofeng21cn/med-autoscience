@@ -48,7 +48,7 @@ The core lane renderer injects the generated stage skill surface here.
 - Controller-authorized CLI/MCP/product-entry/runtime surfaces
 - `stage-knowledge-packet`
 - `stage-memory-closeout-route`
-- `runtime-supervisor-reconcile`
+- `domain-route-reconcile`
 - `ai-reviewer-publication-eval`
 - `publication-gate`
 

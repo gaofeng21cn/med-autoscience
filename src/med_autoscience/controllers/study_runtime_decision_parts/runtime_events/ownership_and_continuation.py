@@ -2,7 +2,7 @@ from __future__ import annotations
 
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from ..publication_and_submission import *  # noqa: F403
-from med_autoscience.controllers.runtime_supervisor_scan_parts import hard_methodology_currentness
+from med_autoscience.controllers.domain_route_scan_parts import hard_methodology_currentness
 from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers import source_provenance_owner_result
 

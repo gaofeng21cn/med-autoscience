@@ -98,7 +98,7 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
         lambda *, workspace_root: {"status": {"layout_ready": True}},
     )
     monkeypatch.setattr(
-        cli.supervision_scheduler,
+        cli.domain_slo_scheduler_projection,
         "ensure_supervision",
         lambda **kwargs: {
             "surface_kind": "workspace_runtime_supervision_replacement_result",

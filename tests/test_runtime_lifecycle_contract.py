@@ -60,8 +60,8 @@ def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_autho
     assert contract["generic_persistence_owner"] == "one-person-lab"
     assert contract["generic_persistence_engine_claim_allowed"] is False
     assert "study_macro_state/latest.json" in contract["file_authority_surfaces"]
-    assert "runtime_supervisor_owner_route" in contract["file_authority_surfaces"]
-    assert "runtime_supervisor_dispatch_receipt" in contract["file_authority_surfaces"]
+    assert "domain_route_owner_route" in contract["file_authority_surfaces"]
+    assert "domain_owner_action_dispatch_receipt" in contract["file_authority_surfaces"]
     assert "paper_work_unit_outbox_receipt" in contract["file_authority_surfaces"]
 
 

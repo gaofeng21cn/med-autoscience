@@ -48,7 +48,7 @@ Date: `2026-05-08`
 
 1. 不重新引入外部 MDS daemon / WebUI / repo checkout 作为默认依赖。
 2. 不把 workspace-local launchd/systemd/cron/docker service 恢复为 active scheduler。
-3. 不把 `mas_runtime_core`、runtime supervisor、runtime lifecycle SQLite 或 turn runner 写成 MAS-owned generic runtime / queue / attempt ledger / worker residency / transition runner / persistence engine。
+3. 不把 `mas_runtime_core`、domain route、runtime lifecycle SQLite 或 turn runner 写成 MAS-owned generic runtime / queue / attempt ledger / worker residency / transition runner / persistence engine。
 4. 不用 `functional_monolith_completion=landed` 掩盖 MDS resident daemon 行为差异。
 5. 不让 explicit archive import reference / backend audit transport 参与默认 watch/status/execute/recovery。
 6. 不让 SQLite、legacy `.ds` payload、MDS artifact inventory 或 old current_package projection 成为 paper truth / quality truth / delivery authority。

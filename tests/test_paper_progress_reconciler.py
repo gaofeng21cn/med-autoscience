@@ -15,7 +15,7 @@ def _owner_route(
     fingerprint: str = "work-unit::001",
 ) -> dict[str, object]:
     return {
-        "surface": "runtime_supervisor_owner_route",
+        "surface": "domain_route_owner_route",
         "schema_version": 2,
         "study_id": study_id,
         "quest_id": f"quest-{study_id}",
@@ -276,7 +276,7 @@ def test_reconciler_keeps_obesity_delivery_missing_downstream_only(tmp_path: Pat
     assert decision["decision"] == "monitor_live_quality_repair"
 
 
-def test_reconciler_accepts_supervisor_scan_artifact_delta_projection(tmp_path: Path) -> None:
+def test_reconciler_accepts_scan_domain_routes_artifact_delta_projection(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"

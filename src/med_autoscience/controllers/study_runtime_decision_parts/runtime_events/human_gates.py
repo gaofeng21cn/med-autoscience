@@ -129,10 +129,10 @@ def _platform_repair_redrive_without_live_worker(
     authorization = runtime_state.get("last_controller_decision_authorization")
     return (
         isinstance(platform_repair, dict)
-        and str(platform_repair.get("source") or "").strip() == "runtime_supervisor_scan_platform_repair"
+        and str(platform_repair.get("source") or "").strip() == "domain_route_scan_platform_repair"
     ) or (
         isinstance(authorization, dict)
-        and str(authorization.get("source") or "").strip() == "runtime_supervisor_scan_platform_repair"
+        and str(authorization.get("source") or "").strip() == "domain_route_scan_platform_repair"
     )
 
 

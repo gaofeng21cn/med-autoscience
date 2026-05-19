@@ -42,7 +42,7 @@ def test_study_runtime_status_resumes_platform_repair_current_controller_redrive
                 "continuation_anchor": "decision",
                 "continuation_reason": "controller_work_unit_pending",
                 "last_controller_decision_authorization": {
-                    "source": "runtime_supervisor_scan_platform_repair",
+                    "source": "domain_route_scan_platform_repair",
                     "work_unit_id": "analysis_claim_evidence_repair",
                     "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
                 },

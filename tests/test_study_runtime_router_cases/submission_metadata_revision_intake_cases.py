@@ -841,7 +841,7 @@ def test_failed_submission_metadata_reviewer_revision_with_controller_owner_rela
                     "closeout_path": str(quest_root / "artifacts" / "runtime" / "turn_closeouts" / "run-blocked.json"),
                 },
                 "last_controller_decision_authorization": {
-                    "source": "runtime_supervisor_scan_platform_repair",
+                    "source": "domain_route_scan_platform_repair",
                     "work_unit_id": "submission_minimal_refresh",
                     "work_unit_fingerprint": "publication-blockers::current",
                 },

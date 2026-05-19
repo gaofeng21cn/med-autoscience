@@ -134,7 +134,7 @@ def _read_gate_specificity_request(
     if _publication_eval_has_complete_specificity_targets(publication_eval_payload):
         return request_path, None
     payload = _read_json_object(request_path)
-    if payload is None or payload.get("surface") != "supervisor_action_request":
+    if payload is None or payload.get("surface") != "domain_action_request":
         return request_path, None
     if _non_empty_text(payload.get("request_kind")) != "publication_gate_specificity_required":
         return request_path, None

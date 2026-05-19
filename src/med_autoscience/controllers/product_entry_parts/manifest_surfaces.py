@@ -30,7 +30,7 @@ from .manifest_projection_compaction import (
     _manifest_portable_supervisor_queue_dashboard,
 )
 from med_autoscience.controllers import opl_provider_ready_adapter
-from med_autoscience.controllers.supervision_scheduler_parts import consumer_migration
+from med_autoscience.controllers.domain_slo_scheduler_projection_parts import consumer_migration
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.legacy_residue_audit import build_legacy_residue_audit
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
@@ -556,11 +556,8 @@ def build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
         allowed_task_kinds=(
-            "runtime_supervision/recover",
-            "runtime_supervisor/recover",
-            "runtime/recover",
-            "runtime_supervisor/reconcile-apply",
-            "runtime/reconcile-apply",
+            "domain_route/recover",
+            "domain_route/reconcile-apply",
             "autonomy/continue",
             "paper_autonomy/repair-recheck",
             "paper_autonomy/ai-reviewer-recheck",

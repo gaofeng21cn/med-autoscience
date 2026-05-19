@@ -65,11 +65,11 @@ display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("dis
 delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspector"))
 hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
-supervision_scheduler = _LazyModuleProxy(lambda: _load_controller("supervision_scheduler"))
-runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_consumer"))
-runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_dispatch_executor"))
-runtime_supervisor_reconcile = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_reconcile"))
-runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
+domain_slo_scheduler_projection = _LazyModuleProxy(lambda: _load_controller("domain_slo_scheduler_projection"))
+domain_action_request_materializer = _LazyModuleProxy(lambda: _load_controller("domain_action_request_materializer"))
+domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain_owner_action_dispatch"))
+domain_route_reconcile = _LazyModuleProxy(lambda: _load_controller("domain_route_reconcile"))
+domain_route_scan = _LazyModuleProxy(lambda: _load_controller("domain_route_scan"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 workspace_legacy_physical_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_legacy_physical_cleanup"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
@@ -550,9 +550,9 @@ def main(argv: list[str] | None = None) -> int:
     if study_read_result is not None:
         return study_read_result
 
-    if args.command == "runtime-supervisor-consume":
+    if args.command == "domain-action-request-materialize":
         profile = load_profile(args.profile)
-        result = runtime_supervisor_consumer.supervisor_consume(
+        result = domain_action_request_materializer.materialize_domain_action_requests(
             profile=profile,
             study_ids=tuple(args.studies or ()),
             mode=args.mode,
@@ -561,9 +561,9 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "runtime-supervisor-execute-dispatch":
+    if args.command == "domain-owner-action-dispatch":
         profile = load_profile(args.profile)
-        result = runtime_supervisor_dispatch_executor.execute_default_executor_dispatches(
+        result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
             profile=profile,
             study_ids=tuple(args.studies or ()),
             action_types=tuple(args.action_types or ()),
@@ -574,9 +574,9 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "runtime-supervisor-reconcile":
+    if args.command == "domain-route-reconcile":
         profile = load_profile(args.profile)
-        result = runtime_supervisor_reconcile.supervisor_reconcile(
+        result = domain_route_reconcile.reconcile_domain_routes(
             profile=profile,
             study_ids=tuple(args.studies or ()),
             mode=args.mode,
@@ -585,9 +585,9 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "runtime-supervisor-refresh-controller-decisions":
+    if args.command == "domain-owner-action-refresh-controller-decisions":
         profile = load_profile(args.profile)
-        result = runtime_supervisor_dispatch_executor.refresh_controller_decisions_for_current_publication_eval(
+        result = domain_owner_action_dispatch.refresh_controller_decisions_for_current_publication_eval(
             profile=profile,
             study_ids=tuple(args.studies or ()),
             mode=args.mode,
@@ -832,7 +832,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "runtime-supervision-status":
         profile = load_profile(args.profile)
-        result = supervision_scheduler.read_supervision_status(
+        result = domain_slo_scheduler_projection.read_supervision_status(
             profile=profile,
             interval_seconds=int(args.interval_seconds),
             manager=str(args.manager),
@@ -842,7 +842,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "runtime-ensure-supervision":
         profile = load_profile(args.profile)
-        result = supervision_scheduler.ensure_supervision(
+        result = domain_slo_scheduler_projection.ensure_supervision(
             profile=profile,
             interval_seconds=int(args.interval_seconds),
             trigger_now=not bool(args.no_trigger_now),
@@ -855,7 +855,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "runtime-remove-supervision":
         profile = load_profile(args.profile)
-        result = supervision_scheduler.remove_supervision(
+        result = domain_slo_scheduler_projection.remove_supervision(
             profile=profile,
             interval_seconds=int(args.interval_seconds),
             manager=str(args.manager),
@@ -863,10 +863,10 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "runtime-supervisor-scan":
+    if args.command == "domain-route-scan":
         profile = load_profile(args.profile)
-        study_ids = tuple(args.studies or ()) or runtime_supervisor_scan.resolve_supervisor_scan_study_ids(profile)
-        result = runtime_supervisor_scan.supervisor_scan(
+        study_ids = tuple(args.studies or ()) or domain_route_scan.resolve_domain_route_scan_study_ids(profile)
+        result = domain_route_scan.scan_domain_routes(
             profile=profile,
             study_ids=study_ids,
             apply_safe_actions=bool(args.apply_safe_actions),
@@ -1289,7 +1289,7 @@ def main(argv: list[str] | None = None) -> int:
             hermes_agent_repo_root=profile.hermes_agent_repo_root,
             hermes_home_root=profile.hermes_home_root,
         )
-        supervision_bootstrap = supervision_scheduler.ensure_supervision(
+        supervision_bootstrap = domain_slo_scheduler_projection.ensure_supervision(
             profile=profile,
             manager="opl",
             trigger_now=False,

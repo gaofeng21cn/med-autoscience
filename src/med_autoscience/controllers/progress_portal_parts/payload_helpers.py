@@ -214,9 +214,9 @@ def _conditions(
         missing.append("current_package")
     tick_status = _non_empty_text(_mapping(runtime.get("supervisor_tick_audit")).get("status"))
     if tick_status in {"missing", "invalid"}:
-        missing.append("runtime_supervisor_tick")
+        missing.append("domain_route_tick")
     elif tick_status == "stale":
-        stale.append("runtime_supervisor_tick")
+        stale.append("domain_route_tick")
     progress_study_id = _non_empty_text(progress.get("study_id"))
     if progress_study_id and progress_study_id != study_id:
         conflict.append("progress_study_id_mismatch")

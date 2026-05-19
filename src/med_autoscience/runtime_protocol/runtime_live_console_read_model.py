@@ -728,7 +728,7 @@ def _controller_action_intents(
             "intent": "request_reconcile",
             "authority": "controller_required",
             "executes_directly": False,
-            "command": f"medautosci runtime supervisor-reconcile --profile {profile_arg}{study_arg}",
+            "command": f"medautosci runtime domain-route-reconcile --profile {profile_arg}{study_arg}",
         },
     ]
 

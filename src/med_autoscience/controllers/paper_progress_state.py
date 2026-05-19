@@ -242,7 +242,7 @@ def _safe_reconcile_command(payload: Mapping[str, Any]) -> str | None:
     if trigger.get("safe_to_request") is False:
         return None
     return _text(trigger.get("recommended_command")) or _text(
-        trigger.get("canonical_one_shot_supervisor_reconcile_command")
+        trigger.get("canonical_one_shot_reconcile_domain_routes_command")
     )
 
 

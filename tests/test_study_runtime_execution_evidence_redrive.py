@@ -165,7 +165,7 @@ def test_execute_resume_runtime_decision_redrives_platform_repair_instead_of_sto
             "continuation_anchor": "decision",
             "continuation_reason": "controller_work_unit_pending",
             "last_controller_decision_authorization": {
-                "source": "runtime_supervisor_scan_platform_repair",
+                "source": "domain_route_scan_platform_repair",
                 "work_unit_id": "analysis_claim_evidence_repair",
                 "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
             },
@@ -226,7 +226,7 @@ def test_execute_resume_runtime_decision_redrives_platform_repair_instead_of_sto
         quest_root=quest_root,
         runtime_root=tmp_path / "runtime",
         runtime_backend=object(),
-        source="runtime_supervisor_scan_platform_repair",
+        source="domain_route_scan_platform_repair",
         execution={"quest_id": "quest-003", "auto_resume": True},
     )
 
@@ -237,7 +237,7 @@ def test_execute_resume_runtime_decision_redrives_platform_repair_instead_of_sto
         {
             "runtime_root": str(tmp_path / "runtime"),
             "quest_id": "quest-003",
-            "source": "runtime_supervisor_scan_platform_repair",
+            "source": "domain_route_scan_platform_repair",
         }
     ]
     assert status.decision is module.StudyRuntimeDecision.RESUME

@@ -240,7 +240,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     )
     family_supervision = payload["family_runtime_supervision"]
     assert family_supervision["repair_command"] == (
-        f"medautosci runtime supervisor-reconcile --profile {profile_path} "
+        f"medautosci runtime domain-route-reconcile --profile {profile_path} "
         "--mode developer_apply_safe --dry-run"
     )
     assert family_supervision["local_scheduler_tombstone_ref"] == (
@@ -264,7 +264,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert payload["studies"][0]["slo_status"]["state"] == "breach"
     assert payload["studies"][0]["recovery_intent"]["current_action"] == "safe_reconcile_ready"
     assert payload["pending_family_tasks"][0]["domain_id"] == "medautoscience"
-    assert payload["pending_family_tasks"][0]["task_kind"] == "runtime_supervisor/reconcile-apply"
+    assert payload["pending_family_tasks"][0]["task_kind"] == "domain_route/reconcile-apply"
     assert payload["pending_family_tasks"][0]["payload"]["profile"] == str(profile_path)
     assert payload["pending_family_tasks"][0]["payload"]["study_id"] == "001-risk"
     assert payload["pending_family_tasks"][0]["requires_approval"] is False

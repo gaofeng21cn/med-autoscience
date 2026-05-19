@@ -423,7 +423,7 @@ def _write_owner_and_dispatch_receipts(
 ) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     owner_receipt = {
-        "surface": "runtime_supervisor_owner_route",
+        "surface": "domain_route_owner_route",
         "study_id": "001-risk",
         "quest_id": "quest-001",
         "idempotency_key": "route-001",
@@ -433,7 +433,7 @@ def _write_owner_and_dispatch_receipts(
         "owner_reason": "runtime_controller_redrive_required",
     }
     dispatch_receipt = {
-        "surface": "runtime_supervisor_dispatch_receipt",
+        "surface": "domain_owner_action_dispatch_receipt",
         "dispatch_id": "dispatch-001",
         "study_id": "001-risk",
         "quest_id": "quest-001",

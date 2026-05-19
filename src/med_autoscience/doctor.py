@@ -6,7 +6,7 @@ import platform
 
 from med_autoscience.ai_first_drift_audit import run_ai_first_drift_audit
 from med_autoscience.controllers.ai_first_observability import build_doctor_ai_first_observability_summary
-from med_autoscience.controllers import supervision_scheduler
+from med_autoscience.controllers import domain_slo_scheduler_projection
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.overlay import describe_medical_overlay
@@ -28,7 +28,7 @@ class DoctorReport:
     launcher_contract: dict[str, object] = field(default_factory=dict)
     behavior_gate: dict[str, object] = field(default_factory=dict)
     external_runtime_contract: dict[str, object] = field(default_factory=dict)
-    workspace_supervision_contract: dict[str, object] = field(default_factory=dict)
+    workspace_domain_route_contract: dict[str, object] = field(default_factory=dict)
     ai_first_drift_audit: dict[str, object] = field(default_factory=dict)
     ai_first_observability: dict[str, object] = field(default_factory=dict)
 
@@ -79,7 +79,7 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
                 ),
             )
         ),
-        workspace_supervision_contract=dict(supervision_scheduler.read_supervision_status(profile=profile)),
+        workspace_domain_route_contract=dict(domain_slo_scheduler_projection.read_supervision_status(profile=profile)),
         ai_first_drift_audit=ai_first_drift_audit,
         ai_first_observability=dict(
             build_doctor_ai_first_observability_summary(drift_audit=ai_first_drift_audit)
@@ -128,8 +128,8 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"behavior_gate: {json.dumps(report.behavior_gate, ensure_ascii=False, sort_keys=True)}",
         f"external_runtime_contract: {json.dumps(report.external_runtime_contract, ensure_ascii=False, sort_keys=True)}",
         (
-            "workspace_supervision_contract: "
-            + json.dumps(report.workspace_supervision_contract, ensure_ascii=False, sort_keys=True)
+            "workspace_domain_route_contract: "
+            + json.dumps(report.workspace_domain_route_contract, ensure_ascii=False, sort_keys=True)
         ),
         f"ai_first_drift_audit: {json.dumps(report.ai_first_drift_audit, ensure_ascii=False, sort_keys=True)}",
         f"ai_first_observability: {json.dumps(report.ai_first_observability, ensure_ascii=False, sort_keys=True)}",

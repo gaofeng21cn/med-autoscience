@@ -875,7 +875,7 @@ def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_reviewer_owner_co
     assert "A mechanical checklist or script output is not quality authority" in prompt
     assert "python -m med_autoscience.cli materialize-ai-medical-prose-review" in prompt
     assert "--payload-file <ai_reviewer_response.json>" in prompt
-    assert "python -m med_autoscience.cli runtime-supervisor-execute-dispatch" in prompt
+    assert "python -m med_autoscience.cli domain-owner-action-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "--mode developer_apply_safe --apply" in prompt
     assert "--managed-runtime-worker" in prompt

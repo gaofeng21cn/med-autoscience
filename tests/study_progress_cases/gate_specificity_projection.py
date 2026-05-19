@@ -392,7 +392,7 @@ def test_study_progress_reads_gate_specificity_request_surface(
     _write_json(
         request_path,
         {
-            "surface": "supervisor_action_request",
+            "surface": "domain_action_request",
             "schema_version": 1,
             "request_id": "publication_gate_specificity_required::002-risk::quest-002",
             "request_kind": "publication_gate_specificity_required",
@@ -492,7 +492,7 @@ def test_study_progress_suppresses_stale_gate_specificity_request_after_targets_
     _write_json(
         request_path,
         {
-            "surface": "supervisor_action_request",
+            "surface": "domain_action_request",
             "schema_version": 1,
             "request_id": "publication_gate_specificity_required::002-risk::quest-002",
             "request_kind": "publication_gate_specificity_required",

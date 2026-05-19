@@ -383,8 +383,8 @@
     "source_surfaces": [
       "artifacts/runtime/runtime_lifecycle.sqlite",
       "study_macro_state/latest.json",
-      "runtime_supervisor_owner_route",
-      "runtime_supervisor_dispatch_receipt",
+      "domain_route_owner_route",
+      "domain_route_dispatch_receipt",
       "surface_refs",
       "runtime_watch/latest.json",
       "controller_decisions/latest.json"

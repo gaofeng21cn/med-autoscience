@@ -353,7 +353,7 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         ],
         "history_refs": [
             "docs/active/opl_temporal_mas_runtime_retirement_program.md",
-            "docs/decisions.md#2026-05-16默认-supervision-scheduler-owner-迁到-opl-replacement",
+            "docs/decisions.md#2026-05-16默认-domain-slo-scheduler-projection-owner-迁到-opl-replacement",
         ],
         "physical_tombstone_refs": [
             "contracts/runtime/legacy-active-path-tombstones.json",

@@ -40,12 +40,12 @@ def test_stale_runtime_session_projects_safe_reconcile_recommendation() -> None:
     projection = _build_projection(_base_status())
 
     assert projection["safe_to_request"] is True
-    assert projection["request_kind"] == "runtime_supervisor_reconcile"
+    assert projection["request_kind"] == "domain_route_reconcile"
     assert projection["recommended_command"] == (
-        "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+        "uv run python -m med_autoscience.cli domain-route-reconcile "
         "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
     )
-    assert projection["dedupe_fingerprint"].startswith("runtime_supervisor_reconcile:")
+    assert projection["dedupe_fingerprint"].startswith("domain_route_reconcile:")
     assert projection["blocked_reasons"] == []
     assert projection["authority"]["writes_runtime"] is False
     assert projection["authority"]["writes_publication_truth"] is False
@@ -60,7 +60,7 @@ def test_due_outer_supervision_slo_projects_safe_reconcile_recommendation() -> N
                 "surface_kind": "outer_supervision_slo",
                 "state": "due",
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                    "uv run python -m med_autoscience.cli domain-route-reconcile "
                     "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
                 ),
             },
@@ -416,6 +416,6 @@ def test_study_progress_includes_safe_reconcile_trigger(monkeypatch, tmp_path) -
     assert slo["state"] in {"missing", "due", "stale"}
     assert trigger["safe_to_request"] is True
     assert trigger["recommended_command"] == (
-        "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+        "uv run python -m med_autoscience.cli domain-route-reconcile "
         "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
     )

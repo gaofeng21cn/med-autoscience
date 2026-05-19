@@ -121,7 +121,7 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert sidecar["allowed_bridge_writes"] == [
         "artifacts/runtime/opl_family_sidecar/dispatch_receipts/*.json",
     ]
-    assert "runtime_supervisor/reconcile-apply" in sidecar["allowed_task_kinds"]
+    assert "domain_route/reconcile-apply" in sidecar["allowed_task_kinds"]
     assert "notification/receipt" in sidecar["allowed_task_kinds"]
 
     projections = lane["entry_projection_surfaces"]
@@ -240,7 +240,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "opl_generated_harness_consumer_over_mas_pack"
     )
     consumer_migration = importlib.import_module(
-        "med_autoscience.controllers.supervision_scheduler_parts.consumer_migration"
+        "med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration"
     )
     runtime_boundary = consumer_migration.build_functional_consumer_boundary()
     minimal_authority = runtime_boundary["minimal_authority_function_manifest"]
@@ -316,7 +316,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert classification["declarative_pack_generated_surface"] == [
         "workspace_source_intake_shell",
         "workbench_portal_generic_shell",
-        "runtime_supervisor_scan_consume_dispatch_shell",
+        "domain_route_scan_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -400,14 +400,14 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         assert gate["can_emit_generic_owner_verdict"] is False
         assert "paper_closure_verdict" in gate["must_not_emit"]
         assert "active_caller_count=0" in gate["delete_or_tombstone_after"]
-    assert inventory_by_id["runtime_supervisor_scan_consume_dispatch_shell"]["active_caller_status"] == (
+    assert inventory_by_id["domain_route_scan_materialize_dispatch_shell"]["active_caller_status"] == (
         "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active"
     )
     closed_semantic_equivalence_modules = [
         "runtime_storage_maintenance",
         "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
-        "runtime_supervisor_scan_consume_dispatch_shell",
+        "domain_route_scan_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_queue_attempt_retry_dead_letter",
     ]
@@ -580,7 +580,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "sidecar_export.functional_consumer_boundary.declarative_pack_compiler_input",
         "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
         "sidecar_export.functional_consumer_boundary.minimal_authority_function_manifest",
-        "supervision_scheduler.consumer_migration.functional_consumer_boundary",
+        "domain_slo_scheduler_projection.consumer_migration.functional_consumer_boundary",
         "family_contract_adoption.runtime_observability_export",
     ]
     coverage = lane["opl_functional_harness_consumer_coverage"]

@@ -42,7 +42,7 @@ def _runtime_continuity_payload() -> dict[str, object]:
         "runtime_reconcile_trigger": {
             "safe_to_request": True,
             "recommended_command": (
-                "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                "uv run python -m med_autoscience.cli domain-route-reconcile "
                 "--profile /workspace/profile.toml --studies 001-risk --dry-run"
             ),
             "dedupe_fingerprint": "runtime-continuity-001",
@@ -173,7 +173,7 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert payload["study"]["next_system_action"] == "补充 subgroup 分析并更新 review ledger。"
     assert payload["freshness"]["status"] == "stale"
     assert payload["conditions"]["stale"] == ["progress_freshness"]
-    assert "runtime_supervisor_tick" in payload["conditions"]["missing"]
+    assert "domain_route_tick" in payload["conditions"]["missing"]
     assert payload["conditions"]["conflict"] == ["cockpit_study_id_mismatch", "package_study_id_mismatch"]
     assert "studies/001-risk/artifacts/publication_eval/latest.json" in payload["source_refs"]
     assert payload["quality"]["summary"] == "证据链仍需补强。"
@@ -687,7 +687,7 @@ def test_progress_portal_projects_outer_supervision_slo_conditions() -> None:
             "surface_kind": "outer_supervision_slo",
             "state": "due",
             "recommended_command": (
-                "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                "uv run python -m med_autoscience.cli domain-route-reconcile "
                 "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
             ),
         },

@@ -508,7 +508,7 @@ def test_live_console_no_live_run_renders_meaningful_empty_state() -> None:
                 "intent": "request_reconcile",
                 "authority": "controller_required",
                 "executes_directly": False,
-                "command": "medautosci runtime supervisor-reconcile --profile <profile>",
+                "command": "medautosci runtime domain-route-reconcile --profile <profile>",
             }
         ],
     }
@@ -525,7 +525,7 @@ def test_live_console_no_live_run_renders_meaningful_empty_state() -> None:
     assert "标记运行但没有 live session" in html
     assert "runtime 恢复重试预算耗尽" in html
     assert "需要外层 supervisor" in html
-    assert "medautosci runtime supervisor-reconcile --profile &lt;profile&gt;" in html
+    assert "medautosci runtime domain-route-reconcile --profile &lt;profile&gt;" in html
     assert "No stream tail supplied." not in html
     assert ">unknown<" not in html
     assert ">none<" not in html

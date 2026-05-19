@@ -36,7 +36,7 @@ from .work_unit_evidence_adoption import (
 )
 
 
-_RUNTIME_PLATFORM_REPAIR_SOURCE = "runtime_supervisor_scan_platform_repair"
+_RUNTIME_PLATFORM_REPAIR_SOURCE = "domain_route_scan_platform_repair"
 _PLATFORM_REPAIR_REDRIVE_CONTINUATION_REASONS = {
     "controller_work_unit_pending",
     "runtime_platform_repair_redrive",

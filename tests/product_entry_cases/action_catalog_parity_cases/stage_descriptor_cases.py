@@ -268,7 +268,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     }
     expected_runtime_event_refs = {
         "direction_and_route_selection": [
-            "runtime_event:runtime_supervisor_owner_route.direction_route_selected",
+            "runtime_event:domain_route_owner_route.direction_route_selected",
             "runtime_event:controller_decisions.direction_route_selected",
         ],
         "baseline_and_evidence_setup": [

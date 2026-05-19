@@ -192,7 +192,7 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     assert tombstone["tombstone_refs"] == tombstone["physical_tombstone_refs"]
     assert tombstone["history_refs"] == [
         "docs/active/opl_temporal_mas_runtime_retirement_program.md",
-        "docs/decisions.md#2026-05-16默认-supervision-scheduler-owner-迁到-opl-replacement",
+        "docs/decisions.md#2026-05-16默认-domain-slo-scheduler-projection-owner-迁到-opl-replacement",
     ]
     assert tombstone["removal_policy"]["current_action"] == "legacy_active_path_tombstones_landed"
     assert tombstone["authority_boundary"]["can_authorize_submission_readiness"] is False

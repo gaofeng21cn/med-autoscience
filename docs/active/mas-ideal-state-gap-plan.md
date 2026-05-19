@@ -46,7 +46,7 @@ AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invoca
 
 当前修复后，MAS 在 `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs` 中声明了：
 
-- `direction_and_route_selection`：`runtime_event:runtime_supervisor_owner_route.direction_route_selected`、`runtime_event:controller_decisions.direction_route_selected`。
+- `direction_and_route_selection`：`runtime_event:domain_route_owner_route.direction_route_selected`、`runtime_event:controller_decisions.direction_route_selected`。
 - `baseline_and_evidence_setup`：`runtime_event:controller_decisions.baseline_evidence_ready`、`runtime_event:evidence_ledger.baseline_evidence_ready`。
 - `bounded_analysis_campaign`：`runtime_event:runtime_watch.bounded_analysis_evidence_ready`、`runtime_event:evidence_ledger.bounded_analysis_evidence_ready`。
 - `manuscript_authoring`：`runtime_event:controller_decisions.manuscript_draft_reviewable`、`runtime_event:canonical_manuscript.manuscript_draft_reviewable`。
@@ -61,20 +61,16 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 2026-05-19 的标准 pack 合同校准把 MAS `pack_compiler_input` 收到 OPL scaffold 的 canonical 形状：`canonical_semantic_pack_root="agent/"`、`canonical_semantic_pack_role="declarative_medical_research_semantics_for_opl_pack_compiler"`，不再暴露旧 `canonical_repo_source_semantic_pack_root`。`required_domain_pack_paths` 必须只指向真实 agent pack 语义文件，不能通过 README 或目录存在性替代 prompts / stages / skills / quality gates / knowledge 文件。
 
-2026-05-19 继续把物理代码层的 runtime transport 收薄边界机器化：`runtime_backend_default_operation_contract`、`product-entry-manifest` 与 sidecar export 现在都暴露 `runtime_backend_is_generic_owner=false` / `runtime_transport_handoff_projection`。它逐项声明 `mas_runtime_core`、turn runner、worker lease、runtime supervisor scan/consume/dispatch/reconcile 和 `runtime_lifecycle_store.py` 只能作为 MAS domain owner receipt adapter、refs-only SQLite sidecar、guarded apply / typed blocker 或 standalone diagnostic；generic runtime、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 和 workbench owner 全部归 OPL replacement surface。该投影不是把这些文件写成长期 MAS 平台；它是后续在无 domain direct/diagnostic caller、OPL parity 与 domain receipt parity 成立后执行物理删除或 archive/tombstone 的 gate。
+2026-05-19 继续把物理代码层的 runtime transport 收薄边界机器化：`runtime_backend_default_operation_contract`、`product-entry-manifest` 与 sidecar export 现在都暴露 `runtime_backend_is_generic_owner=false` / `runtime_transport_handoff_projection`。它逐项声明 `mas_runtime_core`、turn runner、worker lease、domain route scan/consume/dispatch/reconcile 和 `runtime_lifecycle_store.py` 只能作为 MAS domain owner receipt adapter、refs-only SQLite sidecar、guarded apply / typed blocker 或 standalone diagnostic；generic runtime、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 和 workbench owner 全部归 OPL replacement surface。该投影不是把这些文件写成长期 MAS 平台；它是后续在无 domain direct/diagnostic caller、OPL parity 与 domain receipt parity 成立后执行物理删除或 archive/tombstone 的 gate。
 
-本轮调研把 `physical_source_morphology_standardization` 明确为独立结构口径。成熟 agent/runtime 框架的共同做法是分开 agent declaration、tools / authority functions、runtime orchestration、state persistence 与 workbench/evidence gate；OPL 吸收这一分层原则，MAS 不能继续用物理源码形态暗示自己持有 generic supervisor/runtime。2026-05-19 live check 的参考依据包括 [OpenAI Agents SDK Agents](https://openai.github.io/openai-agents-python/agents/) 对 Agent 与 Runner / sessions / handoffs / guardrails 的分层，[LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence) 对 checkpoint / thread / store / replay 的分层，[AutoGen AgentChat agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/agents.html) 与 [teams](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html) 对 agents / tools / workbench / teams 的分层，以及 [CrewAI agents](https://docs.crewai.com/en/concepts/agents) 对 YAML agent declaration 与 process 承载的分层。它们是工程经验来源，不是 MAS runtime dependency。
-
-当前 MAS 的物理源码形态仍有明确 cleanup tail：`runtime_transport/mas_runtime_core.py`、`runtime_protocol/runtime_lifecycle_store.py`、`controllers/runtime_supervisor_scan.py`、`controllers/runtime_supervisor_consumer.py`、`controllers/runtime_supervisor_dispatch_executor.py`、`controllers/runtime_supervisor_reconcile.py`、`controllers/supervision_scheduler.py`、`product_entry_parts/workspace_cockpit/`、`controllers/sidecar_provider.py` 和相关 CLI/test-lane 注册仍在 active source 中。它们已经被合同收薄为 domain bridge、owner receipt adapter、refs-only sidecar、typed blocker、diagnostic 或 direct domain handler target；这不是最终标准 OPL Agent 物理形态。后续必须逐项改名、拆分、迁出 developer repair 元数据、archive、delete 或 tombstone，直到源码读者无需理解历史命名也能看出 generic runtime owner 在 OPL。
-
-MAS 理想源码读法应是：
+本轮把 `physical_source_morphology_standardization` 明确为独立结构口径并完成 active source 收口。成熟 agent/runtime 框架的共同做法是分开 agent declaration、tools / authority functions、runtime orchestration、state persistence 与 workbench/evidence gate；OPL 吸收这一分层原则，MAS 不能继续用物理源码形态暗示自己持有 generic runtime platform。2026-05-19 live check 的参考依据包括 [OpenAI Agents SDK Agents](https://openai.github.io/openai-agents-python/agents/) 对 Agent 与 Runner / sessions / handoffs / guardrails 的分层，[LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence) 对 checkpoint / thread / store / replay 的分层，[AutoGen AgentChat agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/agents.html) 与 [teams](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html) 对 agents / tools / workbench / teams 的分层，以及 [CrewAI agents](https://docs.crewai.com/en/concepts/agents) 对 YAML agent declaration 与 process 承载的分层。它们是工程经验来源，不是 MAS runtime dependency。MAS 理想源码读法应是:
 
 - `agent/` 持有医学 stage、prompt、skill、knowledge、quality gate 和 policy。
 - `contracts/` 持有 OPL pack compiler input、stage/action/memory/artifact/receipt contract、runtime handoff、evidence request 和 cleanup gate。
 - `runtime/authority_functions/` 或 `src/med_autoscience/**` 中长期保留的代码只承担 medical authority function、domain handler、refs-only adapter、native helper、diagnostic probe 或 fixture。
-- `supervisor` / `scheduler` / `runtime` / `lifecycle` / `worker lease` 命名如果仍在 active source 中出现，必须被改名、拆分或证明为 domain bridge / refs-only adapter / diagnostic / tombstone；不能让读者理解为 MAS-owned generic runtime。
+- generic runtime / lifecycle / worker lease 命名如果仍在 active source 中出现，必须被拆分或证明为 domain bridge / refs-only adapter / diagnostic / tombstone；不能让读者理解为 MAS-owned generic runtime。
 
-因此，`runtime_supervisor_scan.py`、`runtime_supervisor_consumer.py`、`runtime_supervisor_dispatch_executor.py`、`runtime_supervisor_reconcile.py` 与 `supervision_scheduler*` 当前是历史命名下的 domain route / receipt / typed-blocker bridge，不是最终命名形态。下一轮 physical thinning 应把它们拆成或改名为医学语义 surfaces，例如 `domain_route_projection`、`owner_action_request`、`authority_receipt_dispatch`、`domain_blocker_reconcile`、`diagnostic_probe`；其中仍只携带 developer repair/worktree 元数据的字段，应迁入 OPL Agent Lab / developer repair lane 或改成 explicit contract refs。这个 gap 属于功能/结构 cleanup tail，不是单纯 evidence tail。
+因此，当前 active API 已物理归位到 `domain_route_scan.py`、`domain_action_request_materializer.py`、`domain_owner_action_dispatch.py`、`domain_route_reconcile.py` 和 `domain_slo_scheduler_projection.py`。这些 active surfaces 现在表达 domain route projection、owner action request、authority dispatch receipt、typed blocker reconcile 与 OPL runtime-manager SLO projection；developer repair/worktree 元数据不再进入 owner payload。该结构 tail 已关闭，剩余删除 gate 只针对 runtime transport、SQLite lifecycle sidecar、turn runner 和 worker lease 这类仍有 active domain/diagnostic ref caller 的 refs-only adapter。
 
 同一轮收口把 `runtime_lifecycle_sqlite_reference_adapter`、`runtime_storage_maintenance` 和 `terminal_attach_transport` 的 residual 物理形态写入 `functional_consumer_boundary` / `functional_module_inventory`：三者均为 `refs_only_adapter`，只允许输出 owner receipt ref、workspace/artifact/source/status refs、cleanup/terminal gate receipts 或 typed blocker；`generic_owner_claim_allowed=false`，并显式禁止 generic runtime verdict、generic cleanup policy、generic terminal runtime owner 和 paper closure verdict。该项解决的是“正确的东西在正确位置”的结构问题，不是单纯测试补强。
 
@@ -82,7 +78,7 @@ MAS 理想源码读法应是：
 
 同一轮也给全部仍保留 active domain / diagnostic caller 的 `refs_only_adapter` 增加 `refs_only_adapter_retirement_gates`：`runtime_lifecycle_sqlite_reference_adapter`、`paper_work_unit_outbox_index`、`runtime_storage_maintenance`、`publication_route_memory_locator_transport_shell`、`artifact_lifecycle_storage_audit_shell`、`terminal_attach_transport` 必须逐项声明 active caller proof、`active_caller_count>0`、`delete_or_tombstone_after`、`generic_owner_claim_allowed=false`、`can_emit_paper_closure_verdict=false` 和 `can_emit_generic_owner_verdict=false`。这些 gate 证明仍保留的代码路径只是 refs-only / diagnostic / domain receipt adapter；只有在 active caller 清零、OPL parity 与对应 focused tests 成立后，才进入物理删除或 tombstone。
 
-2026-05-19 的 OPL legacy cleanup 进一步证明 MAS tombstone proof refs 已被 OPL gate 接受：`opl agents legacy-cleanup apply --domain mas --mode dry-run` 返回 `plan_status=ready` 与 `lifecycle_apply.status=dry_run_ready`，随后 `--mode apply` 写入 OPL refs-only lifecycle ledger 的空计划 closure batch receipt，`--mode verify` 可读回 `verified_receipt_count=1`。MAS manifest 现在向 OPL 暴露 replacement parity refs、no-regression evidence refs、history refs 和 tombstone refs；这只关闭 OPL cleanup ledger blocker，不表示 MAS tracked runtime transport、supervisor 或 SQLite sidecar 已物理删除，也不表示真实 paper-line provider apply、App 发布路径或 App/workbench 用户路径已完成。
+2026-05-19 的 OPL legacy cleanup 进一步证明 MAS tombstone proof refs 已被 OPL gate 接受：`opl agents legacy-cleanup apply --domain mas --mode dry-run` 返回 `plan_status=ready` 与 `lifecycle_apply.status=dry_run_ready`，随后 `--mode apply` 写入 OPL refs-only lifecycle ledger 的空计划 closure batch receipt，`--mode verify` 可读回 `verified_receipt_count=1`。MAS manifest 现在向 OPL 暴露 replacement parity refs、no-regression evidence refs、history refs 和 tombstone refs；这只关闭 OPL cleanup ledger blocker，不表示 MAS tracked runtime transport 或 SQLite sidecar 已物理删除，也不表示真实 paper-line provider apply、App 发布路径或 App/workbench 用户路径已完成。
 
 以下 5 项已作为功能/结构 closure gate 关闭：
 
@@ -91,7 +87,7 @@ MAS 理想源码读法应是：
 
 2. `refs_only_adapter_thinning`
    runtime lifecycle SQLite、paper outbox、runtime storage maintenance、workspace/source intake、publication-route memory transport、artifact lifecycle audit、terminal attach 和相关 projection 已收薄为 body-free locator、receipt、blocker、authority refs 或 diagnostic exporter；这些路径不得承担 MAS generic lifecycle / restore-retention / workbench owner，也不得读取 memory body 或 artifact body。
-   `runtime_transport_handoff_projection` 进一步把 runtime transport 与 supervisor 代码路径逐项约束为 OPL-owned generic runtime 的 domain bridge / diagnostic，不允许它们重新声明 MAS-owned queue、attempt ledger、worker residency、transition runner 或 persistence engine。
+   `runtime_transport_handoff_projection` 进一步把 runtime transport 与 domain route 代码路径逐项约束为 OPL-owned generic runtime 的 domain bridge / diagnostic，不允许它们重新声明 MAS-owned queue、attempt ledger、worker residency、transition runner 或 persistence engine。
 
 3. `legacy_cleanup_physical_retirement`
    local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 已完成 physical retirement；当前机器清单把 local scheduler install path 与 workspace-local watch wrappers 归为 `legacy_cleanup_physical_retired`，只保留 tombstone/provenance refs 和 forbidden-caller proof。当前 `manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。OPL cleanup dry-run / apply / verify 已能消费 MAS replacement / history / tombstone proof refs；后续任何物理删除、archive 或 tombstone 仍受 domain owner receipt、OPL parity 和 no-active-caller gate 约束。
@@ -128,15 +124,15 @@ MAS 理想源码读法应是：
 1. `paper_line_evidence_scaleout`
    在结构收口后推进真实 paper-line provider apply、memory receipt、artifact lifecycle receipt、human gate/resume 和 provider SLO long soak。这里负责验收迁移后的目标边界，不负责替代迁移本身。
 
-2. `physical_source_morphology_thinning`
-   在不重建 MAS generic runtime 的前提下，按 active caller、OPL parity、domain receipt parity 和 provenance gate 继续处理 runtime supervisor / supervision scheduler / turn runner / worker lease / SQLite lifecycle writer / product cockpit / sidecar provider / status projection。优先做语义改名、domain bridge 拆分、developer repair 元数据外迁、diagnostic tombstone 和 no-active-caller 后物理删除；每次都必须保持 no-forbidden-write、paper truth / artifact authority 不越权。
+2. `refs_only_physical_deletion_gates`
+   在不重建 MAS generic runtime 的前提下，按 active caller、OPL parity、domain receipt parity 和 provenance gate 继续处理 runtime transport / turn runner / worker lease / SQLite lifecycle writer / product cockpit / sidecar provider / status projection。domain route 与 domain SLO projection active source 已完成物理命名收口；后续只在 no-active-caller、OPL parity 和 domain receipt parity 成立时继续删除、archive 或 tombstone refs-only adapter，并保持 no-forbidden-write、paper truth / artifact authority 不越权。
 
 ## 当前不能写成
 
 - 不能写成 OPL provider proof 等于 MAS paper closure、publication-ready 或 artifact mutation authorization。
 - 不能写成 `mas_owner_receipt_present` / stable blocker 等于 workspace mutation、artifact authority 放行或 paper closure。
 - 不能写成 MAS 已经没有任何私有程序面；准确口径是私有面已收敛为声明式 pack / generated surface handoff、refs-only adapter、minimal authority function 或 no-active-caller cleanup tombstone/provenance gate。
-- 不能写成 `runtime_transport/`、runtime supervisor 或 `runtime_lifecycle_store.py` 已经物理删除；准确口径是它们已有 OPL handoff 机器投影，默认不能作为 MAS generic runtime 基座，只能在无 domain direct/diagnostic caller 与 parity proof 后进入物理删除、archive 或 tombstone。
+- 不能写成 `runtime_transport/`、domain route 或 `runtime_lifecycle_store.py` 已经物理删除；准确口径是它们已有 OPL handoff 机器投影，默认不能作为 MAS generic runtime 基座，只能在无 domain direct/diagnostic caller 与 parity proof 后进入物理删除、archive 或 tombstone。
 - 不能把 `refs_only_adapter_retirement_gates` 写成继续保留 MAS generic runtime；这些 gate 只证明仍有 active domain / diagnostic ref caller 和明确删除门。
 - 不能把 `legacy_cleanup_tombstone_provenance` 写成 active cleanup residue；它只保留 no-active-caller proof、history/tombstone refs 和 forbidden output 边界。
 - 不能把 `runtime_backend_id=mas_runtime_core` 读成 MAS generic runtime owner；当前 machine contract 已明确 `runtime_owner=one-person-lab`、`runtime_substrate=opl_provider_backed_stage_runtime`、`runtime_backend_role=mas_domain_owner_receipt_adapter`、`runtime_backend_is_generic_owner=false`。

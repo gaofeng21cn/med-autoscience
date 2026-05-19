@@ -92,8 +92,8 @@ def test_ai_first_prose_request_and_retrospective_audit_are_reviewer_owned() -> 
     assert "Use the corpus to learn voice, rhythm, and reviewer questions" in corpus_source
 
 
-def test_supervisor_action_requests_remain_observability_only() -> None:
-    source = _read("src/med_autoscience/controllers/supervisor_action_requests.py")
+def test_domain_action_requests_remain_observability_only() -> None:
+    source = _read("src/med_autoscience/controllers/domain_action_requests.py")
 
     assert '"authority": "observability_only"' in source
     assert '"authoritative": False' in source

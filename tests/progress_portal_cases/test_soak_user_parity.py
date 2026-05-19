@@ -183,7 +183,7 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
             {
                 "intent": "request_reconcile",
                 "executes_directly": False,
-                "command": "medautosci runtime supervisor-reconcile --profile <profile> --study-id DM002",
+                "command": "medautosci runtime domain-route-reconcile --profile <profile> --study-id DM002",
             }
         ],
         "events": [{"topic": "runtime.health", "study_id": "DM002", "observed_at": "2026-05-09T00:59:00+00:00"}],

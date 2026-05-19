@@ -171,7 +171,7 @@ def test_autonomy_slo_read_model_explains_existing_low_information_breach(tmp_pa
                 },
                 "runtime_reconcile_trigger": {
                     "safe_to_request": True,
-                    "recommended_command": "runtime-supervisor-reconcile --dry-run --study-id 003-dpcc",
+                    "recommended_command": "domain-route-reconcile --dry-run --study-id 003-dpcc",
                     "action_class": "reconcile_dry_run",
                 },
                 "controller_apply_receipt": {

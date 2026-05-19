@@ -129,7 +129,7 @@ def test_live_console_read_model_projects_output_blocker_impact_without_writes()
             "runtime_reconcile_trigger": {
                 "safe_to_request": True,
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                    "uv run python -m med_autoscience.cli domain-route-reconcile "
                     "--profile /workspace/profile.toml --studies 001-risk --dry-run"
                 ),
                 "will_start_llm": False,

@@ -31,7 +31,7 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={
+            workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
                 "summary": "Runtime supervision online.",

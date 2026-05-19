@@ -536,7 +536,7 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     focused_lanes = manifest["focused_lanes"]
     expected = {
         "control-plane-autonomy": "read_only_inventory_and_observability",
-        "supervisor-reconcile": "scan_consume_execute_rescan_contract",
+        "domain-route-reconcile": "scan_consume_execute_rescan_contract",
         "workspace-monolith-migration": "dry_run_before_real_workspace_apply",
         "outer-supervision-slo": "scheduler_bound_read_model_safe_reconcile_projection",
         "portal-console-soak": "read_only_display_evidence",

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_catalog
-from med_autoscience.controllers.supervision_scheduler_parts.consumer_migration import (
+from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration import (
     build_functional_consumer_boundary,
 )
 from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.agent_pack_refs import (
@@ -354,7 +354,7 @@ def _pack_compiler_input() -> dict[str, Any]:
                 "family_adoption.py::build_domain_memory_descriptor"
             ),
             "functional_audit": (
-                "src/med_autoscience/controllers/supervision_scheduler_parts/"
+                "src/med_autoscience/controllers/domain_slo_scheduler_projection_parts/"
                 "consumer_migration.py::build_functional_consumer_boundary"
             ),
         },

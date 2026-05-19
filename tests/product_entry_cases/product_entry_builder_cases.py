@@ -28,7 +28,7 @@ def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path
         med_deepscientist_runtime_exists=True,
         medical_overlay_ready=True,
         external_runtime_contract={"ready": True},
-        workspace_supervision_contract={"loaded": True},
+        workspace_domain_route_contract={"loaded": True},
     )
     captured: dict[str, object] = {}
 

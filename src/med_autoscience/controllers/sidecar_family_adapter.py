@@ -13,8 +13,8 @@ from . import paper_repair_executor
 from . import publication_aftercare
 from . import real_paper_autonomy_soak_inventory
 from . import reviewer_refinement_loop
-from . import runtime_supervisor_dispatch_executor
-from . import runtime_supervisor_reconcile
+from . import domain_owner_action_dispatch
+from . import domain_route_reconcile
 from . import stage_knowledge_plane
 from . import study_domain_transition_table
 from .real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
@@ -29,7 +29,7 @@ from .sidecar_family_adapter_parts.guarded_apply_tasks import (
 )
 from .sidecar_family_adapter_parts.owner_source_refs import owner_controller_decision_refs
 from .sidecar_family_adapter_parts.substrate_adapter import build_opl_substrate_adapter_projection
-from .supervision_scheduler_parts import consumer_migration
+from .domain_slo_scheduler_projection_parts import consumer_migration
 
 
 _FORBIDDEN_PAYLOAD_FLAGS = (
@@ -56,19 +56,16 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
 )
 _ALLOWED_TASK_KINDS = {
-    "runtime_supervision/recover": "runtime_supervisor_recover",
-    "runtime_supervisor/recover": "runtime_supervisor_recover",
-    "runtime/recover": "runtime_supervisor_recover",
-    "runtime_supervisor/reconcile-apply": "runtime_supervisor_reconcile_apply",
-    "runtime/reconcile-apply": "runtime_supervisor_reconcile_apply",
-    "autonomy/continue": "runtime_supervisor_reconcile_apply",
+    "domain_route/recover": "domain_route_recover",
+    "domain_route/reconcile-apply": "domain_route_reconcile_apply",
+    "autonomy/continue": "domain_route_reconcile_apply",
     "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/guarded-apply": "paper_autonomy_guarded_apply",
-    publication_aftercare.ANALYSIS_QUEUE_TASK_KIND: "runtime_supervisor_reconcile_apply",
+    publication_aftercare.ANALYSIS_QUEUE_TASK_KIND: "domain_route_reconcile_apply",
     publication_aftercare.REVIEWER_REFRESH_TASK_KIND: "ai_reviewer_recheck_execute_dispatch",
-    "paper_autonomy/gate-replay": "runtime_supervisor_reconcile_apply",
-    "paper_autonomy/route-decision": "runtime_supervisor_reconcile_apply",
+    "paper_autonomy/gate-replay": "domain_route_reconcile_apply",
+    "paper_autonomy/route-decision": "domain_route_reconcile_apply",
     "safe_reconcile/dry-run": "safe_reconcile_dry_run",
     "study_progress/read": "study_progress_read",
     "status/read": "status_read",
@@ -301,7 +298,7 @@ def export_family_sidecar(
                 "state": _aggregate_slo_state(studies),
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",
             },
-            "repair_command": f"medautosci runtime supervisor-reconcile --profile {profile_ref} --mode developer_apply_safe --dry-run",
+            "repair_command": f"medautosci runtime domain-route-reconcile --profile {profile_ref} --mode developer_apply_safe --dry-run",
             "local_scheduler_tombstone_ref": (
                 "contracts/runtime/legacy-active-path-tombstones.json#mas-local-scheduler"
             ),
@@ -463,7 +460,7 @@ def _autonomy_continuation_projection(*, study: Mapping[str, Any], profile: Work
         "blocked_by_human_gate": _hard_human_gate_required(controller),
         "blocked_by_terminal_decision": _terminal_controller_decision(controller),
         "reason": reason,
-        "recommended_task_kind": "runtime_supervisor/reconcile-apply" if reason is not None else None,
+        "recommended_task_kind": "domain_route/reconcile-apply" if reason is not None else None,
         "recommended_domain_owner": "med-autoscience" if reason is not None else None,
         "workspace_profile": profile.name,
     }
@@ -517,7 +514,7 @@ def _pending_family_tasks(
         if not continuation.get("eligible_for_auto_dispatch"):
             continue
         reason = _text(continuation.get("reason")) or "autonomy_continuation"
-        task_kind = _text(continuation.get("recommended_task_kind")) or "runtime_supervisor/reconcile-apply"
+        task_kind = _text(continuation.get("recommended_task_kind")) or "domain_route/reconcile-apply"
         tasks.append(
             {
                 "domain_id": "medautoscience",
@@ -634,12 +631,12 @@ def _profile_from_task(task: Mapping[str, Any]) -> tuple[WorkspaceProfile | None
 def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id: str | None) -> str:
     profile_part = f" --profile {profile_ref}" if profile_ref is not None else " --profile <profile>"
     study_part = f" --studies {study_id}" if study_id else ""
-    if action_type == "runtime_supervisor_recover":
-        return f"uv run python -m med_autoscience.cli runtime-supervisor-scan{profile_part}{study_part}"
+    if action_type == "domain_route_recover":
+        return f"uv run python -m med_autoscience.cli domain-route-scan{profile_part}{study_part}"
     if action_type == "safe_reconcile_dry_run":
-        return f"uv run python -m med_autoscience.cli runtime-supervisor-reconcile{profile_part}{study_part} --mode developer_apply_safe --dry-run"
-    if action_type == "runtime_supervisor_reconcile_apply":
-        return f"uv run python -m med_autoscience.cli runtime-supervisor-reconcile{profile_part}{study_part} --mode developer_apply_safe --apply"
+        return f"uv run python -m med_autoscience.cli domain-route-reconcile{profile_part}{study_part} --mode developer_apply_safe --dry-run"
+    if action_type == "domain_route_reconcile_apply":
+        return f"uv run python -m med_autoscience.cli domain-route-reconcile{profile_part}{study_part} --mode developer_apply_safe --apply"
     if action_type == "study_progress_read":
         return f"uv run python -m med_autoscience.cli study-progress{profile_part}{study_part} --format json"
     return f"uv run python -m med_autoscience.cli product-entry-status{profile_part} --format json"
@@ -652,7 +649,7 @@ def _execute_reconcile_apply(
 ) -> dict[str, Any] | None:
     if profile is None:
         return None
-    return runtime_supervisor_reconcile.supervisor_reconcile(
+    return domain_route_reconcile.reconcile_domain_routes(
         profile=profile,
         study_ids=(study_id,) if study_id else (),
         mode="developer_apply_safe",
@@ -695,7 +692,7 @@ def _execute_ai_reviewer_recheck(
 ) -> dict[str, Any] | None:
     if profile is None:
         return None
-    return runtime_supervisor_dispatch_executor.execute_default_executor_dispatches(
+    return domain_owner_action_dispatch.dispatch_domain_owner_actions(
         profile=profile,
         study_ids=(study_id,) if study_id else (),
         action_types=("return_to_ai_reviewer_workflow",),
@@ -791,7 +788,7 @@ def _apply_dispatch_action(
     study_id: str | None,
     task: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if action_type == "runtime_supervisor_reconcile_apply":
+    if action_type == "domain_route_reconcile_apply":
         return _with_reconcile_apply(receipt=receipt, profile=profile, study_id=study_id)
     if action_type == "paper_repair_executor_dispatch":
         return _with_paper_repair(receipt=receipt, profile=profile, study_id=study_id, task=task)

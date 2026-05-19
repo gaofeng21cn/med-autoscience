@@ -713,7 +713,7 @@ def test_schedule_turn_prunes_orphan_leased_worker_before_starting_new_run(tmp_p
             runtime_root=runtime_root,
             quest_id="quest-001",
             reason="controller_work_unit_pending",
-            source="runtime_supervisor_scan_platform_repair",
+            source="domain_route_scan_platform_repair",
         )
 
         state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))

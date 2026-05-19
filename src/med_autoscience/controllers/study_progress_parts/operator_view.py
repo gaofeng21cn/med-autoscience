@@ -76,7 +76,7 @@ def _recovery_contract(
         steps = [
             _recovery_step(
                 step_id="refresh_supervision",
-                title="刷新 MAS scheduler supervision tick",
+                title="刷新 OPL runtime manager domain route tick",
                 surface_kind="runtime_watch_refresh",
                 command=commands["refresh_supervision"],
             ),

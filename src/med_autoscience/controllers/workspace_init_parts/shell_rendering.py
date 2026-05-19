@@ -142,23 +142,23 @@ def _render_watch_runtime_script(*, workspace_root: Path, runtime_quests_root: P
     )
 
 
-def _render_supervisor_scan_script() -> str:
+def _render_scan_domain_routes_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime supervisor-scan \\\n'
+        'run_medautosci runtime domain-route-scan \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         '  "$@"\n'
     )
 
 
-def _render_supervisor_consume_script() -> str:
+def _render_materialize_domain_action_requests_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime supervisor-consume \\\n'
+        'run_medautosci runtime domain-action-request-materialize \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         f"  {DEVELOPER_SUPERVISOR_CONSUME_ARGS} \\\n"
         '  "$@"\n'
@@ -170,19 +170,19 @@ def _render_supervisor_execute_dispatch_script() -> str:
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime supervisor-execute-dispatch \\\n'
+        'run_medautosci runtime domain-owner-action-dispatch \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         f"  {DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS} \\\n"
         '  "$@"\n'
     )
 
 
-def _render_supervisor_reconcile_script() -> str:
+def _render_reconcile_domain_routes_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime supervisor-reconcile \\\n'
+        'run_medautosci runtime domain-route-reconcile \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         f"  {DEVELOPER_SUPERVISOR_RECONCILE_ARGS} \\\n"
         '  "$@"\n'

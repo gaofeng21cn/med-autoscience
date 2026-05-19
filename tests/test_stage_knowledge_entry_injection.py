@@ -5,7 +5,7 @@ from pathlib import Path
 
 from med_autoscience.controllers import portfolio_memory
 from med_autoscience.controllers import stage_knowledge_entry
-from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
+from med_autoscience.controllers.domain_route_scan_parts import request_packets
 
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:

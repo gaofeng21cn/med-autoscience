@@ -58,7 +58,7 @@ def test_dm002_retry_budget_controller_route_awaits_controller_redrive() -> None
             "runtime_reconcile_trigger": {
                 "safe_to_request": True,
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                    "uv run python -m med_autoscience.cli domain-route-reconcile "
                     "--profile /tmp/profile.json --studies 002-dm-china-us-mortality-attribution --dry-run"
                 ),
             },
@@ -147,7 +147,7 @@ def test_dm003_missing_callable_owner_without_user_input_awaits_callable_owner()
             "runtime_reconcile_trigger": {
                 "safe_to_request": True,
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                    "uv run python -m med_autoscience.cli domain-route-reconcile "
                     "--profile /tmp/profile.json --studies 003-dpcc-primary-care-phenotype-treatment-gap --dry-run"
                 ),
             },

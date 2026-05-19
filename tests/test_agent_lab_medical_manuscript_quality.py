@@ -105,7 +105,7 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
     assert (
-        "mechanism-edit-ref:mas/runtime-supervisor-analysis-harmonization-owner-result-consumption"
+        "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
     assert "hdl-harmonization-and-sensitivity" in " ".join(task["improvement_candidate"]["evidence_refs"])
@@ -114,7 +114,7 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "hard-methodology-unit-harmonization-route" in " ".join(task["promotion_gate"]["regression_suite_refs"])
     assert "analysis-harmonization-owner-routing" in " ".join(mechanism_inputs["target_editable_surface_refs"])
     assert (
-        "runtime_supervisor_analysis_harmonization_owner_result_consumption"
+        "domain_route_analysis_harmonization_owner_result_consumption"
         in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     )
     assert task["authority_boundary"]["can_authorize_quality_verdict"] is False
@@ -547,7 +547,7 @@ def test_medical_manuscript_quality_agent_lab_suite_records_controller_read_mode
     _write_json(
         study_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_runtime_supervisor_scan",
+            "surface": "portable_domain_route_scan",
             "studies": [
                 {
                     "study_id": study_root.name,
@@ -567,7 +567,7 @@ def test_medical_manuscript_quality_agent_lab_suite_records_controller_read_mode
     assert any("analysis-harmonization-result-requeued" in ref for ref in refs)
     assert refs[-1].startswith("mechanism-defect-ref:mas/002-dm-china-us-mortality-attribution/")
     work_order = inputs["developer_patch_work_order"]
-    assert "runtime_supervisor_analysis_harmonization_owner_result_consumption" in work_order["required_patch_scopes"]
+    assert "domain_route_analysis_harmonization_owner_result_consumption" in work_order["required_patch_scopes"]
     assert any("analysis-harmonization-result-requeued" in ref for ref in work_order["evidence_refs"])
     assert work_order["can_modify_mas_repo"] is True
     assert work_order["can_write_study_truth"] is False

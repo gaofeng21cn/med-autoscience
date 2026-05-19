@@ -12,7 +12,7 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
         {
             "task_id": "frt_001",
             "domain_id": "medautoscience",
-            "task_kind": "runtime_supervision/recover",
+            "task_kind": "domain_route/recover",
             "payload": {"profile": str(profile_path), "study_id": "001-risk"},
             "attempts": 1,
             "source": "opl_family_runtime",
@@ -32,8 +32,8 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
     assert payload["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
     assert payload["accepted"] is True
     assert payload["will_start_llm_worker"] is False
-    assert payload["dispatch"]["action_type"] == "runtime_supervisor_recover"
-    assert payload["dispatch"]["recommended_domain_command"].startswith("uv run python -m med_autoscience.cli runtime-supervisor-scan")
+    assert payload["dispatch"]["action_type"] == "domain_route_recover"
+    assert payload["dispatch"]["recommended_domain_command"].startswith("uv run python -m med_autoscience.cli domain-route-scan")
     assert payload["authority_boundary"]["writes_domain_truth"] is False
     assert payload["authority_boundary"]["writes_artifact_gate"] is False
     assert payload["forbidden_write_guard_proof"]["result"] == "accepted_no_forbidden_writes"
@@ -48,24 +48,24 @@ def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch,
     write_profile(profile_path, workspace_root=workspace_root)
     calls: list[dict[str, object]] = []
 
-    def fake_supervisor_reconcile(*, profile, study_ids, mode: str, apply: bool) -> dict[str, object]:
+    def fake_reconcile_domain_routes(*, profile, study_ids, mode: str, apply: bool) -> dict[str, object]:
         calls.append({"profile": profile.name, "study_ids": tuple(study_ids), "mode": mode, "apply": apply})
         return {
-            "surface": "runtime_supervisor_reconcile_receipt",
+            "surface": "domain_route_reconcile_receipt",
             "resolved_studies": list(study_ids),
             "will_start_llm": True,
             "codex_dispatch_count": 1,
             "blocked_count": 0,
         }
 
-    monkeypatch.setattr(adapter.runtime_supervisor_reconcile, "supervisor_reconcile", fake_supervisor_reconcile)
+    monkeypatch.setattr(adapter.domain_route_reconcile, "reconcile_domain_routes", fake_reconcile_domain_routes)
     task_path = tmp_path / "task.json"
     _write_json(
         task_path,
         {
             "task_id": "frt_reconcile",
             "domain_id": "medautoscience",
-            "task_kind": "runtime_supervisor/reconcile-apply",
+            "task_kind": "domain_route/reconcile-apply",
             "payload": {"profile": str(profile_path), "study_id": "001-risk"},
         },
     )
@@ -78,7 +78,7 @@ def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch,
     assert payload["accepted"] is True
     assert payload["will_start_llm_worker"] is True
     assert payload["dispatch"]["execution_policy"] == "mas_owner_reconcile_apply"
-    assert payload["dispatch"]["result"]["surface"] == "runtime_supervisor_reconcile_receipt"
+    assert payload["dispatch"]["result"]["surface"] == "domain_route_reconcile_receipt"
     assert payload["authority_boundary"]["writes_domain_truth"] is False
 
 
@@ -147,7 +147,7 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
     write_profile(profile_path, workspace_root=workspace_root)
     calls: list[dict[str, object]] = []
 
-    def fake_execute_default_executor_dispatches(
+    def fake_dispatch_domain_owner_actions(
         *,
         profile,
         study_ids,
@@ -166,15 +166,15 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
             }
         )
         return {
-            "surface": "runtime_supervisor_default_executor_execution",
+            "surface": "domain_owner_action_dispatch_execution",
             "executed_count": 1,
             "blocked_count": 0,
         }
 
     monkeypatch.setattr(
-        adapter.runtime_supervisor_dispatch_executor,
-        "execute_default_executor_dispatches",
-        fake_execute_default_executor_dispatches,
+        adapter.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        fake_dispatch_domain_owner_actions,
     )
     task_path = tmp_path / "task.json"
     _write_json(
@@ -217,11 +217,11 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
     reconcile_calls: list[dict[str, object]] = []
     reviewer_calls: list[dict[str, object]] = []
 
-    def fake_supervisor_reconcile(*, profile, study_ids, mode: str, apply: bool) -> dict[str, object]:
+    def fake_reconcile_domain_routes(*, profile, study_ids, mode: str, apply: bool) -> dict[str, object]:
         reconcile_calls.append({"profile": profile.name, "study_ids": tuple(study_ids), "mode": mode, "apply": apply})
-        return {"surface": "runtime_supervisor_reconcile_receipt", "will_start_llm": True}
+        return {"surface": "domain_route_reconcile_receipt", "will_start_llm": True}
 
-    def fake_execute_default_executor_dispatches(
+    def fake_dispatch_domain_owner_actions(
         *,
         profile,
         study_ids,
@@ -239,13 +239,13 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
                 "apply": apply,
             }
         )
-        return {"surface": "runtime_supervisor_default_executor_execution", "executed_count": 1}
+        return {"surface": "domain_owner_action_dispatch_execution", "executed_count": 1}
 
-    monkeypatch.setattr(adapter.runtime_supervisor_reconcile, "supervisor_reconcile", fake_supervisor_reconcile)
+    monkeypatch.setattr(adapter.domain_route_reconcile, "reconcile_domain_routes", fake_reconcile_domain_routes)
     monkeypatch.setattr(
-        adapter.runtime_supervisor_dispatch_executor,
-        "execute_default_executor_dispatches",
-        fake_execute_default_executor_dispatches,
+        adapter.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        fake_dispatch_domain_owner_actions,
     )
     analysis_task_path = tmp_path / "analysis-task.json"
     reviewer_task_path = tmp_path / "reviewer-task.json"
@@ -277,7 +277,7 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
 
     assert analysis_exit == 0
     assert reviewer_exit == 0
-    assert analysis_payload["dispatch"]["action_type"] == "runtime_supervisor_reconcile_apply"
+    assert analysis_payload["dispatch"]["action_type"] == "domain_route_reconcile_apply"
     assert analysis_payload["dispatch"]["execution_policy"] == "mas_owner_reconcile_apply"
     assert reviewer_payload["dispatch"]["action_type"] == "ai_reviewer_recheck_execute_dispatch"
     assert reviewer_payload["dispatch"]["execution_policy"] == "mas_owner_ai_reviewer_execute_dispatch"
@@ -367,7 +367,7 @@ def test_sidecar_dispatch_rejects_opl_attempt_truth_substitution(tmp_path: Path,
         {
             "task_id": "attempt-substitution",
             "domain_id": "medautoscience",
-            "task_kind": "runtime_supervision/recover",
+            "task_kind": "domain_route/recover",
             "payload": {
                 "profile": "/tmp/profile.toml",
                 "study_id": "001-risk",

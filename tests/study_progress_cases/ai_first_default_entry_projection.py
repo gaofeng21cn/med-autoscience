@@ -189,11 +189,11 @@ def test_study_progress_projects_ai_reviewer_request_lifecycle(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     request_lifecycle = importlib.import_module(
-        "med_autoscience.controllers.supervisor_action_request_lifecycle"
+        "med_autoscience.controllers.domain_action_request_lifecycle"
     )
-    request_builder = importlib.import_module("med_autoscience.controllers.supervisor_action_requests")
+    request_builder = importlib.import_module("med_autoscience.controllers.domain_action_requests")
     request_lifecycle_support = importlib.import_module(
-        "med_autoscience.controllers.supervisor_action_request_lifecycle"
+        "med_autoscience.controllers.domain_action_request_lifecycle"
     )
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")

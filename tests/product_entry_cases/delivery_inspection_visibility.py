@@ -50,7 +50,7 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={
+            workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
                 "summary": "Runtime supervision online.",
@@ -222,7 +222,7 @@ def test_product_entry_counts_layout_migration_even_when_stale_status_is_primary
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={},
+            workspace_domain_route_contract={},
         ),
     )
     monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: {})
@@ -271,7 +271,7 @@ def test_product_entry_does_not_normalize_retired_delivery_projection_input(
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={},
+            workspace_domain_route_contract={},
         ),
     )
     monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: {})

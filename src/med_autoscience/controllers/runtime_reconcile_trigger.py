@@ -5,13 +5,13 @@ import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from med_autoscience.controllers.outer_supervision_slo import supervisor_reconcile_command
+from med_autoscience.controllers.outer_supervision_slo import reconcile_domain_routes_command
 from med_autoscience.controllers import paper_progress_stall, runtime_dispatch_cost
 
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "runtime_reconcile_trigger_projection"
-REQUEST_KIND = "runtime_supervisor_reconcile"
+REQUEST_KIND = "domain_route_reconcile"
 SAFE_CURRENT_ACTION = "safe_reconcile_ready"
 STALE_RUNTIME_STATES = frozenset({"stale"})
 STALE_WORKER_STATES = frozenset({"stale", "degraded"})
@@ -269,17 +269,17 @@ def _dedupe_fingerprint(
 
 
 def _recommended_command(*, profile_ref: str | None, study_id: str) -> str:
-    return supervisor_reconcile_command(profile_ref=profile_ref, study_id=study_id)
+    return reconcile_domain_routes_command(profile_ref=profile_ref, study_id=study_id)
 
 
 def _summary(*, safe_to_request: bool, blocked_reasons: list[str], stale_signals: list[dict[str, str]]) -> str:
     if safe_to_request:
         return "runtime/session or outer supervision signal is stale; one-shot supervisor reconcile dry-run is requestable."
     if blocked_reasons:
-        return "runtime supervisor reconcile request is blocked: " + ", ".join(blocked_reasons)
+        return "domain route reconcile request is blocked: " + ", ".join(blocked_reasons)
     if not stale_signals:
-        return "runtime supervisor reconcile request is not needed; no stale signal is present."
-    return "runtime supervisor reconcile request is not currently safe."
+        return "domain route reconcile request is not needed; no stale signal is present."
+    return "domain route reconcile request is not currently safe."
 
 
 def _quote(value: str) -> str:

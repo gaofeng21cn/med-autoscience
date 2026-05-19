@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import (
     ai_first_cross_study_completion,
-    supervision_scheduler,
+    domain_slo_scheduler_projection,
     study_runtime_router,
 )
 from med_autoscience.action_catalog import (
@@ -422,11 +422,11 @@ def _require_direct_entry_mode(value: str | None) -> str:
 
 
 def _inspect_workspace_supervision(profile: WorkspaceProfile) -> dict[str, Any]:
-    return supervision_scheduler.read_supervision_status(profile=profile)
+    return domain_slo_scheduler_projection.read_supervision_status(profile=profile)
 
 
-def _doctor_workspace_supervision_contract(doctor_report: Any) -> dict[str, Any]:
-    contract = getattr(doctor_report, "workspace_supervision_contract", None)
+def _doctor_workspace_domain_route_contract(doctor_report: Any) -> dict[str, Any]:
+    contract = getattr(doctor_report, "workspace_domain_route_contract", None)
     if isinstance(contract, Mapping):
         return dict(contract)
     return {}
@@ -454,9 +454,9 @@ def _workspace_ready_alerts(doctor_report) -> list[str]:
         alerts.append("MAS runtime contract 尚未 ready，当前无法继续托管研究执行。")
     if not doctor_report.medical_overlay_ready:
         alerts.append("workspace medical overlay 还未 ready，当前运行前置能力不完整。")
-    workspace_supervision_contract = _doctor_workspace_supervision_contract(doctor_report)
-    workspace_supervision_ready = bool(workspace_supervision_contract.get("loaded"))
-    workspace_supervision_summary = _non_empty_text(workspace_supervision_contract.get("summary"))
+    workspace_domain_route_contract = _doctor_workspace_domain_route_contract(doctor_report)
+    workspace_supervision_ready = bool(workspace_domain_route_contract.get("loaded"))
+    workspace_supervision_summary = _non_empty_text(workspace_domain_route_contract.get("summary"))
     if not workspace_supervision_ready:
         alerts.append(
             workspace_supervision_summary
@@ -472,7 +472,7 @@ def _build_product_entry_preflight(
 ) -> dict[str, Any]:
     doctor_command = f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}"
     start_command = f"{_command_prefix(profile_ref)} product-entry-status --profile {_profile_arg(profile_ref)}"
-    workspace_supervision_contract = _doctor_workspace_supervision_contract(doctor_report)
+    workspace_domain_route_contract = _doctor_workspace_domain_route_contract(doctor_report)
     runtime_contract_ready = _doctor_mas_runtime_core_ready(doctor_report)
     checks = [
         _build_shared_program_check(
@@ -528,14 +528,14 @@ def _build_product_entry_preflight(
             command=doctor_command,
         ),
         _build_shared_program_check(
-            check_id="workspace_supervision_contract_ready",
+            check_id="workspace_domain_route_contract_ready",
             title="Workspace Supervision Contract Ready",
-            status="pass" if bool(workspace_supervision_contract.get("loaded")) else "fail",
+            status="pass" if bool(workspace_domain_route_contract.get("loaded")) else "fail",
             blocking=True,
             summary=(
                 "OPL scheduler replacement projection 已 ready。"
-                if bool(workspace_supervision_contract.get("loaded"))
-                else _non_empty_text(workspace_supervision_contract.get("summary"))
+                if bool(workspace_domain_route_contract.get("loaded"))
+                else _non_empty_text(workspace_domain_route_contract.get("summary"))
                 or "OPL scheduler replacement projection 尚未 ready。"
             ),
             command=f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",

@@ -83,7 +83,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     ),
                 },
                 {
-                    "check_id": "workspace_supervision_contract_ready",
+                    "check_id": "workspace_domain_route_contract_ready",
                     "title": "Workspace Supervision Contract Ready",
                     "status": "pass",
                     "blocking": True,

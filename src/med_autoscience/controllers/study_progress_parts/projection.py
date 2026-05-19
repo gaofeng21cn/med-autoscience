@@ -3,7 +3,7 @@ from __future__ import annotations
 from med_autoscience.controllers import (
     ai_first_observability,
     paper_authority_migration,
-    supervisor_action_request_lifecycle,
+    domain_action_request_lifecycle,
     artifact_runtime_proof,
     control_plane_facts,
     medical_paper_ops_health,
@@ -693,7 +693,7 @@ def build_study_progress_projection(
         study_root=resolved_study_root,
         active_run_id=current_active_run_id,
     )
-    ai_reviewer_request_lifecycle = supervisor_action_request_lifecycle.project_ai_reviewer_request_lifecycle(
+    ai_reviewer_request_lifecycle = domain_action_request_lifecycle.project_ai_reviewer_request_lifecycle(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
     )
@@ -741,7 +741,7 @@ def build_study_progress_projection(
     )
     refs["ai_reviewer_request_lifecycle_path"] = (
         str(
-            supervisor_action_request_lifecycle.stable_ai_reviewer_request_path(
+            domain_action_request_lifecycle.stable_ai_reviewer_request_path(
                 study_root=resolved_study_root,
             )
         )

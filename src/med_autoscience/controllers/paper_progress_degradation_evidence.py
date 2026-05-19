@@ -245,7 +245,7 @@ def _owner_route_progression(
         next_action = "inspect_stationary_owner_route"
     else:
         status = "missing"
-        next_action = "rerun_supervisor_scan_or_repair_owner_route_inputs"
+        next_action = "rerun_scan_domain_routes_or_repair_owner_route_inputs"
 
     blockers = []
     if status != "advanced":

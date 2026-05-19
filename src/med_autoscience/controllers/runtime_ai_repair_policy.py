@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.controllers.runtime_supervisor_scan_parts.queue_slo import (
+from med_autoscience.controllers.domain_route_scan_parts.queue_slo import (
     DEVELOPER_SUPERVISOR_ATTENTION_HOURS,
     OWNER_PICKUP_OVERDUE_HOURS,
 )
@@ -67,9 +67,9 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
                 "hard_coded_study_allowlist_required": False,
             },
             "same_tick_actions": [
-                "runtime supervisor-scan --apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe",
-                "runtime supervisor-consume --mode developer_apply_safe --apply",
-                "runtime supervisor-execute-dispatch --mode developer_apply_safe --apply",
+                "runtime domain-route-scan --apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe",
+                "runtime domain-action-request-materialize --mode developer_apply_safe --apply",
+                "runtime domain-owner-action-dispatch --mode developer_apply_safe --apply",
             ],
             "repair_principles": [
                 "consume_unowned_or_overdue_action_queue",

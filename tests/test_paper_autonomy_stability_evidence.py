@@ -117,7 +117,7 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
         assert kwargs["apply_safe_actions"] is False
         assert kwargs["persist_surfaces"] is False
         return {
-            "surface": "portable_runtime_supervisor_scan",
+            "surface": "portable_domain_route_scan",
             "studies": [
                 {
                     "study_id": "001-active",
@@ -132,15 +132,15 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
             "action_queue": [],
         }
 
-    monkeypatch.setattr(module.runtime_supervisor_scan, "supervisor_scan", fake_scan)
+    monkeypatch.setattr(module.domain_route_scan, "scan_domain_routes", fake_scan)
     monkeypatch.setattr(
-        module.runtime_supervisor_consumer,
-        "supervisor_consume",
-        lambda **_: {"surface": "runtime_supervisor_consumer", "request_tasks": [], "repair_tasks": []},
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **_: {"surface": "domain_action_request_materializer", "request_tasks": [], "repair_tasks": []},
     )
     monkeypatch.setattr(
-        module.runtime_supervisor_dispatch_executor,
-        "execute_default_executor_dispatches",
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
         lambda **_: {
             "surface": "default_executor_dispatch_executor",
             "execution_count": 0,
@@ -157,7 +157,7 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
     assert payload["summary"]["can_claim_landed"] is False
     profile = payload["profiles"][0]
     assert profile["profile_readable"] is True
-    assert profile["supervisor_reconcile_dry_run"]["can_complete"] is True
+    assert profile["reconcile_domain_routes_dry_run"]["can_complete"] is True
     assert profile["workspace_migration_dry_run"]["dry_run"] is True
     assert profile["workspace_migration_dry_run"]["writes_performed"] is False
     assert profile["real_workspace_soak_monitor"]["writes_performed"] is False
@@ -235,7 +235,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
         suffix = "before" if not fake_scan.seen else "after"
         fake_scan.seen = True
         return {
-            "surface": "portable_runtime_supervisor_scan",
+            "surface": "portable_domain_route_scan",
             "studies": [
                 {
                     "study_id": "001-active",
@@ -250,15 +250,15 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
         }
 
     fake_scan.seen = False
-    monkeypatch.setattr(module.runtime_supervisor_scan, "supervisor_scan", fake_scan)
+    monkeypatch.setattr(module.domain_route_scan, "scan_domain_routes", fake_scan)
     monkeypatch.setattr(
-        module.runtime_supervisor_consumer,
-        "supervisor_consume",
-        lambda **_: {"surface": "runtime_supervisor_consumer", "request_tasks": [], "repair_tasks": []},
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **_: {"surface": "domain_action_request_materializer", "request_tasks": [], "repair_tasks": []},
     )
     monkeypatch.setattr(
-        module.runtime_supervisor_dispatch_executor,
-        "execute_default_executor_dispatches",
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
         lambda **_: {
             "surface": "default_executor_dispatch_executor",
             "execution_count": 1,

@@ -833,7 +833,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(cli.data_asset_updates_controller, "refresh_data_assets", fake_refresh_data_assets)
     monkeypatch.setattr(
-        cli.supervision_scheduler,
+        cli.domain_slo_scheduler_projection,
         "ensure_supervision",
         lambda **kwargs: {
             "surface_kind": "workspace_runtime_supervision_replacement_result",
@@ -916,7 +916,7 @@ def test_bootstrap_command_maintains_workspace_local_mas_stage_skills_without_ho
         lambda *, workspace_root: {"status": {"layout_ready": True}},
     )
     monkeypatch.setattr(
-        cli.supervision_scheduler,
+        cli.domain_slo_scheduler_projection,
         "ensure_supervision",
         lambda **kwargs: {"surface_kind": "workspace_runtime_supervision_install_result", "action": "installed"},
     )
@@ -974,7 +974,7 @@ def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path
         lambda *, workspace_root: {"status": {"layout_ready": True}},
     )
     monkeypatch.setattr(
-        cli.supervision_scheduler,
+        cli.domain_slo_scheduler_projection,
         "ensure_supervision",
         lambda **kwargs: {"surface_kind": "workspace_runtime_supervision_install_result", "action": "installed"},
     )

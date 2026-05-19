@@ -7,8 +7,8 @@ from typing import Callable
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionControllerAction
-from med_autoscience.controllers import supervisor_action_requests
-from med_autoscience.controllers import supervisor_action_request_lifecycle
+from med_autoscience.controllers import domain_action_requests
+from med_autoscience.controllers import domain_action_request_lifecycle
 
 
 EnsureStudyRuntime = Callable[..., dict[str, Any]]
@@ -112,10 +112,10 @@ def execute_controller_action(
             "action": StudyDecisionActionType.REQUEST_GATE_SPECIFICITY.value,
         }
     elif action.action_type is StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW:
-        input_refs = supervisor_action_request_lifecycle.default_ai_reviewer_request_input_refs(
+        input_refs = domain_action_request_lifecycle.default_ai_reviewer_request_input_refs(
             study_root=study_root,
         )
-        packet = supervisor_action_requests.build_ai_reviewer_publication_eval_request(
+        packet = domain_action_requests.build_ai_reviewer_publication_eval_request(
             study_id=study_id,
             quest_id=quest_id,
             source_surface="controller_decisions/latest.json",
@@ -132,7 +132,7 @@ def execute_controller_action(
             },
             input_refs=input_refs,
         )
-        materialized = supervisor_action_request_lifecycle.materialize_ai_reviewer_request(
+        materialized = domain_action_request_lifecycle.materialize_ai_reviewer_request(
             study_root=study_root,
             packet=packet,
         )

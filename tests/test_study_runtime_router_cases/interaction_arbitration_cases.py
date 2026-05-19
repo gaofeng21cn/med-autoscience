@@ -449,7 +449,7 @@ def test_ensure_study_runtime_relaunches_failed_quest_when_platform_repair_reque
         },
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", allow_stopped_relaunch=True, source="runtime_supervisor_scan_platform_repair")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", allow_stopped_relaunch=True, source="domain_route_scan_platform_repair")
 
     assert result["decision"] == "relaunch_stopped"
     assert result["reason"] == "quest_stopped_explicit_relaunch_requested"

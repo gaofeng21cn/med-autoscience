@@ -7,7 +7,7 @@ from med_autoscience.controllers import (
     study_macro_state,
     study_state_matrix,
 )
-from med_autoscience.controllers.runtime_supervisor_scan_parts import hard_methodology_currentness
+from med_autoscience.controllers.domain_route_scan_parts import hard_methodology_currentness
 from med_autoscience.controllers.study_runtime_status_parts import StudyRuntimeStatus
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import _load_json_dict
 

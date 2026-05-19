@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers import supervisor_action_request_lifecycle
-from med_autoscience.controllers import supervisor_action_requests
+from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers import domain_action_requests
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
@@ -170,7 +170,7 @@ def _materialize_ai_reviewer_request(
     source_fingerprint: str,
     gate_report: Mapping[str, Any],
 ) -> dict[str, Any]:
-    input_refs = supervisor_action_request_lifecycle.default_ai_reviewer_request_input_refs(
+    input_refs = domain_action_request_lifecycle.default_ai_reviewer_request_input_refs(
         study_root=study_root,
     )
     medical_prose_review = _mapping(input_refs.get("medical_prose_review"))
@@ -202,7 +202,7 @@ def _materialize_ai_reviewer_request(
             if str(item).strip()
         ],
     }
-    packet = supervisor_action_requests.build_ai_reviewer_publication_eval_request(
+    packet = domain_action_requests.build_ai_reviewer_publication_eval_request(
         study_id=study_id,
         quest_id=quest_id,
         source_surface="quality_repair_batch",
@@ -210,7 +210,7 @@ def _materialize_ai_reviewer_request(
         input_refs=input_refs,
     )
     packet["source_fingerprint"] = source_fingerprint
-    return supervisor_action_request_lifecycle.materialize_ai_reviewer_request(
+    return domain_action_request_lifecycle.materialize_ai_reviewer_request(
         study_root=study_root,
         packet=packet,
     )

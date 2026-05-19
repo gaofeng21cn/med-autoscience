@@ -76,7 +76,7 @@
 - 立即通过 daemon `pause` 收回 compute
 - quest 保持当前 identity
 - 这是 **recoverable runtime state**
-- 成功暂停会写入 `human_takeover_contract.resume_requires_explicit_wakeup=true`；若旧状态只剩 `quest_status=paused`、无 `active_run_id`、无 live worker、无 controller continuation owner，也必须按同一显式唤醒屏障处理；普通 `study_runtime_status` 读取、due delayed turn、旧 worker closeout、retry backoff 和 runtime supervisor scan 都不得隐式恢复 writer
+- 成功暂停会写入 `human_takeover_contract.resume_requires_explicit_wakeup=true`；若旧状态只剩 `quest_status=paused`、无 `active_run_id`、无 live worker、无 controller continuation owner，也必须按同一显式唤醒屏障处理；普通 `study_runtime_status` 读取、due delayed turn、旧 worker closeout、retry backoff 和 domain route scan 都不得隐式恢复 writer
 
 后果：
 

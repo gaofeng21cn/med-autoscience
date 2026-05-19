@@ -109,16 +109,16 @@ def _watch_runtime_command(profile: WorkspaceProfile, *, interval_seconds: int) 
     ]
 
 
-def _supervisor_scan_command(profile: WorkspaceProfile) -> list[str]:
+def _scan_domain_routes_command(profile: WorkspaceProfile) -> list[str]:
     return [
-        str(_workspace_supervisor_scan_entry_path(profile)),
+        str(_workspace_scan_domain_routes_entry_path(profile)),
         *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS,
     ]
 
 
-def _supervisor_consume_command(profile: WorkspaceProfile) -> list[str]:
+def _materialize_domain_action_requests_command(profile: WorkspaceProfile) -> list[str]:
     return [
-        str(_workspace_supervisor_consume_entry_path(profile)),
+        str(_workspace_materialize_domain_action_requests_entry_path(profile)),
         "--mode",
         "developer_apply_safe",
         "--apply",
@@ -137,8 +137,8 @@ def _supervisor_execute_dispatch_command(profile: WorkspaceProfile) -> list[str]
 def _supervision_tick_commands(profile: WorkspaceProfile, *, interval_seconds: int) -> list[list[str]]:
     return [
         _watch_runtime_command(profile, interval_seconds=interval_seconds),
-        _supervisor_scan_command(profile),
-        _supervisor_consume_command(profile),
+        _scan_domain_routes_command(profile),
+        _materialize_domain_action_requests_command(profile),
         _supervisor_execute_dispatch_command(profile),
     ]
 
@@ -147,20 +147,20 @@ def _workspace_watch_runtime_entry_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
 
 
-def _workspace_supervisor_scan_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
+def _workspace_scan_domain_routes_entry_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan"
 
 
-def _workspace_supervisor_reconcile_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile"
+def _workspace_reconcile_domain_routes_entry_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-reconcile"
 
 
-def _workspace_supervisor_consume_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
+def _workspace_materialize_domain_action_requests_entry_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize"
 
 
 def _workspace_supervisor_execute_dispatch_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch"
+    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch"
 
 
 def _codex_app_automation_path() -> Path:

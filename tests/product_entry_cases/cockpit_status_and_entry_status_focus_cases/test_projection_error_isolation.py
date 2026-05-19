@@ -35,7 +35,7 @@ def test_workspace_cockpit_isolates_single_study_progress_projection_error(
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
-            workspace_supervision_contract={
+            workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
                 "summary": "MAS scheduler local adapter runtime supervision 已在线。",

@@ -8,9 +8,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import supervisor_action_request_lifecycle
-from med_autoscience.controllers import supervisor_action_requests
-from med_autoscience.controllers.runtime_supervisor_scan_parts import study_identity
+from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers import domain_action_requests
+from med_autoscience.controllers.domain_route_scan_parts import study_identity
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
@@ -246,14 +246,14 @@ def _resolve_study_ids(*, profile: WorkspaceProfile, study_ids: Iterable[str] | 
 
 
 def _discover_paper_study_ids(profile: WorkspaceProfile) -> tuple[str, ...]:
-    supervised = list(study_identity.resolve_supervisor_scan_study_ids(profile))
+    supervised = list(study_identity.resolve_domain_route_scan_study_ids(profile))
     return tuple(supervised)
 
 
 def _discover_noncanonical_paper_authority_residue_dirs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
     if not profile.studies_root.is_dir():
         return []
-    canonical_study_ids = set(study_identity.resolve_supervisor_scan_study_ids(profile))
+    canonical_study_ids = set(study_identity.resolve_domain_route_scan_study_ids(profile))
     residue_dirs: list[dict[str, Any]] = []
     for study_root in sorted(path for path in profile.studies_root.iterdir() if path.is_dir()):
         if study_root.name in canonical_study_ids:
@@ -292,7 +292,7 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
         if receipt_status == "new_mas_authority_established"
         else _active_surface_items(study_root=study_root, receipt_status=receipt_status)
     )
-    request_path = supervisor_action_request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
+    request_path = domain_action_request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
     return {
         "study_id": study_id,
         "study_root": str(study_root),
@@ -497,7 +497,7 @@ def _write_cutover_receipt(*, study_root: Path, receipt: Mapping[str, Any], reco
 
 
 def _materialize_ai_reviewer_request(*, study_root: Path, receipt: Mapping[str, Any]) -> None:
-    input_refs = supervisor_action_request_lifecycle.default_ai_reviewer_request_input_refs(study_root=study_root)
+    input_refs = domain_action_request_lifecycle.default_ai_reviewer_request_input_refs(study_root=study_root)
     input_refs["publication_gate_projection"] = {
         "surface": "publication_gate_projection",
         "path": str(study_root / MIGRATION_ROOT_RELPATH / "latest.json"),
@@ -506,7 +506,7 @@ def _materialize_ai_reviewer_request(*, study_root: Path, receipt: Mapping[str, 
         "present": True,
         "valid": True,
     }
-    packet = supervisor_action_requests.build_ai_reviewer_publication_eval_request(
+    packet = domain_action_requests.build_ai_reviewer_publication_eval_request(
         study_id=str(receipt["study_id"]),
         quest_id=None,
         source_surface="paper_authority_clean_migration",
@@ -523,7 +523,7 @@ def _materialize_ai_reviewer_request(*, study_root: Path, receipt: Mapping[str, 
     packet["paper_authority_cutover_ref"] = str(study_root / MIGRATION_ROOT_RELPATH / "latest.json")
     packet["target_assessment_owner"] = "ai_reviewer"
     packet["may_authorize_quality_gate"] = False
-    supervisor_action_request_lifecycle.materialize_ai_reviewer_request(
+    domain_action_request_lifecycle.materialize_ai_reviewer_request(
         study_root=study_root,
         packet=packet,
     )

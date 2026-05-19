@@ -31,7 +31,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -108,7 +108,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -185,7 +185,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -261,7 +261,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -337,7 +337,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -416,7 +416,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -494,7 +494,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -571,7 +571,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -647,7 +647,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -724,7 +724,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- runtime-supervisor-reconcile
+- domain-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`

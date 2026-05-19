@@ -225,15 +225,15 @@ def test_runtime_watch_apply_can_run_supervisor_platform_repair_tick(
 
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
-    def fake_supervisor_scan(**kwargs) -> dict[str, object]:
+    def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
         calls.append(kwargs)
         return {
-            "surface": "portable_runtime_supervisor_scan",
+            "surface": "portable_domain_route_scan",
             "apply_runtime_platform_repair": kwargs["apply_runtime_platform_repair"],
             "study_count": len(kwargs["study_ids"]),
         }
 
-    monkeypatch.setattr(module.runtime_supervisor_scan, "supervisor_scan", fake_supervisor_scan)
+    monkeypatch.setattr(module.domain_route_scan, "scan_domain_routes", fake_scan_domain_routes)
 
     result = module.run_watch_for_runtime(
         runtime_root=profile.runtime_root,
@@ -251,7 +251,7 @@ def test_runtime_watch_apply_can_run_supervisor_platform_repair_tick(
     assert calls[0]["apply_runtime_platform_repair"] is True
     assert calls[0]["developer_supervisor_mode"] == "developer_apply_safe"
     assert result["supervisor_platform_repair"] == {
-        "surface": "portable_runtime_supervisor_scan",
+        "surface": "portable_domain_route_scan",
         "apply_runtime_platform_repair": True,
         "study_count": 1,
     }
@@ -269,8 +269,8 @@ def test_runtime_watch_does_not_run_supervisor_platform_repair_by_default(
 
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     monkeypatch.setattr(
-        module.runtime_supervisor_scan,
-        "supervisor_scan",
+        module.domain_route_scan,
+        "scan_domain_routes",
         lambda **kwargs: pytest.fail("runtime watch must not apply platform repair unless explicitly enabled"),
     )
 

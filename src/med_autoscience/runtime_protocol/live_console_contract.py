@@ -30,7 +30,7 @@ def controller_action_links(*, study_id: str | None) -> list[dict[str, Any]]:
         {
             "action": "request_reconcile",
             "label": "request reconcile through MAS controller",
-            "command": f"medautosci runtime supervisor-reconcile{suffix}",
+            "command": f"medautosci runtime domain-route-reconcile{suffix}",
             "direct_execution_allowed": False,
         },
     ]

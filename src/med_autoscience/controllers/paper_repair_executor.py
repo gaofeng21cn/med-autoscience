@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import canonical_manuscript_package_loop, paper_repair_execution_evidence
-from med_autoscience.controllers.supervisor_action_request_lifecycle import (
+from med_autoscience.controllers.domain_action_request_lifecycle import (
     default_ai_reviewer_request_input_refs,
     materialize_ai_reviewer_request,
     stable_ai_reviewer_request_path,
@@ -426,7 +426,7 @@ def _write_ai_reviewer_recheck_request(
 ) -> dict[str, Any]:
     refs = default_ai_reviewer_request_input_refs(study_root=study_root)
     packet = {
-        "surface": "supervisor_action_request",
+        "surface": "domain_action_request",
         "schema_version": SCHEMA_VERSION,
         "request_id": f"ai-reviewer-recheck::{study_id}::{_work_unit_id(work_unit)}",
         "request_kind": "return_to_ai_reviewer_workflow",

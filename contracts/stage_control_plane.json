@@ -375,7 +375,7 @@
           "study_direction_request_received"
         ],
         "runtime_event_refs": [
-          "runtime_event:runtime_supervisor_owner_route.direction_route_selected",
+          "runtime_event:domain_route_owner_route.direction_route_selected",
           "runtime_event:controller_decisions.direction_route_selected"
         ],
         "source_scope_refs": [
@@ -475,7 +475,7 @@
         "owner_receipt_required": true,
         "records_runtime_events": true,
         "runtime_event_refs": [
-          "runtime_event:runtime_supervisor_owner_route.direction_route_selected",
+          "runtime_event:domain_route_owner_route.direction_route_selected",
           "runtime_event:controller_decisions.direction_route_selected"
         ],
         "runtime_guard_required": true,

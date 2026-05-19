@@ -61,7 +61,7 @@ def build_owner_route(
     )
     current_owner = _current_owner(status=status, progress=progress, active_run_id=active_run_id)
     route = {
-        "surface": "runtime_supervisor_owner_route",
+        "surface": "domain_route_owner_route",
         "schema_version": 2,
         "study_id": study_id,
         "quest_id": quest_id,

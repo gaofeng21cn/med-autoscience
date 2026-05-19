@@ -50,11 +50,11 @@ def _base_progress(*, study_id: str, quest_id: str) -> dict[str, object]:
     }
 
 
-def test_supervisor_scan_persists_recovery_intent_for_fresh_controller_redrive(
+def test_scan_domain_routes_persists_recovery_intent_for_fresh_controller_redrive(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    scan = importlib.import_module("med_autoscience.controllers.domain_route_scan")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -98,7 +98,7 @@ def test_supervisor_scan_persists_recovery_intent_for_fresh_controller_redrive(
         ),
     )
 
-    result = scan.supervisor_scan(
+    result = scan.scan_domain_routes(
         profile=profile,
         study_ids=[study_id],
         developer_supervisor_mode="developer_apply_safe",
@@ -297,7 +297,7 @@ def test_recovery_intent_projection_is_non_persistent_when_scan_is_projection_on
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    scan = importlib.import_module("med_autoscience.controllers.domain_route_scan")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -333,7 +333,7 @@ def test_recovery_intent_projection_is_non_persistent_when_scan_is_projection_on
         ),
     )
 
-    result = scan.supervisor_scan(
+    result = scan.scan_domain_routes(
         profile=profile,
         study_ids=[study_id],
         developer_supervisor_mode="developer_apply_safe",

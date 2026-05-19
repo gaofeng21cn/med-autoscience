@@ -22,40 +22,40 @@ def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: P
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
     service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
-    supervisor_reconcile = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile"
-    supervisor_execute_dispatch = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch"
+    reconcile_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-reconcile"
+    supervisor_execute_dispatch = workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch"
 
-    for path in (supervisor_reconcile, supervisor_execute_dispatch):
+    for path in (reconcile_domain_routes, supervisor_execute_dispatch):
         assert path.is_file()
         assert os.access(path, os.X_OK)
     for path in (install_service, service_status, uninstall_service):
         assert not path.exists()
     assert not (workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner").exists()
 
-    supervisor_reconcile_text = supervisor_reconcile.read_text(encoding="utf-8")
-    assert "run_medautosci runtime supervisor-reconcile" in supervisor_reconcile_text
-    assert '--profile "${PROFILE_PATH}"' in supervisor_reconcile_text
-    assert "--mode developer_apply_safe" in supervisor_reconcile_text
-    assert "--apply" in supervisor_reconcile_text
+    reconcile_domain_routes_text = reconcile_domain_routes.read_text(encoding="utf-8")
+    assert "run_medautosci runtime domain-route-reconcile" in reconcile_domain_routes_text
+    assert '--profile "${PROFILE_PATH}"' in reconcile_domain_routes_text
+    assert "--mode developer_apply_safe" in reconcile_domain_routes_text
+    assert "--apply" in reconcile_domain_routes_text
 
-    supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
-    assert supervisor_scan.is_file()
-    assert os.access(supervisor_scan, os.X_OK)
-    supervisor_scan_text = supervisor_scan.read_text(encoding="utf-8")
-    assert "run_medautosci runtime supervisor-scan" in supervisor_scan_text
-    assert '--profile "${PROFILE_PATH}"' in supervisor_scan_text
+    scan_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan"
+    assert scan_domain_routes.is_file()
+    assert os.access(scan_domain_routes, os.X_OK)
+    scan_domain_routes_text = scan_domain_routes.read_text(encoding="utf-8")
+    assert "run_medautosci runtime domain-route-scan" in scan_domain_routes_text
+    assert '--profile "${PROFILE_PATH}"' in scan_domain_routes_text
 
-    supervisor_consume = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
-    assert supervisor_consume.is_file()
-    assert os.access(supervisor_consume, os.X_OK)
-    supervisor_consume_text = supervisor_consume.read_text(encoding="utf-8")
-    assert "run_medautosci runtime supervisor-consume" in supervisor_consume_text
-    assert '--profile "${PROFILE_PATH}"' in supervisor_consume_text
-    assert "--mode developer_apply_safe" in supervisor_consume_text
-    assert "--apply" in supervisor_consume_text
+    materialize_domain_action_requests = workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize"
+    assert materialize_domain_action_requests.is_file()
+    assert os.access(materialize_domain_action_requests, os.X_OK)
+    materialize_domain_action_requests_text = materialize_domain_action_requests.read_text(encoding="utf-8")
+    assert "run_medautosci runtime domain-action-request-materialize" in materialize_domain_action_requests_text
+    assert '--profile "${PROFILE_PATH}"' in materialize_domain_action_requests_text
+    assert "--mode developer_apply_safe" in materialize_domain_action_requests_text
+    assert "--apply" in materialize_domain_action_requests_text
 
     supervisor_execute_dispatch_text = supervisor_execute_dispatch.read_text(encoding="utf-8")
-    assert "run_medautosci runtime supervisor-execute-dispatch" in supervisor_execute_dispatch_text
+    assert "run_medautosci runtime domain-owner-action-dispatch" in supervisor_execute_dispatch_text
     assert '--profile "${PROFILE_PATH}"' in supervisor_execute_dispatch_text
     assert "--mode developer_apply_safe" in supervisor_execute_dispatch_text
     assert "--apply" in supervisor_execute_dispatch_text

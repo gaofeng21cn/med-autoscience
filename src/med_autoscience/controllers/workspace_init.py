@@ -32,10 +32,10 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_medautosci_shared,
     _render_progress_portal_start_web_script,
     _render_profile_optional_forward_script,
-    _render_supervisor_consume_script,
+    _render_materialize_domain_action_requests_script,
     _render_supervisor_execute_dispatch_script,
-    _render_supervisor_reconcile_script,
-    _render_supervisor_scan_script,
+    _render_reconcile_domain_routes_script,
+    _render_scan_domain_routes_script,
     _render_watch_runtime_script,
 )
 from med_autoscience.controllers.workspace_init_parts.retired_entries import (
@@ -470,23 +470,23 @@ def _legacy_supervisor_entry_reason(
     _ = path
     supervisor_specs = (
         (
-            ("ops", "medautoscience", "bin", "supervisor-scan"),
-            ("runtime supervisor-scan",),
-            "legacy_supervisor_scan_entry",
+            ("ops", "medautoscience", "bin", "domain-route-scan"),
+            ("runtime domain-route-scan",),
+            "legacy_scan_domain_routes_entry",
         ),
         (
-            ("ops", "medautoscience", "bin", "supervisor-reconcile"),
-            ("runtime supervisor-reconcile", "--mode developer_apply_safe"),
-            "legacy_supervisor_reconcile_entry",
+            ("ops", "medautoscience", "bin", "domain-route-reconcile"),
+            ("runtime domain-route-reconcile", "--mode developer_apply_safe"),
+            "legacy_reconcile_domain_routes_entry",
         ),
         (
-            ("ops", "medautoscience", "bin", "supervisor-consume"),
-            ("runtime supervisor-consume", "--mode developer_apply_safe"),
-            "legacy_supervisor_consume_entry",
+            ("ops", "medautoscience", "bin", "domain-action-request-materialize"),
+            ("runtime domain-action-request-materialize", "--mode developer_apply_safe"),
+            "legacy_materialize_domain_action_requests_entry",
         ),
         (
-            ("ops", "medautoscience", "bin", "supervisor-execute-dispatch"),
-            ("runtime supervisor-execute-dispatch", "--mode developer_apply_safe"),
+            ("ops", "medautoscience", "bin", "domain-owner-action-dispatch"),
+            ("runtime domain-owner-action-dispatch", "--mode developer_apply_safe"),
             "legacy_supervisor_execute_dispatch_entry",
         ),
     )
@@ -870,22 +870,22 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan",
-            content=_render_supervisor_scan_script(),
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan",
+            content=_render_scan_domain_routes_script(),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile",
-            content=_render_supervisor_reconcile_script(),
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-reconcile",
+            content=_render_reconcile_domain_routes_script(),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume",
-            content=_render_supervisor_consume_script(),
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize",
+            content=_render_materialize_domain_action_requests_script(),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch",
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch",
             content=_render_supervisor_execute_dispatch_script(),
             executable=True,
         ),

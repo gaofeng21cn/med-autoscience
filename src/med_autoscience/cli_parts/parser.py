@@ -144,69 +144,69 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
         default="opl",
     )
 
-    runtime_supervisor_scan_parser = subparsers.add_parser("runtime-supervisor-scan")
-    runtime_supervisor_scan_parser.add_argument("--profile", required=True)
-    runtime_supervisor_scan_parser.add_argument("--studies", nargs="+")
-    runtime_supervisor_scan_parser.add_argument("--apply-safe-actions", action="store_true")
-    runtime_supervisor_scan_parser.add_argument("--apply-runtime-platform-repair", action="store_true")
-    runtime_supervisor_scan_parser.add_argument(
+    domain_route_scan_parser = subparsers.add_parser("domain-route-scan")
+    domain_route_scan_parser.add_argument("--profile", required=True)
+    domain_route_scan_parser.add_argument("--studies", nargs="+")
+    domain_route_scan_parser.add_argument("--apply-safe-actions", action="store_true")
+    domain_route_scan_parser.add_argument("--apply-runtime-platform-repair", action="store_true")
+    domain_route_scan_parser.add_argument(
         "--developer-supervisor-mode",
         choices=("internal_only", "external_observe", "developer_apply_safe"),
     )
 
-    runtime_supervisor_consume_parser = subparsers.add_parser("runtime-supervisor-consume")
-    runtime_supervisor_consume_parser.add_argument("--profile", required=True)
-    runtime_supervisor_consume_parser.add_argument("--studies", nargs="+")
-    runtime_supervisor_consume_parser.add_argument(
+    domain_action_request_materializer_parser = subparsers.add_parser("domain-action-request-materialize")
+    domain_action_request_materializer_parser.add_argument("--profile", required=True)
+    domain_action_request_materializer_parser.add_argument("--studies", nargs="+")
+    domain_action_request_materializer_parser.add_argument(
         "--mode",
         choices=("developer_apply_safe",),
         required=True,
     )
-    runtime_supervisor_consume_apply = runtime_supervisor_consume_parser.add_mutually_exclusive_group(required=True)
-    runtime_supervisor_consume_apply.add_argument("--dry-run", action="store_true")
-    runtime_supervisor_consume_apply.add_argument("--apply", action="store_true")
+    domain_action_request_materializer_apply = domain_action_request_materializer_parser.add_mutually_exclusive_group(required=True)
+    domain_action_request_materializer_apply.add_argument("--dry-run", action="store_true")
+    domain_action_request_materializer_apply.add_argument("--apply", action="store_true")
 
-    runtime_supervisor_execute_dispatch_parser = subparsers.add_parser("runtime-supervisor-execute-dispatch")
-    runtime_supervisor_execute_dispatch_parser.add_argument("--profile", required=True)
-    runtime_supervisor_execute_dispatch_parser.add_argument("--studies", nargs="+")
-    runtime_supervisor_execute_dispatch_parser.add_argument("--action-types", nargs="+")
-    runtime_supervisor_execute_dispatch_parser.add_argument("--managed-runtime-worker", action="store_true")
-    runtime_supervisor_execute_dispatch_parser.add_argument(
+    domain_owner_action_dispatch_parser = subparsers.add_parser("domain-owner-action-dispatch")
+    domain_owner_action_dispatch_parser.add_argument("--profile", required=True)
+    domain_owner_action_dispatch_parser.add_argument("--studies", nargs="+")
+    domain_owner_action_dispatch_parser.add_argument("--action-types", nargs="+")
+    domain_owner_action_dispatch_parser.add_argument("--managed-runtime-worker", action="store_true")
+    domain_owner_action_dispatch_parser.add_argument(
         "--mode",
         choices=("developer_apply_safe",),
         required=True,
     )
-    runtime_supervisor_execute_dispatch_apply = runtime_supervisor_execute_dispatch_parser.add_mutually_exclusive_group(required=True)
-    runtime_supervisor_execute_dispatch_apply.add_argument("--dry-run", action="store_true")
-    runtime_supervisor_execute_dispatch_apply.add_argument("--apply", action="store_true")
+    domain_owner_action_dispatch_apply = domain_owner_action_dispatch_parser.add_mutually_exclusive_group(required=True)
+    domain_owner_action_dispatch_apply.add_argument("--dry-run", action="store_true")
+    domain_owner_action_dispatch_apply.add_argument("--apply", action="store_true")
 
-    runtime_supervisor_reconcile_parser = subparsers.add_parser("runtime-supervisor-reconcile")
-    runtime_supervisor_reconcile_parser.add_argument("--profile", required=True)
-    runtime_supervisor_reconcile_parser.add_argument("--studies", nargs="+")
-    runtime_supervisor_reconcile_parser.add_argument(
+    domain_route_reconcile_parser = subparsers.add_parser("domain-route-reconcile")
+    domain_route_reconcile_parser.add_argument("--profile", required=True)
+    domain_route_reconcile_parser.add_argument("--studies", nargs="+")
+    domain_route_reconcile_parser.add_argument(
         "--mode",
         choices=("developer_apply_safe",),
         required=True,
     )
-    runtime_supervisor_reconcile_apply = runtime_supervisor_reconcile_parser.add_mutually_exclusive_group(required=True)
-    runtime_supervisor_reconcile_apply.add_argument("--dry-run", action="store_true")
-    runtime_supervisor_reconcile_apply.add_argument("--apply", action="store_true")
+    domain_route_reconcile_apply = domain_route_reconcile_parser.add_mutually_exclusive_group(required=True)
+    domain_route_reconcile_apply.add_argument("--dry-run", action="store_true")
+    domain_route_reconcile_apply.add_argument("--apply", action="store_true")
 
-    runtime_supervisor_refresh_controller_decisions_parser = subparsers.add_parser(
-        "runtime-supervisor-refresh-controller-decisions"
+    domain_owner_refresh_controller_decisions_parser = subparsers.add_parser(
+        "domain-owner-action-refresh-controller-decisions"
     )
-    runtime_supervisor_refresh_controller_decisions_parser.add_argument("--profile", required=True)
-    runtime_supervisor_refresh_controller_decisions_parser.add_argument("--studies", nargs="+", required=True)
-    runtime_supervisor_refresh_controller_decisions_parser.add_argument(
+    domain_owner_refresh_controller_decisions_parser.add_argument("--profile", required=True)
+    domain_owner_refresh_controller_decisions_parser.add_argument("--studies", nargs="+", required=True)
+    domain_owner_refresh_controller_decisions_parser.add_argument(
         "--mode",
         choices=("developer_apply_safe",),
         required=True,
     )
-    runtime_supervisor_refresh_controller_decisions_apply = (
-        runtime_supervisor_refresh_controller_decisions_parser.add_mutually_exclusive_group(required=True)
+    domain_owner_refresh_controller_decisions_apply = (
+        domain_owner_refresh_controller_decisions_parser.add_mutually_exclusive_group(required=True)
     )
-    runtime_supervisor_refresh_controller_decisions_apply.add_argument("--dry-run", action="store_true")
-    runtime_supervisor_refresh_controller_decisions_apply.add_argument("--apply", action="store_true")
+    domain_owner_refresh_controller_decisions_apply.add_argument("--dry-run", action="store_true")
+    domain_owner_refresh_controller_decisions_apply.add_argument("--apply", action="store_true")
 
     readiness_owner_blocker_parser = subparsers.add_parser("medical-paper-readiness-owner-blocker")
     readiness_owner_blocker_parser.add_argument("--study-root", required=True)
