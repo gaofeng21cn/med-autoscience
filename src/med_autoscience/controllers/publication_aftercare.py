@@ -9,6 +9,16 @@ from typing import Any, Mapping
 SURFACE_KIND = "mas_publication_aftercare_plan"
 ANALYSIS_QUEUE_TASK_KIND = "publication_aftercare/analysis-queue-progress"
 REVIEWER_REFRESH_TASK_KIND = "publication_aftercare/reviewer-refresh"
+FORBIDDEN_WRITES = (
+    "artifacts/publication_eval/latest.json",
+    "artifacts/controller_decisions/latest.json",
+    "paper/submission_minimal/",
+    "manuscript/current_package/",
+    "manuscript/current_package.zip",
+    "submission_package/",
+    "current_package/",
+    "current_package.zip",
+)
 AUTHORITY_BOUNDARY = {
     "surface_owner": "med-autoscience",
     "surface_role": "publication_aftercare_refs_only_runtime_progression_control",
@@ -23,6 +33,7 @@ AUTHORITY_BOUNDARY = {
     "can_bypass_quality_gate": False,
     "can_start_runtime_owner_progression": True,
     "allowed_outputs": ["plan", "refs", "task_template", "blockers"],
+    "forbidden_writes": list(FORBIDDEN_WRITES),
 }
 RESUBMISSION_CONSTRAINTS = {
     "text_only": True,
@@ -30,6 +41,16 @@ RESUBMISSION_CONSTRAINTS = {
     "no_bib_edits": True,
     "never_overwrite": True,
     "requires_human_target_confirmation": True,
+    "target_whitelist_required": True,
+}
+RESUBMISSION_HARD_LEDGER = {
+    "ledger_kind": "resubmit_route_hard_ledger",
+    "text_only": True,
+    "no_new_experiment": True,
+    "no_bib_edits": True,
+    "no_overwrite": True,
+    "target_whitelist_required": True,
+    "body_included": False,
 }
 RUNTIME_PROGRESS_POLICY = {
     "progression_owner": "med-autoscience-runtime-owner-chain",
@@ -41,6 +62,7 @@ RUNTIME_PROGRESS_POLICY = {
     "direct_controller_decision_write_allowed": False,
     "direct_current_package_write_allowed": False,
     "direct_submission_package_write_allowed": False,
+    "forbidden_writes": list(FORBIDDEN_WRITES),
 }
 REVIEWER_REFRESH_POLICY = {
     "independent_reviewer_agent_required": True,
@@ -114,6 +136,7 @@ def build_publication_aftercare_plan(
             *talk_package_plan["package_refs"],
             *talk_package_plan["claim_assurance_refs"],
             *talk_package_plan["citation_assurance_refs"],
+            *talk_package_plan["kill_argument_refs"],
             *talk_package_plan["anonymity_assurance_refs"],
             *overleaf_sync_plan["project_refs"],
             *overleaf_sync_plan["status_refs"],
@@ -137,9 +160,19 @@ def build_publication_aftercare_plan(
         "publication_aftercare_plan_refs": publication_aftercare_plan_refs,
         "resubmission_plan_refs": resubmission_plan["review_corpus_refs"],
         "venue_route_refs": resubmission_plan["target_venue_refs"],
+        "resubmit_hard_ledger_refs": resubmission_plan["hard_ledger_refs"],
+        "target_whitelist_refs": resubmission_plan["target_whitelist_refs"],
+        "paper_talk_refs": talk_package_plan["paper_talk_refs"],
         "talk_package_refs": talk_package_plan["package_refs"],
         "slides_polish_refs": talk_package_plan["slide_deck_refs"],
         "overleaf_sync_refs": overleaf_sync_plan["status_refs"] + overleaf_sync_plan["check_refs"],
+        "citation_audit_refs": talk_package_plan["citation_assurance_refs"],
+        "kill_argument_refs": talk_package_plan["kill_argument_refs"],
+        "aftercare_readiness_inputs": {
+            "citation_audit_refs": talk_package_plan["citation_assurance_refs"],
+            "kill_argument_refs": talk_package_plan["kill_argument_refs"],
+            "body_included": False,
+        },
         "author_handoff_refs": _author_handoff_refs(root),
         "external_suite_task_refs": analysis_queue_entry["evidence_delta_refs"],
         "input_refs": input_refs,
@@ -152,6 +185,7 @@ def build_publication_aftercare_plan(
         "runtime_progression_policy": dict(RUNTIME_PROGRESS_POLICY),
         "can_push_submission": False,
         "can_authorize_submission_action": False,
+        "forbidden_writes": list(FORBIDDEN_WRITES),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "blockers": blockers,
     }
@@ -235,6 +269,7 @@ def _resubmission_plan(*, root: Path, study_id: str) -> dict[str, Any]:
         root / "artifacts" / "journal_shortlist" / "latest.json",
         root / "artifacts" / "journal_package" / "latest.json",
         root / "artifacts" / "resubmission" / "latest.json",
+        root / "artifacts" / "publication_aftercare" / "resubmit_route_hard_ledger.json",
         root / "paper" / "target_journal_writing_layer.json",
         root / "paper" / "resubmission_plan.json",
     )
@@ -246,24 +281,47 @@ def _resubmission_plan(*, root: Path, study_id: str) -> dict[str, Any]:
         root / "paper" / "reviewer_response.md",
         root / "paper" / "reviews.md",
     )
-    target_venue_refs = _unique_refs(
+    target_venue_value_refs = _json_refs(
+        target_paths,
+        keys=(
+            "target_venue_ref",
+            "target_venue_refs",
+            "venue_ref",
+            "venue_refs",
+            "journal_ref",
+            "journal_refs",
+            "target_journal_ref",
+            "target_journal_refs",
+            "journal_slug",
+            "journal_slugs",
+            "publication_profile_ref",
+        ),
+    )
+    target_venue_refs = _unique_refs([*_existing_refs(*target_paths), *target_venue_value_refs])
+    target_whitelist_refs = _unique_refs(
         [
-            *_existing_refs(*target_paths),
             *_json_refs(
                 target_paths,
                 keys=(
-                    "target_venue_ref",
-                    "target_venue_refs",
-                    "venue_ref",
-                    "venue_refs",
-                    "journal_ref",
-                    "journal_refs",
-                    "target_journal_ref",
-                    "target_journal_refs",
-                    "journal_slug",
-                    "journal_slugs",
-                    "publication_profile_ref",
+                    "target_whitelist_ref",
+                    "target_whitelist_refs",
+                    "target_whitelist",
+                    "allowed_target_ref",
+                    "allowed_target_refs",
+                    "allowed_journal_ref",
+                    "allowed_journal_refs",
+                    "whitelisted_target_refs",
+                    "whitelisted_journal_refs",
                 ),
+            ),
+        ]
+    )
+    hard_ledger_refs = _unique_refs(
+        [
+            *_existing_refs(root / "artifacts" / "publication_aftercare" / "resubmit_route_hard_ledger.json"),
+            *_json_refs(
+                target_paths,
+                keys=("hard_ledger_ref", "hard_ledger_refs", "resubmit_route_hard_ledger_ref"),
             ),
         ]
     )
@@ -290,19 +348,32 @@ def _resubmission_plan(*, root: Path, study_id: str) -> dict[str, Any]:
     blockers: list[str] = []
     if not target_venue_refs:
         blockers.append(f"blocker:mas/{study_id}/publication-aftercare/target-venue-ref-missing")
+    if not target_whitelist_refs:
+        blockers.append(f"blocker:mas/{study_id}/publication-aftercare/target-whitelist-ref-missing")
+    target_venue_ref = target_venue_value_refs[0] if target_venue_value_refs else None
+    if target_venue_ref and target_whitelist_refs and target_venue_ref not in target_whitelist_refs:
+        blockers.append(f"blocker:mas/{study_id}/publication-aftercare/target-not-whitelisted")
     if not review_corpus_refs:
         blockers.append(f"blocker:mas/{study_id}/publication-aftercare/review-corpus-ref-missing")
     return {
         "surface_kind": "mas_resubmission_aftercare_plan",
         "status": "ready" if not blockers else "blocked",
-        "target_venue_ref": target_venue_refs[0] if target_venue_refs else None,
+        "target_venue_ref": target_venue_ref,
         "target_venue_refs": target_venue_refs,
+        "target_whitelist_refs": target_whitelist_refs,
+        "hard_ledger_refs": hard_ledger_refs,
+        "hard_ledger": {
+            **dict(RESUBMISSION_HARD_LEDGER),
+            "target_venue_ref": target_venue_ref,
+            "target_whitelisted": bool(target_venue_ref and target_venue_ref in target_whitelist_refs),
+        },
         "review_corpus_refs": review_corpus_refs,
         "constraints": dict(RESUBMISSION_CONSTRAINTS),
         "assurance_level": "strict_text_only_resubmission_planning",
         "body_included": False,
         "can_submit_to_venue": False,
         "can_write_current_package": False,
+        "forbidden_writes": list(FORBIDDEN_WRITES),
         "blockers": blockers,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
@@ -333,8 +404,11 @@ def _talk_package_plan(*, root: Path, study_id: str) -> dict[str, Any]:
         root / "paper" / "anonymity_check.json",
         root / "artifacts" / "claim_assurance" / "latest.json",
         root / "artifacts" / "citation_audit" / "latest.json",
+        root / "artifacts" / "kill_argument" / "latest.json",
+        root / "artifacts" / "kill_argument_refs" / "latest.json",
         root / "artifacts" / "anonymity_check" / "latest.json",
         root / "artifacts" / "publication_eval" / "latest.json",
+        root / "paper" / "kill_argument_refs.json",
     )
     talk_json_paths = tuple(path for path in talk_paths if path.suffix == ".json")
     assurance_json_paths = tuple(path for path in assurance_paths if path.suffix == ".json")
@@ -370,6 +444,11 @@ def _talk_package_plan(*, root: Path, study_id: str) -> dict[str, Any]:
             *_json_refs(talk_json_paths, keys=("package_ref", "package_refs", "talk_package_ref", "talk_package_refs")),
         ]
     )
+    paper_talk_refs = _unique_refs(
+        [
+            *_json_refs(talk_json_paths, keys=("paper_talk_ref", "paper_talk_refs")),
+        ]
+    )
     claim_assurance_refs = _unique_refs(
         [
             *_existing_refs(root / "paper" / "claim_evidence_map.json", root / "artifacts" / "claim_assurance" / "latest.json"),
@@ -385,6 +464,19 @@ def _talk_package_plan(*, root: Path, study_id: str) -> dict[str, Any]:
             *_json_refs(
                 assurance_json_paths,
                 keys=("citation_ref", "citation_refs", "citation_assurance_ref", "citation_assurance_refs"),
+            ),
+        ]
+    )
+    kill_argument_refs = _unique_refs(
+        [
+            *_existing_refs(
+                root / "paper" / "kill_argument_refs.json",
+                root / "artifacts" / "kill_argument" / "latest.json",
+                root / "artifacts" / "kill_argument_refs" / "latest.json",
+            ),
+            *_json_refs(
+                assurance_json_paths,
+                keys=("kill_argument_ref", "kill_argument_refs", "weak_argument_ref", "weak_argument_refs"),
             ),
         ]
     )
@@ -406,6 +498,8 @@ def _talk_package_plan(*, root: Path, study_id: str) -> dict[str, Any]:
         blockers.append(f"blocker:mas/{study_id}/publication-aftercare/claim-assurance-ref-missing")
     if not citation_assurance_refs:
         blockers.append(f"blocker:mas/{study_id}/publication-aftercare/citation-assurance-ref-missing")
+    if not kill_argument_refs:
+        blockers.append(f"blocker:mas/{study_id}/publication-aftercare/kill-argument-ref-missing")
     if not anonymity_assurance_refs:
         blockers.append(f"blocker:mas/{study_id}/publication-aftercare/anonymity-assurance-ref-missing")
     return {
@@ -415,18 +509,29 @@ def _talk_package_plan(*, root: Path, study_id: str) -> dict[str, Any]:
         "slide_deck_refs": slide_deck_refs,
         "talk_script_refs": talk_script_refs,
         "package_refs": package_refs,
+        "paper_talk_refs": paper_talk_refs,
         "claim_assurance_refs": claim_assurance_refs,
         "citation_assurance_refs": citation_assurance_refs,
+        "kill_argument_refs": kill_argument_refs,
         "anonymity_assurance_refs": anonymity_assurance_refs,
+        "refs_only_maturity": {
+            "paper_talk_ready": bool(paper_talk_refs),
+            "slides_polish_ready": bool(slide_deck_refs),
+            "citation_audit_ready": bool(citation_assurance_refs),
+            "kill_argument_refs_ready": bool(kill_argument_refs),
+            "body_included": False,
+        },
         "content_grounding_policy": {
             "policy_ref": "policy:mas/publication-aftercare/talk-content-grounding",
             "claims_must_resolve_to_claim_assurance_refs": True,
             "citations_must_resolve_to_citation_assurance_refs": True,
+            "kill_arguments_must_resolve_to_kill_argument_refs": True,
             "anonymity_must_resolve_to_anonymity_assurance_refs": True,
             "body_included": False,
         },
         "body_included": False,
         "can_generate_or_push_deck": False,
+        "forbidden_writes": list(FORBIDDEN_WRITES),
         "blockers": blockers,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
@@ -486,9 +591,18 @@ def _overleaf_sync_plan(*, root: Path, study_id: str) -> dict[str, Any]:
         "token_storage_status": "blocked_token_key_present" if token_key_present else "clean_no_token_keys_seen",
         "requires_human_confirmation_for_shared_push": True,
         "shared_push_status": "blocked_requires_human_confirmation",
+        "refs_only_maturity": {
+            "project_ref_ready": bool(project_refs),
+            "status_or_check_ref_ready": bool(status_refs or check_refs),
+            "pull_ref_seen": bool(pull_refs),
+            "push_ref_seen": bool(push_refs),
+            "token_storage_clean": not token_key_present,
+            "body_included": False,
+        },
         "body_included": False,
         "can_pull": False,
         "can_push_shared_resource": False,
+        "forbidden_writes": list(FORBIDDEN_WRITES),
         "blockers": blockers,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
