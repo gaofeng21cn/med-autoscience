@@ -232,6 +232,110 @@ def test_codex_exec_runner_maps_methodology_analysis_work_unit_to_quality_repair
     )
 
 
+def test_codex_exec_runner_preserves_hard_methodology_route_fields_from_controller_decision(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    workspace_root = tmp_path / "workspace"
+    quest_id = "002-dm"
+    quest_root = workspace_root / "runtime" / "quests" / quest_id
+    runtime_root = workspace_root / "runtime"
+    study_root = workspace_root / "studies" / quest_id
+    _write_workspace_python(quest_root)
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {quest_id}\n", encoding="utf-8")
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text('{"status": "paused"}\n', encoding="utf-8")
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    decision_path.parent.mkdir(parents=True, exist_ok=True)
+    decision_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_id": "methodology-hard-routeback",
+                "study_id": quest_id,
+                "quest_id": quest_id,
+                "emitted_at": "2026-05-19T02:59:11+00:00",
+                "decision_type": "route_back_same_line",
+                "charter_ref": {
+                    "charter_id": "charter::002-dm::v1",
+                    "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                },
+                "runtime_escalation_ref": {
+                    "record_id": "runtime-escalation::002-dm::methodology-reframe",
+                    "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                    "summary_ref": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                },
+                "publication_eval_ref": {
+                    "eval_id": "publication-eval::002-dm::latest",
+                    "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                },
+                "requires_human_confirmation": False,
+                "controller_actions": [
+                    {
+                        "action_type": "ensure_study_runtime",
+                        "payload_ref": str(decision_path),
+                    }
+                ],
+                "reason": "Route terminal provenance blockers back to methodology reframe.",
+                "route_target": "analysis-campaign",
+                "route_key_question": "Can DM002 continue without the original transported model provenance?",
+                "route_rationale": "HDL/unit harmonization and Cox provenance remain unresolved.",
+                "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+                    "lane": "analysis-campaign",
+                    "summary": "Reframe the invalid transported-model claim.",
+                    "hard_methodology": True,
+                    "required_owner": "analysis_harmonization_owner",
+                    "required_next_work_unit": "unit_harmonized_external_validation_rerun",
+                    "typed_blocker": "unit_harmonized_rerun_required",
+                    "route_options": [
+                        "stop_loss_current_transport_claim",
+                        "provenance_limited_harmonization_audit",
+                        "rebuild_reproducible_model_route",
+                        "human_gate",
+                    ],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id="run-hard-methodology",
+        reason="explicit_resume",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    authorization = runtime_state["current_controller_authorization"]
+
+    assert "Hard methodology/unit-harmonization contract" in prompt
+    assert '"hard_methodology": true' in prompt
+    assert '"required_owner": "analysis_harmonization_owner"' in prompt
+    assert '"required_next_work_unit": "unit_harmonized_external_validation_rerun"' in prompt
+    assert '"typed_blocker": "unit_harmonized_rerun_required"' in prompt
+    assert "blocked_reason=unit_harmonized_rerun_required" in prompt
+    assert authorization["next_work_unit"]["hard_methodology"] is True
+    assert authorization["next_work_unit"]["required_next_work_unit"] == "unit_harmonized_external_validation_rerun"
+
+
 def test_codex_exec_runner_prompt_prefers_current_ai_reviewer_decision_over_stale_runtime_authorization(
     monkeypatch,
     tmp_path: Path,

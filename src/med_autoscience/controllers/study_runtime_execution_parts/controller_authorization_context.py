@@ -113,17 +113,30 @@ def _stable_blocking_artifact_refs(value: object) -> tuple[str, ...]:
     return tuple(sorted(set(refs)))
 
 
-def _compact_work_unit_payload(value: object) -> dict[str, str] | None:
+def _compact_work_unit_payload(value: object) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
     unit_id = _text(value.get("unit_id"))
     if unit_id is None:
         return None
-    payload = {"unit_id": unit_id}
+    payload: dict[str, Any] = {"unit_id": unit_id}
     for key in ("lane", "summary", "control_surface", "user_feedback_priority"):
         text = _text(value.get(key))
         if text is not None:
             payload[key] = text
+    if value.get("hard_methodology") is True:
+        payload["hard_methodology"] = True
+    for key in ("required_owner", "required_next_work_unit", "typed_blocker"):
+        text = _text(value.get(key))
+        if text is not None:
+            payload[key] = text
+    route_options = [
+        text
+        for item in value.get("route_options") or []
+        if (text := _text(item)) is not None
+    ]
+    if route_options:
+        payload["route_options"] = route_options
     return payload
 
 
