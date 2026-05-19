@@ -25,6 +25,10 @@ MAX_OPEN_REDRIVE_ATTEMPTS = 3
 _MEANINGFUL_RESULT_ARTIFACT_KEYS = (
     "publication_eval_latest",
     "publication_gate_latest",
+    "quality_repair_batch_latest",
+    "gate_clearing_batch_latest",
+    "repair_execution_evidence_latest",
+    "publication_work_unit_lifecycle_latest",
 )
 _WORK_UNIT_TARGET_CONTEXT_KEYS = (
     "specificity_targets",
@@ -291,6 +295,19 @@ def _meaningful_artifact_delta_evidence(
     if publication_gate_delta is not None:
         evidence["gate_fingerprint_before"] = publication_gate_delta["fingerprint_before"]
         evidence["gate_fingerprint_after"] = publication_gate_delta["fingerprint_after"]
+    controller_result_deltas = [
+        item
+        for item in deltas
+        if item.get("artifact_key")
+        in {
+            "quality_repair_batch_latest",
+            "gate_clearing_batch_latest",
+            "repair_execution_evidence_latest",
+            "publication_work_unit_lifecycle_latest",
+        }
+    ]
+    if controller_result_deltas:
+        evidence["controller_result_artifact_deltas"] = controller_result_deltas
     return evidence
 
 

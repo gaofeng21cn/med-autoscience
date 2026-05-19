@@ -343,6 +343,22 @@ def _managed_outer_loop_wakeup_fingerprint(
             "controller_decision_latest": _artifact_fingerprint(
                 resolved_study_root / "artifacts" / "controller_decisions" / "latest.json"
             ),
+            "quality_repair_batch_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+            ),
+            "gate_clearing_batch_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
+            ),
+            "repair_execution_evidence_latest": _artifact_fingerprint(
+                resolved_study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+            ),
+            "publication_work_unit_lifecycle_latest": _artifact_fingerprint(
+                resolved_study_root
+                / "artifacts"
+                / "controller"
+                / "publication_work_unit_lifecycle"
+                / "latest.json"
+            ),
             "runtime_supervision_latest": _runtime_supervision_artifact_fingerprint(
                 resolved_study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
             ),
