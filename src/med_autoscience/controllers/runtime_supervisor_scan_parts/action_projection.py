@@ -58,6 +58,18 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    rebuild_route_action = _provenance_limited_rebuild_route_action(study_root)
+    if rebuild_route_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=rebuild_route_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     source_provenance_action = _source_provenance_recovery_action(study_root)
     if source_provenance_action is not None:
         return [
@@ -531,6 +543,55 @@ def _hard_methodology_quality_repair_handoff_action(study_root: Path) -> dict[st
     }
 
 
+def _provenance_limited_rebuild_route_action(study_root: Path) -> dict[str, Any] | None:
+    provenance_limited_state = provenance_limited_harmonization_owner_result.typed_blocker_state(
+        study_root=study_root
+    )
+    if not provenance_limited_state:
+        return None
+    if _text(provenance_limited_state.get("blocked_reason")) != "unit_harmonized_rerun_required":
+        return None
+    if _text(provenance_limited_state.get("next_owner")) != "analysis_harmonization_owner":
+        return None
+    source_ref = provenance_limited_harmonization_owner_result.result_path(study_root=study_root)
+    analysis_ref = analysis_harmonization_owner_result.result_path(study_root=study_root)
+    if analysis_harmonization_owner_result.required_output_satisfied(
+        study_root=study_root
+    ) and not _artifact_supersedes(newer_ref=source_ref, older_ref=analysis_ref):
+        return None
+    return {
+        "action_type": "unit_harmonized_external_validation_rerun",
+        "authority": "observability_only",
+        "owner": "analysis_harmonization_owner",
+        "request_owner": "analysis_harmonization_owner",
+        "recommended_owner": "analysis_harmonization_owner",
+        "reason": "unit_harmonized_rerun_required",
+        "summary": (
+            "Human-gate authorization converted the provenance-limited audit into a clean "
+            "reproducible-model rebuild route; rerun or type-block unit-harmonized external validation."
+        ),
+        "next_work_unit": "unit_harmonized_external_validation_rerun",
+        "work_unit_fingerprint": "clean-rebuild::unit_harmonized_external_validation_rerun::provenance_limited_authorization",
+        "required_output_surface": (
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        ),
+        "source_ref": str(source_ref),
+        "rebuild_authorization_consumed": True,
+        "quality_gate_relaxation_allowed": False,
+        "current_package_write_allowed": False,
+        "paper_package_mutation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+
+
+def _artifact_supersedes(*, newer_ref: Path, older_ref: Path) -> bool:
+    newer_mtime = _path_mtime(newer_ref)
+    older_mtime = _path_mtime(older_ref)
+    return newer_mtime is not None and older_mtime is not None and newer_mtime > older_mtime
+
+
 def _hard_methodology_handoff_supersedes_consumers(*, study_root: Path, source_ref: Path) -> bool:
     consumer_paths = (
         analysis_harmonization_owner_result.result_path(study_root=study_root),
@@ -868,6 +929,13 @@ def _read_json_object(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _path_mtime(path: Path) -> float | None:
+    try:
+        return Path(path).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None
 
 
 def _external_supervisor_runtime_repair_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:

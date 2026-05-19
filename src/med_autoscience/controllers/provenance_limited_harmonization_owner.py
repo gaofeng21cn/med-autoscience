@@ -15,10 +15,15 @@ OWNER = "provenance_limited_harmonization_owner"
 WORK_UNIT = "provenance_limited_harmonization_audit"
 BLOCKED_REASON = "provenance_limited_harmonization_audit_required"
 REBUILD_ROUTE_REQUIRED = "rebuild_reproducible_model_route_required"
+REBUILD_AUTHORIZATION_KIND = "methodology_rebuild_authorization"
+REBUILD_AUTHORIZED_RERUN_REQUIRED = "unit_harmonized_rerun_required"
+REBUILD_AUTHORIZED_OWNER = "analysis_harmonization_owner"
+REBUILD_AUTHORIZED_WORK_UNIT = "unit_harmonized_external_validation_rerun"
 CALLABLE_SURFACE = f"{OWNER}.{WORK_UNIT}_or_typed_blocker"
 RESULT_RELATIVE_PATH = Path("artifacts/controller/provenance_limited_harmonization/latest.json")
 REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/provenance_limited_harmonization/latest.json")
 CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions/latest.json")
+TASK_INTAKE_RELATIVE_PATH = Path("artifacts/controller/task_intake/latest.json")
 
 _METHODOLOGY_REFRAME_FINGERPRINT = "decision::methodology_reframe_route_decision"
 _ROUTE_OPTIONS = (
@@ -44,6 +49,38 @@ def stable_provenance_limited_harmonization_owner_result_path(*, study_root: Pat
 def controller_decision_requests_audit(*, study_root: Path) -> bool:
     decision = _read_json_object(Path(study_root).expanduser().resolve() / CONTROLLER_DECISION_RELATIVE_PATH)
     return _decision_contract(decision)["valid"]
+
+
+def rebuild_authorization(*, study_root: Path) -> dict[str, Any]:
+    root = Path(study_root).expanduser().resolve()
+    path = root / TASK_INTAKE_RELATIVE_PATH
+    payload = _read_json_object(path)
+    if _text(_mapping(payload).get("task_intake_kind")) != REBUILD_AUTHORIZATION_KIND:
+        return {"authorized": False, "path": str(path)}
+    return {
+        "authorized": True,
+        "path": str(path),
+        "task_id": _text(_mapping(payload).get("task_id")),
+        "task_intake_kind": REBUILD_AUTHORIZATION_KIND,
+        "emitted_at": _text(_mapping(payload).get("emitted_at")),
+        "summary": _text(_mapping(payload).get("task_intent")) or _text(_mapping(payload).get("summary")),
+    }
+
+
+def rebuild_authorization_supersedes_result(*, study_root: Path, result_payload: Mapping[str, Any] | None) -> bool:
+    authorization = rebuild_authorization(study_root=study_root)
+    if authorization.get("authorized") is not True:
+        return False
+    result = _mapping(result_payload)
+    if result.get("rebuild_authorization_consumed") is True:
+        return False
+    emitted_at = _text(authorization.get("emitted_at"))
+    generated_at = _text(result.get("generated_at"))
+    if emitted_at is not None and generated_at is not None:
+        return emitted_at > generated_at
+    authorization_mtime = _path_mtime(Path(str(authorization["path"])))
+    result_mtime = _path_mtime(stable_provenance_limited_harmonization_owner_result_path(study_root=study_root))
+    return authorization_mtime is not None and (result_mtime is None or authorization_mtime > result_mtime)
 
 
 def provenance_limited_harmonization_audit_or_typed_blocker(
@@ -93,10 +130,12 @@ def _build_owner_result(
     source_result = source_provenance_owner_result.read_result(study_root=study_root)
     source_terminal = _source_terminal_blocker(source_result)
     provenance_recovered = _mapping(source_result).get("transport_model_provenance_recovered") is True
+    authorization = rebuild_authorization(study_root=study_root)
     route = _selected_route(
         decision_contract=decision_contract,
         source_terminal=source_terminal,
         provenance_recovered=provenance_recovered,
+        rebuild_authorized=authorization.get("authorized") is True,
     )
     return {
         "surface": "provenance_limited_harmonization_owner_result",
@@ -125,6 +164,8 @@ def _build_owner_result(
             "submission_readiness_verdict",
         ],
         "provenance_recovered": provenance_recovered,
+        "rebuild_authorization": authorization,
+        "rebuild_authorization_consumed": authorization.get("authorized") is True,
         "recommended_next_route": route["recommended_next_route"],
         "next_owner": route["next_owner"],
         "next_work_unit": route["next_work_unit"],
@@ -203,6 +244,7 @@ def _selected_route(
     decision_contract: Mapping[str, Any],
     source_terminal: bool,
     provenance_recovered: bool,
+    rebuild_authorized: bool,
 ) -> dict[str, Any]:
     if decision_contract.get("valid") is not True:
         return {
@@ -230,6 +272,22 @@ def _selected_route(
             ),
             "required_next_actions": [
                 "rerun the transported model on unit-harmonized predictors",
+                "only then re-author external-validation claims from refreshed evidence",
+            ],
+        }
+    if source_terminal and rebuild_authorized:
+        return {
+            "blocked_reason": REBUILD_AUTHORIZED_RERUN_REQUIRED,
+            "recommended_next_route": "rebuild_reproducible_model_route",
+            "next_owner": REBUILD_AUTHORIZED_OWNER,
+            "next_work_unit": REBUILD_AUTHORIZED_WORK_UNIT,
+            "route_option_assessment": _route_option_assessment(
+                selected="rebuild_reproducible_model_route",
+                reason="human_gate_authorized_clean_reproducible_model_rebuild",
+            ),
+            "required_next_actions": [
+                "define and execute a clean reproducible model contract with unit-harmonized predictors",
+                "verify HDL units, categorical coding, feature order, Cox parameters, baseline survival, and uncertainty outputs",
                 "only then re-author external-validation claims from refreshed evidence",
             ],
         }
@@ -285,15 +343,22 @@ def _source_terminal_blocker(payload: Mapping[str, Any] | None) -> bool:
 
 def _typed_blocker(*, route: Mapping[str, Any], decision_contract: Mapping[str, Any]) -> dict[str, Any]:
     blocker_id = _text(route.get("blocked_reason")) or BLOCKED_REASON
+    reason = (
+        "Human-gate authorization for a clean reproducible-model rebuild was consumed. "
+        "The next owner must rerun or type-block unit-harmonized external validation before any renewed "
+        "medical transportability claim is authored."
+        if blocker_id == REBUILD_AUTHORIZED_RERUN_REQUIRED
+        else (
+            "A provenance-limited harmonization audit was required after the terminal transported-model "
+            "provenance blocker. The current raw transported-score evidence cannot support a medical "
+            "transportability conclusion; the next route must be explicitly authorized."
+        )
+    )
     return {
         "blocker_id": blocker_id,
         "owner": OWNER,
         "work_unit": WORK_UNIT,
-        "reason": (
-            "A provenance-limited harmonization audit was required after the terminal transported-model "
-            "provenance blocker. The current raw transported-score evidence cannot support a medical "
-            "transportability conclusion; the next route must be explicitly authorized."
-        ),
+        "reason": reason,
         "blocking_reasons": [blocker_id, *list(_string_items(decision_contract.get("missing_requirements")))],
     }
 
@@ -321,6 +386,13 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def _path_mtime(path: Path) -> float | None:
+    try:
+        return Path(path).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -341,10 +413,17 @@ __all__ = [
     "CALLABLE_SURFACE",
     "OWNER",
     "REBUILD_ROUTE_REQUIRED",
+    "REBUILD_AUTHORIZATION_KIND",
+    "REBUILD_AUTHORIZED_OWNER",
+    "REBUILD_AUTHORIZED_RERUN_REQUIRED",
+    "REBUILD_AUTHORIZED_WORK_UNIT",
     "REQUEST_RELATIVE_PATH",
     "RESULT_RELATIVE_PATH",
+    "TASK_INTAKE_RELATIVE_PATH",
     "WORK_UNIT",
     "controller_decision_requests_audit",
     "provenance_limited_harmonization_audit_or_typed_blocker",
+    "rebuild_authorization",
+    "rebuild_authorization_supersedes_result",
     "stable_provenance_limited_harmonization_owner_result_path",
 ]

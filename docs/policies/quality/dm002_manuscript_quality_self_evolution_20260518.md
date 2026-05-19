@@ -151,3 +151,20 @@ Additional verification:
 - `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/test_mas_runtime_core_turn_prompt_cases/test_current_controller_decision_authorization.py tests/test_owner_callable_registry.py -q`: 24 passed.
 - `make test-meta`: 245 passed, 4160 deselected.
 - `scripts/verify.sh`: repo hygiene audit passed; 4 passed.
+
+## Human-Gate Rebuild Authorization Follow-Up
+
+The provenance-limited owner correctly blocked DM002 at clean reproducible rebuild authorization, but the next user-authorized `methodology_rebuild_authorization` task intake was not a runtime-consumable route. Study truth still preferred older waiting/projection state, and the accepted provenance-limited typed blocker could remain satisfied even after the human gate had authorized a clean rebuild.
+
+Follow-up patch:
+
+- Treat `task_intake_kind=methodology_rebuild_authorization` as structured human-gate authorization for same-line methodology rebuild.
+- Materialize that intake into study truth with `canonical_next_action=authorize_clean_reproducible_model_rebuild`.
+- Invalidate stale `rebuild_reproducible_model_route_required` provenance-limited results when a later rebuild authorization exists.
+- Re-execute provenance-limited owner so it consumes the authorization and routes to `analysis_harmonization_owner` with `blocked_reason=unit_harmonized_rerun_required`.
+- Add supervisor scan projection from the authorized provenance-limited result to `unit_harmonized_external_validation_rerun`.
+- Preserve the no-forbidden-write boundary: no paper, manuscript package, publication eval, controller decision, current package, or submission-readiness verdict is written by this route.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/test_study_truth_kernel.py tests/test_provenance_limited_harmonization_owner.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_route_priority.py -q`: 18 passed.

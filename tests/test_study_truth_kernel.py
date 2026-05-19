@@ -475,6 +475,56 @@ def test_shadow_snapshot_reads_latest_task_intake_as_reactivation_event(tmp_path
     assert snapshot["dominant_authority_refs"][0]["event_type"] == "task_intake"
 
 
+def test_methodology_rebuild_authorization_task_intake_dominates_waiting_human_gate(
+    tmp_path: Path,
+) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm"
+    task_intake_path = study_root / "artifacts" / "controller" / "task_intake" / "latest.json"
+    task_intake_path.parent.mkdir(parents=True)
+    task_intake_path.write_text(
+        json.dumps(
+            {
+                "task_id": "study-task::002-dm::20260519T074054Z",
+                "study_id": "002-dm",
+                "emitted_at": "2026-05-19T07:40:54+00:00",
+                "task_intake_kind": "methodology_rebuild_authorization",
+                "task_intent": (
+                    "Human-gate decision: authorize a clean reproducible-model rebuild route "
+                    "after the HDL unit harmonization blocker."
+                ),
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.reconcile_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="002-dm",
+        status_payload={
+            "study_id": "002-dm",
+            "study_root": str(study_root),
+            "quest_status": "waiting_for_user",
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+            "publication_supervisor_state": {
+                "current_required_action": "return_to_publishability_gate",
+            },
+        },
+        recorded_at="2026-05-19T07:41:00+00:00",
+    )
+
+    snapshot = result["snapshot"]
+    task_event = module.read_truth_events(study_root=study_root)[-1]
+    assert snapshot["canonical_next_action"] == "authorize_clean_reproducible_model_rebuild"
+    assert snapshot["execution_state"]["state"] == "reactivation_requested"
+    assert snapshot["dominant_authority_refs"][0]["event_type"] == "task_intake"
+    assert task_event["payload"]["task_intake_kind"] == "methodology_rebuild_authorization"
+    assert task_event["payload"]["reactivation_policy"]["next_owner"] == "provenance_limited_harmonization_owner"
+
+
 def test_progress_projection_carries_truth_epoch_from_status_payload(tmp_path: Path) -> None:
     progress = importlib.import_module("med_autoscience.controllers.study_progress")
     module = _kernel()

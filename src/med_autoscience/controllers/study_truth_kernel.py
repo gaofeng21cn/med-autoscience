@@ -389,7 +389,12 @@ def _execution_owner_and_state(events: list[dict[str, Any]]) -> tuple[dict[str, 
                 }
         elif event.get("event_type") in {"task_intake", "explicit_resume"}:
             action = _text(payload.get("current_required_action"))
-            if action in {"resume_same_study_line", "resume_runtime", "relaunch_same_study_line"}:
+            if action in {
+                "resume_same_study_line",
+                "resume_runtime",
+                "relaunch_same_study_line",
+                "authorize_clean_reproducible_model_rebuild",
+            }:
                 state = {
                     "state": "reactivation_requested",
                     "quest_status": state.get("quest_status"),
@@ -410,10 +415,13 @@ def _dominant_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
         payload = _mapping(event.get("payload"))
         if event.get("event_type") in {"task_intake", "explicit_resume"}:
             action = _text(payload.get("current_required_action"))
+            task_intake_kind = _text(payload.get("task_intake_kind"))
             reactivation = _mapping(payload.get("reactivation_policy"))
             revision = _mapping(payload.get("revision_intake"))
             if (
                 action in {"resume_same_study_line", "resume_runtime", "relaunch_same_study_line"}
+                or action == "authorize_clean_reproducible_model_rebuild"
+                or task_intake_kind == "methodology_rebuild_authorization"
                 or reactivation.get("same_study_line") is True
                 or _text(revision.get("kind")) == "reviewer_revision"
             ):
@@ -780,6 +788,7 @@ def _task_intake_event_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         return {}
     revision_intake = _mapping(payload.get("revision_intake"))
     reactivation_policy = _mapping(payload.get("reactivation_policy"))
+    task_intake_kind = _text(payload.get("task_intake_kind")) or _text(payload.get("intake_kind"))
     task_intent = _text(payload.get("task_intent")) or ""
     text = " ".join(
         item
@@ -799,7 +808,17 @@ def _task_intake_event_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         or "审稿" in text
         or "返修" in text
     )
-    if "stop-loss" in text or "stop loss" in text or "止损" in text:
+    if task_intake_kind == "methodology_rebuild_authorization":
+        current_required_action = "authorize_clean_reproducible_model_rebuild"
+        quality_closure_truth = None
+        if not reactivation_policy:
+            reactivation_policy = {
+                "same_study_line": True,
+                "route_target": "analysis-campaign",
+                "next_owner": "provenance_limited_harmonization_owner",
+                "next_work_unit": "provenance_limited_harmonization_audit",
+            }
+    elif "stop-loss" in text or "stop loss" in text or "止损" in text:
         current_required_action = "stop_runtime"
         quality_closure_truth = {"state": "stop_loss_recommended", "summary": _text(payload.get("task_intent"))}
     elif (
@@ -816,6 +835,7 @@ def _task_intake_event_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         return {}
     event_payload = {
         "task_id": _text(payload.get("task_id")),
+        "task_intake_kind": task_intake_kind,
         "revision_intake": revision_intake or None,
         "reactivation_policy": reactivation_policy or {"same_study_line": True}
         if current_required_action == "resume_same_study_line"

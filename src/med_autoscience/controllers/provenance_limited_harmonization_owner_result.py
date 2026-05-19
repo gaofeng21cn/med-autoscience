@@ -12,6 +12,9 @@ OWNER = provenance_limited_harmonization_owner.OWNER
 WORK_UNIT = provenance_limited_harmonization_owner.WORK_UNIT
 BLOCKED_REASON = provenance_limited_harmonization_owner.BLOCKED_REASON
 REBUILD_ROUTE_REQUIRED = provenance_limited_harmonization_owner.REBUILD_ROUTE_REQUIRED
+REBUILD_AUTHORIZED_RERUN_REQUIRED = provenance_limited_harmonization_owner.REBUILD_AUTHORIZED_RERUN_REQUIRED
+REBUILD_AUTHORIZED_OWNER = provenance_limited_harmonization_owner.REBUILD_AUTHORIZED_OWNER
+REBUILD_AUTHORIZED_WORK_UNIT = provenance_limited_harmonization_owner.REBUILD_AUTHORIZED_WORK_UNIT
 RESULT_RELATIVE_PATH = provenance_limited_harmonization_owner.RESULT_RELATIVE_PATH
 
 
@@ -24,7 +27,13 @@ def read_result(*, study_root: Path) -> dict[str, Any] | None:
 
 
 def required_output_satisfied(*, study_root: Path) -> bool:
-    return result_satisfies_required_output(read_result(study_root=study_root))
+    payload = read_result(study_root=study_root)
+    if provenance_limited_harmonization_owner.rebuild_authorization_supersedes_result(
+        study_root=study_root,
+        result_payload=payload,
+    ):
+        return False
+    return result_satisfies_required_output(payload)
 
 
 def result_satisfies_required_output(payload: Mapping[str, Any] | None) -> bool:
@@ -46,11 +55,16 @@ def result_is_accepted_typed_blocker(payload: Mapping[str, Any] | None) -> bool:
         return False
     typed_blocker = _mapping(result.get("typed_blocker"))
     blocker_id = _text(typed_blocker.get("blocker_id"))
-    return blocker_id in {BLOCKED_REASON, REBUILD_ROUTE_REQUIRED}
+    return blocker_id in {BLOCKED_REASON, REBUILD_ROUTE_REQUIRED, REBUILD_AUTHORIZED_RERUN_REQUIRED}
 
 
 def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
     payload = read_result(study_root=study_root)
+    if provenance_limited_harmonization_owner.rebuild_authorization_supersedes_result(
+        study_root=study_root,
+        result_payload=payload,
+    ):
+        return None
     if not result_satisfies_required_output(payload):
         return None
     result = _mapping(payload)
@@ -60,6 +74,7 @@ def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
     return {
         "blocked_reason": blocked_reason,
         "next_owner": _text(result.get("next_owner")) or OWNER,
+        "next_work_unit": _text(result.get("next_work_unit")),
         "external_supervisor_required": False,
     }
 
@@ -123,6 +138,9 @@ __all__ = [
     "BLOCKED_REASON",
     "OWNER",
     "REBUILD_ROUTE_REQUIRED",
+    "REBUILD_AUTHORIZED_OWNER",
+    "REBUILD_AUTHORIZED_RERUN_REQUIRED",
+    "REBUILD_AUTHORIZED_WORK_UNIT",
     "RESULT_RELATIVE_PATH",
     "WORK_UNIT",
     "controller_decision_requests_audit",
