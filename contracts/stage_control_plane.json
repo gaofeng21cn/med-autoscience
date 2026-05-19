@@ -342,8 +342,34 @@
           "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
           "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
         ],
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/direction_and_route_selection/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
         "ensures": [
           "direction_route_selected"
+        ],
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/study_runtime_status",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
         ],
         "requires": [
           "study_direction_request_received"
@@ -351,6 +377,38 @@
         "runtime_event_refs": [
           "runtime_event:runtime_supervisor_owner_route.direction_route_selected",
           "runtime_event:controller_decisions.direction_route_selected"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "scout",
+              "idea",
+              "decision"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/direction_and_route_selection/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/direction_and_route_selection",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "product_entry_status",
+              "workspace_cockpit",
+              "study_progress"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
         ]
       },
       "stage_id": "direction_and_route_selection",
@@ -683,8 +741,34 @@
           "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
           "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
         ],
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/baseline_and_evidence_setup/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
         "ensures": [
           "baseline_evidence_ready"
+        ],
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/study_runtime_status",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
         ],
         "requires": [
           "direction_route_selected"
@@ -692,6 +776,37 @@
         "runtime_event_refs": [
           "runtime_event:controller_decisions.baseline_evidence_ready",
           "runtime_event:evidence_ledger.baseline_evidence_ready"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "baseline",
+              "experiment"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/baseline_and_evidence_setup/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/baseline_and_evidence_setup",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "submit_study_task",
+              "launch_study",
+              "study_progress"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
         ]
       },
       "stage_id": "baseline_and_evidence_setup",
@@ -1034,8 +1149,34 @@
           "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
           "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
         ],
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/bounded_analysis_campaign/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
         "ensures": [
           "bounded_analysis_evidence_ready"
+        ],
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/study_runtime_status",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
         ],
         "requires": [
           "baseline_evidence_ready"
@@ -1043,6 +1184,37 @@
         "runtime_event_refs": [
           "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
           "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "analysis-campaign"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/bounded_analysis_campaign/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/bounded_analysis_campaign",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "launch_study",
+              "study_progress",
+              "sidecar_export",
+              "sidecar_dispatch"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
         ]
       },
       "stage_id": "bounded_analysis_campaign",
@@ -1384,8 +1556,34 @@
           "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
           "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
         ],
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/manuscript_authoring/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
         "ensures": [
           "manuscript_draft_reviewable"
+        ],
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/study_runtime_status",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
         ],
         "requires": [
           "bounded_analysis_evidence_ready"
@@ -1393,6 +1591,37 @@
         "runtime_event_refs": [
           "runtime_event:controller_decisions.manuscript_draft_reviewable",
           "runtime_event:canonical_manuscript.manuscript_draft_reviewable"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "write"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/manuscript_authoring/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/manuscript_authoring",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "launch_study",
+              "study_progress",
+              "sidecar_export",
+              "sidecar_dispatch"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
         ]
       },
       "stage_id": "manuscript_authoring",
@@ -1747,8 +1976,34 @@
           "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
           "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
         ],
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/review_and_quality_gate/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
         "ensures": [
           "ai_reviewer_gate_receipt_recorded"
+        ],
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/study_runtime_status",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
         ],
         "requires": [
           "manuscript_draft_reviewable"
@@ -1756,6 +2011,38 @@
         "runtime_event_refs": [
           "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
           "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "review",
+              "decision"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/review_and_quality_gate/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/review_and_quality_gate",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "study_progress",
+              "product_entry",
+              "sidecar_export",
+              "sidecar_dispatch"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
         ]
       },
       "stage_id": "review_and_quality_gate",
@@ -2111,8 +2398,34 @@
           "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
           "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
         ],
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/finalize_and_publication_handoff/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
         "ensures": [
           "publication_handoff_ready_or_route_back_recorded"
+        ],
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/study_runtime_status",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
         ],
         "requires": [
           "ai_reviewer_gate_receipt_recorded"
@@ -2120,6 +2433,38 @@
         "runtime_event_refs": [
           "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
           "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "finalize",
+              "journal-resolution",
+              "decision"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/finalize_and_publication_handoff/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/finalize_and_publication_handoff",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "study_progress",
+              "product_entry",
+              "sidecar_export"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
         ]
       },
       "stage_id": "finalize_and_publication_handoff",

@@ -332,6 +332,15 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["trust_boundary"]["runtime_guard_required"] is True
         assert stage["trust_boundary"]["runtime_event_refs"] == expected_runtime_event_refs[stage["stage_id"]]
         assert stage["stage_contract"]["runtime_event_refs"] == expected_runtime_event_refs[stage["stage_id"]]
+        assert stage["stage_contract"]["source_scope_refs"]
+        assert stage["stage_contract"]["cohort_query_refs"]
+        assert stage["stage_contract"]["trigger_refs"]
+        assert stage["stage_contract"]["monitor_refs"]
+        assert stage["stage_contract"]["dashboard_metric_refs"]
+        assert any(
+            ref["role"] == "opl_provider_stage_launch_trigger"
+            for ref in stage["stage_contract"]["trigger_refs"]
+        )
         assert stage["authority_boundary"]["independent_gate_receipt_required"] is (
             stage["stage_id"] in independent_gate_stage_ids
         )

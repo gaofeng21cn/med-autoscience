@@ -490,6 +490,7 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> dict[str, Any]:
     runtime_event_refs = _required_runtime_event_refs(stage)
+    cohort_loop_refs = _stage_cohort_loop_refs(stage)
     source_refs = [
         *_plane_source_refs(descriptor),
         {
@@ -518,6 +519,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
     if runtime_event_refs:
         stage_contract["runtime_event_refs"] = runtime_event_refs
         trust_boundary["runtime_event_refs"] = runtime_event_refs
+    stage_contract.update(cohort_loop_refs)
     return {
         "stage_id": stage["stage_id"],
         "stage_kind": stage["stage_kind"],
@@ -621,6 +623,54 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
         },
+    }
+
+
+def _stage_cohort_loop_refs(stage: Mapping[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    stage_id = str(stage["stage_id"])
+    return {
+        "source_scope_refs": [
+            {
+                "ref_kind": "route_stage_refs",
+                "ref": list(stage["domain_stage_refs"]),
+                "role": "mas_route_stage_source_scope",
+            },
+            {
+                "ref_kind": "json_pointer",
+                "ref": f"/product_entry_manifest/family_stage_control_plane/stages/{stage_id}/source_refs",
+                "role": "stage_source_ref_projection",
+            },
+        ],
+        "cohort_query_refs": [
+            {
+                "ref_kind": "json_pointer",
+                "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+                "role": "auditable_stage_cohort_query",
+            },
+        ],
+        "trigger_refs": [
+            {
+                "ref_kind": "queue_ref",
+                "ref": f"opl://family-stage-queue/med-autoscience/{stage_id}",
+                "role": "opl_provider_stage_launch_trigger",
+            },
+            {
+                "ref_kind": "action_ref",
+                "ref": list(stage["allowed_action_refs"]),
+                "role": "mas_guarded_action_trigger_candidates",
+            },
+        ],
+        "monitor_refs": [
+            {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "stage_progress_monitor"},
+            {"ref_kind": "json_pointer", "ref": "/study_runtime_status", "role": "runtime_status_monitor"},
+        ],
+        "dashboard_metric_refs": [
+            {
+                "ref_kind": "json_pointer",
+                "ref": f"/product_entry_manifest/family_stage_control_plane/stages/{stage_id}/freshness",
+                "role": "operator_stage_freshness_metric",
+            },
+        ],
     }
 
 

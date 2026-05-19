@@ -201,6 +201,12 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         assert refs
         assert refs == stage["stage_contract"].get("runtime_event_refs")
         assert all(str(ref).startswith("runtime_event:") for ref in refs)
+        assert stage["stage_contract"]["source_scope_refs"]
+        assert stage["stage_contract"]["cohort_query_refs"]
+        assert stage["stage_contract"]["trigger_refs"]
+        assert stage["stage_contract"]["monitor_refs"]
+        assert stage["stage_contract"]["dashboard_metric_refs"]
+        assert any(ref["role"] == "opl_provider_stage_launch_trigger" for ref in stage["stage_contract"]["trigger_refs"])
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
     assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][
