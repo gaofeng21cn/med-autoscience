@@ -396,6 +396,10 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     gate_parser.add_argument("--quest-root", required=True)
     gate_parser.add_argument("--apply", action="store_true")
 
+    aftercare_parser = subparsers.add_parser("publication-aftercare-plan")
+    aftercare_parser.add_argument("--study-root", required=True)
+    aftercare_parser.add_argument("--quest-root")
+
     medical_literature_audit_parser = subparsers.add_parser("medical-literature-audit")
     medical_literature_audit_parser.add_argument("--quest-root", required=True)
     medical_literature_audit_parser.add_argument("--apply", action="store_true")

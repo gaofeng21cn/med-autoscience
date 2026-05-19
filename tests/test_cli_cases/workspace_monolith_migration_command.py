@@ -298,7 +298,24 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
     )
     _write_json(
         study_root / "paper" / "review" / "review_ledger.json",
-        {"review_refs": ["review-ref:hdl-harmonization"]},
+        {
+            "review_refs": ["review-ref:hdl-harmonization"],
+            "mechanism_patch_refs": ["mechanism-patch-ref:reviewer-route-hardening"],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "evidence_ledger.json",
+        {
+            "evidence_refs": ["evidence-ref:raw-cox-transport-output"],
+            "raw_evidence_refs": ["raw-evidence-ref:cox-transport-jsonl"],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "raw_evidence" / "latest.json",
+        {
+            "raw_evidence_refs": ["raw-evidence-ref:cox-transport-jsonl"],
+            "source_refs": ["source-ref:transport-model-provenance"],
+        },
     )
     _write_json(
         study_root / "paper" / "claim_evidence_map.json",
@@ -322,6 +339,20 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
                     "retry_count": "2",
                     "budget_cost": 5,
                     "source_refs": ["paper-ref:dm002-current-draft"],
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "analysis_campaign" / "queue_manifest.json",
+        {
+            "queue_ref": "analysis-campaign-queue:dm002/reviewer-repair",
+            "state": "recoverable",
+            "items": [
+                {
+                    "ref": "analysis-campaign-item:dm002/provenance-recovery",
+                    "state": "blocked",
+                    "source_refs": ["raw-evidence-ref:cox-transport-jsonl"],
                 }
             ],
         },
@@ -350,6 +381,27 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
             "context_isolation_refs": ["context-isolation-ref:reviewer-no-shared-context"],
         },
     )
+    _write_json(
+        study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "source_kind": "publication_gate_report",
+            "current_required_action": "return_to_publishability_gate",
+            "blockers": ["source_provenance_recovery_required"],
+            "evidence_refs": ["evidence-ref:raw-cox-transport-output"],
+            "review_refs": ["review-ref:hdl-harmonization"],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "submission_targets" / "latest.json",
+        {"target_venue_refs": ["venue-route-ref:target-journal"]},
+    )
+    (study_root / "paper" / "citation_audit.json").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "paper" / "citation_audit.json").write_text("{}\n", encoding="utf-8")
+    (study_root / "paper" / "anonymity_check.json").write_text("{}\n", encoding="utf-8")
+    (study_root / "talk").mkdir(parents=True, exist_ok=True)
+    (study_root / "talk" / "slides.pptx").write_text("pptx placeholder", encoding="utf-8")
+    (study_root / "artifacts" / "overleaf").mkdir(parents=True, exist_ok=True)
+    (study_root / "artifacts" / "overleaf" / "status.json").write_text("{}\n", encoding="utf-8")
 
     exit_code = cli.main(
         [
@@ -382,15 +434,20 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
     assert queue["state"] == "active"
     assert queue["retry_policy"] == {"policy_ref": "retry-policy:mas/analysis-campaign/manual-owner-retry"}
     assert queue["budget"] == {"budget_ref": "analysis-budget:dm002/reviewer-repair"}
-    assert queue["items"] == [
-        {
-            "ref": "analysis-queue:hdl-harmonization",
-            "state": "blocked",
-            "retry_count": 2,
-            "budget_cost": 5,
-            "source_refs": ["paper-ref:dm002-current-draft"],
-        }
-    ]
+    assert {
+        "ref": "analysis-queue:hdl-harmonization",
+        "state": "blocked",
+        "retry_count": 2,
+        "budget_cost": 5,
+        "source_refs": ["paper-ref:dm002-current-draft"],
+    } in queue["items"]
+    assert {
+        "ref": "analysis-campaign-item:dm002/provenance-recovery",
+        "state": "blocked",
+        "retry_count": 0,
+        "budget_cost": 0,
+        "source_refs": ["raw-evidence-ref:cox-transport-jsonl"],
+    } in queue["items"]
     assert queue["body_included"] is False
     runtime_events = mechanism_inputs["runtime_event_ledger"]
     assert runtime_events["body_included"] is False
@@ -413,7 +470,101 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
     assert claim_map["evidence_refs"] == ["evidence-ref:cox-transport-validation"]
     assert claim_map["reviewer_refs"] == ["review-ref:hdl-harmonization"]
     assert claim_map["display_refs"] == ["display-ref:table-2-performance"]
+    assurance = mechanism_inputs["assurance_contract"]
+    assert assurance["surface_kind"] == "mas_agent_lab_assurance_contract"
+    assert assurance["body_included"] is False
+    assert "raw-evidence-ref:cox-transport-jsonl" in assurance["raw_evidence_item_refs"]
+    assert "evidence-ref:raw-cox-transport-output" in assurance["evidence_item_refs"]
+    assert "review-ref:hdl-harmonization" in assurance["review_item_refs"]
+    review_gate = mechanism_inputs["adversarial_review_gate"]
+    assert review_gate["surface_kind"] == "mas_agent_lab_adversarial_review_gate"
+    assert review_gate["independent_ai_reviewer_required"] is True
+    assert review_gate["executor_context_reuse_allowed"] is False
+    recovery = mechanism_inputs["experiment_queue_recovery"]
+    assert recovery["surface_kind"] == "mas_agent_lab_experiment_queue_recovery"
+    assert "analysis-campaign-item:dm002/provenance-recovery" in recovery["queue_item_refs"]
+    aftercare = mechanism_inputs["publication_aftercare_plan"]
+    assert aftercare["surface_kind"] == "mas_publication_aftercare_plan"
+    assert aftercare["body_included"] is False
+    assert aftercare["can_push_submission"] is False
+    assert "publication-aftercare-plan:mas/002-dm-china-us-mortality-attribution" in aftercare[
+        "publication_aftercare_plan_refs"
+    ]
+    assert "venue-route-ref:target-journal" in aftercare["venue_route_refs"]
     assert "runtime-event:dm002/controller-decision-recorded" in mechanism_inputs["evidence_delta_refs"]
     assert "provider-fallback-ref:local-diagnostic-only" in mechanism_inputs["evidence_delta_refs"]
     assert "claim-ref:external-validation-performance" in mechanism_inputs["evidence_delta_refs"]
+    assert "raw-evidence-ref:cox-transport-jsonl" in mechanism_inputs["evidence_delta_refs"]
+    assert "analysis-campaign-item:dm002/provenance-recovery" in mechanism_inputs["evidence_delta_refs"]
     assert mechanism_inputs["authority_boundary"]["can_write_domain_truth"] is False
+
+
+def test_publication_aftercare_plan_command_exposes_refs_only_runtime_progression(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    controller = importlib.import_module("med_autoscience.controllers.publication_aftercare")
+    study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
+    quest_root = tmp_path / "quest"
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"review_refs": ["review-ref:ai"]})
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"review_refs": ["review-ref:ledger"]})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claim_refs": ["claim-ref:grounded"]})
+    _write_json(study_root / "paper" / "citation_audit.json", {"citation_refs": ["citation-ref:audit"]})
+    _write_json(study_root / "paper" / "anonymity_check.json", {"anonymity_refs": ["anonymity-ref:audit"]})
+    _write_json(study_root / "artifacts" / "submission_targets" / "latest.json", {"target_venue_refs": ["venue-ref:journal"]})
+    _write_json(study_root / "artifacts" / "overleaf" / "status.json", {"project_refs": ["overleaf-project-ref:paper"]})
+    _write_json(
+        study_root / "artifacts" / "analysis_campaign" / "queue_manifest.json",
+        {
+            "queue_ref": "analysis-campaign-queue:aftercare",
+            "items": [{"ref": "analysis-item:aftercare", "source_refs": ["source-ref:aftercare"]}],
+        },
+    )
+    (study_root / "paper" / "draft.md").write_text("# Draft\n", encoding="utf-8")
+    (study_root / "talk").mkdir(parents=True, exist_ok=True)
+    (study_root / "talk" / "slides.pptx").write_text("pptx placeholder", encoding="utf-8")
+    for name in (
+        "input_contract.json",
+        "algorithm_scout_report.md",
+        "innovation_hypotheses.md",
+        "final_method_proposal.md",
+        "experiment_plan.md",
+        "experiment_results_summary.md",
+        "review_loop_summary.md",
+        "claim_to_evidence_map.md",
+    ):
+        path = quest_root / "artifacts" / "algorithm_research" / "aris" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}\n" if name.endswith(".json") else "ref\n", encoding="utf-8")
+
+    exit_code = cli.main(
+        [
+            "publication-aftercare-plan",
+            "--study-root",
+            str(study_root),
+            "--quest-root",
+            str(quest_root),
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+    pending_tasks = controller.build_publication_aftercare_pending_tasks(
+        profile_name="local",
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=output["study_id"],
+        projection=output,
+    )
+
+    assert exit_code == 0
+    assert output["surface_kind"] == "mas_publication_aftercare_plan"
+    assert output["refs_only"] is True
+    assert output["body_included"] is False
+    assert output["authority_boundary"]["can_submit_to_venue"] is False
+    assert output["authority_boundary"]["can_authorize_quality_verdict"] is False
+    assert output["analysis_queue_entry"]["eligible_for_runtime_dispatch"] is True
+    assert output["reviewer_refresh_entry"]["eligible_for_runtime_dispatch"] is True
+    assert {task["task_kind"] for task in pending_tasks} == {
+        "publication_aftercare/analysis-queue-progress",
+        "publication_aftercare/reviewer-refresh",
+    }
+    assert all(task["requires_approval"] is False for task in pending_tasks)

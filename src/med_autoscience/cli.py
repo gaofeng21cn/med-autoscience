@@ -107,6 +107,7 @@ portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfol
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 progress_portal = _LazyModuleProxy(lambda: _load_controller("progress_portal"))
 portal_console_soak = _LazyModuleProxy(lambda: _load_controller("portal_console_soak"))
+publication_aftercare = _LazyModuleProxy(lambda: _load_controller("publication_aftercare"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
@@ -1197,6 +1198,14 @@ def main(argv: list[str] | None = None) -> int:
         result = publication_gate.run_controller(
             quest_root=Path(args.quest_root),
             apply=args.apply,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "publication-aftercare-plan":
+        result = publication_aftercare.build_publication_aftercare_plan(
+            study_root=Path(args.study_root),
+            quest_root=Path(args.quest_root) if args.quest_root else None,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from .agent_lab_aris_followup_assurance import build_aris_followup_assurance_surfaces
+from .publication_aftercare import build_publication_aftercare_plan
+
 
 SURFACE_KIND = "mas_agent_lab_medical_manuscript_quality_suite"
 SUITE_RELATIVE_PATH = Path("artifacts") / "agent_lab" / "medical_manuscript_quality" / "latest_suite.json"
@@ -31,6 +34,10 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
     "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection",
     "mechanism-edit-ref:mas/claim-assurance-map-body-free-projection",
+    "mechanism-edit-ref:mas/assurance-contract-body-free-projection",
+    "mechanism-edit-ref:mas/adversarial-review-gate-body-free-projection",
+    "mechanism-edit-ref:mas/experiment-queue-recovery-body-free-projection",
+    "mechanism-edit-ref:mas/publication-aftercare-plan-body-free-projection",
     "skill_ref:medical-research-write",
     "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
     "prompt_ref:ai_reviewer_medical_prose_quality_review",
@@ -295,6 +302,15 @@ def _mechanism_evolution_inputs(
     runtime_event_ledger = _runtime_event_ledger(root=root, study_id=study_id)
     provider_switch_hygiene = _provider_switch_hygiene(root=root, study_id=study_id)
     claim_assurance_map = _claim_assurance_map(root=root, study_id=study_id)
+    followup_surfaces = build_aris_followup_assurance_surfaces(
+        root=root,
+        study_id=study_id,
+        publication_eval_path=publication_eval_path,
+        task_intake_path=task_intake_path,
+        analysis_queue_manifest_refs=analysis_queue_manifest_refs,
+        authority_boundary=AUTHORITY_BOUNDARY,
+    )
+    publication_aftercare_plan = build_publication_aftercare_plan(study_root=root)
     return {
         "surface_kind": "mas_agent_lab_mechanism_evolution_inputs",
         "target_opl_surface": "opl_agent_lab_evolution_result",
@@ -309,6 +325,19 @@ def _mechanism_evolution_inputs(
         "runtime_event_ledger": runtime_event_ledger,
         "provider_switch_hygiene": provider_switch_hygiene,
         "claim_assurance_map": claim_assurance_map,
+        "assurance_contract_refs": followup_surfaces["assurance_contract"]["raw_evidence_refs"]
+        + followup_surfaces["assurance_contract"]["evidence_ledger_refs"]
+        + followup_surfaces["assurance_contract"]["review_ledger_refs"]
+        + followup_surfaces["assurance_contract"]["publication_gate_refs"],
+        "adversarial_review_gate_refs": followup_surfaces["adversarial_review_gate"]["promotion_gate_inputs"],
+        "experiment_queue_recovery_refs": followup_surfaces["experiment_queue_recovery"][
+            "experiment_queue_recovery_refs"
+        ],
+        "publication_aftercare_plan_refs": publication_aftercare_plan["publication_aftercare_plan_refs"],
+        "assurance_contract": followup_surfaces["assurance_contract"],
+        "adversarial_review_gate": followup_surfaces["adversarial_review_gate"],
+        "experiment_queue_recovery": followup_surfaces["experiment_queue_recovery"],
+        "publication_aftercare_plan": publication_aftercare_plan,
         "controller_read_model_feedback_refs": controller_read_model_feedback_refs,
         "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
         "developer_patch_work_order": _developer_patch_work_order(
@@ -337,6 +366,8 @@ def _mechanism_evolution_inputs(
                 *claim_assurance_map["evidence_refs"],
                 *claim_assurance_map["reviewer_refs"],
                 *claim_assurance_map["display_refs"],
+                *followup_surfaces["evidence_delta_refs"],
+                *publication_aftercare_plan["evidence_delta_refs"],
             ]
         ),
         "independent_ai_review_receipt_ref": f"ai-reviewer-receipt:mas/{study_id}/mechanism-direct-evidence-review",

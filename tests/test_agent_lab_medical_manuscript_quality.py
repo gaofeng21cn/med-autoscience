@@ -137,7 +137,24 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     )
     _write_json(
         study_root / "paper" / "review" / "review_ledger.json",
-        {"review_items": [{"ref": "review-ref:hdl-harmonization"}]},
+        {
+            "review_items": [{"ref": "review-ref:hdl-harmonization"}],
+            "mechanism_patch_refs": ["mechanism-patch-ref:reviewer-route-hardening"],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "evidence_ledger.json",
+        {
+            "evidence_refs": ["evidence-ref:raw-cox-transport-output"],
+            "raw_evidence_refs": ["raw-evidence-ref:cox-transport-jsonl"],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "raw_evidence" / "latest.json",
+        {
+            "raw_evidence_refs": ["raw-evidence-ref:cox-transport-jsonl"],
+            "source_refs": ["source-ref:transport-model-provenance"],
+        },
     )
     _write_json(
         study_root / "paper" / "claim_evidence_map.json",
@@ -169,6 +186,20 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
                     "retry_count": 1,
                     "budget_cost": 3,
                     "source_refs": ["review-ref:hdl-harmonization"],
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "analysis_campaign" / "queue_manifest.json",
+        {
+            "queue_ref": "analysis-campaign-queue:dm002/reviewer-repair",
+            "state": "recoverable",
+            "items": [
+                {
+                    "ref": "analysis-campaign-item:dm002/provenance-recovery",
+                    "state": "blocked",
+                    "source_refs": ["raw-evidence-ref:cox-transport-jsonl"],
                 }
             ],
         },
@@ -217,6 +248,24 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
             "context_isolation_refs": ["context-isolation-ref:reviewer-no-shared-context"],
         },
     )
+    _write_json(
+        study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "source_kind": "publication_gate_report",
+            "current_required_action": "return_to_publishability_gate",
+            "blockers": ["source_provenance_recovery_required"],
+            "evidence_refs": ["evidence-ref:raw-cox-transport-output"],
+            "review_refs": ["review-ref:hdl-harmonization"],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "submission_targets" / "latest.json",
+        {"target_venue_refs": ["venue-route-ref:target-journal"]},
+    )
+    write_text(study_root / "paper" / "citation_audit.json", "{}\n")
+    write_text(study_root / "paper" / "anonymity_check.json", "{}\n")
+    write_text(study_root / "talk" / "slides.pptx", "pptx placeholder")
+    write_text(study_root / "artifacts" / "overleaf" / "status.json", "{}\n")
 
     suite = module.build_medical_manuscript_quality_agent_lab_suite(study_root=study_root)
     task = suite["tasks"][0]
@@ -254,15 +303,20 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     assert queue["state"] == "active"
     assert queue["retry_policy"]["policy_ref"] == "retry-policy:mas/analysis-campaign/manual-owner-retry"
     assert queue["budget"] == {"budget_ref": "analysis-budget:dm002/reviewer-repair", "max_cost": 8}
-    assert queue["items"] == [
-        {
-            "ref": "analysis-queue:hdl-harmonization",
-            "state": "ready",
-            "retry_count": 1,
-            "budget_cost": 3,
-            "source_refs": ["review-ref:hdl-harmonization"],
-        }
-    ]
+    assert {
+        "ref": "analysis-queue:hdl-harmonization",
+        "state": "ready",
+        "retry_count": 1,
+        "budget_cost": 3,
+        "source_refs": ["review-ref:hdl-harmonization"],
+    } in queue["items"]
+    assert {
+        "ref": "analysis-campaign-item:dm002/provenance-recovery",
+        "state": "blocked",
+        "retry_count": 0,
+        "budget_cost": 0,
+        "source_refs": ["raw-evidence-ref:cox-transport-jsonl"],
+    } in queue["items"]
     assert queue["authority_boundary"]["can_authorize_quality_verdict"] is False
     runtime_events = inputs["runtime_event_ledger"]
     assert runtime_events["surface_kind"] == "mas_runtime_event_ledger"
@@ -302,15 +356,69 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     assert claim_map["reviewer_refs"] == ["review-ref:hdl-harmonization"]
     assert claim_map["display_refs"] == ["display-ref:table-2-performance"]
     assert any("paper/claim_evidence_map.json" in ref for ref in claim_map["claim_map_refs"])
+    assurance = inputs["assurance_contract"]
+    assert assurance["surface_kind"] == "mas_agent_lab_assurance_contract"
+    assert assurance["contract_kind"] == "body_free_raw_evidence_review_publication_gate_contract"
+    assert assurance["body_included"] is False
+    assert assurance["raw_evidence_body_included"] is False
+    assert assurance["review_ledger_body_included"] is False
+    assert assurance["publication_gate_body_included"] is False
+    assert any("artifacts/raw_evidence/latest.json" in ref for ref in assurance["raw_evidence_refs"])
+    assert any("paper/evidence_ledger.json" in ref for ref in assurance["evidence_ledger_refs"])
+    assert any("paper/review/review_ledger.json" in ref for ref in assurance["review_ledger_refs"])
+    assert any("publishability_gate/latest.json" in ref for ref in assurance["publication_gate_refs"])
+    assert "raw-evidence-ref:cox-transport-jsonl" in assurance["raw_evidence_item_refs"]
+    assert "evidence-ref:raw-cox-transport-output" in assurance["evidence_item_refs"]
+    assert "review-ref:hdl-harmonization" in assurance["review_item_refs"]
+    assert "mechanism-patch-ref:reviewer-route-hardening" in assurance["mechanism_patch_refs"]
+    assert assurance["can_authorize_submission_action"] is False
+    review_gate = inputs["adversarial_review_gate"]
+    assert review_gate["surface_kind"] == "mas_agent_lab_adversarial_review_gate"
+    assert review_gate["gate_kind"] == "independent_reviewer_body_free_mechanism_gate"
+    assert review_gate["independent_ai_reviewer_required"] is True
+    assert review_gate["executor_context_reuse_allowed"] is False
+    assert review_gate["can_promote_mechanism_patch"] is False
+    assert review_gate["can_authorize_quality_verdict"] is False
+    assert "review-ref:hdl-harmonization" in review_gate["review_ledger_item_refs"]
+    assert "evidence-ref:raw-cox-transport-output" in review_gate["publication_gate_evidence_refs"]
+    recovery = inputs["experiment_queue_recovery"]
+    assert recovery["surface_kind"] == "mas_agent_lab_experiment_queue_recovery"
+    assert recovery["recovery_kind"] == "body_free_analysis_campaign_queue_recovery"
+    assert recovery["body_included"] is False
+    assert recovery["can_authorize_analysis_completion"] is False
+    assert any("analysis_campaign/queue_manifest.json" in ref for ref in recovery["campaign_queue_refs"])
+    assert "analysis-campaign-item:dm002/provenance-recovery" in recovery["queue_item_refs"]
+    assert "raw-evidence-ref:cox-transport-jsonl" in recovery["queue_source_refs"]
+    aftercare = inputs["publication_aftercare_plan"]
+    assert aftercare["surface_kind"] == "mas_publication_aftercare_plan"
+    assert aftercare["body_included"] is False
+    assert aftercare["can_push_submission"] is False
+    assert aftercare["can_authorize_submission_action"] is False
+    assert "publication-aftercare-plan:mas/002-dm-china-us-mortality-attribution" in aftercare[
+        "publication_aftercare_plan_refs"
+    ]
+    assert "venue-route-ref:target-journal" in aftercare["venue_route_refs"]
+    assert any("analysis_campaign/queue_manifest.json" in ref for ref in aftercare["external_suite_task_refs"])
     evidence_delta_refs = inputs["evidence_delta_refs"]
     assert "runtime-event:dm002/controller-decision-recorded" in evidence_delta_refs
     assert "provider-fallback-ref:local-diagnostic-only" in evidence_delta_refs
     assert "claim-ref:external-validation-performance" in evidence_delta_refs
     assert "evidence-ref:cox-transport-validation" in evidence_delta_refs
+    assert "raw-evidence-ref:cox-transport-jsonl" in evidence_delta_refs
+    assert "analysis-campaign-item:dm002/provenance-recovery" in evidence_delta_refs
+    assert "publication-aftercare-plan:mas/002-dm-china-us-mortality-attribution" in evidence_delta_refs
     assert "mechanism-edit-ref:mas/analysis-campaign-queue-routing" in inputs["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection" in inputs["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection" in inputs["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/claim-assurance-map-body-free-projection" in inputs["target_editable_surface_refs"]
+    assert "mechanism-edit-ref:mas/assurance-contract-body-free-projection" in inputs["target_editable_surface_refs"]
+    assert "mechanism-edit-ref:mas/adversarial-review-gate-body-free-projection" in inputs["target_editable_surface_refs"]
+    assert "mechanism-edit-ref:mas/experiment-queue-recovery-body-free-projection" in inputs[
+        "target_editable_surface_refs"
+    ]
+    assert "mechanism-edit-ref:mas/publication-aftercare-plan-body-free-projection" in inputs[
+        "target_editable_surface_refs"
+    ]
     assert "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue" in task["promotion_gate"]["regression_suite_refs"]
 
 
