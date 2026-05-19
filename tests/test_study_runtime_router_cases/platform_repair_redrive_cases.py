@@ -266,11 +266,24 @@ def test_study_runtime_status_hides_stale_authorization_when_newer_hard_methodol
     analysis_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
     source_path = study_root / "artifacts" / "controller" / "source_provenance" / "latest.json"
     quality_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    write_synced_submission_delivery(study_root, quest_root)
     eval_payload = {
         "schema_version": 1,
         "eval_id": "publication-eval::dm002::hard-methodology",
         "study_id": study_id,
         "quest_id": study_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": {
+            "medical_journal_prose_quality": {
+                "status": "partial",
+                "summary": "Prose quality is stale behind a hard methodology blocker.",
+            },
+        },
         "recommended_actions": [
             {
                 "action_type": "bounded_analysis",
@@ -378,9 +391,30 @@ def test_study_runtime_status_hides_stale_authorization_when_newer_hard_methodol
         ),
     ):
         write_text(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    write_text(
+        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "surface_kind": "paper_authority_clean_migration",
+                "status": "new_mas_authority_established",
+                "study_id": study_id,
+                "new_mas_authority": {
+                    "owner": "ai_reviewer",
+                    "publication_eval_ref": str(publication_eval_path),
+                    "eval_id": eval_payload["eval_id"],
+                    "established_at": "2026-05-18T00:00:00+00:00",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
     for path, timestamp in (
         (analysis_path, 100),
         (source_path, 200),
+        (publication_eval_path, 250),
         (controller_decision_path, 300),
         (quality_path, 400),
     ):
@@ -391,14 +425,14 @@ def test_study_runtime_status_hides_stale_authorization_when_newer_hard_methodol
         "generated_at": "2026-05-19T00:00:00+00:00",
         "quest_id": study_id,
         "paper_root": str(study_root / "paper"),
-        "status": "blocked",
-        "allow_write": False,
-        "blockers": ["medical_journal_prose_quality_underdefined"],
-        "supervisor_phase": "publishability_gate_blocked",
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "supervisor_phase": "bundle_stage_ready",
         "phase_owner": "publication_gate",
-        "upstream_scientific_anchor_ready": False,
+        "upstream_scientific_anchor_ready": True,
         "bundle_tasks_downstream_only": False,
-        "current_required_action": "return_to_ai_reviewer_workflow",
+        "current_required_action": "continue_bundle_stage",
         "deferred_downstream_actions": [],
         "controller_stage_note": "Hard methodology handoff supersedes stale AI reviewer prose transition.",
     }

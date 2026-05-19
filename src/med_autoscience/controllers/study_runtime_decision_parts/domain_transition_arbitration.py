@@ -7,6 +7,7 @@ from med_autoscience.controllers import (
     study_macro_state,
     study_state_matrix,
 )
+from med_autoscience.controllers.runtime_supervisor_scan_parts import hard_methodology_currentness
 from med_autoscience.controllers.study_runtime_status_parts import StudyRuntimeStatus
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import _load_json_dict
 
@@ -39,7 +40,13 @@ def record_domain_transition_if_required(*, status: StudyRuntimeStatus, study_ro
         active_run_id=active_run_id,
         delivered_package=delivered_package,
     )
-    if _domain_transition_consumable_by_interaction_arbitration(transition):
+    if (
+        _domain_transition_consumable_by_interaction_arbitration(transition)
+        and not _stale_ai_reviewer_transition_superseded_by_hard_methodology(
+            transition=transition,
+            study_root=study_root,
+        )
+    ):
         status.extras["domain_transition"] = transition
 
 
@@ -79,6 +86,24 @@ def _domain_transition_consumable_by_interaction_arbitration(transition: dict[st
         "publication_gate_blocker",
         "stop_loss",
     }
+
+
+def _stale_ai_reviewer_transition_superseded_by_hard_methodology(
+    *,
+    transition: dict[str, object],
+    study_root: Path,
+) -> bool:
+    if str(transition.get("decision_type") or "").strip() != "ai_reviewer_re_eval":
+        return False
+    root = Path(study_root).expanduser().resolve()
+    return hard_methodology_currentness.handoff_supersedes_paths(
+        source_ref=hard_methodology_currentness.quality_repair_handoff_path(root),
+        consumer_paths=(
+            root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
+            root / study_domain_transition_table.CONTROLLER_DECISION_RELATIVE_PATH,
+            root / study_domain_transition_table.REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH,
+        ),
+    )
 
 
 __all__ = ["record_domain_transition_if_required"]
