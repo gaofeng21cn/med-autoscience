@@ -336,7 +336,8 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "ai_reviewer_workflow",
         "publication_gate",
     }
-    assert set(classification["legacy_cleanup_no_active_caller_gate"]) == {
+    assert "legacy_cleanup_no_active_caller_gate" not in classification
+    assert set(classification["legacy_cleanup_tombstone_provenance"]) == {
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
@@ -384,6 +385,21 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert inventory_by_id["paper_work_unit_outbox_index"]["migration_action"] == (
         "keep_paper_work_unit_refs_only_adapter_and_declare_queue_attempt_requirements"
     )
+    refs_only_retirement_gates = {
+        item["module_id"]: item for item in runtime_boundary["refs_only_adapter_retirement_gates"]
+    }
+    assert set(refs_only_retirement_gates) == set(classification["refs_only_adapter"])
+    for module_id in classification["refs_only_adapter"]:
+        gate = inventory_by_id[module_id]["retirement_gate"]
+        assert gate == refs_only_retirement_gates[module_id]
+        assert gate["classification"] == "refs_only_adapter"
+        assert gate["active_caller_count"] > 0
+        assert gate["active_caller_proof"]
+        assert gate["generic_owner_claim_allowed"] is False
+        assert gate["can_emit_paper_closure_verdict"] is False
+        assert gate["can_emit_generic_owner_verdict"] is False
+        assert "paper_closure_verdict" in gate["must_not_emit"]
+        assert "active_caller_count=0" in gate["delete_or_tombstone_after"]
     assert inventory_by_id["runtime_supervisor_scan_consume_dispatch_shell"]["active_caller_status"] == (
         "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active"
     )
@@ -434,6 +450,13 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "minimal_authority_function": 3,
         "legacy_cleanup_physical_retired": 2,
     }
+    assert runtime_boundary["functional_module_inventory_summary"]["retired_legacy_residue_count"] == 4
+    assert runtime_boundary["functional_module_inventory_summary"]["legacy_cleanup_items_tombstoned"] == [
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller",
+    ]
     assert runtime_boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
     assert runtime_boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
     assert runtime_boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
@@ -461,6 +484,12 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
+    ]
+    assert followthrough_summary["legacy_cleanup_items_tombstoned"] == [
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller",
     ]
     assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
@@ -495,6 +524,17 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "opl_app_operator_workbench_drilldown",
         "opl_lifecycle_index_cleanup_restore_ledger",
     }
+    tombstones = runtime_boundary["retired_legacy_residue_tombstones"]
+    assert {item["residue_id"] for item in tombstones} == set(
+        classification["legacy_cleanup_tombstone_provenance"]
+    )
+    for item in tombstones:
+        assert item["current_role"] == "history_tombstone_provenance_only"
+        assert item["active_caller_count"] == 0
+        assert item["active_caller_allowed"] is False
+        assert item["default_entry_allowed"] is False
+        assert item["retirement_gate"] == "no_active_caller_proven_move_to_tombstone"
+        assert "paper_closure_verdict" in item["must_not_emit"]
     lifecycle_role = lane["runtime_lifecycle_sqlite_role"]
     assert lifecycle_role["classification"] == "refs_only_adapter"
     assert lifecycle_role["current_mas_role"] == "domain_sidecar_index_reference_adapter"

@@ -246,7 +246,8 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "typed_blocker",
         "safe_action_refs",
     }
-    assert set(classification["legacy_cleanup_no_active_caller_gate"]) == {
+    assert "legacy_cleanup_no_active_caller_gate" not in classification
+    assert set(classification["legacy_cleanup_tombstone_provenance"]) == {
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
@@ -269,6 +270,21 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert lifecycle_item["migration_action"] == (
         "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index"
     )
+    refs_only_retirement_gates = {
+        item["module_id"]: item for item in boundary["refs_only_adapter_retirement_gates"]
+    }
+    assert set(refs_only_retirement_gates) == set(classification["refs_only_adapter"])
+    for module_id in classification["refs_only_adapter"]:
+        gate = by_id[module_id]["retirement_gate"]
+        assert gate == refs_only_retirement_gates[module_id]
+        assert gate["classification"] == "refs_only_adapter"
+        assert gate["active_caller_count"] > 0
+        assert gate["active_caller_proof"]
+        assert gate["generic_owner_claim_allowed"] is False
+        assert gate["can_emit_paper_closure_verdict"] is False
+        assert gate["can_emit_generic_owner_verdict"] is False
+        assert "paper_closure_verdict" in gate["must_not_emit"]
+        assert "active_caller_count=0" in gate["delete_or_tombstone_after"]
     assert set(lifecycle_item["forbidden_mas_roles"]) == {
         "generic_persistence_engine",
         "generic_lifecycle_engine",
@@ -308,6 +324,13 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "minimal_authority_function": 3,
         "legacy_cleanup_physical_retired": 2,
     }
+    assert boundary["functional_module_inventory_summary"]["retired_legacy_residue_count"] == 4
+    assert boundary["functional_module_inventory_summary"]["legacy_cleanup_items_tombstoned"] == [
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller",
+    ]
     assert boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
     assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
     assert boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
@@ -336,6 +359,12 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
     ]
+    assert followthrough_summary["legacy_cleanup_items_tombstoned"] == [
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller",
+    ]
     assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
     assert followthrough_summary["remaining_functional_followthrough_gates"] == []
@@ -363,6 +392,17 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         False
     }
     assert "mas_owned_generic_queue" in followthrough_summary["forbidden_remaining_functional_gap_claims"]
+    tombstones = boundary["retired_legacy_residue_tombstones"]
+    assert {item["residue_id"] for item in tombstones} == set(
+        classification["legacy_cleanup_tombstone_provenance"]
+    )
+    for item in tombstones:
+        assert item["current_role"] == "history_tombstone_provenance_only"
+        assert item["active_caller_count"] == 0
+        assert item["active_caller_allowed"] is False
+        assert item["default_entry_allowed"] is False
+        assert item["retirement_gate"] == "no_active_caller_proven_move_to_tombstone"
+        assert "paper_closure_verdict" in item["must_not_emit"]
     assert by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
     lifecycle_role = boundary["runtime_lifecycle_sqlite_role"]
     assert lifecycle_role["classification"] == "refs_only_adapter"

@@ -143,6 +143,7 @@ def build_functional_followthrough_gap_summary(
     classification_counts: Mapping[str, int],
     legacy_cleanup_items: Sequence[str],
     legacy_physical_retired_items: Sequence[str] = (),
+    legacy_tombstone_items: Sequence[str] = (),
 ) -> dict[str, Any]:
     closure_gates = [dict(item) for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES]
     closed_functional_structure_gates = [
@@ -181,6 +182,7 @@ def build_functional_followthrough_gap_summary(
         "classification_counts": dict(classification_counts),
         "legacy_cleanup_items_require_no_active_caller_gate": list(legacy_cleanup_items),
         "legacy_cleanup_items_physical_retired": list(legacy_physical_retired_items),
+        "legacy_cleanup_items_tombstoned": list(legacy_tombstone_items),
         "legacy_cleanup_items_are_diagnostic_provenance_guards": bool(legacy_cleanup_items),
         "legacy_cleanup_item_role": (
             "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller"

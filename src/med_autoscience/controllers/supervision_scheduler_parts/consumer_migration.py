@@ -12,6 +12,7 @@ from .generated_surface_handoff import build_generated_surface_handoff
 from .consumer_migration_inventory import (
     FUNCTIONAL_MODULE_INVENTORY,
     FUNCTIONAL_SURFACE_CLASSIFICATION,
+    RETIRED_LEGACY_RESIDUE_TOMBSTONES,
 )
 
 SCHEMA_VERSION = 1
@@ -601,10 +602,19 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         for item in FUNCTIONAL_MODULE_INVENTORY
         if item.get("physical_retired") is True
     ]
+    retired_legacy_residue_items = [
+        str(item["residue_id"]) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
+    ]
+    refs_only_adapter_retirement_gates = [
+        dict(item["retirement_gate"])
+        for item in FUNCTIONAL_MODULE_INVENTORY
+        if item["classification"] == "refs_only_adapter"
+    ]
     functional_followthrough_gap_summary = build_functional_followthrough_gap_summary(
         classification_counts=classification_counts,
         legacy_cleanup_items=legacy_cleanup_items,
         legacy_physical_retired_items=legacy_physical_retired_items,
+        legacy_tombstone_items=retired_legacy_residue_items,
     )
 
     return {
@@ -644,6 +654,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "classification_counts": classification_counts,
             "long_term_opl_owned_replacement_count": 0,
             "retire_tombstone_classification_count": 0,
+            "retired_legacy_residue_count": len(retired_legacy_residue_items),
             "classification_gap_count": 0,
             "functional_structure_gap_count": functional_followthrough_gap_summary[
                 "functional_structure_gap_count"
@@ -657,6 +668,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             ),
             "legacy_cleanup_items_require_no_active_caller_gate": [],
             "legacy_cleanup_items_physical_retired": list(legacy_physical_retired_items),
+            "legacy_cleanup_items_tombstoned": list(retired_legacy_residue_items),
             "legacy_cleanup_items_are_diagnostic_provenance_guards": False,
             "legacy_cleanup_item_role": "history_tombstone_provenance_only",
             "legacy_cleanup_items_are_remaining_active_gaps": False,
@@ -669,6 +681,10 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             ),
         },
         "functional_followthrough_gap_summary": functional_followthrough_gap_summary,
+        "retired_legacy_residue_tombstones": [
+            dict(item) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
+        ],
+        "refs_only_adapter_retirement_gates": refs_only_adapter_retirement_gates,
         "runtime_lifecycle_sqlite_role": {
             "classification": "refs_only_adapter",
             "current_mas_role": "domain_sidecar_index_reference_adapter",
