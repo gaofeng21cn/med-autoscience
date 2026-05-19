@@ -140,7 +140,7 @@ def test_methodology_reframe_decision_exposes_current_controller_runtime_route(t
 
 def test_clean_rebuild_methodology_decision_exposes_current_controller_runtime_route(tmp_path: Path) -> None:
     route_module = importlib.import_module(
-        "med_autoscience.controllers.runtime_supervisor_scan_parts.current_truth_owner"
+        "med_autoscience.controllers.domain_route_scan_parts.current_truth_owner"
     )
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"

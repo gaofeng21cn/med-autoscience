@@ -104,7 +104,7 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 这部分属于结构治理 tail，不能被 `classification_gap_count=0`、`functional_structure_gap_count=0`、OPL admission、legacy cleanup ledger 或 generated interface ready 吞掉。
 
-- `runtime_supervisor_*` 与 `supervision_scheduler*` 仍是历史命名；目标是医学 owner route projection、authority receipt dispatch、domain blocker reconcile、diagnostic probe 或 tombstone，而不是 supervisor / scheduler 平台名。
+- domain route 与 domain SLO projection active source 已完成物理命名收口；剩余历史语境只允许作为 tombstone/provenance、diagnostic ref 或医学 publication/control surface 术语存在。
 - `runtime_transport/`、turn runner、worker lease 与 `runtime_lifecycle_store.py` 仍有 active domain / diagnostic caller；目标是 OPL provider parity、paper-line receipt parity 和 no-active-caller 通过后删除、archive 或 tombstone，只保留必要 domain receipt adapter。
 - `product_entry_parts/workspace_cockpit/`、product-entry manifest/status、sidecar provider 与 runtime status projection 仍承担 direct MAS path 和 OPL handoff 输入；目标是 OPL generated product/status/workbench shell 成为 production/default caller 后，MAS 只保留 domain handler target、receipt signer、typed blocker 和 authority refs。
 - developer repair / worktree / verification 元数据不得长期留在 MAS domain handler；目标是迁入 OPL Agent Lab / developer repair lane 或 explicit contract refs。

@@ -210,7 +210,7 @@ def test_scan_routes_clean_rebuild_decision_directly_to_analysis_owner(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    module = importlib.import_module("med_autoscience.controllers.domain_route_scan")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
@@ -277,7 +277,7 @@ def test_scan_routes_clean_rebuild_decision_directly_to_analysis_owner(
         lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
     )
 
-    result = module.supervisor_scan(
+    result = module.scan_domain_routes(
         profile=profile,
         study_ids=[study_id],
         developer_supervisor_mode="developer_apply_safe",
@@ -304,7 +304,7 @@ def test_scan_requeues_decision_when_clean_rebuild_authorization_supersedes_audi
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    module = importlib.import_module("med_autoscience.controllers.domain_route_scan")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
@@ -384,7 +384,7 @@ def test_scan_requeues_decision_when_clean_rebuild_authorization_supersedes_audi
         lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
     )
 
-    result = module.supervisor_scan(
+    result = module.scan_domain_routes(
         profile=profile,
         study_ids=[study_id],
         developer_supervisor_mode="developer_apply_safe",
