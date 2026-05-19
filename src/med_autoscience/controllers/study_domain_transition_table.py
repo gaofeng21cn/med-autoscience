@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
-from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
+from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.study_delivery_package_contract import delivered_package_handoff_allowed, live_delivered_package_handoff_allowed
 
 
@@ -203,19 +203,16 @@ def project_domain_transition(
             completion_receipt_consumption=execution_receipt_consumption,
         )
 
-    if _ai_reviewer_re_eval(publication_eval):
-        return _transition(
-            study_id=study_id,
-            decision_type="ai_reviewer_re_eval",
-            route_target="review",
-            next_work_unit=_ai_reviewer_re_eval_work_unit(publication_eval),
-            controller_action="return_to_ai_reviewer_workflow",
-            owner="ai_reviewer",
-            typed_blocker=None,
-            guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
-            source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
-        )
+    ai_reviewer_transition = ai_reviewer_transitions.project_transition(
+        study_id=study_id,
+        publication_eval=publication_eval,
+        active_run_id=active_run_id,
+        publication_eval_relative_path=PUBLICATION_EVAL_RELATIVE_PATH,
+        source_refs=source_refs,
+        completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
+    )
+    if ai_reviewer_transition is not None:
+        return ai_reviewer_transition
 
     if _publication_gate_blocked(publication_eval):
         return _transition(
@@ -850,50 +847,6 @@ def _publication_gate_blocked(publication_eval: Mapping[str, Any]) -> bool:
         or bool(publication_eval.get("blockers"))
         or _text(verdict.get("overall_verdict")) == "blocked"
         or any(_text(item.get("severity")) in {"must_fix", "blocking", "blocked"} for item in gaps)
-    )
-
-
-def _ai_reviewer_re_eval(publication_eval: Mapping[str, Any]) -> bool:
-    provenance = _mapping(publication_eval.get("assessment_provenance"))
-    return _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval" or (
-        provenance.get("ai_reviewer_required") is True
-        and _text(provenance.get("owner")) != "ai_reviewer"
-    ) or _ai_reviewer_medical_prose_quality_unready(publication_eval) or _ai_reviewer_trace_invalid(publication_eval)
-
-
-def _ai_reviewer_medical_prose_quality_unready(publication_eval: Mapping[str, Any]) -> bool:
-    provenance = _mapping(publication_eval.get("assessment_provenance"))
-    if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
-        return False
-    quality_assessment = _mapping(publication_eval.get("quality_assessment"))
-    if "medical_journal_prose_quality" not in quality_assessment:
-        return False
-    prose_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
-    return _text(prose_quality.get("status")) != "ready"
-
-
-def _ai_reviewer_trace_invalid(publication_eval: Mapping[str, Any]) -> bool:
-    provenance = _mapping(publication_eval.get("assessment_provenance"))
-    if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
-        return False
-    quality_assessment = _mapping(publication_eval.get("quality_assessment"))
-    prose_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
-    if _text(prose_quality.get("status")) != "ready":
-        return False
-    return bool(validate_ai_reviewer_operating_system_trace(publication_eval.get("reviewer_operating_system")))
-
-
-def _ai_reviewer_re_eval_work_unit(publication_eval: Mapping[str, Any]) -> dict[str, str]:
-    if _ai_reviewer_medical_prose_quality_unready(publication_eval) or _ai_reviewer_trace_invalid(publication_eval):
-        return _work_unit(
-            "ai_reviewer_medical_prose_quality_review",
-            "review",
-            "Re-run AI reviewer manuscript-quality review and close medical_journal_prose_quality currentness before finalize.",
-        )
-    return _work_unit(
-        "ai_reviewer_recheck",
-        "review",
-        "Return the current manuscript and evidence refs to the AI reviewer workflow.",
     )
 
 
