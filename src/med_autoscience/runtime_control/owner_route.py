@@ -19,6 +19,7 @@ ALLOWED_ACTION_TYPES = (
     "unit_harmonized_external_validation_rerun",
     "recover_transport_model_provenance",
     "methodology_reframe_route_decision",
+    "provenance_limited_harmonization_audit",
 )
 
 

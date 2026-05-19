@@ -110,6 +110,24 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         source_fingerprint_scope="analysis_harmonization_owner_result.blocking_owner_route",
     ),
     OwnerCallable(
+        owner="provenance_limited_harmonization_owner",
+        action_type="provenance_limited_harmonization_audit",
+        callable_surface="provenance_limited_harmonization_owner.provenance_limited_harmonization_audit_or_typed_blocker",
+        required_inputs=(
+            "artifacts/controller_decisions/latest.json",
+            "artifacts/controller/analysis_harmonization/latest.json",
+            "artifacts/controller/source_provenance/latest.json",
+        ),
+        required_outputs=(
+            "artifacts/controller/provenance_limited_harmonization/latest.json",
+            "typed blocker:provenance_limited_harmonization_audit_required",
+        ),
+        artifact_delta_predicate="provenance_limited_audit_or_route_typed_blocker",
+        gate_replay_target=None,
+        idempotency_scope="provenance_limited_harmonization_work_unit",
+        source_fingerprint_scope="controller_decision.work_unit_fingerprint",
+    ),
+    OwnerCallable(
         owner="gate_clearing_batch",
         action_type="run_gate_clearing_batch",
         callable_surface="gate_clearing_batch.run_gate_clearing_batch",

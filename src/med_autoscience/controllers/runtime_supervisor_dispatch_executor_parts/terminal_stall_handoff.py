@@ -43,6 +43,12 @@ def owner_handoff_allowed(
             and _text(owner_route.get("owner_reason")) == "methodology_reframe_required"
             and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
         )
+    if action_type == "provenance_limited_harmonization_audit":
+        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        return repeat_suppression.provenance_limited_harmonization_route(
+            owner_route
+        ) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type == "runtime_platform_repair":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)

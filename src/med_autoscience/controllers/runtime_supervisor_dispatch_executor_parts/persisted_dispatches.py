@@ -22,6 +22,9 @@ OWNER_REQUEST_RELATIVE_PATHS = {
     "unit_harmonized_external_validation_rerun": Path("artifacts/supervision/requests/analysis_harmonization/latest.json"),
     "recover_transport_model_provenance": Path("artifacts/supervision/requests/source_provenance/latest.json"),
     "methodology_reframe_route_decision": Path("artifacts/supervision/requests/decision/latest.json"),
+    "provenance_limited_harmonization_audit": Path(
+        "artifacts/supervision/requests/provenance_limited_harmonization/latest.json"
+    ),
 }
 
 

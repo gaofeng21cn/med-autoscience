@@ -124,6 +124,10 @@ def _required_output_surface_for_action(action_type: str) -> str | None:
             "canonical transport model provenance bundle or "
             "typed blocker:transport_model_provenance_recovery_required"
         ),
+        "provenance_limited_harmonization_audit": (
+            "provenance-limited harmonization audit or "
+            "typed blocker:provenance_limited_harmonization_audit_required"
+        ),
     }.get(action_type)
 
 

@@ -13,6 +13,7 @@ def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
         "analysis_harmonization_owner",
         "ai_reviewer",
         "publication_gate",
+        "provenance_limited_harmonization_owner",
         "quality_repair_batch",
         "source_provenance_owner",
         "gate_clearing_batch",
@@ -35,6 +36,7 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
     ai_reviewer = module.owner_callable_for_action("return_to_ai_reviewer_workflow")
     harmonization = module.owner_callable_for_action("unit_harmonized_external_validation_rerun")
     provenance = module.owner_callable_for_action("recover_transport_model_provenance")
+    provenance_limited = module.owner_callable_for_action("provenance_limited_harmonization_audit")
     delivery = module.owner_callable_for_action("sync_submission_minimal_delivery")
 
     assert gate["owner"] == "gate_clearing_batch"
@@ -50,5 +52,7 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
         "canonical transport model provenance bundle",
         "typed blocker:transport_model_provenance_recovery_required",
     )
+    assert provenance_limited["owner"] == "provenance_limited_harmonization_owner"
+    assert provenance_limited["artifact_delta_predicate"] == "provenance_limited_audit_or_route_typed_blocker"
     assert delivery["owner"] == "delivery_sync"
     assert delivery["artifact_delta_predicate"] == "submission_source_or_current_package_freshness_proof"

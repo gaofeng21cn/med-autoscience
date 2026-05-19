@@ -757,11 +757,18 @@ def test_scan_does_not_requeue_methodology_reframe_after_controller_decision_mat
     )
 
     study = result["studies"][0]
-    assert study["action_queue"] == []
-    assert result["action_queue"] == []
-    assert study["blocked_reason"] == "methodology_reframe_required"
-    assert study["next_owner"] == "decision"
-    assert study["owner_route"]["allowed_actions"] == []
+    assert [action["action_type"] for action in study["action_queue"]] == [
+        "provenance_limited_harmonization_audit"
+    ]
+    assert [action["action_type"] for action in result["action_queue"]] == [
+        "provenance_limited_harmonization_audit"
+    ]
+    action = study["action_queue"][0]
+    assert action["owner"] == "provenance_limited_harmonization_owner"
+    assert action["reason"] == "provenance_limited_harmonization_audit_required"
+    assert study["blocked_reason"] == "provenance_limited_harmonization_audit_required"
+    assert study["next_owner"] == "provenance_limited_harmonization_owner"
+    assert study["owner_route"]["allowed_actions"] == ["provenance_limited_harmonization_audit"]
 
 
 def test_scan_requeues_stale_self_loop_methodology_reframe_decision(

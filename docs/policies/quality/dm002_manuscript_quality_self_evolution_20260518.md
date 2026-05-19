@@ -131,3 +131,23 @@ Additional verification:
 
 - `scripts/run-pytest-clean.sh tests/test_mas_runtime_core_turn_prompt_cases/test_current_controller_decision_authorization.py::test_codex_exec_runner_preserves_hard_methodology_route_fields_from_controller_decision -q`: 1 passed.
 - `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/test_mas_runtime_core_turn_prompt_cases/test_current_controller_decision_authorization.py -q`: 21 passed.
+
+## Provenance-Limited Owner Callable Follow-Up
+
+The runtime authorization patch made the prompt contract correct, but the managed worker still blocked with `owner_callable_surface_missing` because `provenance_limited_harmonization_audit` had no executable MAS owner.
+
+Follow-up patch:
+
+- Add `provenance_limited_harmonization_owner.provenance_limited_harmonization_audit_or_typed_blocker`.
+- Register `provenance_limited_harmonization_audit` across owner callable registry, owner route, supervisor scan, consumer, dispatch executor, persisted dispatches, managed-runtime authorization, output-readiness, repeat-suppression, and terminal-stall handoff.
+- Write only `artifacts/controller/provenance_limited_harmonization/latest.json`.
+- Preserve `current_transport_claim_must_not_be_used_as_medical_conclusion=true` and disallow current raw transported-score results as medical transportability conclusions.
+- If original transported-model provenance is still unrecovered, type-block to clean reproducible rebuild authorization, stop-loss, or human gate; do not route back to prose/source-documentation repair.
+- Preserve stale-decision currentness: if analysis/source owner results are newer than `methodology_reframe_route_decision`, scan requeues the decision instead of executing the provenance-limited audit from stale authority.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/test_owner_callable_registry.py tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py -q`: 20 passed.
+- `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/test_mas_runtime_core_turn_prompt_cases/test_current_controller_decision_authorization.py tests/test_owner_callable_registry.py -q`: 24 passed.
+- `make test-meta`: 245 passed, 4160 deselected.
+- `scripts/verify.sh`: repo hygiene audit passed; 4 passed.

@@ -507,6 +507,202 @@ def test_execute_dispatch_routes_terminal_source_provenance_blocker_to_decision_
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
+def test_execute_dispatch_materializes_provenance_limited_harmonization_audit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(
+        study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json",
+        {
+            "surface": "analysis_harmonization_owner_result",
+            "schema_version": 1,
+            "study_id": study_id,
+            "owner": "analysis_harmonization_owner",
+            "work_unit": "unit_harmonized_external_validation_rerun",
+            "status": "blocked",
+            "blocked_reason": "unit_harmonized_rerun_required",
+            "typed_blocker_owner": "analysis_harmonization_owner",
+            "typed_blocker": {"blocker_id": "unit_harmonized_rerun_required"},
+            "unit_harmonized_rerun_completed": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "source_provenance" / "latest.json",
+        {
+            "surface": "source_provenance_owner_result",
+            "schema_version": 1,
+            "study_id": study_id,
+            "owner": "source_provenance_owner",
+            "work_unit": "recover_transport_model_provenance",
+            "status": "blocked",
+            "blocked_reason": "transport_model_provenance_recovery_required",
+            "typed_blocker_owner": "source_provenance_owner",
+            "typed_blocker": {"blocker_id": "transport_model_provenance_recovery_required"},
+            "transport_model_provenance_recovered": False,
+            "provenance_search": {
+                "searched": True,
+                "accepted_bundle_ref": None,
+                "result_summary_acceptance_allowed": False,
+                "substitute_refit_allowed": False,
+            },
+        },
+    )
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    _write_json(
+        decision_path,
+        {
+            "schema_version": 1,
+            "decision_id": "study-decision::dm002::methodology-reframe",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "decision_type": "bounded_analysis",
+            "requires_human_confirmation": False,
+            "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+            "controller_actions": [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}],
+            "next_work_unit": {
+                "unit_id": "provenance_limited_harmonization_audit",
+                "lane": "analysis-campaign",
+                "hard_methodology": True,
+                "selected_route_option": "provenance_limited_harmonization_audit",
+                "terminal_source_provenance_blocker_consumed": True,
+                "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
+            },
+        },
+    )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="provenance_limited_harmonization_audit",
+        owner="provenance_limited_harmonization_owner",
+    )
+    route.update(
+        {
+            "failure_signature": "provenance_limited_harmonization_audit_required",
+            "owner_reason": "provenance_limited_harmonization_audit_required",
+            "work_unit_fingerprint": "provenance-limited-harmonization::audit",
+            "source_fingerprint": "truth-snapshot::methodology-reframe-decision",
+            "idempotency_key": "owner-route::dm002::provenance-limited-harmonization::audit",
+        }
+    )
+    stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "action_fingerprint": "paper_progress_stall::provenance-limited-audit",
+        "stall_reasons": ["owner_callable_surface_missing"],
+    }
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="provenance_limited_harmonization_audit",
+        owner="provenance_limited_harmonization_owner",
+        required_output_surface=(
+            "provenance-limited harmonization audit or "
+            "typed blocker:provenance_limited_harmonization_audit_required"
+        ),
+        owner_route=route,
+    )
+    dispatch["source_action"] = {
+        "action_type": "provenance_limited_harmonization_audit",
+        "source_ref": str(decision_path),
+        "selected_route_option": "provenance_limited_harmonization_audit",
+    }
+    dispatch["paper_progress_stall"] = stall
+    dispatch["prompt_contract"]["paper_progress_stall"] = stall
+    dispatch["prompt_contract"][
+        "request_packet_ref"
+    ] = "artifacts/supervision/requests/provenance_limited_harmonization/latest.json"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "provenance_limited_harmonization_audit.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "meaningful_artifact_delta": False,
+                    "paper_progress_stall": stall,
+                }
+            ],
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("provenance_limited_harmonization_audit",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    request_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "requests"
+        / "provenance_limited_harmonization"
+        / "latest.json"
+    )
+    owner_result_path = study_root / "artifacts" / "controller" / "provenance_limited_harmonization" / "latest.json"
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert execution["execution_status"] == "executed"
+    assert execution["dispatch_contract_valid"] is True
+    assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert execution["owner_callable_surface"] == (
+        "provenance_limited_harmonization_owner."
+        "provenance_limited_harmonization_audit_or_typed_blocker"
+    )
+    assert execution["owner_result"]["request_path"] == str(request_path)
+    assert execution["owner_result"]["result_ref"] == str(owner_result_path)
+    assert execution["owner_result"]["surface"] == "provenance_limited_harmonization_owner_result"
+    assert execution["owner_result"]["status"] == "blocked"
+    assert execution["owner_result"]["blocked_reason"] == "rebuild_reproducible_model_route_required"
+    assert execution["owner_result"]["next_owner"] == "human_gate"
+    assert execution["owner_result"]["work_unit"] == "provenance_limited_harmonization_audit"
+    assert execution["owner_result"]["provenance_limited_audit_completed"] is True
+    assert execution["owner_result"]["terminal_source_provenance_blocker_consumed"] is True
+    assert execution["owner_result"]["current_transport_claim_must_not_be_used_as_medical_conclusion"] is True
+    assert "medical_transportability_conclusion" in execution["owner_result"][
+        "raw_transported_score_results_disallowed_uses"
+    ]
+    assert execution["owner_result"]["paper_package_mutation_allowed"] is False
+    assert execution["owner_result"]["quality_gate_relaxation_allowed"] is False
+    assert execution["owner_result"]["medical_claim_authoring_allowed"] is False
+    assert execution["owner_result"]["publication_eval_written"] is False
+    assert execution["owner_result"]["controller_decision_written"] is False
+    assert request_path.is_file()
+    assert owner_result_path.is_file()
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    owner_result = json.loads(owner_result_path.read_text(encoding="utf-8"))
+    assert request["request_kind"] == "provenance_limited_harmonization_audit"
+    assert request["request_owner"] == "provenance_limited_harmonization_owner"
+    assert request["blocked_reason"] == "provenance_limited_harmonization_audit_required"
+    assert request["next_work_unit"] == "provenance_limited_harmonization_audit"
+    assert request["paper_package_mutation_allowed"] is False
+    assert request["quality_gate_relaxation_allowed"] is False
+    assert request["medical_claim_authoring_allowed"] is False
+    assert owner_result["request_ref"]["path"] == str(request_path)
+    assert owner_result["typed_blocker"]["blocker_id"] == "rebuild_reproducible_model_route_required"
+    assert not (study_root / "manuscript").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_source_provenance_owner_records_candidate_search_without_accepting_result_summary(
     monkeypatch,
     tmp_path: Path,

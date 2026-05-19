@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import analysis_harmonization_owner_result
+from med_autoscience.controllers import provenance_limited_harmonization_owner_result
 from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
@@ -59,8 +60,18 @@ def projection_block_state(
     why_not_applied: str | None,
 ) -> dict[str, Any]:
     if study_root is not None and not _current_hard_methodology_handoff_supersedes_consumers(study_root):
+        provenance_limited_state = provenance_limited_harmonization_owner_result.typed_blocker_state(
+            study_root=study_root
+        )
+        if provenance_limited_state is not None:
+            return provenance_limited_state
+        methodology_decision_requests_audit = (
+            provenance_limited_harmonization_owner_result.current_controller_decision_requests_audit(
+                study_root=study_root
+            )
+        )
         source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
-        if source_result_state is not None:
+        if source_result_state is not None and not methodology_decision_requests_audit:
             return source_result_state
         owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
         if owner_result_state is not None:
@@ -75,6 +86,12 @@ def projection_block_state(
         return {
             "blocked_reason": "methodology_reframe_required",
             "next_owner": "decision",
+            "external_supervisor_required": False,
+        }
+    if _has_provenance_limited_harmonization_audit_action(actions):
+        return {
+            "blocked_reason": "provenance_limited_harmonization_audit_required",
+            "next_owner": "provenance_limited_harmonization_owner",
             "external_supervisor_required": False,
         }
     if _has_hard_methodology_handoff_action(actions):
@@ -162,6 +179,10 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "decision"
     if blocked_reason == "transport_model_provenance_recovery_required":
         return "source_provenance_owner"
+    if blocked_reason == "provenance_limited_harmonization_audit_required":
+        return "provenance_limited_harmonization_owner"
+    if blocked_reason == "rebuild_reproducible_model_route_required":
+        return "human_gate"
     return "external_supervisor"
 
 
@@ -214,12 +235,22 @@ def _has_methodology_reframe_route_decision_action(actions: list[dict[str, Any]]
     )
 
 
+def _has_provenance_limited_harmonization_audit_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "provenance_limited_harmonization_audit"
+        and _text(action.get("reason")) == "provenance_limited_harmonization_audit_required"
+        and _text(action.get("owner")) == "provenance_limited_harmonization_owner"
+        for action in actions
+    )
+
+
 def _current_hard_methodology_handoff_supersedes_consumers(study_root: Any) -> bool:
     root = Path(study_root).expanduser().resolve()
     source_ref = hard_methodology_currentness.quality_repair_handoff_path(root)
     consumer_paths = (
         analysis_harmonization_owner_result.result_path(study_root=root),
         source_provenance_owner_result.result_path(study_root=root),
+        provenance_limited_harmonization_owner_result.result_path(study_root=root),
         root / "artifacts" / "controller_decisions" / "latest.json",
     )
     return hard_methodology_currentness.handoff_supersedes_paths(

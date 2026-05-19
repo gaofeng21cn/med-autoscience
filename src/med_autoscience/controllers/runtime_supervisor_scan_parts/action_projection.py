@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import analysis_harmonization_owner_result
+from med_autoscience.controllers import provenance_limited_harmonization_owner_result
 from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.runtime_supervisor_scan_parts import action_decorators
 from med_autoscience.controllers.runtime_supervisor_scan_parts import artifact_freshness
@@ -14,6 +15,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import current_tr
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
 from med_autoscience.controllers.runtime_supervisor_scan_parts import hard_methodology_currentness
+from med_autoscience.controllers.runtime_supervisor_scan_parts import methodology_reframe_actions
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 
@@ -44,13 +46,25 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    methodology_reframe_action = _methodology_reframe_route_decision_action(study_root)
+    methodology_reframe_action = methodology_reframe_actions.methodology_reframe_route_decision_action(study_root)
     if methodology_reframe_action is not None:
         return [
             decorate_action(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=methodology_reframe_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    provenance_limited_action = methodology_reframe_actions.provenance_limited_harmonization_audit_action(study_root)
+    if provenance_limited_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=provenance_limited_action,
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,
@@ -521,6 +535,7 @@ def _hard_methodology_handoff_supersedes_consumers(*, study_root: Path, source_r
     consumer_paths = (
         analysis_harmonization_owner_result.result_path(study_root=study_root),
         source_provenance_owner_result.result_path(study_root=study_root),
+        provenance_limited_harmonization_owner_result.result_path(study_root=study_root),
         Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json",
     )
     return hard_methodology_currentness.handoff_supersedes_paths(
@@ -577,91 +592,6 @@ def _source_provenance_recovery_action(study_root: Path) -> dict[str, Any] | Non
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
-
-
-def _methodology_reframe_route_decision_action(study_root: Path) -> dict[str, Any] | None:
-    if _current_hard_methodology_handoff_supersedes_consumers(study_root):
-        return None
-    source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
-    if not source_result_state:
-        return None
-    if _text(source_result_state.get("blocked_reason")) != "methodology_reframe_required":
-        return None
-    if _text(source_result_state.get("next_owner")) != "decision":
-        return None
-    if _methodology_reframe_route_decision_materialized(study_root):
-        return None
-    source_result_ref = source_provenance_owner_result.result_path(study_root=study_root)
-    return {
-        "action_type": "methodology_reframe_route_decision",
-        "authority": "observability_only",
-        "owner": "decision",
-        "request_owner": "decision",
-        "recommended_owner": "decision",
-        "reason": "methodology_reframe_required",
-        "summary": (
-            "The original transported model provenance could not be recovered after bounded search; "
-            "route the study through decision owner before any renewed manuscript or medical claim work."
-        ),
-        "next_work_unit": "methodology_reframe_route_decision",
-        "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
-        "required_output_surface": (
-            "controller route decision for a provenance-limited reframe, reproducible-model restart, "
-            "stop-loss, or human gate"
-        ),
-        "source_ref": str(source_result_ref),
-        "terminal_source_blocker": dict(source_result_state),
-        "allowed_route_options": [
-            "stop_loss_current_transport_claim",
-            "provenance_limited_harmonization_audit",
-            "rebuild_reproducible_model_route",
-            "human_gate",
-        ],
-        "quality_gate_relaxation_allowed": False,
-        "current_package_write_allowed": False,
-        "paper_package_mutation_allowed": False,
-        "manual_study_patch_allowed": False,
-        "medical_claim_authoring_allowed": False,
-    }
-
-
-def _methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
-    decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
-    if _any_artifact_supersedes(newer_refs=_methodology_reframe_trigger_paths(study_root), older_ref=decision_ref):
-        return False
-    decision = _read_json_object(decision_ref)
-    next_work_unit = _mapping(decision.get("next_work_unit"))
-    return (
-        _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
-        and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
-        and _text(next_work_unit.get("unit_id")) == "provenance_limited_harmonization_audit"
-        and _text(next_work_unit.get("selected_route_option")) == "provenance_limited_harmonization_audit"
-        and next_work_unit.get("terminal_source_provenance_blocker_consumed") is True
-    )
-
-
-def _methodology_reframe_trigger_paths(study_root: Path) -> tuple[Path, ...]:
-    return (
-        analysis_harmonization_owner_result.result_path(study_root=study_root),
-        source_provenance_owner_result.result_path(study_root=study_root),
-    )
-
-
-def _any_artifact_supersedes(*, newer_refs: tuple[Path, ...], older_ref: Path) -> bool:
-    return any(_artifact_supersedes(newer_ref=newer_ref, older_ref=older_ref) for newer_ref in newer_refs)
-
-
-def _artifact_supersedes(*, newer_ref: Path, older_ref: Path) -> bool:
-    newer_mtime = _path_mtime(newer_ref)
-    older_mtime = _path_mtime(older_ref)
-    return newer_mtime is not None and older_mtime is not None and newer_mtime > older_mtime
-
-
-def _path_mtime(path: Path) -> float | None:
-    try:
-        return Path(path).expanduser().resolve().stat().st_mtime
-    except OSError:
-        return None
 
 
 def _scientific_anchor_missing(
@@ -799,8 +729,20 @@ def why_not_applied(
         return None
     study_root = _path(_text(status.get("study_root")) or _text(progress.get("study_root")))
     if study_root is not None:
+        provenance_limited_state = provenance_limited_harmonization_owner_result.typed_blocker_state(
+            study_root=study_root
+        )
+        if provenance_limited_state:
+            return _text(provenance_limited_state.get("blocked_reason"))
+        if any(_text(action.get("action_type")) == "provenance_limited_harmonization_audit" for action in actions):
+            return "provenance_limited_harmonization_audit_required"
+        methodology_decision_requests_audit = (
+            provenance_limited_harmonization_owner_result.current_controller_decision_requests_audit(
+                study_root=study_root
+            )
+        )
         source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
-        if source_result_state:
+        if source_result_state and not methodology_decision_requests_audit:
             return _text(source_result_state.get("blocked_reason"))
         owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
         if owner_result_state:
@@ -906,6 +848,7 @@ def blocked_reason_from_scan(
             "unit_harmonized_external_validation_rerun",
             "recover_transport_model_provenance",
             "methodology_reframe_route_decision",
+            "provenance_limited_harmonization_audit",
         }:
             return _text(action.get("reason")) or _text(action.get("action_type"))
     if gate_specificity.get("required") is True:
