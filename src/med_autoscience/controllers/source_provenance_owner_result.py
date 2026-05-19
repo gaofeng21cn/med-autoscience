@@ -101,6 +101,12 @@ def analysis_harmonization_supersedes_result(
     root = Path(study_root).expanduser().resolve()
     analysis_path = root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
     analysis = _read_json_object(analysis_path)
+    if _mapping(analysis).get("unit_harmonized_rerun_completed") is True:
+        result_mtime = _path_mtime(result_path(study_root=root))
+        analysis_mtime = _path_mtime(analysis_path)
+        if result_mtime is None or analysis_mtime is None:
+            return False
+        return analysis_mtime > result_mtime
     route = _mapping(_mapping(analysis).get("blocking_owner_route"))
     if _text(route.get("blocked_reason")) != BLOCKED_REASON:
         return False
