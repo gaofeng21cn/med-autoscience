@@ -19,7 +19,7 @@ SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_legacy_domain_slo_diagnostic_consumer_migration"
 ACTIVE_PATH_ROLE = "opl_replacement_default"
 LOCAL_TOMBSTONE_PATH_ROLE = "physical_retired_tombstone_provenance_only"
-OPTIONAL_ADAPTER_PATH_ROLE = "explicit_optional_executor_adapter_provenance_only"
+OPTIONAL_ADAPTER_PATH_ROLE = "legacy_scheduler_diagnostic_cleanup_only"
 CURRENT_SCHEDULER_OWNER = "opl_provider_runtime_manager"
 LEGACY_SCHEDULER_OWNER = "mas_legacy_domain_slo_diagnostic"
 REPLACEMENT_OWNER = "one-person-lab"
@@ -828,8 +828,18 @@ def build_consumer_migration_contract(
         "legacy_scheduler_owner": LEGACY_SCHEDULER_OWNER,
         "local_tombstone_path_role": LOCAL_TOMBSTONE_PATH_ROLE,
         "optional_adapter_path_role": OPTIONAL_ADAPTER_PATH_ROLE,
-        "current_surface_allowed_until_replacement": not replacement_active and not local_tombstone,
-        "replacement_required_before_retirement": not replacement_active and not local_tombstone,
+        "current_surface_allowed_until_replacement": False,
+        "replacement_required_before_retirement": not replacement_active,
+        "allowed_operations": (
+            ["status", "remove_legacy_jobs"]
+            if not replacement_active and not local_tombstone
+            else []
+        ),
+        "forbidden_operations": (
+            ["ensure", "create", "edit", "resume", "trigger_run", "write_tick_script"]
+            if not replacement_active and not local_tombstone
+            else []
+        ),
         "retirement_state": LOCAL_TOMBSTONE_RETIREMENT_STATE if local_tombstone else RETIREMENT_STATE,
         "replacement_owner": REPLACEMENT_OWNER,
         "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,

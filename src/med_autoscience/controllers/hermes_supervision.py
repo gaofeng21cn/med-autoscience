@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
-import json
-import os
 from pathlib import Path
 import re
 import subprocess
@@ -50,17 +48,6 @@ _SILENT_PROMPT = (
     "If the script failed, report the failure briefly and include the failing command."
 )
 _SILENT_SUCCESS_RESPONSE = "[SILENT] MAS scheduler local adapter MedAutoScience supervision tick completed."
-_LEGACY_WATCH_RUNTIME_COMMAND = "run_medautosci watch"
-_CURRENT_WATCH_RUNTIME_COMMAND = "run_medautosci runtime watch"
-_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS = (
-    "--apply-safe-actions",
-    "--apply-runtime-platform-repair",
-    "--developer-supervisor-mode",
-    "developer_apply_safe",
-)
-_DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT = " ".join(_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS)
-
-
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -109,60 +96,6 @@ def _watch_runtime_command(profile: WorkspaceProfile, *, interval_seconds: int) 
     ]
 
 
-def _scan_domain_routes_command(profile: WorkspaceProfile) -> list[str]:
-    return [
-        str(_workspace_scan_domain_routes_entry_path(profile)),
-        *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS,
-    ]
-
-
-def _materialize_domain_action_requests_command(profile: WorkspaceProfile) -> list[str]:
-    return [
-        str(_workspace_materialize_domain_action_requests_entry_path(profile)),
-        "--mode",
-        "developer_apply_safe",
-        "--apply",
-    ]
-
-
-def _supervisor_execute_dispatch_command(profile: WorkspaceProfile) -> list[str]:
-    return [
-        str(_workspace_supervisor_execute_dispatch_entry_path(profile)),
-        "--mode",
-        "developer_apply_safe",
-        "--apply",
-    ]
-
-
-def _supervision_tick_commands(profile: WorkspaceProfile, *, interval_seconds: int) -> list[list[str]]:
-    return [
-        _watch_runtime_command(profile, interval_seconds=interval_seconds),
-        _scan_domain_routes_command(profile),
-        _materialize_domain_action_requests_command(profile),
-        _supervisor_execute_dispatch_command(profile),
-    ]
-
-
-def _workspace_watch_runtime_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
-
-
-def _workspace_scan_domain_routes_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan"
-
-
-def _workspace_reconcile_domain_routes_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-reconcile"
-
-
-def _workspace_materialize_domain_action_requests_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize"
-
-
-def _workspace_supervisor_execute_dispatch_entry_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch"
-
-
 def _codex_app_automation_path() -> Path:
     return Path.home() / ".codex" / "automations" / "mas" / "automation.toml"
 
@@ -173,94 +106,6 @@ def _codex_app_automation_prompt_check(*, automation_path: Path | None = None) -
 
 def _canonical_codex_app_automation_prompt() -> str:
     return _shared_canonical_codex_app_automation_prompt()
-
-
-def _install_proof_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "artifacts" / "supervision" / "install_proof" / "latest.json"
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def _repair_legacy_workspace_watch_runtime_entry(profile: WorkspaceProfile) -> dict[str, Any]:
-    path = _workspace_watch_runtime_entry_path(profile)
-    result: dict[str, Any] = {
-        "path": str(path),
-        "repaired": False,
-        "reason": None,
-    }
-    if not path.is_file():
-        result["reason"] = "missing"
-        return result
-    try:
-        content = path.read_text(encoding="utf-8")
-    except OSError:
-        result["reason"] = "unreadable"
-        return result
-    if _CURRENT_WATCH_RUNTIME_COMMAND in content:
-        result["reason"] = "current"
-        return result
-    if _LEGACY_WATCH_RUNTIME_COMMAND not in content:
-        result["reason"] = "unknown_shape"
-        return result
-    updated = content.replace(_LEGACY_WATCH_RUNTIME_COMMAND, _CURRENT_WATCH_RUNTIME_COMMAND, 1)
-    try:
-        path.write_text(updated, encoding="utf-8")
-    except OSError:
-        result["reason"] = "write_failed"
-        return result
-    result["repaired"] = True
-    result["reason"] = "legacy_flat_watch_command"
-    return result
-
-
-def _render_supervision_script(profile: WorkspaceProfile, *, interval_seconds: int) -> str:
-    commands_json = json.dumps(_supervision_tick_commands(profile, interval_seconds=interval_seconds))
-    return (
-        "#!/usr/bin/env python3\n"
-        "from __future__ import annotations\n\n"
-        "import json\n"
-        "import subprocess\n\n"
-        f"COMMANDS = json.loads({json.dumps(commands_json)})\n\n"
-        "results = []\n"
-        "exit_code = 0\n"
-        "for command in COMMANDS:\n"
-        "    completed = subprocess.run(command, capture_output=True, text=True, check=False)\n"
-        "    item = {\n"
-        '        "command": command,\n'
-        '        "returncode": completed.returncode,\n'
-        "    }\n"
-        "    stdout = (completed.stdout or '').strip()\n"
-        "    stderr = (completed.stderr or '').strip()\n"
-        "    if stdout:\n"
-        "        try:\n"
-        '            item["result"] = json.loads(stdout)\n'
-        "        except json.JSONDecodeError:\n"
-        '            item["stdout"] = stdout\n'
-        "    if stderr:\n"
-        '        item["stderr"] = stderr\n'
-        "    results.append(item)\n"
-        "    if completed.returncode != 0:\n"
-        "        exit_code = completed.returncode\n"
-        "        break\n"
-        "payload = {\n"
-        '    "commands": COMMANDS,\n'
-        '    "returncode": exit_code,\n'
-        '    "results": results,\n'
-        "}\n"
-        "print(json.dumps(payload, ensure_ascii=False))\n"
-        "raise SystemExit(exit_code)\n"
-    )
-
-
-def _ensure_script_file(profile: WorkspaceProfile, *, interval_seconds: int) -> Path:
-    target = _script_path(profile)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(_render_supervision_script(profile, interval_seconds=interval_seconds), encoding="utf-8")
-    target.chmod(0o755)
-    return target
 
 
 def _run_command(*, command: list[str]) -> tuple[int, str]:
@@ -506,127 +351,37 @@ def ensure_supervision(
 ) -> dict[str, Any]:
     if manager != "hermes":
         raise ValueError(f"unsupported Hermes supervision adapter manager: {manager}")
-    _ensure_script_file(profile, interval_seconds=interval_seconds)
-    watch_runtime_repair = _repair_legacy_workspace_watch_runtime_entry(profile)
     before = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
-    legacy_removal = None
-    command_outputs: list[dict[str, Any]] = []
-    action = "noop"
-    if bool(watch_runtime_repair.get("repaired")):
-        action = "repaired_watch_runtime_entry"
-    before_legacy_service = dict(before.get("legacy_service") or {})
-    if bool(before_legacy_service.get("service_exists")) or bool(before_legacy_service.get("loaded")):
-        legacy_removal = _remove_legacy_service(profile)
-        if legacy_removal["unloaded"] or legacy_removal["removed_service_file"]:
-            action = "retired_legacy_service" if action == "noop" else action
-        before = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
-    missing_prereqs = [
-        issue
-        for issue in before["runtime_contract_issues"]
-        if issue
-        not in {
-            "external_runtime.gateway_service_not_loaded",
-            "external_runtime.provider_not_configured",
-        }
-    ]
-    if missing_prereqs:
-        return {
-            "action": "blocked",
-            "blocking_issues": missing_prereqs,
-            "before": before,
-            "watch_runtime_repair": watch_runtime_repair,
-            "legacy_removal": legacy_removal,
-        }
-
-    primary_job_id = before["job_id"]
-    if primary_job_id is None:
-        create_command = _hermes_cli_command(
-            profile,
-            "cron",
-            "create",
-            _desired_schedule(interval_seconds),
-            _SILENT_PROMPT,
-            "--name",
-            _job_name(profile),
-            "--deliver",
-            "local",
-            "--script",
-            _script_relpath(profile),
-        )
-        exit_code, output = _run_command(command=create_command)
-        command_outputs.append({"command": create_command, "exit_code": exit_code, "output": output})
-        if exit_code != 0:
-            return {
-                "action": "create_failed",
-                "before": before,
-                "command_outputs": command_outputs,
-            }
-        primary_job_id = read_supervision_status(profile=profile, interval_seconds=interval_seconds).get("job_id")
-        action = "created"
-    else:
-        if before["drift_reasons"]:
-            edit_command = _hermes_cli_command(
-                profile,
-                "cron",
-                "edit",
-                primary_job_id,
-                "--schedule",
-                _desired_schedule(interval_seconds),
-                "--prompt",
-                _SILENT_PROMPT,
-                "--name",
-                _job_name(profile),
-                "--deliver",
-                "local",
-                "--script",
-                _script_relpath(profile),
-            )
-            exit_code, output = _run_command(command=edit_command)
-            command_outputs.append({"command": edit_command, "exit_code": exit_code, "output": output})
-            if exit_code != 0:
-                return {
-                    "action": "edit_failed",
-                    "before": before,
-                    "command_outputs": command_outputs,
-                }
-            action = "updated"
-        if before["job_exists"] and (before["job_state"] != "scheduled" or not before["job_enabled"]):
-            resume_command = _hermes_cli_command(profile, "cron", "resume", primary_job_id)
-            exit_code, output = _run_command(command=resume_command)
-            command_outputs.append({"command": resume_command, "exit_code": exit_code, "output": output})
-            if exit_code != 0:
-                return {
-                    "action": "resume_failed",
-                    "before": before,
-                    "command_outputs": command_outputs,
-                }
-            action = "resumed" if action == "noop" else action
-
-    removed_duplicate_job_ids: list[str] = []
-    for duplicate_job_id in before["duplicate_job_ids"]:
-        remove_command = _hermes_cli_command(profile, "cron", "remove", duplicate_job_id)
-        exit_code, output = _run_command(command=remove_command)
-        command_outputs.append({"command": remove_command, "exit_code": exit_code, "output": output})
-        if exit_code == 0:
-            removed_duplicate_job_ids.append(duplicate_job_id)
-
-    if trigger_now and primary_job_id:
-        run_command = _hermes_cli_command(profile, "cron", "run", primary_job_id)
-        exit_code, output = _run_command(command=run_command)
-        command_outputs.append({"command": run_command, "exit_code": exit_code, "output": output})
-        if exit_code == 0 and action == "noop":
-            action = "scheduled_now"
-
-    after = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
     return {
-        "action": action,
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "workspace_runtime_supervision_legacy_tombstone",
+        "status": "retired_ensure_path",
+        "action": "retired_ensure_path",
+        "manager": "hermes",
+        "scheduler_owner": "mas_legacy_domain_slo_diagnostic",
+        "adapter_id": "hermes_gateway_cron",
+        "generated_at": _utc_now(),
+        "workspace_key": _workspace_key(profile),
+        "interval_seconds": interval_seconds,
         "before": before,
-        "after": after,
-        "watch_runtime_repair": watch_runtime_repair,
-        "removed_duplicate_job_ids": removed_duplicate_job_ids,
-        "legacy_removal": legacy_removal,
-        "command_outputs": command_outputs,
+        "after": before,
+        "trigger_now": bool(trigger_now),
+        "write_install_proof": False,
+        "requested_write_install_proof": bool(write_install_proof),
+        "install_allowed": False,
+        "status_allowed": True,
+        "remove_allowed": True,
+        "trigger_allowed": False,
+        "write_tick_script_allowed": False,
+        "removed_duplicate_job_ids": [],
+        "legacy_removal": None,
+        "command_outputs": [],
         "script_path": str(_script_path(profile)),
+        "summary": (
+            "Hermes gateway cron ensure/create/refresh/trigger path is retired. "
+            "Use OPL scheduler replacement for active cadence; this adapter only reads or removes "
+            "pre-existing legacy jobs."
+        ),
     }
 
 

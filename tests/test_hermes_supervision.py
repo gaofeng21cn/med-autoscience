@@ -208,10 +208,20 @@ def test_outer_supervision_slo_projects_fresh_due_stale_missing_and_blocked(tmp_
     assert due["state"] == "due"
     assert due["action_class"] == "reconcile_dry_run"
     assert due["will_start_llm"] is False
-    assert due["active_path_role"] == "explicit_optional_executor_adapter_provenance_only"
+    assert due["active_path_role"] == "legacy_scheduler_diagnostic_cleanup_only"
     assert due["consumer_migration"]["replacement_owner"] == "one-person-lab"
     assert due["consumer_migration"]["replacement_owner_surface"] == "opl_provider_runtime_manager"
-    assert due["handoff"]["current_mas_surface_role"] == "explicit_optional_executor_adapter_provenance_only"
+    assert due["consumer_migration"]["current_surface_allowed_until_replacement"] is False
+    assert due["consumer_migration"]["allowed_operations"] == ["status", "remove_legacy_jobs"]
+    assert set(due["consumer_migration"]["forbidden_operations"]) == {
+        "ensure",
+        "create",
+        "edit",
+        "resume",
+        "trigger_run",
+        "write_tick_script",
+    }
+    assert due["handoff"]["current_mas_surface_role"] == "legacy_scheduler_diagnostic_cleanup_only"
     assert stale["state"] == "stale"
     assert missing["state"] == "missing"
     assert blocked["state"] == "blocked"
@@ -407,14 +417,12 @@ def test_read_supervision_status_keeps_hermes_blocked_until_retired_legacy_servi
     assert result["retired_legacy_cleanup_required"] is True
 
 
-def test_ensure_supervision_removes_retired_legacy_service_before_reporting_loaded(
+def test_ensure_supervision_is_retired_and_does_not_remove_or_create_jobs(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
     profile = make_profile(tmp_path)
-    jobs_path = profile.hermes_home_root / "cron" / "jobs.json"
-    legacy_exists = {"value": True}
     commands: list[list[str]] = []
 
     monkeypatch.setattr(
@@ -435,69 +443,38 @@ def test_ensure_supervision_removes_retired_legacy_service_before_reporting_load
             "manager": "launchd",
             "service_label": "ai.medautoscience.diabetes.watch-runtime",
             "service_file": str(tmp_path / "Library" / "LaunchAgents" / "legacy.plist"),
-            "service_exists": legacy_exists["value"],
-            "loaded": legacy_exists["value"],
+            "service_exists": True,
+            "loaded": True,
         },
     )
 
     def fake_remove_legacy_service(profile) -> dict[str, object]:
-        legacy_exists["value"] = False
-        return {
-            "before": {"service_exists": True, "loaded": True},
-            "unloaded": True,
-            "removed_service_file": True,
-            "command_outputs": [],
-        }
+        raise AssertionError("Hermes ensure must not clean or mutate legacy services")
 
     def fake_run_command(*, command: list[str]) -> tuple[int, str]:
         commands.append(command)
-        if _command_contains(command, "cron", "create"):
-            jobs_path.parent.mkdir(parents=True, exist_ok=True)
-            jobs_path.write_text(
-                json.dumps(
-                    [
-                        {
-                            "id": "job-created",
-                            "name": module._job_name(profile),
-                            "prompt": module._SILENT_PROMPT,
-                            "deliver": "local",
-                            "script": module._script_relpath(profile),
-                            "schedule": {"kind": "interval", "minutes": 5},
-                            "schedule_display": "every 5m",
-                            "enabled": True,
-                            "state": "scheduled",
-                            "next_run_at": "2026-04-17T12:10:00+08:00",
-                            "created_at": "2026-04-17T12:00:00+08:00",
-                        }
-                    ],
-                    ensure_ascii=False,
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            return 0, "Created job: job-created"
-        return 0, "ok"
+        raise AssertionError(f"Hermes ensure must not run commands: {command}")
 
     monkeypatch.setattr(module, "_remove_legacy_service", fake_remove_legacy_service)
     monkeypatch.setattr(module, "_run_command", fake_run_command)
 
     result = module.ensure_supervision(profile=profile, trigger_now=False)
 
-    assert result["legacy_removal"]["before"]["loaded"] is True
-    assert result["legacy_removal"]["unloaded"] is True
-    assert result["legacy_removal"]["removed_service_file"] is True
-    assert result["after"]["status"] == "loaded"
-    assert result["after"]["loaded"] is True
-    assert result["after"]["retired_legacy_cleanup_required"] is False
-    assert any(_command_contains(command, "cron", "create") for command in commands)
+    assert result["action"] == "retired_ensure_path"
+    assert result["before"]["status"] == "retired_legacy_service_present"
+    assert result["after"] == result["before"]
+    assert result["install_allowed"] is False
+    assert result["trigger_allowed"] is False
+    assert result["write_tick_script_allowed"] is False
+    assert result["legacy_removal"] is None
+    assert result["command_outputs"] == []
+    assert commands == []
 
 
-def test_ensure_supervision_creates_job_and_triggers_run(monkeypatch, tmp_path: Path) -> None:
+def test_ensure_supervision_does_not_create_job_or_trigger_run(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
     profile = make_profile(tmp_path)
     commands: list[list[str]] = []
-    jobs_path = profile.hermes_home_root / "cron" / "jobs.json"
 
     monkeypatch.setattr(
         module,
@@ -513,55 +490,57 @@ def test_ensure_supervision_creates_job_and_triggers_run(monkeypatch, tmp_path: 
 
     def fake_run_command(*, command: list[str]) -> tuple[int, str]:
         commands.append(command)
-        if _command_contains(command, "cron", "create"):
-            jobs_path.parent.mkdir(parents=True, exist_ok=True)
-            jobs_path.write_text(
-                json.dumps(
-                    [
-                        {
-                            "id": "job-created",
-                            "name": module._job_name(profile),
-                            "prompt": module._SILENT_PROMPT,
-                            "deliver": "local",
-                            "script": module._script_relpath(profile),
-                            "schedule": {"kind": "interval", "minutes": 5},
-                            "schedule_display": "every 5m",
-                            "enabled": True,
-                            "state": "scheduled",
-                            "next_run_at": "2026-04-17T12:10:00+08:00",
-                            "created_at": "2026-04-17T12:00:00+08:00",
-                        }
-                    ],
-                    ensure_ascii=False,
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            return 0, "Created job: job-created"
-        if _command_contains(command, "cron", "run"):
-            return 0, "Scheduled job: job-created"
-        return 0, "ok"
+        raise AssertionError(f"Hermes ensure must not run commands: {command}")
 
     monkeypatch.setattr(module, "_run_command", fake_run_command)
 
     result = module.ensure_supervision(profile=profile)
 
-    assert result["action"] == "created"
-    assert result["after"]["job_id"] == "job-created"
-    assert result["after"]["loaded"] is True
-    assert module._script_path(profile).is_file()
-    assert any(_command_contains(command, "cron", "create") for command in commands)
-    assert any(_command_contains(command, "cron", "run") for command in commands)
+    assert result["action"] == "retired_ensure_path"
+    assert result["before"]["job_exists"] is False
+    assert result["after"] == result["before"]
+    assert result["install_allowed"] is False
+    assert result["trigger_allowed"] is False
+    assert result["write_tick_script_allowed"] is False
+    assert not module._script_path(profile).exists()
+    assert commands == []
 
 
-def test_ensure_supervision_tick_script_runs_full_same_tick_repair_loop(
+def test_remove_supervision_cleans_existing_hermes_job_and_script(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
     profile = make_profile(tmp_path)
+    commands: list[list[str]] = []
     jobs_path = profile.hermes_home_root / "cron" / "jobs.json"
+    script_path = module._script_path(profile)
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+    script_path.write_text("# legacy script\n", encoding="utf-8")
+    jobs_path.parent.mkdir(parents=True, exist_ok=True)
+    jobs_path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "job-existing",
+                    "name": module._job_name(profile),
+                    "prompt": module._SILENT_PROMPT,
+                    "deliver": "local",
+                    "script": module._script_relpath(profile),
+                    "schedule": {"kind": "interval", "minutes": 5},
+                    "schedule_display": "every 5m",
+                    "enabled": True,
+                    "state": "scheduled",
+                    "next_run_at": "2026-04-17T12:00:00+08:00",
+                    "created_at": "2026-04-17T11:55:00+08:00",
+                }
+            ],
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(
         module,
@@ -576,51 +555,22 @@ def test_ensure_supervision_tick_script_runs_full_same_tick_repair_loop(
     )
 
     def fake_run_command(*, command: list[str]) -> tuple[int, str]:
-        if _command_contains(command, "cron", "create"):
-            jobs_path.parent.mkdir(parents=True, exist_ok=True)
-            jobs_path.write_text(
-                json.dumps(
-                    [
-                        {
-                            "id": "job-created",
-                            "name": module._job_name(profile),
-                            "prompt": module._SILENT_PROMPT,
-                            "deliver": "local",
-                            "script": module._script_relpath(profile),
-                            "schedule": {"kind": "interval", "minutes": 5},
-                            "schedule_display": "every 5m",
-                            "enabled": True,
-                            "state": "scheduled",
-                            "next_run_at": "2026-04-17T12:10:00+08:00",
-                            "created_at": "2026-04-17T12:00:00+08:00",
-                        }
-                    ],
-                    ensure_ascii=False,
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            return 0, "Created job: job-created"
-        return 0, "ok"
+        commands.append(command)
+        assert _command_contains(command, "cron", "remove")
+        jobs_path.write_text("[]\n", encoding="utf-8")
+        return 0, "Removed job: job-existing"
 
     monkeypatch.setattr(module, "_run_command", fake_run_command)
 
-    module.ensure_supervision(profile=profile, trigger_now=False)
+    result = module.remove_supervision(profile=profile)
 
-    script_text = module._script_path(profile).read_text(encoding="utf-8")
-    assert "COMMANDS = json.loads" in script_text
-    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime") in script_text
-    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan") in script_text
-    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize") in script_text
-    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch") in script_text
-    assert "--apply-runtime-platform-repair" in script_text
-    assert script_text.index("watch-runtime") < script_text.index("domain-route-scan")
-    assert script_text.index("domain-route-scan") < script_text.index("domain-action-request-materialize")
-    assert script_text.index("domain-action-request-materialize") < script_text.index("domain-owner-action-dispatch")
+    assert result["removed_job_ids"] == ["job-existing"]
+    assert result["script_removed"] is True
+    assert not script_path.exists()
+    assert any(_command_contains(command, "cron", "remove") for command in commands)
 
 
-def test_ensure_supervision_repairs_legacy_watch_runtime_entry_before_triggering_run(
+def test_ensure_supervision_does_not_repair_legacy_watch_runtime_or_trigger_run(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -683,15 +633,17 @@ def test_ensure_supervision_repairs_legacy_watch_runtime_entry_before_triggering
 
     def fake_run_command(*, command: list[str]) -> tuple[int, str]:
         commands.append(command)
-        return 0, "ok"
+        raise AssertionError(f"Hermes ensure must not run commands: {command}")
 
     monkeypatch.setattr(module, "_run_command", fake_run_command)
 
     result = module.ensure_supervision(profile=profile)
 
-    assert result["watch_runtime_repair"]["repaired"] is True
-    assert 'run_medautosci runtime watch \\' in watch_runtime.read_text(encoding="utf-8")
-    assert any(_command_contains(command, "cron", "run") for command in commands)
+    assert result["action"] == "retired_ensure_path"
+    assert 'run_medautosci watch \\' in watch_runtime.read_text(encoding="utf-8")
+    assert "run_medautosci runtime watch" not in watch_runtime.read_text(encoding="utf-8")
+    assert result["command_outputs"] == []
+    assert commands == []
 
 
 def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path) -> None:

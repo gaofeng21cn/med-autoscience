@@ -55,6 +55,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 3. `legacy_cleanup_physical_retirement`
    local LaunchAgent install path、workspace-local wrapper、旧 status/remove cleanup diagnostic、旧 alias/facade/test entry 已完成 physical retirement；当前允许角色只剩 tombstone/provenance refs 和 forbidden-caller proof。`manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。
+   Hermes scheduler path 也已收窄为 legacy diagnostic cleanup：`runtime-supervision-status --manager hermes` 只读旧 job/script/session/gateway 状态，`runtime-remove-supervision --manager hermes` 只移除旧 job/script；`runtime-ensure-supervision --manager hermes` 不再是公开入口，controller direct-call 只返回 retired tombstone，不写 tick script、不 create/edit/resume/run cron job。
 
 4. `opl_app_workbench_drilldown`
    MAS route/source/quality/artifact/memory/blocker/action refs 作为 OPL App/workbench drilldown 输入；MAS 不复制通用工作台 owner。剩余是真实用户路径、截图/发布包和长时 operator evidence。

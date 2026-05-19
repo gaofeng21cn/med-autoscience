@@ -11,7 +11,7 @@
       "default_caller": false,
       "tombstone_ref": "docs/history/runtime/legacy_active_path_tombstones.md#hermes-scheduler-hosted-runtime",
       "replacement_ref": "/product_entry_manifest/managed_temporal_state_consistency",
-      "retained_context": "history or explicit OPL opt-in executor/proof reference only"
+      "retained_context": "history, explicit OPL opt-in executor/proof reference, or legacy scheduler diagnostic cleanup only"
     },
     {
       "surface_id": "hosted_runtime_binding_wording",

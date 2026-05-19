@@ -7,7 +7,7 @@ Machine boundary: machine truth lives in `contracts/runtime/legacy-active-path-t
 
 ## Hermes Scheduler Hosted Runtime
 
-The Hermes scheduler / hosted runtime path is no longer a MAS default active path. It is retained only as explicit optional diagnostics, historical provider proof, or provenance context. OPL Temporal provider readiness and MAS sidecar dispatch are the replacement active-path contract.
+The Hermes scheduler / hosted runtime path is no longer a MAS default active path. It is retained only as explicit diagnostic cleanup, historical provider proof, or provenance context. OPL Temporal provider readiness and MAS sidecar dispatch are the replacement active-path contract.
 
 ## Hosted Runtime Binding Wording
 

@@ -59,7 +59,7 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
         "- `bin/domain-owner-action-dispatch`\n\n"
         "默认 scheduler projection 委托 OPL provider/runtime manager：`medautosci runtime ensure-supervision --profile <profile>`、"
         "`medautosci runtime supervision-status --profile <profile>` 与 `medautosci runtime remove-supervision --profile <profile>`。"
-        "`local` 已物理退役为 tombstone/provenance-only；Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n"
+        "`local` 已物理退役为 tombstone/provenance-only；Hermes 只在显式 status/remove 时作为 legacy diagnostic cleanup adapter。\n"
     )
 
 

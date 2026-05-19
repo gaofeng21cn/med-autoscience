@@ -75,11 +75,11 @@ def ensure_supervision(
             "OPL provider/runtime manager projection or read legacy tombstone refs."
         )
     if manager_key == "hermes":
-        payload = hermes_supervision.ensure_supervision(
+        payload = _retired_hermes_scheduler_ensure_tombstone(
             profile=profile,
             interval_seconds=interval_seconds,
             trigger_now=trigger_now,
-            manager="hermes",
+            dry_run=dry_run,
             write_install_proof=write_install_proof,
         )
         return _attach_consumer_migration(
@@ -447,6 +447,53 @@ def _project_hermes_status_dict(payload: dict[str, Any]) -> dict[str, Any]:
         "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
         "adapter_id": HERMES_ADAPTER_ID,
         "manager": "hermes",
+    }
+
+
+def _retired_hermes_scheduler_ensure_tombstone(
+    *,
+    profile: WorkspaceProfile,
+    interval_seconds: int,
+    trigger_now: bool,
+    dry_run: bool,
+    write_install_proof: bool,
+) -> dict[str, Any]:
+    before = _hermes_status(profile=profile, interval_seconds=interval_seconds)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "workspace_runtime_supervision_legacy_tombstone",
+        "status": "retired_ensure_path",
+        "action": "retired_ensure_path",
+        "requested_action": "ensure",
+        "manager": "hermes",
+        "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
+        "adapter_id": HERMES_ADAPTER_ID,
+        "generated_at": _utc_now(),
+        "workspace_key": _workspace_key(profile),
+        "interval_seconds": interval_seconds,
+        "before": before,
+        "after": before,
+        "dry_run": bool(dry_run),
+        "trigger_now": bool(trigger_now),
+        "write_install_proof": False,
+        "requested_write_install_proof": bool(write_install_proof),
+        "install_allowed": False,
+        "status_allowed": True,
+        "remove_allowed": True,
+        "trigger_allowed": False,
+        "write_tick_script_allowed": False,
+        "command_outputs": [],
+        "removed_job_ids": [],
+        "summary": (
+            "Hermes gateway cron ensure/create/refresh/trigger path is retired. "
+            "Use manager='opl' for active scheduler ownership, manager='hermes' status for legacy "
+            "diagnostics, or manager='hermes' remove for cleanup of existing legacy jobs."
+        ),
+        "replacement_command": "runtime-ensure-supervision --profile <profile> --manager opl",
+        "diagnostic_status_command": "runtime-supervision-status --profile <profile> --manager hermes",
+        "cleanup_command": "runtime-remove-supervision --profile <profile> --manager hermes",
+        "retained_context": "legacy_scheduler_diagnostic_cleanup_only",
+        "body_included": False,
     }
 
 

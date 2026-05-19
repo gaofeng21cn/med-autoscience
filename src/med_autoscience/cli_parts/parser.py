@@ -11,6 +11,7 @@ from med_autoscience.figure_routes import supported_required_route_help
 
 
 ACTIVE_SUPERVISION_MANAGERS = ("opl", "hermes")
+ACTIVE_SUPERVISION_ENSURE_MANAGERS = ("opl",)
 
 
 def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
@@ -129,7 +130,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_ensure_supervision_parser.add_argument("--no-trigger-now", action="store_true")
     runtime_ensure_supervision_parser.add_argument(
         "--manager",
-        choices=ACTIVE_SUPERVISION_MANAGERS,
+        choices=ACTIVE_SUPERVISION_ENSURE_MANAGERS,
         default="opl",
     )
     runtime_ensure_supervision_parser.add_argument("--dry-run", action="store_true")

@@ -1,6 +1,6 @@
 # Domain SLO Scheduler Projection Contract
 
-Status: `OPL replacement default / MAS local tombstone only`
+Status: `OPL replacement default / MAS local tombstone / Hermes cleanup-only`
 Owner: `OPL provider/runtime manager for scheduler lifecycle; MAS for domain SLO and receipts`
 Date: `2026-05-18`
 
@@ -10,7 +10,7 @@ Date: `2026-05-18`
 
 MAS 保留的是 paper-progress SLO 解释、domain tick payload、owner receipt、typed blocker、safe action refs 和 no-forbidden-write evidence。MAS-owned `local` scheduler / LaunchAgent install path 已物理退役；公开 CLI manager choices 不再包含 `local`，只保留 `local_launchd_retired_tombstone` projection 与 history/tombstone/provenance refs。
 
-显式 `--manager hermes` 仍是 legacy diagnostic adapter，用于 Hermes gateway cron 的 job registry、session history、latest run 和 gateway liveness projection。Hermes 不持有 study truth、runtime truth、publication verdict、quality verdict 或 artifact authority。
+显式 `--manager hermes` 只保留在 `runtime-supervision-status` 和 `runtime-remove-supervision`，用于旧 Hermes gateway cron 的 job registry、session history、latest run、gateway liveness projection 和旧 job/script cleanup。`runtime-ensure-supervision --manager hermes` 不再是公开入口；controller direct call 也只返回 retired tombstone，不写 tick script、不 create/edit/resume/run cron job。Hermes 不持有 study truth、runtime truth、publication verdict、quality verdict 或 artifact authority。
 
 ## 三层边界
 
@@ -62,7 +62,7 @@ Retained refs:
 
 ## Legacy Hermes Diagnostic Adapter
 
-`--manager hermes` 只表示显式 legacy proof / diagnostic adapter。它可以读取或刷新历史 Hermes cron/session/gateway 证据以完成清理或 provenance 投影，但不得成为新 scheduler template、provider fallback 或长期保留接口。
+`--manager hermes` 只表示显式 legacy proof / diagnostic cleanup adapter。它可以读取历史 Hermes cron/session/gateway 证据，也可以通过 `runtime-remove-supervision --manager hermes` 移除旧 cron job、旧 script 和 retired legacy service evidence；它不得 create/edit/resume/run cron job，不得写 MAS tick script，也不得成为新 scheduler template、provider fallback 或长期保留接口。
 
 Hermes adapter 不得成为：
 
@@ -71,10 +71,12 @@ Hermes adapter 不得成为：
 - MAS executor kind owner
 - publication quality / source readiness / artifact mutation authority
 - OPL Full online readiness 的替代证据
+- MAS-owned active scheduler install / refresh / trigger path
 
 ## Done Criteria
 
 - `local` 不在公开 CLI manager choices 中。
+- `runtime-ensure-supervision` 的公开 manager choices 只包含 `opl`；Hermes ensure direct-call 返回 retired tombstone，不执行 install / refresh / trigger。
 - 默认 scheduler projection 不依赖 Hermes 或 MAS local LaunchAgent。
 - MAS product-entry、sidecar、Portal 和 Live Console 只展示 OPL default projection、Hermes diagnostic projection 或 local tombstone/provenance refs。
 - No-active-caller proof 显示 default caller count 为 `0`，explicit local callers forbidden。
