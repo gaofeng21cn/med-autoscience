@@ -626,13 +626,32 @@ def _methodology_reframe_route_decision_action(study_root: Path) -> dict[str, An
 
 
 def _methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
-    decision = _read_json_object(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    if _artifact_supersedes(
+        newer_ref=source_provenance_owner_result.result_path(study_root=study_root),
+        older_ref=decision_ref,
+    ):
+        return False
+    decision = _read_json_object(decision_ref)
     next_work_unit = _mapping(decision.get("next_work_unit"))
     return (
         _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
         and _text(next_work_unit.get("unit_id")) == "medical_prose_quality_analysis_source_documentation_repair"
     )
+
+
+def _artifact_supersedes(*, newer_ref: Path, older_ref: Path) -> bool:
+    newer_mtime = _path_mtime(newer_ref)
+    older_mtime = _path_mtime(older_ref)
+    return newer_mtime is not None and older_mtime is not None and newer_mtime > older_mtime
+
+
+def _path_mtime(path: Path) -> float | None:
+    try:
+        return Path(path).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None
 
 
 def _scientific_anchor_missing(
