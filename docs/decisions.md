@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-20：AI reviewer 重新评估必须刷新 stale paper-authority receipt
+
+- 决策：clean paper-authority migration 进入 `new_mas_authority_established` 后，如果当前 `publication_eval/latest.json` 已不再匹配 receipt 中记录的 AI reviewer eval，新一轮 AI reviewer workflow materialize 的 eval 必须刷新 `paper_authority_cutover/latest.json` 的 `new_mas_authority` 指针。已准确指向当前 eval 的 receipt 保持幂等。
+- 理由：DM002 暴露出 stale receipt 会让 controller/status refresh 把 AI reviewer-owned eval 重新降回 publication-gate mechanical projection，导致 reviewer operating system 丢失，并让 owner-chain 反复回到 AI reviewer trace missing。
+- 影响：AI reviewer 是 publication quality authority；mechanical projection 只能作为需要 AI reviewer 的输入或 blocker，不得覆盖当前 AI reviewer-owned eval。后续 controller decision refresh 必须消费 owner eval 及其 reviewer OS，再推进 write / gate / delivery owner。
+
 ## 2026-05-19：publication currentness 必须消费当前 owner receipt，且区分正文面与内部审阅面
 
 - 决策：`analysis_claim_evidence_repair/latest.json` 若带有当前 work-unit fingerprint、`controller_action_invoked_first.action=run_quality_repair_batch`、完整 `targeted_publication_specificity_targets`、`canonical_artifact_delta.meaningful_artifact_delta=true`，并且 gate replay 已证明目标 blocker 被清除，controller work-unit evidence adoption 必须消费该 receipt，下一跳回到 publication gate recheck，不得继续向 runtime 重放同一 `analysis_claim_evidence_repair` fingerprint。

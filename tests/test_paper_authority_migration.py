@@ -574,6 +574,73 @@ def test_new_mas_authority_established_fails_closed_when_active_eval_is_overwrit
     ]
 
 
+def test_mark_cutover_refreshes_stale_new_mas_authority_receipt_after_reviewer_rerun(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(eval_path, {"legacy": True})
+
+    module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+    module.mark_cutover_new_mas_authority_established(
+        study_root=study_root,
+        publication_eval_ref=str(eval_path),
+        eval_id="publication-eval::old-ai-reviewer",
+        recorded_at="2026-05-17T12:00:00+00:00",
+    )
+    _write_json(
+        eval_path,
+        {
+            "eval_id": "publication-eval::mechanical-overwrite",
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "ai_reviewer_required": True,
+            },
+        },
+    )
+    assert module.cutover_requires_ai_reviewer(study_root=study_root) is True
+    _write_json(
+        eval_path,
+        {
+            "eval_id": "publication-eval::fresh-ai-reviewer",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+        },
+    )
+
+    updated = module.mark_cutover_new_mas_authority_established(
+        study_root=study_root,
+        publication_eval_ref=str(eval_path),
+        eval_id="publication-eval::fresh-ai-reviewer",
+        recorded_at="2026-05-19T20:28:16+00:00",
+    )
+
+    receipt = json.loads(
+        (study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert updated is not None
+    assert receipt["status"] == "new_mas_authority_established"
+    assert receipt["new_mas_authority"]["eval_id"] == "publication-eval::fresh-ai-reviewer"
+    assert receipt["new_mas_authority"]["publication_eval_ref"] == str(eval_path)
+    assert module.new_mas_authority_eval_current(study_root=study_root) is True
+    assert module.cutover_requires_ai_reviewer(study_root=study_root) is False
+
+
 def _write_profile(path: Path, profile) -> None:
     path.write_text(
         "\n".join(

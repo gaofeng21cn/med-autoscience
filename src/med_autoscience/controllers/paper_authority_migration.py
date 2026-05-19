@@ -148,7 +148,15 @@ def mark_cutover_new_mas_authority_established(
 ) -> dict[str, Any] | None:
     resolved_study_root = Path(study_root).expanduser().resolve()
     receipt = read_paper_authority_cutover(study_root=resolved_study_root)
-    if not receipt or _text(receipt.get("status")) != "awaiting_new_mas_authority":
+    if not receipt:
+        return None
+    status = _text(receipt.get("status"))
+    if status == "new_mas_authority_established" and _new_mas_authority_eval_current(
+        study_root=resolved_study_root,
+        receipt=receipt,
+    ):
+        return dict(receipt)
+    if status not in {"awaiting_new_mas_authority", "new_mas_authority_established"}:
         return None
     timestamp = _text(recorded_at) or _utc_now()
     authority_boundary = dict(receipt.get("authority_boundary") or {})
