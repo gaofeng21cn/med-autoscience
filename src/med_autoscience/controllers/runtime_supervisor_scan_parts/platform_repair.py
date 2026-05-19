@@ -873,6 +873,23 @@ def apply_runtime_platform_repair(
                 base=base,
                 repair_kind=abnormal_repair_kind,
             )
+    current_controller_route = current_truth_owner.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if current_controller_route is not None:
+        return _controller_redrive_result(
+            _apply_current_controller_runtime_redrive(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                runtime_state_path=runtime_path,
+                quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+                publication_eval_payload=publication_eval_payload,
+                base={**base, "reason": current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON},
+                repair_kind="current_controller_runtime_route_redrive",
+            )
+        )
     gate_status = _publication_gate_ready_for_specificity_redrive(quest_root)
     supersession = _controller_decision_supersedes_specificity(
         study_root=study_root,

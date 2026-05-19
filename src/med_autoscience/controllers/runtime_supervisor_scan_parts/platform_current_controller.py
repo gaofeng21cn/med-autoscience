@@ -140,7 +140,14 @@ def current_controller_authorization_payload(
         action_types=action_types,
         work_unit_id=text(work_unit.get("unit_id")),
     )
-    if publication_action is None and not domain_transition_allowed:
+    methodology_reframe_allowed = current_truth_owner.methodology_reframe_runtime_route_allowed(
+        decision=decision,
+        work_unit=work_unit,
+        work_unit_fingerprint=work_unit_fingerprint,
+        action_types=action_types,
+        work_unit_id=text(work_unit.get("unit_id")),
+    )
+    if publication_action is None and not domain_transition_allowed and not methodology_reframe_allowed:
         return None
     authorization: dict[str, Any] = {
         "decision_id": text(decision.get("decision_id")),
@@ -156,6 +163,8 @@ def current_controller_authorization_payload(
     }
     if domain_transition_allowed:
         authorization["authorization_basis"] = "controller_domain_transition"
+    if methodology_reframe_allowed:
+        authorization["authorization_basis"] = "controller_methodology_reframe"
     for key in (
         "specificity_targets",
         "work_unit_targets",

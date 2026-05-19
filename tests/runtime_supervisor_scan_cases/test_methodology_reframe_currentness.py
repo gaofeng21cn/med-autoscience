@@ -138,6 +138,94 @@ def test_methodology_reframe_decision_exposes_current_controller_runtime_route(t
     assert route["controller_actions"] == ["ensure_study_runtime"]
 
 
+def test_platform_repair_prefers_methodology_reframe_route_over_stale_gate_specificity(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    repair_module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan_parts.platform_repair")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    _write_json(
+        runtime_state_path,
+        {
+            "status": "waiting_for_user",
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 0,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            "last_controller_decision_authorization": {"decision_id": "old-ai-reviewer-route"},
+        },
+    )
+    _write_json(
+        quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "status": "blocked",
+            "blockers": ["stale_submission_minimal_authority"],
+            "current_required_action": "return_to_publishability_gate",
+            "supervisor_phase": "publishability_gate_blocked",
+        },
+    )
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    decision = _materialized_methodology_decision(study_id=study_id, quest_id=quest_id)
+    decision["controller_actions"] = [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}]
+    decision["next_work_unit"].update(
+        {
+            "hard_methodology": True,
+            "required_owner": "analysis_harmonization_owner",
+            "required_next_work_unit": "unit_harmonized_external_validation_rerun",
+            "typed_blocker": "unit_harmonized_rerun_required",
+        }
+    )
+    _write_json(decision_path, decision)
+    monkeypatch.setattr(
+        repair_module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **_: {
+            "decision": "resume",
+            "runtime_liveness_audit": {"active_run_id": "run-methodology-redrive"},
+        },
+    )
+
+    result = repair_module.apply_runtime_platform_repair(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status={
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "quest_root": str(quest_root),
+            "quest_status": "waiting_for_user",
+        },
+        progress={"quest_root": str(quest_root), "quest_id": quest_id},
+        publication_eval_payload=_publication_eval(
+            study_id=study_id,
+            quest_id=quest_id,
+            eval_suffix="methodology-reframe-platform-redrive",
+        ),
+        developer_mode=_developer_mode(),
+        enabled=True,
+        repair_required=True,
+    )
+
+    assert result is not None
+    assert result["dispatch_status"] == "applied"
+    assert result["reason"] == "runtime_controller_redrive_required"
+    assert result["repair_kind"] == "current_controller_runtime_route_redrive"
+    assert result["current_controller_authorization_written"] is True
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert runtime_state["continuation_reason"] == "controller_work_unit_pending"
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == decision["decision_id"]
+    assert runtime_state["last_controller_decision_authorization"]["work_unit_fingerprint"] == (
+        "decision::methodology_reframe_route_decision"
+    )
+
+
 def _publication_eval(*, study_id: str, quest_id: str, eval_suffix: str) -> dict:
     return {
         "schema_version": 1,
@@ -269,3 +357,7 @@ def _assert_methodology_reframe_queued(result: dict) -> None:
     assert study["blocked_reason"] == "methodology_reframe_required"
     assert study["next_owner"] == "decision"
     assert study["owner_route"]["allowed_actions"] == ["methodology_reframe_route_decision"]
+
+
+def _developer_mode():
+    return type("DeveloperMode", (), {"safe_actions_enabled": True})()
