@@ -98,6 +98,7 @@ MAS 达到生产级目标态时，应满足：
 - 通用 runtime、queue、memory locator、artifact lifecycle、restore/retention、projection、workbench shell 和 generated entry/status wrapper 已上收到 OPL / shared family layer；MAS 保留领域知识、authority、owner receipt、声明式 pack 和 minimal authority functions。
 - OPL generated / hosted surfaces 完成 active caller cutover；MAS 旧手写 shell 只保留 direct domain entry、domain handler、authority function、diagnostic cleanup 或 provenance fixture。
 - MAS 非知识代码均能归类为 declarative pack / generated surface handoff、refs-only adapter、minimal authority function 或 legacy cleanup no-active-caller gate，并完成对应 cutover、收薄或退役；已物理退役的旧面必须另有 tombstone/provenance refs、forbidden-caller proof 和 `physical_retired` 机器标记。
+- MAS cleanup 证据必须区分 OPL refs-only ledger 与 MAS repo 物理删除：OPL `agents legacy-cleanup apply` 的 dry-run / apply / verify ready 只证明 MAS tombstone / replacement / no-regression refs 可被 OPL 消费，不等于 tracked runtime transport、supervisor 或 SQLite sidecar 已物理清零。
 - runtime-guard stage descriptor 明确声明 machine-readable `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs`，OPL proof bundle / admission 能把 route decision、baseline/evidence readiness、analysis evidence closure、draft reviewability、AI reviewer gate receipt、publication handoff 和 replay/audit event refs 读成可组合合同，而不是只靠人读 stage 文案。
 - 当前 `classification_gap_count=0`、`active_private_generic_residue_count=0` 与 `functional_structure_gap_count=0` 必须由机器面确认。结构闭合来自 generated surface active caller cutover、refs-only adapter 收薄、legacy physical retirement、OPL App drilldown、lifecycle locator/retention/restore ledger 对账和 runtime-guard stage admission 的 closure proof refs；live paper-line evidence scaleout 是结构门之后的测试/证据门，不能被 descriptor ready、replacement proof 或 repo tests 替代。
 - 每个真实 paper-line stage attempt 都留下 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。
@@ -105,6 +106,7 @@ MAS 达到生产级目标态时，应满足：
 - Artifact lifecycle、retention、cleanup、restore proof 和 SQLite/file authority 边界在真实 workspace 中可运行。
 - Human gate/resume、explicit wakeup、retry/dead-letter、provider SLO long soak 和 no-forbidden-write 在真实 provider-hosted run 中持续成立。
 - Legacy MDS/Hermes/local/default-compat residue 完成 no-active-caller scan、replacement proof、history/provenance 分类与 physical retirement；不保留兼容别名。
+- One Person Lab App 的 managed-environment startup maintenance 由 OPL `system startup-maintenance` 与 App shell 自动调用承担；MAS 不再持有本机 LaunchAgent、daemon 或 module maintenance owner。
 
 ## 当前差距入口
 

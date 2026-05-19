@@ -59,7 +59,7 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 2026-05-19 继续把物理代码层的 runtime transport 收薄边界机器化：`product-entry-manifest` 与 sidecar export 现在暴露 `runtime_transport_handoff_projection`。它逐项声明 `mas_runtime_core`、turn runner、worker lease、runtime supervisor scan/consume/dispatch/reconcile 和 `runtime_lifecycle_store.py` 只能作为 MAS domain owner receipt adapter、refs-only SQLite sidecar、guarded apply / typed blocker 或 standalone diagnostic；generic runtime、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 和 workbench owner 全部归 OPL replacement surface。该投影不是把这些文件写成长期 MAS 平台；它是后续在无 domain direct/diagnostic caller、OPL parity 与 domain receipt parity 成立后执行物理删除或 archive/tombstone 的 gate。
 
-2026-05-19 的 OPL legacy cleanup dry-run 进一步证明 MAS tombstone proof refs 已被 OPL gate 接受：`opl agents legacy-cleanup apply --domain mas --mode dry-run` 返回 `plan_status=ready` 与 `lifecycle_apply.status=dry_run_ready`。MAS manifest 现在向 OPL 暴露 replacement parity refs、no-regression evidence refs、history refs 和 tombstone refs；这只关闭 OPL cleanup gate 的 blocker，不表示 MAS tracked runtime transport、supervisor 或 SQLite sidecar 已物理删除，也不表示真实 paper-line provider apply 或 App/workbench 用户路径已完成。
+2026-05-19 的 OPL legacy cleanup 进一步证明 MAS tombstone proof refs 已被 OPL gate 接受：`opl agents legacy-cleanup apply --domain mas --mode dry-run` 返回 `plan_status=ready` 与 `lifecycle_apply.status=dry_run_ready`，随后 `--mode apply` 写入 OPL refs-only lifecycle ledger 的空计划 closure batch receipt，`--mode verify` 可读回 `verified_receipt_count=1`。MAS manifest 现在向 OPL 暴露 replacement parity refs、no-regression evidence refs、history refs 和 tombstone refs；这只关闭 OPL cleanup ledger blocker，不表示 MAS tracked runtime transport、supervisor 或 SQLite sidecar 已物理删除，也不表示真实 paper-line provider apply、App 发布路径或 App/workbench 用户路径已完成。
 
 以下 5 项已作为功能/结构 closure gate 关闭：
 
@@ -71,7 +71,7 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
    `runtime_transport_handoff_projection` 进一步把 runtime transport 与 supervisor 代码路径逐项约束为 OPL-owned generic runtime 的 domain bridge / diagnostic，不允许它们重新声明 MAS-owned queue、attempt ledger、worker residency、transition runner 或 persistence engine。
 
 3. `legacy_cleanup_physical_retirement`
-   local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 已完成 physical retirement；当前机器清单把 local scheduler install path 与 workspace-local watch wrappers 归为 `legacy_cleanup_physical_retired`，只保留 tombstone/provenance refs 和 forbidden-caller proof。当前 `manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。OPL cleanup dry-run 已能消费 MAS replacement / history / tombstone proof refs；后续任何物理删除、archive 或 tombstone 仍受 domain owner receipt、OPL parity 和 no-active-caller gate 约束。
+   local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 已完成 physical retirement；当前机器清单把 local scheduler install path 与 workspace-local watch wrappers 归为 `legacy_cleanup_physical_retired`，只保留 tombstone/provenance refs 和 forbidden-caller proof。当前 `manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。OPL cleanup dry-run / apply / verify 已能消费 MAS replacement / history / tombstone proof refs；后续任何物理删除、archive 或 tombstone 仍受 domain owner receipt、OPL parity 和 no-active-caller gate 约束。
 
 4. `opl_app_workbench_drilldown`
    OPL App / workbench drilldown 消费 MAS route/source/quality/artifact/memory/blocker/action refs 和 operator grouping。MAS 只输出 domain projection refs，不在本仓复制通用工作台。仍需证明真实用户路径消费 OPL read model，而不是 MAS repo 复制 Portal/workbench shell。
@@ -100,7 +100,7 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 - 不能写成 `mas_owner_receipt_present` / stable blocker 等于 workspace mutation、artifact authority 放行或 paper closure。
 - 不能写成 MAS 已经没有任何私有程序面；准确口径是私有面已收敛为声明式 pack / generated surface handoff、refs-only adapter、minimal authority function 或 no-active-caller cleanup tombstone/provenance gate。
 - 不能写成 `runtime_transport/`、runtime supervisor 或 `runtime_lifecycle_store.py` 已经物理删除；准确口径是它们已有 OPL handoff 机器投影，默认不能作为 MAS generic runtime 基座，只能在无 domain direct/diagnostic caller 与 parity proof 后进入物理删除、archive 或 tombstone。
-- 不能把 MAS legacy cleanup dry-run ready 写成物理源码已清零；它只证明 OPL cleanup gate 可消费 MAS replacement / no-regression / history / tombstone refs。
+- 不能把 MAS legacy cleanup dry-run / apply / verify ready 写成物理源码已清零；它只证明 OPL cleanup gate 和 refs-only ledger 可消费 MAS replacement / no-regression / history / tombstone refs。
 - 不能把 generated surface cutover、refs-only adapter 收薄、legacy physical retirement、OPL App/workbench drilldown 或 lifecycle ledger 对账的结构 closure 写成真实 paper closure、publication-ready、artifact mutation authorization 或 provider long-soak 已完成。
 - 不能把真实 paper apply、memory receipt、artifact receipt、human gate/resume 或 provider SLO 写成可以由 repo tests 替代的事项。
 - 不能把 `publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict` 或类似 verdict 写成脚本/函数直接决定；它们必须是 AI-first stage quality gate 的可审计输出，程序只做校验、持久化、签收和防越权。
