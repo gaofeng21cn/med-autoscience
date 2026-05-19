@@ -127,3 +127,98 @@ def test_acceptance_requires_owner_receipt_or_typed_blocker_and_next_verificatio
         assert payload["consumer_contract"]["current_evidence_tail_status"] == (
             "domain_owned_typed_blocker_with_next_verification_ref"
         )
+
+
+def test_codex_first_landing_program_is_parallel_and_contract_light() -> None:
+    payload = _acceptance()
+    program = payload["codex_first_landing_program"]
+
+    assert program["program_id"] == "mas-codex-first-one-shot-landing"
+    assert program["program_status"] == "ready_for_parallel_landing"
+    assert program["landing_model"] == "parallel_lanes_absorbed_to_main_after_focused_receipts"
+    end_state = program["end_state"]
+    assert end_state["default_executor"] == "Codex CLI"
+    assert end_state["stage_unit"] == "domain_stage"
+    assert end_state["agent_shape"] == (
+        "Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions"
+    )
+    assert end_state["contract_posture"] == "contract_light_ai_first_quality_owner"
+    assert end_state["domain_ready_authority"] == "MedAutoScience owner receipt or typed blocker"
+    assert end_state["publication_ready_authority"] == (
+        "independent MAS AI reviewer/auditor quality gate"
+    )
+    assert end_state["current_package_authority"] == "MAS artifact authority receipt"
+
+    parallel = program["parallel_execution_model"]
+    assert parallel["lanes_can_run_in_parallel"] is True
+    assert parallel["merge_policy"] == "absorb_lane_after_focused_validation_then_cleanup_worktree"
+    assert set(parallel["shared_blockers"]) == {
+        "no_active_caller_proof_missing",
+        "opl_generated_surface_parity_missing",
+        "domain_receipt_parity_missing",
+        "independent_reviewer_or_auditor_receipt_missing",
+        "no_forbidden_write_proof_missing",
+    }
+    assert parallel["main_absorb_requires"] == [
+        "git diff --check",
+        "focused_lane_tests",
+        "scripts/verify.sh",
+        "worktree_cleanup",
+    ]
+
+
+def test_codex_first_landing_lanes_cover_pack_caller_physical_canary_and_soak() -> None:
+    payload = _acceptance()
+    program = payload["codex_first_landing_program"]
+    lanes = {lane["lane_id"]: lane for lane in program["lanes"]}
+
+    assert list(lanes) == [
+        "codex_stage_pack_quality_lift",
+        "opl_generated_default_caller_cutover",
+        "physical_source_morphology_retirement",
+        "real_paper_line_provider_canary",
+        "memory_artifact_human_gate_scaleout",
+        "provider_slo_long_soak",
+    ]
+    assert {lane["execution_owner"] for lane in lanes.values()} == {"Codex CLI"}
+    assert lanes["codex_stage_pack_quality_lift"]["owner"] == "MedAutoScience"
+    assert "agent/prompts" in lanes["codex_stage_pack_quality_lift"]["primary_surfaces"]
+    assert any(
+        "independent reviewer/auditor records" in criterion
+        for criterion in lanes["codex_stage_pack_quality_lift"]["done_criteria"]
+    )
+    assert lanes["opl_generated_default_caller_cutover"]["owner"] == "one-person-lab"
+    assert "OPL-generated or hosted shell is the default caller" in lanes[
+        "opl_generated_default_caller_cutover"
+    ]["done_criteria"]
+    physical = lanes["physical_source_morphology_retirement"]
+    assert physical["owner"] == "MedAutoScience"
+    assert "runtime_transport/mas_runtime_core*" in physical["primary_surfaces"]
+    assert any("no-active-caller" in criterion for criterion in physical["done_criteria"])
+    canary = lanes["real_paper_line_provider_canary"]
+    assert "provider completion never claims domain ready" in " ".join(canary["done_criteria"])
+    scaleout = lanes["memory_artifact_human_gate_scaleout"]
+    assert {"publication-route memory writeback receipts", "artifact lifecycle receipts"} <= set(
+        scaleout["primary_surfaces"]
+    )
+    soak = lanes["provider_slo_long_soak"]
+    assert soak["owner"] == "one-person-lab"
+    assert "Temporal provider residency" in soak["primary_surfaces"]
+
+
+def test_codex_first_landing_program_keeps_forbidden_shortcuts_closed() -> None:
+    payload = _acceptance()
+    program = payload["codex_first_landing_program"]
+
+    assert set(program["forbidden_landing_shortcuts"]) == {
+        "replace_codex_stage_work_with_fixed_script_pipeline",
+        "treat_descriptor_ready_as_production_ready",
+        "treat_provider_completion_as_domain_ready",
+        "let_executor_self_review_close_quality_gate",
+        "write_memory_body_or_artifact_body_from_opl_projection",
+        "keep_legacy_wrapper_or_alias_after_default_caller_cutover",
+    }
+    assert "treat_provider_completion_as_domain_ready" in program["forbidden_landing_shortcuts"]
+    assert payload["authority_boundary"]["provider_completion_is_domain_ready"] is False
+    assert payload["authority_boundary"]["opl_can_write_memory_body"] is False
+    assert payload["authority_boundary"]["opl_can_write_current_package"] is False

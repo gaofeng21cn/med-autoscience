@@ -146,6 +146,220 @@
       }
     ]
   },
+  "codex_first_landing_program": {
+    "program_id": "mas-codex-first-one-shot-landing",
+    "program_status": "ready_for_parallel_landing",
+    "landing_model": "parallel_lanes_absorbed_to_main_after_focused_receipts",
+    "end_state": {
+      "default_executor": "Codex CLI",
+      "stage_unit": "domain_stage",
+      "agent_shape": "Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions",
+      "contract_posture": "contract_light_ai_first_quality_owner",
+      "domain_ready_authority": "MedAutoScience owner receipt or typed blocker",
+      "publication_ready_authority": "independent MAS AI reviewer/auditor quality gate",
+      "current_package_authority": "MAS artifact authority receipt"
+    },
+    "parallel_execution_model": {
+      "lanes_can_run_in_parallel": true,
+      "merge_policy": "absorb_lane_after_focused_validation_then_cleanup_worktree",
+      "shared_blockers": [
+        "no_active_caller_proof_missing",
+        "opl_generated_surface_parity_missing",
+        "domain_receipt_parity_missing",
+        "independent_reviewer_or_auditor_receipt_missing",
+        "no_forbidden_write_proof_missing"
+      ],
+      "main_absorb_requires": [
+        "git diff --check",
+        "focused_lane_tests",
+        "scripts/verify.sh",
+        "worktree_cleanup"
+      ]
+    },
+    "lanes": [
+      {
+        "lane_id": "codex_stage_pack_quality_lift",
+        "owner": "MedAutoScience",
+        "execution_owner": "Codex CLI",
+        "primary_surfaces": [
+          "agent/prompts",
+          "agent/skills",
+          "agent/knowledge",
+          "agent/quality_gates"
+        ],
+        "done_criteria": [
+          "each stage declares objective, inputs, tools, knowledge, handoff, forbidden shortcuts, and done criteria",
+          "quality gates require independent reviewer/auditor records",
+          "program outputs remain receipts, typed blockers, or refs-only projections"
+        ],
+        "verification_refs": [
+          {
+            "ref": "opl agents scaffold --validate <mas_repo>",
+            "role": "agent_pack_scaffold_validation",
+            "body_included": false
+          },
+          {
+            "ref": "scripts/run-pytest-clean.sh -q tests/test_opl_standard_pack.py tests/test_stage_quality_contract.py",
+            "role": "stage_pack_contract_tests",
+            "body_included": false
+          }
+        ]
+      },
+      {
+        "lane_id": "opl_generated_default_caller_cutover",
+        "owner": "one-person-lab",
+        "execution_owner": "Codex CLI",
+        "primary_surfaces": [
+          "CLI",
+          "MCP",
+          "Skill",
+          "product-entry",
+          "sidecar",
+          "status",
+          "workbench"
+        ],
+        "done_criteria": [
+          "OPL-generated or hosted shell is the default caller",
+          "MAS hand-written surfaces are only domain handler targets, receipt signers, validators, or diagnostics",
+          "direct MAS app skill and OPL-hosted path route to the same MAS owner surfaces"
+        ],
+        "verification_refs": [
+          {
+            "ref": "opl agents interfaces --repo-dir <mas_repo> --json",
+            "role": "generated_surface_interface_readiness",
+            "body_included": false
+          },
+          {
+            "ref": "contracts/generated_surface_handoff.json",
+            "role": "generated_surface_owner_boundary",
+            "body_included": false
+          }
+        ]
+      },
+      {
+        "lane_id": "physical_source_morphology_retirement",
+        "owner": "MedAutoScience",
+        "execution_owner": "Codex CLI",
+        "primary_surfaces": [
+          "runtime_transport/mas_runtime_core*",
+          "runtime_protocol/runtime_lifecycle_store.py",
+          "product_entry_parts/workspace_cockpit",
+          "sidecar_provider",
+          "runtime status projection"
+        ],
+        "done_criteria": [
+          "each retained surface is classified as authority function, domain handler target, refs-only adapter, diagnostic, or tombstone",
+          "generic runtime, queue, attempt ledger, scheduler, workbench, and lifecycle owner claims stay in OPL",
+          "delete/archive/tombstone only after no-active-caller, OPL parity, domain receipt parity, and no-forbidden-write proof"
+        ],
+        "verification_refs": [
+          {
+            "ref": "contracts/functional_privatization_audit.json",
+            "role": "functional_boundary_and_retirement_gate",
+            "body_included": false
+          },
+          {
+            "ref": "docs/status.md#当前物理源码形态差距",
+            "role": "human_doc_physical_tail",
+            "body_included": false
+          }
+        ]
+      },
+      {
+        "lane_id": "real_paper_line_provider_canary",
+        "owner": "MedAutoScience",
+        "execution_owner": "Codex CLI",
+        "primary_surfaces": [
+          "OPL provider stage attempt",
+          "MAS sidecar dispatch",
+          "owner receipt",
+          "progress delta",
+          "typed blocker"
+        ],
+        "done_criteria": [
+          "one real paper-line attempt returns owner receipt, progress delta, quality/publication gate ref, or typed blocker",
+          "provider completion never claims domain ready, publication ready, medical ready, artifact mutation, or current_package update",
+          "attempt records executor, source refs, closeout refs, cost/token or explicit unavailable reason, human gate state, and route-back owner"
+        ],
+        "verification_refs": [
+          {
+            "ref": "product_entry_manifest.provider_guarded_soak_read_model",
+            "role": "provider_guarded_canary_read_model",
+            "body_included": false
+          },
+          {
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_shape",
+            "body_included": false
+          }
+        ]
+      },
+      {
+        "lane_id": "memory_artifact_human_gate_scaleout",
+        "owner": "MedAutoScience",
+        "execution_owner": "Codex CLI",
+        "primary_surfaces": [
+          "publication-route memory writeback receipts",
+          "artifact lifecycle receipts",
+          "human gate decision receipts",
+          "resume token refs"
+        ],
+        "done_criteria": [
+          "accepted, rejected, and blocked memory writeback receipts are represented",
+          "artifact mutation, cleanup, restore, and retention return guarded receipts or typed blockers",
+          "human gate decisions resume through owner_route without bypassing quality gate or artifact authority"
+        ],
+        "verification_refs": [
+          {
+            "ref": "publication_eval/latest.json",
+            "role": "publication_quality_gate_ref",
+            "body_included": false
+          },
+          {
+            "ref": "controller_decisions/latest.json",
+            "role": "owner_route_and_human_gate_ref",
+            "body_included": false
+          }
+        ]
+      },
+      {
+        "lane_id": "provider_slo_long_soak",
+        "owner": "one-person-lab",
+        "execution_owner": "Codex CLI",
+        "primary_surfaces": [
+          "Temporal provider residency",
+          "worker restart and re-query",
+          "retry/dead-letter",
+          "no-forbidden-write long-window evidence"
+        ],
+        "done_criteria": [
+          "long-running stage attempts remain observable and resumable",
+          "provider retry/dead-letter state is visible without writing MAS truth",
+          "OPL App/workbench projection shows current owner, next action, blockers, and receipt refs"
+        ],
+        "verification_refs": [
+          {
+            "ref": "product_entry_manifest.provider_residency_read_model",
+            "role": "provider_residency_projection",
+            "body_included": false
+          },
+          {
+            "ref": "product_entry_manifest.workspace_runtime_evidence_receipt",
+            "role": "workspace_runtime_evidence_projection",
+            "body_included": false
+          }
+        ]
+      }
+    ],
+    "forbidden_landing_shortcuts": [
+      "replace_codex_stage_work_with_fixed_script_pipeline",
+      "treat_descriptor_ready_as_production_ready",
+      "treat_provider_completion_as_domain_ready",
+      "let_executor_self_review_close_quality_gate",
+      "write_memory_body_or_artifact_body_from_opl_projection",
+      "keep_legacy_wrapper_or_alias_after_default_caller_cutover"
+    ]
+  },
   "authority_boundary": {
     "opl_can_authorize_domain_ready": false,
     "provider_completion_is_domain_ready": false,
