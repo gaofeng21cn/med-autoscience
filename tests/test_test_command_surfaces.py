@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -358,6 +359,9 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"' in verify_script
     assert 'export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"' in verify_script
     runner_script = _read("scripts/run-python-clean.sh")
+    assert 'script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' in runner_script
+    assert 'repo_root="$(cd "${script_dir}/.." && pwd)"' in runner_script
+    assert 'repo_root="$(git rev-parse --show-toplevel)"' not in runner_script
     assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
     assert 'uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)' in runner_script
     assert 'uv_sync_args+=(--extra analysis)' in runner_script
@@ -427,6 +431,38 @@ def test_clean_build_runner_uses_temp_source_root_for_imports() -> None:
     assert 'python -m build "${source_root}" --sdist --wheel --outdir "${build_outdir}"' in build_runner
     assert '"${repo_root}/scripts/run-python-clean.sh" -m build "${source_root}"' not in build_runner
     assert 'cache_dir = "/tmp/mas-pytest-cache"' in pyproject
+
+
+def test_clean_python_runner_resolves_repo_from_script_path_outside_git(tmp_path: Path) -> None:
+    fake_venv = tmp_path / "venv"
+    fake_bin = fake_venv / "bin"
+    fake_bin.mkdir(parents=True)
+    fake_python = fake_bin / "python"
+    fake_python.symlink_to(sys.executable)
+
+    outside_git = tmp_path / "not-a-git-workspace"
+    outside_git.mkdir()
+
+    result = subprocess.run(
+        [
+            str(REPO_ROOT / "scripts/run-python-clean.sh"),
+            "-c",
+            "import os; print(os.getcwd())",
+        ],
+        cwd=outside_git,
+        env={
+            **os.environ,
+            "MAS_CLEAN_RUNNER_SKIP_SYNC": "1",
+            "MAS_CLEAN_RUNNER_TMP_ROOT": str(tmp_path / "runner-tmp"),
+            "UV_PROJECT_ENVIRONMENT": str(fake_venv),
+        },
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == str(REPO_ROOT)
 
 
 def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
