@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 from typing import Any, Mapping
 
 from med_autoscience.policies import (
@@ -41,6 +42,38 @@ _REQUIRED_TRACE_INPUTS = (
     "study_charter",
     "evidence_ledger",
     "review_ledger",
+)
+_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_PATTERNS = (
+    re.compile(
+        r"\bforegrounds?\b.{0,120}\b(?:data[-\s]?harmonization|unit[-\s]?harmonization|harmonization lesson)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bdefensible contribution\b.{0,120}\bharmonization[-\s]?sensitive\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\breframe novelty\b.{0,120}\bharmonization\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bmanuscript must treat\b.{0,120}\b(?:raw[-\s]?HDL|raw[-\s]?scale|harmonization failure signal)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\braw[-\s]?HDL run\b.{0,120}\bharmonization failure signal\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bunit harmonization changed the central interpretation\b",
+        re.IGNORECASE,
+    ),
+)
+_MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS = frozenset(
+    {
+        "clinical_significance",
+        "novelty_positioning",
+    }
 )
 
 
@@ -147,6 +180,17 @@ def _dimension_evidence_refs(
     return [ref_bundle[surface] for surface in _REQUIRED_TRACE_INPUTS if surface in ref_bundle]
 
 
+def _reject_manuscript_story_provenance_leakage(*, field_path: str, text: str) -> None:
+    if not text:
+        return
+    for pattern in _MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_PATTERNS:
+        if pattern.search(text):
+            raise ValueError(
+                "AI reviewer publication eval workflow detected manuscript_story_provenance_leakage "
+                f"in {field_path}"
+            )
+
+
 def _rubric_scores_and_decision_matrix(
     *,
     dimensions: Mapping[str, Mapping[str, Any]],
@@ -162,6 +206,19 @@ def _rubric_scores_and_decision_matrix(
             raise ValueError(f"AI reviewer publication eval workflow quality dimension {dimension} missing status")
         if not rationale:
             raise ValueError(f"AI reviewer publication eval workflow quality dimension {dimension} missing rationale")
+        if dimension in _MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS:
+            _reject_manuscript_story_provenance_leakage(
+                field_path=f"quality_assessment.{dimension}.summary",
+                text=summary,
+            )
+            _reject_manuscript_story_provenance_leakage(
+                field_path=f"quality_assessment.{dimension}.reviewer_reason",
+                text=rationale,
+            )
+            _reject_manuscript_story_provenance_leakage(
+                field_path=f"quality_assessment.{dimension}.reviewer_revision_advice",
+                text=_text(payload.get("reviewer_revision_advice")),
+            )
         evidence_refs = _dimension_evidence_refs(dimension_payload=payload, ref_bundle=ref_bundle)
         rubric_scores[dimension] = {
             "status": status,
@@ -228,6 +285,15 @@ def _future_facing_limitations_plan(record_payload: Mapping[str, Any]) -> list[d
                 "AI reviewer publication eval workflow "
                 "future_facing_limitations_plan"
                 f"[{index}].current_manuscript_wording_must_be_restrained missing"
+            )
+        for field in (
+            "limitation",
+            "impact_on_claim",
+            "required_future_analysis_data_or_design",
+        ):
+            _reject_manuscript_story_provenance_leakage(
+                field_path=f"future_facing_limitations_plan[{index}].{field}",
+                text=_text(item.get(field)),
             )
         plan.append(item)
     return plan

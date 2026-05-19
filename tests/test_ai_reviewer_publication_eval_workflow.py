@@ -594,6 +594,49 @@ def test_ai_reviewer_publication_eval_workflow_rejects_disclosure_only_limitatio
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
+def test_ai_reviewer_publication_eval_workflow_rejects_manuscript_story_provenance_leakage(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    _write_ai_reviewer_currentness_inputs(study_root)
+    record["quality_assessment"]["novelty_positioning"][
+        "reviewer_reason"
+    ] = "The novelty remains useful only if the manuscript foregrounds the data-harmonization lesson."
+    record["future_facing_limitations_plan"] = [
+        {
+            "limitation": "HDL unit harmonization changed the central interpretation of the transported score.",
+            "impact_on_claim": "The manuscript must treat the raw-HDL run as a harmonization failure signal.",
+            "required_future_analysis_data_or_design": "Regenerate tables from current harmonized evidence.",
+            "current_manuscript_wording_must_be_restrained": True,
+        }
+    ]
+
+    try:
+        module.run_ai_reviewer_publication_eval_workflow(
+            study_root=study_root,
+            manuscript_ref=refs["manuscript"],
+            evidence_ref=refs["evidence_ledger"],
+            review_ref=refs["review_ledger"],
+            charter_ref=refs["study_charter"],
+            additional_refs={
+                "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+                "claim_evidence_map": refs["claim_evidence_map"],
+                "medical_prose_review": refs["medical_prose_review"],
+                "publication_gate_projection": refs["publication_gate_projection"],
+            },
+            record=record,
+        )
+    except ValueError as exc:
+        assert "manuscript_story_provenance_leakage" in str(exc)
+    else:
+        raise AssertionError("workflow accepted AI reviewer record that turned correction provenance into paper story")
+
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_ai_reviewer_publication_eval_workflow_fails_closed_when_prose_review_predates_request(
     tmp_path: Path,
 ) -> None:
