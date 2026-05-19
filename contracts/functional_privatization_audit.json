@@ -208,6 +208,12 @@
         "workspace_local_watch_service_wrappers"
       ],
       "legacy_cleanup_items_require_no_active_caller_gate": [],
+      "legacy_cleanup_items_tombstoned": [
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller"
+      ],
       "remaining_evidence_gate_ids": [
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
@@ -299,7 +305,33 @@
           "owner_receipt",
           "study_runtime_status"
         ],
-        "retention_reason": "MAS can index paper-line owner receipts and locators as a domain sidecar reference adapter; generic persistence, lifecycle indexing, restore/retention, and receipt ledger ownership stay in OPL."
+        "retention_reason": "MAS can index paper-line owner receipts and locators as a domain sidecar reference adapter; generic persistence, lifecycle indexing, restore/retention, and receipt ledger ownership stay in OPL.",
+        "retirement_gate": {
+          "active_caller_count": 3,
+          "active_caller_proof": [
+            "study_runtime records runtime events and owner-receipt refs",
+            "runtime lifecycle CLI reads lifecycle refs",
+            "sidecar/product-entry lifecycle projections consume refs only"
+          ],
+          "active_caller_status": "refs_only_domain_sidecar_adapter_active",
+          "can_emit_generic_owner_verdict": false,
+          "can_emit_paper_closure_verdict": false,
+          "classification": "refs_only_adapter",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_runtime_lifecycle_index_parity_proven",
+            "domain_owner_receipt_ref_parity_proven",
+            "focused_runtime_lifecycle_projection_tests_green"
+          ],
+          "generic_owner_claim_allowed": false,
+          "module_id": "runtime_lifecycle_sqlite_reference_adapter",
+          "must_not_emit": [
+            "generic_runtime_verdict",
+            "generic_persistence_engine_owner",
+            "paper_closure_verdict"
+          ],
+          "retirement_gate_status": "active_domain_ref_caller_retained_until_opl_lifecycle_index_parity"
+        }
       },
       {
         "active_caller_status": "domain_outbox_adapter_active",
@@ -323,7 +355,32 @@
           "publication_gate",
           "owner_receipt"
         ],
-        "retention_reason": "Paper work-unit identity, publication gate context, and artifact delta obligations are MAS domain facts."
+        "retention_reason": "Paper work-unit identity, publication gate context, and artifact delta obligations are MAS domain facts.",
+        "retirement_gate": {
+          "active_caller_count": 2,
+          "active_caller_proof": [
+            "paper work-unit controller keeps publication-gate context refs",
+            "sidecar dispatch consumes work-unit source refs"
+          ],
+          "active_caller_status": "domain_outbox_adapter_active",
+          "can_emit_generic_owner_verdict": false,
+          "can_emit_paper_closure_verdict": false,
+          "classification": "refs_only_adapter",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_queue_attempt_ledger_parity_proven",
+            "paper_work_unit_identity_refs_projected_by_opl",
+            "focused_queue_stage_attempt_tests_green"
+          ],
+          "generic_owner_claim_allowed": false,
+          "module_id": "paper_work_unit_outbox_index",
+          "must_not_emit": [
+            "generic_queue_owner",
+            "attempt_completion_is_publication_ready",
+            "paper_closure_verdict"
+          ],
+          "retirement_gate_status": "active_domain_outbox_ref_caller_retained_until_opl_queue_attempt_parity"
+        }
       },
       {
         "active_caller_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
@@ -370,7 +427,32 @@
           "artifact_authority",
           "workspace_artifact_refs"
         ],
-        "retention_reason": "MAS may expose study/workspace refs and artifact authority receipts; generic cleanup policy belongs to OPL."
+        "retention_reason": "MAS may expose study/workspace refs and artifact authority receipts; generic cleanup policy belongs to OPL.",
+        "retirement_gate": {
+          "active_caller_count": 2,
+          "active_caller_proof": [
+            "runtime storage maintenance CLI reads workspace storage refs",
+            "workspace storage reports expose sizes and cleanup receipts only"
+          ],
+          "active_caller_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
+          "can_emit_generic_owner_verdict": false,
+          "can_emit_paper_closure_verdict": false,
+          "classification": "refs_only_adapter",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_artifact_lifecycle_storage_audit_shell_parity_proven",
+            "artifact_authority_receipt_parity_proven",
+            "focused_storage_maintenance_tests_green"
+          ],
+          "generic_owner_claim_allowed": false,
+          "module_id": "runtime_storage_maintenance",
+          "must_not_emit": [
+            "generic_cleanup_policy",
+            "restore_ready_verdict",
+            "paper_closure_verdict"
+          ],
+          "retirement_gate_status": "active_diagnostic_ref_caller_retained_until_opl_cleanup_policy_parity"
+        }
       },
       {
         "active_caller_status": "domain_source_adapter_active",
@@ -424,7 +506,33 @@
           "publication_route_memory_body",
           "memory_writeback_decision"
         ],
-        "retention_reason": "MAS keeps publication-route memory body, recall policy, and accept/reject/blocker writeback verdict."
+        "retention_reason": "MAS keeps publication-route memory body, recall policy, and accept/reject/blocker writeback verdict.",
+        "retirement_gate": {
+          "active_caller_count": 3,
+          "active_caller_proof": [
+            "publication-route memory CLI reads locator refs",
+            "stage knowledge packet consumes body-free memory refs",
+            "typed closeout memory writeback records receipt refs"
+          ],
+          "active_caller_status": "body_free_locator_transport_active",
+          "can_emit_generic_owner_verdict": false,
+          "can_emit_paper_closure_verdict": false,
+          "classification": "refs_only_adapter",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_generic_memory_locator_parity_proven",
+            "publication_route_memory_body_stays_domain_owned",
+            "focused_memory_writeback_chain_tests_green"
+          ],
+          "generic_owner_claim_allowed": false,
+          "module_id": "publication_route_memory_locator_transport_shell",
+          "must_not_emit": [
+            "memory_body_write",
+            "memory_accept_reject_verdict_without_ai_first_record",
+            "paper_closure_verdict"
+          ],
+          "retirement_gate_status": "active_domain_memory_ref_caller_retained_until_opl_memory_locator_parity"
+        }
       },
       {
         "active_caller_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
@@ -456,7 +564,32 @@
           "artifact_authority",
           "current_package_authority"
         ],
-        "retention_reason": "Canonical manuscript/package mutation and rebuild proof are MAS artifact authority."
+        "retention_reason": "Canonical manuscript/package mutation and rebuild proof are MAS artifact authority.",
+        "retirement_gate": {
+          "active_caller_count": 2,
+          "active_caller_proof": [
+            "artifact lifecycle CLI/MCP consumes artifact refs",
+            "product-entry artifact projection consumes mutation-authority refs"
+          ],
+          "active_caller_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
+          "can_emit_generic_owner_verdict": false,
+          "can_emit_paper_closure_verdict": false,
+          "classification": "refs_only_adapter",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_generic_artifact_lifecycle_parity_proven",
+            "artifact_mutation_authority_receipt_parity_proven",
+            "focused_artifact_lifecycle_tests_green"
+          ],
+          "generic_owner_claim_allowed": false,
+          "module_id": "artifact_lifecycle_storage_audit_shell",
+          "must_not_emit": [
+            "generic_artifact_lifecycle_owner",
+            "artifact_mutation_authorized_without_mas_receipt",
+            "paper_closure_verdict"
+          ],
+          "retirement_gate_status": "active_domain_artifact_ref_caller_retained_until_opl_artifact_lifecycle_parity"
+        }
       },
       {
         "active_caller_status": "opl_generated_workbench_surface_consumes_mas_domain_projection_refs",
@@ -529,7 +662,32 @@
           "runtime_watch_domain_health",
           "typed_blocker"
         ],
-        "retention_reason": "MAS keeps read-only paper progress facts and domain blocker explanations."
+        "retention_reason": "MAS keeps read-only paper progress facts and domain blocker explanations.",
+        "retirement_gate": {
+          "active_caller_count": 2,
+          "active_caller_proof": [
+            "runtime live-console CLI reads terminal log source refs",
+            "Progress Portal links consume read-only terminal projections"
+          ],
+          "active_caller_status": "read_only_terminal_projection_active",
+          "can_emit_generic_owner_verdict": false,
+          "can_emit_paper_closure_verdict": false,
+          "classification": "refs_only_adapter",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_terminal_attach_transport_parity_proven",
+            "terminal_gate_receipt_ref_parity_proven",
+            "focused_live_console_parity_tests_green"
+          ],
+          "generic_owner_claim_allowed": false,
+          "module_id": "terminal_attach_transport",
+          "must_not_emit": [
+            "generic_terminal_runtime_owner",
+            "daemon_attach_authority",
+            "paper_closure_verdict"
+          ],
+          "retirement_gate_status": "active_diagnostic_ref_caller_retained_until_opl_terminal_projection_parity"
+        }
       },
       {
         "active_caller_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
@@ -838,10 +996,17 @@
         "workspace_local_watch_service_wrappers"
       ],
       "legacy_cleanup_items_require_no_active_caller_gate": [],
+      "legacy_cleanup_items_tombstoned": [
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller"
+      ],
       "long_term_opl_owned_replacement_count": 0,
       "remaining_functional_followthrough_gate_ids": [],
       "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
       "retire_tombstone_classification_count": 0,
+      "retired_legacy_residue_count": 4,
       "total_count": 18
     },
     "functional_surface_classification": {
@@ -854,15 +1019,15 @@
         "generic_queue_attempt_retry_dead_letter",
         "generic_transition_runner"
       ],
-      "legacy_cleanup_no_active_caller_gate": [
+      "legacy_cleanup_physical_retired": [
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers"
+      ],
+      "legacy_cleanup_tombstone_provenance": [
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
         "scheduler_legacy_residue_without_active_caller"
-      ],
-      "legacy_cleanup_physical_retired": [
-        "local_launchd_scheduler_install_path",
-        "workspace_local_watch_service_wrappers"
       ],
       "minimal_authority_function": [
         "study_truth",
@@ -1552,6 +1717,230 @@
       "sidecar_export.functional_consumer_boundary",
       "legacy_residue_audit.summary.default_caller_count"
     ],
+    "refs_only_adapter_retirement_gates": [
+      {
+        "active_caller_count": 3,
+        "active_caller_proof": [
+          "study_runtime records runtime events and owner-receipt refs",
+          "runtime lifecycle CLI reads lifecycle refs",
+          "sidecar/product-entry lifecycle projections consume refs only"
+        ],
+        "active_caller_status": "refs_only_domain_sidecar_adapter_active",
+        "can_emit_generic_owner_verdict": false,
+        "can_emit_paper_closure_verdict": false,
+        "classification": "refs_only_adapter",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_runtime_lifecycle_index_parity_proven",
+          "domain_owner_receipt_ref_parity_proven",
+          "focused_runtime_lifecycle_projection_tests_green"
+        ],
+        "generic_owner_claim_allowed": false,
+        "module_id": "runtime_lifecycle_sqlite_reference_adapter",
+        "must_not_emit": [
+          "generic_runtime_verdict",
+          "generic_persistence_engine_owner",
+          "paper_closure_verdict"
+        ],
+        "retirement_gate_status": "active_domain_ref_caller_retained_until_opl_lifecycle_index_parity"
+      },
+      {
+        "active_caller_count": 2,
+        "active_caller_proof": [
+          "paper work-unit controller keeps publication-gate context refs",
+          "sidecar dispatch consumes work-unit source refs"
+        ],
+        "active_caller_status": "domain_outbox_adapter_active",
+        "can_emit_generic_owner_verdict": false,
+        "can_emit_paper_closure_verdict": false,
+        "classification": "refs_only_adapter",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_queue_attempt_ledger_parity_proven",
+          "paper_work_unit_identity_refs_projected_by_opl",
+          "focused_queue_stage_attempt_tests_green"
+        ],
+        "generic_owner_claim_allowed": false,
+        "module_id": "paper_work_unit_outbox_index",
+        "must_not_emit": [
+          "generic_queue_owner",
+          "attempt_completion_is_publication_ready",
+          "paper_closure_verdict"
+        ],
+        "retirement_gate_status": "active_domain_outbox_ref_caller_retained_until_opl_queue_attempt_parity"
+      },
+      {
+        "active_caller_count": 2,
+        "active_caller_proof": [
+          "runtime storage maintenance CLI reads workspace storage refs",
+          "workspace storage reports expose sizes and cleanup receipts only"
+        ],
+        "active_caller_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
+        "can_emit_generic_owner_verdict": false,
+        "can_emit_paper_closure_verdict": false,
+        "classification": "refs_only_adapter",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_artifact_lifecycle_storage_audit_shell_parity_proven",
+          "artifact_authority_receipt_parity_proven",
+          "focused_storage_maintenance_tests_green"
+        ],
+        "generic_owner_claim_allowed": false,
+        "module_id": "runtime_storage_maintenance",
+        "must_not_emit": [
+          "generic_cleanup_policy",
+          "restore_ready_verdict",
+          "paper_closure_verdict"
+        ],
+        "retirement_gate_status": "active_diagnostic_ref_caller_retained_until_opl_cleanup_policy_parity"
+      },
+      {
+        "active_caller_count": 3,
+        "active_caller_proof": [
+          "publication-route memory CLI reads locator refs",
+          "stage knowledge packet consumes body-free memory refs",
+          "typed closeout memory writeback records receipt refs"
+        ],
+        "active_caller_status": "body_free_locator_transport_active",
+        "can_emit_generic_owner_verdict": false,
+        "can_emit_paper_closure_verdict": false,
+        "classification": "refs_only_adapter",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_generic_memory_locator_parity_proven",
+          "publication_route_memory_body_stays_domain_owned",
+          "focused_memory_writeback_chain_tests_green"
+        ],
+        "generic_owner_claim_allowed": false,
+        "module_id": "publication_route_memory_locator_transport_shell",
+        "must_not_emit": [
+          "memory_body_write",
+          "memory_accept_reject_verdict_without_ai_first_record",
+          "paper_closure_verdict"
+        ],
+        "retirement_gate_status": "active_domain_memory_ref_caller_retained_until_opl_memory_locator_parity"
+      },
+      {
+        "active_caller_count": 2,
+        "active_caller_proof": [
+          "artifact lifecycle CLI/MCP consumes artifact refs",
+          "product-entry artifact projection consumes mutation-authority refs"
+        ],
+        "active_caller_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
+        "can_emit_generic_owner_verdict": false,
+        "can_emit_paper_closure_verdict": false,
+        "classification": "refs_only_adapter",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_generic_artifact_lifecycle_parity_proven",
+          "artifact_mutation_authority_receipt_parity_proven",
+          "focused_artifact_lifecycle_tests_green"
+        ],
+        "generic_owner_claim_allowed": false,
+        "module_id": "artifact_lifecycle_storage_audit_shell",
+        "must_not_emit": [
+          "generic_artifact_lifecycle_owner",
+          "artifact_mutation_authorized_without_mas_receipt",
+          "paper_closure_verdict"
+        ],
+        "retirement_gate_status": "active_domain_artifact_ref_caller_retained_until_opl_artifact_lifecycle_parity"
+      },
+      {
+        "active_caller_count": 2,
+        "active_caller_proof": [
+          "runtime live-console CLI reads terminal log source refs",
+          "Progress Portal links consume read-only terminal projections"
+        ],
+        "active_caller_status": "read_only_terminal_projection_active",
+        "can_emit_generic_owner_verdict": false,
+        "can_emit_paper_closure_verdict": false,
+        "classification": "refs_only_adapter",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_terminal_attach_transport_parity_proven",
+          "terminal_gate_receipt_ref_parity_proven",
+          "focused_live_console_parity_tests_green"
+        ],
+        "generic_owner_claim_allowed": false,
+        "module_id": "terminal_attach_transport",
+        "must_not_emit": [
+          "generic_terminal_runtime_owner",
+          "daemon_attach_authority",
+          "paper_closure_verdict"
+        ],
+        "retirement_gate_status": "active_diagnostic_ref_caller_retained_until_opl_terminal_projection_parity"
+      }
+    ],
+    "retired_legacy_residue_tombstones": [
+      {
+        "active_caller_allowed": false,
+        "active_caller_count": 0,
+        "current_role": "history_tombstone_provenance_only",
+        "default_entry_allowed": false,
+        "must_not_emit": [
+          "generic_workbench_owner",
+          "paper_closure_verdict"
+        ],
+        "residue_id": "mas_generic_workbench_shell",
+        "retired_from_classification": "legacy_cleanup_no_active_caller_gate",
+        "retirement_gate": "no_active_caller_proven_move_to_tombstone",
+        "tombstone_refs": [
+          "docs/history/runtime/legacy_active_path_tombstones.md",
+          "contracts/runtime/legacy-active-path-tombstones.json"
+        ]
+      },
+      {
+        "active_caller_allowed": false,
+        "active_caller_count": 0,
+        "current_role": "history_tombstone_provenance_only",
+        "default_entry_allowed": false,
+        "must_not_emit": [
+          "generic_scheduler_owner",
+          "paper_closure_verdict"
+        ],
+        "residue_id": "legacy_scheduler_default_aliases",
+        "retired_from_classification": "legacy_cleanup_no_active_caller_gate",
+        "retirement_gate": "no_active_caller_proven_move_to_tombstone",
+        "tombstone_refs": [
+          "docs/history/runtime/legacy_active_path_tombstones.md",
+          "contracts/runtime/legacy-active-path-tombstones.json"
+        ]
+      },
+      {
+        "active_caller_allowed": false,
+        "active_caller_count": 0,
+        "current_role": "history_tombstone_provenance_only",
+        "default_entry_allowed": false,
+        "must_not_emit": [
+          "generic_terminal_runtime_owner",
+          "paper_closure_verdict"
+        ],
+        "residue_id": "daemonish_terminal_attach_status_as_runtime_owner",
+        "retired_from_classification": "legacy_cleanup_no_active_caller_gate",
+        "retirement_gate": "no_active_caller_proven_move_to_tombstone",
+        "tombstone_refs": [
+          "docs/history/runtime/legacy_active_path_tombstones.md",
+          "contracts/runtime/legacy-active-path-tombstones.json"
+        ]
+      },
+      {
+        "active_caller_allowed": false,
+        "active_caller_count": 0,
+        "current_role": "history_tombstone_provenance_only",
+        "default_entry_allowed": false,
+        "must_not_emit": [
+          "generic_scheduler_owner",
+          "paper_closure_verdict"
+        ],
+        "residue_id": "scheduler_legacy_residue_without_active_caller",
+        "retired_from_classification": "legacy_cleanup_no_active_caller_gate",
+        "retirement_gate": "no_active_caller_proven_move_to_tombstone",
+        "tombstone_refs": [
+          "docs/history/runtime/legacy_active_path_tombstones.md",
+          "contracts/runtime/legacy-active-path-tombstones.json"
+        ]
+      }
+    ],
     "runtime_lifecycle_sqlite_role": {
       "authority": "refs_only_index_not_generic_persistence_engine",
       "body_policy": "refs_receipts_blockers_only",
@@ -1711,6 +2100,12 @@
       "workspace_local_watch_service_wrappers"
     ],
     "legacy_cleanup_items_require_no_active_caller_gate": [],
+    "legacy_cleanup_items_tombstoned": [
+      "mas_generic_workbench_shell",
+      "legacy_scheduler_default_aliases",
+      "daemonish_terminal_attach_status_as_runtime_owner",
+      "scheduler_legacy_residue_without_active_caller"
+    ],
     "remaining_evidence_gate_ids": [
       "live_provider_paper_apply_scaleout",
       "publication_route_memory_receipt_scaleout",

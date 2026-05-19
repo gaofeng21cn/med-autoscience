@@ -1035,7 +1035,7 @@
           "typed_blocker",
           "safe_action_refs"
         ],
-        "legacy_cleanup_no_active_caller_gate": [
+        "legacy_cleanup_tombstone_provenance": [
           "mas_generic_workbench_shell",
           "legacy_scheduler_default_aliases",
           "daemonish_terminal_attach_status_as_runtime_owner",
@@ -1047,6 +1047,8 @@
         ]
       },
       "functional_module_inventory_ref": "product_entry_manifest.functional_consumer_boundary.functional_module_inventory",
+      "refs_only_adapter_retirement_gates_ref": "product_entry_manifest.functional_consumer_boundary.refs_only_adapter_retirement_gates",
+      "retired_legacy_residue_tombstones_ref": "product_entry_manifest.functional_consumer_boundary.retired_legacy_residue_tombstones",
       "functional_module_inventory_required_fields": [
         "module_id",
         "classification",
@@ -1313,6 +1315,7 @@
         },
         "long_term_opl_owned_replacement_count": 0,
         "retire_tombstone_classification_count": 0,
+        "retired_legacy_residue_count": 4,
         "classification_gap_count": 0,
         "functional_structure_gap_count": 0,
         "active_private_generic_residue_count": 0,
@@ -1322,6 +1325,12 @@
         "legacy_cleanup_items_physical_retired": [
           "local_launchd_scheduler_install_path",
           "workspace_local_watch_service_wrappers"
+        ],
+        "legacy_cleanup_items_tombstoned": [
+          "mas_generic_workbench_shell",
+          "legacy_scheduler_default_aliases",
+          "daemonish_terminal_attach_status_as_runtime_owner",
+          "scheduler_legacy_residue_without_active_caller"
         ],
         "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
         "legacy_cleanup_item_role": "history_tombstone_provenance_only",
@@ -1340,7 +1349,7 @@
         "declarative_pack_generated_surface",
         "refs_only_adapter",
         "minimal_authority_function",
-        "legacy_cleanup_no_active_caller_gate",
+        "legacy_cleanup_tombstone_provenance",
         "legacy_cleanup_physical_retired"
       ],
       "functional_followthrough_gap_summary": {
