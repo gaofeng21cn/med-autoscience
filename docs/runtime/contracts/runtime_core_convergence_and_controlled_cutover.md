@@ -1,14 +1,15 @@
 # Runtime Core Convergence And Controlled Cutover
 
 Status: `active closeout / behavior-equivalence reference`
-Owner: `MedAutoScience Runtime OS`
+Owner: `MedAutoScience domain runtime adapter / OPL generic runtime boundary`
 Date: `2026-05-08`
 
 ## 1. 当前事实
 
 当前正式状态已经从“外部 MDS 是默认执行依赖”收敛为：
 
-- `MAS Runtime OS` 持有默认 controller-facing runtime owner / substrate。
+- `OPL provider-backed stage runtime` 持有默认 generic runtime owner / substrate。
+- `MAS Runtime OS` 当前只保留 controller-facing domain runtime adapter、owner receipt、typed blocker、runtime event refs、guarded apply 和 standalone diagnostic role。
 - 默认 outer supervision scheduler owner 已迁到 OPL `opl_provider_runtime_manager`；默认 adapter 是 `opl_family_runtime_provider`。MAS supervision contract 保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker 和 safe action refs。MAS-owned `local` scheduler / LaunchAgent install path 已物理退役；公开 CLI 不再暴露 `--manager local`，只保留 tombstone/provenance refs。`Hermes gateway cron` 只在显式选择时作为 legacy diagnostic adapter。
 - MAS Runtime Turn Lifecycle Kernel 持有 runner completion 后的状态归一化和下一 turn 调度；正常 `auto_continue` 不再等待 300 秒 supervision tick。
 - `med-deepscientist` 不再是 MAS 默认 study/status/progress/cockpit/diagnostic operation 的必需 checkout、daemon、runtime root 或 WebUI。
@@ -29,16 +30,16 @@ Date: `2026-05-08`
 
 ## 3. 当前保留的行为差异
 
-当前 MAS 默认实现不是 resident daemon，但已经拆出内外两层：
+当前 MAS 默认实现不是 resident daemon，也不再声明自己持有 generic runtime owner；它已经拆出内外两层：
 
 - MDS 原行为：resident `ThreadingHTTPServer`、WebSocket、session store、background connector / worker / recovery loop。
-- MAS 内层行为：Runtime Turn Lifecycle Kernel 在 runner 返回后清理 live flags、drain queued user messages、按 continuation policy 调度下一 turn，并保留 human/terminal gate。
+- MAS 内层行为：Runtime Turn Lifecycle Kernel 在 runner 返回后清理 live flags、drain queued user messages、按 continuation policy 调度下一 turn，并保留 human/terminal gate；这些输出作为 MAS domain owner receipt / runtime event refs 被 OPL generic runtime 消费。
 - MAS 外层行为：默认 scheduler cadence 与 provider SLO 由 OPL replacement 承载；MAS-owned local scheduler / LaunchAgent 只保留为显式 legacy diagnostic / cleanup adapter。runtime state、event、owner route 和 progress read-model 由 MAS durable surface 持有。
 
 因此：
 
 - 日常研究推进、turn-to-turn continuation、状态读取、恢复投影、progress/cockpit/Portal 可独立完成。
-- 外层 drift detection / stale recovery 现在受 OPL provider SLO / cadence evidence 约束；低延迟 resident callback、WebSocket terminal streaming、connector background delivery、in-memory session continuity 不作为默认 MAS active behavior 保留。
+- 外层 drift detection / stale recovery 现在受 OPL provider SLO / cadence evidence 约束；低延迟 resident callback、WebSocket terminal streaming、connector background delivery、in-memory session continuity 不作为默认 MAS active behavior 保留，也不由 MAS 重新实现为通用 runtime platform。
 - 需要长时唤醒时，当前正确入口是 OPL provider/runtime manager replacement；MAS `local` adapter 和 Hermes gateway cron 只在显式 diagnostic / provenance 路径中使用，不是旧 workspace-local launchd/systemd/cron/docker service。
 
 ## 4. Gate 规则
@@ -47,15 +48,17 @@ Date: `2026-05-08`
 
 1. 不重新引入外部 MDS daemon / WebUI / repo checkout 作为默认依赖。
 2. 不把 workspace-local launchd/systemd/cron/docker service 恢复为 active scheduler。
-3. 不用 `functional_monolith_completion=landed` 掩盖 MDS resident daemon 行为差异。
-4. 不让 explicit archive import reference / backend audit transport 参与默认 watch/status/execute/recovery。
-5. 不让 SQLite、legacy `.ds` payload、MDS artifact inventory 或 old current_package projection 成为 paper truth / quality truth / delivery authority。
+3. 不把 `mas_runtime_core`、runtime supervisor、runtime lifecycle SQLite 或 turn runner 写成 MAS-owned generic runtime / queue / attempt ledger / worker residency / transition runner / persistence engine。
+4. 不用 `functional_monolith_completion=landed` 掩盖 MDS resident daemon 行为差异。
+5. 不让 explicit archive import reference / backend audit transport 参与默认 watch/status/execute/recovery。
+6. 不让 SQLite、legacy `.ds` payload、MDS artifact inventory 或 old current_package projection 成为 paper truth / quality truth / delivery authority。
 
 ## 5. 结论
 
 `runtime_core_ingest` 和 `functional_monolith_completion` 已按 default-independence 口径 landed。剩余工作不是重开 MDS 吸收主线，而是持续守住：
 
-- MAS Runtime OS 的 owner contract。
+- OPL provider-backed stage runtime 的 generic owner contract。
+- MAS Runtime OS 的 domain adapter / owner receipt / diagnostic contract。
 - OPL scheduler replacement 是默认路径；MAS supervision contract 保留 domain SLO/read-model 和 legacy local diagnostic / cleanup；Hermes gateway cron 只作 explicit legacy diagnostic adapter。
 - behavior-equivalence matrix 对 resident daemon 差异的公开记录。
 - future hosted scheduler / frontend packaging 的独立 gate，归 OPL/App owner，不在 MAS 内恢复旧 provider。

@@ -239,7 +239,7 @@ def test_render_stage_surfaces_markdown_is_generated_from_contract() -> None:
     assert f"Canonical route source: `{STAGE_ROUTE_CONTRACT_REF}`." in markdown
     assert "Markdown is a generated human-reading surface; it is not machine truth." in markdown
     assert "OPL may only project, dispatch, and read refs." in markdown
-    assert "MAS keeps domain truth, quality verdict, runtime owner, and artifact authority." in markdown
+    assert "MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and artifact authority." in markdown
 
     for route_id in EXPECTED_ROUTE_IDS:
         assert f"## {route_id}" in markdown

@@ -268,10 +268,31 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["hermes_home_root"] == str(profile.hermes_home_root)
     assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
     assert contract["runtime_backend_contract"] == {
-        "runtime_owner": "mas_runtime_os",
-        "runtime_substrate": "mas_runtime_core",
+        "runtime_owner": "one-person-lab",
+        "runtime_substrate": "opl_provider_backed_stage_runtime",
         "runtime_backend_id": "mas_runtime_core",
         "runtime_engine_id": "mas-runtime-core",
+        "runtime_backend_role": "mas_domain_owner_receipt_adapter",
+        "runtime_backend_is_generic_owner": False,
+        "domain_runtime_adapter_id": "mas_runtime_core",
+        "domain_runtime_adapter_role": "mas_domain_owner_receipt_adapter",
+        "generic_runtime_owner": "one-person-lab",
+        "generic_runtime_substrate": "opl_provider_backed_stage_runtime",
+        "domain_truth_owner": "med-autoscience",
+        "domain_authority_retained": [
+            "study_truth",
+            "publication_quality_verdict",
+            "artifact_authority",
+            "memory_accept_reject_receipt",
+            "owner_receipt",
+            "typed_blocker",
+        ],
+        "runtime_backend_retirement_gate": {
+            "no_active_default_caller_required": True,
+            "opl_replacement_parity_required": True,
+            "domain_receipt_parity_required": True,
+            "history_tombstone_required": True,
+        },
         "research_backend_id": "mas_runtime_core",
         "research_engine_id": "mas-runtime-core",
         "external_mds_required_for_default_operation": False,

@@ -4,7 +4,8 @@
 
 本文件冻结当前已经落地的正式 contract：
 
-- `MAS Runtime OS` / managed runtime backend 负责 quest-owned native runtime truth
+- `OPL provider-backed stage runtime` 负责 generic attempt / queue / worker residency / provider transport truth
+- `MAS Runtime OS` / managed runtime backend 负责 MAS domain runtime event refs、owner receipt、typed blocker、guarded apply 与 diagnostic truth
 - `MedAutoScience` 负责 study-owned supervision / escalation / decision truth
 - managed runtime 的 outer loop 必须同时消费这两层正式输入，不能再靠本仓 controller 重写 quest-owned `runtime_events/*`
 
@@ -14,7 +15,7 @@
 
 ### 2.1 Quest-owned native runtime truth
 
-权威 owner：`MAS Runtime OS` / managed runtime backend
+权威 owner：`MAS Runtime OS` / managed runtime backend as MAS domain adapter；generic attempt/queue/provider truth 归 OPL provider-backed stage runtime
 
 稳定表面：
 
@@ -145,7 +146,7 @@ native runtime truth 扩展字段：
 - `P0 runtime native truth`：已完成；旧 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 只作为 provenance / parity reference 保留
 - `MedAutoScience` consumer-side cutover：已完成，managed runtime 不再覆盖 quest-owned `runtime_events/*`
 - `P1 workspace canonical literature / knowledge truth`：已完成
-- 当前剩余工作不在本 contract 内重开；default runtime closeout 以 MAS Runtime OS、OPL scheduler replacement、MAS supervision SLO/read-model contract（默认 adapter 是 `opl_family_runtime_provider`；local 是显式 legacy diagnostic / cleanup adapter；Hermes 是 explicit legacy diagnostic adapter）和 behavior-equivalence matrix 为准
+- 当前剩余工作不在本 contract 内重开；default runtime closeout 以 OPL provider-backed stage runtime、MAS domain adapter / owner receipt surface、OPL scheduler replacement、MAS supervision SLO/read-model contract（默认 adapter 是 `opl_family_runtime_provider`；local 是显式 legacy diagnostic / cleanup adapter；Hermes 是 explicit legacy diagnostic adapter）和 behavior-equivalence matrix 为准
 
 因此，这份文件不再把 `runtime event contract` 写成“MAS 物化的一份 projection contract”，而是把它写成：
 

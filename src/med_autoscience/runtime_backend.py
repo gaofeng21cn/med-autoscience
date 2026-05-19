@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Any, Protocol
 
 DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "mas_runtime_core"
-MAS_RUNTIME_OWNER = "mas_runtime_os"
-MAS_RUNTIME_SUBSTRATE = "mas_runtime_core"
+MAS_RUNTIME_OWNER = "one-person-lab"
+MAS_RUNTIME_SUBSTRATE = "opl_provider_backed_stage_runtime"
+MAS_DOMAIN_RUNTIME_ADAPTER_ROLE = "mas_domain_owner_receipt_adapter"
 CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER = "controlled_research_backend"
 EXTERNAL_MDS_ALLOWED_USES = (
     "source_provenance_ref",
@@ -467,6 +468,27 @@ def runtime_backend_default_operation_contract(backend_id: str) -> dict[str, obj
         "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
         "runtime_backend_id": runtime_backend_id,
         "runtime_engine_id": runtime_engine_id,
+        "runtime_backend_role": MAS_DOMAIN_RUNTIME_ADAPTER_ROLE,
+        "runtime_backend_is_generic_owner": False,
+        "domain_runtime_adapter_id": runtime_backend_id,
+        "domain_runtime_adapter_role": MAS_DOMAIN_RUNTIME_ADAPTER_ROLE,
+        "generic_runtime_owner": MAS_RUNTIME_OWNER,
+        "generic_runtime_substrate": MAS_RUNTIME_SUBSTRATE,
+        "domain_truth_owner": "med-autoscience",
+        "domain_authority_retained": [
+            "study_truth",
+            "publication_quality_verdict",
+            "artifact_authority",
+            "memory_accept_reject_receipt",
+            "owner_receipt",
+            "typed_blocker",
+        ],
+        "runtime_backend_retirement_gate": {
+            "no_active_default_caller_required": True,
+            "opl_replacement_parity_required": True,
+            "domain_receipt_parity_required": True,
+            "history_tombstone_required": True,
+        },
         "research_backend_id": research_backend_id,
         "research_engine_id": research_engine_id,
         "external_mds_required_for_default_operation": False,

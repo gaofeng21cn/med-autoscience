@@ -67,7 +67,7 @@ def test_build_product_entry_status_uses_operator_status_card_for_now_summary(mo
                     "entry_mode": "direct",
                 }
             },
-            "runtime": {"runtime_owner": "mas_runtime_os"},
+            "runtime": {"runtime_owner": "one-person-lab"},
             "product_entry_status": {"summary": "test status"},
             "product_entry_surface": {
                 "surface_kind": "product_entry_status",
@@ -268,7 +268,7 @@ def test_build_product_entry_status_uses_same_line_route_truth_for_current_focus
                 "mainline_phase": {"command": "uv run python -m med_autoscience.cli mainline-phase", "surface_kind": "mainline_phase"},
             },
             "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-            "runtime": {"runtime_owner": "mas_runtime_os"},
+            "runtime": {"runtime_owner": "one-person-lab"},
             "product_entry_status": {"summary": "test status"},
             "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml", "summary": "open entry_status"},
             "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
@@ -396,7 +396,7 @@ def test_build_product_entry_status_uses_quality_review_followthrough_for_monito
             "mainline_phase": {"command": "uv run python -m med_autoscience.cli mainline-phase", "surface_kind": "mainline_phase"},
         },
         "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-        "runtime": {"runtime_owner": "mas_runtime_os"},
+        "runtime": {"runtime_owner": "one-person-lab"},
         "product_entry_status": {"summary": "test status"},
         "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml", "summary": "open entry_status"},
         "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
@@ -465,7 +465,7 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
             "mainline_phase": {"command": "uv run python -m med_autoscience.cli mainline-phase", "surface_kind": "mainline_phase"},
         },
         "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-        "runtime": {"runtime_owner": "mas_runtime_os"},
+        "runtime": {"runtime_owner": "one-person-lab"},
         "product_entry_status": {"summary": "test status"},
         "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml", "summary": "open entry_status"},
         "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
@@ -525,4 +525,3 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
     assert payload["operator_brief"]["recommended_step_id"] == "inspect_gate_clearing_followthrough"
     assert payload["operator_brief"]["recommended_command"] == followthrough_command
     assert payload["operator_brief"]["current_focus"] == next_signal
-

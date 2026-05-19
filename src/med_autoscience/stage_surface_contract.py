@@ -209,7 +209,7 @@ def render_stage_surfaces_markdown(surface: dict[str, object] | None = None) -> 
         f"Canonical route source: `{machine_boundary['canonical_route_contract']}`.",
         "Markdown is a generated human-reading surface; it is not machine truth.",
         "OPL may only project, dispatch, and read refs.",
-        "MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.",
+        "MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and artifact authority.",
         "",
         "## Machine Boundary",
         _render_list_line("Machine truth owners", machine_boundary["machine_truth_owners"]),
@@ -299,7 +299,7 @@ def render_stage_skill_surface_block(stage_id: str) -> str:
         "### OPL/provider boundary",
         _render_list_line("May", opl_boundary["may"]),
         _render_list_line("Must not", opl_boundary["must_not"]),
-        "- Provider/OPL projections may expose locators, freshness, and refs only; MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.",
+        "- Provider/OPL projections may expose locators, freshness, and refs only; MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and artifact authority.",
     ]
     return "\n".join(lines).rstrip() + "\n"
 

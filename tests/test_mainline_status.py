@@ -26,8 +26,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "explicit_archive_import_ref",
     ]
     assert all(item["owner"].startswith("MAS") for item in payload["active_tranche_owner_truth"]["lanes"])
-    assert payload["ideal_state"]["runtime_topology"]["runtime_owner"] == "mas_runtime_os"
-    assert payload["ideal_state"]["runtime_topology"]["runtime_substrate"] == "mas_runtime_core"
+    assert payload["ideal_state"]["runtime_topology"]["runtime_owner"] == "one-person-lab"
+    assert payload["ideal_state"]["runtime_topology"]["runtime_substrate"] == "opl_provider_backed_stage_runtime"
     assert payload["ideal_state"]["runtime_topology"]["research_backend"] == (
         "MAS domain owner receipts / artifact authority refs / quality verdict refs; "
         "generic runtime lifecycle handoff to OPL"

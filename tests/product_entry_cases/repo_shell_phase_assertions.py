@@ -205,8 +205,8 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     )
     assert phase5["north_star_topology"] == {
         "domain_agent": "Med Auto Science",
-        "runtime_owner": "mas_runtime_os",
-        "runtime_substrate": "mas_runtime_core",
+        "runtime_owner": "one-person-lab",
+        "runtime_substrate": "opl_provider_backed_stage_runtime",
         "controlled_research_backend": (
             "MAS domain owner receipts / Artifact authority refs / Quality verdict refs; "
             "generic runtime lifecycle handoff to OPL"

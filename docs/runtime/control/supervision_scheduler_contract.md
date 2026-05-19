@@ -16,7 +16,8 @@ MAS 保留的是 paper-progress SLO 解释、domain tick payload、owner receipt
 
 | layer | owner | responsibility |
 | --- | --- | --- |
-| Runtime Core | `MAS Runtime OS` / `mas_runtime_core` | 持有 worker、run、turn lifecycle、runtime health、recovery truth 和 MAS domain tick contract。 |
+| Generic Runtime Core | `OPL provider-backed stage runtime` | 持有 durable attempt、queue、wakeup、worker residency、retry/dead-letter、transition runner、provider transport 和 generic lifecycle/index。 |
+| MAS Domain Runtime Adapter | `MAS Runtime OS` / `mas_runtime_core` | 持有 MAS domain tick contract、owner receipt、typed blocker、runtime event refs、guarded apply 和 standalone diagnostic。 |
 | Supervisor Scheduler | `OPL provider/runtime manager` | 持有 scheduler lifecycle、cadence、provider SLO、attempt queue、retry/dead-letter、operator projection 和 lifecycle index。 |
 | Product Projection | `Progress Portal` / `Live Console` / `study-progress` / cockpit | 只读展示 MAS/OPL refs、freshness、blocker 和 safe action refs，不执行 runtime action。 |
 

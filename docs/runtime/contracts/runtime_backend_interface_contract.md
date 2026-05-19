@@ -2,21 +2,23 @@
 
 ## 1. 目标
 
-冻结 `MedAutoScience -> managed runtime backend` 的单一 contract，使 `MedAutoScience` 只依赖 `runtime backend interface` contract，而不再把 `med-deepscientist` 当作内建实现真相。
+冻结 `MedAutoScience -> OPL generic runtime + MAS domain runtime adapter` 的单一 contract，使 `MedAutoScience` 只依赖 runtime backend interface contract 暴露 domain owner receipt / typed blocker / diagnostic adapter，而不再把 `med-deepscientist` 或 MAS 私有 runtime core 当作通用运行框架真相。
 
-当前默认 MAS runtime owner 是：
+当前默认 generic runtime owner 是：
 
-- `runtime_owner = mas_runtime_os`
-- `runtime_substrate = mas_runtime_core`
+- `runtime_owner = one-person-lab`
+- `runtime_substrate = opl_provider_backed_stage_runtime`
 - `runtime_backend_id = mas_runtime_core`
 - `runtime_engine_id = mas-runtime-core`
+- `runtime_backend_role = mas_domain_owner_receipt_adapter`
+- `runtime_backend_is_generic_owner = false`
 
 当前 research backend identity 是：
 
 - `research_backend_id = mas_runtime_core`
 - `research_engine_id = mas-runtime-core`
 
-旧 `Codex-default host-agent runtime` 继续作为本机执行配置来源；direct `med_deepscientist` backend lane 只保留为 frozen source archive / historical fixture / explicit archive import reference，不作为 runnable dependency。
+旧 `Codex-default host-agent runtime` 继续作为 executor 配置来源；direct `med_deepscientist` backend lane 只保留为 frozen source archive / historical fixture / explicit archive import reference，不作为 runnable dependency。
 
 默认 MAS operation 的外部 MDS 依赖必须由 machine-readable contract 明确表达：
 
@@ -69,9 +71,9 @@ managed runtime backend 必须显式暴露：
 
 `MedAutoScience` controller 只能通过这层 contract 调 backend，不得再直接依赖 backend-specific module name 作为控制逻辑判断条件。
 
-## 3.1 MAS Runtime Core implements the former daemon role
+## 3.1 MAS runtime adapter implements only domain receipt/diagnostic role
 
-`mas_runtime_core` 不是把 MDS daemon 嵌入 MAS，也不是启动外部 `med-deepscientist` daemon。它以 MAS-owned backend module 实现 controller-facing daemon contract：
+`mas_runtime_core` 不是把 MDS daemon 嵌入 MAS，也不是启动外部 `med-deepscientist` daemon。它当前只作为 MAS domain runtime adapter / owner receipt surface / standalone diagnostic 实现 controller-facing operation shape；generic scheduler、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 和 workbench owner 归 OPL provider-backed stage runtime。
 
 - `resolve_daemon_url` 返回本地 runtime root URI，只作为 backend identity / locator。
 - `create_quest` 在 `runtime/quests/<quest_id>` 下创建普通 quest directory、`quest.yaml` 和 create payload。
@@ -80,7 +82,7 @@ managed runtime backend 必须显式暴露：
 - `get_quest_session`、`inspect_quest_live_runtime`、`inspect_quest_live_execution` 读取 MAS local state、runtime files 和 event refs，返回与 controller contract 对齐的 session/liveness projection。
 - `chat_quest`、`artifact_complete_quest`、`artifact_interact` 只记录 MAS runtime event / queue / artifact handoff，不调用 MDS HTTP API。
 
-因此，旧 MDS daemon 的长期价值被拆成两部分：controller-facing operation shape 由 `ManagedRuntimeBackend` contract 保留，运行状态与事件实现由 MAS Runtime OS 持有；MDS 只保留 frozen source archive、historical fixture、explicit archive import / provenance reference 和 read-only backend audit，不再保留 runnable MAS transport。
+因此，旧 MDS daemon 的长期价值被拆成两部分：controller-facing operation shape 由 `ManagedRuntimeBackend` contract 保留，generic runtime owner 归 OPL，MAS adapter 只签收 domain receipt、typed blocker、event refs 与 diagnostic projection；MDS 只保留 frozen source archive、historical fixture、explicit archive import / provenance reference 和 read-only backend audit，不再保留 runnable MAS transport。
 
 ## 3.2 Registry validation
 
@@ -137,8 +139,8 @@ managed runtime execution 的正式条件是：
 
 这份 contract 完成的是：
 
-- controller 与 transport 之间的 backend abstraction freeze
-- MAS Runtime OS / `mas_runtime_core` 作为默认 runtime owner/substrate 的 repo-side 闭环
+- controller 与 OPL generic runtime / MAS domain adapter 之间的 backend abstraction freeze
+- OPL provider-backed stage runtime 作为默认 generic runtime owner/substrate 的 repo-side contract，`mas_runtime_core` 只作为 domain adapter / owner receipt / diagnostic surface
 - `MedDeepScientist` 作为 frozen archive / historical fixture / explicit archive import reference 的显式边界
 - default MAS operation 不依赖 external `med-deepscientist` repo / runtime root
 - external MDS 只作为显式 backend audit、historical fixture / explicit archive import reference、historical fixture 和 source provenance target

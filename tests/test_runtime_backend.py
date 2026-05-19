@@ -296,8 +296,23 @@ def test_default_runtime_backend_contract_makes_external_mds_archive_only() -> N
 
     contract = module.runtime_backend_default_operation_contract(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
 
+    assert contract["runtime_owner"] == "one-person-lab"
+    assert contract["runtime_substrate"] == "opl_provider_backed_stage_runtime"
     assert contract["runtime_backend_id"] == "mas_runtime_core"
     assert contract["runtime_engine_id"] == "mas-runtime-core"
+    assert contract["runtime_backend_role"] == "mas_domain_owner_receipt_adapter"
+    assert contract["runtime_backend_is_generic_owner"] is False
+    assert contract["domain_runtime_adapter_id"] == "mas_runtime_core"
+    assert contract["domain_runtime_adapter_role"] == "mas_domain_owner_receipt_adapter"
+    assert contract["generic_runtime_owner"] == "one-person-lab"
+    assert contract["generic_runtime_substrate"] == "opl_provider_backed_stage_runtime"
+    assert contract["domain_truth_owner"] == "med-autoscience"
+    assert contract["runtime_backend_retirement_gate"] == {
+        "no_active_default_caller_required": True,
+        "opl_replacement_parity_required": True,
+        "domain_receipt_parity_required": True,
+        "history_tombstone_required": True,
+    }
     assert contract["external_mds_required_for_default_operation"] is False
     assert contract["external_mds_runnable_dependency"] is False
     assert contract["external_mds_retained_role"] == "frozen_source_archive_or_historical_fixture"

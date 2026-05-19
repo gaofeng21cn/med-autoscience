@@ -243,7 +243,7 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
     )
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["runtime_continuity"] == {
         "surface_kind": "skill_runtime_continuity",
-        "runtime_owner": "mas_runtime_os",
+        "runtime_owner": "one-person-lab",
         "domain_owner": "med-autoscience",
         "executor_owner": "controlled_research_backend",
         "session_locator_field": "study_id",

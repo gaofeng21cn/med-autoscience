@@ -792,7 +792,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert payload["return_surface_contract"]["research_runtime_control_projection_contract"] == {
         "surface_kind": "research_runtime_control_projection_contract",
         "study_session_owner": {
-                "runtime_owner": "mas_runtime_os",
+                "runtime_owner": "one-person-lab",
                 "study_owner": "med-autoscience",
                 "executor_owner": "controlled_research_backend",
             },

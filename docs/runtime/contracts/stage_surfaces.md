@@ -3,7 +3,7 @@
 Canonical route source: `agent/stages/stage_route_contract.yaml`.
 Markdown is a generated human-reading surface; it is not machine truth.
 OPL may only project, dispatch, and read refs.
-MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
+MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and artifact authority.
 
 ## Machine Boundary
 - Machine truth owners: canonical route contract | stage knowledge plane contracts | MAS controller/runtime surfaces | publication_eval/latest.json | controller_decisions/latest.json | evidence/review ledgers | workspace artifact locator refs

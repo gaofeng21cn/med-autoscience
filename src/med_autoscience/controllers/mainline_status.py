@@ -61,7 +61,7 @@ def _build_backend_deconstruction_lane(
             "ref": "program:med_deepscientist_retained_capability_parity",
         },
         authority_boundary=[
-            "mas_runtime_core_is_default_runtime_owner",
+            "opl_provider_runtime_is_default_generic_owner",
             "source_refs_do_not_define_runtime_dependency",
             "archive_import_is_explicit_one_way_provenance",
         ],

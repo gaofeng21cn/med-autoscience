@@ -153,7 +153,8 @@ def _load_runtime_local_state(*, runtime_root: Path, quest_id: str) -> dict[str,
 def _hosted_operation_unavailable(operation_name: str) -> RuntimeError:
     return RuntimeError(
         f"Hermes hosted operation `{operation_name}` is not part of MAS default functional monolith. "
-        "Use mas_runtime_core for default operation or an explicit backend audit/intake surface for external runtimes."
+        "Use OPL provider-backed runtime with mas_runtime_core as the MAS domain receipt adapter, "
+        "or an explicit backend audit/intake surface for external runtimes."
     )
 
 
