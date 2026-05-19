@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import provenance_limited_harmonization_owner
+from med_autoscience.controllers import source_provenance_owner_result
 
 
 OWNER = provenance_limited_harmonization_owner.OWNER
@@ -112,6 +113,8 @@ def current_controller_decision_requests_audit(*, study_root: Path) -> bool:
     decision_path = root / "artifacts" / "controller_decisions" / "latest.json"
     if not controller_decision_requests_audit(study_root=root):
         return False
+    if clean_rebuild_authorization_supersedes_audit_decision(study_root=root):
+        return False
     decision_mtime = _path_mtime(decision_path)
     if decision_mtime is None:
         return False
@@ -120,6 +123,15 @@ def current_controller_decision_requests_audit(*, study_root: Path) -> bool:
         root / "artifacts" / "controller" / "source_provenance" / "latest.json",
     )
     return not any((mtime := _path_mtime(path)) is not None and mtime > decision_mtime for path in trigger_paths)
+
+
+def clean_rebuild_authorization_supersedes_audit_decision(*, study_root: Path) -> bool:
+    root = Path(study_root).expanduser().resolve()
+    authorization = provenance_limited_harmonization_owner.rebuild_authorization(study_root=root)
+    if authorization.get("authorized") is not True:
+        return False
+    source_result = source_provenance_owner_result.read_result(study_root=root)
+    return source_provenance_owner_result.result_is_accepted_typed_blocker(source_result)
 
 
 def _matches_result(payload: Mapping[str, Any]) -> bool:
@@ -164,6 +176,7 @@ __all__ = [
     "RESULT_RELATIVE_PATH",
     "WORK_UNIT",
     "analysis_harmonization_supersedes_result",
+    "clean_rebuild_authorization_supersedes_audit_decision",
     "controller_decision_requests_audit",
     "current_controller_decision_requests_audit",
     "output_pending_for_result",
