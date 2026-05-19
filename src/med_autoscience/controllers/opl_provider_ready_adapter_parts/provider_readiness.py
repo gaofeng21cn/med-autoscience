@@ -335,7 +335,26 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         "target_domain_id": TARGET_DOMAIN_ID,
         "status": "no_active_default_caller_proven",
         "active_default_callers": [],
+        "replacement_parity_refs": [
+            "/opl_provider_ready_contract/provider_topology",
+            "/opl_provider_ready_contract/managed_temporal_state_consistency",
+            "/opl_provider_ready_contract/runtime_transport_handoff_projection",
+            "/product_entry_manifest/functional_consumer_boundary",
+            "contracts/runtime/legacy-active-path-tombstones.json",
+        ],
+        "no_regression_evidence_refs": [
+            "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py::test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers",
+            "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py::test_sidecar_family_export_exposes_managed_temporal_state_consistency",
+        ],
         "retired_or_tombstoned_surfaces": retired_surfaces,
+        "tombstone_refs": [
+            "contracts/runtime/legacy-active-path-tombstones.json",
+            "docs/history/runtime/legacy_active_path_tombstones.md",
+        ],
+        "history_refs": [
+            "docs/active/opl_temporal_mas_runtime_retirement_program.md",
+            "docs/decisions.md#2026-05-16默认-supervision-scheduler-owner-迁到-opl-replacement",
+        ],
         "physical_tombstone_refs": [
             "contracts/runtime/legacy-active-path-tombstones.json",
             "docs/history/runtime/legacy_active_path_tombstones.md",
