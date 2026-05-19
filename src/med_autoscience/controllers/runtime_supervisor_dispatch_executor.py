@@ -18,6 +18,7 @@ from .runtime_supervisor_dispatch_executor_parts import controller_refresh
 from .runtime_supervisor_dispatch_executor_parts import managed_runtime_authorization
 from .runtime_supervisor_dispatch_executor_parts import managed_runtime_dispatches
 from .runtime_supervisor_dispatch_executor_parts import output_readiness
+from .runtime_supervisor_dispatch_executor_parts import persisted_dispatches
 from .runtime_supervisor_dispatch_executor_parts import terminal_stall_handoff
 from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
 from .runtime_supervisor_consumer import (
@@ -45,8 +46,6 @@ SUPPORTED_ACTION_TYPES = frozenset(
         "methodology_reframe_route_decision",
     }
 )
-
-
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -118,35 +117,6 @@ def _current_scan_stall(profile: WorkspaceProfile, study_id: str) -> dict[str, A
     return _mapping(_mapping(_current_scan_study(profile, study_id)).get("paper_progress_stall"))
 
 
-def _current_consumer_dispatches(
-    profile: WorkspaceProfile,
-    study_id: str,
-    *,
-    consumer_payload: Mapping[str, Any] | None = None,
-) -> list[dict[str, Any]]:
-    latest = dict(consumer_payload) if consumer_payload is not None else _read_json_object(_consumer_latest_path(profile))
-    if latest is None:
-        return []
-    dispatches: list[dict[str, Any]] = []
-    seen: set[tuple[str | None, str | None]] = set()
-    for dispatch in latest.get("default_executor_dispatches") or []:
-        payload = _mapping(dispatch)
-        if _text(payload.get("study_id")) != study_id:
-            continue
-        if _text(payload.get("dispatch_status")) != "ready":
-            continue
-        refs = _mapping(payload.get("refs"))
-        dispatch_path = _text(refs.get("dispatch_path"))
-        if dispatch_path is None:
-            continue
-        key = (dispatch_path, _text(payload.get("action_type")))
-        if key in seen:
-            continue
-        seen.add(key)
-        dispatches.append(payload)
-    return dispatches
-
-
 def _dispatches(
     profile: WorkspaceProfile,
     study_id: str,
@@ -155,17 +125,25 @@ def _dispatches(
     consumer_payload: Mapping[str, Any] | None = None,
     managed_runtime_worker: bool = False,
 ) -> list[dict[str, Any]]:
-    current_dispatches = _current_consumer_dispatches(profile, study_id, consumer_payload=consumer_payload)
-    if not current_dispatches and managed_runtime_worker and action_types:
-        return _managed_runtime_authorization_dispatches(
+    managed_dispatches = (
+        _managed_runtime_authorization_dispatches(
             profile=profile,
             study_id=study_id,
             action_types=action_types,
         )
-    if action_types:
-        requested = set(action_types)
-        return [payload for payload in current_dispatches if _text(payload.get("action_type")) in requested]
-    return current_dispatches
+        if managed_runtime_worker and action_types
+        else []
+    )
+    return persisted_dispatches.selected_dispatches(
+        profile=profile,
+        study_id=study_id,
+        action_types=action_types,
+        consumer_payload=consumer_payload,
+        consumer_latest_path=_consumer_latest_path(profile),
+        supported_action_types=SUPPORTED_ACTION_TYPES,
+        dispatch_relative_root=DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
+        managed_runtime_dispatches=managed_dispatches,
+    )
 
 
 def _managed_runtime_authorization_dispatches(
@@ -326,6 +304,30 @@ def _owner_route_block_reason(*, dispatch: Mapping[str, Any], current_route: Map
     if not owner_route_part.route_allows_action(action=dispatch, owner_route=current_route):
         return "owner_route_next_owner_mismatch"
     return None
+
+
+def _execution_owner_route(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+    managed_authorization: Mapping[str, Any],
+) -> tuple[dict[str, Any] | None, str | None]:
+    if managed_authorization.get("status") == "authorized":
+        return _dispatch_owner_route(dispatch), "managed_runtime_authorization"
+    scan_route = _current_owner_route(profile, study_id)
+    if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
+        return scan_route, "scan_latest"
+    request_route = persisted_dispatches.owner_request_route(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    )
+    if request_route is not None:
+        return request_route, "owner_request"
+    return scan_route, "scan_latest"
 
 
 def _paper_progress_stall_block_reason(
@@ -620,7 +622,13 @@ def _execute_dispatch(
         dispatch_path=dispatch_path,
     )
     guard_ok, guard_reason = _contract_guard(dispatch)
-    current_route = _dispatch_owner_route(dispatch) if managed_authorization.get("status") == "authorized" else _current_owner_route(profile, study_id)
+    current_route, owner_route_basis = _execution_owner_route(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+        managed_authorization=managed_authorization,
+    )
     owner_route_block_reason = None if managed_authorization.get("status") == "authorized" else _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     current_study = _current_scan_study(profile, study_id)
@@ -676,6 +684,7 @@ def _execute_dispatch(
         guard_ok=guard_ok,
         guard_reason=guard_reason,
         current_route=current_route,
+        owner_route_basis=owner_route_basis,
         owner_route_block_reason=owner_route_block_reason,
         prompt_contract=prompt_contract,
         repeat_guard=repeat_guard,
@@ -808,6 +817,7 @@ def _dispatch_execution_payload(
     guard_ok: bool,
     guard_reason: str | None,
     current_route: Mapping[str, Any] | None,
+    owner_route_basis: str | None,
     owner_route_block_reason: str | None,
     prompt_contract: Mapping[str, Any],
     repeat_guard: Mapping[str, Any],
@@ -838,6 +848,7 @@ def _dispatch_execution_payload(
         "executor_boundary": _executor_boundary(dispatch),
         "owner_route": _dispatch_owner_route(dispatch) or None,
         "owner_route_current": owner_route_block_reason is None if guard_ok else None,
+        "owner_route_basis": owner_route_basis,
         "current_owner_route": current_route,
         "prompt_contract": prompt_contract or None,
         "paper_progress_stall": _mapping(dispatch.get("paper_progress_stall"))

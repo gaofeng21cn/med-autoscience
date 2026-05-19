@@ -130,6 +130,126 @@ def test_execute_dispatch_hands_terminal_hard_methodology_route_to_analysis_owne
     assert not (study_root / "paper").exists()
 
 
+def test_explicit_harmonization_dispatch_survives_empty_consumer_latest_with_owner_request(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    route = _owner_route(
+        study_id=study_id,
+        action_type="unit_harmonized_external_validation_rerun",
+        owner="analysis_harmonization_owner",
+    )
+    route.update(
+        {
+            "failure_signature": "unit_harmonized_rerun_required",
+            "owner_reason": "unit_harmonized_rerun_required",
+            "work_unit_fingerprint": "hard-methodology::unit_harmonized_external_validation_rerun::hdl",
+            "source_fingerprint": "truth-snapshot::hdl-unit-blocker",
+            "idempotency_key": "owner-route::dm002::analysis-harmonization::hdl",
+        }
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="unit_harmonized_external_validation_rerun",
+        owner="analysis_harmonization_owner",
+        required_output_surface=(
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        ),
+        owner_route=route,
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "unit_harmonized_external_validation_rerun.json"
+    )
+    dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "analysis_harmonization" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "request_kind": "unit_harmonized_external_validation_rerun",
+            "request_owner": "analysis_harmonization_owner",
+            "status": "requested",
+            "blocked_reason": "unit_harmonized_rerun_required",
+            "next_owner": "analysis_harmonization_owner",
+            "next_work_unit": "unit_harmonized_external_validation_rerun",
+            "owner_route": route,
+            "idempotency_key": route["idempotency_key"],
+        },
+    )
+    stale_route = _owner_route(
+        study_id=study_id,
+        action_type="methodology_reframe_route_decision",
+        owner="decision",
+    )
+    stale_route.update(
+        {
+            "failure_signature": "methodology_reframe_required",
+            "owner_reason": "methodology_reframe_required",
+            "allowed_actions": [],
+            "current_owner": "managed_runtime",
+        }
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": stale_route}],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "runtime_supervisor_consumer",
+            "schema_version": 1,
+            "default_executor_dispatch_count": 0,
+            "default_executor_dispatches": [],
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("unit_harmonized_external_validation_rerun",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "analysis_harmonization" / "latest.json"
+    owner_result_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+    execution = result["executions"][0]
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert execution["execution_status"] == "executed"
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] == "owner_request"
+    assert execution["dispatch_path"] == str(dispatch_path.resolve())
+    assert execution["owner_callable_surface"] == (
+        "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker"
+    )
+    assert execution["owner_result"]["request_path"] == str(request_path)
+    assert execution["owner_result"]["result_ref"] == str(owner_result_path)
+    assert request_path.is_file()
+    assert owner_result_path.is_file()
+    assert not (study_root / "manuscript").exists()
+    assert not (study_root / "paper").exists()
+
+
 def test_execute_dispatch_hands_model_provenance_route_to_source_owner(
     monkeypatch,
     tmp_path: Path,
