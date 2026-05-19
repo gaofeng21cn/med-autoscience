@@ -1,5 +1,10 @@
 # Disease Workspace Quickstart
 
+Owner: `MedAutoScience`
+Purpose: `workspace_bootstrap_reference`
+State: `current_reference`
+Machine boundary: 本文是人读 workspace 建立指南；workspace/runtime 机器真相以 profile template、bootstrap CLI、runtime lifecycle SQLite、quest manifest、restore index、MAS owner receipts 和 OPL provider/framework contracts 为准。
+
 这份指南写给要新建疾病项目 workspace 的 Agent 或技术同事。
 
 目标不是复制一个旧项目，而是用最小骨架快速建立一个病种级研究 workspace，并接入 `MedAutoScience`。controlled backend / oracle 只在 legacy diagnostic、backend audit 或 parity proof 需要时配置。
@@ -174,7 +179,8 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 ## Runtime Boundary
 
 - `MedAutoScience` 是正式研究入口，单一 MAS app skill 负责承接其稳定 callable surface
-- `MAS Runtime OS` 是默认 runtime owner；默认 supervision scheduler owner 是 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider` replacement；MAS `local` adapter / LaunchAgent 已物理退役为 tombstone/provenance refs，Hermes gateway cron 只作 explicit legacy diagnostic adapter
+- `MAS Runtime OS` 是 MAS domain runtime adapter、owner receipt 与 typed blocker surface；默认 generic runtime owner、attempt / queue / worker residency / retry-dead-letter 和 supervision scheduler owner 属于 OPL provider-backed stage runtime（`opl_provider_runtime_manager` / `opl_family_runtime_provider` replacement）
+- MAS `local` adapter / LaunchAgent 已物理退役为 tombstone/provenance refs，Hermes gateway cron 只作 explicit legacy diagnostic adapter
 - `MedDeepScientist` 只保留为 frozen source archive / historical fixture / explicit legacy diagnostic / provenance reference，不是默认 workspace runtime 依赖
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
 - 旧 `ops/med-deepscientist/bin/*` 如果在历史 workspace 中出现，只作为 historical/debug evidence 或 cleanup target；新 workspace 不生成，也不作为 active runtime 运维入口

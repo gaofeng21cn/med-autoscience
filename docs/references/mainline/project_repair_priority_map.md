@@ -1,8 +1,13 @@
 # 项目修补优先级图
 
+Owner: `MedAutoScience`
+Purpose: `historical_repair_priority_reference`
+State: `support_reference_superseded_by_ideal_state_gap_plan`
+Machine boundary: 本文是人读历史修补优先级参考，不是 current execution queue、runtime truth、generic runtime owner contract 或 monorepo cutover plan。当前 truth 以 [当前状态](../../status.md)、[MAS 理想目标态](../positioning/mas_ideal_state.md)、[MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)、runtime contracts 和 machine-readable owner receipts 为准。
+
 ## 1. 文档目的
 
-这份文档把项目修补主线收敛成三条正式 tranche，并明确它们的优先级、依赖关系、完成状态与当前剩余工作：
+这份文档保留早期项目修补主线的三条 tranche 读法，帮助追溯 runtime truth、workspace knowledge/literature 和 physical absorb 的先后关系：
 
 1. `runtime native truth convergence`
 2. `workspace knowledge and literature convergence`
@@ -10,29 +15,26 @@
 
 目标不是继续按 issue-by-issue 打补丁，而是先把 authority、durable surface 与 cutover gate 冻结出来，再按阶段实施，并且持续把“已完成”和“未完成”写诚实。
 
-## 2. 一句话结论
+## 2. 当前读法
 
-优先级顺序已经冻结，不再摇摆：
+这份文档不再冻结当前执行优先级。当前 MAS 文档治理和实现顺序已经收敛到：
 
-1. 先完成 `runtime native truth convergence`
-2. 再完成 `workspace knowledge and literature convergence`
-3. 最后进入 `controlled cutover -> physical monorepo migration`
+- MAS north-star 与 owner 边界读 [MAS 理想目标态](../positioning/mas_ideal_state.md)。
+- 当前功能/结构差距、测试/证据差距、物理源码形态差距和完善顺序读 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)。
+- P0/P1/P2/P3 内容级 program 组合读 [Program Portfolio Consolidation](../../active/program_portfolio_consolidation.md) 和 [MAS 当前开发线路](../../active/current-development-lines.md)。
+- runtime owner truth 读 [Runtime boundary](../../runtime/contracts/runtime_boundary.md)、[Domain SLO scheduler projection contract](../../runtime/control/domain_slo_scheduler_projection_contract.md) 和相关 machine-readable contracts。
 
-原因很直接：
-
-- `runtime native truth` 直接决定 `MedAutoScience` 是否还能诚实监管、暂停、恢复、停车、接管；
-- `workspace knowledge / literature` 决定的是跨 study 复用、选题效率、文献去重与知识沉淀；
-- 前者是控制面安全问题，后者是知识面与资产面收敛问题；
-- monorepo 不是与前两者并列的第一优先级动作，而是前两条 contract 收紧后的物理吸收动作。
+以下旧 tranche 只能作为历史支撑参考，不能用来重开 MAS-owned generic runtime、Hermes/default scheduler、MDS default backend、monorepo cutover 或 compatibility shim。
 
 ## 3. 当前状态
 
-### 3.1 P0：Runtime Native Truth 已完成
+### 3.1 P0：Runtime Native Truth 历史 tranche
 
-当前已完成事实：
+当前应改读为：
 
-- MAS Runtime OS / `mas_runtime_core` 已承接默认 runtime owner 与 runtime substrate。
-- `runtime_binding.yaml`、live task intake、runtime watch/status 与 progress surfaces 默认走 MAS-owned `runtime/` / `runtime/quests`。
+- OPL provider-backed stage runtime 持有默认 generic runtime owner、attempt、queue、worker residency、retry/dead-letter、provider transport 和 generic lifecycle/index。
+- MAS Runtime OS / `mas_runtime_core` 只承担 MAS domain runtime adapter、owner receipt、typed blocker、runtime event refs、guarded apply 和 diagnostic surface；`runtime_backend_is_generic_owner=false`。
+- `runtime_binding.yaml`、live task intake、runtime watch/status 与 progress surfaces 可指向 MAS-owned domain runtime refs，但不能被写成 MAS 持有 generic runtime platform。
 - 外部 MDS daemon、repo checkout、runtime root 和 WebUI 不再是 MAS 默认运行、诊断或进度查看依赖；旧 MDS runtime event / session 资料只作为 historical fixture 或 explicit legacy diagnostic 被读取。
 
 这条 tranche 当前要守住的是：
@@ -89,9 +91,9 @@
 - study 只持有本研究线的 reference context；
 - quest 只持有 runtime local materialization，而不是 literature truth。
 
-### 第三优先级：Controlled Monorepo Cutover
+### 第三优先级：Controlled Monorepo Cutover 历史 tranche
 
-这是当前剩余的 active tranche。
+这不是当前 active tranche。当前 MAS 目标是标准 OPL Agent：`Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。物理吸收、删除、archive 或 tombstone 只在 no-active-caller、OPL parity、MAS receipt parity、history/provenance 和 focused tests 成立后按 owner surface 逐项执行。
 
 只有在下面条件满足后，才进入 physical cutover：
 
@@ -101,7 +103,7 @@
 4. cross-repo parity gate 已通过
 5. 吸收动作不再需要依赖跨 repo projection glue
 
-## 5. 推荐的阶段顺序
+## 5. 历史阶段读法
 
 ### P0
 
@@ -113,21 +115,16 @@
 
 ### P2
 
-- 进行 `controlled cutover -> physical monorepo migration`
-- 关闭 cross-repo parity gate
-- 吸收稳定模块边界与 authority contract，而不是把当前双仓临时 glue 直接搬进 monorepo
+- 旧读法是 `controlled cutover -> physical monorepo migration`。
+- 当前只作为 physical retirement / archive / tombstone 的历史 gate 读取。
+- 新的源码形态、功能/结构差距和 evidence gate 回到 MAS 理想目标态差距计划；不得沿本文件重启 monorepo cutover 或兼容 shim。
 
-## 6. 立即执行建议
+## 6. 当前处置
 
-从当前起，项目修补顺序的执行口径固定为：
+本文件保留为 `support_reference`，只用于理解旧修补顺序的来源。后续不得把本文件当作 active plan 更新，也不得继续追加 dated closeout。需要新增当前计划时，应归入：
 
-1. 守住已经完成的 `P0 runtime native truth`
-2. 守住已经完成的 `P1 workspace knowledge / literature canonical contract`
-3. 把剩余工作集中到 MAS Runtime OS owner contract、MAS supervision scheduler contract、当前 Hermes adapter parity 和 behavior-equivalence guard；不要重开旧 `P2 controlled cutover -> physical monorepo migration` 作为 active plan
-
-对应正式文档：
-
-- `../../runtime/contracts/runtime_core_convergence_and_controlled_cutover.md`
-- `../../history/runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md`
-- `../../runtime/contracts/workspace_knowledge_and_literature_contract.md`
-- `../../history/runtime/workspace_knowledge_and_literature_implementation_plan.md`
+- `docs/active/mas-ideal-state-gap-plan.md`
+- `docs/active/current-development-lines.md`
+- `docs/active/program_portfolio_consolidation.md`
+- 对应 runtime / policy / contract owner 文档
+- `docs/history/**` provenance 目录
