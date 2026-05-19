@@ -123,7 +123,7 @@ def test_materialize_medical_prose_review_requires_ai_reviewer_owned_structured_
     )
     assert payload["assessment_provenance"]["owner"] == "ai_reviewer"
     assert payload["style_currentness"]["status"] == "current"
-    assert payload["style_currentness"]["style_version"] == "medical_journal_prose_style_v2"
+    assert payload["style_currentness"]["style_version"] == "medical_journal_prose_style_v3"
     assert payload["style_currentness"]["style_digest"].startswith("sha256:")
     assert payload["medical_journal_prose_quality"]["overall_style_verdict"] == "revise"
     assert payload["medical_journal_prose_quality"]["representative_rewrites"][0]["after"].startswith(

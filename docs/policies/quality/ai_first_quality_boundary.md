@@ -45,6 +45,7 @@
 - 外部大模型人工评估、导师意见或审稿意见可以作为 `reviewer_revision` / task intake / reviewer feedback ref 进入该 scorecard，但它们必须回到 MAS AI reviewer workflow 和 owner route 后才能关闭质量判断；不得直接改写 `publication_eval/latest.json` 或 current package。
 - Regex / pattern / deterministic scanner 可以保留为 `mechanical_safety_flags`、evidence snippets 或内部术语泄漏安全护栏；它们不得单独触发或清除 `medical_journal_prose_style_not_met` 这类主观文体 blocker。
 - deterministic gate 可以继续阻断可验证事实缺口，例如缺文件、schema 不完整、claim-evidence 缺失、submission 包 stale、内部控制术语泄漏或 provenance 损坏。
+- internal methodology repair provenance 泄漏属于可验证安全护栏：当修正路线被写成摘要、结果、结论、贡献或图注故事时，mechanical flag 可以阻止 AI reviewer clear verdict 被物化；它仍然不能给 ready，后续修改必须回到 write / AI reviewer owner chain。
 - literature hygiene 的 key / provenance 检查只能证明 citation key、ledger provenance、重复项和基本同步关系没有机械漂移。它不能授权 reference style、医学引用充分性、文献选择合理性或 publication-quality bibliography。
 - rendered bibliography audit 可以阻断已渲染参考文献中的可验证样式缺陷，例如 initials-first 作者缩写、明显不规范的期刊名大小写或缺少可用 DOI/URL 的提示；它是 publication-quality 输入和 safety flag，不替代 AI reviewer、医学质量 owner 或投稿前人工/作者判断。
 - 003 暴露的初稿质量缺陷必须按 MAS 层边界修复：机械 hygiene 负责发现可重放的 citation/rendered-reference 缺陷，AI reviewer 负责审稿式质量判断，study / publication owner 负责最终路线和质量裁决。任何一层都不得把自己的 projection 写成完整医学质量结论。

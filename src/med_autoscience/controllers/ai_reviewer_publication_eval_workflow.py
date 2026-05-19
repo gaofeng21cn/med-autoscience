@@ -68,6 +68,18 @@ _MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_PATTERNS = (
         r"\bunit harmonization changed the central interpretation\b",
         re.IGNORECASE,
     ),
+    re.compile(
+        r"\b(?:story|novelty|contribution|main finding|central interpretation)\b.{0,120}\bunit[-\s]?harmoniz(?:ed|ation)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bunit[-\s]?harmoniz(?:ed|ation)\b.{0,120}\b(?:story|novelty|contribution|main finding|central interpretation)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bunit alignment\b.{0,120}\b(?:restor|rescu|explain)\w*\b",
+        re.IGNORECASE,
+    ),
 )
 _MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS = frozenset(
     {

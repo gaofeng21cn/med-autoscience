@@ -78,5 +78,5 @@ def test_delivery_manifest_records_style_and_quality_authority_refs(tmp_path: Pa
     assert manifest["quality_authority_refs"]["derived_delivery_surface_can_authorize_quality"] is False
     assert manifest["quality_authority_refs"]["medical_prose_review"]["request_digest"] == request_digest
     assert manifest["style_authority_refs"]["currentness_status"] == "current"
-    assert manifest["style_authority_refs"]["style_corpus"]["style_version"] == "medical_journal_prose_style_v2"
+    assert manifest["style_authority_refs"]["style_corpus"]["style_version"] == "medical_journal_prose_style_v3"
     assert manifest["style_authority_refs"]["medical_prose_review"]["style_digest"] == style_corpus["style_digest"]

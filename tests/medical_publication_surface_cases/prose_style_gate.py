@@ -27,7 +27,7 @@ def test_apply_materializes_current_style_corpus_and_review_request(tmp_path: Pa
     assert result["medical_prose_review_request_path"] == str(
         study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
     )
-    assert style_corpus["style_version"] == "medical_journal_prose_style_v2"
+    assert style_corpus["style_version"] == "medical_journal_prose_style_v3"
     assert style_corpus["style_digest"].startswith("sha256:")
     assert style_corpus["style_currentness"]["status"] == "current"
     assert request["review_owner"] == "ai_reviewer"
@@ -63,7 +63,7 @@ def test_apply_reports_review_request_materialization_error_when_blueprint_inval
     assert result["medical_prose_review_request_path"] == str(
         study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
     )
-    assert style_corpus["style_version"] == "medical_journal_prose_style_v2"
+    assert style_corpus["style_version"] == "medical_journal_prose_style_v3"
     assert "medical_prose_review_request_missing_or_incomplete" in result["blockers"]
     assert any(
         hit["pattern_id"] == "medical_prose_review_request"

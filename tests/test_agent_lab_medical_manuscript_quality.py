@@ -121,6 +121,10 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
     assert (
+        "mechanism-edit-ref:mas/internal-methodology-repair-story-boundary"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
+    assert (
         "mechanism-edit-ref:mas/source-provenance-terminal-blocker-route-back"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
@@ -160,12 +164,15 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "stage:mas/review" in vulnerability_audit["must_scan_stage_refs"]
     assert "stage:mas/publication-gate" in vulnerability_audit["must_scan_stage_refs"]
     assert "mechanical_gate_overrides_ai_reviewer_judgment" in vulnerability_audit["vulnerability_classes"]
+    assert "internal_methodology_repair_becomes_manuscript_contribution" in vulnerability_audit["vulnerability_classes"]
     assert vulnerability_audit["can_authorize_quality_ready"] is False
     story_exclusion = mechanism_inputs["paper_story_exclusion_policy"]
     assert story_exclusion["internal_error_debug_history_role"] == (
         "runtime_diagnostics_and_mechanism_learning_only"
     )
     assert story_exclusion["paper_story_can_use_debug_history"] is False
+    assert story_exclusion["paper_story_can_use_internal_methodology_repair_as_contribution"] is False
+    assert story_exclusion["methodology_repair_belongs_in_methods_or_provenance"] is True
     assert story_exclusion["debug_history_can_authorize_quality_ready"] is False
     assert task["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert task["authority_boundary"]["can_mutate_domain_artifact"] is False

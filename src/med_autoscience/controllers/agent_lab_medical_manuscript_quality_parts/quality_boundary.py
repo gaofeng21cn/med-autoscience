@@ -21,6 +21,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/ai-native-expert-judgment-first-quality-boundary",
     "mechanism-edit-ref:mas/cross-stage-vulnerability-audit-routing",
     "mechanism-edit-ref:mas/internal-error-debug-history-paper-story-exclusion",
+    "mechanism-edit-ref:mas/internal-methodology-repair-story-boundary",
     "mechanism-edit-ref:mas/research-wiki-failed-route-memory",
     "mechanism-edit-ref:mas/ai-reviewer-direct-evidence-gate",
     "mechanism-edit-ref:mas/analysis-campaign-queue-routing",
@@ -78,6 +79,7 @@ CROSS_STAGE_VULNERABILITY_AUDIT = {
         "mechanical_gate_overrides_ai_reviewer_judgment",
         "package_or_delivery_state_preempts_quality_route_back",
         "internal_error_history_leaks_into_public_manuscript_story",
+        "internal_methodology_repair_becomes_manuscript_contribution",
     ],
     "can_authorize_quality_ready": False,
 }
@@ -87,6 +89,8 @@ PAPER_STORY_EXCLUSION_POLICY = {
     "allowed_projection": "refs_metadata_and_incident_learning",
     "forbidden_projection": "paper_main_story_or_medical_claim_support",
     "paper_story_can_use_debug_history": False,
+    "paper_story_can_use_internal_methodology_repair_as_contribution": False,
+    "methodology_repair_belongs_in_methods_or_provenance": True,
     "debug_history_can_authorize_quality_ready": False,
 }
 DEVELOPER_PATCH_WORK_ORDER_ID = "oma_developer_patch_work_order_99fdc0d34111"

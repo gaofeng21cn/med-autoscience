@@ -21,7 +21,7 @@ __all__ = [
 
 
 STABLE_MEDICAL_JOURNAL_STYLE_CORPUS_RELATIVE_PATH = Path("paper/medical_journal_style_corpus.json")
-CURRENT_MEDICAL_JOURNAL_STYLE_VERSION = "medical_journal_prose_style_v2"
+CURRENT_MEDICAL_JOURNAL_STYLE_VERSION = "medical_journal_prose_style_v3"
 MEDICAL_JOURNAL_STYLE_SOURCE_SET_ID = "general_medical_journal_style_source_set_v1"
 STYLE_CURRENTNESS_POLICY_ID = "medical_journal_style_currentness_v1"
 
@@ -191,6 +191,11 @@ def build_medical_journal_style_corpus() -> dict[str, Any]:
             "claim_restraint": [
                 "Avoid best, first, novel, practice-changing, and no-difference claims unless the evidence map supports the exact wording.",
                 "When findings are imprecise, report estimates and uncertainty instead of converting imprecision into absence.",
+                "Keep internal correction provenance, debug history, and preprocessing repair history out of the manuscript story; corrected preprocessing belongs in Methods or table notes only when needed for reproducibility.",
+            ],
+            "story_cleanliness": [
+                "A paper should tell the clean scientific story supported by the final analysis surface, not narrate the system's repair path.",
+                "If an analysis repair corrected data preprocessing, the abstract, Results, Discussion opening, conclusion, title, and figure legends should report the final validated estimates without making the repair itself the contribution.",
             ],
         },
         "rhetorical_moves": [
@@ -212,12 +217,19 @@ def build_medical_journal_style_corpus() -> dict[str, Any]:
                 "bad_pattern": "The manuscript proves the model is ready for clinical use.",
                 "journal_style_move": "The findings support a bounded interpretation and require external confirmation before clinical adoption claims.",
             },
+            {
+                "move_id": "clean_repair_provenance_boundary",
+                "use_for": "Abstract, Results, Discussion, Conclusion, and figure legends after an internal analysis repair",
+                "bad_pattern": "After unit-harmonized predictor preprocessing, the repaired analysis is the manuscript contribution.",
+                "journal_style_move": "The final analysis estimates are reported directly, while preprocessing definitions stay in Methods and provenance stays outside the article body.",
+            },
         ],
         "reviewer_questions": [
             "Does the opening move from clinical problem to evidence gap to objective?",
             "Do Results sentences make findings, patients, exposures, outcomes, or estimates the subjects rather than figures, tables, files, or controller artifacts?",
             "Does the Discussion interpret the main finding before listing limitations?",
             "Are claims restrained to the evidence map and uncertainty?",
+            "If a prior analysis or preprocessing repair occurred, is that repair kept out of story-facing manuscript sections and handled only as reproducible Methods detail when needed?",
             "Would a medical journal editor read the manuscript as original research rather than a work report?",
         ],
         "copyright_boundary": {

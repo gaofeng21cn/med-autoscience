@@ -18,14 +18,14 @@ def test_style_corpus_materializes_reusable_medical_voice_principles(tmp_path: P
 
     assert result["artifact_path"] == str(study_root.resolve() / "paper" / "medical_journal_style_corpus.json")
     assert payload["corpus_id"] == "general_medical_journal_style_corpus_v1"
-    assert payload["style_version"] == "medical_journal_prose_style_v2"
+    assert payload["style_version"] == "medical_journal_prose_style_v3"
     assert payload["source_set_id"] == "general_medical_journal_style_source_set_v1"
     assert payload["style_digest"].startswith("sha256:")
     assert payload["style_currentness"] == {
         "status": "current",
         "currentness_policy_id": "medical_journal_style_currentness_v1",
-        "style_version": "medical_journal_prose_style_v2",
-        "current_style_version": "medical_journal_prose_style_v2",
+        "style_version": "medical_journal_prose_style_v3",
+        "current_style_version": "medical_journal_prose_style_v3",
         "style_digest": payload["style_digest"],
         "current_style_digest": payload["style_digest"],
     }
@@ -91,5 +91,5 @@ def test_ensure_current_style_corpus_upgrades_legacy_surface(tmp_path: Path) -> 
 
     payload = ensure_current_medical_journal_style_corpus(study_root=study_root)
 
-    assert payload["style_version"] == "medical_journal_prose_style_v2"
+    assert payload["style_version"] == "medical_journal_prose_style_v3"
     assert payload["style_currentness"]["status"] == "current"

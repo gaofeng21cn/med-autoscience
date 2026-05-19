@@ -87,17 +87,17 @@ def test_review_request_bundles_blueprint_corpus_and_mechanical_evidence_without
     )
     assert payload["review_owner"] == "ai_reviewer"
     assert payload["style_corpus"]["corpus_id"] == "general_medical_journal_style_corpus_v1"
-    assert payload["style_corpus"]["style_version"] == "medical_journal_prose_style_v2"
+    assert payload["style_corpus"]["style_version"] == "medical_journal_prose_style_v3"
     assert payload["style_corpus"]["style_digest"].startswith("sha256:")
     assert payload["style_currentness"]["status"] == "current"
-    assert payload["style_currentness"]["style_version"] == "medical_journal_prose_style_v2"
+    assert payload["style_currentness"]["style_version"] == "medical_journal_prose_style_v3"
     assert payload["style_currentness"]["style_digest"] == payload["style_corpus"]["style_digest"]
     assert payload["request_digest"].startswith("sha256:")
     assert payload["request_currentness"] == {
         "status": "current",
         "currentness_policy_id": "medical_prose_review_request_currentness_v1",
         "request_digest": payload["request_digest"],
-        "style_version": "medical_journal_prose_style_v2",
+        "style_version": "medical_journal_prose_style_v3",
         "style_digest": payload["style_corpus"]["style_digest"],
     }
     assert payload["structured_response_contract"]["mechanical_flags_role"] == "evidence_snippets_only"
@@ -144,6 +144,95 @@ def test_review_request_includes_completed_unit_harmonized_rerun_evidence(tmp_pa
     assert payload["analysis_harmonization"]["old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion"] is True
 
 
+def test_review_request_blocks_clear_verdict_when_methodology_repair_enters_story_sections(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.medical_prose_review_request import (
+        materialize_ai_medical_prose_review_from_response,
+        materialize_medical_prose_review_request,
+        read_medical_prose_review_request,
+    )
+
+    study_root = tmp_path / "study"
+    _write_review_request_inputs(study_root)
+    (study_root / "paper" / "draft.md").write_text(
+        "\n".join(
+            [
+                "# Title",
+                "",
+                "## Abstract",
+                "After unit-harmonized predictor preprocessing, the model retained external ordering.",
+                "",
+                "## Methods",
+                "HDL cholesterol was represented in a common analytic unit before score application.",
+                "",
+                "## Results",
+                "After unit-harmonized predictor preprocessing, the NHANES c-index was 0.7339.",
+                "",
+                "## Discussion",
+                "The main contribution is the unit-harmonized external-validation story.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    analysis_root = study_root / "artifacts" / "controller" / "analysis_harmonization"
+    rerun_path = analysis_root / "unit_harmonized_external_validation_rerun.json"
+    _write_json(
+        analysis_root / "latest.json",
+        {
+            "surface": "analysis_harmonization_owner_result",
+            "owner": "analysis_harmonization_owner",
+            "work_unit": "unit_harmonized_external_validation_rerun",
+            "status": "completed",
+            "unit_harmonized_rerun_completed": True,
+            "rerun_evidence_ref": str(rerun_path),
+        },
+    )
+    _write_json(
+        rerun_path,
+        {
+            "surface": "unit_harmonized_external_validation_rerun_evidence",
+            "status": "completed",
+            "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
+        },
+    )
+
+    materialize_medical_prose_review_request(study_root=study_root)
+    request = read_medical_prose_review_request(study_root=study_root)
+
+    flag_ids = {flag["flag_id"] for flag in request["mechanical_safety_flags"]}
+    assert "internal_methodology_repair_story_leakage" in flag_ids
+
+    with pytest.raises(ValueError, match="blocking mechanical safety flags"):
+        materialize_ai_medical_prose_review_from_response(
+            study_root=study_root,
+            response_payload={
+                "overall_style_verdict": "clear",
+                "summary": "The manuscript reads as a conventional external-validation article.",
+                "section_level_diagnosis": {
+                    "introduction": "The clinical problem and evidence gap are clear.",
+                    "methods": "Methods are transparent.",
+                    "results": "Results are quantitative.",
+                    "discussion": "Discussion is restrained.",
+                },
+                "representative_bad_sentences": [
+                    "After unit-harmonized predictor preprocessing, the NHANES c-index was 0.7339."
+                ],
+                "representative_rewrites": [
+                    {
+                        "before": "After unit-harmonized predictor preprocessing, the NHANES c-index was 0.7339.",
+                        "after": "The transported score retained discrimination in NHANES, with a c-index of 0.7339.",
+                    }
+                ],
+                "route_back_recommendation": {
+                    "route_target": "none",
+                    "reason": "The reviewer judged the manuscript clear.",
+                },
+            },
+        )
+
+
 def test_ai_response_materializes_ai_owned_prose_review(tmp_path: Path) -> None:
     from med_autoscience.medical_prose_review import read_medical_prose_review
     from med_autoscience.medical_prose_review_request import (
@@ -188,7 +277,7 @@ def test_ai_response_materializes_ai_owned_prose_review(tmp_path: Path) -> None:
     assert review["assessment_provenance"]["manuscript_ref"].endswith("paper/draft.md")
     assert review["assessment_provenance"]["manuscript_digest"].startswith("sha256:")
     assert review["style_currentness"]["status"] == "current"
-    assert review["style_currentness"]["style_version"] == "medical_journal_prose_style_v2"
+    assert review["style_currentness"]["style_version"] == "medical_journal_prose_style_v3"
     assert review["style_currentness"]["style_digest"].startswith("sha256:")
     assert review["medical_journal_prose_quality"]["overall_style_verdict"] == "revise"
     assert review["medical_journal_prose_quality"]["route_back_recommendation"]["route_target"] == "write"

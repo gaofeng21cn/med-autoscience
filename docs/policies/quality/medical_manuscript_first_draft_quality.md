@@ -65,6 +65,7 @@ Before a first full draft is treated as generated:
 - limitations must be written as clinical interpretation, not as claim-boundary/controller language;
 - administrative placeholders belong in submission metadata or TODO surfaces, not in the article body;
 - figure legends must explain the display for readers, not describe what reviewers can identify or what the figure itself "defines".
+- internal correction provenance, debug history, and preprocessing repair history must not become the title, objective, Results, Discussion opening, conclusion, novelty claim, or figure-legend story. Corrected preprocessing definitions belong in Methods or table notes only when needed for reproducibility; the article body should report the final analysis estimates as the clean scientific story.
 
 ## Gate 角色
 

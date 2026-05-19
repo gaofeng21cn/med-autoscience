@@ -146,6 +146,13 @@
 - 理由：DM002 清掉 raw-HDL 正文残留后，最新 gate 已转向 stale submission/delivery 和 AI reviewer currentness，但 runtime prompt 继续消费旧 `analysis_claim_evidence_repair`，造成 canonical evidence ledger 有增量而 stale package 没推进的循环。
 - 影响：route owner 现在会先把主观医学写作质量交回 AI reviewer；delivery/authority blockers 不再伪装成分析修复工作单元。该修复不写 study truth、paper package、`publication_eval/latest.json` 或 `current_package`，只收紧 controller work-unit selection。
 
+## 2026-05-19：内部方法学修正不能成为论文故事线
+
+- 决策：医学文体 style corpus 升级为 `medical_journal_prose_style_v3`。AI reviewer 必须把 internal correction provenance、debug history、preprocessing repair history 与正式论文叙事分开：修正后的数据定义只在 Methods 或表注中按可复现需要说明，不能在摘要、Results、Discussion opening、Conclusion、title 或 figure legends 中写成贡献、novelty、main story 或 methodological lesson。
+- 决策：`medical_prose_review_request` 可以暴露窄范围 `mechanical_safety_flags` 来标记这种内部方法学修正泄漏；这只是 evidence snippet / fail-closed safety guard。存在 blocking flag 时，AI reviewer 不能给 `overall_style_verdict=clear`，必须 route back 到 `write` 或更上游 owner。该规则不授权脚本判断整篇论文质量，也不允许 mechanical flag 产出 `medical_journal_prose_quality=ready`。
+- 理由：DM002 的 HDL-C 单位错误修正后，稿件把 “after unit-harmonized predictor preprocessing” 反复放进 Objective、Results、Conclusion 和 figure legend，导致内部修正路线变成论文主线。高质量医学论文应讲最终分析支持的干净科学故事，内部错误与修复路径留在 provenance、review 或 incident learning。
+- 影响：旧 `medical_journal_prose_style_v2` prose review 会因 style currentness 过期而回到 AI reviewer；Agent Lab self-evolution suite 暴露 `internal_methodology_repair_becomes_manuscript_contribution` 漏洞和 `internal-methodology-repair-story-boundary` developer patch ref。MAS 不直接写 DM002 paper/package truth，后续仍由 write / AI reviewer / publication gate owner chain 推进。
+
 ## 2026-05-17：AI reviewer 的当前返写判断必须物化为 route-back truth
 
 - 决策：`medical_prose_review` 已通过 request/manuscript digest currentness 校验时，`medical_journal_prose_quality.status != ready`、`overall_style_verdict != clear` 或 `route_back_recommendation.required=true` 不是 workflow failure，而是 AI reviewer-owned publication evaluation 的有效质量结论。`publication_eval/latest.json` 必须保留该 `route_back_same_line -> write` 判断，并在 `reviewer_operating_system.currentness_checks.medical_prose_review` 中记录 prose status、style verdict、route-back required 与 route target。

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 from typing import Any, Mapping
 
 from med_autoscience.medical_journal_style_corpus import (
@@ -62,6 +63,24 @@ _RESPONSE_REQUIRED_FIELDS = (
     "route_back_recommendation",
 )
 _REQUEST_DIGEST_EXCLUDED_KEYS = frozenset({"request_digest", "request_currentness"})
+_STORY_SECTION_HEADINGS = {
+    "abstract",
+    "introduction",
+    "results",
+    "discussion",
+    "conclusion",
+    "conclusions",
+    "figure legends",
+    "figures",
+}
+_METHODS_SECTION_HEADINGS = {"methods", "statistical analysis"}
+_INTERNAL_METHOD_REPAIR_STORY_PATTERNS = (
+    re.compile(r"\bafter unit[-\s]?harmonized predictor preprocessing\b", re.IGNORECASE),
+    re.compile(r"\bunit[-\s]?harmonized external[-\s]?validation story\b", re.IGNORECASE),
+    re.compile(r"\bmain contribution\b.{0,120}\bunit[-\s]?harmonized\b", re.IGNORECASE),
+    re.compile(r"\bdefensible contribution\b.{0,120}\bharmonization[-\s]?sensitive\b", re.IGNORECASE),
+    re.compile(r"\bforegrounds?\b.{0,120}\b(?:data[-\s]?harmonization|unit[-\s]?harmonization|harmonization lesson)\b", re.IGNORECASE),
+)
 
 
 def stable_medical_prose_review_request_path(*, study_root: Path) -> Path:
@@ -198,6 +217,84 @@ def _analysis_harmonization_payload(*, study_root: Path) -> dict[str, Any] | Non
     }
 
 
+def _heading_label(line: str) -> str | None:
+    stripped = line.strip()
+    if not stripped.startswith("#"):
+        return None
+    label = stripped.lstrip("#").strip().rstrip(":").lower()
+    return label or None
+
+
+def _story_section_for_heading(label: str | None, current: str | None) -> str | None:
+    if label is None:
+        return current
+    if label in _METHODS_SECTION_HEADINGS:
+        return "methods"
+    if label in _STORY_SECTION_HEADINGS:
+        return label
+    if label.startswith("abstract"):
+        return "abstract"
+    if label.startswith("result"):
+        return "results"
+    if label.startswith("discussion"):
+        return "discussion"
+    if label.startswith("conclusion"):
+        return "conclusion"
+    if label.startswith("figure"):
+        return "figure legends"
+    return label
+
+
+def _internal_methodology_repair_story_flags(
+    *,
+    manuscript_text: str,
+    analysis_harmonization: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    if not isinstance(analysis_harmonization, Mapping):
+        return []
+    if analysis_harmonization.get("old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion") is not True:
+        return []
+    flags: list[dict[str, Any]] = []
+    current_section: str | None = None
+    for line_number, line in enumerate(manuscript_text.splitlines(), start=1):
+        current_section = _story_section_for_heading(_heading_label(line), current_section)
+        if current_section in _METHODS_SECTION_HEADINGS:
+            continue
+        text = line.strip()
+        if not text:
+            continue
+        if not any(pattern.search(text) for pattern in _INTERNAL_METHOD_REPAIR_STORY_PATTERNS):
+            continue
+        flags.append(
+            {
+                "flag_id": "internal_methodology_repair_story_leakage",
+                "severity": "blocking",
+                "line_number": line_number,
+                "section": current_section or "unknown",
+                "evidence_snippet": text[:500],
+                "source": "analysis_harmonization_story_boundary",
+                "reason": (
+                    "Internal preprocessing repair provenance appears in a story-facing manuscript section. "
+                    "The manuscript should report final validated estimates directly and keep repair provenance "
+                    "outside the article body."
+                ),
+                "clear_verdict_allowed": False,
+                "route_target": "write",
+            }
+        )
+    return flags
+
+
+def _blocking_mechanical_safety_flags(request: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    flags: list[Mapping[str, Any]] = []
+    for item in request.get("mechanical_safety_flags") or []:
+        if not isinstance(item, Mapping):
+            continue
+        if item.get("clear_verdict_allowed") is False or _text(item.get("severity")) == "blocking":
+            flags.append(item)
+    return flags
+
+
 def build_medical_prose_review_request(
     *,
     study_root: Path,
@@ -236,6 +333,10 @@ def build_medical_prose_review_request(
         "style_digest": style_digest,
         "style_corpus_currentness": dict(style_corpus["style_currentness"]),
     }
+    story_flags = _internal_methodology_repair_story_flags(
+        manuscript_text=manuscript_text,
+        analysis_harmonization=analysis_harmonization,
+    )
     payload: dict[str, Any] = {
         "schema_version": 1,
         "surface": "medical_prose_review_request",
@@ -275,7 +376,7 @@ def build_medical_prose_review_request(
             "digest": _sha256_text(manuscript_text),
             "text": manuscript_text,
         },
-        "mechanical_safety_flags": list(mechanical_safety_flags or []),
+        "mechanical_safety_flags": [*list(mechanical_safety_flags or []), *story_flags],
         "review_tasks": [
             "Judge whether the manuscript sounds like a medical original research article rather than a work report.",
             "Assess Introduction clinical problem -> evidence gap -> objective flow.",
@@ -290,6 +391,7 @@ def build_medical_prose_review_request(
             "allowed_overall_style_verdicts": sorted(_ALLOWED_VERDICTS),
             "allowed_route_targets": sorted(_ALLOWED_ROUTE_TARGETS),
             "mechanical_flags_role": "evidence_snippets_only",
+            "blocking_mechanical_flags_clear_verdict_allowed": False,
         },
     }
     request_digest = compute_medical_prose_review_request_digest(payload)
@@ -470,6 +572,15 @@ def materialize_ai_medical_prose_review_from_response(
         raise ValueError(f"AI medical prose review response is invalid: {'; '.join(errors)}")
     route_back = dict(response_payload.get("route_back_recommendation") or {})
     request_digest = _text(request.get("request_digest")) or compute_medical_prose_review_request_digest(request)
+    blocking_flags = _blocking_mechanical_safety_flags(request)
+    if response_payload["overall_style_verdict"] == "clear" and blocking_flags:
+        flag_ids = ", ".join(
+            sorted({_text(flag.get("flag_id")) or "unknown_flag" for flag in blocking_flags})
+        )
+        raise ValueError(
+            "AI medical prose review clear verdict cannot ignore blocking mechanical safety flags: "
+            f"{flag_ids}"
+        )
     style_currentness = dict(request.get("style_currentness") or {})
     manuscript = dict(request.get("manuscript") or {})
     manuscript_ref = _text(manuscript.get("path"))
