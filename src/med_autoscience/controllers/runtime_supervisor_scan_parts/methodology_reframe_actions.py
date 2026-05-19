@@ -10,6 +10,10 @@ from med_autoscience.controllers import provenance_limited_harmonization_owner_r
 from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.runtime_supervisor_scan_parts import hard_methodology_currentness
 
+_REBUILD_ROUTE_WORK_UNIT = "unit_harmonized_external_validation_rerun"
+_REBUILD_ROUTE_OPTION = "rebuild_reproducible_model_route"
+_AUDIT_ROUTE_WORK_UNIT = "provenance_limited_harmonization_audit"
+_AUDIT_ROUTE_OPTION = "provenance_limited_harmonization_audit"
 
 def methodology_reframe_route_decision_action(study_root: Path) -> dict[str, Any] | None:
     if _current_hard_methodology_handoff_supersedes_consumers(study_root):
@@ -62,7 +66,7 @@ def provenance_limited_harmonization_audit_action(study_root: Path) -> dict[str,
         return None
     if provenance_limited_harmonization_owner_result.required_output_satisfied(study_root=study_root):
         return None
-    if not methodology_reframe_route_decision_materialized(study_root):
+    if not methodology_reframe_audit_route_decision_materialized(study_root):
         return None
     decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
     return {
@@ -97,7 +101,53 @@ def provenance_limited_harmonization_audit_action(study_root: Path) -> dict[str,
     }
 
 
+def clean_rebuild_route_action(study_root: Path) -> dict[str, Any] | None:
+    if _current_hard_methodology_handoff_supersedes_consumers(study_root):
+        return None
+    if not methodology_reframe_rebuild_route_decision_materialized(study_root):
+        return None
+    decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    analysis_ref = analysis_harmonization_owner_result.result_path(study_root=study_root)
+    if analysis_harmonization_owner_result.required_output_satisfied(
+        study_root=study_root
+    ) and not _artifact_supersedes(newer_ref=decision_ref, older_ref=analysis_ref):
+        return None
+    return {
+        "action_type": _REBUILD_ROUTE_WORK_UNIT,
+        "authority": "observability_only",
+        "owner": "analysis_harmonization_owner",
+        "request_owner": "analysis_harmonization_owner",
+        "recommended_owner": "analysis_harmonization_owner",
+        "reason": "unit_harmonized_rerun_required",
+        "summary": (
+            "The decision owner selected a clean reproducible-model rebuild route after human-gate "
+            "authorization; execute or type-block unit-harmonized external validation."
+        ),
+        "next_work_unit": _REBUILD_ROUTE_WORK_UNIT,
+        "work_unit_fingerprint": "clean-rebuild::unit_harmonized_external_validation_rerun::methodology_reframe_decision",
+        "required_output_surface": (
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        ),
+        "source_ref": str(decision_ref),
+        "selected_route_option": _REBUILD_ROUTE_OPTION,
+        "clean_reproducible_model_rebuild_authorized": True,
+        "quality_gate_relaxation_allowed": False,
+        "current_package_write_allowed": False,
+        "paper_package_mutation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+
+
 def methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
+    return (
+        methodology_reframe_audit_route_decision_materialized(study_root)
+        or methodology_reframe_rebuild_route_decision_materialized(study_root)
+    )
+
+
+def methodology_reframe_audit_route_decision_materialized(study_root: Path) -> bool:
     decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
     if _any_artifact_supersedes(newer_refs=_methodology_reframe_trigger_paths(study_root), older_ref=decision_ref):
         return False
@@ -106,9 +156,26 @@ def methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
     return (
         _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
-        and _text(next_work_unit.get("unit_id")) == "provenance_limited_harmonization_audit"
-        and _text(next_work_unit.get("selected_route_option")) == "provenance_limited_harmonization_audit"
+        and _text(next_work_unit.get("unit_id")) == _AUDIT_ROUTE_WORK_UNIT
+        and _text(next_work_unit.get("selected_route_option")) == _AUDIT_ROUTE_OPTION
         and next_work_unit.get("terminal_source_provenance_blocker_consumed") is True
+    )
+
+
+def methodology_reframe_rebuild_route_decision_materialized(study_root: Path) -> bool:
+    decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    if _any_artifact_supersedes(newer_refs=_methodology_reframe_trigger_paths(study_root), older_ref=decision_ref):
+        return False
+    decision = _read_json_object(decision_ref)
+    next_work_unit = _mapping(decision.get("next_work_unit"))
+    return (
+        _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
+        and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
+        and _text(next_work_unit.get("unit_id")) == _REBUILD_ROUTE_WORK_UNIT
+        and _text(next_work_unit.get("selected_route_option")) == _REBUILD_ROUTE_OPTION
+        and next_work_unit.get("terminal_source_provenance_blocker_consumed") is True
+        and next_work_unit.get("clean_reproducible_model_rebuild_authorized") is True
+        and next_work_unit.get("current_transport_claim_must_not_be_used_as_medical_conclusion") is True
     )
 
 
@@ -149,6 +216,10 @@ def _artifact_supersedes(*, newer_ref: Path, older_ref: Path) -> bool:
     return newer_mtime is not None and older_mtime is not None and newer_mtime > older_mtime
 
 
+def artifact_supersedes(*, newer_ref: Path, older_ref: Path) -> bool:
+    return _artifact_supersedes(newer_ref=newer_ref, older_ref=older_ref)
+
+
 def _path_mtime(path: Path) -> float | None:
     try:
         return Path(path).expanduser().resolve().stat().st_mtime
@@ -174,6 +245,10 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "artifact_supersedes",
+    "clean_rebuild_route_action",
+    "methodology_reframe_audit_route_decision_materialized",
+    "methodology_reframe_rebuild_route_decision_materialized",
     "methodology_reframe_route_decision_action",
     "methodology_reframe_route_decision_materialized",
     "provenance_limited_harmonization_audit_action",

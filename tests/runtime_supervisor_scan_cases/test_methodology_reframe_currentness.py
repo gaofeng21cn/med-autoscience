@@ -99,7 +99,7 @@ def test_scan_requeues_methodology_reframe_when_analysis_blocker_newer_than_deci
         persist_surfaces=False,
     )
 
-    _assert_methodology_reframe_queued(result)
+    _assert_source_provenance_queued(result)
 
 
 def test_methodology_reframe_decision_exposes_current_controller_runtime_route(tmp_path: Path) -> None:
@@ -134,6 +134,46 @@ def test_methodology_reframe_decision_exposes_current_controller_runtime_route(t
 
     assert route is not None
     assert route["work_unit_id"] == "provenance_limited_harmonization_audit"
+    assert route["work_unit_fingerprint"] == "decision::methodology_reframe_route_decision"
+    assert route["controller_actions"] == ["ensure_study_runtime"]
+
+
+def test_clean_rebuild_methodology_decision_exposes_current_controller_runtime_route(tmp_path: Path) -> None:
+    route_module = importlib.import_module(
+        "med_autoscience.controllers.runtime_supervisor_scan_parts.current_truth_owner"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    decision = _materialized_methodology_decision(study_id=study_id, quest_id=quest_id)
+    decision["controller_actions"] = [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}]
+    decision["next_work_unit"] = {
+        "unit_id": "unit_harmonized_external_validation_rerun",
+        "lane": "analysis-campaign",
+        "hard_methodology": True,
+        "selected_route_option": "rebuild_reproducible_model_route",
+        "terminal_source_provenance_blocker_consumed": True,
+        "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
+        "clean_reproducible_model_rebuild_authorized": True,
+        "required_owner": "analysis_harmonization_owner",
+        "required_next_work_unit": "unit_harmonized_external_validation_rerun",
+        "typed_blocker": "unit_harmonized_rerun_required",
+    }
+    _write_json(decision_path, decision)
+
+    route = route_module.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=_publication_eval(
+            study_id=study_id,
+            quest_id=quest_id,
+            eval_suffix="methodology-reframe-clean-rebuild-redrive",
+        ),
+    )
+
+    assert route is not None
+    assert route["work_unit_id"] == "unit_harmonized_external_validation_rerun"
     assert route["work_unit_fingerprint"] == "decision::methodology_reframe_route_decision"
     assert route["controller_actions"] == ["ensure_study_runtime"]
 
@@ -361,6 +401,15 @@ def _assert_methodology_reframe_queued(result: dict) -> None:
     assert study["blocked_reason"] == "methodology_reframe_required"
     assert study["next_owner"] == "decision"
     assert study["owner_route"]["allowed_actions"] == ["methodology_reframe_route_decision"]
+
+
+def _assert_source_provenance_queued(result: dict) -> None:
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == ["recover_transport_model_provenance"]
+    assert [action["action_type"] for action in result["action_queue"]] == ["recover_transport_model_provenance"]
+    assert study["blocked_reason"] == "transport_model_provenance_recovery_required"
+    assert study["next_owner"] == "source_provenance_owner"
+    assert study["owner_route"]["allowed_actions"] == ["recover_transport_model_provenance"]
 
 
 def _developer_mode():

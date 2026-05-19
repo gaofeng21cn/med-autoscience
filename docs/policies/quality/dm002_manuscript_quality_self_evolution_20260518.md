@@ -183,3 +183,20 @@ Follow-up patch:
 Additional verification:
 
 - `scripts/run-pytest-clean.sh tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_route_priority.py tests/test_provenance_limited_harmonization_owner.py -q`: 11 passed.
+
+## Clean Rebuild Decision Route Follow-Up
+
+The source-provenance currentness patch made the stale-output loop visible, but DM002 could still cycle through the old provenance-limited audit route even after the user had explicitly authorized a clean reproducible-model rebuild. The defect was in the decision owner: `methodology_reframe_route_decision` always selected `provenance_limited_harmonization_audit` instead of consuming the clean rebuild authorization as a route choice.
+
+Follow-up patch:
+
+- Let `decision_owner.methodology_reframe_route_decision` read the structured `methodology_rebuild_authorization` task intake and the terminal source-provenance search blocker.
+- When both are current, select `rebuild_reproducible_model_route` and write `next_work_unit.unit_id=unit_harmonized_external_validation_rerun` with `required_owner=analysis_harmonization_owner`.
+- Add scan/read-model support so a clean rebuild decision directly queues `analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`, without requiring another provenance-limited audit pass.
+- Preserve the audit path for un-authorized terminal source-provenance blockers.
+- Preserve fail-closed semantics: the clean route authorizes only a unit-harmonized rerun or typed blocker; it does not recover old Cox provenance, prove transportability failure, write paper/package surfaces, relax the quality gate, or declare submission readiness.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py::test_execute_dispatch_routes_authorized_terminal_source_blocker_to_clean_rebuild tests/runtime_supervisor_scan_cases/test_methodology_reframe_route_priority.py::test_scan_routes_clean_rebuild_decision_directly_to_analysis_owner tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py::test_clean_rebuild_methodology_decision_exposes_current_controller_runtime_route -q`: 3 passed.
+- `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_route_priority.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/test_provenance_limited_harmonization_owner.py tests/test_mas_runtime_core_turn_prompt_cases/test_current_controller_decision_authorization.py -q`: 30 passed.

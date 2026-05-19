@@ -91,11 +91,21 @@ def methodology_reframe_route_decision_output_pending(*, profile: WorkspaceProfi
     payload = _read_json_object(profile.studies_root / study_id / CONTROLLER_DECISION_RELATIVE_PATH)
     if not payload:
         return True
+    next_work_unit = _mapping(payload.get("next_work_unit"))
+    selected_route_option = _text(next_work_unit.get("selected_route_option"))
+    unit_id = _text(next_work_unit.get("unit_id"))
+    route_selected = (
+        selected_route_option == "provenance_limited_harmonization_audit"
+        and unit_id == "provenance_limited_harmonization_audit"
+    ) or (
+        selected_route_option == "rebuild_reproducible_model_route"
+        and unit_id == "unit_harmonized_external_validation_rerun"
+        and next_work_unit.get("clean_reproducible_model_rebuild_authorized") is True
+    )
     return not (
         _text(payload.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and _text(payload.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
-        and _text(_mapping(payload.get("next_work_unit")).get("unit_id"))
-        == "provenance_limited_harmonization_audit"
+        and route_selected
     )
 
 
