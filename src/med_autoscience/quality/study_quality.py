@@ -5,6 +5,7 @@ from typing import Any
 
 
 _REVIEW_LEDGER_BLOCKING_STATUSES = {"open", "in_progress", "deferred"}
+_REVIEW_LEDGER_RESOLVED_STATUSES = {"resolved", "resolved_upstream_package_refresh_pending"}
 _QUALITY_DIMENSION_ORDER = (
     "clinical_significance",
     "evidence_strength",
@@ -143,7 +144,7 @@ def build_reviewer_first_readiness(
             severity = str(concern.get("severity") or "").strip()
             if highest_open_severity is None or severity_rank.get(severity, 99) < severity_rank.get(highest_open_severity, 99):
                 highest_open_severity = severity
-        elif status == "resolved":
+        elif status in _REVIEW_LEDGER_RESOLVED_STATUSES:
             resolved_count += 1
 
     evidence_ref = str(Path(review_ledger_path).expanduser()) if review_ledger_path is not None else None

@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-19：publication currentness 必须消费当前 owner receipt，且区分正文面与内部审阅面
+
+- 决策：`analysis_claim_evidence_repair/latest.json` 若带有当前 work-unit fingerprint、`controller_action_invoked_first.action=run_quality_repair_batch`、完整 `targeted_publication_specificity_targets`、`canonical_artifact_delta.meaningful_artifact_delta=true`，并且 gate replay 已证明目标 blocker 被清除，controller work-unit evidence adoption 必须消费该 receipt，下一跳回到 publication gate recheck，不得继续向 runtime 重放同一 `analysis_claim_evidence_repair` fingerprint。
+- 决策：`publication_surface_residue` 的 manuscript blocker 只扫描正文、figure/table catalog、paper-facing narrative/claim/evidence/reproducibility contracts 等会投向稿件的 surface。AI reviewer prose review、review ledger、statistical reviewer audit 和 structured disclosure audit 继续做 schema/quality 输入验证，但其中的 provenance、repair memory 或 reviewer diagnosis 不能被当作 manuscript forbidden-term blocker。
+- 决策：`review_ledger.concerns[].status=resolved_upstream_package_refresh_pending` 是 canonical issue 已解决、仅等待下游 package refresh 的 closed-like 状态；它通过 review ledger schema validation，并在 reviewer-first readiness 中计入 resolved concern，而不是 open/in-progress blocker。
+- 理由：DM002 最新轨迹中，analysis repair 已清掉 table/figure/claim map blocker，但旧 authorization 未被消费会导致同一 analysis work unit 反复重放；同时 AI reviewer provenance 里保留“raw-scale / unit-harmonization lesson”作为内部诊断，却被 publication surface 扫成正文 residue，制造假 blocker。review ledger 也已表达 canonical repair 完成但 package refresh 待下游执行，validator 不应因为未知 closed-like 状态把它降级为 schema failure。
+- 影响：这不是 legacy compatibility 或宽松 normalizer；未知 receipt/status 仍 fail closed。只有带当前 fingerprint、明确 owner action、完整 targets 和 gate replay proof 的 receipt 才能被 consumption layer 采纳。错误分析轨迹仍不得进入正文；内部 reviewer/provenance 面可以保存原因和记忆，供 MAS/Agent Lab 自进化和 route-back 使用。
+
 ## 2026-05-19：quality repair 不能在正文残留或机械投影 ready 时声明进展
 
 - 决策：`repair_execution_evidence` 的 manuscript surface hygiene 不只适用于 `manuscript_story_repair`，也适用于会影响主叙事闭环的 `analysis_claim_evidence_repair`、`figure_results_trace_repair` 和 `medical_prose_quality_analysis_source_documentation_repair`。这些 work unit 若在 canonical `paper/draft.md` 或 `paper/build/review_manuscript.md` 中检测到 invalid analysis history residue，只能返回 typed blocker，不能声明 `progress_delta_candidate`。

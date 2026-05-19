@@ -6,6 +6,7 @@ from typing import Any
 
 from med_autoscience.controllers import control_intent
 from med_autoscience.controllers.work_unit_evidence_adoption_parts import (
+    analysis_claim_evidence_repair_receipt,
     analysis_stage_memory_handoff,
     generic_completed_work_unit,
     hard_methodology_unit_harmonization,
@@ -456,6 +457,14 @@ def _report_matches_analysis_repair(
         authorization_context=authorization_context,
     ):
         return True
+    if analysis_claim_evidence_repair_receipt.matches(
+        payload=payload,
+        authorization_context=authorization_context,
+        is_analysis_repair_work_unit_id=_is_analysis_repair_work_unit_id,
+        work_unit_fingerprint_matches=_work_unit_fingerprint_matches,
+        report_is_current=_mas_quality_repair_report_is_current,
+    ):
+        return True
     if explicit_work_unit_id is not None and not _is_analysis_repair_work_unit_id(explicit_work_unit_id):
         return False
     if explicit_route_target is not None and explicit_route_target != _ANALYSIS_REPAIR_ROUTE_TARGET:
@@ -572,6 +581,11 @@ def _normalized_repair_result(
             "finalize_ready_after_repair": False,
             "specificity_target_count": _specificity_target_count(authorization_context),
         }
+    if analysis_claim_evidence_repair_receipt.is_targeted_receipt(report_payload):
+        return analysis_claim_evidence_repair_receipt.normalized_result(
+            report_payload=report_payload,
+            specificity_target_count=_specificity_target_count(authorization_context),
+        )
     metrics = report_payload.get("metrics_summary")
     if isinstance(metrics, dict):
         return {

@@ -108,3 +108,44 @@ def test_review_ledger_readiness_uses_resolved_ledger_as_ready_signal() -> None:
         "resolved_concern_count": 2,
         "evidence_refs": ["/tmp/workspace/studies/001-risk/paper/review/review_ledger.json"],
     }
+
+
+def test_review_ledger_accepts_resolved_upstream_package_refresh_pending_as_closed() -> None:
+    quality_module = _load_module()
+    surface_policy = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+    payload = {
+        "schema_version": 1,
+        "concerns": [
+            {
+                "concern_id": "RC1",
+                "reviewer_id": "reviewer-1",
+                "summary": "Canonical paper issue is resolved and only the downstream package refresh remains.",
+                "severity": "major",
+                "status": "resolved_upstream_package_refresh_pending",
+                "owner_action": "refresh_current_package_after_publication_gate",
+                "revision_links": [
+                    {
+                        "revision_id": "rev-001",
+                        "revision_log_path": "paper/review/revision_log.md",
+                    }
+                ],
+            }
+        ],
+    }
+
+    assert surface_policy.validate_review_ledger(payload) == []
+
+    readiness = quality_module.build_reviewer_first_readiness(
+        review_ledger_payload=payload,
+        review_ledger_path="/tmp/workspace/studies/001-risk/paper/review/review_ledger.json",
+        fallback_basis_item={
+            "status": "partial",
+            "summary": "Fallback reviewer-first summary.",
+            "evidence_refs": ["/tmp/default-review.json"],
+        },
+    )
+
+    assert readiness["status"] == "ready"
+    assert readiness["ready"] is True
+    assert readiness["open_concern_count"] == 0
+    assert readiness["resolved_concern_count"] == 1

@@ -146,6 +146,39 @@ def test_build_report_blocks_internal_project_writing_terms_from_manuscript(tmp_
     assert "paper-facing" in pattern_ids
 
 
+def test_build_report_does_not_treat_ai_reviewer_provenance_as_manuscript_residue(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    study_root = _attach_study_charter_context(monkeypatch, module, tmp_path, quest_root)
+    prose_review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
+    paper_prose_review_path = study_root / "paper" / "medical_prose_review.json"
+    payload = json.loads(paper_prose_review_path.read_text(encoding="utf-8"))
+    payload["medical_journal_prose_quality"]["summary"] = (
+        "The old raw-scale HDL-C transport path is preprocessing-error provenance for AI reviewer memory only; "
+        "the manuscript itself must not narrate a unit-harmonization lesson."
+    )
+    dump_json(prose_review_path, payload)
+    paper_prose_review_path.unlink()
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "forbidden_manuscript_terms_present" not in report["blockers"]
+    assert report["medical_prose_review_path"] == str(prose_review_path.resolve())
+    assert not any(
+        hit["path"] == str(prose_review_path.resolve())
+        and hit["pattern_id"] == "invalid_analysis_history_residue"
+        for hit in report["top_hits"]
+    )
+
+
 def test_build_report_blocks_when_secondary_model_entry_is_incomplete(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

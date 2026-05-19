@@ -531,7 +531,13 @@ def validate_review_ledger(payload: object) -> list[str]:
         "revision_links",
     )
     allowed_severity = {"critical", "major", "minor", "editorial"}
-    allowed_status = {"open", "in_progress", "resolved", "deferred"}
+    allowed_status = {
+        "open",
+        "in_progress",
+        "resolved",
+        "resolved_upstream_package_refresh_pending",
+        "deferred",
+    }
     revision_link_fields = ("revision_id", "revision_log_path")
     for index, concern in enumerate(concerns):
         missing_fields = _missing_required_fields(concern, required_fields)

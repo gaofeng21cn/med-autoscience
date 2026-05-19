@@ -318,11 +318,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     )
     for path in (
         state.methods_implementation_manifest_path,
-        state.review_ledger_path,
-        state.statistical_reviewer_audit_path,
-        state.structured_disclosure_audit_path,
         state.medical_manuscript_blueprint_path,
-        state.medical_prose_review_path,
         state.results_narrative_map_path,
         state.figure_semantics_manifest_path,
         state.claim_evidence_map_path,
