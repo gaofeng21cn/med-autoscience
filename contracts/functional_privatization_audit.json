@@ -259,6 +259,7 @@
           "runtime lifecycle CLI",
           "sidecar/product-entry lifecycle projections"
         ],
+        "authority_boundary": "refs_only_sqlite_lifecycle_index_not_generic_runtime_owner",
         "classification": "refs_only_adapter",
         "code_paths": [
           "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
@@ -278,6 +279,22 @@
           "opl_restore_retention_receipt_shell"
         ],
         "owner": "med-autoscience",
+        "provenance_boundary": {
+          "body_policy": "refs_receipts_blockers_only",
+          "generic_owner_claim_allowed": false,
+          "history_role": "runtime_lifecycle_sqlite_migration_provenance",
+          "may_emit": [
+            "owner_receipt_ref",
+            "study_runtime_status_ref",
+            "lifecycle_locator_ref"
+          ],
+          "must_not_emit": [
+            "generic_runtime_verdict",
+            "generic_restore_verdict",
+            "paper_closure_verdict"
+          ],
+          "surface_role": "domain_receipt_locator_and_lifecycle_ref_index"
+        },
         "retained_domain_authority": [
           "owner_receipt",
           "study_runtime_status"
@@ -333,6 +350,22 @@
           "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
           "runtime_lifecycle_contract.opl_artifact_lifecycle_storage_audit_shell"
         ],
+        "provenance_boundary": {
+          "body_policy": "workspace_refs_sizes_receipts_blockers_only",
+          "generic_owner_claim_allowed": false,
+          "history_role": "storage_maintenance_provenance",
+          "may_emit": [
+            "workspace_artifact_ref",
+            "cleanup_receipt_ref",
+            "typed_blocker"
+          ],
+          "must_not_emit": [
+            "generic_cleanup_policy",
+            "restore_ready_verdict",
+            "paper_closure_verdict"
+          ],
+          "surface_role": "workspace_storage_ref_report_and_artifact_authority_receipt_adapter"
+        },
         "retained_domain_authority": [
           "artifact_authority",
           "workspace_artifact_refs"
@@ -463,6 +496,7 @@
           "runtime live-console CLI",
           "Progress Portal links"
         ],
+        "authority_boundary": "refs_only_terminal_projection_no_generic_attach_runtime_owner",
         "classification": "refs_only_adapter",
         "code_paths": [
           "src/med_autoscience/controllers/runtime_live_console.py",
@@ -475,6 +509,22 @@
           "operator_log_projection"
         ],
         "owner": "med-autoscience",
+        "provenance_boundary": {
+          "body_policy": "terminal_log_source_refs_and_gate_receipts_only",
+          "generic_owner_claim_allowed": false,
+          "history_role": "terminal_attach_parity_provenance",
+          "may_emit": [
+            "terminal_status_ref",
+            "terminal_gate_receipt_ref",
+            "typed_blocker"
+          ],
+          "must_not_emit": [
+            "generic_terminal_runtime_owner",
+            "daemon_attach_authority",
+            "paper_closure_verdict"
+          ],
+          "surface_role": "terminal_log_ref_projection_and_mas_attach_gate_provenance"
+        },
         "retained_domain_authority": [
           "runtime_watch_domain_health",
           "typed_blocker"
@@ -1504,6 +1554,7 @@
     ],
     "runtime_lifecycle_sqlite_role": {
       "authority": "refs_only_index_not_generic_persistence_engine",
+      "body_policy": "refs_receipts_blockers_only",
       "classification": "refs_only_adapter",
       "current_mas_role": "domain_sidecar_index_reference_adapter",
       "forbidden_mas_roles": [
@@ -1511,11 +1562,13 @@
         "generic_lifecycle_engine",
         "generic_restore_retention_owner"
       ],
+      "generic_owner_claim_allowed": false,
       "mas_consumes_opl_lifecycle_index_refs": true,
       "mas_may_claim_generic_persistence_engine": false,
       "mas_may_index_domain_receipts": true,
       "mas_may_write_domain_truth": false,
       "owner": "one-person-lab",
+      "provenance_role": "runtime_lifecycle_sqlite_migration_provenance",
       "replacement_expectation": {
         "audit_ref": "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
         "expected_replacements": [

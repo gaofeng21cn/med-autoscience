@@ -300,8 +300,8 @@ def _pack_compiler_input() -> dict[str, Any]:
         "schema_version": 1,
         "domain_id": TARGET_DOMAIN_ID,
         "domain_pack_owner": TARGET_DOMAIN_ID,
-        "canonical_repo_source_semantic_pack_root": "agent/",
-        "canonical_repo_source_semantic_pack_role": (
+        "canonical_semantic_pack_root": "agent/",
+        "canonical_semantic_pack_role": (
             "declarative_medical_research_semantics_for_opl_pack_compiler"
         ),
         "src_role": "domain_handler_minimal_authority_functions_and_native_helpers_only",

@@ -36,8 +36,8 @@
     "publication_route_memory_accept_reject_stage_gate_boundary",
     "source_readiness_stage_gate_boundary"
   ],
-  "canonical_repo_source_semantic_pack_role": "declarative_medical_research_semantics_for_opl_pack_compiler",
-  "canonical_repo_source_semantic_pack_root": "agent/",
+  "canonical_semantic_pack_role": "declarative_medical_research_semantics_for_opl_pack_compiler",
+  "canonical_semantic_pack_root": "agent/",
   "declarative_domain_pack": [
     "agent_canonical_semantic_pack",
     "stage_prompts",

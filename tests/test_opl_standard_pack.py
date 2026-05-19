@@ -49,7 +49,10 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["action_catalog"]["actions"] == action_catalog["actions"]
     assert generated["stage_control_plane"]["stages"] == stage_plane["stages"]
     assert generated["pack_compiler_input"]["generated_surface_owner"] == "one-person-lab"
-    assert generated["pack_compiler_input"]["canonical_repo_source_semantic_pack_root"] == "agent/"
+    assert generated["pack_compiler_input"]["canonical_semantic_pack_root"] == "agent/"
+    assert generated["pack_compiler_input"]["canonical_semantic_pack_role"] == (
+        "declarative_medical_research_semantics_for_opl_pack_compiler"
+    )
     assert generated["pack_compiler_input"]["src_role"] == (
         "domain_handler_minimal_authority_functions_and_native_helpers_only"
     )
@@ -222,6 +225,43 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "artifact_lifecycle_receipt_scaleout",
         "provider_slo_long_soak",
     ]
+    audit = generated["functional_privatization_audit"]
+    functional_boundary = audit["functional_consumer_boundary"]
+    runtime_role = functional_boundary["runtime_lifecycle_sqlite_role"]
+    assert runtime_role["classification"] == "refs_only_adapter"
+    assert runtime_role["authority"] == "refs_only_index_not_generic_persistence_engine"
+    assert runtime_role["body_policy"] == "refs_receipts_blockers_only"
+    assert runtime_role["generic_owner_claim_allowed"] is False
+    assert runtime_role["mas_may_claim_generic_persistence_engine"] is False
+    assert runtime_role["mas_may_write_domain_truth"] is False
+
+    inventory = {
+        item["module_id"]: item
+        for item in functional_boundary["functional_module_inventory"]
+    }
+    private_runtime_refs_only_modules = {
+        "runtime_lifecycle_sqlite_reference_adapter": {
+            "boundary": "refs_only_sqlite_lifecycle_index_not_generic_runtime_owner",
+            "must_not_emit": "generic_runtime_verdict",
+        },
+        "runtime_storage_maintenance": {
+            "boundary": "refs_only_adapter_no_generic_cleanup_policy_owner",
+            "must_not_emit": "generic_cleanup_policy",
+        },
+        "terminal_attach_transport": {
+            "boundary": "refs_only_terminal_projection_no_generic_attach_runtime_owner",
+            "must_not_emit": "generic_terminal_runtime_owner",
+        },
+    }
+    for module_id, expected in private_runtime_refs_only_modules.items():
+        item = inventory[module_id]
+        assert item["classification"] == "refs_only_adapter"
+        assert item["authority_boundary"] == expected["boundary"]
+        provenance_boundary = item["provenance_boundary"]
+        assert provenance_boundary["generic_owner_claim_allowed"] is False
+        assert provenance_boundary["body_policy"].endswith("_only")
+        assert expected["must_not_emit"] in provenance_boundary["must_not_emit"]
+        assert "paper_closure_verdict" in provenance_boundary["must_not_emit"]
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:

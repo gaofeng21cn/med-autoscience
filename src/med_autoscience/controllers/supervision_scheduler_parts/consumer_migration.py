@@ -674,10 +674,13 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "current_mas_role": "domain_sidecar_index_reference_adapter",
             "authority": "refs_only_index_not_generic_persistence_engine",
             "owner": REPLACEMENT_OWNER,
+            "provenance_role": "runtime_lifecycle_sqlite_migration_provenance",
+            "body_policy": "refs_receipts_blockers_only",
             "mas_may_index_domain_receipts": True,
             "mas_may_claim_generic_persistence_engine": False,
             "mas_consumes_opl_lifecycle_index_refs": True,
             "mas_may_write_domain_truth": False,
+            "generic_owner_claim_allowed": False,
             "forbidden_mas_roles": [
                 "generic_persistence_engine",
                 "generic_lifecycle_engine",
