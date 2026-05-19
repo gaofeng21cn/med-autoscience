@@ -22,6 +22,8 @@ DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE = {
     "bundle_stage_finalize": {"ensure_study_runtime"},
     "publication_gate_blocker": {"run_gate_clearing_batch"},
 }
+METHODOLOGY_REFRAME_DECISION_FINGERPRINT = "decision::methodology_reframe_route_decision"
+METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = "medical_prose_quality_analysis_source_documentation_repair"
 
 
 def runtime_platform_repair_action(
@@ -95,13 +97,20 @@ def current_controller_runtime_route(
         action_types=action_types,
         work_unit_id=work_unit_id,
     )
-    if not domain_transition_allowed:
+    methodology_reframe_allowed = methodology_reframe_runtime_route_allowed(
+        decision=decision,
+        work_unit=work_unit,
+        work_unit_fingerprint=decision_fingerprint,
+        action_types=action_types,
+        work_unit_id=work_unit_id,
+    )
+    if not domain_transition_allowed and not methodology_reframe_allowed:
         if not action_types & RUNTIME_REDRIVE_ACTIONS:
             return None
         publication_fingerprints = _publication_work_unit_fingerprints(publication_eval_payload)
         if decision_fingerprint not in publication_fingerprints:
             return None
-    if work_unit_id in SPECIFICITY_WORK_UNIT_IDS and not domain_transition_allowed:
+    if work_unit_id in SPECIFICITY_WORK_UNIT_IDS and not domain_transition_allowed and not methodology_reframe_allowed:
         if not _publication_eval_specificity_targets_complete_for_fingerprint(
             publication_eval_payload,
             decision_fingerprint=decision_fingerprint,
@@ -122,6 +131,26 @@ def current_controller_runtime_route(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": decision_fingerprint,
     }
+
+
+def methodology_reframe_runtime_route_allowed(
+    *,
+    decision: Mapping[str, Any],
+    work_unit: Mapping[str, Any],
+    work_unit_fingerprint: str | None,
+    action_types: set[str],
+    work_unit_id: str | None,
+) -> bool:
+    return bool(
+        _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
+        and work_unit_fingerprint == METHODOLOGY_REFRAME_DECISION_FINGERPRINT
+        and work_unit_id == METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT
+        and "ensure_study_runtime" in action_types
+        and work_unit.get("hard_methodology") is True
+        and _text(work_unit.get("required_owner")) == "analysis_harmonization_owner"
+        and _text(work_unit.get("required_next_work_unit")) == "unit_harmonized_external_validation_rerun"
+        and _text(work_unit.get("typed_blocker")) == "unit_harmonized_rerun_required"
+    )
 
 
 def domain_transition_runtime_route_allowed(
