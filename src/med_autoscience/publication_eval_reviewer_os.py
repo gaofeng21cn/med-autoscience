@@ -36,6 +36,37 @@ def _list_of_mappings(value: object) -> list[dict[str, Any]]:
     return [dict(item) for item in value if isinstance(item, dict)]
 
 
+def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> dict[str, Any] | None:
+    if not isinstance(publication_eval_payload, dict):
+        return None
+    reviewer_os = _mapping(publication_eval_payload.get("reviewer_operating_system"))
+    currentness_checks = _mapping(reviewer_os.get("currentness_checks"))
+    medical_prose_review = _mapping(currentness_checks.get("medical_prose_review"))
+    if _text(medical_prose_review.get("status")) != "current":
+        return None
+    if medical_prose_review.get("route_back_required") is not True:
+        return None
+    for field in ("request_digest", "manuscript_ref", "manuscript_digest"):
+        if not _text(medical_prose_review.get(field)):
+            return None
+    route_target = _text(medical_prose_review.get("route_target"))
+    if not route_target or route_target == "review":
+        return None
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        if action.get("requires_controller_decision") is not True:
+            continue
+        if _text(action.get("action_type")) != "route_back_same_line":
+            continue
+        if _text(action.get("route_target")) == route_target:
+            return dict(action)
+    return None
+
+
 def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     if not isinstance(payload, dict):
         return ["reviewer_operating_system must be an object"]

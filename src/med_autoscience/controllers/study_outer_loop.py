@@ -48,6 +48,7 @@ from med_autoscience.controllers.study_outer_loop_parts.recommendation_actions i
     _action_has_gate_needs_specificity_work_unit,
     _autonomous_controller_action_type_for_runtime_status,
     _autonomous_decision_type_for_publication_eval_action,
+    _current_ai_reviewer_route_back_preempts_ai_reviewer_recheck,
     _promote_gate_needs_specificity_action,
     _publication_eval_gap_is_submission_milestone_handoff,
     _publication_eval_has_only_optional_gaps,
@@ -345,6 +346,9 @@ def build_runtime_watch_outer_loop_tick_request(
         if _methodology_analysis_route_preempts_ai_reviewer_recheck(
             domain_transition_decision_type=domain_transition_decision_type,
             task_intake_action=task_intake_action,
+            publication_eval_payload=publication_eval_payload,
+        ) or _current_ai_reviewer_route_back_preempts_ai_reviewer_recheck(
+            domain_transition_decision_type=domain_transition_decision_type,
             publication_eval_payload=publication_eval_payload,
         ):
             domain_transition_action = None

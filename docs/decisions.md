@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-20：current AI reviewer route-back 必须压过重复 reviewer recheck
+
+- 决策：当 `publication_eval/latest.json` 由 `assessment_provenance.owner=ai_reviewer` 产出，且 `reviewer_operating_system.currentness_checks.medical_prose_review.status=current`、`route_back_required=true`、`route_target` 指向非 `review` owner，同时顶层 `recommended_actions[]` 有匹配的 `route_back_same_line` controller action 时，controller refresh 和 domain transition 不能再把同一份 current eval 解释成 `ai_reviewer_re_eval`。
+- 决策：上述 route-back 是 AI reviewer 已完成当前医学写作质量判断后的 owner route。`medical_journal_prose_quality` 仍可为 `blocked` 或 `partial`，但下一步应由 `write`、`analysis-campaign` 或 AI reviewer 指定的 owner 执行；只有缺 currentness 证明、缺匹配 recommended action、route target 为 `review`、或 reviewer OS trace 不合规时，才回到 AI reviewer recheck。
+- 理由：DM002 暴露出 AI reviewer 已明确 `route_back_same_line -> write/manuscript_story_repair` 后，旧 `ai_reviewer_re_eval` domain transition 仍覆盖该 owner decision，导致系统重复复评或停在旧 review work unit，无法把“清理内部修复痕迹、重写干净 external-validation story”的任务交给 write owner。
+- 影响：这是 owner-chain currentness 修复，不是质量 gate 放宽。AI reviewer 仍持有医学写作质量 verdict；controller 只负责消费 current reviewer OS route-back 并生成下一 owner 决策，不写 study truth、论文正文、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 `current_package`。
+
 ## 2026-05-20：AI reviewer 重新评估必须刷新 stale paper-authority receipt
 
 - 决策：clean paper-authority migration 进入 `new_mas_authority_established` 后，如果当前 `publication_eval/latest.json` 已不再匹配 receipt 中记录的 AI reviewer eval，新一轮 AI reviewer workflow materialize 的 eval 必须刷新 `paper_authority_cutover/latest.json` 的 `new_mas_authority` 指针。已准确指向当前 eval 的 receipt 保持幂等。

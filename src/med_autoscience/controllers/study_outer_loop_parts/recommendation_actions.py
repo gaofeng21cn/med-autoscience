@@ -11,6 +11,7 @@ from med_autoscience.study_decision_record import (
     StudyDecisionActionType,
     StudyDecisionType,
 )
+from med_autoscience.publication_eval_reviewer_os import current_ai_reviewer_route_back_action
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -95,6 +96,17 @@ def _recommended_publication_eval_action(publication_eval_payload: dict[str, Any
             continue
         return dict(action)
     return None
+
+
+def _current_ai_reviewer_route_back_preempts_ai_reviewer_recheck(
+    *,
+    domain_transition_decision_type: str,
+    publication_eval_payload: dict[str, Any],
+) -> bool:
+    action = current_ai_reviewer_route_back_action(publication_eval_payload)
+    return domain_transition_decision_type == "ai_reviewer_re_eval" and (
+        action is not None and _autonomous_decision_type_for_publication_eval_action(action) is not None
+    )
 
 
 def _quality_dimension_status(*, payload: dict[str, Any], dimension: str) -> str | None:

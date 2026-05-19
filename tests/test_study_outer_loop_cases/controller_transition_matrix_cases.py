@@ -188,6 +188,24 @@ def _ready_reviewer_operating_system(study_root: Path) -> dict[str, object]:
     }
 
 
+def _current_write_route_back_reviewer_operating_system(study_root: Path) -> dict[str, object]:
+    payload = _ready_reviewer_operating_system(study_root)
+    payload["currentness_checks"]["medical_prose_review"] = {
+        "status": "current",
+        "request_ref": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"),
+        "request_digest": "sha256:transition-matrix-current-route-back-request",
+        "manuscript_ref": str(study_root / "paper" / "manuscript.md"),
+        "manuscript_digest": "sha256:transition-matrix-current-route-back-manuscript",
+        "route_back_required": True,
+        "route_target": "write",
+    }
+    payload["route_back_decision"] = {
+        "recommended_action": "route_back_same_line",
+        "rationale": "AI reviewer currentness is closed and routes the same paper line back to write.",
+    }
+    return payload
+
+
 def _publication_eval_payload(
     *,
     study_root: Path,
@@ -259,7 +277,11 @@ def _publication_eval_payload(
                 "summary": "AI reviewer judged the medical-journal prose quality ready.",
             },
         },
-        "reviewer_operating_system": _ready_reviewer_operating_system(study_root),
+        "reviewer_operating_system": (
+            _current_write_route_back_reviewer_operating_system(study_root)
+            if action.get("action_type") == "route_back_same_line" and action.get("route_target") == "write"
+            else _ready_reviewer_operating_system(study_root)
+        ),
         "recommended_actions": [action],
     }
     return payload
@@ -318,6 +340,34 @@ def _bounded_analysis_action(study_root: Path) -> dict[str, object]:
             }
         ],
         "work_unit_fingerprint": "publication-blockers::analysis",
+    }
+
+
+def _write_route_back_action(study_root: Path) -> dict[str, object]:
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    return {
+        "action_id": "ai-reviewer-action::return-to-write-clean-story",
+        "action_type": "route_back_same_line",
+        "priority": "now",
+        "reason": "The current manuscript needs story-level write repair.",
+        "route_target": "write",
+        "route_key_question": "Can the writer produce a clean external-validation manuscript from the current evidence?",
+        "route_rationale": "AI reviewer currentness is closed; the next owner is write, not another reviewer pass.",
+        "evidence_refs": [str(publication_eval_path), str(study_root / "paper" / "manuscript.md")],
+        "requires_controller_decision": True,
+        "next_work_unit": {
+            "unit_id": "manuscript_story_repair",
+            "lane": "write",
+            "summary": "Rewrite the manuscript as a clean external-validation paper.",
+        },
+        "blocking_work_units": [
+            {
+                "unit_id": "manuscript_story_repair",
+                "lane": "write",
+                "summary": "Rewrite the manuscript as a clean external-validation paper.",
+            }
+        ],
+        "work_unit_fingerprint": "ai_reviewer_story_clean_external_validation_v3",
     }
 
 
@@ -601,6 +651,59 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             expected_route_target="analysis-campaign",
             expected_controller_action_type="ensure_study_runtime",
             expected_unit_id="medical_prose_quality_analysis_source_documentation_repair",
+        ),
+        lambda study_root: OuterLoopTransitionCase(
+            case_id="current_ai_reviewer_write_route_back_preempts_ai_reviewer_prose_recheck",
+            gate_report={
+                "status": "blocked",
+                "allow_write": False,
+                "blockers": ["medical_publication_surface_blocked"],
+                "current_required_action": "return_to_publishability_gate",
+                "supervisor_phase": "publishability_gate_blocked",
+                "bundle_tasks_downstream_only": True,
+                "medical_publication_surface_status": "blocked",
+                "medical_publication_surface_named_blockers": ["manuscript_voice_reporting_incomplete"],
+                "blocking_artifact_refs": [{"source_path": "paper/manuscript.md"}],
+            },
+            publication_eval_action=_write_route_back_action(study_root),
+            publication_eval_verdict="blocked",
+            publication_supervisor_state={
+                "supervisor_phase": "publishability_gate_blocked",
+                "current_required_action": "return_to_publishability_gate",
+                "bundle_tasks_downstream_only": True,
+                "publication_gate_allows_direct_write": False,
+            },
+            quality_assessment={
+                "clinical_significance": {
+                    "status": "ready",
+                    "summary": "Clinical significance is bounded by the current validation evidence.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "evidence_strength": {
+                    "status": "ready",
+                    "summary": "Evidence is sufficient for a clean external-validation manuscript.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "novelty_positioning": {
+                    "status": "ready",
+                    "summary": "Novelty positioning is clear.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "human_review_readiness": {
+                    "status": "blocked",
+                    "summary": "Human review must wait for manuscript story repair.",
+                    "evidence_refs": [str(study_root / "paper" / "manuscript.md")],
+                },
+                "medical_journal_prose_quality": {
+                    "status": "blocked",
+                    "summary": "The current reviewer judgment routes prose repair to the write owner.",
+                    "evidence_refs": [str(study_root / "paper" / "manuscript.md")],
+                },
+            },
+            expected_decision_type="route_back_same_line",
+            expected_route_target="write",
+            expected_controller_action_type="ensure_study_runtime",
+            expected_unit_id="manuscript_story_repair",
         ),
         lambda study_root: OuterLoopTransitionCase(
             case_id="domain_transition_gate_blocker_replays_gate_after_terminal_analysis_handoff",
