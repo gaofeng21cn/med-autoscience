@@ -627,10 +627,7 @@ def _methodology_reframe_route_decision_action(study_root: Path) -> dict[str, An
 
 def _methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
     decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
-    if _artifact_supersedes(
-        newer_ref=source_provenance_owner_result.result_path(study_root=study_root),
-        older_ref=decision_ref,
-    ):
+    if _any_artifact_supersedes(newer_refs=_methodology_reframe_trigger_paths(study_root), older_ref=decision_ref):
         return False
     decision = _read_json_object(decision_ref)
     next_work_unit = _mapping(decision.get("next_work_unit"))
@@ -639,6 +636,17 @@ def _methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
         and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
         and _text(next_work_unit.get("unit_id")) == "medical_prose_quality_analysis_source_documentation_repair"
     )
+
+
+def _methodology_reframe_trigger_paths(study_root: Path) -> tuple[Path, ...]:
+    return (
+        analysis_harmonization_owner_result.result_path(study_root=study_root),
+        source_provenance_owner_result.result_path(study_root=study_root),
+    )
+
+
+def _any_artifact_supersedes(*, newer_refs: tuple[Path, ...], older_ref: Path) -> bool:
+    return any(_artifact_supersedes(newer_ref=newer_ref, older_ref=older_ref) for newer_ref in newer_refs)
 
 
 def _artifact_supersedes(*, newer_ref: Path, older_ref: Path) -> bool:
