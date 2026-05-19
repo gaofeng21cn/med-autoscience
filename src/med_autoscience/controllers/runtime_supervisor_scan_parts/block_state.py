@@ -60,6 +60,24 @@ def projection_block_state(
     why_not_applied: str | None,
 ) -> dict[str, Any]:
     if study_root is not None and not _current_hard_methodology_handoff_supersedes_consumers(study_root):
+        if _has_hard_methodology_handoff_action(actions):
+            return {
+                "blocked_reason": "unit_harmonized_rerun_required",
+                "next_owner": "analysis_harmonization_owner",
+                "external_supervisor_required": False,
+            }
+        if _has_provenance_limited_harmonization_audit_action(actions):
+            return {
+                "blocked_reason": "provenance_limited_harmonization_audit_required",
+                "next_owner": "provenance_limited_harmonization_owner",
+                "external_supervisor_required": False,
+            }
+        if _has_methodology_reframe_route_decision_action(actions):
+            return {
+                "blocked_reason": "methodology_reframe_required",
+                "next_owner": "decision",
+                "external_supervisor_required": False,
+            }
         provenance_limited_state = provenance_limited_harmonization_owner_result.typed_blocker_state(
             study_root=study_root
         )

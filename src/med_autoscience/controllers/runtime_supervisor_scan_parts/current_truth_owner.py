@@ -25,6 +25,7 @@ DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE = {
 }
 METHODOLOGY_REFRAME_DECISION_FINGERPRINT = "decision::methodology_reframe_route_decision"
 METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = "provenance_limited_harmonization_audit"
+METHODOLOGY_REFRAME_REBUILD_WORK_UNIT = "unit_harmonized_external_validation_rerun"
 
 
 def runtime_platform_repair_action(
@@ -147,15 +148,24 @@ def methodology_reframe_runtime_route_allowed(
     action_types: set[str],
     work_unit_id: str | None,
 ) -> bool:
-    return bool(
+    if not (
         _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and work_unit_fingerprint == METHODOLOGY_REFRAME_DECISION_FINGERPRINT
-        and work_unit_id == METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT
         and "ensure_study_runtime" in action_types
         and work_unit.get("hard_methodology") is True
-        and _text(work_unit.get("selected_route_option")) == "provenance_limited_harmonization_audit"
         and work_unit.get("terminal_source_provenance_blocker_consumed") is True
         and work_unit.get("current_transport_claim_must_not_be_used_as_medical_conclusion") is True
+    ):
+        return False
+    if (
+        work_unit_id == METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT
+        and _text(work_unit.get("selected_route_option")) == "provenance_limited_harmonization_audit"
+    ):
+        return True
+    return bool(
+        work_unit_id == METHODOLOGY_REFRAME_REBUILD_WORK_UNIT
+        and _text(work_unit.get("selected_route_option")) == "rebuild_reproducible_model_route"
+        and work_unit.get("clean_reproducible_model_rebuild_authorized") is True
     )
 
 

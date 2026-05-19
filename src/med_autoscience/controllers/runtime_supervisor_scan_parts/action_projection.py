@@ -58,6 +58,18 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    direct_rebuild_route_action = methodology_reframe_actions.clean_rebuild_route_action(study_root)
+    if direct_rebuild_route_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=direct_rebuild_route_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     rebuild_route_action = _provenance_limited_rebuild_route_action(study_root)
     if rebuild_route_action is not None:
         return [
@@ -557,7 +569,7 @@ def _provenance_limited_rebuild_route_action(study_root: Path) -> dict[str, Any]
     analysis_ref = analysis_harmonization_owner_result.result_path(study_root=study_root)
     if analysis_harmonization_owner_result.required_output_satisfied(
         study_root=study_root
-    ) and not _artifact_supersedes(newer_ref=source_ref, older_ref=analysis_ref):
+    ) and not methodology_reframe_actions.artifact_supersedes(newer_ref=source_ref, older_ref=analysis_ref):
         return None
     return {
         "action_type": "unit_harmonized_external_validation_rerun",
@@ -584,12 +596,6 @@ def _provenance_limited_rebuild_route_action(study_root: Path) -> dict[str, Any]
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
-
-
-def _artifact_supersedes(*, newer_ref: Path, older_ref: Path) -> bool:
-    newer_mtime = _path_mtime(newer_ref)
-    older_mtime = _path_mtime(older_ref)
-    return newer_mtime is not None and older_mtime is not None and newer_mtime > older_mtime
 
 
 def _hard_methodology_handoff_supersedes_consumers(*, study_root: Path, source_ref: Path) -> bool:
