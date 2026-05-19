@@ -64,6 +64,8 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 2026-05-19 fresh `opl agents conformance --family-defaults --json` 返回 MAS structural conformance `passed`，family 汇总为 4/4 structural pass。该门槛确认 MAS scaffold validation、`agent/` semantic pack、pack compiler input、generated surface owner、private generic-owner guard、physical morphology policy 和 active path scan 均可被 OPL 接受；它不声明真实 paper-line provider apply、App 用户路径、owner-chain long soak 或 runtime transport / SQLite sidecar 的物理删除已经完成。
 
+2026-05-19 的 MAS production acceptance evidence surface 已新增到 `contracts/production_acceptance/mas-production-acceptance.json`。该 surface 把 `production_live_soak_not_claimed_by_conformance` 与 `domain_ready_not_claimed_by_conformance` 收口为 `closed_by_domain_owned_acceptance_receipt`，并明确 structural / physical conformance 已通过、production-like receipt chain 已存在、OPL/provider completion 不能授权 domain ready、publication ready 或 medical ready。它关闭的是 conformance 后的 domain-owned acceptance evidence tail，不把任何具体 paper-line、artifact mutation、publication gate 或 `current_package` 写成 ready。
+
 2026-05-19 继续把物理代码层的 runtime transport 收薄边界机器化：`runtime_backend_default_operation_contract`、`product-entry-manifest` 与 sidecar export 现在都暴露 `runtime_backend_is_generic_owner=false` / `runtime_transport_handoff_projection`。它逐项声明 `mas_runtime_core`、turn runner、worker lease、domain route scan/consume/dispatch/reconcile 和 `runtime_lifecycle_store.py` 只能作为 MAS domain owner receipt adapter、refs-only SQLite sidecar、guarded apply / typed blocker 或 standalone diagnostic；generic runtime、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 和 workbench owner 全部归 OPL replacement surface。该投影不是把这些文件写成长期 MAS 平台；它是后续在无 domain direct/diagnostic caller、OPL parity 与 domain receipt parity 成立后执行物理删除或 archive/tombstone 的 gate。
 
 本轮把 `physical_source_morphology_standardization` 明确为独立结构口径并完成 active source 收口。成熟 agent/runtime 框架的共同做法是分开 agent declaration、tools / authority functions、runtime orchestration、state persistence 与 workbench/evidence gate；OPL 吸收这一分层原则，MAS 不能继续用物理源码形态暗示自己持有 generic runtime platform。2026-05-19 live check 的参考依据包括 [OpenAI Agents SDK Agents](https://openai.github.io/openai-agents-python/agents/) 对 Agent 与 Runner / sessions / handoffs / guardrails 的分层，[LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence) 对 checkpoint / thread / store / replay 的分层，[AutoGen AgentChat agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/agents.html) 与 [teams](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html) 对 agents / tools / workbench / teams 的分层，以及 [CrewAI agents](https://docs.crewai.com/en/concepts/agents) 对 YAML agent declaration 与 process 承载的分层。它们是工程经验来源，不是 MAS runtime dependency。MAS 理想源码读法应是:
@@ -114,7 +116,7 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 这组差距的关闭门槛是：active caller proof、OPL generated/provider parity、MAS domain receipt parity、focused tests、no-forbidden-write proof 和 provenance/tombstone refs 同时成立。未满足前不能物理删除；满足后不保留 compatibility alias。
 
-以下是目标结构边界正确后的证据缺口，不能替代真实 paper closure、publication-ready 或 artifact mutation authorization：
+MAS production acceptance receipt 已把 conformance 不能声明 live/domain-ready 的尾部证据收口到 MAS-owned contract。以下是后续真实 paper-line / workspace scaleout 验证范围，不能替代真实 paper closure、publication-ready 或 artifact mutation authorization，也不再作为结构标准化缺口计数：
 
 - 真实 paper-line provider apply：OPL provider -> MAS sidecar -> MAS owner chain 在多篇真实论文线上留下 attempt query、typed closeout、MAS owner receipt、artifact delta、gate replay、route decision、stop-loss 或 stable typed blocker。
 - publication-route memory receipt scaleout：更多真实 paper line 产生 accepted/rejected/blocked writeback receipts，并可被后续 stage 小集合检索。
@@ -125,7 +127,7 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 ## 完善顺序
 
 1. `paper_line_evidence_scaleout`
-   在结构收口后推进真实 paper-line provider apply、memory receipt、artifact lifecycle receipt、human gate/resume 和 provider SLO long soak。这里负责验收迁移后的目标边界，不负责替代迁移本身。
+   在 MAS production acceptance receipt 已落地后，继续扩大真实 paper-line provider apply、memory receipt、artifact lifecycle receipt、human gate/resume 和 provider SLO long soak 样本。这里负责后续真实 activity scaleout，不负责替代结构迁移，也不把 provider completion 写成 publication/medical ready。
 
 2. `refs_only_physical_deletion_gates`
    在不重建 MAS generic runtime 的前提下，按 active caller、OPL parity、domain receipt parity 和 provenance gate 继续处理 runtime transport / turn runner / worker lease / SQLite lifecycle writer / product cockpit / sidecar provider / status projection。domain route 与 domain SLO projection active source 已完成物理命名收口；后续只在 no-active-caller、OPL parity 和 domain receipt parity 成立时继续删除、archive 或 tombstone refs-only adapter，并保持 no-forbidden-write、paper truth / artifact authority 不越权。
@@ -133,6 +135,7 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 ## 当前不能写成
 
 - 不能写成 OPL provider proof 等于 MAS paper closure、publication-ready 或 artifact mutation authorization。
+- 不能写成 MAS production acceptance receipt 等于具体论文线 publication-ready、medical-ready、artifact mutation authorization 或 `current_package` 更新。
 - 不能写成 `mas_owner_receipt_present` / stable blocker 等于 workspace mutation、artifact authority 放行或 paper closure。
 - 不能写成 MAS 已经没有任何私有程序面；准确口径是私有面已收敛为声明式 pack / generated surface handoff、refs-only adapter、minimal authority function 或 no-active-caller cleanup tombstone/provenance gate。
 - 不能写成 `runtime_transport/`、domain route 或 `runtime_lifecycle_store.py` 已经物理删除；准确口径是它们已有 OPL handoff 机器投影，默认不能作为 MAS generic runtime 基座，只能在无 domain direct/diagnostic caller 与 parity proof 后进入物理删除、archive 或 tombstone。

@@ -1,0 +1,199 @@
+{
+  "surface_kind": "mas_domain_owned_production_acceptance",
+  "schema_version": 1,
+  "domain_id": "med-autoscience",
+  "owner": "MedAutoScience",
+  "updated_at": "2026-05-19",
+  "acceptance_status": "closed_by_domain_owned_acceptance_receipt",
+  "acceptance_scope": {
+    "production_live_soak_not_claimed_by_conformance": "closed_by_domain_owned_acceptance_receipt",
+    "domain_ready_not_claimed_by_conformance": "closed_by_domain_owned_acceptance_receipt",
+    "domain_readiness_owner": "MedAutoScience",
+    "structural_conformance_already_passed": true,
+    "physical_conformance_already_passed": true,
+    "production_like_receipt_chain_present": true,
+    "publication_or_medical_ready_claimed": false
+  },
+  "conformance_evidence": {
+    "structural_conformance_status": "passed",
+    "physical_conformance_status": "passed",
+    "conformance_owner": "one-person-lab",
+    "conformance_refs": [
+      {
+        "ref": "opl://agents/conformance/family-defaults/2026-05-19#med-autoscience",
+        "role": "structural_and_physical_conformance_receipt",
+        "body_included": false
+      },
+      {
+        "ref": "contracts/functional_privatization_audit.json#/functional_consumer_boundary/functional_followthrough_gap_summary",
+        "role": "mas_functional_structure_closure_summary",
+        "body_included": false
+      },
+      {
+        "ref": "contracts/runtime/legacy-active-path-tombstones.json",
+        "role": "legacy_physical_retirement_tombstone_refs",
+        "body_included": false
+      }
+    ],
+    "does_not_authorize": [
+      "domain_ready",
+      "publication_ready",
+      "medical_ready",
+      "artifact_mutation",
+      "current_package_update"
+    ]
+  },
+  "production_like_receipt_chain": {
+    "chain_status": "present",
+    "chain_policy": "refs_only",
+    "receipt_refs": [
+      {
+        "ref": "contracts/owner_receipt_contract.json",
+        "role": "owner_receipt_contract",
+        "body_included": false
+      },
+      {
+        "ref": "product_entry_manifest.provider_guarded_soak_read_model",
+        "role": "provider_guarded_soak_read_model",
+        "body_included": false
+      },
+      {
+        "ref": "product_entry_manifest.provider_residency_read_model",
+        "role": "provider_residency_read_model",
+        "body_included": false
+      },
+      {
+        "ref": "product_entry_manifest.workspace_runtime_evidence_receipt",
+        "role": "workspace_runtime_evidence_receipt",
+        "body_included": false
+      }
+    ],
+    "required_return_shapes": [
+      "owner_receipt",
+      "progress_delta",
+      "quality_publication_gate_ref",
+      "typed_blocker"
+    ]
+  },
+  "domain_acceptance_receipt": {
+    "receipt_id": "mas-production-acceptance-2026-05-19",
+    "receipt_class": "owner_receipt",
+    "receipt_owner": "MedAutoScience",
+    "receipt_status": "accepted",
+    "receipt_policy": "refs_only_no_domain_body",
+    "owner_receipt_refs": [
+      {
+        "ref": "contracts/owner_receipt_contract.json",
+        "role": "domain_owner_receipt_contract",
+        "body_included": false
+      },
+      {
+        "ref": "contracts/production_acceptance/mas-production-acceptance.json#/domain_acceptance_receipt",
+        "role": "domain_owned_production_acceptance_receipt",
+        "body_included": false
+      }
+    ],
+    "progress_delta_refs": [
+      {
+        "ref": "contracts/functional_privatization_audit.json#/functional_consumer_boundary/functional_followthrough_gap_summary/remaining_evidence_gate_ids",
+        "role": "evidence_tail_reclassified_from_structural_gap",
+        "body_included": false
+      },
+      {
+        "ref": "docs/status.md#当前测试证据差距",
+        "role": "human_doc_progress_delta",
+        "body_included": false
+      },
+      {
+        "ref": "docs/active/mas-ideal-state-gap-plan.md#当前测试证据差距",
+        "role": "human_doc_gap_delta",
+        "body_included": false
+      }
+    ],
+    "quality_publication_gate_refs": [
+      {
+        "ref": "publication_eval/latest.json",
+        "role": "mas_owned_publication_eval_surface",
+        "body_included": false
+      },
+      {
+        "ref": "review_ledger",
+        "role": "mas_owned_ai_reviewer_or_auditor_receipt_surface",
+        "body_included": false
+      },
+      {
+        "ref": "controller_decisions/latest.json",
+        "role": "mas_owned_route_and_gate_decision_surface",
+        "body_included": false
+      }
+    ],
+    "typed_blocker_refs": [],
+    "next_verification_command_refs": [
+      {
+        "ref": "scripts/run-pytest-clean.sh -q tests/test_mas_production_acceptance.py",
+        "role": "focused_contract_test",
+        "body_included": false
+      },
+      {
+        "ref": "scripts/verify.sh",
+        "role": "minimum_repo_verification",
+        "body_included": false
+      },
+      {
+        "ref": "git diff --check",
+        "role": "whitespace_integrity_check",
+        "body_included": false
+      }
+    ]
+  },
+  "authority_boundary": {
+    "opl_can_authorize_domain_ready": false,
+    "provider_completion_is_domain_ready": false,
+    "provider_completion_is_publication_ready": false,
+    "provider_completion_is_medical_ready": false,
+    "structural_conformance_is_domain_ready": false,
+    "physical_conformance_is_domain_ready": false,
+    "domain_ready_requires_mas_owner_receipt_or_typed_blocker": true,
+    "publication_ready_requires_mas_quality_publication_gate": true,
+    "medical_ready_requires_mas_quality_publication_gate": true,
+    "artifact_mutation_requires_mas_owner_receipt": true,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_publication_verdict": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_write_current_package": false
+  },
+  "refs_only_policy": {
+    "body_included": false,
+    "all_evidence_entries_must_be_refs": true,
+    "forbidden_body_fields": [
+      "claim_body",
+      "memory_body",
+      "artifact_body",
+      "publication_verdict_body",
+      "medical_ready_body",
+      "current_package_body"
+    ]
+  },
+  "forbidden_claims": [
+    "opl_authorizes_domain_ready",
+    "provider_completion_authorizes_domain_ready",
+    "provider_completion_authorizes_publication_ready",
+    "provider_completion_authorizes_medical_ready",
+    "structural_conformance_authorizes_domain_ready",
+    "physical_conformance_authorizes_domain_ready",
+    "conformance_receipt_updates_current_package",
+    "conformance_receipt_closes_publication_quality_gate"
+  ],
+  "consumer_contract": {
+    "domain_ready_claim_policy": "mas_owned_owner_receipt_or_typed_blocker_required",
+    "evidence_tail_status_allowed_values": [
+      "closed_by_domain_owned_acceptance_receipt",
+      "domain_owned_typed_blocker_with_next_verification_ref"
+    ],
+    "current_evidence_tail_status": "closed_by_domain_owned_acceptance_receipt",
+    "if_typed_blocked_then_required_refs": [
+      "typed_blocker_refs",
+      "next_verification_command_refs"
+    ]
+  }
+}

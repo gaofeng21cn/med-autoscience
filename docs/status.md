@@ -25,6 +25,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - 2026-05-19 的 OPL legacy cleanup 读取当前 MAS manifest 后返回 `plan_status=ready` / `lifecycle_apply.status=dry_run_ready`；随后 OPL refs-only lifecycle ledger 已 apply 空计划 closure batch receipt，`verify` 可读回 `verified_receipt_count=1`。MAS tombstone proof 已补齐 replacement parity refs、no-regression evidence refs、history refs 和 tombstone refs。该状态只证明 OPL cleanup gate / refs-only ledger 可安全消费 MAS cleanup proof，不表示 runtime transport 或 SQLite sidecar 已物理删除。
 - 2026-05-18 的 MAS `family_stage_control_plane` 修复已为 6 个 runtime-guard stage 同步声明 `trust_boundary.runtime_event_refs` 和 `stage_contract.runtime_event_refs`；OPL proof bundle / admission 读取当前 MAS contract 后返回 MAS 6 个 stage 全部 `admitted`、`blockers_count=0`、`warnings_count=0`。
 - 2026-05-19 的 MAS stage cohort-loop refs 已补齐：6 个 stage 的 `stage_contract` 都声明 `source_scope_refs`、`cohort_query_refs`、OPL queue `trigger_refs`、`monitor_refs` 和 `dashboard_metric_refs`。OPL `stages cohort-loop --domain mas` 读取当前 MAS main 后返回 6/6 `closed_loop_ready`、`blocker_count=0`。该状态只证明 MAS 声明了可由 OPL 调度/观察的闭环 refs，不证明真实 paper-line provider launch、owner receipt、memory/artifact apply 或 long-soak 已完成。
+- 2026-05-19 的 MAS production acceptance surface 已落在 `contracts/production_acceptance/mas-production-acceptance.json`：`production_live_soak_not_claimed_by_conformance` 与 `domain_ready_not_claimed_by_conformance` 当前由 MAS-owned acceptance receipt 关闭为 `closed_by_domain_owned_acceptance_receipt`。该 receipt 只声明 structural / physical conformance 已通过、production-like receipt chain 已存在、下一步验证命令 refs 已记录；domain readiness、publication ready、medical ready、artifact mutation 与 `current_package` authority 仍必须由 MAS owner receipt、AI reviewer / auditor quality gate、publication gate 或 typed blocker 决定。
 - 已关闭的结构 gate 是：`generated_surface_active_caller_cutover`、`refs_only_adapter_thinning`、`legacy_cleanup_physical_retirement`、`opl_app_workbench_drilldown` 和 `lifecycle_locator_retention_restore_ledger_reconciliation`。这些 gate 不关闭 physical source morphology cleanup tail；真实 provider、paper-line、memory/artifact receipt、human gate/resume、long-soak evidence 和 active-source rename/delete/tombstone 仍需分别验收。
 - OPL `substrate projection --domain med-autoscience` 当前返回 `projection_status=substrate_refs_resolved`；MAS product-entry manifest 顶层暴露 body-free `source_provenance` refs，OPL lifecycle projection 只索引 source/artifact/memory refs，不读取 source body、memory body、artifact body 或医学 verdict。
 - 旧 MDS physical root / monolith binding / legacy provenance 只作为 archive、tombstone 或 refs-only historical fixture 读取；不得回写成 current runtime owner。
@@ -61,7 +62,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 ## 当前测试/证据差距
 
-以下属于剩余证据门，不能替代真实 paper closure、publication-ready 或 artifact mutation authorization：
+`contracts/production_acceptance/mas-production-acceptance.json` 已把 conformance 之后的 production acceptance evidence tail 收口为 MAS-owned receipt。以下项目现在是后续真实 paper-line / workspace scaleout 验证范围，不能替代真实 paper closure、publication-ready 或 artifact mutation authorization，也不再作为结构标准化缺口计数：
 
 - 真实 paper-line provider apply。
 - publication-route memory receipt scaleout。
@@ -78,15 +79,17 @@ MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain
 
 ## 当前完善顺序
 
-1. 用真实 paper-line provider apply 验证 OPL provider -> MAS sidecar -> MAS owner chain 能持续返回 owner receipt、progress delta 或 typed blocker。
-2. 扩展 publication-route memory accepted/rejected/blocked writeback receipts。
-3. 扩展 artifact lifecycle mutation / cleanup / restore / retention guarded receipts。
-4. 验证 human gate、resume、explicit wakeup 与 owner route 不越过 MAS quality gate 或 artifact authority。
-5. 做 provider SLO long soak、restart/re-query、retry/dead-letter 和 no-forbidden-write 长窗口验证。
+1. 按 `contracts/production_acceptance/mas-production-acceptance.json` 的 `next_verification_command_refs` 保持 focused contract test、`scripts/verify.sh` 与 diff hygiene 绿色。
+2. 用真实 paper-line provider apply 继续扩大 OPL provider -> MAS sidecar -> MAS owner chain 的 owner receipt、progress delta 或 typed blocker 样本。
+3. 扩展 publication-route memory accepted/rejected/blocked writeback receipts。
+4. 扩展 artifact lifecycle mutation / cleanup / restore / retention guarded receipts。
+5. 验证 human gate、resume、explicit wakeup 与 owner route 不越过 MAS quality gate 或 artifact authority。
+6. 做 provider SLO long soak、restart/re-query、retry/dead-letter 和 no-forbidden-write 长窗口验证。
 
 ## 当前不能声明
 
 - 不能声明 OPL provider proof 等于 MAS paper closure、publication-ready 或 artifact mutation authorization。
+- 不能声明 MAS production acceptance receipt 等于具体论文线 publication-ready、medical-ready、artifact mutation authorization 或 `current_package` 更新。
 - 不能把结构 gate 关闭、classification closure、descriptor ready、local LaunchAgent no-active-caller proof 或 selected proof 写成真实 paper closure、publication-ready、artifact mutation authorization 或 provider long-soak 已完成。
 - 不能把 `classification_gap_count=0`、`active_private_generic_residue_count=0` 或 descriptor ready 单独写成结构闭合；结构闭合必须来自 5 个 closure gate 的 replacement/cutover/thinning/retirement/reconciliation proof。
 - 不能把 provider/live paper-line evidence gate 写成已完成的真实 provider / paper-line 证据。
