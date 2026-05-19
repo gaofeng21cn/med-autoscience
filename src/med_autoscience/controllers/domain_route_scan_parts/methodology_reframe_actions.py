@@ -167,7 +167,10 @@ def methodology_reframe_audit_route_decision_materialized(study_root: Path) -> b
 
 def methodology_reframe_rebuild_route_decision_materialized(study_root: Path) -> bool:
     decision_ref = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
-    if _any_artifact_supersedes(newer_refs=_methodology_reframe_trigger_paths(study_root), older_ref=decision_ref):
+    trigger_paths = _methodology_reframe_trigger_paths(study_root)
+    if analysis_harmonization_owner_result.clean_rebuild_decision_supersedes_legacy_blocker(study_root=study_root):
+        trigger_paths = tuple(path for path in trigger_paths if path != analysis_harmonization_owner_result.result_path(study_root=study_root))
+    if _any_artifact_supersedes(newer_refs=trigger_paths, older_ref=decision_ref):
         return False
     decision = _read_json_object(decision_ref)
     next_work_unit = _mapping(decision.get("next_work_unit"))

@@ -26,6 +26,8 @@ def read_result(*, study_root: Path) -> dict[str, Any] | None:
 
 
 def required_output_satisfied(*, study_root: Path) -> bool:
+    if clean_rebuild_decision_supersedes_legacy_blocker(study_root=study_root):
+        return False
     return result_satisfies_required_output(read_result(study_root=study_root))
 
 
@@ -52,6 +54,21 @@ def result_is_accepted_typed_blocker(payload: Mapping[str, Any] | None) -> bool:
     if typed_blocker and _text(typed_blocker.get("blocker_id")) != BLOCKED_REASON:
         return False
     return result.get("unit_harmonized_rerun_completed") is not True
+
+
+def clean_rebuild_decision_supersedes_legacy_blocker(*, study_root: Path) -> bool:
+    result = read_result(study_root=study_root)
+    if not result_is_accepted_typed_blocker(result):
+        return False
+    if _mapping(result).get("unit_harmonized_rerun_completed") is True:
+        return False
+    decision = _read_json_object(Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json")
+    next_work_unit = _mapping(_mapping(decision).get("next_work_unit"))
+    if _text(next_work_unit.get("unit_id")) != WORK_UNIT:
+        return False
+    if _text(next_work_unit.get("selected_route_option")) != "rebuild_reproducible_model_route":
+        return False
+    return next_work_unit.get("clean_reproducible_model_rebuild_authorized") is True
 
 
 def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
@@ -137,6 +154,7 @@ __all__ = [
     "RESULT_RELATIVE_PATH",
     "WORK_UNIT",
     "blocking_owner_route",
+    "clean_rebuild_decision_supersedes_legacy_blocker",
     "output_pending_for_result",
     "read_result",
     "required_output_satisfied",

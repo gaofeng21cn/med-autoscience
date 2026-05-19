@@ -31,6 +31,21 @@ def test_scan_consumes_completed_unit_harmonized_rerun_without_requeue(
         "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
         "recommended_actions": [],
     }
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_type": "bounded_analysis",
+            "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+            "next_work_unit": {
+                "unit_id": "unit_harmonized_external_validation_rerun",
+                "selected_route_option": "rebuild_reproducible_model_route",
+                "terminal_source_provenance_blocker_consumed": True,
+                "clean_reproducible_model_rebuild_authorized": True,
+                "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
+            },
+        },
+    )
     evidence_ref = (
         study_root
         / "artifacts"
@@ -66,20 +81,6 @@ def test_scan_consumes_completed_unit_harmonized_rerun_without_requeue(
             "medical_claim_authoring_allowed": False,
             "publication_eval_written": False,
             "controller_decision_written": False,
-        },
-    )
-    _write_json(
-        study_root / "artifacts" / "controller_decisions" / "latest.json",
-        {
-            "schema_version": 1,
-            "decision_type": "bounded_analysis",
-            "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
-            "next_work_unit": {
-                "unit_id": "unit_harmonized_external_validation_rerun",
-                "selected_route_option": "rebuild_reproducible_model_route",
-                "terminal_source_provenance_blocker_consumed": True,
-                "clean_reproducible_model_rebuild_authorized": True,
-            },
         },
     )
     status_payload = {
@@ -132,3 +133,125 @@ def test_scan_consumes_completed_unit_harmonized_rerun_without_requeue(
     queued_actions = [action["action_type"] for action in study["action_queue"]]
     assert "unit_harmonized_external_validation_rerun" not in queued_actions
     assert "recover_transport_model_provenance" not in queued_actions
+
+
+def test_scan_requeues_analysis_owner_when_clean_rebuild_decision_supersedes_legacy_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::hard-methodology",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        "recommended_actions": [],
+    }
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_type": "bounded_analysis",
+            "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+            "next_work_unit": {
+                "unit_id": "unit_harmonized_external_validation_rerun",
+                "selected_route_option": "rebuild_reproducible_model_route",
+                "terminal_source_provenance_blocker_consumed": True,
+                "clean_reproducible_model_rebuild_authorized": True,
+                "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json",
+        {
+            "surface": "analysis_harmonization_owner_result",
+            "schema_version": 1,
+            "study_id": study_id,
+            "owner": "analysis_harmonization_owner",
+            "work_unit": "unit_harmonized_external_validation_rerun",
+            "status": "blocked",
+            "blocked_reason": "unit_harmonized_rerun_required",
+            "typed_blocker_owner": "analysis_harmonization_owner",
+            "typed_blocker": {
+                "blocker_id": "unit_harmonized_rerun_required",
+                "blocking_reasons": [
+                    "hdl_unit_scale_mismatch",
+                    "nhanes_hdl_mapping_uses_raw_mg_dl_field_without_si_conversion_surface",
+                    "cox_model_application_provenance_insufficient_for_rerun",
+                ],
+            },
+            "blocking_owner_route": {
+                "blocked_reason": "transport_model_provenance_recovery_required",
+                "next_owner": "source_provenance_owner",
+                "next_work_unit": "recover_transport_model_provenance",
+            },
+            "unit_harmonized_rerun_completed": False,
+            "rerun_evidence_ref": None,
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "medical_claim_authoring_allowed": False,
+            "publication_eval_written": False,
+            "controller_decision_written": False,
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "paused",
+        "decision": "blocked",
+        "reason": "quest_waiting_for_user",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-clean-rebuild",
+            "source_signature": "truth-source-dm002-clean-rebuild",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "analysis-campaign",
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "state": "blocked",
+            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == [
+        "unit_harmonized_external_validation_rerun"
+    ]
+    assert study["action_queue"][0]["owner"] == "analysis_harmonization_owner"
+    assert study["blocked_reason"] == "unit_harmonized_rerun_required"
+    assert study["next_owner"] == "analysis_harmonization_owner"
