@@ -36,6 +36,13 @@ FUTURE_FACING_LIMITATIONS_PLAN_REQUIRED_FIELDS = (
     "required_future_analysis_data_or_design",
     "current_manuscript_wording_must_be_restrained",
 )
+AI_NATIVE_EXPERT_JUDGMENT_REQUIRED_FIELDS = (
+    "role",
+    "contracts_are_floor_not_ceiling",
+    "may_raise_unlisted_quality_concerns",
+    "must_compare_against_high_quality_medical_journal_expectations",
+    "mechanical_checks_can_only_block_or_route",
+)
 TARGET_JOURNAL_WRITING_LAYER_RELATIVE_PATH = Path("paper/target_journal_writing_layer.json")
 
 
@@ -78,6 +85,7 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
         "only claim what the current manuscript-safe evidence surface can support",
         "for prediction-model external validation, route back when HDL/unit harmonization, model reproducibility, visible Table 1/Table 2, uncertainty intervals, calibration/risk-distribution displays, or NHANES weighting/framing are missing from durable evidence",
         "treat accepted-analysis-record, verified-output, source-documentation-gap, and submission-readiness wording in article body as internal quality-record leakage, not medical journal prose",
+        "do not let corrected data-processing mistakes, raw-scale contaminated runs, or debugging history become the main manuscript story; they belong in provenance or minimal methods caveats when needed",
     ],
     "ai_reviewer_operating_system": {
         "contract_id": "medical_publication_ai_reviewer_os_v1",
@@ -120,6 +128,13 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
                 "requires_current_manuscript_restraint_decision": True,
                 "forbids_weakness_disclosure_only": True,
             },
+        },
+        "ai_native_expert_judgment": {
+            "role": "primary_quality_signal",
+            "contracts_are_floor_not_ceiling": True,
+            "may_raise_unlisted_quality_concerns": True,
+            "must_compare_against_high_quality_medical_journal_expectations": True,
+            "mechanical_checks_can_only_block_or_route": True,
         },
         "required_provenance": {
             "assessment_owner": "ai_reviewer",
@@ -195,6 +210,7 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
         raise ValueError("AI reviewer operating system ai_reviewer_required 必须是 false。")
     if contract.get("mechanical_projection_can_authorize_quality") is not False:
         raise ValueError("AI reviewer operating system 必须禁止 mechanical projection 授权质量。")
+    _require_ai_native_expert_judgment(contract)
 
     writing_layer = contract.get("target_journal_writing_layer")
     if not isinstance(writing_layer, dict):
@@ -403,6 +419,24 @@ def build_weight_contract(policy: dict[str, Any]) -> dict[str, int]:
             raise ValueError("publication critique policy weighted_dimensions.weight 必须是整数。")
         contract[field] = weight
     return contract
+
+
+def _require_ai_native_expert_judgment(contract: dict[str, Any]) -> None:
+    expert_judgment = contract.get("ai_native_expert_judgment")
+    if not isinstance(expert_judgment, dict):
+        raise ValueError("AI reviewer operating system 缺少 ai_native_expert_judgment。")
+    missing_fields = [
+        field
+        for field in AI_NATIVE_EXPERT_JUDGMENT_REQUIRED_FIELDS
+        if field not in expert_judgment
+    ]
+    if missing_fields:
+        raise ValueError("ai_native_expert_judgment 缺少字段: " + ", ".join(missing_fields))
+    if expert_judgment.get("role") != "primary_quality_signal":
+        raise ValueError("ai_native_expert_judgment role 必须是 primary_quality_signal。")
+    for field in AI_NATIVE_EXPERT_JUDGMENT_REQUIRED_FIELDS[1:]:
+        if expert_judgment.get(field) is not True:
+            raise ValueError(f"ai_native_expert_judgment {field} 必须是 true。")
 
 
 def build_revision_action_contract(policy: dict[str, Any]) -> tuple[str, ...]:

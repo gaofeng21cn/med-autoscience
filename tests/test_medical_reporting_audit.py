@@ -390,6 +390,7 @@ def test_default_structured_reporting_contract_for_time_to_event_prediction_sets
     assert "internal_quality_control_language_absent" in contract["manuscript_voice_reporting"]
     assert "verified_output_language_absent" in contract["manuscript_voice_reporting"]
     assert "author_confirmation_notes_absent_from_body" in contract["manuscript_voice_reporting"]
+    assert "invalid_analysis_history_absent_from_main_story" in contract["manuscript_voice_reporting"]
     assert "standardized_mean_differences" in contract["baseline_balance_reporting"]
     assert "competing_event_screen" in contract["time_to_event_prediction_reporting"]
 

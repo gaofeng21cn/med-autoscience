@@ -95,3 +95,7 @@ def test_structured_reporting_checklist_blocks_prediction_model_external_validat
     assert "internal_quality_control_language_absent" in checklist["manuscript_voice_reporting"]["missing_items"]
     assert "verified_output_language_absent" in checklist["manuscript_voice_reporting"]["missing_items"]
     assert "author_confirmation_notes_absent_from_body" in checklist["manuscript_voice_reporting"]["missing_items"]
+    assert (
+        "invalid_analysis_history_absent_from_main_story"
+        in checklist["manuscript_voice_reporting"]["missing_items"]
+    )

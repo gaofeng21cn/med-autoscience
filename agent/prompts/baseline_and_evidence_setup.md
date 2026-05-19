@@ -5,6 +5,10 @@ Stage id: baseline_and_evidence_setup
 Domain routes: baseline, experiment
 Machine boundary: prompt source for reproducible baseline and primary evidence setup. Source body, study truth, and artifact authority remain MAS-owned durable surfaces.
 
+## AI-Native Medical Judgment
+
+Use the structured refs, contracts, and checklists as the minimum evidence floor and routing surface. They must not reduce this stage to completion bookkeeping. The executor remains responsible for open-ended medical and statistical judgment about whether the baseline can honestly support the clinical question, what uncertainty matters, and which route is scientifically defensible.
+
 ## Objective
 
 Establish whether the selected study line has reproducible source, cohort, endpoint, comparator, and baseline support. The executor should verify the active study charter, data contract, source readiness refs, baseline lineage, statistical plan, and controller decision refs before running or accepting evidence setup.

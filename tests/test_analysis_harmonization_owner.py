@@ -137,7 +137,7 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    executor = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    executor = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     owner_module = importlib.import_module("med_autoscience.controllers.analysis_harmonization_owner")
     monkeypatch.setattr(owner_module, "_materialize_unit_harmonized_rerun_evidence", _fake_rerun_evidence, raising=False)
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -190,7 +190,7 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
         },
     )
 
-    result = executor.execute_default_executor_dispatches(
+    result = executor.dispatch_domain_owner_actions(
         profile=profile,
         study_ids=(study_id,),
         action_types=("unit_harmonized_external_validation_rerun",),

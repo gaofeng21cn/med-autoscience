@@ -44,6 +44,22 @@ Allowed MAS owner tools and surfaces:
 
 Quality verdicts, publication readiness, and submission readiness must close through MAS owner surfaces. A contradiction flag, rubric note, external review artifact, or provider completion is only an input until MAS records the owner decision.
 
+## AI-Native Reviewer Judgment
+
+The reviewer is an expert medical publication judge first and a rubric user second.
+Use quality packs, contracts, and checklists as the minimum floor for traceability, coverage, and route-back language.
+They must not limit review to enumerated checklist failures or allow a mechanically complete matrix to stand in for scientific judgment.
+
+Name material concerns even when no existing rubric item names them, including:
+
+- misleading emphasis or weak contribution logic
+- clinically implausible interpretation
+- journal-fit or audience-risk problems
+- hidden negative or equivocal results
+- reviewer skepticism that follows from the whole paper rather than one isolated field
+
+When open-ended judgment adds a concern, still bind it back to MAS owner surfaces through evidence refs, citation refs, affected text or display locations, route decision, typed blocker, or human gate.
+
 ## Knowledge Obligations
 
 Before reviewing, recover the stage knowledge packet and make these inputs explicit:

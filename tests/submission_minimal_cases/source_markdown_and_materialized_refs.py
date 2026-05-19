@@ -704,3 +704,41 @@ The exact source-code environment remains a source-documentation gap that requir
     pattern_ids = {hit["pattern_id"] for hit in prose_failure["medical_journal_prose_hits"]}
     assert "verified_output_or_source_documentation_residue" in pattern_ids
     assert "submission_placeholder_instruction_residue" in pattern_ids
+
+
+def test_build_submission_manuscript_surface_qc_blocks_invalid_analysis_history_story(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "External Validation Manuscript"
+---
+
+# Discussion
+
+The raw-scale sensitivity check showed that the earlier transported-score failure
+was a unit-harmonization lesson rather than a stable clinical finding.
+""",
+    )
+
+    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+        publication_profile="general_medical_journal",
+        source_markdown_path=source_markdown,
+        docx_path=tmp_path / "manuscript.docx",
+        pdf_path=tmp_path / "paper.pdf",
+        expected_main_figure_count=0,
+    )
+
+    failure_reasons = {item["failure_reason"] for item in manuscript_surface_qc["failures"]}
+    assert manuscript_surface_qc["status"] == "fail"
+    assert "submission_source_markdown_medical_journal_prose_residue" in failure_reasons
+    prose_failure = next(
+        item
+        for item in manuscript_surface_qc["failures"]
+        if item["failure_reason"] == "submission_source_markdown_medical_journal_prose_residue"
+    )
+    pattern_ids = {hit["pattern_id"] for hit in prose_failure["medical_journal_prose_hits"]}
+    assert "invalid_analysis_history_residue" in pattern_ids

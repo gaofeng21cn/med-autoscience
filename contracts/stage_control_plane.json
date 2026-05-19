@@ -247,6 +247,7 @@
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
         "pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "paper_reader_grounding_pack",
           "route_memory_pack",
@@ -258,6 +259,7 @@
         "role": "quality_input_and_reviewer_rubric"
       },
       "quality_pack_refs": [
+        "ai_native_expert_judgment_pack",
         "medical_claim_evidence_pack",
         "paper_reader_grounding_pack",
         "route_memory_pack",
@@ -438,6 +440,7 @@
           "stale_if_projection_source_missing": true
         },
         "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "statistical_analysis_pack",
           "reporting_guideline_pack",
@@ -651,6 +654,7 @@
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
         "pack_refs": [
+          "ai_native_expert_judgment_pack",
           "statistical_analysis_pack",
           "stop_loss_pack",
           "human_gate_pack"
@@ -660,6 +664,7 @@
         "role": "quality_input_and_reviewer_rubric"
       },
       "quality_pack_refs": [
+        "ai_native_expert_judgment_pack",
         "statistical_analysis_pack",
         "stop_loss_pack",
         "human_gate_pack"
@@ -836,6 +841,7 @@
           "stale_if_projection_source_missing": true
         },
         "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "statistical_analysis_pack",
           "reporting_guideline_pack",
@@ -1054,6 +1060,7 @@
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
         "pack_refs": [
+          "ai_native_expert_judgment_pack",
           "statistical_analysis_pack",
           "display_to_claim_pack",
           "figure_evidence_contract_pack",
@@ -1066,6 +1073,7 @@
         "role": "quality_input_and_reviewer_rubric"
       },
       "quality_pack_refs": [
+        "ai_native_expert_judgment_pack",
         "statistical_analysis_pack",
         "display_to_claim_pack",
         "figure_evidence_contract_pack",
@@ -1244,6 +1252,7 @@
           "stale_if_projection_source_missing": true
         },
         "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "statistical_analysis_pack",
           "reporting_guideline_pack",
@@ -1457,6 +1466,7 @@
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
         "pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "reporting_guideline_pack",
           "display_to_claim_pack",
@@ -1471,6 +1481,7 @@
         "role": "quality_input_and_reviewer_rubric"
       },
       "quality_pack_refs": [
+        "ai_native_expert_judgment_pack",
         "medical_claim_evidence_pack",
         "reporting_guideline_pack",
         "display_to_claim_pack",
@@ -1651,6 +1662,7 @@
           "stale_if_projection_source_missing": true
         },
         "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "statistical_analysis_pack",
           "reporting_guideline_pack",
@@ -1870,6 +1882,7 @@
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
         "pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "reporting_guideline_pack",
           "display_to_claim_pack",
@@ -1887,6 +1900,7 @@
         "role": "quality_input_and_reviewer_rubric"
       },
       "quality_pack_refs": [
+        "ai_native_expert_judgment_pack",
         "medical_claim_evidence_pack",
         "reporting_guideline_pack",
         "display_to_claim_pack",
@@ -2072,6 +2086,7 @@
           "stale_if_projection_source_missing": true
         },
         "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "statistical_analysis_pack",
           "reporting_guideline_pack",
@@ -2289,6 +2304,7 @@
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
         "pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "reporting_guideline_pack",
           "journal_response_pack",
@@ -2307,6 +2323,7 @@
         "role": "quality_input_and_reviewer_rubric"
       },
       "quality_pack_refs": [
+        "ai_native_expert_judgment_pack",
         "medical_claim_evidence_pack",
         "reporting_guideline_pack",
         "journal_response_pack",
@@ -2494,6 +2511,7 @@
           "stale_if_projection_source_missing": true
         },
         "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
           "medical_claim_evidence_pack",
           "statistical_analysis_pack",
           "reporting_guideline_pack",

@@ -523,6 +523,10 @@ def test_pre_draft_runtime_blocks_prediction_model_external_validation_first_dra
     assert "calibration_curve_with_uncertainty" in checklist["prediction_display_reporting"]["missing_items"]
     assert "weighting_policy" in checklist["survey_design_reporting"]["missing_items"]
     assert "internal_quality_control_language_absent" in checklist["manuscript_voice_reporting"]["missing_items"]
+    assert (
+        "invalid_analysis_history_absent_from_main_story"
+        in checklist["manuscript_voice_reporting"]["missing_items"]
+    )
 
 
 def test_pre_draft_runtime_missing_target_journal_layer_fails_closed_to_planning_only(

@@ -114,6 +114,23 @@ def test_publication_critique_policy_requires_future_facing_limitations_plan() -
     ]
 
 
+def test_ai_reviewer_contract_keeps_native_expert_judgment_above_quality_floor() -> None:
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    contract = build_ai_reviewer_operating_system_contract(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+
+    assert contract["ai_native_expert_judgment"] == {
+        "role": "primary_quality_signal",
+        "contracts_are_floor_not_ceiling": True,
+        "may_raise_unlisted_quality_concerns": True,
+        "must_compare_against_high_quality_medical_journal_expectations": True,
+        "mechanical_checks_can_only_block_or_route": True,
+    }
+
+
 def test_ai_reviewer_contract_fails_closed_without_future_facing_limitations_plan() -> None:
     import pytest
 
@@ -147,6 +164,23 @@ def test_ai_reviewer_contract_fails_closed_without_future_facing_limitations_out
     ]
 
     with pytest.raises(ValueError, match="future_facing_limitations_plan"):
+        build_ai_reviewer_operating_system_contract(policy)
+
+
+def test_ai_reviewer_contract_fails_closed_when_native_expert_judgment_is_missing() -> None:
+    import pytest
+
+    from med_autoscience.policies.publication_critique import (
+        DEFAULT_PUBLICATION_CRITIQUE_POLICY,
+        build_ai_reviewer_operating_system_contract,
+    )
+
+    policy = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY)
+    ai_reviewer_os = dict(DEFAULT_PUBLICATION_CRITIQUE_POLICY["ai_reviewer_operating_system"])
+    ai_reviewer_os.pop("ai_native_expert_judgment", None)
+    policy["ai_reviewer_operating_system"] = ai_reviewer_os
+
+    with pytest.raises(ValueError, match="ai_native_expert_judgment"):
         build_ai_reviewer_operating_system_contract(policy)
 
 

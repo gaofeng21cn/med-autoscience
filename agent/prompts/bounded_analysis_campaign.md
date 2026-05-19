@@ -5,6 +5,10 @@ Stage id: bounded_analysis_campaign
 Domain routes: analysis-campaign
 Machine boundary: prompt source for bounded evidence closure. Analysis outputs, evidence ledgers, runtime events, and owner receipts remain MAS-owned.
 
+## AI-Native Medical Judgment
+
+Use boards, ledgers, contracts, and checklist items as the minimum evidence floor and routing surface. They must not narrow the executor to mechanical task completion. The executor remains responsible for expert medical and statistical judgment about whether the analysis meaningfully resolves the scientific concern, exposes a weaker or negative result, or requires route-back despite a completed checklist.
+
 ## Objective
 
 Close bounded evidence gaps that block claim acceptance or reviewer pressure while staying inside the active study charter. The executor should read evidence ledger refs, failed-path history, reviewer concerns, data/source constraints, and publication-route memory refs before choosing analyses.

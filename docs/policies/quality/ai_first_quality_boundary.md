@@ -39,6 +39,9 @@
 - 对 `*_verdict`、`*_decision`、`*_authorization` 这类 surface，缺少独立 reviewer/auditor invocation、task/context record、receipt、AI reviewer record 或 quality-pack refs 时，只能 typed blocker / route-back。
 - 医学论文文体、reader flow、段落论证节奏、是否像工作汇报、claim restraint、讨论克制性等主观质量，只能由 AI reviewer-backed `medical_prose_review` 或 AI reviewer-backed `publication_eval/latest.json` 判定。
 - `是否像高质量医学论文` 可以作为 OPL Agent Lab 的自进化目标，但只能以 MAS refs-only suite 暴露 scorecard ref、evidence refs、review refs 和 improvement candidate refs。Agent Lab 不能把自身评分、脚本检查、completion summary 或 provider success 投影成 `medical_journal_prose_quality=ready`、submission readiness 或 publication quality closure。
+- Agent Lab / OPL meta-agent 的 developer patch work order 必须显式声明 `ai_native_expert_judgment_first`：AI reviewer 原生专家判断优先，contract、rubric、schema 和 deterministic guard 只定义下限、route-back 和 typed blocker，不能作为质量上限或 ready 授权。
+- 交付物反馈进入自进化 suite 时，必须跨 `review`、`analysis-campaign`、`write`、`figure-polish` 与 `publication-gate` 扫描漏洞，防止 reviewer feedback 在 stage 之间丢失、方法学 blocker 被降格为 prose repair、机械 gate 覆盖 AI reviewer 判断，或 delivery/package 状态抢跑质量 route-back。
+- internal error、debug history、runtime incident 和 provider/executor trace 只能作为 diagnostics、incident learning 或 mechanism patch evidence refs。它们不得进入论文 main story，不得支撑医学 claim，也不得替代 evidence ledger、review ledger 或 AI reviewer quality verdict。
 - 外部大模型人工评估、导师意见或审稿意见可以作为 `reviewer_revision` / task intake / reviewer feedback ref 进入该 scorecard，但它们必须回到 MAS AI reviewer workflow 和 owner route 后才能关闭质量判断；不得直接改写 `publication_eval/latest.json` 或 current package。
 - Regex / pattern / deterministic scanner 可以保留为 `mechanical_safety_flags`、evidence snippets 或内部术语泄漏安全护栏；它们不得单独触发或清除 `medical_journal_prose_style_not_met` 这类主观文体 blocker。
 - deterministic gate 可以继续阻断可验证事实缺口，例如缺文件、schema 不完整、claim-evidence 缺失、submission 包 stale、内部控制术语泄漏或 provenance 损坏。

@@ -5,6 +5,10 @@ Stage id: direction_and_route_selection
 Domain routes: scout, idea, decision
 Machine boundary: prompt source for the MAS semantic pack. Runtime truth remains in stage packets, controller decisions, evidence ledgers, review ledgers, owner receipts, and durable artifact refs.
 
+## AI-Native Medical Judgment
+
+Use the structured route contract, source refs, memory refs, and comparison criteria as the minimum floor for traceability and routing. They must not replace open-ended expert judgment about clinical importance, biological plausibility, publication value, or whether the most honest answer is to stop, narrow, or pivot.
+
 ## Objective
 
 Select the strongest medically honest research direction inside the active study boundary. The executor should read the study charter, data/source readiness refs, literature coverage, prior failed routes, publication-route memory refs, and controller state before proposing a route.

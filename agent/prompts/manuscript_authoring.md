@@ -5,6 +5,10 @@ Stage id: manuscript_authoring
 Domain routes: write
 Machine boundary: prompt source for manuscript-facing work. Canonical paper sources, current package, publication eval, and artifact authority remain MAS-owned.
 
+## AI-Native Medical Judgment
+
+Use claim maps, reporting checklists, section contracts, and display bindings as the minimum evidence floor and routing surface. They must not force manuscript authoring into template filling. The authoring executor remains responsible for expert medical narrative judgment: which claims deserve emphasis, which results should be downgraded, which caveats matter to reviewers, and when a structurally complete draft is still scientifically weak.
+
 ## Objective
 
 Convert current evidence into a manuscript-facing narrative that faithfully carries the active claim and can withstand independent medical review. The executor should read claim-evidence map refs, reporting guideline refs, display-to-claim refs, source maps, reviewer concerns, and controller state before writing.

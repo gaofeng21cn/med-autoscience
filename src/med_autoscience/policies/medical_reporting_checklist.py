@@ -97,6 +97,7 @@ MANUSCRIPT_VOICE_REPORTING_ITEMS = (
     "internal_quality_control_language_absent",
     "verified_output_language_absent",
     "author_confirmation_notes_absent_from_body",
+    "invalid_analysis_history_absent_from_main_story",
     "defensive_boundary_language_not_repetitive",
     "formal_figure_legend_language",
     "no_submission_readiness_meta_language",

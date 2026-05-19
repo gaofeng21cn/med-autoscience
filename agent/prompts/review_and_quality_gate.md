@@ -5,6 +5,10 @@ Stage id: review_and_quality_gate
 Domain routes: review, decision
 Machine boundary: prompt source for independent reviewer/auditor invocation. Quality verdicts require independent reviewer/auditor records and cannot be closed by the executor context that created the work.
 
+## AI-Native Medical Judgment
+
+Use rubrics, quality packs, contracts, and checklists as the minimum floor for traceability and route-back. They must not constrain the reviewer to enumerated checklist failures. The reviewer/auditor is expected to exercise open-ended medical publication judgment, including identifying unstated claim inflation, weak contribution logic, misleading emphasis, reader-risk, and journal-fit problems that no structured item names.
+
 ## Objective
 
 Assess whether the current manuscript, evidence, source readiness, claim boundaries, and artifact refs meet MAS medical publication quality expectations. The reviewer/auditor agent must run as an independent task with separate context, task record, and receipt.

@@ -14,6 +14,7 @@ PACK_ROLE = "quality_input_and_reviewer_rubric"
 REFRESH_POLICY = "rebuild_product_entry_manifest_before_opl_discovery"
 
 REQUIRED_STAGE_QUALITY_PACK_IDS: tuple[str, ...] = (
+    "ai_native_expert_judgment_pack",
     "medical_claim_evidence_pack",
     "statistical_analysis_pack",
     "reporting_guideline_pack",
@@ -72,6 +73,18 @@ REPORTING_STUDY_ARCHETYPES: tuple[str, ...] = (
 )
 
 _PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
+    "ai_native_expert_judgment_pack": (
+        "scout",
+        "idea",
+        "baseline",
+        "experiment",
+        "analysis-campaign",
+        "write",
+        "review",
+        "finalize",
+        "decision",
+        "journal-resolution",
+    ),
     "medical_claim_evidence_pack": ("write", "review", "finalize", "decision"),
     "statistical_analysis_pack": ("baseline", "experiment", "analysis-campaign"),
     "reporting_guideline_pack": ("write", "review", "finalize", "journal-resolution"),
@@ -89,6 +102,7 @@ _PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
 }
 
 _PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
+    "ai_native_expert_judgment_pack": ("all_medical_research_stages",),
     "medical_claim_evidence_pack": ("all_clinical_manuscripts",),
     "statistical_analysis_pack": (
         "observational_or_cohort_or_registry",
@@ -306,6 +320,7 @@ def _clean_room_absorption() -> dict[str, object]:
 
 
 _PACK_TITLES = {
+    "ai_native_expert_judgment_pack": "AI-native expert judgment pack",
     "medical_claim_evidence_pack": "Medical claim evidence pack",
     "statistical_analysis_pack": "Statistical analysis pack",
     "reporting_guideline_pack": "Reporting guideline pack",
@@ -323,6 +338,10 @@ _PACK_TITLES = {
 }
 
 _PACK_OWNER_REFS = {
+    "ai_native_expert_judgment_pack": [
+        _ref("surface_kind", "AI reviewer workflow", "expert_judgment_owner"),
+        _ref("surface_kind", "stage_executor", "stage_native_reasoning_owner"),
+    ],
     "medical_claim_evidence_pack": [
         _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "evidence_ledger"),
         _ref("workspace_locator", "paper/review/review_ledger.json", "review_ledger"),
@@ -386,6 +405,10 @@ _PACK_OWNER_REFS = {
 }
 
 _PACK_REQUIRED_REFS = {
+    "ai_native_expert_judgment_pack": [
+        _ref("surface_kind", "AI reviewer workflow", "open_expert_review_required"),
+        _ref("surface_kind", "stage_quality_pack_contract", "quality_floor_not_ceiling"),
+    ],
     "medical_claim_evidence_pack": [
         _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "required_evidence"),
         _ref("workspace_locator", "paper/review/review_ledger.json", "required_review"),

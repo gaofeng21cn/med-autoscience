@@ -5,52 +5,18 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .agent_lab_aris_followup_assurance import build_aris_followup_assurance_surfaces
+from .agent_lab_medical_manuscript_quality_parts.quality_boundary import (
+    AUTHORITY_BOUNDARY,
+    CROSS_STAGE_VULNERABILITY_AUDIT,
+    DEVELOPER_PATCH_WORK_ORDER_ID,
+    PAPER_STORY_EXCLUSION_POLICY,
+    QUALITY_JUDGMENT_BOUNDARY,
+    SELF_EVOLUTION_TARGET_REFS,
+    SUITE_RELATIVE_PATH,
+    SURFACE_KIND,
+)
 from .agent_lab_submission_assurance import build_submission_assurance_surfaces
 from .publication_aftercare import build_publication_aftercare_plan
-
-
-SURFACE_KIND = "mas_agent_lab_medical_manuscript_quality_suite"
-SUITE_RELATIVE_PATH = Path("artifacts") / "agent_lab" / "medical_manuscript_quality" / "latest_suite.json"
-AUTHORITY_BOUNDARY = {
-    "opl": "agent_lab_eval_improvement_control_plane_refs_only",
-    "mas": "publication_quality_and_artifact_authority",
-    "can_write_domain_truth": False,
-    "can_write_memory_body": False,
-    "can_authorize_domain_ready": False,
-    "can_authorize_quality_verdict": False,
-    "can_authorize_submission_readiness": False,
-    "can_mutate_domain_artifact": False,
-    "can_promote_default_agent_without_gate": False,
-}
-SELF_EVOLUTION_TARGET_REFS = [
-    "stage_policy_ref:mas/write/pre_draft_prediction_model_reporting",
-    "mechanism-edit-ref:mas/research-wiki-failed-route-memory",
-    "mechanism-edit-ref:mas/ai-reviewer-direct-evidence-gate",
-    "mechanism-edit-ref:mas/analysis-campaign-queue-routing",
-    "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
-    "mechanism-edit-ref:mas/source-provenance-owner-recovery",
-    "mechanism-edit-ref:mas/source-provenance-terminal-blocker-route-back",
-    "mechanism-edit-ref:mas/methodology-reframe-decision-owner-route",
-    "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
-    "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
-    "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection",
-    "mechanism-edit-ref:mas/claim-assurance-map-body-free-projection",
-    "mechanism-edit-ref:mas/assurance-contract-body-free-projection",
-    "mechanism-edit-ref:mas/adversarial-review-gate-body-free-projection",
-    "mechanism-edit-ref:mas/experiment-queue-recovery-body-free-projection",
-    "mechanism-edit-ref:mas/publication-aftercare-plan-body-free-projection",
-    "mechanism-edit-ref:mas/citation-audit-body-free-projection",
-    "mechanism-edit-ref:mas/kill-argument-counterargument-body-free-projection",
-    "mechanism-edit-ref:mas/submission-assurance-five-layer-gate-body-free-projection",
-    "mechanism-edit-ref:mas/effort-assurance-axes-body-free-projection",
-    "skill_ref:medical-research-write",
-    "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
-    "prompt_ref:ai_reviewer_medical_prose_quality_review",
-    "quality_contract_ref:prediction_model_first_draft_quality",
-    "regression-suite:mas/hard-methodology-unit-harmonization-route",
-    "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution",
-]
-DEVELOPER_PATCH_WORK_ORDER_ID = "oma_developer_patch_work_order_99fdc0d34111"
 
 
 def stable_medical_manuscript_quality_suite_path(*, study_root: Path) -> Path:
@@ -398,6 +364,9 @@ def _mechanism_evolution_inputs(
         "independent_ai_review_receipt_ref": f"ai-reviewer-receipt:mas/{study_id}/mechanism-direct-evidence-review",
         "version_ledger_ref": f"mechanism-version-ledger:mas/{study_id}/medical-manuscript-quality",
         "rollback_ref": "mechanism-rollback-ref:mas/agent-lab-medical-manuscript-quality",
+        "quality_judgment_boundary": dict(QUALITY_JUDGMENT_BOUNDARY),
+        "cross_stage_vulnerability_audit": dict(CROSS_STAGE_VULNERABILITY_AUDIT),
+        "paper_story_exclusion_policy": dict(PAPER_STORY_EXCLUSION_POLICY),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "forbidden_writes": [
             str(publication_eval_path),
@@ -425,6 +394,9 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
             "methodology_reframe_decision_owner_route",
             "hard_methodology_unit_harmonization_route",
             "domain_route_analysis_harmonization_owner_result_consumption",
+            "ai_native_expert_judgment_first_quality_boundary",
+            "cross_stage_vulnerability_audit_routing",
+            "internal_error_debug_history_paper_story_exclusion",
             "prediction_model_first_draft_quality_contract",
             "ai_reviewer_high_quality_medical_manuscript_rubric",
             "write_stage_pre_draft_prediction_model_reporting",
@@ -440,7 +412,13 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
             "internal quality-language purge",
             "controller read-model consumes analysis harmonization typed blocker without requeue",
             "decision owner consumes terminal source-provenance blocker into methodology reframe route",
+            "AI-native expert judgment remains primary; contracts and rubrics only block below-floor gaps",
+            "cross-stage vulnerability scan traces reviewer feedback through review, analysis, write, figure, and publication gate",
+            "internal error and debug history stay in diagnostics or incident learning, not the paper main story",
         ],
+        "quality_judgment_boundary": dict(QUALITY_JUDGMENT_BOUNDARY),
+        "cross_stage_vulnerability_audit": dict(CROSS_STAGE_VULNERABILITY_AUDIT),
+        "paper_story_exclusion_policy": dict(PAPER_STORY_EXCLUSION_POLICY),
         "evidence_refs": evidence_refs,
         "forbidden_writes": [
             "publication_eval/latest.json",

@@ -92,10 +92,34 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "source_provenance_owner_recovery" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "source_provenance_terminal_blocker_route_back" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "methodology_reframe_decision_owner_route" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    assert (
+        "ai_native_expert_judgment_first_quality_boundary"
+        in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    )
+    assert (
+        "cross_stage_vulnerability_audit_routing"
+        in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    )
+    assert (
+        "internal_error_debug_history_paper_story_exclusion"
+        in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    )
     assert task["improvement_candidate"]["target_agent_capability_gap"]["status"] == "candidate_only"
     assert "quality_contract_ref:prediction_model_first_draft_quality" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/analysis-harmonization-owner-routing" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/source-provenance-owner-recovery" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    assert (
+        "mechanism-edit-ref:mas/ai-native-expert-judgment-first-quality-boundary"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
+    assert (
+        "mechanism-edit-ref:mas/cross-stage-vulnerability-audit-routing"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
+    assert (
+        "mechanism-edit-ref:mas/internal-error-debug-history-paper-story-exclusion"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
     assert (
         "mechanism-edit-ref:mas/source-provenance-terminal-blocker-route-back"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
@@ -108,6 +132,10 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
+    assert (
+        "mechanism-edit-ref:mas/invalid-analysis-history-body-free-projection"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
     assert "hdl-harmonization-and-sensitivity" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "nhanes-survey-weighting-and-unweighted-framing" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "uncertainty-intervals-and-validation-metrics" in " ".join(task["improvement_candidate"]["evidence_refs"])
@@ -117,6 +145,28 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         "domain_route_analysis_harmonization_owner_result_consumption"
         in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     )
+    judgment_boundary = mechanism_inputs["quality_judgment_boundary"]
+    assert judgment_boundary["judgment_priority"] == "ai_native_expert_judgment_first"
+    assert judgment_boundary["contract_rubric_role"] == "floor_and_route_baseline_not_ceiling"
+    assert judgment_boundary["contracts_can_authorize_quality_ready"] is False
+    assert judgment_boundary["rubric_can_authorize_quality_ready"] is False
+    assert judgment_boundary["opl_meta_agent_can_patch_mas_repo"] is True
+    assert judgment_boundary["opl_meta_agent_can_write_study_truth"] is False
+    assert task["improvement_candidate"]["developer_patch_work_order"]["quality_judgment_boundary"] == (
+        judgment_boundary
+    )
+    vulnerability_audit = mechanism_inputs["cross_stage_vulnerability_audit"]
+    assert vulnerability_audit["audit_kind"] == "cross_stage_quality_vulnerability_scan"
+    assert "stage:mas/review" in vulnerability_audit["must_scan_stage_refs"]
+    assert "stage:mas/publication-gate" in vulnerability_audit["must_scan_stage_refs"]
+    assert "mechanical_gate_overrides_ai_reviewer_judgment" in vulnerability_audit["vulnerability_classes"]
+    assert vulnerability_audit["can_authorize_quality_ready"] is False
+    story_exclusion = mechanism_inputs["paper_story_exclusion_policy"]
+    assert story_exclusion["internal_error_debug_history_role"] == (
+        "runtime_diagnostics_and_mechanism_learning_only"
+    )
+    assert story_exclusion["paper_story_can_use_debug_history"] is False
+    assert story_exclusion["debug_history_can_authorize_quality_ready"] is False
     assert task["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert task["authority_boundary"]["can_mutate_domain_artifact"] is False
 
@@ -346,6 +396,12 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
         "source_refs": ["raw-evidence-ref:cox-transport-jsonl"],
     } in queue["items"]
     assert queue["authority_boundary"]["can_authorize_quality_verdict"] is False
+    assert inputs["developer_patch_work_order"]["quality_judgment_boundary"][
+        "requires_independent_ai_reviewer_receipt_for_quality_closure"
+    ] is True
+    assert inputs["developer_patch_work_order"]["paper_story_exclusion_policy"][
+        "forbidden_projection"
+    ] == "paper_main_story_or_medical_claim_support"
     runtime_events = inputs["runtime_event_ledger"]
     assert runtime_events["surface_kind"] == "mas_runtime_event_ledger"
     assert runtime_events["body_included"] is False
@@ -568,9 +624,13 @@ def test_medical_manuscript_quality_agent_lab_suite_records_controller_read_mode
     assert refs[-1].startswith("mechanism-defect-ref:mas/002-dm-china-us-mortality-attribution/")
     work_order = inputs["developer_patch_work_order"]
     assert "domain_route_analysis_harmonization_owner_result_consumption" in work_order["required_patch_scopes"]
+    assert "cross_stage_vulnerability_audit_routing" in work_order["required_patch_scopes"]
     assert any("analysis-harmonization-result-requeued" in ref for ref in work_order["evidence_refs"])
     assert work_order["can_modify_mas_repo"] is True
     assert work_order["can_write_study_truth"] is False
+    assert work_order["quality_judgment_boundary"]["contracts_can_authorize_quality_ready"] is False
+    assert work_order["cross_stage_vulnerability_audit"]["can_authorize_quality_ready"] is False
+    assert work_order["paper_story_exclusion_policy"]["paper_story_can_use_debug_history"] is False
     assert "publication_eval/latest.json" in work_order["forbidden_writes"]
 
 

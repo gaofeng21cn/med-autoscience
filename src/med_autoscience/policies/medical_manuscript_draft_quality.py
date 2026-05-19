@@ -134,6 +134,12 @@ PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
         r"\baccepted analysis records?\b|\bverified (?:analysis )?(?:records?|outputs?)\b|\bsource[\s-]+documentation gaps?\b",
         re.IGNORECASE,
     ),
+    (
+        "invalid_analysis_history_residue",
+        "raw-scale sensitivity / unit-harmonization lesson / contaminated analysis history",
+        r"\braw[\s-]+scale (?:sensitivity|run|result|transport|analysis)\b|\bunit[\s-]+harmonization lesson\b|\bcontaminated (?:analysis|run|result)\b|\bdata[\s-]+processing (?:mistake|error)\b|\bdebug(?:ging)? history\b",
+        re.IGNORECASE,
+    ),
 ]
 
 METHOD_LABEL_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
@@ -219,6 +225,7 @@ MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS = frozenset(
         "tool_runtime_provenance_body",
         "verified_output_or_source_documentation_residue",
         "submission_placeholder_instruction_residue",
+        "invalid_analysis_history_residue",
         "engineering_manuscript_surface_residue",
         "candidate_package_residue",
         "complexity_audit_residue",
@@ -316,6 +323,7 @@ def build_medical_prose_style_contract() -> dict[str, Any]:
             "overstated_novelty_or_best_language",
             "administrative_or_author_instruction_in_body",
             "tool_or_runtime_provenance_in_body",
+            "invalid_or_corrected_analysis_history_in_main_story",
         ],
         "source_basis": list(PROSE_STYLE_SOURCE_BASIS),
     }
@@ -600,9 +608,15 @@ def build_first_draft_manuscript_quality_contract(
                 "figure_self_explanation_paragraph",
                 "analysis_or_controller_jargon",
                 "claim_boundary_meta_language_in_body",
+                "invalid_or_corrected_analysis_history_as_main_story",
             ],
             "result_section_rule": "answer the clinical finding directly, then cite supporting figures or tables",
             "scope_boundary_rule": "state limits as clinical interpretation and limitations, not as controller notes",
+            "invalid_analysis_history_rule": (
+                "do not turn data-processing mistakes, contaminated runs, raw-scale debug outputs, or corrected "
+                "invalid analyses into the manuscript's main Results or Discussion story; retain them in provenance, "
+                "handoff, or a minimal methods caveat only when reproducibility requires it"
+            ),
         },
         "medical_prose_style_contract": build_medical_prose_style_contract(),
         "medical_manuscript_blueprint_contract": build_medical_manuscript_blueprint_contract(),
@@ -626,6 +640,7 @@ def build_first_draft_manuscript_quality_contract(
             "writer_obligations": [
                 "convert research questions into clinical findings rather than question-answer prose",
                 "separate manuscript body from submission metadata, author confirmations, and operations notes",
+                "write the main scientific story from the cleaned valid evidence rather than from corrected data-processing errors or debug history",
                 "write figure legends as reader interpretation aids rather than reviewer instructions",
                 "stage Results from cohort and endpoint profile to main finding, validation, clinical utility, and sensitivity or subgroup evidence",
                 "stage Discussion from principal finding to prior literature, interpretation, limitations, and practical next step",

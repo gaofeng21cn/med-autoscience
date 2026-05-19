@@ -71,6 +71,20 @@ Before treating write work as complete, apply [medical stage packet discipline](
 The write stage does not exist to make the quest sound finished.
 It exists to test whether the current evidence can support a stable narrative.
 
+Writing is AI-native medical authorship first and contract filling second.
+Use section contracts, claim-evidence maps, reporting checklists, and display bindings as the minimum evidence floor and routing surface.
+They must not force a template-complete manuscript when expert judgment says the story is weak, misleading, under-cited, overclaimed, or aimed at the wrong journal audience.
+
+The authoring executor should make open-ended medical writing judgments about:
+
+- which result deserves central emphasis
+- which claim should be downgraded even if a checklist item is technically present
+- which limitation changes the reader's interpretation
+- whether the contribution is strong enough for the intended publication route
+- whether narrative order, terminology, or display choice could mislead a reviewer
+
+When open-ended judgment changes the draft or route, bind it back to claim-evidence refs, reviewer concerns, section contracts, typed blockers, or route decisions.
+
 Writing should happen on a dedicated `paper/*` branch/worktree derived from the source main-experiment `run/*` branch.
 Treat that paper branch as the writing surface, and treat the parent run branch as the evidence source that writing must faithfully reflect.
 Do not run new main experiments from the paper branch; if writing exposes a missing evidence requirement, route back through `decision`, `activate_branch`, `experiment`, or `analysis-campaign`.
@@ -159,6 +173,7 @@ For prediction-model or time-to-event manuscripts, the first complete draft must
 - uncertainty and display requirements: C-statistic confidence interval, calibration intercept/slope confidence interval when available, observed/expected ratio with uncertainty, Brier score or prediction-error interval, grouped calibration or calibration curve interval, bootstrap/resampling method, visible baseline-characteristics table, visible performance table, calibration curve with uncertainty, and risk-distribution or support-overlap display
 - submission-facing display requirements: Table 1 and Table 2 must be rendered in the manuscript package rather than only cited in prose; a decision curve must not remain a main display when threshold-specific net benefit is unavailable from verified evidence
 - do not write internal quality-record phrases such as `accepted analysis records`, `verified outputs`, `source-documentation gaps`, `author confirmation before external submission`, or `submission readiness` in manuscript body text; record those as typed blockers, TODOs, or handoff notes outside the article
+- do not turn corrected data-processing mistakes, contaminated runs, raw-scale debug outputs, or unit-harmonization repair history into the main manuscript story; write Results and Discussion from the cleaned valid evidence, and keep the error history in provenance or a minimal reproducibility caveat only when needed
 - for NHANES or survey datasets, state the weighting policy, strata/cluster handling when used, or explicitly label unweighted analysis and restrict the population-inference boundary
 - Discussion and Conclusion language bounded to internal validation, risk stratification, calibration limitations, and external-validation need unless the accepted evidence explicitly supports clinical deployment
 - standard Methods subsections should be `Study design and cohort`, `Variable measurement and outcome definition`, `Model building`, `Validation, sensitivity, and stratified analyses`, and `Statistical analysis`; do not include a manuscript-internal `Reporting boundary` subsection in the main Methods text.

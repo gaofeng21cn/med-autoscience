@@ -5,6 +5,10 @@ Stage id: finalize_and_publication_handoff
 Domain routes: finalize, journal-resolution, decision
 Machine boundary: prompt source for delivery handoff. Submission readiness, artifact mutation authorization, and package authority remain MAS-owned.
 
+## AI-Native Medical Judgment
+
+Use delivery manifests, journal checklists, artifact proofs, and handoff contracts as the minimum floor for completeness and routing. They must not convert finalization into package bookkeeping. The executor remains responsible for recognizing unresolved medical quality, claim, journal-fit, or reader-risk problems even when every structured handoff item is present.
+
 ## Objective
 
 Prepare publication handoff only after independent quality review, artifact freshness, source grounding, and controller route state are current. The executor should read publication eval refs, controller decisions, artifact rebuild proof, delivery manifests, journal requirement refs, and human gate state.

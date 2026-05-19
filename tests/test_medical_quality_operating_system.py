@@ -61,6 +61,11 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
         "write_light_descriptive_first_draft"
     )
     assert "author_confirmation_placeholder" in draft_contract["manuscript_native_prose"]["forbidden_modes"]
+    assert (
+        "invalid_or_corrected_analysis_history_as_main_story"
+        in draft_contract["manuscript_native_prose"]["forbidden_modes"]
+    )
+    assert "invalid_analysis_history_rule" in draft_contract["manuscript_native_prose"]
     prose_contract = draft_contract["medical_prose_style_contract"]
     assert prose_contract["style_profile_id"] == "general_medical_journal_prose_v1"
     assert prose_contract["target_voice"] == "neutral_clinical_original_research"
@@ -71,6 +76,10 @@ def test_quality_os_selects_strobe_with_record_overlay_for_real_world_observatio
     assert "figure_or_table_as_sentence_subject" in prose_contract["results_prose"]["forbidden_patterns"]
     assert "principal_finding_then_prior_work_then_interpretation_then_limitations" in prose_contract["discussion_prose"]["paragraph_sequence"]
     assert "unsupported_no_difference_or_no_association" in prose_contract["forbidden_scientific_style"]
+    assert (
+        "invalid_or_corrected_analysis_history_in_main_story"
+        in prose_contract["forbidden_scientific_style"]
+    )
     blueprint_contract = draft_contract["medical_manuscript_blueprint_contract"]
     assert blueprint_contract["surface"] == "medical_manuscript_blueprint"
     assert blueprint_contract["required_before"] == "first_full_draft"

@@ -39,6 +39,21 @@ def test_stage_quality_contract_defines_required_pack_boundaries_and_refs() -> N
         assert any(ref["ref_kind"] in {"surface_kind", "workspace_locator", "json_pointer"} for ref in pack["required_refs"])
 
     assert packs["medical_claim_evidence_pack"]["applies_to"]["stages"] == ["write", "review", "finalize", "decision"]
+    expert_pack = packs["ai_native_expert_judgment_pack"]
+    assert "write" in expert_pack["applies_to"]["stages"]
+    assert "review" in expert_pack["applies_to"]["stages"]
+    assert expert_pack["required_refs"] == [
+        {
+            "ref_kind": "surface_kind",
+            "ref": "AI reviewer workflow",
+            "role": "open_expert_review_required",
+        },
+        {
+            "ref_kind": "surface_kind",
+            "ref": "stage_quality_pack_contract",
+            "role": "quality_floor_not_ceiling",
+        },
+    ]
     assert "paper/evidence/evidence_ledger.json" in {
         ref["ref"] for ref in packs["medical_claim_evidence_pack"]["required_refs"]
     }

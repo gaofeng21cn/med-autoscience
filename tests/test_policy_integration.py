@@ -147,6 +147,28 @@ def test_medical_surface_policy_blocks_work_report_manuscript_residue() -> None:
     assert "submission_placeholder_instruction_residue" in pattern_ids
 
 
+def test_medical_surface_policy_blocks_invalid_analysis_history_as_main_story() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+    patterns = policy.get_publication_surface_residue_patterns()
+    sample = """
+    ## Discussion
+    The raw-scale sensitivity check showed that the earlier raw-scale transport result was
+    dominated by a data-processing error. This unit-harmonization lesson defines the paper.
+    """
+
+    pattern_ids = {
+        pattern_id
+        for pattern_id, _phrase, pattern in patterns
+        if pattern.search(sample)
+    }
+
+    assert "invalid_analysis_history_residue" in pattern_ids
+    assert (
+        "invalid_analysis_history_residue"
+        in policy.medical_journal_prose_blocking_pattern_ids()
+    )
+
+
 def test_medical_surface_policy_message_names_journal_style_rewrite() -> None:
     policy = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 
