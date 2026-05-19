@@ -519,7 +519,7 @@ def _status_state(
                     execution=execution,
                 )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
-            if _apply_ai_reviewer_domain_redrive_decision(
+            if _apply_domain_transition_redrive_decision(
                 result,
                 reason=domain_redrive_reason,
                 execution=execution,

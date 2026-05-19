@@ -122,6 +122,23 @@ def _apply_ai_reviewer_domain_redrive_decision(
 ) -> bool:
     if reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
         return False
+    return _apply_domain_transition_redrive_decision(
+        status,
+        reason=reason,
+        execution=execution,
+        running_quest=running_quest,
+    )
+
+
+def _apply_domain_transition_redrive_decision(
+    status: StudyRuntimeStatus,
+    *,
+    reason: StudyRuntimeReason | None,
+    execution: dict[str, object],
+    running_quest: bool,
+) -> bool:
+    if reason is None:
+        return False
     if not status.startup_boundary_allows_compute_stage:
         status.set_decision(
             StudyRuntimeDecision.PAUSE if running_quest else StudyRuntimeDecision.BLOCKED,
@@ -159,6 +176,7 @@ def _apply_ai_reviewer_domain_redrive_decision(
 
 __all__ = [
     "_apply_ai_reviewer_domain_redrive_decision",
+    "_apply_domain_transition_redrive_decision",
     "_current_ai_reviewer_domain_redrive_reason",
     "_has_domain_transition_runtime_redrive",
     "_record_interaction_arbitration_if_required",
