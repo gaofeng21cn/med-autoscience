@@ -4,6 +4,11 @@ Status: `landed read-only parity contract`
 Owner: `MedAutoScience runtime observation refs + Product Projection`
 Date: `2026-05-08`
 Contract ID: `live-console-parity`
+Purpose: `live_console_clean_room_parity_provenance`
+State: `history_supported_runtime_reference`
+Machine boundary: 本文是人读 parity/provenance 记录。当前机器真相继续归 `contracts/test-lane-manifest.json` 的 `live-console-parity` / `terminal-attach-gate` lane、Live Console UI contract、MAS runtime/controller surfaces、Portal/Console generated artifacts 和真实 workspace evidence。
+
+Lifecycle note: 当前 Live Console 展示合同从 [MAS Live Console UI Contract](live_console_ui_contract.md) 读取；本文保留 clean-room parity 背景、实施 lane 和验收脉络，不作为新的 active implementation queue。旧 MDS WebUI、resident daemon、WebSocket owner、bundle、assets 或 contributor footprint 只能作为 history/provenance/reference 读取。
 
 ## 目标
 

@@ -1,6 +1,11 @@
 # Legacy MedDeepScientist Fork Intake Guide
 
-这份文档定义旧 `med-deepscientist` fork 在显式 legacy maintenance 场景下如何吸收 `DeepScientist` 上游更新，以及 `MedAutoScience` 如何对这类吸收做兼容审计。
+Owner: `MedAutoScience`
+Purpose: `legacy_mds_fork_intake_reference`
+State: `explicit_legacy_reference_only`
+Machine boundary: 本文是人读 legacy fork 维护参考。机器真相继续归 MAS runtime/controller/quality/artifact surfaces、source provenance records、archive/import ledgers、parity fixtures、explicit legacy audit receipts 和外部 fork 自己的 audit surface。
+
+这份文档定义旧 `med-deepscientist` fork 在显式 legacy maintenance 场景下如何吸收 `DeepScientist` 上游更新，以及 `MedAutoScience` 如何对这类吸收做 legacy boundary audit。
 
 当前默认学习入口已经迁移到 `MAS` 直接学习 upstream `DeepScientist`：见 [DeepScientist Latest-Update Learning Protocol](./deepscientist_latest_update_learning_protocol.md)。本文只适用于用户明确要求维护外部 `med-deepscientist` checkout、刷新 legacy source archive、补 parity fixture 或执行 backend/restore/import diagnostic 的情况。
 

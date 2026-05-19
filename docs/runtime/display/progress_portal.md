@@ -2,12 +2,15 @@
 
 Status: `landed runtime read-model surface`
 Owner: `MedAutoScience Product Projection + Runtime OS`
+Purpose: `progress_portal_display_contract`
+State: `active_runtime_display_contract`
+Machine boundary: 本文是人读展示合同。机器真相继续归 MAS controller/runtime surfaces、Progress Portal payload、product-entry manifest、sidecar receipt、generated HTML/artifact refs、owner receipts 和真实 workspace evidence。
 Related contract: `live-console-parity`
 Related focused lane: `portal-route-decision-trail`
 
 ## 入口结论
 
-`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务。它负责 progress / status / blocker / artifact pickup，不负责 terminal attach 或日志流；旧 MDS WebUI 的实时 console 能力由 [MAS Live Console 与 MDS WebUI Parity 落地计划](mas_live_console_mds_webui_parity_plan.md) 和 [MAS Live Console UI Contract](live_console_ui_contract.md) 承接。Progress Portal 给每个 MAS workspace 一个稳定位置：
+`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务。它负责 progress / status / blocker / artifact pickup，不负责 terminal attach 或日志流；旧 MDS WebUI 的实时 console 能力由 [MAS Live Console UI Contract](live_console_ui_contract.md) 承接，[MAS Live Console 与 MDS WebUI Parity 落地计划](mas_live_console_mds_webui_parity_plan.md) 只保留 clean-room parity provenance。Progress Portal 给每个 MAS workspace 一个稳定位置：
 
 ```text
 ops/mas/progress/index.html

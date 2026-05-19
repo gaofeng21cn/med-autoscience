@@ -1,5 +1,10 @@
 # MedDeepScientist 参考材料
 
+Owner: `MedAutoScience`
+Purpose: `mds_reference_family_index`
+State: `support_reference`
+Machine boundary: 本目录是人读参考索引。机器真相继续归 MAS runtime/controller/quality/artifact surfaces、source provenance records、archive/import ledgers、parity fixtures、explicit legacy audit receipts 和真实 workspace evidence。
+
 本目录保存 MDS 学习、解构、upstream intake、provenance 和历史/迁移期参考材料。
 
 DeepScientist latest-update learning 现在由 `MAS` 直接面向 upstream 执行。下面的 policy/protocol 是 active owner surface；`MDS` 只在显式 legacy diagnostic、source archive、parity fixture 或 provenance 审计场景下出现。dated intake 记录保存在 `docs/history/program/`，作为已完成轮次的快照。

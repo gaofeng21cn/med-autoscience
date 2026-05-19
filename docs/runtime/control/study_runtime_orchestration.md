@@ -1,5 +1,10 @@
 # Study Runtime Orchestration
 
+Owner: `MedAutoScience domain runtime control`
+Purpose: `study_runtime_orchestration_contract`
+State: `active_runtime_control_support`
+Machine boundary: 本文是人读 runtime control contract。机器真相继续归 MAS controller/runtime surfaces、CLI/MCP/API payload、sidecar receipt、runtime/controller durable artifacts、contracts 和真实 workspace evidence；OPL provider/queue/attempt/runner 真相归 OPL Framework。
+
 这份文档把 `MedAutoScience` 当前受控 study runtime orchestration 的最小稳定 contract 明确下来。
 
 目标不是把 `study_runtime_router` 的每个内部 helper 都文档化，而是说明：
@@ -72,7 +77,7 @@
   - 负责 study YAML 读取、study root / study id 解析，以及 execution payload 归一化
 - [`src/med_autoscience/controllers/study_runtime_transport.py`](../../../src/med_autoscience/controllers/study_runtime_transport.py)
   - 负责 `managed_runtime_transport` 相关的 transport I/O seam，把 MAS Runtime OS / managed backend 调用收口为独立内部层
-  - 薄层 consumer / test shim 至少可以通过 `managed_runtime_transport` 或 `managed_runtime_backend` 绑定默认 backend
+  - 薄层 consumer / test shim 只绑定 MAS domain runtime transport adapter；不能把 `managed_runtime_transport` 或 `managed_runtime_backend` 写成 MAS generic default backend owner
   - 旧 `med_deepscientist_transport` alias 已退役；controller / router / test patch target 统一使用 `managed_runtime_transport`
 `study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution / transport helper。
 因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。

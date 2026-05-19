@@ -206,7 +206,7 @@
 
 `MedAutoScience` 继续保持下面的运行形态：
 
-- `MAS Runtime OS` 持有默认 runtime state、event、recovery 与 quest lifecycle
+- `MAS Runtime OS` 持有 domain runtime state、event refs、recovery judgment、owner receipt 和 quest lifecycle projection；generic attempt/queue/provider lifecycle 归 OPL
 - 默认 outer supervision scheduler owner 是 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider`；MAS local scheduler surface 已物理退役为 tombstone/provenance refs，不再每 `300` 秒调用 MAS one-shot supervision tick，也不再暴露公开 status/remove/ensure command；Hermes gateway cron 只在显式选择时作为 legacy diagnostic adapter
 - `MedAutoScience` 作为 tick-driven controller / read-model owner
 - 新增 `study_progress` 作为只读 progress/watch/report projection
@@ -219,7 +219,7 @@
 
 来持续刷新前台时间线。控制面仍由现有 runtime/control surface 承担，前台只读投影负责解释当前状态和人类 gate 边界。
 
-这不是旧 MDS resident daemon 的 1:1 行为复刻。默认 MAS 监管是 scheduler-bound one-shot tick；它能满足日常进度与恢复投影，但不会提供 MDS WebSocket terminal streaming、connector background threads 或 in-memory session store。行为差异见 [MDS Behavior Equivalence Gap Matrix](../../references/mds-parity/mds_behavior_equivalence_gap_matrix.md)。
+这不是旧 MDS resident daemon 的 1:1 行为复刻。默认在线监管 owner 是 OPL provider/runtime manager；MAS 只提供 domain supervision read model、owner receipt、typed blocker 和 direct/local 诊断投影。该组合能满足日常进度与恢复投影，但不会恢复 MDS WebSocket terminal streaming、connector background threads 或 in-memory session store。行为差异见 [MDS Behavior Equivalence Gap Matrix](../../references/mds-parity/mds_behavior_equivalence_gap_matrix.md)。
 
 ## 7. MAS Progress Portal 入口
 

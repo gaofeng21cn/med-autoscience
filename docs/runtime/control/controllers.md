@@ -94,7 +94,7 @@
 
 - `backend_audit`
   - 不直接执行升级或把外部 MDS 恢复成默认 runtime
-  - 统一检查 repo 配置、Git 状态、workspace contract、医学 overlay 状态和 legacy compatibility surface
+  - 统一检查 repo 配置、Git 状态、workspace contract、医学 overlay 状态和 legacy provenance/audit surface
   - 输出机器可读 decision，供 Agent 判断是否进入 explicit archive import、backend audit、parity check、upstream intake 或 MAS-side capability absorption
 
 对于 managed study runtime，当前 controller 已明确分成两层：

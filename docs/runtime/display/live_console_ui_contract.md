@@ -2,6 +2,9 @@
 
 Status: `landed MAS-native display + terminal attach MVP contract`
 Owner: `MedAutoScience runtime observation read-model + terminal attach owner gate`
+Purpose: `live_console_display_and_terminal_attach_contract`
+State: `active_runtime_display_contract`
+Machine boundary: 本文是人读展示合同。机器真相继续归 `contracts/test-lane-manifest.json`、MAS runtime/controller surfaces、Live Console read model、terminal attach owner contract、Portal/Console generated artifacts 和真实 workspace evidence。
 Related contract: `live-console-parity`
 Related focused lane: `terminal-attach-gate`
 

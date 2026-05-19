@@ -1,5 +1,10 @@
 # OPL Managed Runtime Three-Layer Contract
 
+Owner: `MedAutoScience integration reference`
+Purpose: `opl_managed_runtime_boundary_reference`
+State: `support_reference`
+Machine boundary: 本文是 MAS 仓内的人读 integration reference。当前机器真相继续归 OPL provider/runtime contracts、MAS product-entry manifest、sidecar export/dispatch receipt、runtime/controller durable surfaces、contracts 和真实 workspace evidence。
+
 这份文档冻结当前 `OPL` 系列仓在托管运行时上的理想统一分层。
 
 目标不是立刻把三个仓抽成一个共享代码包，而是先把跨仓不该再漂移的 contract 写死。
@@ -18,11 +23,11 @@
 对应到当前医学线：
 
 - `MAS supervision scheduler contract`
-  - 默认消费 OPL scheduler replacement；MAS `local` LaunchAgent 只作为显式 legacy diagnostic / cleanup adapter，Hermes-Agent 仅在显式 hosted/runtime target 时作为 legacy diagnostic adapter
+  - 默认消费 OPL scheduler replacement；MAS `local` LaunchAgent 只作为 tombstone/provenance 读取，不再作为 active diagnostic bridge 或 cleanup command；Hermes-Agent 只在显式非默认 executor/proof lane 或历史 provenance 中出现
 - `MedAutoScience`
   - medical supervision / publication governance / progress truth owner
 - `Codex CLI` / MAS route-selected executor
-  - 默认 concrete executor；`MedDeepScientist` 只保留为 frozen source archive、backend audit、upstream intake 或 parity oracle reference
+  - 默认 concrete executor；`MedDeepScientist` 只保留为 frozen source archive、backend audit、upstream intake 或 parity oracle reference，不作为 current executor
 
 ## 为什么必须这样切
 
@@ -43,7 +48,7 @@
 
 允许：
 
-- 持有 gateway / scheduler / cron / hosted run substrate
+- 持有 provider-backed attempt、queue、wakeup、retry/dead-letter、human-gate transport、scheduler lifecycle 和 hosted run substrate
 - 管 session / run / watch / recovery substrate
 - 提供长期在线托管能力
 - 在显式选择时接入非默认 executor/proof lane；不得把旧 Hermes hosted/runtime provider 恢复成 production substrate
@@ -87,11 +92,11 @@
 ### MedAutoScience
 
 - `MAS supervision scheduler contract`
-  - OPL scheduler replacement default / explicit legacy local diagnostic adapter / explicit Hermes executor-proof diagnostic adapter
+  - OPL scheduler replacement default / local tombstone-provenance / explicit Hermes executor-proof reference
 - `MedAutoScience`
   - medical supervision / publication governance / workspace cockpit / progress truth
-- `MedDeepScientist`
-  - research executor
+- `Codex CLI` / route-selected explicit executor
+  - current executor path；`MedDeepScientist` 只作 provenance、fixture、backend audit、upstream learning 或 parity oracle reference
 
 ### RedCube AI
 
