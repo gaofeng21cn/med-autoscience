@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
+
+from med_autoscience.policies.medical_manuscript_draft_quality import (
+    PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS,
+)
 
 
 SCHEMA_VERSION = 1
@@ -32,6 +37,12 @@ _AUTHORITY_CLAIM_BLOCKERS = {
     "current_package_write_authorized": "current_package_write_not_allowed",
     "can_write_current_package": "current_package_write_not_allowed",
 }
+_MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset({"manuscript_story_repair"})
+_MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
+    Path("paper/draft.md"),
+    Path("paper/build/review_manuscript.md"),
+)
+_MANUSCRIPT_STORY_BLOCKING_PATTERN_IDS = frozenset({"invalid_analysis_history_residue"})
 
 
 def stable_repair_execution_evidence_path(*, study_root: Path) -> Path:
@@ -73,6 +84,12 @@ def build_repair_execution_evidence(
         changed_artifact_refs=changed_artifact_refs,
     )
     meaningful_delta = bool(valid_changed_refs)
+    manuscript_surface_hygiene = _manuscript_surface_hygiene(
+        study_root=resolved_study_root,
+        work_unit_id=work_unit_id,
+    )
+    if manuscript_surface_hygiene["status"] == "blocked":
+        meaningful_delta = False
 
     resolved_gate_replay_target = (
         _text(gate_replay_target)
@@ -95,6 +112,7 @@ def build_repair_execution_evidence(
         blockers.extend(ref_blockers)
     if not meaningful_delta and not controller_progress_delta:
         blockers.append("canonical_artifact_delta_missing")
+    blockers.extend(manuscript_surface_hygiene.get("blockers") or [])
 
     evidence_ledger_required = meaningful_delta
     review_ledger_required = meaningful_delta
@@ -153,7 +171,11 @@ def build_repair_execution_evidence(
         "review_finding": finding,
         "source_refs": normalized_source_refs,
         "canonical_artifact_delta": {
-            "status": "fresh" if meaningful_delta else "missing",
+            "status": "fresh"
+            if meaningful_delta
+            else "blocked"
+            if manuscript_surface_hygiene["status"] == "blocked"
+            else "missing",
             "meaningful_artifact_delta": meaningful_delta,
             "changed_artifact_ref_count": len(valid_changed_refs),
             "excluded_artifact_ref_count": len(excluded_refs),
@@ -181,6 +203,7 @@ def build_repair_execution_evidence(
         "ai_reviewer_recheck_required": ai_reviewer_recheck_required,
         "ai_reviewer_recheck_done": ai_reviewer_recheck_done,
         "ai_reviewer_recheck_request_ref": normalized_ai_recheck_ref,
+        "manuscript_surface_hygiene": manuscript_surface_hygiene,
         "progress_delta_candidate": progress_delta_candidate,
         "idempotency_key": idempotency_key,
         "source_fingerprint": source_fingerprint,
@@ -387,6 +410,65 @@ def _default_review_ledger_ref(study_root: Path) -> str | None:
 def _default_ai_reviewer_recheck_ref(study_root: Path) -> str | None:
     path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
     return str(path.resolve()) if path.exists() else None
+
+
+def _manuscript_surface_hygiene(*, study_root: Path, work_unit_id: str) -> dict[str, Any]:
+    required = work_unit_id in _MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS
+    if not required:
+        return {"required": False, "status": "not_applicable", "surfaces": [], "hits": [], "blockers": []}
+    surfaces = _existing_manuscript_story_surfaces(study_root=study_root)
+    hits = _manuscript_surface_residue_hits(surfaces)
+    return {
+        "required": True,
+        "status": "blocked" if hits else "clear",
+        "surfaces": [str(path.resolve()) for path in surfaces],
+        "hits": hits,
+        "blockers": ["invalid_analysis_history_residue_present"] if hits else [],
+    }
+
+
+def _existing_manuscript_story_surfaces(*, study_root: Path) -> list[Path]:
+    surfaces: list[Path] = []
+    for relative_path in _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS:
+        path = (study_root / relative_path).expanduser().resolve()
+        if path.exists() and path.is_file():
+            surfaces.append(path)
+    return surfaces
+
+
+def _manuscript_surface_residue_hits(surfaces: Iterable[Path]) -> list[dict[str, Any]]:
+    patterns = [
+        (pattern_id, phrase, re.compile(pattern, flags=flags))
+        for pattern_id, phrase, pattern, flags in PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS
+        if pattern_id in _MANUSCRIPT_STORY_BLOCKING_PATTERN_IDS
+    ]
+    hits: list[dict[str, Any]] = []
+    for surface in surfaces:
+        try:
+            text = surface.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            for pattern_id, phrase, compiled in patterns:
+                for match in compiled.finditer(line):
+                    hits.append(
+                        {
+                            "path": str(surface.resolve()),
+                            "location": f"line {line_number}",
+                            "pattern_id": pattern_id,
+                            "phrase": phrase,
+                            "excerpt": _excerpt_around(line, match.start(), match.end()),
+                        }
+                    )
+    return hits
+
+
+def _excerpt_around(line: str, start: int, end: int, *, radius: int = 80) -> str:
+    lower = max(0, start - radius)
+    upper = min(len(line), end + radius)
+    prefix = "..." if lower > 0 else ""
+    suffix = "..." if upper < len(line) else ""
+    return f"{prefix}{line[lower:upper].strip()}{suffix}"
 
 
 def _is_canonical_delta_ref(*, study_root: Path, path: Path) -> bool:
