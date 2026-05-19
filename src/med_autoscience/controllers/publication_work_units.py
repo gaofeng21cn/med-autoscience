@@ -573,6 +573,7 @@ def _append_specificity_target_repair_units(
         str(item.get("target_kind") or "").strip()
         for item in target_status.get("targets") or []
         if isinstance(item, Mapping)
+        and str(item.get("blocking_reason") or "").strip() not in _AUTHORITY_AND_DELIVERY_BLOCKERS
     }
     if target_kinds & {"claim", "metric", "source_path", "table"}:
         _append_unit_once(

@@ -165,6 +165,211 @@ def test_build_runtime_watch_outer_loop_tick_request_routes_quality_repair_batch
     ]
 
 
+def test_ai_reviewer_currentness_preempts_stale_methodology_intake_and_repair_batch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    _write_charter(study_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::001-risk::quest-001::2026-05-19T17:55:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-05-19T17:55:00+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::001-risk::v1",
+                "publication_objective": "risk stratification external validation",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+            },
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "policy_id": "publication_gate_projection_v1",
+                "source_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+                "ai_reviewer_required": True,
+                "mechanical_projection_used_as_quality_authority": False,
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+                "summary": "Bundle-stage blockers remain; subjective prose quality needs AI reviewer.",
+                "stop_loss_pressure": "watch",
+            },
+            "quality_assessment": {
+                "clinical_significance": {
+                    "status": "ready",
+                    "summary": "Clinical framing is ready.",
+                    "evidence_refs": [str(study_root / "paper")],
+                },
+                "evidence_strength": {
+                    "status": "blocked",
+                    "summary": "Publication gate still reports evidence and delivery blockers.",
+                    "evidence_refs": [str(study_root / "paper")],
+                },
+                "novelty_positioning": {
+                    "status": "ready",
+                    "summary": "Novelty framing is ready.",
+                    "evidence_refs": [str(study_root / "paper")],
+                },
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": "Mechanical projection cannot authorize medical journal prose quality.",
+                    "evidence_refs": [str(study_root / "paper")],
+                },
+                "human_review_readiness": {
+                    "status": "blocked",
+                    "summary": "Human review waits for AI reviewer prose quality and gate closure.",
+                    "evidence_refs": [str(study_root / "paper")],
+                },
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "must_fix",
+                    "summary": "stale_submission_minimal_authority",
+                    "evidence_refs": [str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::return_to_controller::stale-submission",
+                    "action_type": "return_to_controller",
+                    "priority": "now",
+                    "reason": "Stale submission projection needs gate specificity.",
+                    "evidence_refs": [
+                        str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+                    ],
+                    "requires_controller_decision": True,
+                    "work_unit_fingerprint": "publication-blockers::stale-submission",
+                    "next_work_unit": {
+                        "unit_id": "gate_needs_specificity",
+                        "lane": "controller",
+                        "summary": "Ask the publication gate to identify concrete targets.",
+                    },
+                    "blocking_work_units": [
+                        {
+                            "unit_id": "gate_needs_specificity",
+                            "lane": "controller",
+                            "summary": "Ask the publication gate to identify concrete targets.",
+                        }
+                    ],
+                    "specificity_targets": [
+                        {
+                            "target_kind": "claim",
+                            "target_id": "claim_evidence_map",
+                            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                            "blocking_reason": "stale_submission_minimal_authority",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    gate_report = {
+        "status": "blocked",
+        "allow_write": False,
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "stale_study_delivery_mirror",
+            "medical_publication_surface_blocked",
+            "submission_hardening_incomplete",
+            "submission_surface_qc_failure_present",
+        ],
+        "current_required_action": "complete_bundle_stage",
+        "supervisor_phase": "bundle_stage_blocked",
+        "bundle_tasks_downstream_only": False,
+        "medical_publication_surface_status": "blocked",
+        "submission_minimal_authority_status": "stale_source_changed",
+        "study_delivery_status": "stale_source_changed",
+    }
+    stale_analysis_action = {
+        "action_id": "quality-repair-batch::stale-analysis",
+        "action_type": "bounded_analysis",
+        "priority": "now",
+        "reason": "Stale batch route must not override AI reviewer currentness.",
+        "route_target": "analysis-campaign",
+        "route_key_question": "analysis_claim_evidence_repair",
+        "route_rationale": "Old task-intake methodology route residue.",
+        "requires_controller_decision": True,
+        "controller_action_type": "run_quality_repair_batch",
+        "next_work_unit": {
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+        },
+        "blocking_work_units": [
+            {
+                "unit_id": "analysis_claim_evidence_repair",
+                "lane": "analysis-campaign",
+                "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+            }
+        ],
+        "work_unit_fingerprint": "publication-blockers::stale-analysis",
+    }
+    monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
+    monkeypatch.setattr(
+        module.publication_gate_controller,
+        "build_gate_state",
+        lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
+    )
+    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(module, "recommended_task_intake_action", lambda **_: stale_analysis_action)
+    monkeypatch.setattr(module.quality_repair_batch, "build_quality_repair_batch_recommended_action", lambda **_: stale_analysis_action)
+    monkeypatch.setattr(module.gate_clearing_batch, "build_gate_clearing_batch_recommended_action", lambda **_: None)
+
+    request = module.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "quest_status": "active",
+            "runtime_liveness_status": "live",
+            "active_run_id": "mas-run-001",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_blocked",
+                "current_required_action": "complete_bundle_stage",
+                "bundle_tasks_downstream_only": False,
+                "publication_gate_allows_direct_write": False,
+            },
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "continue_same_line"
+    assert request["route_target"] == "review"
+    assert request["controller_actions"] == [
+        {
+            "action_type": "return_to_ai_reviewer_workflow",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+    assert request["work_unit_fingerprint"] == (
+        "domain-transition::ai_reviewer_re_eval::ai_reviewer_recheck"
+    )
+    assert request["next_work_unit"]["unit_id"] == "ai_reviewer_recheck"
+
+
 def test_quality_repair_batch_preserves_ai_reviewer_methodology_analysis_work_unit(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
     profile = make_profile(tmp_path)

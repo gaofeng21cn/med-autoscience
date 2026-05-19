@@ -149,7 +149,8 @@ def methodology_analysis_route_preempts_ai_reviewer_recheck(
     task_intake_action: dict[str, Any] | None,
     publication_eval_payload: dict[str, Any],
 ) -> bool:
-    return domain_transition_decision_type == "ai_reviewer_re_eval" and (
-        methodology_analysis_route_action(task_intake_action)
-        or publication_eval_has_methodology_analysis_route(publication_eval_payload)
+    _ = task_intake_action
+    return (
+        domain_transition_decision_type == "ai_reviewer_re_eval"
+        and publication_eval_has_methodology_analysis_route(publication_eval_payload)
     )

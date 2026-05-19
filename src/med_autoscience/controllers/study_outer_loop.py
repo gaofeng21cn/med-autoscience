@@ -431,12 +431,16 @@ def build_runtime_watch_outer_loop_tick_request(
             )
             else None
         )
-        if domain_transition_action is not None:
+        quality_repair_batch_preempts_task_intake = _quality_repair_batch_preempts_task_intake(batch_action)
+        domain_transition_preempts_quality_batch = domain_transition_decision_type != "publication_gate_blocker"
+        if domain_transition_action is not None and domain_transition_preempts_quality_batch:
             recommended_action = domain_transition_action
         elif startup_freshness_gate and batch_action is not None:
             recommended_action = batch_action
-        elif _quality_repair_batch_preempts_task_intake(batch_action):
+        elif quality_repair_batch_preempts_task_intake:
             recommended_action = batch_action
+        elif domain_transition_action is not None:
+            recommended_action = domain_transition_action
         elif submission_milestone_preempts_bundle_finalize:
             recommended_action = live_submission_milestone_autopark_action
         elif bundle_stage_finalize_action is not None:
@@ -459,6 +463,7 @@ def build_runtime_watch_outer_loop_tick_request(
             recommended_action = _recommended_publication_eval_action(publication_eval_payload)
         if (
             profile is not None
+            and domain_transition_action is None
             and task_intake_action is None
             and domain_transition_decision_type != "delivered_package_handoff"
         ):
