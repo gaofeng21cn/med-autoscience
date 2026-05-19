@@ -43,6 +43,17 @@ _AI_REVIEWER_REQUIRED_REVIEWER_OS_FIELDS = (
     "route_back_decision",
     "future_facing_limitations_plan",
 )
+_MEDICAL_PROSE_REVIEW_CURRENTNESS_ERRORS = frozenset(
+    {
+        "medical_prose_review_request_digest_missing",
+        "medical_prose_review_request_digest_mismatch",
+        "medical_prose_review_manuscript_ref_missing",
+        "medical_prose_review_manuscript_digest_missing",
+        "medical_prose_review_manuscript_ref_mismatch",
+        "medical_prose_review_manuscript_digest_mismatch",
+        "medical_prose_review_reviewer_os_manuscript_ref_mismatch",
+    }
+)
 
 
 def _text(value: object) -> str | None:
@@ -52,6 +63,17 @@ def _text(value: object) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _string_items(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for item in value:
+        text = _text(item)
+        if text is not None:
+            items.append(text)
+    return items
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:
@@ -281,6 +303,35 @@ def _paper_authority_clean_migration_blocker(*, study_root: Path, exc: Exception
     return None
 
 
+def _medical_prose_review_currentness_blocker(*, study_root: Path, exc: Exception, request_path: Path) -> dict[str, Any] | None:
+    error = str(exc)
+    if error not in _MEDICAL_PROSE_REVIEW_CURRENTNESS_ERRORS:
+        return None
+    prose_request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    return _blocked_ai_reviewer_execution(
+        apply=True,
+        reason="medical_prose_review_request_rehydrate_required",
+        request_path=request_path,
+        next_owner="ai_reviewer",
+        required_input_surface=str(prose_request_path),
+        error=error,
+        owner_result={
+            "surface_kind": "medical_prose_review_currentness_blocker",
+            "authority_source_signature": "ai_reviewer_publication_eval_workflow",
+            "currentness_error": error,
+            "stale_medical_prose_review_reuse_allowed": False,
+            "quality_verdict_written": False,
+            "submission_package_regenerated": False,
+            "next_owner": "ai_reviewer",
+            "next_required_actions": [
+                "materialize_current_medical_prose_review_request",
+                "produce_ai_reviewer_medical_prose_review_against_current_request",
+                "return_to_ai_reviewer_workflow",
+            ],
+        },
+    )
+
+
 def execute_artifact_display_materialization(
     *,
     profile: WorkspaceProfile,
@@ -409,6 +460,13 @@ def execute_ai_reviewer_workflow(
         )
         if clean_migration_blocker is not None:
             return clean_migration_blocker
+        currentness_blocker = _medical_prose_review_currentness_blocker(
+            study_root=study_root,
+            exc=exc,
+            request_path=request_path,
+        )
+        if currentness_blocker is not None:
+            return currentness_blocker
         payload = _blocked_ai_reviewer_execution(apply=True, reason="ai_reviewer_workflow_failed", request_path=request_path)
         payload["error"] = str(exc)
         return payload
@@ -649,6 +707,21 @@ def _ai_reviewer_record_for_execution(
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     current_record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
     request_record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
+    lifecycle = _mapping(request.get("request_lifecycle"))
+    lifecycle_blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if lifecycle_blocked_reason == "ai_reviewer_record_stale_after_unit_harmonized_rerun":
+        return {}, {
+            "reason": lifecycle_blocked_reason,
+            "payload": {
+                "stale_record_ref": _text(lifecycle.get("stale_record_ref")),
+                "required_currentness_refs": _string_items(lifecycle.get("required_currentness_refs")),
+                "next_required_actions": [
+                    "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+                    "rematerialize_ai_reviewer_request",
+                    "return_to_ai_reviewer_workflow",
+                ],
+            },
+        }
 
     if request_record:
         record_blocker = _request_record_blocker(request_record)

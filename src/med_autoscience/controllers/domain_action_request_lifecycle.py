@@ -29,6 +29,7 @@ AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES = (
 AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB = (
     "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
 )
+ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
 AI_REVIEWER_REQUIRED_QUALITY_DIMENSIONS = (
     "clinical_significance",
     "evidence_strength",
@@ -222,6 +223,73 @@ def _ai_reviewer_publication_eval_record_valid(payload: Mapping[str, Any]) -> bo
     return isinstance(future_plan, list) and bool(future_plan)
 
 
+def _resolved_text_ref(*, study_root: Path, value: object) -> str | None:
+    text = _text(value)
+    if not text:
+        return None
+    candidate = Path(text).expanduser()
+    if not candidate.is_absolute():
+        candidate = study_root / candidate
+    return str(candidate.resolve())
+
+
+def _analysis_harmonization_currentness_refs(*, study_root: Path) -> list[str]:
+    result_path = (study_root / ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH).resolve()
+    result = _read_json_object(result_path)
+    if not result or result.get("unit_harmonized_rerun_completed") is not True:
+        return []
+    refs = [str(result_path)]
+    rerun_ref = _resolved_text_ref(study_root=study_root, value=result.get("rerun_evidence_ref"))
+    if rerun_ref:
+        refs.append(rerun_ref)
+    return refs
+
+
+def _record_source_refs(*, study_root: Path, record: Mapping[str, Any]) -> set[str]:
+    refs: set[str] = set()
+    provenance = _mapping(record.get("assessment_provenance"))
+    candidates = [
+        *(_string_items(provenance.get("source_refs"))),
+        *(_string_items(record.get("source_refs"))),
+        *(_string_items(record.get("evidence_refs"))),
+    ]
+    quality_assessment = record.get("quality_assessment")
+    if isinstance(quality_assessment, Mapping):
+        for dimension_payload in quality_assessment.values():
+            candidates.extend(
+                ref
+                for ref in _string_items(_mapping(dimension_payload).get("evidence_refs"))
+            )
+    for item in candidates:
+        resolved = _resolved_text_ref(study_root=study_root, value=item)
+        if resolved:
+            refs.add(resolved)
+    return refs
+
+
+def _record_missing_currentness_refs(
+    *,
+    study_root: Path,
+    record: Mapping[str, Any],
+) -> list[str]:
+    required_refs = _analysis_harmonization_currentness_refs(study_root=study_root)
+    if not required_refs:
+        return []
+    source_refs = _record_source_refs(study_root=study_root, record=record)
+    return [ref for ref in required_refs if ref not in source_refs]
+
+
+def _string_items(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for item in value:
+        text = _text(item)
+        if text:
+            items.append(text)
+    return items
+
+
 def _latest_ai_reviewer_publication_eval_record(
     *,
     study_root: Path,
@@ -240,16 +308,45 @@ def _latest_ai_reviewer_publication_eval_record(
 
 def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(packet)
-    if payload.get("ai_reviewer_record") or payload.get("publication_eval_record") or payload.get("record"):
+    existing_record = _mapping(payload.get("ai_reviewer_record") or payload.get("publication_eval_record") or payload.get("record"))
+    if existing_record:
+        missing_currentness_refs = _record_missing_currentness_refs(study_root=study_root, record=existing_record)
+        if missing_currentness_refs:
+            lifecycle = dict(_mapping(payload.get("request_lifecycle")))
+            lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+            lifecycle["stale_record_ref"] = _text(payload.get("publication_eval_record_ref"))
+            lifecycle["required_currentness_refs"] = missing_currentness_refs
+            payload["request_lifecycle"] = lifecycle
+            payload.pop("ai_reviewer_record", None)
+            payload.pop("publication_eval_record", None)
+            payload.pop("record", None)
+            payload.pop("publication_eval_record_ref", None)
+            return payload
+        lifecycle = dict(_mapping(payload.get("request_lifecycle")))
+        lifecycle["blocked_reason"] = None
+        lifecycle.pop("stale_record_ref", None)
+        lifecycle.pop("required_currentness_refs", None)
+        payload["request_lifecycle"] = lifecycle
         return payload
     latest = _latest_ai_reviewer_publication_eval_record(study_root=study_root)
     if latest is None:
         return payload
     record, record_path = latest
+    missing_currentness_refs = _record_missing_currentness_refs(study_root=study_root, record=record)
+    if missing_currentness_refs:
+        lifecycle = dict(_mapping(payload.get("request_lifecycle")))
+        lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+        lifecycle["stale_record_ref"] = str(record_path)
+        lifecycle["required_currentness_refs"] = missing_currentness_refs
+        payload["request_lifecycle"] = lifecycle
+        return payload
     payload["ai_reviewer_record"] = record
     payload["publication_eval_record_ref"] = str(record_path)
     lifecycle = dict(_mapping(payload.get("request_lifecycle")))
     lifecycle["assessment_ref"] = str(record_path)
+    lifecycle["blocked_reason"] = None
+    lifecycle.pop("stale_record_ref", None)
+    lifecycle.pop("required_currentness_refs", None)
     payload["request_lifecycle"] = lifecycle
     return payload
 

@@ -481,6 +481,15 @@ def test_ai_reviewer_publication_eval_workflow_materializes_current_route_back_p
     assert prose_currentness["route_back_required"] is True
     assert prose_currentness["route_target"] == "write"
     assert latest["reviewer_operating_system"]["route_back_decision"]["recommended_action"] == "route_back_same_line"
+    assert latest["reviewer_operating_system"]["currentness_checks"]["current_package_freshness"] == {
+        "status": "downstream_pending",
+        "ref": str((study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json").resolve()),
+        "source_eval_id": latest["eval_id"],
+        "current_package_root": None,
+        "current_package_zip": None,
+        "source_signature": None,
+        "authority_source_signature": "ai_reviewer_route_back_delivery_downstream_only",
+    }
 
 
 def test_ai_reviewer_publication_eval_workflow_fails_closed_when_required_ref_missing(

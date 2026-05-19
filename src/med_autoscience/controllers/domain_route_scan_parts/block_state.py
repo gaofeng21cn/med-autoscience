@@ -195,6 +195,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "artifact_os"
     if blocked_reason == "ai_reviewer_assessment_required":
         return "ai_reviewer"
+    if blocked_reason == "domain_transition_ai_reviewer_re_eval":
+        return "ai_reviewer"
     if blocked_reason == "canonical_paper_inputs_rehydrate_required":
         return "write"
     if blocked_reason == "unit_harmonized_rerun_required":

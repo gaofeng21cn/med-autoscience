@@ -191,6 +191,19 @@ def _route_back_decision(record_payload: Mapping[str, Any]) -> dict[str, str]:
     }
 
 
+def _record_routes_back_before_delivery(record_payload: Mapping[str, Any]) -> bool:
+    for action in _list(record_payload.get("recommended_actions")):
+        if not isinstance(action, Mapping):
+            continue
+        action_type = _text(action.get("action_type"))
+        route_target = _text(action.get("route_target"))
+        if action_type in {"route_back_same_line", "bounded_analysis", "stop_loss"}:
+            return True
+        if route_target in {"analysis-campaign", "review", "controller", "stop"}:
+            return True
+    return False
+
+
 def _future_facing_limitations_plan(record_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     raw_plan = record_payload.get("future_facing_limitations_plan")
     if not isinstance(raw_plan, list) or not raw_plan:
@@ -333,6 +346,7 @@ def _current_package_freshness(
     *,
     study_root: Path,
     eval_id: str,
+    delivery_downstream_only: bool = False,
 ) -> dict[str, Any]:
     path = study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
     if paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
@@ -344,6 +358,16 @@ def _current_package_freshness(
             "current_package_zip": None,
             "source_signature": None,
             "authority_source_signature": "paper_authority_clean_migration",
+        }
+    if delivery_downstream_only:
+        return {
+            "status": "downstream_pending",
+            "ref": str(path.resolve()),
+            "source_eval_id": eval_id,
+            "current_package_root": None,
+            "current_package_zip": None,
+            "source_signature": None,
+            "authority_source_signature": "ai_reviewer_route_back_delivery_downstream_only",
         }
     if not path.exists():
         raise ValueError("current_package_freshness_missing")
@@ -383,6 +407,7 @@ def _currentness_checks(
         "current_package_freshness": _current_package_freshness(
             study_root=study_root,
             eval_id=eval_id,
+            delivery_downstream_only=_record_routes_back_before_delivery(record_payload),
         ),
     }
 

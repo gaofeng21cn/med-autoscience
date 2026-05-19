@@ -105,6 +105,45 @@ def test_review_request_bundles_blueprint_corpus_and_mechanical_evidence_without
     assert "Figure 1 shows" in payload["manuscript"]["text"]
 
 
+def test_review_request_includes_completed_unit_harmonized_rerun_evidence(tmp_path: Path) -> None:
+    from med_autoscience.medical_prose_review_request import (
+        materialize_medical_prose_review_request,
+        read_medical_prose_review_request,
+    )
+
+    study_root = tmp_path / "study"
+    _write_review_request_inputs(study_root)
+    analysis_root = study_root / "artifacts" / "controller" / "analysis_harmonization"
+    rerun_path = analysis_root / "unit_harmonized_external_validation_rerun.json"
+    _write_json(
+        analysis_root / "latest.json",
+        {
+            "surface": "analysis_harmonization_owner_result",
+            "owner": "analysis_harmonization_owner",
+            "work_unit": "unit_harmonized_external_validation_rerun",
+            "status": "completed",
+            "unit_harmonized_rerun_completed": True,
+            "rerun_evidence_ref": str(rerun_path),
+        },
+    )
+    _write_json(
+        rerun_path,
+        {
+            "surface": "unit_harmonized_external_validation_rerun_evidence",
+            "status": "completed",
+            "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
+        },
+    )
+
+    materialize_medical_prose_review_request(study_root=study_root)
+    payload = read_medical_prose_review_request(study_root=study_root)
+
+    assert payload["required_inputs"]["analysis_harmonization_result_ref"] == str((analysis_root / "latest.json").resolve())
+    assert payload["required_inputs"]["unit_harmonized_rerun_evidence_ref"] == str(rerun_path.resolve())
+    assert payload["analysis_harmonization"]["unit_harmonized_rerun_completed"] is True
+    assert payload["analysis_harmonization"]["old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion"] is True
+
+
 def test_ai_response_materializes_ai_owned_prose_review(tmp_path: Path) -> None:
     from med_autoscience.medical_prose_review import read_medical_prose_review
     from med_autoscience.medical_prose_review_request import (

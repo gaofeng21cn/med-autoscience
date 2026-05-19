@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import publication_work_unit_lifecycle
+from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers import provenance_limited_harmonization_owner_result
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
@@ -128,6 +129,11 @@ def current_controller_runtime_route(
     if (
         work_unit_id == METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT
         and provenance_limited_harmonization_owner_result.required_output_satisfied(study_root=study_root)
+    ):
+        return None
+    if (
+        work_unit_id == METHODOLOGY_REFRAME_REBUILD_WORK_UNIT
+        and analysis_harmonization_owner_result.required_output_satisfied(study_root=study_root)
     ):
         return None
     return {

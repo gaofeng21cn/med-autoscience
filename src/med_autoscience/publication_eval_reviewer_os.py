@@ -105,8 +105,10 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     package_freshness = _mapping(currentness_checks.get("current_package_freshness"))
     if not package_freshness:
         errors.append("reviewer_operating_system.currentness_checks.current_package_freshness must be non-empty")
-    elif _text(package_freshness.get("status")) != "fresh":
-        errors.append("reviewer_operating_system.currentness_checks.current_package_freshness.status must be fresh")
+    elif _text(package_freshness.get("status")) not in {"fresh", "downstream_pending"}:
+        errors.append(
+            "reviewer_operating_system.currentness_checks.current_package_freshness.status must be fresh or downstream_pending"
+        )
     elif not _text(package_freshness.get("source_eval_id")):
         errors.append(
             "reviewer_operating_system.currentness_checks.current_package_freshness.source_eval_id must be non-empty"

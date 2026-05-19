@@ -6,6 +6,7 @@ from typing import Any
 
 from med_autoscience.controllers.domain_route_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.domain_route_scan_parts import current_truth_owner
+from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 
 
 PARKED_REASONS = {
@@ -26,6 +27,8 @@ def current_truth(
     if _has_live_worker(status, progress):
         return False
     if abnormal_stopped_runtime.repair_kind(status, progress) == "failed_non_resumable_relaunch":
+        return False
+    if domain_transition_guard.runtime_redrive_decision_type(status) is not None:
         return False
     if _current_controller_route_available(
         status,

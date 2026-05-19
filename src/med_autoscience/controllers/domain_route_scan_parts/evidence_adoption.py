@@ -62,7 +62,10 @@ def platform_repair_required_from_scan(
 ) -> bool:
     if domain_transition_guard.blocks_auto_redrive(status):
         return False
-    if domain_transition_guard.runtime_redrive_decision_type(status) is not None:
+    domain_transition_decision = domain_transition_guard.runtime_redrive_decision_type(status)
+    if domain_transition_decision == "ai_reviewer_re_eval":
+        return False
+    if domain_transition_decision is not None:
         return True
     base_required = runtime_facts.runtime_platform_repair_apply_required(
         status=status,

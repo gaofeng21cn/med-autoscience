@@ -92,6 +92,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "aftercare-plan"): "publication-aftercare-plan",
     ("publication", "clean-authority-migration"): "paper-authority-clean-migration",
     ("publication", "materialize-ai-reviewer-eval"): "materialize-ai-reviewer-publication-eval",
+    ("publication", "materialize-ai-reviewer-record"): "materialize-ai-reviewer-publication-eval-record",
     ("publication", "materialize-ai-medical-prose-review"): "materialize-ai-medical-prose-review",
     ("publication", "literature-audit"): "medical-literature-audit",
     ("publication", "reporting-audit"): "medical-reporting-audit",

@@ -673,6 +673,21 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "materialize-ai-reviewer-publication-eval-record":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = ai_reviewer_publication_eval.materialize_ai_reviewer_publication_eval_record(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+            record=_load_json_payload_from_args(args),
+            source="cli",
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "materialize-ai-medical-prose-review":
         if bool(args.study_id) == bool(args.study_root):
             parser.error("Specify exactly one of --study-id or --study-root")

@@ -467,6 +467,57 @@ def test_ai_reviewer_publication_eval_controller_materializes_runtime_checked_la
     assert result["assessment_owner"] == "ai_reviewer"
     latest = importlib.import_module(MODULE_NAME).read_publication_eval_latest(study_root=study_root)
     assert latest["eval_id"] == payload["eval_id"]
+    record_ref = Path(result["publication_eval_record_ref"])
+    assert record_ref.name == "20260405T060000Z_publication_eval_record.json"
+    assert record_ref.parent == (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").resolve()
+    archived = json.loads(record_ref.read_text(encoding="utf-8"))
+    assert archived == latest
+
+
+def test_ai_reviewer_publication_eval_record_controller_materializes_owner_record_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["future_facing_limitations_plan"] = [
+        {
+            "limitation": "Current review is bound to the active manuscript digest.",
+            "impact_on_claim": "Claims remain restrained until write repair and re-review.",
+            "required_future_analysis_data_or_design": "Rerun AI reviewer after manuscript repair.",
+            "current_manuscript_wording_must_be_restrained": True,
+        }
+    ]
+
+    monkeypatch.setattr(
+        controller.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-001",
+        },
+    )
+
+    result = controller.materialize_ai_reviewer_publication_eval_record(
+        profile=SimpleNamespace(name="nfpitnet"),
+        study_id="001-risk",
+        study_root=None,
+        entry_mode=None,
+        record=payload,
+        source="pytest",
+    )
+
+    assert result["status"] == "materialized"
+    assert result["publication_eval_surface"] == "not_written"
+    record_ref = Path(result["publication_eval_record_ref"])
+    assert record_ref.name == "20260405T060000Z_publication_eval_record.json"
+    assert record_ref.is_file()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    archived = json.loads(record_ref.read_text(encoding="utf-8"))
+    assert archived["eval_id"] == payload["eval_id"]
 
 
 def test_ai_reviewer_publication_eval_controller_rejects_mechanical_projection(

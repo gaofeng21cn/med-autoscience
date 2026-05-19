@@ -143,7 +143,59 @@ def _existing_input_refs(*, study_root: Path, paper_root: Path, manuscript_path:
         ref = _source_ref(path)
         if ref:
             refs[key] = ref
+    analysis_refs = _analysis_harmonization_refs(study_root=study_root)
+    refs.update(analysis_refs)
     return refs
+
+
+def _analysis_harmonization_refs(*, study_root: Path) -> dict[str, str]:
+    result_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+    result = _read_json(result_path)
+    if result.get("unit_harmonized_rerun_completed") is not True:
+        return {}
+    refs: dict[str, str] = {}
+    result_ref = _source_ref(result_path)
+    if result_ref:
+        refs["analysis_harmonization_result_ref"] = result_ref
+    rerun_ref = _text(result.get("rerun_evidence_ref"))
+    if rerun_ref:
+        rerun_path = Path(rerun_ref).expanduser()
+        if not rerun_path.is_absolute():
+            rerun_path = study_root / rerun_path
+        if rerun_path.exists():
+            refs["unit_harmonized_rerun_evidence_ref"] = str(rerun_path.resolve())
+    return refs
+
+
+def _analysis_harmonization_payload(*, study_root: Path) -> dict[str, Any] | None:
+    result_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+    result = _read_json(result_path)
+    if result.get("unit_harmonized_rerun_completed") is not True:
+        return None
+    rerun_ref = _text(result.get("rerun_evidence_ref"))
+    rerun_payload: dict[str, Any] = {}
+    if rerun_ref:
+        rerun_path = Path(rerun_ref).expanduser()
+        if not rerun_path.is_absolute():
+            rerun_path = study_root / rerun_path
+        rerun_payload = _read_json(rerun_path)
+    return {
+        "status": _text(result.get("status")),
+        "owner": _text(result.get("owner")),
+        "work_unit": _text(result.get("work_unit")),
+        "unit_harmonized_rerun_completed": True,
+        "rerun_evidence_ref": _text(result.get("rerun_evidence_ref")),
+        "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": (
+            result.get("old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion") is True
+            or rerun_payload.get("old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion") is True
+        ),
+        "rerun_evidence_summary": {
+            "surface": _text(rerun_payload.get("surface")),
+            "status": _text(rerun_payload.get("status")),
+            "hdl_unit_handling": dict(rerun_payload.get("hdl_unit_handling") or {}),
+            "comparison": dict(rerun_payload.get("comparison") or {}),
+        },
+    }
 
 
 def build_medical_prose_review_request(
@@ -168,6 +220,7 @@ def build_medical_prose_review_request(
     figure_semantics = _read_json(resolved_paper_root / "figure_semantics_manifest.json")
     review_ledger = _read_json(resolved_paper_root / "review" / "review_ledger.json")
     manuscript_text = _read_text(resolved_manuscript_path)
+    analysis_harmonization = _analysis_harmonization_payload(study_root=resolved_study_root)
     required_inputs = _existing_input_refs(
         study_root=resolved_study_root,
         paper_root=resolved_paper_root,
@@ -215,6 +268,7 @@ def build_medical_prose_review_request(
         "results_narrative_map": results_narrative_map,
         "figure_semantics": figure_semantics,
         "review_ledger": review_ledger,
+        "analysis_harmonization": analysis_harmonization or {},
         "manuscript": {
             "path": str(resolved_manuscript_path),
             "character_count": len(manuscript_text),

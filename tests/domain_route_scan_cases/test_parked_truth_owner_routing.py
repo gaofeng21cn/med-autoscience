@@ -220,6 +220,86 @@ def test_ai_reviewer_pending_parked_truth_routes_to_ai_reviewer_workflow(
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
 
 
+def test_domain_transition_ai_reviewer_preempts_submission_metadata_parked_truth(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_route_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    status_payload = _parked_status(
+        study_root=study_root,
+        quest_id=quest_id,
+        parked_state="external_metadata_pending",
+        reason="quest_waiting_for_submission_metadata",
+    )
+    status_payload.update(
+        {
+            "quest_status": "waiting_for_user",
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "controller_action": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                },
+            },
+            "publication_eval": _ai_reviewer_eval(required=False),
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-domain-transition-ai-reviewer",
+                "source_signature": "truth-source-domain-transition-ai-reviewer",
+            },
+        }
+    )
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(profile.runtime_root / quest_id),
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "publishability_gate_blocked",
+        "auto_runtime_parked": status_payload["auto_runtime_parked"],
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "state": "blocked",
+            "blocked_reason": "runtime_relaunch_no_live_run_started",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            status_payload,
+            progress_payload,
+            quest_id,
+            status_payload["publication_eval"],
+        ),
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["why_not_applied"] == "domain_transition_ai_reviewer_re_eval"
+    assert study["blocked_reason"] == "domain_transition_ai_reviewer_re_eval"
+    assert study["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+
+
 def test_targets_resolved_auto_runtime_parked_routes_to_mas_controller_redrive(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

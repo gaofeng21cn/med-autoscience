@@ -97,7 +97,10 @@ def analysis_harmonization_supersedes_result(*, study_root: Path) -> bool:
     analysis = _read_json_object(analysis_path)
     if _text(_mapping(analysis).get("surface")) != "analysis_harmonization_owner_result":
         return False
-    if _text(_mapping(analysis).get("blocked_reason")) != REBUILD_AUTHORIZED_RERUN_REQUIRED:
+    if not (
+        _mapping(analysis).get("unit_harmonized_rerun_completed") is True
+        or _text(_mapping(analysis).get("blocked_reason")) == REBUILD_AUTHORIZED_RERUN_REQUIRED
+    ):
         return False
     analysis_mtime = _path_mtime(analysis_path)
     result_mtime = _path_mtime(result_path(study_root=root))
