@@ -2,43 +2,51 @@
 
 以下约束是仓库运行语义的最低不变集，任何变更都不得破坏。
 
-## 运行与真相
+## 运行真相与默认入口
 
-- repo-tracked contract 与 durable surface 是唯一权威，不得被本地工具状态替代。
-- 项目级 `.codex/` 与 `.omx/` 已退役，不得再作为当前 workflow 入口。
-- 如需保留历史 session、prompt、log 或 hook 状态，应迁入用户级 `~/.codex/` 归档。
-- formal-entry matrix 固定为 `CLI`（默认入口）/ `MCP`（协议层）/ `controller`（控制面）。
-- 能力表达遵循 `policy -> controller -> overlay -> adapter` 主链路，避免旁路。
+- repo-tracked contract、durable surface、stable runtime / controller surface 和 generated artifact 是当前权威；本地工具状态、历史 session、prompt、log 或 hook 只能归档到用户级状态，不得替代仓库真相。项目级 `.codex/` 与 `.omx/` 已退役。
+- formal-entry matrix 固定为 `CLI`（默认入口）/ `MCP`（协议层）/ `controller`（控制面）；能力表达遵循 `policy -> controller -> overlay -> adapter` 主链路，避免旁路。
+- `MedAutoScience` 对外第一身份固定为独立 medical research domain agent，单一 MAS app skill 承接稳定 capability surface；OPL handoff、product-entry manifest 与其他机器桥接只作为集成或参考层，不改写第一主语。
+- 默认执行链是 `Codex-default host-agent runtime + MAS stable capability surface`。`Codex CLI` 是 stage 内默认 concrete executor；`hermes_agent` 只允许作为显式非默认 executor / proof lane，旧 Hermes provider 或 local carrier 只能进入 history / provenance / dev / CI / offline diagnostic 语境。
+- OPL-hosted production path 必须依赖 Temporal-backed provider transport / record / dispatch stage attempt；local / legacy substrate 不能生成 MAS 医学研究 truth，也不能替代 OPL Full online readiness。
 
-## 工程与方法
+## OPL 边界与标准 Agent 目标
+
+- `OPL` 是 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架，持有 family-level session/runtime/projection、stage attempt、queue、wakeup、approval/retry/dead-letter 与 shared modules/contracts/indexes；它不把 MAS 改写为内部模块或研究 owner。
+- `OPL Runtime Manager`、native helper 与高频状态索引只能缓存、探测和投影 MAS 已暴露的 durable truth surface；不得成为 MAS scheduler kernel、session store、memory store、study truth、publication gate、artifact authority、concrete executor owner，或替代 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、evidence ledger、review ledger。
+- MAS 的目标态高于当前实现分布。当前仓内 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/Skill/product-entry/sidecar/status wrapper 只能作为迁移输入；不得因为已有 active caller 或当前能跑就写成长期合理。
+- MAS 作为标准 OPL Agent 的长期形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。通用 transport、ledger、index、lifecycle、runner、workbench、observability 和 wrapper 必须上收到 OPL primitive / pack compiler / App shell，或收薄成 refs-only adapter / diagnostic cleanup path。
+- 文档和计划必须先设理想态，再找差距；差距不是妥协清单。处理清楚 active caller、替代 surface、provenance 和必要证据后，旧模块、旧接口、旧测试、旧目录、旧文案和兼容面默认删除、archive 或 tombstone。
+
+## MAS Domain Authority 与 AI-first 质量
+
+- MAS 必须持有无法声明化的医学 authority function：publication quality verdict、AI reviewer-backed quality decision、artifact mutation authorization、publication-route memory accept/reject、source readiness verdict、owner receipt signer 或必要医学 helper implementation。缺少接口、active caller、不能上收原因、receipt/blocker/ref 输出边界和 no-forbidden-write 证据时，必须作为功能/结构差距处理。
+- AI-first 质量判断必须由 AI reviewer / author artifact 持有；schema、gate、scorecard、audit 只能持有结构、证据引用、机械完整性与阻塞投影。缺少 `assessment_provenance.owner=ai_reviewer` 的 `publication_eval/latest.json` 不得驱动 reviewer-first ready、bundle-only remaining、finalize-ready 或 submission-facing 质量闭环。
+- `allow_write` 必须按写面拆语义：publication gate 的 `allow_write=false` 只阻止下游投稿包、bundle、submission proofing、`current_package` 和 delivery mirror 写入；MAS managed runtime worker 在 controller-authorized analysis-campaign/write work unit 下仍可修改 canonical `paper/` 修订面。
+- 投稿包、submission-ready 或 finalize 后的用户、导师、审稿反馈是同一 study 的重新激活信号；必须先写入 durable revision intake，再通过 MAS-controlled relaunch/resume 接管 canonical paper surface 并重新生成投影包，不得让前台直接修改 `manuscript/current_package/`。
+- 大型 public data 默认保持 remote-only；只有 durable study charter 或 analysis plan 明确用途、体积预算、复用位置与清理/保留策略后，才允许下载或物化完整资产。
+
+## Read Model、票据与恢复
+
+- `study_macro_state/latest.json` 是用户宏观状态的唯一 read model，用户可见投影固定从 `writer_state/user_next/reason` 派生；缺少 canonical macro state 或出现 writer 冲突时必须 fail-closed 为 `inspect/conflict`。
+- `owner_route` 是 `scan -> consume -> execute-dispatch -> rescan` 的唯一执行票据。request handoff、default executor dispatch 和执行端都必须校验 `route_epoch/source_fingerprint/next_owner/allowed_actions/idempotency_key`，旧 dispatch 文件不能绕过 workspace-level consumer latest。
+- Runtime health append 只有在显式 `source_signature` 相同的情况下幂等返回 existing event；没有 source signature 的 recover/launch attempt 仍代表新的真实尝试并消耗 retry budget。
+- 文件生命周期治理不得从 cleanup plan 反向推断 study truth；终局止损文件生命周期 plan 只能由 materialized macro state 授权，物理 apply 仍要求 manifest、sha256、restore index 与 restore proof。
+- SQLite lifecycle store 只做 sidecar index、read model、receipt 和幂等检索，不替代 paper/manuscript/package、publication eval、controller decision、user intervention memory、restore metadata 或 dataset manifest。
+
+## MDS / DeepScientist 与 legacy 进入规则
+
+- `MDS` 只能作为显式可选 runtime/native/review event source、backend audit、explicit archive import reference、upstream intake 或行为等价 oracle；MAS 的 `StudyTruthKernel` 持有 `canonical_next_action`、publication gate 解释、package authority 解释和 delivery state。
+- `MDS` 只能作为显式可选 runtime health probe / native runtime event source；MAS 的 `RuntimeHealthKernel` 持有 `canonical_runtime_action`、worker liveness、retry budget、runtime escalation 与 allowed controller actions。
+- truth/gate/status 或 liveness/recovery 事故必须同时落 reducer rule、fixture test 与 runbook entry。后续 MDS / DeepScientist 相关能力只能沿 owner matrix、strangler refactor 和 architecture fitness functions 进入。
+- `mas_mds_architecture_owner_boundary_report` 是 architecture owner boundary fitness function。entry projection、observability、MDS backend/oracle 或 runtime adapter 不得声明或替代 `study_truth`、`runtime_health`、`scientific_quality`、`medical_writing_quality`、`publication_readiness`、`submission_authority`、`artifact_authority` 或 `user_visible_next_action`。
+- 重新打开默认 dependency、未带 provenance/parity proof 的 physical absorb、未带 rollback surface 的 owner switch、以及用 MDS mechanical oracle 替代 MAS AI reviewer / controller authority 的变更都必须 fail-closed。
+
+## 工程方法
 
 - 不采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，避免以非严谨通用算法的后处理补救作为主策略。
 - 重大变更必须在独立 worktree 中完成，保持可追溯与可回滚。
 - 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、回归基线或 provenance 存在。
-- 当前目标形态是 `Codex-default host-agent runtime` 加 `MAS` 自己的稳定 capability surface；可选 hosted runtime carrier（例如 `Hermes-Agent`）只能作为显式附加层或 reference-layer 材料出现，不得改写默认入口语义。
-- `MedAutoScience` 对外第一身份固定为独立 medical research domain agent；其单一 MAS app skill 承接稳定 capability surface。`OPL` handoff、product-entry manifest 与其他机器可读桥接只作为集成或参考层存在，不得改写第一主语。
-- `OPL` 是 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架，可作为 MAS 的外部依赖和托管运行层；它承担 family-level session/runtime/projection、stage attempt、queue、wakeup、approval/retry/dead-letter 与 shared modules/contracts/indexes 编排，不把 `MedAutoScience` 改写为内部模块或研究 owner。
-- `Stage` 是 OPL/MAS 共同理解的大型任务步骤，`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元；OPL-hosted production path 必须依赖 Temporal-backed provider transport/record/dispatch stage attempt。`hermes_agent` 只允许作为显式非默认 executor/proof lane；旧 Hermes provider 或 local carrier 只能作为 history/provenance/dev/CI/offline diagnostic 语境，不能生成 MAS 医学研究 truth，也不能替代 OPL Full online readiness。
-- `OPL Runtime Manager` 只能作为 OPL 侧薄 adapter/projection layer 管理外部 runtime substrate 与高频索引；不得成为 MAS 的 scheduler kernel、session store、memory store、study truth、publication gate、artifact authority 或 concrete executor owner。
-- OPL native helper 与高频状态索引只能缓存、探测和投影 MAS 已暴露的 durable truth surface，不得替代 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、evidence ledger 或 review ledger。
-- `MedAutoScience` 的对外稳定 capability surface 固定为本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract，并由单一 MAS app skill 承接。
-- MAS 的目标态高于当前实现分布。当前仓内已经存在的 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/Skill/product-entry/sidecar/status wrapper 只能作为迁移输入；不得因为已有 active caller 或当前能跑就写成长期合理。
-- MAS 作为标准 OPL Agent 的长期形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。通用 transport、ledger、index、lifecycle、runner、workbench、observability 和 wrapper 必须上收到 OPL primitive / pack compiler / App shell，或收薄成 refs-only adapter / diagnostic cleanup path。
-- 保留在 MAS 的私有程序面必须是无法声明化的医学 authority function：publication quality verdict、AI reviewer-backed quality decision、artifact mutation authorization、publication-route memory accept/reject、source readiness verdict、owner receipt signer 或必要医学 helper implementation。缺少接口、active caller、不能上收原因、receipt/blocker/ref 输出边界和 no-forbidden-write 证据时，必须作为功能/结构差距处理。
-- 文档和计划必须先设理想态，再找差距；差距不是妥协清单。为了理想态，可以革命式重构并完全抛弃旧模块、旧接口、旧测试、旧目录和旧文案；处理清楚 active caller、替代 surface、provenance 和必要证据后，不保留历史兼容面。
-- AI-first 质量判断必须由 AI reviewer / author artifact 持有；schema、gate、scorecard、audit 只能持有结构、证据引用、机械完整性与阻塞投影。缺少 `assessment_provenance.owner=ai_reviewer` 的 `publication_eval/latest.json` 不得驱动 reviewer-first ready、bundle-only remaining、finalize-ready 或 submission-facing 质量闭环。
-- `allow_write` 必须按写面拆语义：publication gate 的 `allow_write=false` 只阻止下游投稿包、bundle、submission proofing、`current_package` 和 delivery mirror 写入；MAS managed runtime worker 在 controller-authorized analysis-campaign/write work unit 下仍可修改 canonical `paper/` 修订面。前台 Codex App 或 manual agent 的 supervisor-only 限制不得被解释成 MAS 自己派发的 worker 也不能写 canonical paper。
-- 已达投稿包、submission-ready 或 finalize 里程碑后收到用户、导师或审稿稿件反馈时，反馈本身就是同一 study 的重新激活信号；旧 stopped/submission-ready/finalize 状态不得被解释为前台直接修改 `manuscript/current_package/` 的许可，必须先写入 durable revision intake，再通过 MAS-controlled relaunch/resume 接管 canonical paper surface 并重新生成投影包。
-- `MDS` 只能作为显式可选的 runtime/native/review event source、backend audit、explicit archive import reference、upstream intake 或行为等价 oracle；MAS 的 `StudyTruthKernel` 持有用户可见 `canonical_next_action`、publication gate 解释、package authority 解释和 delivery state。任何 truth/gate/status 事故必须同时落 reducer rule、fixture test 与 runbook entry。
-- `MDS` 只能作为显式可选 runtime health probe / native runtime event source；MAS 的 `RuntimeHealthKernel` 持有 `canonical_runtime_action`、worker liveness 判断、retry budget、runtime escalation 与 allowed controller actions。任何 liveness/recovery 事故必须同时落 reducer rule、fixture test 与 runbook entry。
-- `study_macro_state/latest.json` 是用户宏观状态的唯一 read model；用户可见投影固定从 `writer_state/user_next/reason` 派生。`study-progress`、MCP、workspace cockpit、product-entry-status 和外部 operator 面不得从 legacy top-level 状态字段重新解释当前状态；缺少 canonical macro state 或出现 writer 冲突时必须 fail-closed 为 `inspect/conflict`，重新生成 canonical projection。
-- `owner_route` 是 `scan -> consume -> execute-dispatch -> rescan` 的唯一执行票据。request handoff、default executor dispatch 和执行端都必须通过 `route_epoch/source_fingerprint/next_owner/allowed_actions/idempotency_key` 校验；旧 dispatch 文件不能绕过 workspace-level consumer latest。
-- Runtime health append 只有在显式 `source_signature` 相同的情况下幂等返回 existing event；没有 source signature 的 recover/launch attempt 仍代表新的真实尝试并消耗 retry budget。
-- 文件生命周期治理不得从 cleanup plan 反向推断 study truth。只有 `writer_state=parked`、`user_next=none`、`reason=stop_loss`、`details.reopen_allowed=false` 的 materialized macro state 才能让终局止损文件生命周期 plan 标记 runtime history 精简候选；物理 apply 仍要求 manifest、sha256、restore index 与 restore proof。
-- SQLite lifecycle store 只做 sidecar index、read model、receipt 和幂等检索，不替代 paper/manuscript/package、publication eval、controller decision、user intervention memory、restore metadata 或 dataset manifest 这类文件 authority。
-- `mas_mds_architecture_owner_boundary_report` 是当前 architecture owner boundary fitness function。entry projection、observability、MDS backend/oracle 或 runtime adapter 不得声明或替代 `study_truth`、`runtime_health`、`scientific_quality`、`medical_writing_quality`、`publication_readiness`、`submission_authority`、`artifact_authority` 或 `user_visible_next_action`。
-- 后续 MDS / DeepScientist 相关能力只能沿 owner matrix + strangler refactor + architecture fitness functions 进入。重新打开默认 dependency、未带 provenance/parity proof 的 physical absorb、未带 rollback surface 的 owner switch、以及用 MDS mechanical oracle 替代 MAS AI reviewer / controller authority 的变更都必须 fail-closed。
-- 大型 public data 默认保持 remote-only；只有在 durable study charter 或 analysis plan 明确具体用途、体积预算、复用位置与清理/保留策略后，才允许下载或物化完整资产。停题、止损或短期无明确用途时，应清理本地镜像并保留 registry / mutation log 作为可追溯入口。
 
 ## 文档与结构
 

@@ -699,8 +699,8 @@ def _primary_controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[
 def _controller_action_command(*, action_name: str, quest_id: str) -> str | None:
     if action_name in _SUPERVISOR_DISPATCH_ACTION_NAMES:
         return (
-            '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
-            "python -m med_autoscience.cli domain-owner-action-dispatch "
+            '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
+            "-m med_autoscience.cli domain-owner-action-dispatch "
             '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --studies <study_id> '
             f"--action-types {action_name} --mode developer_apply_safe --apply --managed-runtime-worker"
         )
@@ -712,8 +712,8 @@ def _controller_action_command(*, action_name: str, quest_id: str) -> str | None
     if command_name is None:
         return None
     return (
-        '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
-        f"python -m med_autoscience.cli {command_name} "
+        '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
+        f"-m med_autoscience.cli {command_name} "
         '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
         f"--quest-id {quest_id}"
     )
@@ -721,8 +721,8 @@ def _controller_action_command(*, action_name: str, quest_id: str) -> str | None
 
 def _ai_medical_prose_review_command(*, quest_id: str) -> str:
     return (
-        '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
-        "python -m med_autoscience.cli materialize-ai-medical-prose-review "
+        '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
+        "-m med_autoscience.cli materialize-ai-medical-prose-review "
         '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
         "--payload-file <ai_reviewer_response.json>"
     )

@@ -116,7 +116,7 @@ def test_codex_exec_runner_syncs_current_controller_decision_for_quality_repair_
     assert '"decision_id": "quality-repair-decision"' in prompt
     assert '"work_unit_id": "manuscript_story_repair"' in prompt
     assert "domain-transition::stale-ai-reviewer" not in prompt
-    assert "python -m med_autoscience.cli quality-repair-batch" in prompt
+    assert "-m med_autoscience.cli quality-repair-batch" in prompt
     assert authorization["decision_id"] == "quality-repair-decision"
     assert authorization["active_run_id"] == "run-quality-repair"
     assert authorization["controller_actions"] == ["run_quality_repair_batch"]
@@ -222,7 +222,7 @@ def test_codex_exec_runner_maps_methodology_analysis_work_unit_to_quality_repair
 
     assert '"decision_id": "methodology-analysis-routeback"' in prompt
     assert "medical_prose_quality_analysis_source_documentation_repair" in prompt
-    assert "python -m med_autoscience.cli quality-repair-batch" in prompt
+    assert "-m med_autoscience.cli quality-repair-batch" in prompt
     assert "- Invoke the listed controller command before freeform artifact writing:" in prompt
     assert "No callable MAS CLI command is registered" not in prompt
     assert authorization["decision_id"] == "methodology-analysis-routeback"
@@ -442,7 +442,7 @@ def test_codex_exec_runner_prompt_prefers_current_ai_reviewer_decision_over_stal
     assert "return_to_ai_reviewer_workflow" in prompt
     assert "AI reviewer redrive execution contract" in prompt
     assert "materialize-ai-medical-prose-review" in prompt
-    assert "python -m med_autoscience.cli domain-owner-action-dispatch" in prompt
+    assert "-m med_autoscience.cli domain-owner-action-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "analysis_claim_evidence_repair" not in prompt
     assert "run_quality_repair_batch" not in prompt

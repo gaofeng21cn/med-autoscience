@@ -566,8 +566,10 @@ def test_codex_exec_runner_prompt_maps_controller_action_to_callable_command(mon
 
     assert "Controller action execution contract" in prompt
     assert "run_quality_repair_batch" in prompt
-    assert '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}"' in prompt
-    assert "python -m med_autoscience.cli quality-repair-batch" in prompt
+    assert '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh"' in prompt
+    assert "-m med_autoscience.cli quality-repair-batch" in prompt
+    assert "MED_AUTOSCIENCE_UV_BIN" not in prompt
+    assert "uv run --directory" not in prompt
     assert '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}"' in prompt
     assert "--study-id <study_id>" in prompt
     assert "--quest-id quest-002" in prompt
@@ -624,7 +626,7 @@ def test_codex_exec_runner_prompt_maps_gate_clearing_action_to_callable_command(
 
     assert "Controller action execution contract" in prompt
     assert "run_gate_clearing_batch" in prompt
-    assert "python -m med_autoscience.cli gate-clearing-batch" in prompt
+    assert "-m med_autoscience.cli gate-clearing-batch" in prompt
     assert '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}"' in prompt
     assert "--study-id <study_id>" in prompt
     assert "--quest-id quest-002" in prompt
@@ -681,7 +683,7 @@ def test_codex_exec_runner_prompt_infers_gate_clearing_command_from_authority_sy
     assert "Controller action execution contract" in prompt
     assert "ensure_study_runtime" in prompt
     assert "run_gate_clearing_batch" in prompt
-    assert "python -m med_autoscience.cli gate-clearing-batch" in prompt
+    assert "-m med_autoscience.cli gate-clearing-batch" in prompt
     assert "--quest-id quest-002" in prompt
     assert "No callable MAS CLI command is registered" not in prompt
 
@@ -731,8 +733,8 @@ def test_codex_exec_runner_prompt_infers_quality_repair_command_from_blocking_wo
 
     assert "Controller action execution contract" in prompt
     assert "run_quality_repair_batch" in prompt
-    assert '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}"' in prompt
-    assert "python -m med_autoscience.cli quality-repair-batch" in prompt
+    assert '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh"' in prompt
+    assert "-m med_autoscience.cli quality-repair-batch" in prompt
     assert "--quest-id quest-003" in prompt
 
 
@@ -813,8 +815,8 @@ def test_codex_exec_runner_prompt_maps_complete_specificity_request_to_quality_r
 
     assert "Controller action execution contract" in prompt
     assert "Controller action names: run_quality_repair_batch." in prompt
-    assert '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}"' in prompt
-    assert "python -m med_autoscience.cli quality-repair-batch" in prompt
+    assert '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh"' in prompt
+    assert "-m med_autoscience.cli quality-repair-batch" in prompt
     assert "--quest-id quest-004" in prompt
     assert "No callable MAS CLI command is registered" not in prompt
     assert "Requested controller actions: request_gate_specificity" not in prompt
@@ -873,9 +875,9 @@ def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_reviewer_owner_co
     assert "medical-publication-surface --apply" in prompt
     assert "manuscript completeness, Methods reproducibility, Results numeric specificity" in prompt
     assert "A mechanical checklist or script output is not quality authority" in prompt
-    assert "python -m med_autoscience.cli materialize-ai-medical-prose-review" in prompt
+    assert "-m med_autoscience.cli materialize-ai-medical-prose-review" in prompt
     assert "--payload-file <ai_reviewer_response.json>" in prompt
-    assert "python -m med_autoscience.cli domain-owner-action-dispatch" in prompt
+    assert "-m med_autoscience.cli domain-owner-action-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "--mode developer_apply_safe --apply" in prompt
     assert "--managed-runtime-worker" in prompt
