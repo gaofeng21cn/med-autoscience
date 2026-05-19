@@ -73,6 +73,7 @@ MAS 程序只承担机械职责：
 - `quality_gates`：AI reviewer、auditor、reporting guideline、publication gate、evidence/review ledger、stage deliverable review。
 - `outputs`：artifact delta、stage closeout、memory writeback proposal、owner receipt、human gate、stop-loss 或 typed blocker。
 - `handoff`：下一 stage、next owner、resume token、safe action 或 reviewer route-back。
+- `cohort_loop_refs`：source scope、auditable cohort query、OPL queue trigger、monitor 和 dashboard freshness metric refs，用于 OPL 在不拥有医学 truth 的前提下判断 stage 是否具备可触发、可观察的闭环声明。
 
 ## 理想工作台边界
 
@@ -103,6 +104,7 @@ MAS 达到生产级目标态时，应满足：
 - MAS cleanup 证据必须区分 OPL refs-only ledger 与 MAS repo 物理删除：OPL `agents legacy-cleanup apply` 的 dry-run / apply / verify ready 只证明 MAS tombstone / replacement / no-regression refs 可被 OPL 消费，不等于 tracked runtime transport、supervisor 或 SQLite sidecar 已物理清零。
 - `mas_runtime_core`、runtime supervisor、turn runner、worker lease 与 runtime lifecycle SQLite 的长期角色必须是 `runtime_backend_is_generic_owner=false` 的 domain adapter / owner receipt / typed blocker / refs-only sidecar / diagnostic surface。它们不能重新声明 MAS-owned generic runtime、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 或 workbench owner。
 - runtime-guard stage descriptor 明确声明 machine-readable `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs`，OPL proof bundle / admission 能把 route decision、baseline/evidence readiness、analysis evidence closure、draft reviewability、AI reviewer gate receipt、publication handoff 和 replay/audit event refs 读成可组合合同，而不是只靠人读 stage 文案。
+- stage descriptor 明确声明 source scope、cohort query、OPL queue trigger、monitor 和 dashboard metric refs，OPL `stages cohort-loop` 能把每个 stage 读成 closed-loop ready；这只证明 launch/readiness 声明闭合，不替代真实 provider attempt、paper-line owner receipt 或 memory/artifact apply evidence。
 - Pack compiler input 只能用 `canonical_semantic_pack_root="agent/"` 和 `canonical_semantic_pack_role` 表达 canonical semantic pack；旧 `canonical_repo_source_semantic_pack_root` / `domain_pack_root` / `canonical_repo_source_semantic_pack` 不再作为机器接口。`required_domain_pack_paths` 只列真实语义文件，不能把 `agent/README.md` 这类人读入口当作 required semantic pack path。
 - `runtime_lifecycle_sqlite_reference_adapter`、`runtime_storage_maintenance` 和 `terminal_attach_transport` 若仍在源码中存在，长期角色只能是 refs / receipts / blockers / provenance adapter：它们不得输出 generic runtime verdict、generic cleanup policy、generic terminal owner、paper closure verdict 或 MAS-owned lifecycle/persistence/workbench owner claim。
 - 当前 `classification_gap_count=0`、`active_private_generic_residue_count=0` 与 `functional_structure_gap_count=0` 必须由机器面确认。结构闭合来自 generated surface active caller cutover、refs-only adapter 收薄、legacy physical retirement、OPL App drilldown、lifecycle locator/retention/restore ledger 对账和 runtime-guard stage admission 的 closure proof refs；live paper-line evidence scaleout 是结构门之后的测试/证据门，不能被 descriptor ready、replacement proof 或 repo tests 替代。
