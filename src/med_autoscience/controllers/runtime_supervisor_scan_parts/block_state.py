@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import analysis_harmonization_owner_result
@@ -8,6 +9,7 @@ from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
+from med_autoscience.controllers.runtime_supervisor_scan_parts import hard_methodology_currentness
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 
@@ -56,7 +58,7 @@ def projection_block_state(
     actions: list[dict[str, Any]],
     why_not_applied: str | None,
 ) -> dict[str, Any]:
-    if study_root is not None:
+    if study_root is not None and not _current_hard_methodology_handoff_supersedes_consumers(study_root):
         source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
         if source_result_state is not None:
             return source_result_state
@@ -209,6 +211,20 @@ def _has_methodology_reframe_route_decision_action(actions: list[dict[str, Any]]
         and _text(action.get("reason")) == "methodology_reframe_required"
         and _text(action.get("owner")) == "decision"
         for action in actions
+    )
+
+
+def _current_hard_methodology_handoff_supersedes_consumers(study_root: Any) -> bool:
+    root = Path(study_root).expanduser().resolve()
+    source_ref = hard_methodology_currentness.quality_repair_handoff_path(root)
+    consumer_paths = (
+        analysis_harmonization_owner_result.result_path(study_root=root),
+        source_provenance_owner_result.result_path(study_root=root),
+        root / "artifacts" / "controller_decisions" / "latest.json",
+    )
+    return hard_methodology_currentness.handoff_supersedes_paths(
+        source_ref=source_ref,
+        consumer_paths=consumer_paths,
     )
 
 

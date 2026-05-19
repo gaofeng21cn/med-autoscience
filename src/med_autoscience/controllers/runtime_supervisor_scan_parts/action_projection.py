@@ -13,6 +13,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import completion
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
+from med_autoscience.controllers.runtime_supervisor_scan_parts import hard_methodology_currentness
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 
@@ -479,23 +480,13 @@ def _latest_clean_migration_quality_repair_blocker(study_root: Path) -> dict[str
 
 
 def _hard_methodology_quality_repair_handoff_action(study_root: Path) -> dict[str, Any] | None:
-    if analysis_harmonization_owner_result.required_output_satisfied(study_root=study_root):
-        return None
     source_ref = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
-    payload = _read_json_object(source_ref)
-    if not payload:
+    payload = hard_methodology_currentness.quality_repair_handoff_payload(source_ref)
+    if payload is None:
         return None
-    if _text(payload.get("status")) != "blocked":
-        return None
-    if _text(payload.get("blocked_reason")) != "unit_harmonized_rerun_required":
-        return None
-    if _text(payload.get("next_owner")) != "analysis_harmonization_owner":
-        return None
-    if _text(payload.get("next_work_unit")) != "unit_harmonized_external_validation_rerun":
-        return None
-    if payload.get("quality_gate_relaxation_allowed") is not False:
-        return None
-    if payload.get("current_package_write_allowed") is not False:
+    if analysis_harmonization_owner_result.required_output_satisfied(
+        study_root=study_root
+    ) and not _hard_methodology_handoff_supersedes_consumers(study_root=study_root, source_ref=source_ref):
         return None
     target = _mapping(payload.get("hard_methodology_target"))
     target_id = _text(target.get("target_id")) or "unit_harmonized_external_validation_rerun"
@@ -526,7 +517,32 @@ def _hard_methodology_quality_repair_handoff_action(study_root: Path) -> dict[st
     }
 
 
+def _hard_methodology_handoff_supersedes_consumers(*, study_root: Path, source_ref: Path) -> bool:
+    consumer_paths = (
+        analysis_harmonization_owner_result.result_path(study_root=study_root),
+        source_provenance_owner_result.result_path(study_root=study_root),
+        Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json",
+    )
+    return hard_methodology_currentness.handoff_supersedes_paths(
+        source_ref=source_ref,
+        consumer_paths=consumer_paths,
+    )
+
+
+def _current_hard_methodology_handoff_supersedes_consumers(study_root: Path) -> bool:
+    return _hard_methodology_handoff_supersedes_consumers(
+        study_root=study_root,
+        source_ref=Path(study_root).expanduser().resolve()
+        / "artifacts"
+        / "controller"
+        / "quality_repair_batch"
+        / "latest.json",
+    )
+
+
 def _source_provenance_recovery_action(study_root: Path) -> dict[str, Any] | None:
+    if _current_hard_methodology_handoff_supersedes_consumers(study_root):
+        return None
     if source_provenance_owner_result.required_output_satisfied(study_root=study_root):
         return None
     owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
@@ -564,6 +580,8 @@ def _source_provenance_recovery_action(study_root: Path) -> dict[str, Any] | Non
 
 
 def _methodology_reframe_route_decision_action(study_root: Path) -> dict[str, Any] | None:
+    if _current_hard_methodology_handoff_supersedes_consumers(study_root):
+        return None
     source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
     if not source_result_state:
         return None

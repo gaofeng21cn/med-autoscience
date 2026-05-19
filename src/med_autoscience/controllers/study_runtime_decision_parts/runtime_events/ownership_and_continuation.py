@@ -2,6 +2,9 @@ from __future__ import annotations
 
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from ..publication_and_submission import *  # noqa: F403
+from med_autoscience.controllers.runtime_supervisor_scan_parts import hard_methodology_currentness
+from med_autoscience.controllers import analysis_harmonization_owner_result
+from med_autoscience.controllers import source_provenance_owner_result
 
 
 def _publication_gate_allows_live_runtime_write_stage_resume(
@@ -154,11 +157,53 @@ def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQ
     }
 
 
-def _record_controller_authorization_if_present(*, status: StudyRuntimeStatus, quest_root: Path) -> None:
+def _record_controller_authorization_if_present(
+    *,
+    status: StudyRuntimeStatus,
+    quest_root: Path,
+    study_root: Path | None = None,
+) -> None:
     runtime_state = _load_json_dict(_runtime_state_path(quest_root))
     authorization = runtime_state.get("last_controller_decision_authorization")
     if isinstance(authorization, dict) and authorization:
+        if study_root is not None and _hard_methodology_handoff_supersedes_authorization(
+            study_root=study_root,
+            authorization=authorization,
+        ):
+            status.extras["superseded_controller_decision_authorization"] = {
+                "reason": "unit_harmonized_rerun_required",
+                "superseded_work_unit_id": str(authorization.get("work_unit_id") or "").strip() or None,
+                "superseded_work_unit_fingerprint": str(
+                    authorization.get("work_unit_fingerprint") or ""
+                ).strip()
+                or None,
+                "source_surface": "artifacts/controller/quality_repair_batch/latest.json",
+            }
+            return
         status.extras["last_controller_decision_authorization"] = dict(authorization)
+
+
+def _hard_methodology_handoff_supersedes_authorization(
+    *,
+    study_root: Path,
+    authorization: dict[str, object],
+) -> bool:
+    work_unit_id = str(authorization.get("work_unit_id") or "").strip()
+    work_unit_fingerprint = str(authorization.get("work_unit_fingerprint") or "").strip()
+    if (
+        work_unit_id != "medical_prose_quality_analysis_source_documentation_repair"
+        and work_unit_fingerprint != "decision::methodology_reframe_route_decision"
+    ):
+        return False
+    root = Path(study_root).expanduser().resolve()
+    return hard_methodology_currentness.handoff_supersedes_paths(
+        source_ref=hard_methodology_currentness.quality_repair_handoff_path(root),
+        consumer_paths=(
+            analysis_harmonization_owner_result.result_path(study_root=root),
+            source_provenance_owner_result.result_path(study_root=root),
+            root / "artifacts" / "controller_decisions" / "latest.json",
+        ),
+    )
 
 
 def _blocked_closeout_payload(*, quest_root: Path) -> dict[str, object] | None:

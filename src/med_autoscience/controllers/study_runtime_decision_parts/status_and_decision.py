@@ -149,7 +149,7 @@ def _status_state(
         and not task_intake_yields_to_submission_closeout
     )
     _record_continuation_state_if_present(status=result, quest_root=quest_root)
-    _record_controller_authorization_if_present(status=result, quest_root=quest_root)
+    _record_controller_authorization_if_present(status=result, quest_root=quest_root, study_root=study_root)
     _record_blocked_closeout_if_present(status=result, quest_root=quest_root)
     _record_blocked_closeout_supersession_if_present(
         status=result,
