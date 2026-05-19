@@ -5,7 +5,14 @@ import json
 import os
 from pathlib import Path
 
+import pytest
+
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
+
+
+@pytest.fixture(autouse=True)
+def _allow_developer_apply_safe(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
 
 
 def _write_json(path: Path, payload: dict) -> None:
