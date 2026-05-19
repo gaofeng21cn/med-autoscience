@@ -393,6 +393,7 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
                         "overstated_novelty_or_best_language",
                         "administrative_or_author_instruction_in_body",
                         "tool_or_runtime_provenance_in_body",
+                        "invalid_or_corrected_analysis_history_in_main_story",
                     ],
                     "source_basis": [
                         "Zeiger biomedical research paper clear-writing and paper-text model",

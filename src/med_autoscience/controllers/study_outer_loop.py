@@ -433,11 +433,19 @@ def build_runtime_watch_outer_loop_tick_request(
         )
         quality_repair_batch_preempts_task_intake = _quality_repair_batch_preempts_task_intake(batch_action)
         domain_transition_preempts_quality_batch = domain_transition_decision_type != "publication_gate_blocker"
+        gate_clearing_batch_preempts_publication_gate_replay = (
+            domain_transition_decision_type == "publication_gate_blocker"
+            and isinstance(batch_action, dict)
+            and str(batch_action.get("controller_action_type") or "").strip()
+            == StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
+        )
         if domain_transition_action is not None and domain_transition_preempts_quality_batch:
             recommended_action = domain_transition_action
         elif startup_freshness_gate and batch_action is not None:
             recommended_action = batch_action
         elif quality_repair_batch_preempts_task_intake:
+            recommended_action = batch_action
+        elif gate_clearing_batch_preempts_publication_gate_replay:
             recommended_action = batch_action
         elif domain_transition_action is not None:
             recommended_action = domain_transition_action

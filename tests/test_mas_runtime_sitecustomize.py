@@ -156,8 +156,19 @@ def test_sitecustomize_prevents_repo_source_pycache_when_importing_from_quest_cw
 
 
 def test_sitecustomize_does_not_change_non_quest_cwd_pycache(tmp_path: Path) -> None:
+    sitecustomize_root = tmp_path / "sitecustomize-src"
     result = subprocess.run(
-        [sys.executable, "-c", "import sys; print(sys.pycache_prefix or '')"],
+        [
+            sys.executable,
+            "-S",
+            "-c",
+            (
+                "import sys; "
+                f"sys.path.insert(0, {str(sitecustomize_root)!r}); "
+                "import sitecustomize; "
+                "print(sys.pycache_prefix or '')"
+            ),
+        ],
         cwd=tmp_path,
         env=_sitecustomize_env(tmp_path),
         text=True,
