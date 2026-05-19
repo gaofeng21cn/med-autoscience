@@ -61,6 +61,15 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 2026-05-19 继续把物理代码层的 runtime transport 收薄边界机器化：`runtime_backend_default_operation_contract`、`product-entry-manifest` 与 sidecar export 现在都暴露 `runtime_backend_is_generic_owner=false` / `runtime_transport_handoff_projection`。它逐项声明 `mas_runtime_core`、turn runner、worker lease、runtime supervisor scan/consume/dispatch/reconcile 和 `runtime_lifecycle_store.py` 只能作为 MAS domain owner receipt adapter、refs-only SQLite sidecar、guarded apply / typed blocker 或 standalone diagnostic；generic runtime、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 和 workbench owner 全部归 OPL replacement surface。该投影不是把这些文件写成长期 MAS 平台；它是后续在无 domain direct/diagnostic caller、OPL parity 与 domain receipt parity 成立后执行物理删除或 archive/tombstone 的 gate。
 
+本轮调研把 `physical_source_morphology_standardization` 明确为独立结构口径。成熟 agent/runtime 框架的共同做法是分开 agent declaration、tools / authority functions、runtime orchestration、state persistence 与 workbench/evidence gate；OPL 吸收这一分层原则，MAS 不能继续用物理源码形态暗示自己持有 generic supervisor/runtime。MAS 理想源码读法应是：
+
+- `agent/` 持有医学 stage、prompt、skill、knowledge、quality gate 和 policy。
+- `contracts/` 持有 OPL pack compiler input、stage/action/memory/artifact/receipt contract、runtime handoff、evidence request 和 cleanup gate。
+- `runtime/authority_functions/` 或 `src/med_autoscience/**` 中长期保留的代码只承担 medical authority function、domain handler、refs-only adapter、native helper、diagnostic probe 或 fixture。
+- `supervisor` / `scheduler` / `runtime` / `lifecycle` / `worker lease` 命名如果仍在 active source 中出现，必须被改名、拆分或证明为 domain bridge / refs-only adapter / diagnostic / tombstone；不能让读者理解为 MAS-owned generic runtime。
+
+因此，`runtime_supervisor_scan.py`、`runtime_supervisor_consumer.py`、`runtime_supervisor_dispatch_executor.py`、`runtime_supervisor_reconcile.py` 与 `supervision_scheduler*` 当前是历史命名下的 domain route / receipt / typed-blocker bridge，不是最终命名形态。下一轮 physical thinning 应把它们拆成或改名为医学语义 surfaces，例如 `domain_route_projection`、`owner_action_request`、`authority_receipt_dispatch`、`domain_blocker_reconcile`、`diagnostic_probe`；其中仍只携带 developer repair/worktree 元数据的字段，应迁入 OPL Agent Lab / developer repair lane 或改成 explicit contract refs。这个 gap 属于功能/结构 cleanup tail，不是单纯 evidence tail。
+
 同一轮收口把 `runtime_lifecycle_sqlite_reference_adapter`、`runtime_storage_maintenance` 和 `terminal_attach_transport` 的 residual 物理形态写入 `functional_consumer_boundary` / `functional_module_inventory`：三者均为 `refs_only_adapter`，只允许输出 owner receipt ref、workspace/artifact/source/status refs、cleanup/terminal gate receipts 或 typed blocker；`generic_owner_claim_allowed=false`，并显式禁止 generic runtime verdict、generic cleanup policy、generic terminal runtime owner 和 paper closure verdict。该项解决的是“正确的东西在正确位置”的结构问题，不是单纯测试补强。
 
 2026-05-19 的后续退役证明把上一轮仍按 `legacy_cleanup_no_active_caller_gate` 命名的四个 residue 从 active classification 中移出，改为 `legacy_cleanup_tombstone_provenance` 与 `retired_legacy_residue_tombstones` 机器面：`mas_generic_workbench_shell`、`legacy_scheduler_default_aliases`、`daemonish_terminal_attach_status_as_runtime_owner`、`scheduler_legacy_residue_without_active_caller` 均为 `active_caller_count=0`、`default_entry_allowed=false`、`current_role=history_tombstone_provenance_only`。这表示它们已经进入 history/tombstone 证明面，不再作为 active cleanup gate 或 MAS 私有 runtime residue 计数。
@@ -101,6 +110,9 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 1. `paper_line_evidence_scaleout`
    在结构收口后推进真实 paper-line provider apply、memory receipt、artifact lifecycle receipt、human gate/resume 和 provider SLO long soak。这里负责验收迁移后的目标边界，不负责替代迁移本身。
+
+2. `physical_source_morphology_thinning`
+   在不重建 MAS generic runtime 的前提下，按 active caller、OPL parity、domain receipt parity 和 provenance gate 继续处理 runtime supervisor / supervision scheduler / turn runner / worker lease / SQLite lifecycle writer。优先做语义改名、domain bridge 拆分、developer repair 元数据外迁、diagnostic tombstone 和 no-active-caller 后物理删除；每次都必须保持 no-forbidden-write、paper truth / artifact authority 不越权。
 
 ## 当前不能写成
 

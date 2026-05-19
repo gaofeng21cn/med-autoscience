@@ -24,6 +24,8 @@ MAS 不应长期维护一套独立 agent runtime platform。通用 scheduler、q
 
 Direct MAS app skill path 仍是一等入口。经 direct path 或 OPL-hosted path 调用时，都必须回到同一套 MAS-owned stage、controller、ledger、review、quality gate、domain transition table、publication-route memory 和 artifact surface。
 
+MAS 的理想物理源码形态也必须表达这个边界。`agent/` 是医学研究语义包；`contracts/` 是机器合同和 OPL handoff；`runtime/authority_functions/`、`src/med_autoscience/**` 或测试夹具中长期保留的程序面只能是 medical authority function、domain handler、refs-only adapter、native helper、diagnostic probe 或 fixture。`supervisor`、`supervision_scheduler`、`runtime_supervisor_*`、`runtime_transport`、`worker lease`、`turn runner`、`runtime_lifecycle_store.py` 这类名称不能长期让源码读者误以为 MAS 拥有 generic runtime / queue / scheduler / worker residency / persistence engine。当前若这些文件仍存在，理想处理是 rename、split、delete、archive 或 tombstone 到医学语义角色：domain route projection、owner action request、authority receipt dispatch、typed blocker reconcile、lifecycle refs adapter 或 diagnostic provenance。
+
 ## 长期 Owner 边界
 
 MAS 持有：
