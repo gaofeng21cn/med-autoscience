@@ -157,7 +157,8 @@ def test_analysis_claim_evidence_repair_with_invalid_analysis_history_residue_ca
     draft = study_root / "paper" / "draft.md"
     draft.parent.mkdir(parents=True, exist_ok=True)
     draft.write_text(
-        "The earlier raw-scale analysis is retained as a preprocessing-error lesson.\n",
+        "An earlier raw-scale application used incompatible high-density lipoprotein cholesterol units "
+        "and is treated only as preprocessing-error provenance.\n",
         encoding="utf-8",
     )
     claim_map = _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})

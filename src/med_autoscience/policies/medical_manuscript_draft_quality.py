@@ -137,7 +137,7 @@ PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     (
         "invalid_analysis_history_residue",
         "raw-scale sensitivity / unit-harmonization lesson / contaminated analysis history",
-        r"\braw[\s-]+scale (?:sensitivity|run|result|transport|analysis)\b|\bunit[\s-]+harmonization lesson\b|\bcontaminated (?:analysis|run|result)\b|\bdata[\s-]+processing (?:mistake|error)\b|\bdebug(?:ging)? history\b",
+        r"\braw[\s-]+scale (?:sensitivity|run|result|transport|analysis|application)\b|\bsource[\s-]+unit application\b|\bunit[\s-]+harmonization lesson\b|\bcontaminated (?:analysis|run|result)\b|\bdata[\s-]+processing (?:mistake|error)\b|\bpreprocessing[\s-]+error (?:provenance|lesson|history)\b|\bdebug(?:ging)? history\b",
         re.IGNORECASE,
     ),
 ]
