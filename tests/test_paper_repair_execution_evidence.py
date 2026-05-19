@@ -149,6 +149,57 @@ def test_manuscript_story_repair_with_invalid_analysis_history_residue_cannot_cl
     assert hygiene["hits"][0]["path"] == str(draft.resolve())
 
 
+def test_analysis_claim_evidence_repair_with_invalid_analysis_history_residue_cannot_claim_progress(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
+    study_root = tmp_path / "studies" / "002-dm"
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text(
+        "The earlier raw-scale analysis is retained as a preprocessing-error lesson.\n",
+        encoding="utf-8",
+    )
+    claim_map = _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
+    evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    gate_replay = _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-2"})
+    ai_request = _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {"request_id": "ai-reviewer-recheck::002"},
+    )
+
+    evidence = module.build_repair_execution_evidence(
+        study_id="002-dm",
+        quest_id="quest-002",
+        study_root=study_root,
+        repair_work_unit={
+            "unit_id": "analysis_claim_evidence_repair",
+            "owner": "quality_repair_batch",
+            "gate_replay_target": "publication_gate",
+        },
+        review_finding={"finding_id": "claim-evidence", "severity": "must_fix"},
+        source_refs=[str(gate_replay)],
+        changed_artifact_refs=[{"path": str(claim_map), "artifact_role": "claim_evidence_map"}],
+        revision_log_ref=str(review_ledger),
+        evidence_ledger_ref=str(evidence_ledger),
+        review_ledger_ref=str(review_ledger),
+        gate_replay_refs=[str(gate_replay)],
+        ai_reviewer_recheck_request_ref=str(ai_request),
+    )
+
+    assert evidence["status"] == "blocked"
+    assert evidence["progress_delta_candidate"] is False
+    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
+    assert evidence["canonical_artifact_delta"]["status"] == "blocked"
+    assert "invalid_analysis_history_residue_present" in evidence["blockers"]
+    hygiene = evidence["manuscript_surface_hygiene"]
+    assert hygiene["required"] is True
+    assert hygiene["status"] == "blocked"
+    assert hygiene["hits"][0]["pattern_id"] == "invalid_analysis_history_residue"
+    assert hygiene["hits"][0]["path"] == str(draft.resolve())
+
+
 def test_current_package_delta_and_quality_override_are_not_accepted(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
     study_root = tmp_path / "studies" / "004-obesity"

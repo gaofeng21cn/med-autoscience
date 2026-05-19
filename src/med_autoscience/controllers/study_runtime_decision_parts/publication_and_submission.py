@@ -698,6 +698,8 @@ def _materialize_publication_eval_from_gate_report(
             report=publication_gate_report_with_defaults,
             charter_payload=charter_payload,
             evidence_refs=evidence_refs,
+            assessment_owner="mechanical_projection",
+            ai_reviewer_required=True,
         ),
         gaps=_publication_eval_gaps(report=publication_gate_report_with_defaults, evidence_refs=evidence_refs),
         recommended_actions=(

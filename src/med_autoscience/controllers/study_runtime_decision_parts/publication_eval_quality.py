@@ -233,12 +233,23 @@ def _medical_journal_prose_dimension(
     *,
     report: dict[str, object],
     evidence_refs: tuple[str, ...],
+    assessment_owner: str,
+    ai_reviewer_required: bool,
 ) -> PublicationEvalQualityDimension:
     medical_prose_review_status = str(report.get("medical_prose_review_status") or "").strip()
     medical_prose_review_summary = str(report.get("medical_prose_review_summary") or "").strip()
     medical_prose_review_ref = str(report.get("medical_prose_review_path") or "").strip()
+    mechanical_projection_cannot_authorize_ready = (
+        assessment_owner == "mechanical_projection" or ai_reviewer_required
+    )
     if not medical_prose_review_status:
         medical_prose_review_status = "underdefined"
+    if mechanical_projection_cannot_authorize_ready and medical_prose_review_status == "ready":
+        medical_prose_review_status = "underdefined"
+        medical_prose_review_summary = (
+            "Mechanical publication-gate projection cannot authorize subjective medical journal prose quality; "
+            "AI reviewer currentness and manuscript-native prose review must close before this dimension can be ready."
+        )
     if not medical_prose_review_summary:
         medical_prose_review_summary = (
             "Gate materialization is mechanical; AI reviewer must judge medical journal prose "
@@ -271,6 +282,8 @@ def publication_eval_quality_assessment(
     report: dict[str, object],
     charter_payload: dict[str, object],
     evidence_refs: tuple[str, ...],
+    assessment_owner: str = "",
+    ai_reviewer_required: bool = False,
 ) -> PublicationEvalQualityAssessment:
     publication_objective = str(charter_payload.get("publication_objective") or "").strip()
     paper_framing_summary = str(charter_payload.get("paper_framing_summary") or "").strip()
@@ -323,6 +336,8 @@ def publication_eval_quality_assessment(
         medical_journal_prose_quality=_medical_journal_prose_dimension(
             report=report,
             evidence_refs=evidence_refs,
+            assessment_owner=assessment_owner,
+            ai_reviewer_required=ai_reviewer_required,
         ),
         human_review_readiness=_human_review_readiness_dimension(
             report_status=report_status,
@@ -331,4 +346,3 @@ def publication_eval_quality_assessment(
             evidence_refs=evidence_refs,
         ),
     )
-

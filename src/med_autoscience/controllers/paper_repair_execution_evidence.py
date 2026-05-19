@@ -37,7 +37,14 @@ _AUTHORITY_CLAIM_BLOCKERS = {
     "current_package_write_authorized": "current_package_write_not_allowed",
     "can_write_current_package": "current_package_write_not_allowed",
 }
-_MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset({"manuscript_story_repair"})
+_MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset(
+    {
+        "manuscript_story_repair",
+        "analysis_claim_evidence_repair",
+        "figure_results_trace_repair",
+        "medical_prose_quality_analysis_source_documentation_repair",
+    }
+)
 _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
     Path("paper/draft.md"),
     Path("paper/build/review_manuscript.md"),

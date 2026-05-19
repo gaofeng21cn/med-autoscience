@@ -76,3 +76,40 @@ def test_clear_bundle_gate_can_continue_to_finalize_when_medical_prose_quality_i
     assert action.action_type == "continue_same_line"
     assert action.route_target == "finalize"
     assert action.reason == "Publication bundle stage is unlocked."
+
+
+def test_mechanical_projection_cannot_mark_medical_journal_prose_quality_ready() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.publication_eval_quality"
+    )
+
+    assessment = module.publication_eval_quality_assessment(
+        report={
+            "status": "clear",
+            "medical_publication_surface_status": "clear",
+            "study_delivery_status": "current",
+            "submission_minimal_present": True,
+            "submission_minimal_docx_present": True,
+            "submission_minimal_pdf_present": True,
+            "results_summary": "Unit-harmonized external validation retained risk ordering but not calibration.",
+            "conclusion": "The model requires target-population recalibration before clinical use.",
+            "medical_prose_review_status": "ready",
+            "medical_prose_review_summary": "Publication gate projection reports prose ready.",
+            "medical_prose_review_path": "/tmp/study/artifacts/publication_eval/medical_prose_review.json",
+        },
+        charter_payload={
+            "publication_objective": "External validation of a China-derived diabetes mortality score.",
+            "paper_framing_summary": "External validation and calibration analysis.",
+            "explanation_targets": ["clinician-facing interpretation"],
+            "scientific_followup_questions": ["How well does the score transport after harmonized preprocessing?"],
+        },
+        evidence_refs=("/tmp/study/artifacts/publication_eval/latest.json",),
+        assessment_owner="mechanical_projection",
+        ai_reviewer_required=True,
+    )
+
+    prose = assessment.medical_journal_prose_quality
+    assert prose is not None
+    assert prose.status == "underdefined"
+    assert "Mechanical publication-gate projection cannot authorize" in prose.summary
+    assert "medical_prose_review.json" in prose.evidence_refs[-1]

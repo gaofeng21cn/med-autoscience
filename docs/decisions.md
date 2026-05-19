@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-19：quality repair 不能在正文残留或机械投影 ready 时声明进展
+
+- 决策：`repair_execution_evidence` 的 manuscript surface hygiene 不只适用于 `manuscript_story_repair`，也适用于会影响主叙事闭环的 `analysis_claim_evidence_repair`、`figure_results_trace_repair` 和 `medical_prose_quality_analysis_source_documentation_repair`。这些 work unit 若在 canonical `paper/draft.md` 或 `paper/build/review_manuscript.md` 中检测到 invalid analysis history residue，只能返回 typed blocker，不能声明 `progress_delta_candidate`。
+- 决策：`assessment_provenance.owner=mechanical_projection` 或 `ai_reviewer_required=true` 的 publication gate projection 不能把 `medical_journal_prose_quality` 标成 `ready`。即使 gate report 携带 `medical_prose_review_status=ready`，机械投影也必须降级为 `underdefined`，并把下一跳交回 AI reviewer currentness / manuscript-native prose review。
+- 理由：DM002 暴露出两类同源漂移：analysis/claim-evidence repair 可以只更新 ledger 类 artifact 却让正文保留 raw-scale / preprocessing-error 叙事残留；同时机械 publication projection 可以带着“AI reviewer required”的 provenance 把主观医学写作质量显示为 ready。这会让 MAS 看起来通过质量闭环，但用户看到的论文仍保留错误故事或旧交付面。
+- 影响：这是 MAS controller/read-model 的 safety floor，只负责 fail closed、route back 和回归保护；它不以脚本检查论文替代 AI reviewer，也不授权 publication ready、submission ready 或 `current_package` 更新。真正的医学论文写作质量仍由独立 AI reviewer / reviewer OS record、publication gate 和 owner receipt 闭合。
+
 ## 2026-05-18：AI reviewer dispatch 优先消费 current request record
 
 - 决策：`return_to_ai_reviewer_workflow` 执行时，若 `artifacts/supervision/requests/ai_reviewer/latest.json` 已携带 AI reviewer-owned publication eval record，dispatch executor 必须先校验并消费该 request-attached record；只有 request 未携带 record 时，才允许回退读取 active `publication_eval/latest.json` 或 clean-migration interim record。
