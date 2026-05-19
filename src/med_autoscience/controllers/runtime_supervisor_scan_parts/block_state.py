@@ -70,8 +70,14 @@ def projection_block_state(
                 study_root=study_root
             )
         )
+        if methodology_decision_requests_audit:
+            return {
+                "blocked_reason": "provenance_limited_harmonization_audit_required",
+                "next_owner": "provenance_limited_harmonization_owner",
+                "external_supervisor_required": False,
+            }
         source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
-        if source_result_state is not None and not methodology_decision_requests_audit:
+        if source_result_state is not None:
             return source_result_state
         owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
         if owner_result_state is not None:

@@ -34,18 +34,6 @@ def action_queue(
     control_allowed_write_surfaces: list[str],
     forbidden_actions: list[str],
 ) -> list[dict[str, Any]]:
-    source_provenance_action = _source_provenance_recovery_action(study_root)
-    if source_provenance_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=source_provenance_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
     methodology_reframe_action = methodology_reframe_actions.methodology_reframe_route_decision_action(study_root)
     if methodology_reframe_action is not None:
         return [
@@ -65,6 +53,18 @@ def action_queue(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=provenance_limited_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    source_provenance_action = _source_provenance_recovery_action(study_root)
+    if source_provenance_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=source_provenance_action,
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,
