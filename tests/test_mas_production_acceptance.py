@@ -10,10 +10,15 @@ pytestmark = pytest.mark.meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ACCEPTANCE_PATH = REPO_ROOT / "contracts" / "production_acceptance" / "mas-production-acceptance.json"
+AGENT_LAB_HANDOFF_PATH = REPO_ROOT / "contracts" / "agent_lab_handoff.json"
 
 
 def _acceptance() -> dict[str, object]:
     return json.loads(ACCEPTANCE_PATH.read_text(encoding="utf-8"))
+
+
+def _agent_lab_handoff() -> dict[str, object]:
+    return json.loads(AGENT_LAB_HANDOFF_PATH.read_text(encoding="utf-8"))
 
 
 def _walk_dicts(value: object):
@@ -222,3 +227,107 @@ def test_codex_first_landing_program_keeps_forbidden_shortcuts_closed() -> None:
     assert payload["authority_boundary"]["provider_completion_is_domain_ready"] is False
     assert payload["authority_boundary"]["opl_can_write_memory_body"] is False
     assert payload["authority_boundary"]["opl_can_write_current_package"] is False
+
+
+def test_agent_lab_handoff_is_connected_to_production_acceptance() -> None:
+    payload = _acceptance()
+    handoff = payload["agent_lab_handoff"]
+
+    assert handoff["handoff_status"] == "ready_for_opl_meta_agent_and_agent_lab_execution"
+    assert handoff["handoff_ref"] == {
+        "ref": "contracts/agent_lab_handoff.json",
+        "role": "mas_agent_lab_production_evidence_handoff",
+        "body_included": False,
+    }
+    assert handoff["suite_kind"] == "mas_production_evidence_suite"
+    assert handoff["target_consumers"] == ["one-person-lab.agent_lab", "opl-meta-agent"]
+    assert handoff["target_opl_cli"] == "opl agent-lab run --suite <suite.json> --json"
+    assert handoff["domain_verdict_claimed"] is False
+    assert handoff["closeout_requires_mas_owner_receipt_or_typed_blocker"] is True
+    assert handoff["required_gate_ids"] == [
+        "real_paper_line_provider_canary",
+        "memory_artifact_human_gate_scaleout",
+        "provider_slo_long_soak",
+    ]
+
+
+def test_agent_lab_handoff_contract_declares_refs_only_consumers_and_suite_seed() -> None:
+    handoff = _agent_lab_handoff()
+
+    assert handoff["surface_kind"] == "mas_agent_lab_production_evidence_handoff"
+    assert handoff["domain_id"] == "med-autoscience"
+    assert handoff["owner"] == "MedAutoScience"
+    assert handoff["handoff_status"] == "ready_for_opl_meta_agent_and_agent_lab_execution"
+
+    consumers = {consumer["consumer_id"]: consumer for consumer in handoff["target_consumers"]}
+    assert set(consumers) == {"one-person-lab.agent_lab", "opl-meta-agent"}
+    assert "run_external_suite" in consumers["one-person-lab.agent_lab"]["allowed_actions"]
+    assert "materialize_external_suite" in consumers["opl-meta-agent"]["allowed_actions"]
+    for consumer in consumers.values():
+        assert {"domain_truth_write", "publication_quality_verdict", "artifact_body_write", "memory_body_write"} <= set(
+            consumer["forbidden_authority"]
+        )
+
+    suite = handoff["external_suite_seed"]
+    assert suite["suite_id"] == "mas-production-evidence-tail-suite"
+    assert suite["suite_kind"] == "mas_production_evidence_suite"
+    assert suite["domain_verdict_claimed"] is False
+    assert suite["required_task_ids"] == [
+        "agent-lab-task:mas/real-paper-line-provider-canary",
+        "agent-lab-task:mas/memory-artifact-human-gate-scaleout",
+        "agent-lab-task:mas/provider-slo-long-soak",
+    ]
+
+
+def test_agent_lab_handoff_tasks_keep_mas_receipts_as_closeout_authority() -> None:
+    handoff = _agent_lab_handoff()
+    suite = handoff["external_suite_seed"]
+    tasks = {task["gate_id"]: task for task in suite["tasks"]}
+
+    assert set(tasks) == {
+        "real_paper_line_provider_canary",
+        "memory_artifact_human_gate_scaleout",
+        "provider_slo_long_soak",
+    }
+    assert tasks["real_paper_line_provider_canary"]["owner_route"] == "MedAutoScience"
+    assert "owner_receipt" in tasks["real_paper_line_provider_canary"]["required_mas_return_shapes"]
+    assert "no_forbidden_write_proof_ref" in tasks["real_paper_line_provider_canary"]["allowed_opl_result_refs"]
+    assert "agent_lab_result_authorizes_domain_ready" in tasks["real_paper_line_provider_canary"][
+        "forbidden_claims"
+    ]
+
+    closeout = handoff["receipt_closeout_policy"]
+    assert closeout["agent_lab_result_is_evidence_not_domain_verdict"] is True
+    assert closeout["meta_agent_work_order_is_candidate_not_domain_verdict"] is True
+    assert closeout["closeout_requires_mas_owner_receipt_or_typed_blocker"] is True
+    assert closeout["publication_ready_requires_independent_mas_reviewer_or_auditor_gate"] is True
+    assert closeout["artifact_mutation_requires_mas_artifact_authority_receipt"] is True
+    assert closeout["memory_accept_reject_requires_mas_memory_receipt"] is True
+
+
+def test_agent_lab_handoff_work_order_has_traceability_and_forbidden_write_proof() -> None:
+    handoff = _agent_lab_handoff()
+    work_order = handoff["meta_agent_work_order_contract"]
+
+    assert work_order["target_script_ref"] == (
+        "npm run mas:evidence -- --mas-repo <mas_repo> --output-dir <dir> --opl-bin <opl>"
+    )
+    assert "contracts/agent_lab_handoff.json" in work_order["editable_surface_refs"]
+    assert "default_agent_promotion" in work_order["forbidden_target_writes"]
+    assert set(work_order["required_output_refs"]) == {
+        "mas-agent-lab-suite.json",
+        "agent-lab-run-result.json",
+        "developer-patch-work-order.json",
+        "mas-capability-improvement-candidate.json",
+        "mechanism-patch-proposal.json",
+        "no-forbidden-write-proof.json",
+    }
+    assert set(work_order["required_traceability_axes"]) == {
+        "source_gate_id",
+        "source_task_id",
+        "required_patch_refs",
+        "editable_surface_refs",
+        "verification_command_refs",
+        "owner_route",
+        "forbidden_write_proof_ref",
+    }

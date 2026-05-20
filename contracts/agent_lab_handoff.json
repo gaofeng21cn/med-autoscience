@@ -1,0 +1,251 @@
+{
+  "surface_kind": "mas_agent_lab_production_evidence_handoff",
+  "schema_version": 1,
+  "domain_id": "med-autoscience",
+  "owner": "MedAutoScience",
+  "updated_at": "2026-05-20",
+  "handoff_status": "ready_for_opl_meta_agent_and_agent_lab_execution",
+  "handoff_model": "mas_declares_refs_only_external_suite_seed_opl_agent_lab_runs_meta_agent_materializes_developer_work_order_mas_owner_receipt_closes_gate",
+  "source_acceptance_refs": [
+    {
+      "ref": "contracts/production_acceptance/mas-production-acceptance.json#/codex_first_landing_program",
+      "role": "codex_first_landing_program",
+      "body_included": false
+    },
+    {
+      "ref": "contracts/production_acceptance/mas-production-acceptance.json#/domain_acceptance_receipt",
+      "role": "mas_domain_acceptance_receipt",
+      "body_included": false
+    }
+  ],
+  "target_consumers": [
+    {
+      "consumer_id": "one-person-lab.agent_lab",
+      "owner": "one-person-lab",
+      "role": "refs_only_suite_runner_and_gate_result_projector",
+      "allowed_actions": [
+        "run_external_suite",
+        "project_gate_result_refs",
+        "emit_typed_blocker_refs",
+        "emit_no_forbidden_write_proof_refs",
+        "route_back_to_mas_owner"
+      ],
+      "forbidden_authority": [
+        "domain_truth_write",
+        "publication_quality_verdict",
+        "artifact_body_write",
+        "memory_body_write",
+        "current_package_update",
+        "mas_owner_receipt_signing"
+      ]
+    },
+    {
+      "consumer_id": "opl-meta-agent",
+      "owner": "opl-meta-agent",
+      "role": "testing_takeover_and_developer_work_order_materializer",
+      "allowed_actions": [
+        "read_handoff_contract",
+        "materialize_external_suite",
+        "call_opl_agent_lab_run",
+        "write_developer_patch_work_order",
+        "write_mechanism_patch_proposal_candidate",
+        "write_target_capability_improvement_candidate"
+      ],
+      "forbidden_authority": [
+        "domain_truth_write",
+        "publication_quality_verdict",
+        "artifact_body_write",
+        "memory_body_write",
+        "current_package_update",
+        "default_agent_promotion"
+      ]
+    }
+  ],
+  "external_suite_seed": {
+    "suite_id": "mas-production-evidence-tail-suite",
+    "suite_kind": "mas_production_evidence_suite",
+    "suite_role": "production_evidence_tail_control_plane",
+    "domain_verdict_claimed": false,
+    "target_opl_cli_refs": [
+      {
+        "ref": "opl agent-lab run --suite <suite.json> --json",
+        "role": "agent_lab_refs_only_run",
+        "body_included": false
+      },
+      {
+        "ref": "opl agent-lab evolve --suite <suite.json> --json",
+        "role": "agent_lab_mechanism_evolution_candidate",
+        "body_included": false
+      },
+      {
+        "ref": "npm run mas:evidence -- --mas-repo <mas_repo> --output-dir <dir> --opl-bin <opl>",
+        "role": "meta_agent_mas_evidence_takeover_entry",
+        "body_included": false
+      }
+    ],
+    "required_task_ids": [
+      "agent-lab-task:mas/real-paper-line-provider-canary",
+      "agent-lab-task:mas/memory-artifact-human-gate-scaleout",
+      "agent-lab-task:mas/provider-slo-long-soak"
+    ],
+    "tasks": [
+      {
+        "task_id": "agent-lab-task:mas/real-paper-line-provider-canary",
+        "gate_id": "real_paper_line_provider_canary",
+        "task_family": "real_paper_line_canary",
+        "owner_route": "MedAutoScience",
+        "expected_status": "blocked_until_real_paper_line_receipt",
+        "required_mas_return_shapes": [
+          "owner_receipt",
+          "progress_delta",
+          "quality_publication_gate_ref",
+          "route_decision_ref",
+          "typed_blocker"
+        ],
+        "allowed_opl_result_refs": [
+          "agent_lab_suite_result_ref",
+          "provider_attempt_ref",
+          "sidecar_dispatch_ref",
+          "typed_blocker_ref",
+          "no_forbidden_write_proof_ref"
+        ],
+        "forbidden_claims": [
+          "agent_lab_result_authorizes_domain_ready",
+          "provider_completion_authorizes_publication_ready",
+          "suite_pass_updates_current_package"
+        ],
+        "verification_refs": [
+          {
+            "ref": "contracts/owner_receipt_contract.json",
+            "role": "owner_receipt_shape",
+            "body_included": false
+          },
+          {
+            "ref": "product_entry_manifest.provider_guarded_soak_read_model",
+            "role": "provider_guarded_canary_projection",
+            "body_included": false
+          }
+        ]
+      },
+      {
+        "task_id": "agent-lab-task:mas/memory-artifact-human-gate-scaleout",
+        "gate_id": "memory_artifact_human_gate_scaleout",
+        "task_family": "memory_artifact_human_gate_receipt_scaleout",
+        "owner_route": "MedAutoScience",
+        "expected_status": "blocked_until_real_receipt_scaleout",
+        "required_mas_return_shapes": [
+          "accepted_memory_receipt_ref",
+          "rejected_memory_receipt_ref",
+          "blocked_memory_receipt_ref",
+          "artifact_lifecycle_receipt_or_typed_blocker",
+          "human_gate_resume_receipt_or_typed_blocker"
+        ],
+        "allowed_opl_result_refs": [
+          "agent_lab_suite_result_ref",
+          "route_back_ref",
+          "typed_blocker_ref",
+          "no_forbidden_write_proof_ref"
+        ],
+        "forbidden_claims": [
+          "agent_lab_result_writes_memory_body",
+          "agent_lab_result_authorizes_artifact_mutation",
+          "suite_pass_bypasses_human_gate"
+        ],
+        "verification_refs": [
+          {
+            "ref": "publication_eval/latest.json",
+            "role": "publication_quality_gate_ref",
+            "body_included": false
+          },
+          {
+            "ref": "controller_decisions/latest.json",
+            "role": "owner_route_and_human_gate_ref",
+            "body_included": false
+          }
+        ]
+      },
+      {
+        "task_id": "agent-lab-task:mas/provider-slo-long-soak",
+        "gate_id": "provider_slo_long_soak",
+        "task_family": "provider_slo_long_soak",
+        "owner_route": "one-person-lab",
+        "expected_status": "blocked_until_long_window_slo_receipts",
+        "required_mas_return_shapes": [
+          "owner_receipt_ref",
+          "stable_typed_blocker_ref",
+          "route_decision_ref"
+        ],
+        "allowed_opl_result_refs": [
+          "provider_residency_ref",
+          "restart_requery_ref",
+          "retry_dead_letter_ref",
+          "app_workbench_drilldown_ref",
+          "no_forbidden_write_proof_ref"
+        ],
+        "forbidden_claims": [
+          "provider_slo_authorizes_domain_ready",
+          "workbench_projection_writes_mas_truth",
+          "long_soak_pass_authorizes_publication_ready"
+        ],
+        "verification_refs": [
+          {
+            "ref": "product_entry_manifest.provider_residency_read_model",
+            "role": "provider_residency_projection",
+            "body_included": false
+          },
+          {
+            "ref": "product_entry_manifest.workspace_runtime_evidence_receipt",
+            "role": "workspace_runtime_evidence_projection",
+            "body_included": false
+          }
+        ]
+      }
+    ]
+  },
+  "meta_agent_work_order_contract": {
+    "target_script_ref": "npm run mas:evidence -- --mas-repo <mas_repo> --output-dir <dir> --opl-bin <opl>",
+    "editable_surface_refs": [
+      "agent/prompts",
+      "agent/skills",
+      "agent/knowledge",
+      "agent/quality_gates",
+      "contracts/production_acceptance/mas-production-acceptance.json",
+      "contracts/agent_lab_handoff.json",
+      "tests",
+      "docs"
+    ],
+    "forbidden_target_writes": [
+      "domain_truth_body",
+      "memory_body",
+      "artifact_body",
+      "publication_quality_verdict",
+      "current_package",
+      "default_agent_promotion"
+    ],
+    "required_output_refs": [
+      "mas-agent-lab-suite.json",
+      "agent-lab-run-result.json",
+      "developer-patch-work-order.json",
+      "mas-capability-improvement-candidate.json",
+      "mechanism-patch-proposal.json",
+      "no-forbidden-write-proof.json"
+    ],
+    "required_traceability_axes": [
+      "source_gate_id",
+      "source_task_id",
+      "required_patch_refs",
+      "editable_surface_refs",
+      "verification_command_refs",
+      "owner_route",
+      "forbidden_write_proof_ref"
+    ]
+  },
+  "receipt_closeout_policy": {
+    "agent_lab_result_is_evidence_not_domain_verdict": true,
+    "meta_agent_work_order_is_candidate_not_domain_verdict": true,
+    "closeout_requires_mas_owner_receipt_or_typed_blocker": true,
+    "publication_ready_requires_independent_mas_reviewer_or_auditor_gate": true,
+    "artifact_mutation_requires_mas_artifact_authority_receipt": true,
+    "memory_accept_reject_requires_mas_memory_receipt": true
+  }
+}
