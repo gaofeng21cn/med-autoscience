@@ -191,6 +191,79 @@ def test_runner_completion_rejects_closeout_that_only_marks_delivery_surfaces_as
     assert result["invalid_artifact_refs"] == refs
 
 
+def test_runner_completion_treats_same_owner_manuscript_story_blocked_closeout_as_incomplete(
+    tmp_path: Path,
+) -> None:
+    quest_root = tmp_path / "quest-001"
+    _write_closeout(
+        quest_root=quest_root,
+        run_id="run-001",
+        payload={
+            "quest_id": "quest-001",
+            "run_id": "run-001",
+            "status": "blocked",
+            "meaningful_artifact_delta": False,
+            "artifact_refs": [],
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "next_owner": "write",
+        },
+    )
+    _write_stdout(
+        quest_root=quest_root,
+        run_id="run-001",
+        events=[
+            {"type": "item.started", "item": {"id": "item-1"}},
+            {"type": "item.completed", "item": {"id": "item-1"}},
+        ],
+    )
+
+    result = inspect_runner_completion(quest_root=quest_root, run_id="run-001", runner_status="succeeded")
+
+    assert result["state"] == "incomplete"
+    assert result["reason"] == "same_owner_manuscript_story_followthrough_required"
+    assert result["normalized_runner_status"] == "runner_incomplete"
+    assert result["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert result["next_owner"] == "write"
+
+
+def test_logical_turn_completion_keeps_same_owner_manuscript_story_closeout_active(
+    tmp_path: Path,
+) -> None:
+    quest_root = tmp_path / "quest-001"
+    _write_closeout(
+        quest_root=quest_root,
+        run_id="run-001",
+        payload={
+            "quest_id": "quest-001",
+            "run_id": "run-001",
+            "status": "blocked",
+            "meaningful_artifact_delta": False,
+            "artifact_refs": [],
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "next_owner": "write",
+        },
+    )
+    _write_stdout(
+        quest_root=quest_root,
+        run_id="run-001",
+        events=[
+            {"type": "item.started", "item": {"id": "item-1"}},
+            {"type": "item.completed", "item": {"id": "item-1"}},
+            {"type": "turn.completed"},
+        ],
+    )
+
+    result = inspect_logical_turn_completion(quest_root=quest_root, run_id="run-001")
+
+    assert result is not None
+    assert result["state"] == "completed"
+    assert result["reason"] == "same_owner_manuscript_story_followthrough_required"
+    assert result["completion_runner_status"] == "runner_incomplete"
+    assert result["target_status"] == "active"
+    assert result["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert result["next_owner"] == "write"
+
+
 def test_logical_turn_completion_reports_stale_nonterminal_receipt(tmp_path: Path) -> None:
     quest_root = tmp_path / "quest-001"
     _write_closeout(quest_root=quest_root, run_id="run-001")

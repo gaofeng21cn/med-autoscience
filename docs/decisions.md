@@ -376,6 +376,12 @@
 - 影响：新增 runtime/storage/history 能力时，默认把“latest / canonical authority / human delivery”继续写成可恢复文件，把“append-heavy telemetry / historical report index / retention ledger / cursor pagination / compact projection”写入 SQLite sidecar。SQLite 文件必须是可重建或可导出索引层；任何需要医学质量、publication readiness、artifact authority 或 restore safety 的判断仍回到 MAS durable truth surface 和 MDS restore contract。
 - 参考：SQLite Application File Format、SQLite WAL、SQLite Archive / SQLAR、SQLite small-blob filesystem benchmark；Git `update-index` 的 untracked-cache/fsmonitor 与 sparse-checkout sparse-index 文档。
 
+## 2026-05-20：manuscript story repair 必须由 write owner 跟进到正文 surface
+
+- 决策：`manuscript_story_repair` 的完成证据必须包含 canonical manuscript story surface delta，即 `paper/draft.md` 或 `paper/build/review_manuscript.md`。当 controller repair packet 返回 `blocked_reason=manuscript_story_surface_delta_missing` 且 `next_owner=write` 时，MAS managed worker 必须继续作为 write owner 修订正文 surface；该 closeout 不得 parked 为等待用户，也不得由 ledger-only delta 宣称完成。
+- 理由：DM002 暴露出 quality repair batch 能正确更新 claim/evidence/review ledger，但没有改正文稿面，随后 runtime 把同 owner 的缺口停成 blocked closeout，造成“质量闭环完成但论文不变”的假进度。这个缺陷属于 MAS write-owner follow-through 合同和 runtime completion 语义，不是单篇论文的人工补丁问题。
+- 影响：Codex runtime prompt 会对 `manuscript_story_repair` 注入 follow-through contract，要求先跑 controller command，再在 same-owner story-surface blocker 下继续修订 `paper/draft.md` / `paper/build/review_manuscript.md`。runtime completion 会把 `manuscript_story_surface_delta_missing -> write` 识别为 `runner_incomplete` 并继续 redrive；外部 owner 的 blocked closeout 仍保持等待 owner/user 的原语义。该规则只保证 owner-chain 不假完成，不替代 AI reviewer 或 publication gate 的医学质量 verdict。
+
 ## 2026-05-02：MAS AI-first Research OS 成为长线目标架构
 
 - 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 已收敛为显式 backend audit、explicit archive import reference、upstream intake 与 parity oracle companion。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。

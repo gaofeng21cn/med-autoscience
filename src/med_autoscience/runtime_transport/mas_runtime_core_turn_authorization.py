@@ -459,6 +459,7 @@ def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]
         quest_id=quest_id,
     )
     hard_methodology_contract = _hard_methodology_contract_prompt_section(authorization)
+    manuscript_story_contract = _manuscript_story_repair_followthrough_prompt_section(authorization)
     return (
         "Active MAS controller work unit:\n"
         "```json\n"
@@ -483,7 +484,36 @@ def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]
         "`specificity_targets`, or write a blocked closeout naming the missing controller/owner surface.\n"
         "- A runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta for this work unit.\n\n"
         f"{hard_methodology_contract}"
+        f"{manuscript_story_contract}"
         f"{controller_action_contract}"
+    )
+
+
+def _manuscript_story_repair_followthrough_prompt_section(authorization: Mapping[str, Any]) -> str:
+    if "manuscript_story_repair" not in set(_controller_work_unit_ids(authorization)):
+        return ""
+    return (
+        "Manuscript story repair follow-through contract:\n"
+        "- This is a MAS write-owner work unit. Invoke the controller command first, then inspect the returned "
+        "`quality_repair_batch` and `repair_execution_evidence` surfaces.\n"
+        "- If the controller command returns status=blocked with "
+        "blocked_reason=manuscript_story_surface_delta_missing and next_owner=write, do not treat that as a "
+        "terminal blocked closeout. It is same-owner evidence that the controller packet did not revise the "
+        "manuscript story surface yet.\n"
+        "- Continue as the write owner by reading the current study charter, manuscript draft, review manuscript, "
+        "claim-evidence map, evidence ledger, review ledger, publication-eval request, and current quality blockers. "
+        "Revise canonical manuscript story surfaces at `paper/draft.md` and/or "
+        "`paper/build/review_manuscript.md` so the paper tells the current clean evidence-backed story.\n"
+        "- Keep internal correction history, preprocessing-error provenance, runtime status, QA language, and "
+        "submission-readiness notes out of the manuscript body. Those belong in ledgers, handoff records, or typed "
+        "blockers, not in the paper narrative.\n"
+        "- Close the turn with meaningful_artifact_delta=true only when `artifact_refs` include "
+        "`paper/draft.md` and/or `paper/build/review_manuscript.md`. Ledger-only deltas do not close "
+        "`manuscript_story_repair`.\n"
+        "- If those canonical manuscript surfaces are missing, unwritable, or the evidence needed to revise them is "
+        "not available to the MAS write owner, write a blocked closeout with "
+        "status=blocked, meaningful_artifact_delta=false, blocked_reason=write_owner_callable_surface_missing, "
+        "and next_owner=MAS/write.\n\n"
     )
 
 
