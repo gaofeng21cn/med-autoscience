@@ -672,7 +672,9 @@ def test_study_state_matrix_consumes_human_gate_resume_receipt(
     assert transition["controller_action"] == "resume_runtime_after_human_gate"
     assert transition["owner"] == "med-autoscience"
     assert transition["typed_blocker"] is None
-    assert transition["completion_receipt_consumption"] == {
+    consumption = transition["completion_receipt_consumption"]
+    packet = consumption.pop("body_free_evidence_packet")
+    assert consumption == {
         "status": "consumed",
         "receipt_kind": "human_gate_resume_receipt",
         "gate_id": f"controller-human-confirmation-{study_id}",
@@ -683,6 +685,19 @@ def test_study_state_matrix_consumes_human_gate_resume_receipt(
         "controller_action_types": ["ensure_study_runtime"],
         "next_action": "honor_human_gate_resume_receipt",
     }
+    assert set(packet) == {
+        "ref",
+        "role",
+        "freshness",
+        "owner",
+        "receipt_id",
+        "no_forbidden_write_proof",
+    }
+    assert packet["role"] == "human_gate_or_resume_ref"
+    assert packet["owner"] == "MedAutoScience"
+    assert packet["no_forbidden_write_proof"]["memory_body_write_performed"] is False
+    assert packet["no_forbidden_write_proof"]["artifact_body_write_performed"] is False
+    assert packet["no_forbidden_write_proof"]["current_package_write_performed"] is False
     assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is False
     assert case["expected"]["decision_type"] == "human_gate_resume_receipt_consumed"
     assert case["context"]["completion_receipt_consumption"]["receipt_kind"] == "human_gate_resume_receipt"

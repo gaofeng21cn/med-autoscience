@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
+
 
 TARGET_DOMAIN_ID = "medautoscience"
 DOMAIN_OWNER = "med-autoscience"
@@ -106,6 +108,21 @@ def build_provider_residency_read_model(
     ]
     missing = [item["check_id"] for item in checks if item["status"] != "receipt_observed"]
     status = "ready" if provider_available and not missing else "typed_blocker"
+    evidence_packets = [
+        build_body_free_evidence_packet(
+            ref=item["receipt_ref"] or f"missing:{item['check_id']}",
+            role=_provider_residency_packet_role(item["check_id"]),
+            owner=OPL_OWNER,
+            receipt_id=f"provider-slo-long-soak:{item['check_id']}",
+            freshness={
+                "status": "receipt_observed" if item["status"] == "receipt_observed" else "missing",
+                "exists": item["status"] == "receipt_observed",
+                "mtime_epoch": None,
+                "size_bytes": 0,
+            },
+        )
+        for item in checks
+    ]
     return {
         "surface_kind": PROVIDER_RESIDENCY_SURFACE,
         "version": "provider-runtime-residency-read-model.v1",
@@ -116,6 +133,7 @@ def build_provider_residency_read_model(
         "status": status,
         "provider_available": bool(provider_available),
         "checks": checks,
+        "body_free_evidence_packets": evidence_packets,
         "required_evidence": list(PRODUCTION_RESIDENCY_CHECKS),
         "accepted_receipt_surfaces": [
             "opl_provider_attempt_receipt",
@@ -789,3 +807,12 @@ def _provider_residency_required_surface(check_id: str) -> str:
         "retry_dead_letter": "OPL retry policy and dead-letter receipt",
         "long_soak_receipt": "OPL long soak receipt",
     }.get(check_id, "OPL provider residency receipt")
+
+
+def _provider_residency_packet_role(check_id: str) -> str:
+    return {
+        "temporal_production_residency": "provider_residency_ref",
+        "worker_restart_requery": "restart_requery_ref",
+        "retry_dead_letter": "retry_dead_letter_ref",
+        "long_soak_receipt": "provider_slo_long_soak_ref",
+    }.get(check_id, "provider_slo_ref")

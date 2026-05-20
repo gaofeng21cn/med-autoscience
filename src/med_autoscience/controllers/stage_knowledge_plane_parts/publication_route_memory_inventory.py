@@ -5,6 +5,9 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.body_free_evidence_packets import (
+    build_body_free_evidence_packet,
+)
 from med_autoscience.stage_knowledge_contract import (
     PUBLICATION_ROUTE_MEMORY_STAGES,
     SCHEMA_VERSION,
@@ -305,6 +308,11 @@ def _receipt_inventory_entry(*, path: Path, receipt_kind: str) -> dict[str, Any]
         writeback_receipt_ref=writeback_receipt_ref,
     )
     writeback_refs = [*accepted_writeback_refs, *rejected_writeback_refs]
+    blocked_writeback_refs = _receipt_blocked_refs(
+        payload=payload,
+        source_receipt_ref=source_receipt_ref,
+        writeback_receipt_ref=writeback_receipt_ref,
+    )
     route_back_refs = [ref for ref in writeback_refs if _is_route_back_ref(ref)]
     route_family_tags = _receipt_route_family_tags(
         payload=payload,
@@ -329,8 +337,15 @@ def _receipt_inventory_entry(*, path: Path, receipt_kind: str) -> dict[str, Any]
         "rejected_refs": _receipt_rejected_refs(payload),
         "accepted_writeback_refs": accepted_writeback_refs,
         "rejected_writeback_refs": rejected_writeback_refs,
+        "blocked_writeback_refs": blocked_writeback_refs,
         "route_back_refs": route_back_refs,
         "writeback_refs": writeback_refs,
+        "body_free_evidence_packets": _receipt_body_free_packets(
+            path=path,
+            accepted_refs=accepted_writeback_refs,
+            rejected_refs=rejected_writeback_refs,
+            blocked_refs=blocked_writeback_refs,
+        ),
         "typed_blocker_count": len(_mapping_list(payload.get("typed_blockers"))),
         "body_included": False,
         "authority_boundary": "read_only_display_not_mas_truth_authority",
@@ -465,6 +480,67 @@ def _receipt_writeback_refs(
     return refs
 
 
+def _receipt_blocked_refs(
+    *,
+    payload: Mapping[str, Any],
+    source_receipt_ref: str,
+    writeback_receipt_ref: str,
+) -> list[dict[str, Any]]:
+    receipt_status = _text(payload.get("status"))
+    if receipt_status != "blocked":
+        return []
+    refs: list[dict[str, Any]] = []
+    for blocker in _mapping_list(payload.get("typed_blockers")):
+        refs.append(
+            _drop_empty(
+                {
+                    "blocker_id": _text(blocker.get("blocker_id")),
+                    "reason": _text(blocker.get("reason")),
+                    "source_receipt_ref": source_receipt_ref,
+                    "writeback_receipt_ref": writeback_receipt_ref,
+                    "status": "blocked",
+                    "receipt_status": receipt_status,
+                    "authority_boundary": "ref_only_not_memory_body_or_writeback_authority",
+                }
+            )
+        )
+    return refs
+
+
+def _receipt_body_free_packets(
+    *,
+    path: Path,
+    accepted_refs: Sequence[Mapping[str, Any]],
+    rejected_refs: Sequence[Mapping[str, Any]],
+    blocked_refs: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    freshness = _receipt_freshness(path)
+    packets: list[dict[str, Any]] = []
+    for status, refs, role in (
+        ("accepted", accepted_refs, "accepted_memory_receipt_ref"),
+        ("rejected", rejected_refs, "rejected_memory_receipt_ref"),
+        ("blocked", blocked_refs, "blocked_memory_receipt_ref"),
+    ):
+        for index, ref_payload in enumerate(refs):
+            ref = _text(ref_payload.get("writeback_receipt_ref")) or _text(ref_payload.get("source_receipt_ref")) or str(path)
+            ref_id = (
+                _text(ref_payload.get("write_id"))
+                or _text(ref_payload.get("memory_id"))
+                or _text(ref_payload.get("blocker_id"))
+                or str(index)
+            )
+            packets.append(
+                build_body_free_evidence_packet(
+                    ref=f"{ref}#{status}:{_safe_key(ref_id)}",
+                    role=role,
+                    owner="MedAutoScience",
+                    receipt_id=f"publication-route-memory:{status}:{_safe_key(ref_id)}",
+                    freshness=freshness,
+                )
+            )
+    return packets
+
+
 def _receipt_route_family_tags(
     *,
     payload: Mapping[str, Any],
@@ -535,6 +611,7 @@ def _group_receipt_refs(receipts: Sequence[Mapping[str, Any]]) -> list[dict[str,
                 "writeback_receipt_ref": _text(receipt.get("writeback_receipt_ref")),
                 "accepted_writeback_ref_count": len(_mapping_list(receipt.get("accepted_writeback_refs"))),
                 "rejected_writeback_ref_count": len(_mapping_list(receipt.get("rejected_writeback_refs"))),
+                "blocked_writeback_ref_count": len(_mapping_list(receipt.get("blocked_writeback_refs"))),
                 "route_back_ref_count": len(_mapping_list(receipt.get("route_back_refs"))),
                 "body_included": False,
                 "authority_boundary": "ref_only_not_memory_body_or_writeback_authority",
@@ -557,11 +634,16 @@ def _receipt_review_summary(receipts: Sequence[Mapping[str, Any]]) -> dict[str, 
         len(_mapping_list(receipt.get("route_back_refs")))
         for receipt in receipts
     )
+    blocked_writeback_ref_count = sum(
+        len(_mapping_list(receipt.get("blocked_writeback_refs")))
+        for receipt in receipts
+    )
     return {
         "surface": "publication_route_memory_receipt_review_summary",
         "receipt_count": len(receipts),
         "accepted_writeback_ref_count": accepted_writeback_ref_count,
         "rejected_writeback_ref_count": rejected_writeback_ref_count,
+        "blocked_writeback_ref_count": blocked_writeback_ref_count,
         "route_back_ref_count": route_back_ref_count,
         "needs_maintainer_review_count": rejected_writeback_ref_count,
         "body_included": False,
