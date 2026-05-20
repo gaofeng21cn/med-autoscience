@@ -744,6 +744,109 @@ def test_ai_reviewer_request_materialization_rejects_prepopulated_record_stale_a
     ]
 
 
+def test_ai_reviewer_request_materialization_replaces_prepopulated_record_with_newer_owner_record(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    response_root = study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses"
+    old_record_path = response_root / "20260519T202816Z_publication_eval_record.json"
+    new_record_path = response_root / "20260520T181412Z_publication_eval_record.json"
+    quality_assessment = {
+        dimension: {
+            "status": "partial" if dimension == "medical_journal_prose_quality" else "ready",
+            "summary": f"{dimension} reviewer assessment.",
+        }
+        for dimension in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "medical_journal_prose_quality",
+            "human_review_readiness",
+        )
+    }
+    old_record = {
+        "eval_id": "publication-eval::002-risk::quest-002::2026-05-19T20:28:16+00:00",
+        "study_id": "002-risk",
+        "quest_id": "quest-002",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": quality_assessment,
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Old reviewer record remains only as provenance.",
+                "impact_on_claim": "Superseded by a later owner record.",
+                "required_future_analysis_data_or_design": "Use the latest current owner record.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+    }
+    new_record = {
+        "eval_id": "publication-eval::002-risk::quest-002::2026-05-20T18:14:12+00:00",
+        "study_id": "002-risk",
+        "quest_id": "quest-002",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": quality_assessment,
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Current reviewer record routes the study to bounded analysis.",
+                "impact_on_claim": "Claims remain constrained until analysis gaps close.",
+                "required_future_analysis_data_or_design": "Complete uncertainty and grouped calibration repair.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+        "recommended_actions": [
+            {
+                "action_id": "ai-reviewer-action::return-to-analysis-campaign",
+                "action_type": "route_back_same_line",
+                "requires_controller_decision": True,
+                "route_target": "analysis-campaign",
+                "next_work_unit": {
+                    "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "lane": "analysis-campaign",
+                    "summary": "Close uncertainty intervals and grouped calibration for the unit-harmonized validation.",
+                },
+            }
+        ],
+    }
+    response_root.mkdir(parents=True)
+    old_record_path.write_text(json.dumps(old_record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    new_record_path.write_text(json.dumps(new_record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="002-risk",
+        quest_id="quest-002",
+        source_surface="runtime_supervisor_scan",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+        },
+    )
+    packet["ai_reviewer_record"] = old_record
+    packet["publication_eval_record_ref"] = str(old_record_path.resolve())
+    packet["request_lifecycle"]["assessment_ref"] = str(old_record_path.resolve())
+
+    materialized = materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    persisted = read_ai_reviewer_request(study_root=study_root)
+
+    assert materialized["ai_reviewer_record"] == new_record
+    assert materialized["publication_eval_record_ref"] == str(new_record_path.resolve())
+    assert persisted is not None
+    assert persisted["ai_reviewer_record"]["eval_id"] == new_record["eval_id"]
+    assert persisted["publication_eval_record_ref"] == str(new_record_path.resolve())
+    assert persisted["request_lifecycle"]["assessment_ref"] == str(new_record_path.resolve())
+    assert persisted["request_lifecycle"]["blocked_reason"] is None
+    assert "stale_record_ref" not in persisted["request_lifecycle"]
+    assert "required_currentness_refs" not in persisted["request_lifecycle"]
+
+
 def test_request_builder_rejects_prepopulated_specificity_targets() -> None:
     with pytest.raises(ValueError, match="request packet must not prepopulate gate specificity targets"):
         build_publication_gate_specificity_request(

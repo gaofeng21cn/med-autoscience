@@ -307,6 +307,112 @@ def _block_ai_reviewer_record_manuscript_story_leakage(
     return payload
 
 
+def _block_ai_reviewer_record_missing_currentness(
+    *,
+    payload: dict[str, Any],
+    record_ref: str | None,
+    missing_currentness_refs: list[str],
+) -> dict[str, Any]:
+    lifecycle = dict(_mapping(payload.get("request_lifecycle")))
+    lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+    if record_ref:
+        lifecycle["stale_record_ref"] = record_ref
+    lifecycle["required_currentness_refs"] = missing_currentness_refs
+    payload["request_lifecycle"] = lifecycle
+    payload.pop("ai_reviewer_record", None)
+    payload.pop("publication_eval_record", None)
+    payload.pop("record", None)
+    payload.pop("publication_eval_record_ref", None)
+    return payload
+
+
+def _clear_ai_reviewer_record_lifecycle_blockers(
+    *,
+    payload: dict[str, Any],
+    assessment_ref: str | None = None,
+) -> dict[str, Any]:
+    lifecycle = dict(_mapping(payload.get("request_lifecycle")))
+    lifecycle["blocked_reason"] = None
+    if assessment_ref:
+        lifecycle["assessment_ref"] = assessment_ref
+    lifecycle.pop("stale_record_ref", None)
+    lifecycle.pop("required_currentness_refs", None)
+    lifecycle.pop("leakage_reason", None)
+    lifecycle.pop("leakage_field_path", None)
+    lifecycle.pop("next_required_actions", None)
+    payload["request_lifecycle"] = lifecycle
+    return payload
+
+
+def _attach_ai_reviewer_record(
+    *,
+    payload: dict[str, Any],
+    record: Mapping[str, Any],
+    record_ref: str,
+) -> dict[str, Any]:
+    payload["ai_reviewer_record"] = dict(record)
+    payload["publication_eval_record_ref"] = record_ref
+    return _clear_ai_reviewer_record_lifecycle_blockers(payload=payload, assessment_ref=record_ref)
+
+
+def _validate_ai_reviewer_record_for_packet(
+    *,
+    study_root: Path,
+    payload: dict[str, Any],
+    record: Mapping[str, Any],
+    record_ref: str | None,
+    attach_record: bool,
+) -> dict[str, Any]:
+    missing_currentness_refs = _record_missing_currentness_refs(study_root=study_root, record=record)
+    if missing_currentness_refs:
+        return _block_ai_reviewer_record_missing_currentness(
+            payload=payload,
+            record_ref=record_ref,
+            missing_currentness_refs=missing_currentness_refs,
+        )
+    leakage = ai_reviewer_record_story_provenance_leakage(record)
+    if leakage is not None:
+        return _block_ai_reviewer_record_manuscript_story_leakage(
+            payload=payload,
+            record_ref=record_ref,
+            leakage=leakage,
+        )
+    if attach_record and record_ref:
+        return _attach_ai_reviewer_record(payload=payload, record=record, record_ref=record_ref)
+    return _clear_ai_reviewer_record_lifecycle_blockers(payload=payload, assessment_ref=record_ref)
+
+
+def _resolved_record_ref(*, study_root: Path, payload: Mapping[str, Any]) -> Path | None:
+    record_ref = _text(payload.get("publication_eval_record_ref"))
+    if not record_ref:
+        return None
+    path = Path(record_ref).expanduser()
+    if not path.is_absolute():
+        path = study_root / path
+    return path.resolve()
+
+
+def _latest_record_supersedes_attached_record(
+    *,
+    study_root: Path,
+    payload: Mapping[str, Any],
+    latest_record_path: Path,
+) -> bool:
+    existing_path = _resolved_record_ref(study_root=study_root, payload=payload)
+    latest_path = latest_record_path.resolve()
+    if existing_path is None:
+        return True
+    if existing_path == latest_path:
+        return False
+    response_root = (study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses").resolve()
+    try:
+        existing_path.relative_to(response_root)
+        latest_path.relative_to(response_root)
+    except ValueError:
+        return True
+    return latest_path.name > existing_path.name
+
+
 def _string_items(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -336,66 +442,30 @@ def _latest_ai_reviewer_publication_eval_record(
 
 def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(packet)
-    existing_record = _mapping(payload.get("ai_reviewer_record") or payload.get("publication_eval_record") or payload.get("record"))
-    if existing_record:
-        missing_currentness_refs = _record_missing_currentness_refs(study_root=study_root, record=existing_record)
-        if missing_currentness_refs:
-            lifecycle = dict(_mapping(payload.get("request_lifecycle")))
-            lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
-            lifecycle["stale_record_ref"] = _text(payload.get("publication_eval_record_ref"))
-            lifecycle["required_currentness_refs"] = missing_currentness_refs
-            payload["request_lifecycle"] = lifecycle
-            payload.pop("ai_reviewer_record", None)
-            payload.pop("publication_eval_record", None)
-            payload.pop("record", None)
-            payload.pop("publication_eval_record_ref", None)
-            return payload
-        leakage = ai_reviewer_record_story_provenance_leakage(existing_record)
-        if leakage is not None:
-            return _block_ai_reviewer_record_manuscript_story_leakage(
-                payload=payload,
-                record_ref=_text(payload.get("publication_eval_record_ref")),
-                leakage=leakage,
-            )
-        lifecycle = dict(_mapping(payload.get("request_lifecycle")))
-        lifecycle["blocked_reason"] = None
-        lifecycle.pop("stale_record_ref", None)
-        lifecycle.pop("required_currentness_refs", None)
-        lifecycle.pop("leakage_reason", None)
-        lifecycle.pop("leakage_field_path", None)
-        lifecycle.pop("next_required_actions", None)
-        payload["request_lifecycle"] = lifecycle
-        return payload
     latest = _latest_ai_reviewer_publication_eval_record(study_root=study_root)
-    if latest is None:
-        return payload
-    record, record_path = latest
-    missing_currentness_refs = _record_missing_currentness_refs(study_root=study_root, record=record)
-    if missing_currentness_refs:
-        lifecycle = dict(_mapping(payload.get("request_lifecycle")))
-        lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
-        lifecycle["stale_record_ref"] = str(record_path)
-        lifecycle["required_currentness_refs"] = missing_currentness_refs
-        payload["request_lifecycle"] = lifecycle
-        return payload
-    leakage = ai_reviewer_record_story_provenance_leakage(record)
-    if leakage is not None:
-        return _block_ai_reviewer_record_manuscript_story_leakage(
+    existing_record = _mapping(payload.get("ai_reviewer_record") or payload.get("publication_eval_record") or payload.get("record"))
+    if latest is not None:
+        latest_record, latest_record_path = latest
+        if not existing_record or _latest_record_supersedes_attached_record(
+            study_root=study_root,
             payload=payload,
-            record_ref=str(record_path),
-            leakage=leakage,
+            latest_record_path=latest_record_path,
+        ):
+            return _validate_ai_reviewer_record_for_packet(
+                study_root=study_root,
+                payload=payload,
+                record=latest_record,
+                record_ref=str(latest_record_path),
+                attach_record=True,
+            )
+    if existing_record:
+        return _validate_ai_reviewer_record_for_packet(
+            study_root=study_root,
+            payload=payload,
+            record=existing_record,
+            record_ref=_text(payload.get("publication_eval_record_ref")),
+            attach_record=False,
         )
-    payload["ai_reviewer_record"] = record
-    payload["publication_eval_record_ref"] = str(record_path)
-    lifecycle = dict(_mapping(payload.get("request_lifecycle")))
-    lifecycle["assessment_ref"] = str(record_path)
-    lifecycle["blocked_reason"] = None
-    lifecycle.pop("stale_record_ref", None)
-    lifecycle.pop("required_currentness_refs", None)
-    lifecycle.pop("leakage_reason", None)
-    lifecycle.pop("leakage_field_path", None)
-    lifecycle.pop("next_required_actions", None)
-    payload["request_lifecycle"] = lifecycle
     return payload
 
 
