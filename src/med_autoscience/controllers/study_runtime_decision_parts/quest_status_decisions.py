@@ -7,6 +7,7 @@ from typing import Any
 from med_autoscience.controllers.study_runtime_decision_parts.domain_transition_status import (
     _apply_domain_transition_redrive_decision,
     _domain_transition_runtime_redrive_reason,
+    _has_controller_work_unit_pending_redrive,
     _has_domain_transition_runtime_redrive,
     _publication_gate_domain_redrive_reason,
 )
@@ -453,13 +454,23 @@ def _apply_stopped_or_failed_quest_status_decision(
             )
         )
     )
+    controller_work_unit_redrive = _has_controller_work_unit_pending_redrive(result)
     if (
         (submission_metadata_only_manual_finish or bundle_only_manual_finish)
         and not failed_task_intake_resume_allowed
+        and not controller_work_unit_redrive
     ):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+        )
+        return finalize_result()
+    if controller_work_unit_redrive:
+        _set_stopped_resume_or_blocked_decision(
+            result=result,
+            execution=execution,
+            resume_reason=StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
+            blocked_reason=StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
         )
         return finalize_result()
     if (
@@ -493,6 +504,9 @@ def _apply_stopped_or_failed_quest_status_decision(
                     StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
                 ),
                 "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
+                "controller_work_unit_pending_redrive": (
+                    StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+                ),
             }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
             blocked_reason = (
                 StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED

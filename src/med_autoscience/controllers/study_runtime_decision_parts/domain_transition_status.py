@@ -17,6 +17,38 @@ from med_autoscience.controllers.study_runtime_types import (
 )
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import _load_json_dict
 
+_STOPPED_RUNTIME_REDRIVE_CLASSIFICATIONS = frozenset(
+    {
+        "domain_transition_runtime_redrive",
+        "controller_work_unit_pending_redrive",
+    }
+)
+
+
+def _stopped_runtime_redrive_arbitration_candidate(
+    *,
+    status: StudyRuntimeStatus,
+    execution: dict[str, object],
+) -> dict[str, object] | None:
+    if status.quest_status is not StudyRuntimeQuestStatus.STOPPED:
+        return None
+    continuation_state = status.extras.get("continuation_state")
+    controller_authorization = status.extras.get("last_controller_decision_authorization")
+    domain_transition = status.extras.get("domain_transition")
+    arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy=str(execution.get("decision_policy") or "").strip() or None,
+        submission_metadata_only=False,
+        continuation_state=continuation_state if isinstance(continuation_state, dict) else None,
+        controller_authorization=controller_authorization if isinstance(controller_authorization, dict) else None,
+        domain_transition=domain_transition if isinstance(domain_transition, dict) else None,
+    )
+    if str(arbitration.get("action") or "").strip() != "resume":
+        return None
+    if str(arbitration.get("classification") or "").strip() not in _STOPPED_RUNTIME_REDRIVE_CLASSIFICATIONS:
+        return None
+    return arbitration
+
 
 def _record_interaction_arbitration_if_required(
     *,
@@ -31,11 +63,19 @@ def _record_interaction_arbitration_if_required(
         quest_root=quest_root,
         publication_gate_report=publication_gate_report,
     )
+    stopped_redrive_arbitration = _stopped_runtime_redrive_arbitration_candidate(
+        status=status,
+        execution=execution,
+    )
     if (
         status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER
         and not _is_controller_owned_finalize_parking(status)
         and stopped_recovery_context is None
+        and stopped_redrive_arbitration is None
     ):
+        return
+    if stopped_redrive_arbitration is not None:
+        status.record_interaction_arbitration(stopped_redrive_arbitration)
         return
     payload = status.extras.get("pending_user_interaction")
     blocked_closeout = status.extras.get("blocked_turn_closeout")
@@ -101,6 +141,16 @@ def _has_domain_transition_runtime_redrive(status: StudyRuntimeStatus) -> bool:
         isinstance(interaction_arbitration, dict)
         and str(interaction_arbitration.get("classification") or "").strip()
         == "domain_transition_runtime_redrive"
+        and str(interaction_arbitration.get("action") or "").strip() == "resume"
+    )
+
+
+def _has_controller_work_unit_pending_redrive(status: StudyRuntimeStatus) -> bool:
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    return (
+        isinstance(interaction_arbitration, dict)
+        and str(interaction_arbitration.get("classification") or "").strip()
+        == "controller_work_unit_pending_redrive"
         and str(interaction_arbitration.get("action") or "").strip() == "resume"
     )
 
@@ -253,6 +303,7 @@ __all__ = [
     "_completion_blocked_ai_reviewer_redrive_reason",
     "_current_ai_reviewer_domain_redrive_reason",
     "_publication_gate_domain_redrive_reason",
+    "_has_controller_work_unit_pending_redrive",
     "_has_domain_transition_runtime_redrive",
     "_record_interaction_arbitration_if_required",
     "_domain_transition_runtime_redrive_reason",

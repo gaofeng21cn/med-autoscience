@@ -410,6 +410,7 @@ def _status_state(
         and (not task_intake_releases_manual_finish_parking or task_intake_yields_to_submission_closeout)
         and quest_status not in _LIVE_QUEST_STATUSES
         and not _has_domain_transition_runtime_redrive(result)
+        and not _has_controller_work_unit_pending_redrive(result)
     ):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
