@@ -15,6 +15,7 @@ _TRANSITION_DECISION_TYPES = frozenset(
         "bundle_stage_finalize",
         "delivered_package_handoff",
         "publication_gate_blocker",
+        "route_back_same_line",
     }
 )
 
@@ -90,6 +91,8 @@ def _controller_action_type_for_transition(transition: Mapping[str, Any]) -> str
         return StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value
     if controller_action == "continue_bundle_stage":
         return StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value
+    if controller_action == "ensure_study_runtime":
+        return StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value
     return None
 
 
@@ -97,6 +100,8 @@ def _decision_action_type_for_transition(transition: Mapping[str, Any]) -> str |
     decision_type = _text(transition.get("decision_type"))
     if decision_type == "publication_gate_blocker":
         return StudyDecisionType.BOUNDED_ANALYSIS.value
+    if decision_type == "route_back_same_line":
+        return StudyDecisionType.ROUTE_BACK_SAME_LINE.value
     if decision_type in {"ai_reviewer_re_eval", "bundle_stage_finalize", "delivered_package_handoff"}:
         return StudyDecisionType.CONTINUE_SAME_LINE.value
     return None
@@ -123,6 +128,8 @@ def _route_key_question(transition: Mapping[str, Any]) -> str:
         return "当前交付包应等待用户审阅，还是有新的显式 revision intake？"
     if decision_type == "publication_gate_blocker":
         return "当前 publication gate blockers 应由哪一个 MAS owner surface 重新判定并派发？"
+    if decision_type == "route_back_same_line":
+        return "当前 AI reviewer-backed route-back 应由哪一个同线 owner work unit 继续？"
     return "当前 MAS domain transition 要求执行哪个 controller owner work unit？"
 
 
@@ -136,6 +143,8 @@ def _route_rationale(transition: Mapping[str, Any]) -> str:
         return "A user-visible milestone package has been delivered; keep quality authority distinct and stop the runtime until explicit user wakeup."
     if decision_type == "publication_gate_blocker":
         return "The publication gate is blocked; replay the gate through MAS owner authority before redriving any repair unit."
+    if decision_type == "route_back_same_line":
+        return "The current AI reviewer-backed quality record names a same-line owner route; materialize that owner work unit before stale publication blockers."
     return _transition_reason(transition)
 
 

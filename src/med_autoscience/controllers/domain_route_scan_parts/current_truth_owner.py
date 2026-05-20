@@ -24,6 +24,7 @@ DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE = {
     "ai_reviewer_re_eval": {"return_to_ai_reviewer_workflow"},
     "bundle_stage_finalize": {"ensure_study_runtime"},
     "publication_gate_blocker": {"run_gate_clearing_batch"},
+    "route_back_same_line": {"ensure_study_runtime"},
 }
 METHODOLOGY_REFRAME_DECISION_FINGERPRINT = "decision::methodology_reframe_route_decision"
 METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = "provenance_limited_harmonization_audit"
