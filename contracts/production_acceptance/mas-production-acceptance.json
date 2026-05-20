@@ -364,18 +364,18 @@
     "handoff_status": "ready_for_opl_meta_agent_and_agent_lab_execution",
     "handoff_ref": {
       "ref": "contracts/agent_lab_handoff.json",
-      "role": "mas_agent_lab_production_evidence_handoff",
+      "role": "domain_agent_lab_production_evidence_handoff",
       "body_included": false
     },
-    "suite_kind": "mas_production_evidence_suite",
+    "suite_kind": "agent_production_evidence_suite",
     "target_consumers": [
       "one-person-lab.agent_lab",
       "opl-meta-agent"
     ],
     "target_opl_cli": "opl agent-lab run --suite <suite.json> --json",
-    "target_meta_agent_cli": "npm run mas:evidence -- --mas-repo <mas_repo> --output-dir <dir> --opl-bin <opl>",
+    "target_meta_agent_cli": "npm run agent:evidence -- --agent-repo <agent_repo> --output-dir <dir> --opl-bin <opl>",
     "domain_verdict_claimed": false,
-    "closeout_requires_mas_owner_receipt_or_typed_blocker": true,
+    "closeout_requires_domain_owner_receipt_or_typed_blocker": true,
     "required_gate_ids": [
       "real_paper_line_provider_canary",
       "memory_artifact_human_gate_scaleout",
@@ -389,6 +389,9 @@
     "provider_completion_is_medical_ready": false,
     "structural_conformance_is_domain_ready": false,
     "physical_conformance_is_domain_ready": false,
+    "domain_ready_requires_owner_receipt_or_typed_blocker": true,
+    "quality_or_export_ready_requires_target_owner_gate": true,
+    "artifact_mutation_requires_owner_receipt": true,
     "domain_ready_requires_mas_owner_receipt_or_typed_blocker": true,
     "publication_ready_requires_mas_quality_publication_gate": true,
     "medical_ready_requires_mas_quality_publication_gate": true,
