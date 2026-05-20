@@ -8,6 +8,7 @@ from med_autoscience.controllers import control_intent
 from med_autoscience.controllers.work_unit_evidence_adoption_parts import (
     analysis_claim_evidence_repair_receipt,
     analysis_stage_memory_handoff,
+    completed_lifecycle,
     completed_work_unit_handoff,
     generic_completed_work_unit,
     hard_methodology_unit_harmonization,
@@ -720,6 +721,7 @@ def _mark_controller_work_unit_evidence_adopted(
     runtime_state = _read_json_mapping(runtime_state_path)
     runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY] = {
         "decision_id": str(authorization_context.get("decision_id") or "").strip(),
+        "publication_eval_id": _text(authorization_context.get("publication_eval_id")),
         "route_target": str(authorization_context.get("route_target") or "").strip(),
         "route_key_question": str(authorization_context.get("route_key_question") or "").strip(),
         "source_route_key_question": str(authorization_context.get("source_route_key_question") or "").strip() or None,
@@ -788,6 +790,13 @@ def record_controller_work_unit_evidence_adoption(
     }
     if next_work_unit is not None:
         status.extras["controller_work_unit_next_route"]["next_work_unit"] = next_work_unit
+    completed_lifecycle.mark_owner_handoff_if_completed(
+        study_root=study_root,
+        authorization_context=authorization_context,
+        evidence_adoption=evidence_adoption,
+        read_json_mapping=_read_json_mapping,
+        write_json_mapping=_write_json_mapping,
+    )
     if quest_root is not None:
         _mark_controller_work_unit_evidence_adopted(
             quest_root=quest_root,

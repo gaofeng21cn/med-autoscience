@@ -477,6 +477,102 @@ def test_execute_noop_runtime_decision_adopts_post_authorization_story_closeout_
     assert adoption["result"]["artifact_refs_count"] == 2
 
 
+def test_completed_story_repair_adoption_closes_publication_work_unit_lifecycle(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    runtime_auth = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_authorization")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    quest_root = workspace_root / "runtime" / "quests" / "quest-001"
+    _write_story_repair_authorization(study_root)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+    quest_root.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("study_id: 001-risk\nquest_id: quest-001\n", encoding="utf-8")
+    _write_publication_eval_work_unit_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={
+            "delivery_mode": "managed_runtime_chat",
+            "message_id": "msg-story-repair",
+            "active_run_id": "run-story-closed",
+            "source": "medautosci-test",
+        },
+        recorded_at="2026-05-20T04:42:20+00:00",
+    )
+    _write_turn_closeout(
+        quest_root=quest_root,
+        run_id="run-story-closed",
+        artifact_refs=[
+            "../../../studies/001-risk/paper/draft.md",
+            "../../../studies/001-risk/paper/build/review_manuscript.md",
+        ],
+        completed_at="2026-05-20T04:47:57Z",
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-next",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status_payload["active_run_id"] = "run-next"
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("completed story repair closeout must be adopted instead of redelivered")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    lifecycle = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "controller"
+            / "publication_work_unit_lifecycle"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert lifecycle["status"] == "owner_handoff"
+    assert lifecycle["terminal_consumed"] is True
+    assert lifecycle["next_owner"] == "publication_gate"
+    assert lifecycle["work_unit"]["unit_id"] == "manuscript_story_repair"
+    assert lifecycle["unit_statuses"] == [{"unit_id": "manuscript_story_repair", "status": "owner_handoff"}]
+
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert "last_controller_decision_authorization" in runtime_state
+    sanitized = runtime_auth._sanitize_runtime_state_before_turn(
+        runtime_state=runtime_state,
+        quest_root=quest_root,
+        quest_id="quest-001",
+    )
+    assert "last_controller_decision_authorization" not in sanitized
+    assert sanitized["last_runtime_turn_state_sanitization"]["reason"] == "publication_work_unit_lifecycle_done"
+
+
 def _write_story_repair_authorization(
     study_root: Path,
     *,
