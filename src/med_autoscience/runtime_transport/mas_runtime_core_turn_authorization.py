@@ -186,8 +186,13 @@ def _sync_current_controller_authorization_for_turn(
     run_id: str,
 ) -> dict[str, Any]:
     owner_handoff_authorization = _blocked_closeout_owner_handoff_authorization(runtime_state)
-    if owner_handoff_authorization and not _terminal_source_provenance_handoff_is_superseded(
+    current_authorization = _current_controller_decision_authorization(
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    if owner_handoff_authorization and not _owner_handoff_authorization_is_superseded(
         authorization=owner_handoff_authorization,
+        current_authorization=current_authorization,
         quest_root=quest_root,
         quest_id=quest_id,
     ):
@@ -206,10 +211,6 @@ def _sync_current_controller_authorization_for_turn(
         updated["current_controller_authorization_sync_status"] = "blocked_turn_closeout_owner_handoff"
         _write_runtime_state(quest_root=quest_root, runtime_state=updated)
         return updated
-    current_authorization = _current_controller_decision_authorization(
-        quest_root=quest_root,
-        quest_id=quest_id,
-    )
     if not current_authorization and owner_handoff_authorization:
         current_authorization = _runtime_state_controller_authorization_after_terminal_source_blocker(
             runtime_state=runtime_state,
@@ -258,16 +259,17 @@ def _controller_authorization(
     if not isinstance(runtime_state, Mapping):
         return {}
     owner_handoff_authorization = _blocked_closeout_owner_handoff_authorization(runtime_state)
-    if owner_handoff_authorization and not _terminal_source_provenance_handoff_is_superseded(
-        authorization=owner_handoff_authorization,
-        quest_root=quest_root,
-        quest_id=quest_id,
-    ):
-        return owner_handoff_authorization
     current_controller_authorization = _current_controller_decision_authorization(
         quest_root=quest_root,
         quest_id=quest_id,
     )
+    if owner_handoff_authorization and not _owner_handoff_authorization_is_superseded(
+        authorization=owner_handoff_authorization,
+        current_authorization=current_controller_authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    ):
+        return owner_handoff_authorization
     if current_controller_authorization:
         if _closed_publication_work_unit_for_authorization(
             authorization=current_controller_authorization,
@@ -305,6 +307,28 @@ def _blocked_closeout_owner_handoff_authorization(runtime_state: Mapping[str, An
         runtime_state,
         action_names_for_authorization=_controller_action_names,
         mapping=_mapping,
+        text=_text,
+    )
+
+
+def _owner_handoff_authorization_is_superseded(
+    *,
+    authorization: Mapping[str, Any],
+    current_authorization: Mapping[str, Any],
+    quest_root: Path | None,
+    quest_id: str | None,
+) -> bool:
+    terminal_source_superseded = _terminal_source_provenance_handoff_is_superseded(
+        authorization=authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    return mas_runtime_core_turn_owner_handoff.owner_handoff_authorization_is_superseded(
+        authorization,
+        current_authorization,
+        terminal_source_provenance_superseded=terminal_source_superseded,
+        action_names_for_authorization=_controller_action_names,
+        work_unit_ids_for_authorization=_controller_work_unit_ids,
         text=_text,
     )
 
