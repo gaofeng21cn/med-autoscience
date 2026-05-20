@@ -27,6 +27,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - 2026-05-19 的 MAS stage cohort-loop refs 已补齐：6 个 stage 的 `stage_contract` 都声明 `source_scope_refs`、`cohort_query_refs`、OPL queue `trigger_refs`、`monitor_refs` 和 `dashboard_metric_refs`。OPL `stages cohort-loop --domain mas` 读取当前 MAS main 后返回 6/6 `closed_loop_ready`、`blocker_count=0`。该状态只证明 MAS 声明了可由 OPL 调度/观察的闭环 refs，不证明真实 paper-line provider launch、owner receipt、memory/artifact apply 或 long-soak 已完成。
 - 2026-05-19 的 MAS production acceptance surface 已落在 `contracts/production_acceptance/mas-production-acceptance.json`：`production_live_soak_not_claimed_by_conformance` 与 `domain_ready_not_claimed_by_conformance` 当前由 MAS-owned acceptance receipt 关闭为 `closed_by_domain_owned_acceptance_receipt`。该 receipt 只声明 structural / physical conformance 已通过、production-like receipt chain 已存在、下一步验证命令 refs 已记录；domain readiness、publication ready、medical ready、artifact mutation 与 `current_package` authority 仍必须由 MAS owner receipt、AI reviewer / auditor quality gate、publication gate 或 typed blocker 决定。
 - 已关闭的结构 gate 是：`generated_surface_active_caller_cutover`、`refs_only_adapter_thinning`、`legacy_cleanup_physical_retirement`、`opl_app_workbench_drilldown` 和 `lifecycle_locator_retention_restore_ledger_reconciliation`。这些 gate 不关闭 physical source morphology cleanup tail；真实 provider、paper-line、memory/artifact receipt、human gate/resume、long-soak evidence 和 active-source rename/delete/tombstone 仍需分别验收。
+- 当前 active plan 已收敛为一步到位的 physical/source morphology closure 路线：Codex pack canonicalization、OPL-generated default caller cutover、runtime_transport/SQLite/workbench/sidecar physical retirement gates、real paper-line canary、memory/artifact/human gate/long-soak evidence 并行推进。descriptor ready、conformance passed、legacy cleanup ledger ready 或 production acceptance receipt 只能作为对应 gate 输入，不能写成 production ready 或物理源码清零。
 - OPL `substrate projection --domain med-autoscience` 当前返回 `projection_status=substrate_refs_resolved`；MAS product-entry manifest 顶层暴露 body-free `source_provenance` refs，OPL lifecycle projection 只索引 source/artifact/memory refs，不读取 source body、memory body、artifact body 或医学 verdict。
 - 旧 MDS physical root / monolith binding / legacy provenance 只作为 archive、tombstone 或 refs-only historical fixture 读取；不得回写成 current runtime owner。
 - dated closeout、follow-through 和修复流水已经移到 [MAS standard agent 文档过程归档 2026-05](./history/program/mas-standard-agent-doc-process-history-2026-05.md)，不再作为 `docs/status.md` 当前结论展开。
@@ -66,31 +67,30 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 5. `lifecycle_locator_retention_restore_ledger_reconciliation`
    lifecycle locator、retention、restore、cleanup ledger 与 workspace runtime artifact root locator 已按 OPL generic lifecycle shell / MAS artifact authority receipt 边界对账；MAS 不持有 generic restore-retention engine。真实 workspace receipt scaleout 仍待完成。
 
+## 当前物理源码形态差距
+
+MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain SLO projection active source 命名收口。剩余差距是 retained adapter / diagnostic 的物理删除门，不是 MAS generic runtime owner 复活，也不是已经清零：
+
+- `runtime_transport/mas_runtime_core*`、turn runner、worker lease 与 `runtime_lifecycle_store.py`：当前保留为 domain receipt adapter、refs-only lifecycle sidecar、guarded apply / typed blocker bridge 或 diagnostic。删除门是 OPL provider parity、paper-line receipt parity、focused tests、no-forbidden-write proof、provenance/tombstone refs 和 no-active-caller 同时成立。
+- `product_entry_parts/workspace_cockpit/`、manifest/status、`sidecar_provider` 与 runtime status projection：在 OPL generated product/status/workbench shell 成为 production/default caller 前保持 direct domain handler target 或 OPL handoff 输入；default caller 迁移后只保留 authority refs、receipt signer、typed blocker、domain handler target 或 diagnostic，其余 archive/delete/tombstone。
+
 ## 当前测试/证据差距
 
 `contracts/production_acceptance/mas-production-acceptance.json` 已把 conformance 之后的 production acceptance evidence tail 收口为 MAS-owned receipt。以下项目现在是后续真实 paper-line / workspace scaleout 验证范围，不能替代真实 paper closure、publication-ready 或 artifact mutation authorization，也不再作为结构标准化缺口计数：
 
-- 真实 paper-line provider apply。
-- publication-route memory receipt scaleout。
-- artifact lifecycle receipt scaleout。
+- 真实 paper-line provider apply：至少一条 real paper-line canary 必须留下 OPL attempt、MAS sidecar dispatch、MAS owner receipt、artifact delta / gate replay / route decision / human gate / stop-loss / stable typed blocker 之一。
+- publication-route memory receipt scaleout：真实 paper line 产生 accepted/rejected/blocked writeback receipts，并能被后续 stage 按 refs 检索。
+- artifact lifecycle receipt scaleout：真实 workspace 产生 artifact mutation permission、cleanup/restore/retention guarded receipt 和 rebuild/freshness proof。
 - human gate / resume / explicit wakeup owner-chain 运行证明。
-- provider SLO long soak。
-
-## 当前物理源码形态差距
-
-MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain SLO projection active source 命名收口。下一轮 cleanup 要按 active caller、OPL parity、domain receipt parity、focused tests 与 no-forbidden-write proof 逐项处理：
-
-- `runtime_transport/mas_runtime_core*`、turn runner、worker lease 与 `runtime_lifecycle_store.py`：保留为 domain receipt adapter / refs-only lifecycle index / diagnostic，待 OPL provider parity 和 paper-line receipt parity 成立后 archive/delete/tombstone。
-- `product_entry_parts/workspace_cockpit/`、manifest/status、`sidecar_provider`：在 OPL generated product/status/workbench shell 成为 default caller 前保持 direct domain handler target；default caller 迁移后收薄到 authority refs、receipt signer、typed blocker 或删除。
+- provider SLO long soak：restart/re-query、retry/dead-letter、no-forbidden-write 与 App/workbench drilldown 在长窗口内持续成立。
 
 ## 当前完善顺序
 
-1. 按 `contracts/production_acceptance/mas-production-acceptance.json` 的 `next_verification_command_refs` 保持 focused contract test、`scripts/verify.sh` 与 diff hygiene 绿色。
-2. 用真实 paper-line provider apply 继续扩大 OPL provider -> MAS sidecar -> MAS owner chain 的 owner receipt、progress delta 或 typed blocker 样本。
-3. 扩展 publication-route memory accepted/rejected/blocked writeback receipts。
-4. 扩展 artifact lifecycle mutation / cleanup / restore / retention guarded receipts。
-5. 验证 human gate、resume、explicit wakeup 与 owner route 不越过 MAS quality gate 或 artifact authority。
-6. 做 provider SLO long soak、restart/re-query、retry/dead-letter 和 no-forbidden-write 长窗口验证。
+1. 并行推进 Codex pack canonicalization、OPL-generated default caller cutover 和 runtime_transport/SQLite physical retirement gate 盘点；只关闭具备 no-active-caller、replacement parity、domain receipt parity 和 no-forbidden-write proof 的删除项。
+2. 同步推进 workbench/sidecar/status retirement：OPL generated product/status/workbench shell 成为 production/default caller 后，MAS 只保留 direct skill target、domain handler、receipt signer、typed blocker 和 authority refs。
+3. 跑真实 paper-line canary，验证 OPL provider attempt -> MAS sidecar -> MAS owner chain 能产出 owner receipt、progress delta、gate replay、route decision、human gate、stop-loss 或 stable typed blocker。
+4. canary 之后扩展 publication-route memory、artifact lifecycle、human gate/resume 和 provider SLO long-soak evidence；这些属于测试/证据 tail，不回写成结构 closure，也不替 publication gate、AI reviewer 或 artifact authority 宣布 ready。
+5. 按 `contracts/production_acceptance/mas-production-acceptance.json` 的 `next_verification_command_refs` 保持 focused contract test、`scripts/verify.sh` 与 diff hygiene 绿色。
 
 ## 当前不能声明
 
