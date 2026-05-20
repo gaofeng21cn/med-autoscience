@@ -161,6 +161,29 @@ def _apply_completion_blocked_ai_reviewer_redrive_decision(
     return True
 
 
+def _apply_completion_publication_gate_decision(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+    publication_gate_report: dict[str, object] | None,
+) -> bool:
+    if _apply_completion_blocked_ai_reviewer_redrive_decision(
+        status,
+        study_root=study_root,
+        publication_gate_report=publication_gate_report,
+    ):
+        return True
+    if publication_gate_report is None:
+        return False
+    if str(publication_gate_report.get("status") or "").strip() == "clear":
+        return False
+    status.set_decision(
+        StudyRuntimeDecision.BLOCKED,
+        StudyRuntimeReason.STUDY_COMPLETION_PUBLISHABILITY_GATE_BLOCKED,
+    )
+    return True
+
+
 def _apply_ai_reviewer_domain_redrive_decision(
     status: StudyRuntimeStatus,
     *,
@@ -224,6 +247,7 @@ def _apply_domain_transition_redrive_decision(
 
 __all__ = [
     "_apply_completion_blocked_ai_reviewer_redrive_decision",
+    "_apply_completion_publication_gate_decision",
     "_apply_ai_reviewer_domain_redrive_decision",
     "_apply_domain_transition_redrive_decision",
     "_completion_blocked_ai_reviewer_redrive_reason",

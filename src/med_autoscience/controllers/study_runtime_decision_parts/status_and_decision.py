@@ -318,13 +318,11 @@ def _status_state(
                 StudyRuntimeReason.QUEST_ALREADY_COMPLETED,
             )
             return _finalize_result()
-        if _apply_completion_blocked_ai_reviewer_redrive_decision(result, study_root=study_root, publication_gate_report=publication_gate_report):
-            return _finalize_result()
-        if publication_gate_report is not None and str(publication_gate_report.get("status") or "").strip() != "clear":
-            result.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.STUDY_COMPLETION_PUBLISHABILITY_GATE_BLOCKED,
-            )
+        if _apply_completion_publication_gate_decision(
+            result,
+            study_root=study_root,
+            publication_gate_report=publication_gate_report,
+        ):
             return _finalize_result()
         if not quest_exists:
             result.set_decision(
