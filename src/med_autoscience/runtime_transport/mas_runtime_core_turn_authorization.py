@@ -43,12 +43,20 @@ _RUNTIME_REDRIVE_ACTION_NAMES = frozenset(
     }
 )
 _SUPERVISOR_DISPATCH_ACTION_NAMES = frozenset({"return_to_ai_reviewer_workflow"})
+_ANALYSIS_HARMONIZATION_DISPATCH_ACTION_NAMES = frozenset({"unit_harmonized_external_validation_rerun"})
 _SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
+_ANALYSIS_HARMONIZATION_WORK_UNIT_IDS = frozenset(
+    {
+        "unit_harmonized_external_validation_rerun",
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+    }
+)
 _HARD_METHODOLOGY_TOKENS = frozenset(
     {
         "hdl_unit_standardized_sensitivity",
         "unit_standardized_model_application_or_sensitivity",
         "unit_harmonized_external_validation_rerun",
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration",
         "unit_harmonized_rerun_required",
         "unit_harmonization",
         "unit_harmonized",
@@ -557,6 +565,8 @@ def _hard_methodology_contract_prompt_section(authorization: Mapping[str, Any]) 
         "- This work unit contains a hard HDL/unit-standardization or variable-harmonization target. "
         "The next valid domain step is `unit_harmonized_external_validation_rerun` under "
         "`analysis_harmonization_owner`, or an explicit typed blocker for that owner.\n"
+        "- The MAS owner callable surface is "
+        "`analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`.\n"
         "- A prose/source-documentation note or generic completed closeout is not sufficient for this target.\n"
         "- If the unit-harmonized rerun cannot be executed in this turn, write a blocked closeout with "
         "blocked_reason=unit_harmonized_rerun_required and next_owner=analysis_harmonization_owner. "
@@ -683,6 +693,10 @@ def _controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
         names = [name for name in names if name != "request_gate_specificity"]
         if "run_quality_repair_batch" not in names:
             names.append("run_quality_repair_batch")
+    elif _analysis_harmonization_work_unit_present(authorization):
+        names = [name for name in names if name not in _RUNTIME_REDRIVE_ACTION_NAMES]
+        if "unit_harmonized_external_validation_rerun" not in names:
+            names.append("unit_harmonized_external_validation_rerun")
     elif (
         not _controller_callable_action_present(names)
         and _runtime_redrive_action_present(names)
@@ -745,7 +759,7 @@ def _primary_controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[
 
 
 def _controller_action_command(*, action_name: str, quest_id: str) -> str | None:
-    if action_name in _SUPERVISOR_DISPATCH_ACTION_NAMES:
+    if action_name in _SUPERVISOR_DISPATCH_ACTION_NAMES or action_name in _ANALYSIS_HARMONIZATION_DISPATCH_ACTION_NAMES:
         return (
             '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
             "-m med_autoscience.cli domain-owner-action-dispatch "
@@ -888,7 +902,9 @@ def _yaml_string_field(path: Path, field_name: str) -> str | None:
 
 def _controller_callable_action_present(action_names: list[str]) -> bool:
     return any(
-        name in {"run_quality_repair_batch", "run_gate_clearing_batch"} or name in _SUPERVISOR_DISPATCH_ACTION_NAMES
+        name in {"run_quality_repair_batch", "run_gate_clearing_batch"}
+        or name in _SUPERVISOR_DISPATCH_ACTION_NAMES
+        or name in _ANALYSIS_HARMONIZATION_DISPATCH_ACTION_NAMES
         for name in action_names
     )
 
@@ -909,6 +925,10 @@ def _gate_clearing_work_unit_present(authorization: Mapping[str, Any]) -> bool:
         if unit_id in _GATE_CLEARING_BATCH_WORK_UNIT_IDS:
             return True
     return False
+
+
+def _analysis_harmonization_work_unit_present(authorization: Mapping[str, Any]) -> bool:
+    return any(unit_id in _ANALYSIS_HARMONIZATION_WORK_UNIT_IDS for unit_id in _controller_work_unit_ids(authorization))
 
 
 def _specificity_targets_ready_for_quality_repair(authorization: Mapping[str, Any]) -> bool:

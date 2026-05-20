@@ -218,6 +218,10 @@ def controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
         name = str(raw_name or "").strip()
         if name and name not in names:
             names.append(name)
+    if _analysis_harmonization_work_unit_present(authorization):
+        names = [name for name in names if name not in {"ensure_study_runtime", "ensure_study_runtime_relaunch_stopped"}]
+        if "unit_harmonized_external_validation_rerun" not in names:
+            names.append("unit_harmonized_external_validation_rerun")
     return names
 
 
@@ -263,6 +267,44 @@ def _runtime_authorized_owner_for_action(action_type: str) -> str:
     if action_type == "runtime_platform_repair":
         return "external_supervisor"
     return "mas_controller"
+
+
+def _analysis_harmonization_work_unit_present(authorization: Mapping[str, Any]) -> bool:
+    unit_ids = _controller_work_unit_ids(authorization)
+    return bool(
+        {
+            "unit_harmonized_external_validation_rerun",
+            "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+        }
+        & unit_ids
+    )
+
+
+def _controller_work_unit_ids(authorization: Mapping[str, Any]) -> set[str]:
+    candidates: list[object] = [
+        authorization.get("work_unit_id"),
+        authorization.get("next_work_unit"),
+        authorization.get("blocking_work_units"),
+        authorization.get("work_unit_targets"),
+    ]
+    unit_ids: set[str] = set()
+
+    def append_unit_id(value: object) -> None:
+        if isinstance(value, Mapping):
+            raw_value = value.get("unit_id") or value.get("work_unit_id") or value.get("id")
+        else:
+            raw_value = value
+        unit_id = _text(raw_value)
+        if unit_id is not None:
+            unit_ids.add(unit_id)
+
+    for candidate in candidates:
+        if isinstance(candidate, (list, tuple)):
+            for item in candidate:
+                append_unit_id(item)
+        else:
+            append_unit_id(candidate)
+    return unit_ids
 
 
 def _env_path(value: str | None) -> Path | None:

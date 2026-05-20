@@ -199,6 +199,107 @@ def test_managed_runtime_worker_synthesizes_dispatch_when_consumer_latest_is_emp
     assert execution["repeat_suppression_key"] == fresh_fingerprint
 
 
+def test_managed_runtime_worker_authorizes_unit_harmonized_uncertainty_work_unit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    run_id = "mas-run-002-current"
+    fresh_fingerprint = (
+        "domain-transition::route_back_same_line::"
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [],
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "running",
+            "quest_id": study_id,
+            "active_run_id": run_id,
+            "worker_running": True,
+            "current_controller_authorization": {
+                "decision_id": "unit-harmonized-uncertainty-routeback",
+                "authorization_basis": "current_controller_decision",
+                "active_run_id": run_id,
+                "controller_actions": ["ensure_study_runtime"],
+                "route_target": "analysis-campaign",
+                "work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                "work_unit_fingerprint": fresh_fingerprint,
+                "next_work_unit": {
+                    "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "lane": "analysis-campaign",
+                    "summary": (
+                        "Add uncertainty intervals, grouped calibration evidence, and reproducibility details "
+                        "to the unit-harmonized external validation."
+                    ),
+                },
+            },
+        },
+    )
+    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER", "1")
+    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT", str(quest_root))
+    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID", study_id)
+    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID", run_id)
+    monkeypatch.setenv("HOME", str(quest_root / ".ds" / "codex_homes" / run_id))
+    monkeypatch.setenv("CODEX_HOME", str(quest_root / ".ds" / "codex_homes" / run_id / ".codex"))
+    monkeypatch.setattr(
+        module,
+        "resolve_developer_supervisor_mode",
+        lambda **_: _DeveloperMode(
+            "external_observe",
+            safe_actions_enabled=False,
+            blocked_reason="github_user_lookup_failed",
+        ),
+    )
+    monkeypatch.setattr(
+        module.action_execution,
+        "execute_unit_harmonized_external_validation_rerun",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": (
+                "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker"
+            ),
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("unit_harmonized_external_validation_rerun",),
+        mode="developer_apply_safe",
+        apply=True,
+        managed_runtime_worker=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["dispatch_authority"] == "managed_runtime_controller_authorization"
+    assert execution["managed_runtime_authorization"]["status"] == "authorized"
+    assert execution["managed_runtime_authorization"]["authorized_actions"] == [
+        "unit_harmonized_external_validation_rerun"
+    ]
+    assert execution["managed_runtime_authorization"]["work_unit_id"] == (
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
+    assert execution["owner_route"]["next_owner"] == "analysis_harmonization_owner"
+    assert execution["owner_route"]["allowed_actions"] == ["unit_harmonized_external_validation_rerun"]
+    assert execution["repeat_suppression_key"] == fresh_fingerprint
+
+
 def test_managed_runtime_worker_prefers_current_authorization_over_stale_last_authorization(
     monkeypatch,
     tmp_path: Path,
