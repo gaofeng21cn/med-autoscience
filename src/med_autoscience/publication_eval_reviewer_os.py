@@ -20,6 +20,12 @@ _ALLOWED_REVIEWER_OS_FIELDS = frozenset(
         "route_back_decision",
     }
 )
+_ROUTE_TARGET_ALIASES = {
+    "analysis": "analysis-campaign",
+    "analysis_campaign": "analysis-campaign",
+    "bounded_analysis": "analysis-campaign",
+}
+_ACTION_TYPES_THAT_ROUTE_BACK = frozenset({"route_back_same_line", "bounded_analysis", "stop_loss"})
 
 
 def _text(value: object) -> str:
@@ -36,6 +42,11 @@ def _list_of_mappings(value: object) -> list[dict[str, Any]]:
     return [dict(item) for item in value if isinstance(item, dict)]
 
 
+def _normalized_route_target(value: object) -> str:
+    text = _text(value)
+    return _ROUTE_TARGET_ALIASES.get(text, text)
+
+
 def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> dict[str, Any] | None:
     if not isinstance(publication_eval_payload, dict):
         return None
@@ -49,7 +60,7 @@ def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> d
     for field in ("request_digest", "manuscript_ref", "manuscript_digest"):
         if not _text(medical_prose_review.get(field)):
             return None
-    route_target = _text(medical_prose_review.get("route_target"))
+    route_target = _normalized_route_target(medical_prose_review.get("route_target"))
     if not route_target or route_target == "review":
         return None
     actions = publication_eval_payload.get("recommended_actions")
@@ -60,10 +71,13 @@ def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> d
             continue
         if action.get("requires_controller_decision") is not True:
             continue
-        if _text(action.get("action_type")) != "route_back_same_line":
+        if _text(action.get("action_type")) not in _ACTION_TYPES_THAT_ROUTE_BACK:
             continue
-        if _text(action.get("route_target")) == route_target:
-            return dict(action)
+        action_route_target = _normalized_route_target(action.get("route_target"))
+        if action_route_target == route_target:
+            payload = dict(action)
+            payload["route_target"] = action_route_target
+            return payload
     return None
 
 

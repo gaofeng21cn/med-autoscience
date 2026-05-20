@@ -145,3 +145,44 @@ def test_current_ai_reviewer_analysis_routeback_projects_analysis_campaign_hando
     assert transition["route_target"] == "analysis-campaign"
     assert transition["owner"] == "analysis-campaign"
     assert transition["next_work_unit"]["unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+
+
+def test_current_ai_reviewer_bounded_analysis_routeback_accepts_analysis_alias_when_not_live(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
+    publication_eval["quality_assessment"]["medical_journal_prose_quality"]["status"] = "partial"
+    prose_check = publication_eval["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
+    prose_check["route_target"] = "analysis"
+    publication_eval["recommended_actions"] = [
+        {
+            "action_id": "route-back-analysis-validation-uncertainty-20260520",
+            "action_type": "bounded_analysis",
+            "requires_controller_decision": True,
+            "route_target": "analysis-campaign",
+            "work_unit_fingerprint": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+            "next_work_unit": {
+                "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                "lane": "analysis-campaign",
+                "summary": "Add uncertainty intervals and grouped calibration evidence.",
+            },
+        }
+    ]
+    _write_json(
+        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
+        publication_eval,
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "analysis-campaign"
+    assert transition["owner"] == "analysis-campaign"
+    assert transition["next_work_unit"]["unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
