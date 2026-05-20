@@ -177,7 +177,10 @@ def test_codex_exec_runner_prompt_names_unit_harmonized_rerun_for_hard_methodolo
     assert "Hard methodology/unit-harmonization contract" in prompt
     assert "unit_harmonized_external_validation_rerun" in prompt
     assert "blocked_reason=unit_harmonized_rerun_required" in prompt
+    assert "next_owner=source_provenance_owner" in prompt
+    assert "next_work_unit=recover_transport_model_provenance" in prompt
     assert "next_owner=analysis_harmonization_owner" in prompt
+    assert "next_work_unit=unit_harmonized_external_validation_rerun" in prompt
     assert "A prose/source-documentation note or generic completed closeout is not sufficient" in prompt
 
 

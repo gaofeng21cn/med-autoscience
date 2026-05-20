@@ -337,6 +337,11 @@ def test_codex_exec_runner_maps_unit_harmonized_uncertainty_work_unit_to_analysi
     assert "-m med_autoscience.cli domain-owner-action-dispatch" in prompt
     assert "--action-types unit_harmonized_external_validation_rerun" in prompt
     assert "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker" in prompt
+    assert "`blocking_owner_route.next_owner=source_provenance_owner`" in prompt
+    assert "next_owner=source_provenance_owner" in prompt
+    assert "next_work_unit=recover_transport_model_provenance" in prompt
+    assert "next_owner=analysis_harmonization_owner" in prompt
+    assert "next_work_unit=unit_harmonized_external_validation_rerun" in prompt
     assert "No callable MAS CLI command is registered" not in prompt
     assert authorization["decision_id"] == "unit-harmonized-uncertainty-routeback"
     assert authorization["work_unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
