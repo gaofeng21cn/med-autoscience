@@ -12,11 +12,38 @@ DEFAULT_PROVIDER_GUARDED_SOAK_TARGETS = ("DM002", "DM003", "Obesity")
 PROVIDER_HOSTED_PROOF_SURFACE = "real_paper_autonomy_provider_hosted_paper_proof"
 GUARDED_APPLY_PROOF_SURFACE = "real_paper_autonomy_guarded_apply_proof"
 PROVIDER_RESIDENCY_SURFACE = "provider_runtime_residency_read_model"
+PAPER_LINE_GUARDED_APPLY_EVIDENCE_SURFACE = "mas_paper_line_guarded_apply_evidence_scaleout"
 PRODUCTION_RESIDENCY_CHECKS = (
     "temporal_production_residency",
     "worker_restart_requery",
     "retry_dead_letter",
     "long_soak_receipt",
+)
+PAPER_LINE_GUARDED_APPLY_REQUIRED_REFS = (
+    "owner_receipt_ref",
+    "progress_delta_ref",
+    "ai_reviewer_gate_ref",
+    "artifact_movement_ref",
+    "human_gate_ref",
+    "stop_loss_ref",
+    "stable_typed_blocker_ref",
+    "no_forbidden_write_proof_ref",
+)
+PAPER_LINE_GUARDED_APPLY_ACCEPTED_RESULTS = (
+    "artifact_delta",
+    "gate_replay",
+    "ai_reviewer_re_eval",
+    "route_decision",
+    "human_gate",
+    "stop_loss",
+    "stable_blocker",
+)
+PAPER_LINE_GUARDED_APPLY_FORBIDDEN_BODIES = (
+    "publication_eval_body",
+    "controller_decision_body",
+    "artifact_gate_body",
+    "memory_body",
+    "final_verdict_body",
 )
 
 FORBIDDEN_AUTHORITY_WRITES = (
@@ -215,6 +242,7 @@ def build_provider_guarded_soak_read_model(
             "paper_closure_requires_mas_owner_receipt": True,
             "mutation_proof_surface": "MAS owner receipt",
         },
+        "paper_line_guarded_apply_evidence": build_paper_line_guarded_apply_evidence_scaleout_surface(),
         "no_forbidden_write_proof": no_forbidden_write_proof,
         "authority_boundary": {
             "provider_attempt_owner": OPL_OWNER,
@@ -225,6 +253,103 @@ def build_provider_guarded_soak_read_model(
             "can_write_current_package": False,
             "can_authorize_publication_quality": False,
         },
+    }
+
+def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]:
+    return {
+        "surface_kind": PAPER_LINE_GUARDED_APPLY_EVIDENCE_SURFACE,
+        "version": "mas-paper-line-guarded-apply-evidence-scaleout.v1",
+        "mode": "domain_owned_refs_only",
+        "owner": DOMAIN_OWNER,
+        "provider_attempt_owner": OPL_OWNER,
+        "scaleout_status": "pending_real_paper_line_owner_receipts",
+        "required_owner_outcome_refs": list(PAPER_LINE_GUARDED_APPLY_REQUIRED_REFS),
+        "accepted_apply_results": list(PAPER_LINE_GUARDED_APPLY_ACCEPTED_RESULTS),
+        "domain_owned_outcome_refs": [
+            _paper_line_outcome_ref(
+                outcome_id="progress_delta",
+                owner_surface_role="progress_delta_ref",
+                source_surfaces=[
+                    "artifacts/controller/repair_execution_receipts/latest.json",
+                    "artifacts/controller/repair_execution_evidence/latest.json",
+                ],
+            ),
+            _paper_line_outcome_ref(
+                outcome_id="ai_reviewer_gate_movement",
+                owner_surface_role="ai_reviewer_gate_ref",
+                source_surfaces=[
+                    "artifacts/publication_eval/latest.json",
+                    "review_ledger",
+                ],
+            ),
+            _paper_line_outcome_ref(
+                outcome_id="artifact_movement",
+                owner_surface_role="artifact_movement_ref",
+                source_surfaces=[
+                    "artifacts/controller/gate_replay_requests/latest.json",
+                    "artifact_authority_receipt",
+                ],
+            ),
+            _paper_line_outcome_ref(
+                outcome_id="human_gate",
+                owner_surface_role="human_gate_ref",
+                source_surfaces=[
+                    "artifacts/controller_decisions/latest.json",
+                    "human_gate_resume_receipt",
+                ],
+            ),
+            _paper_line_outcome_ref(
+                outcome_id="stop_loss",
+                owner_surface_role="stop_loss_ref",
+                source_surfaces=[
+                    "artifacts/controller_decisions/latest.json",
+                    "stop_loss_receipt",
+                ],
+            ),
+            _paper_line_outcome_ref(
+                outcome_id="stable_typed_blocker",
+                owner_surface_role="stable_typed_blocker_ref",
+                source_surfaces=[
+                    "artifacts/controller_decisions/latest.json",
+                    "typed_blocker_receipt",
+                ],
+            ),
+        ],
+        "body_included": False,
+        "artifact_body_included": False,
+        "memory_body_included": False,
+        "publication_eval_body_included": False,
+        "controller_decision_body_included": False,
+        "domain_verdict_claimed": False,
+        "provider_completion_is_paper_closure": False,
+        "opl_can_write_publication_eval": False,
+        "opl_can_write_controller_decisions": False,
+        "opl_can_write_artifact_gate": False,
+        "opl_can_write_memory_body": False,
+        "opl_can_write_final_verdict": False,
+        "forbidden_body_surfaces": list(PAPER_LINE_GUARDED_APPLY_FORBIDDEN_BODIES),
+        "source_contract_refs": [
+            "contracts/owner_receipt_contract.json",
+            "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
+            "product_entry_manifest.provider_guarded_soak_read_model",
+        ],
+    }
+
+def _paper_line_outcome_ref(
+    *,
+    outcome_id: str,
+    owner_surface_role: str,
+    source_surfaces: list[str],
+) -> dict[str, Any]:
+    return {
+        "outcome_id": outcome_id,
+        "owner": DOMAIN_OWNER,
+        "domain_owned": True,
+        "owner_surface_role": owner_surface_role,
+        "source_surfaces": source_surfaces,
+        "body_included": False,
+        "write_permitted": False,
+        "opl_projection_only": True,
     }
 
 def build_managed_temporal_state_consistency_read_model(

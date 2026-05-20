@@ -1723,6 +1723,14 @@
         "physical_delete_already_completed",
         "paper_closure_authorized_by_thinning_evidence"
       ],
+      "physical_delete_requires_all_gates": [
+        "no_active_caller_proof",
+        "opl_replacement_parity",
+        "domain_receipt_parity",
+        "focused_tests",
+        "no_forbidden_write_proof",
+        "history_tombstone_refs"
+      ],
       "residue_groups": [
         {
           "closure_basis": [
@@ -1743,7 +1751,9 @@
             "generic_queue_attempt_retry_dead_letter",
             "generic_transition_runner"
           ],
-          "physical_delete_gate": "active_domain_or_diagnostic_caller_count=0 plus OPL parity plus focused tests"
+          "physical_delete_gate": "active_domain_or_diagnostic_caller_count=0 plus OPL parity plus focused tests",
+          "physical_delete_permitted": false,
+          "tombstone_or_parity_refs_required": true
         },
         {
           "closure_basis": [
@@ -1765,7 +1775,9 @@
             "legacy_scheduler_default_aliases",
             "scheduler_legacy_residue_without_active_caller"
           ],
-          "physical_delete_gate": "no active default caller already proven; retained refs are tombstone/provenance only"
+          "physical_delete_gate": "no active default caller already proven; retained refs are tombstone/provenance only",
+          "physical_delete_permitted": false,
+          "tombstone_or_parity_refs_required": true
         },
         {
           "closure_basis": [
@@ -1785,7 +1797,9 @@
             "workbench_portal_generic_shell",
             "mas_generic_workbench_shell"
           ],
-          "physical_delete_gate": "OPL default workbench caller plus no MAS generic workbench default entry"
+          "physical_delete_gate": "OPL default workbench caller plus no MAS generic workbench default entry",
+          "physical_delete_permitted": false,
+          "tombstone_or_parity_refs_required": true
         },
         {
           "closure_basis": [
@@ -1804,7 +1818,9 @@
           "module_ids": [
             "runtime_lifecycle_sqlite_reference_adapter"
           ],
-          "physical_delete_gate": "active_caller_count=0 plus OPL lifecycle index parity plus domain owner receipt ref parity"
+          "physical_delete_gate": "active_caller_count=0 plus OPL lifecycle index parity plus domain owner receipt ref parity",
+          "physical_delete_permitted": false,
+          "tombstone_or_parity_refs_required": true
         }
       ],
       "status": "generic_runtime_residue_closed_as_boundary_evidence_physical_delete_gated",

@@ -58,6 +58,11 @@
         "body_included": false
       },
       {
+        "ref": "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence",
+        "role": "paper_line_guarded_apply_evidence_scaleout",
+        "body_included": false
+      },
+      {
         "ref": "product_entry_manifest.provider_residency_read_model",
         "role": "provider_residency_read_model",
         "body_included": false
@@ -71,8 +76,144 @@
     "required_return_shapes": [
       "owner_receipt",
       "progress_delta",
+      "ai_reviewer_gate_ref",
+      "artifact_movement_ref",
+      "human_gate_ref",
+      "stop_loss_ref",
       "quality_publication_gate_ref",
+      "stable_typed_blocker_ref",
       "typed_blocker"
+    ]
+  },
+  "paper_line_guarded_apply_evidence": {
+    "surface_kind": "mas_paper_line_guarded_apply_evidence_scaleout",
+    "version": "mas-paper-line-guarded-apply-evidence-scaleout.v1",
+    "mode": "domain_owned_refs_only",
+    "owner": "med-autoscience",
+    "provider_attempt_owner": "one-person-lab",
+    "scaleout_status": "pending_real_paper_line_owner_receipts",
+    "required_owner_outcome_refs": [
+      "owner_receipt_ref",
+      "progress_delta_ref",
+      "ai_reviewer_gate_ref",
+      "artifact_movement_ref",
+      "human_gate_ref",
+      "stop_loss_ref",
+      "stable_typed_blocker_ref",
+      "no_forbidden_write_proof_ref"
+    ],
+    "accepted_apply_results": [
+      "artifact_delta",
+      "gate_replay",
+      "ai_reviewer_re_eval",
+      "route_decision",
+      "human_gate",
+      "stop_loss",
+      "stable_blocker"
+    ],
+    "domain_owned_outcome_refs": [
+      {
+        "outcome_id": "progress_delta",
+        "owner": "med-autoscience",
+        "domain_owned": true,
+        "owner_surface_role": "progress_delta_ref",
+        "source_surfaces": [
+          "artifacts/controller/repair_execution_receipts/latest.json",
+          "artifacts/controller/repair_execution_evidence/latest.json"
+        ],
+        "body_included": false,
+        "write_permitted": false,
+        "opl_projection_only": true
+      },
+      {
+        "outcome_id": "ai_reviewer_gate_movement",
+        "owner": "med-autoscience",
+        "domain_owned": true,
+        "owner_surface_role": "ai_reviewer_gate_ref",
+        "source_surfaces": [
+          "artifacts/publication_eval/latest.json",
+          "review_ledger"
+        ],
+        "body_included": false,
+        "write_permitted": false,
+        "opl_projection_only": true
+      },
+      {
+        "outcome_id": "artifact_movement",
+        "owner": "med-autoscience",
+        "domain_owned": true,
+        "owner_surface_role": "artifact_movement_ref",
+        "source_surfaces": [
+          "artifacts/controller/gate_replay_requests/latest.json",
+          "artifact_authority_receipt"
+        ],
+        "body_included": false,
+        "write_permitted": false,
+        "opl_projection_only": true
+      },
+      {
+        "outcome_id": "human_gate",
+        "owner": "med-autoscience",
+        "domain_owned": true,
+        "owner_surface_role": "human_gate_ref",
+        "source_surfaces": [
+          "artifacts/controller_decisions/latest.json",
+          "human_gate_resume_receipt"
+        ],
+        "body_included": false,
+        "write_permitted": false,
+        "opl_projection_only": true
+      },
+      {
+        "outcome_id": "stop_loss",
+        "owner": "med-autoscience",
+        "domain_owned": true,
+        "owner_surface_role": "stop_loss_ref",
+        "source_surfaces": [
+          "artifacts/controller_decisions/latest.json",
+          "stop_loss_receipt"
+        ],
+        "body_included": false,
+        "write_permitted": false,
+        "opl_projection_only": true
+      },
+      {
+        "outcome_id": "stable_typed_blocker",
+        "owner": "med-autoscience",
+        "domain_owned": true,
+        "owner_surface_role": "stable_typed_blocker_ref",
+        "source_surfaces": [
+          "artifacts/controller_decisions/latest.json",
+          "typed_blocker_receipt"
+        ],
+        "body_included": false,
+        "write_permitted": false,
+        "opl_projection_only": true
+      }
+    ],
+    "body_included": false,
+    "artifact_body_included": false,
+    "memory_body_included": false,
+    "publication_eval_body_included": false,
+    "controller_decision_body_included": false,
+    "domain_verdict_claimed": false,
+    "provider_completion_is_paper_closure": false,
+    "opl_can_write_publication_eval": false,
+    "opl_can_write_controller_decisions": false,
+    "opl_can_write_artifact_gate": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_write_final_verdict": false,
+    "forbidden_body_surfaces": [
+      "publication_eval_body",
+      "controller_decision_body",
+      "artifact_gate_body",
+      "memory_body",
+      "final_verdict_body"
+    ],
+    "source_contract_refs": [
+      "contracts/owner_receipt_contract.json",
+      "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
+      "product_entry_manifest.provider_guarded_soak_read_model"
     ]
   },
   "domain_acceptance_receipt": {

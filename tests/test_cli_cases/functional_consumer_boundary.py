@@ -146,3 +146,36 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert retirement_proof["default_bootstrap_exposes_local_install"] is False
     assert retirement_proof["cleanup_status"] == "tombstone_only"
     assert retirement_proof["remaining_physical_delete_blockers"] == []
+    thinning = boundary["physical_thinning_evidence"]
+    assert thinning["surface_kind"] == "mas_physical_thinning_evidence"
+    assert thinning["body_included"] is False
+    assert thinning["does_not_claim_physical_delete"] is True
+    assert thinning["does_not_claim_paper_closure"] is True
+    assert thinning["physical_delete_requires_all_gates"] == [
+        "no_active_caller_proof",
+        "opl_replacement_parity",
+        "domain_receipt_parity",
+        "focused_tests",
+        "no_forbidden_write_proof",
+        "history_tombstone_refs",
+    ]
+    thinning_groups = {item["group_id"]: item for item in thinning["residue_groups"]}
+    assert set(thinning_groups) == {
+        "runner_residue",
+        "supervisor_residue",
+        "workbench_residue",
+        "sqlite_lifecycle_residue",
+    }
+    assert all(group["physical_delete_permitted"] is False for group in thinning_groups.values())
+    assert all(group["generic_owner_claim_allowed"] is False for group in thinning_groups.values())
+    assert all(group["tombstone_or_parity_refs_required"] is True for group in thinning_groups.values())
+    assert "no_active_caller_proof.default_caller_count=0" in thinning_groups["supervisor_residue"][
+        "evidence_refs"
+    ]
+    assert "retired_legacy_residue_tombstones.scheduler_legacy_residue_without_active_caller" in thinning_groups[
+        "supervisor_residue"
+    ]["evidence_refs"]
+    assert "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter" in thinning_groups[
+        "sqlite_lifecycle_residue"
+    ]["evidence_refs"]
+    assert "physical_delete_already_completed" in thinning["forbidden_claims"]
