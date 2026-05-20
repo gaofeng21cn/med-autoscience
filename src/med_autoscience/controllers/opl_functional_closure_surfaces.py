@@ -6,6 +6,13 @@ from typing import Any, Iterable, Mapping
 TARGET_DOMAIN_ID = "medautoscience"
 DOMAIN_OWNER = "med-autoscience"
 OPL_OWNER = "one-person-lab"
+MAS_EVIDENCE_LANE_REF = "contracts/evidence/mas-evidence-lane.json"
+STABLE_BLOCKER_EVIDENCE_REFS = (
+    MAS_EVIDENCE_LANE_REF,
+    "tests/test_real_paper_readiness_owner_blocker.py::test_readiness_owner_blocker_projection_unblocks_guarded_apply_as_stable_blocker",
+    "tests/test_cli_cases/sidecar_family_guarded_apply_cases.py::test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present",
+    "tests/test_cli_cases/sidecar_family_guarded_apply_cases.py::test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker",
+)
 
 
 def build_owner_receipt_contract_surface(
@@ -302,7 +309,7 @@ def build_functional_closure_status_projection(
             status=(
                 "workspace_owner_receipt_refs_observed_provider_live_apply_still_evidence_gated"
                 if workspace_owner_refs
-                else "guarded_apply_surface_landed_live_provider_apply_pending"
+                else "stable_typed_blocker_fixture_landed_live_provider_apply_scaleout_pending"
             ),
             typed_blockers=[
                 _typed_blocker(
@@ -314,12 +321,14 @@ def build_functional_closure_status_projection(
                     ),
                     reason=(
                         "Repo projections and dispatch receipts cannot substitute for a real "
-                        "provider-hosted paper-line guarded apply owner chain."
+                        "provider-hosted paper-line guarded apply owner chain. The stable "
+                        "typed blocker fixture is landed, but live multi-line scaleout remains pending."
                     ),
                 )
             ],
             evidence_refs=[
                 *_status_refs(provider_guarded_soak_read_model),
+                *STABLE_BLOCKER_EVIDENCE_REFS,
                 *workspace_owner_refs,
             ],
         ),

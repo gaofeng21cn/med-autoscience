@@ -12,6 +12,7 @@ from .generated_surface_handoff import build_generated_surface_handoff
 from .consumer_migration_inventory import (
     FUNCTIONAL_MODULE_INVENTORY,
     FUNCTIONAL_SURFACE_CLASSIFICATION,
+    PHYSICAL_THINNING_EVIDENCE,
     RETIRED_LEGACY_RESIDUE_TOMBSTONES,
 )
 
@@ -681,6 +682,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             ),
         },
         "functional_followthrough_gap_summary": functional_followthrough_gap_summary,
+        "physical_thinning_evidence": dict(PHYSICAL_THINNING_EVIDENCE),
         "retired_legacy_residue_tombstones": [
             dict(item) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
         ],
@@ -912,6 +914,7 @@ __all__ = [
     "LEGACY_SCHEDULER_OWNER",
     "LOCAL_TOMBSTONE_PATH_ROLE",
     "OPTIONAL_ADAPTER_PATH_ROLE",
+    "PHYSICAL_THINNING_EVIDENCE",
     "attach_consumer_migration_contract",
     "build_functional_consumer_boundary",
     "build_consumer_migration_contract",

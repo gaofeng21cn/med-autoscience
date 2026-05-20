@@ -392,6 +392,33 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         False
     }
     assert "mas_owned_generic_queue" in followthrough_summary["forbidden_remaining_functional_gap_claims"]
+    physical_evidence = boundary["physical_thinning_evidence"]
+    assert physical_evidence["surface_kind"] == "mas_physical_thinning_evidence"
+    assert physical_evidence["status"] == (
+        "generic_runtime_residue_closed_as_boundary_evidence_physical_delete_gated"
+    )
+    assert physical_evidence["body_included"] is False
+    assert physical_evidence["does_not_claim_physical_delete"] is True
+    assert physical_evidence["does_not_claim_paper_closure"] is True
+    assert physical_evidence["evidence_contract_ref"] == (
+        "contracts/evidence/mas-evidence-lane.json#/physical_thinning_evidence"
+    )
+    physical_groups = {item["group_id"]: item for item in physical_evidence["residue_groups"]}
+    assert set(physical_groups) == {
+        "runner_residue",
+        "supervisor_residue",
+        "workbench_residue",
+        "sqlite_lifecycle_residue",
+    }
+    for item in physical_groups.values():
+        assert item["generic_owner_claim_allowed"] is False
+        assert item["physical_delete_gate"]
+        assert item["evidence_refs"]
+    assert physical_groups["sqlite_lifecycle_residue"]["current_role"] == (
+        "refs_only_domain_receipt_locator_and_lifecycle_ref_index"
+    )
+    assert "mas_owned_generic_persistence_engine" in physical_evidence["forbidden_claims"]
+    assert "physical_delete_already_completed" in physical_evidence["forbidden_claims"]
     tombstones = boundary["retired_legacy_residue_tombstones"]
     assert {item["residue_id"] for item in tombstones} == set(
         classification["legacy_cleanup_tombstone_provenance"]

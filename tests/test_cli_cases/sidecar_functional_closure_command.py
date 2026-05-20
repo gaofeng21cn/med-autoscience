@@ -115,7 +115,7 @@ def test_sidecar_export_exposes_functional_closeout_contracts(tmp_path: Path, ca
     )
     assert by_line["p2_provider_residency_and_activity_soak"]["production_evidence_complete"] is False
     assert by_line["p0_live_paper_autonomy_acceptance"]["status"] == (
-        "guarded_apply_surface_landed_live_provider_apply_pending"
+        "stable_typed_blocker_fixture_landed_live_provider_apply_scaleout_pending"
     )
     assert by_line["p0_live_paper_autonomy_acceptance"]["production_evidence_complete"] is False
     assert by_line["stage_surface_standardization"]["mas_repo_functional_surface_complete"] is True

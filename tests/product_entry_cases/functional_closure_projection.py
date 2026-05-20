@@ -57,9 +57,24 @@ def test_product_entry_manifest_projects_current_development_lines_closure(
     assert str(proof_ref) in provider_line["evidence_refs"]
 
     paper_line = by_line["p0_live_paper_autonomy_acceptance"]
-    assert paper_line["status"] == "guarded_apply_surface_landed_live_provider_apply_pending"
+    assert paper_line["status"] == (
+        "stable_typed_blocker_fixture_landed_live_provider_apply_scaleout_pending"
+    )
     assert paper_line["production_evidence_complete"] is False
     assert paper_line["typed_blockers"][0]["blocker_id"] == "provider_hosted_live_paper_apply_pending"
+    assert "contracts/evidence/mas-evidence-lane.json" in paper_line["evidence_refs"]
+    assert (
+        "tests/test_real_paper_readiness_owner_blocker.py::"
+        "test_readiness_owner_blocker_projection_unblocks_guarded_apply_as_stable_blocker"
+    ) in paper_line["evidence_refs"]
+    assert (
+        "tests/test_cli_cases/sidecar_family_guarded_apply_cases.py::"
+        "test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present"
+    ) in paper_line["evidence_refs"]
+    assert (
+        "tests/test_cli_cases/sidecar_family_guarded_apply_cases.py::"
+        "test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker"
+    ) in paper_line["evidence_refs"]
     assert by_line["legacy_residue_retirement"]["status"] == (
         "no_active_default_caller_proven_cleanup_policy_satisfied"
     )

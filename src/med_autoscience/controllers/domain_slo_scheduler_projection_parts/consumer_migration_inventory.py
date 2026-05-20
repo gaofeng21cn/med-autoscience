@@ -208,6 +208,108 @@ RETIRED_LEGACY_RESIDUE_TOMBSTONES = (
     },
 )
 
+PHYSICAL_THINNING_EVIDENCE = {
+    "surface_kind": "mas_physical_thinning_evidence",
+    "version": "mas-physical-thinning-evidence.v1",
+    "status": "generic_runtime_residue_closed_as_boundary_evidence_physical_delete_gated",
+    "body_included": False,
+    "does_not_claim_physical_delete": True,
+    "does_not_claim_paper_closure": True,
+    "evidence_contract_ref": "contracts/evidence/mas-evidence-lane.json#/physical_thinning_evidence",
+    "residue_groups": [
+        {
+            "group_id": "runner_residue",
+            "module_ids": [
+                "generic_queue_attempt_retry_dead_letter",
+                "generic_transition_runner",
+            ],
+            "closure_basis": [
+                "opl_replacement_parity",
+                "domain_receipt_parity",
+                "no_generic_owner_claim",
+            ],
+            "current_role": "domain_receipt_adapter_and_transition_spec_only",
+            "generic_owner_claim_allowed": False,
+            "physical_delete_gate": "active_domain_or_diagnostic_caller_count=0 plus OPL parity plus focused tests",
+            "evidence_refs": [
+                "functional_module_inventory.generic_queue_attempt_retry_dead_letter",
+                "functional_module_inventory.generic_transition_runner",
+                "opl_functional_harness_consumer_coverage.queue_stage_attempt_typed_closeout",
+                "opl_functional_harness_consumer_coverage.generic_transition_runner",
+            ],
+        },
+        {
+            "group_id": "supervisor_residue",
+            "module_ids": [
+                "generic_daemon_or_scheduler_lifecycle",
+                "local_launchd_scheduler_install_path",
+                "legacy_scheduler_default_aliases",
+                "scheduler_legacy_residue_without_active_caller",
+            ],
+            "closure_basis": [
+                "no_active_default_caller",
+                "opl_replacement_parity",
+                "tombstone_or_diagnostic_refs",
+            ],
+            "current_role": "opl_scheduler_projection_and_legacy_tombstone_only",
+            "generic_owner_claim_allowed": False,
+            "physical_delete_gate": "no active default caller already proven; retained refs are tombstone/provenance only",
+            "evidence_refs": [
+                "no_active_caller_proof.default_caller_count=0",
+                "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
+                "retired_legacy_residue_tombstones.scheduler_legacy_residue_without_active_caller",
+            ],
+        },
+        {
+            "group_id": "workbench_residue",
+            "module_ids": [
+                "workbench_portal_generic_shell",
+                "mas_generic_workbench_shell",
+            ],
+            "closure_basis": [
+                "opl_replacement_parity",
+                "domain_projection_refs_only",
+                "tombstone_or_diagnostic_refs",
+            ],
+            "current_role": "mas_domain_projection_refs_for_opl_hosted_workbench",
+            "generic_owner_claim_allowed": False,
+            "physical_delete_gate": "OPL default workbench caller plus no MAS generic workbench default entry",
+            "evidence_refs": [
+                "workbench_portal_generic_shell.proof_refs",
+                "retired_legacy_residue_tombstones.mas_generic_workbench_shell",
+                "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain",
+            ],
+        },
+        {
+            "group_id": "sqlite_lifecycle_residue",
+            "module_ids": [
+                "runtime_lifecycle_sqlite_reference_adapter",
+            ],
+            "closure_basis": [
+                "refs_only_adapter",
+                "opl_lifecycle_index_parity_gate",
+                "domain_receipt_parity_gate",
+            ],
+            "current_role": "refs_only_domain_receipt_locator_and_lifecycle_ref_index",
+            "generic_owner_claim_allowed": False,
+            "physical_delete_gate": "active_caller_count=0 plus OPL lifecycle index parity plus domain owner receipt ref parity",
+            "evidence_refs": [
+                "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
+                "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter",
+                "functional_module_inventory.runtime_lifecycle_sqlite_reference_adapter.retirement_gate",
+            ],
+        },
+    ],
+    "forbidden_claims": [
+        "mas_owned_generic_runner",
+        "mas_owned_generic_scheduler",
+        "mas_owned_generic_workbench",
+        "mas_owned_generic_persistence_engine",
+        "physical_delete_already_completed",
+        "paper_closure_authorized_by_thinning_evidence",
+    ],
+}
+
 
 def _refs_only_retirement_gate(module_id: str, active_caller_status: str) -> dict[str, object]:
     gate = REFS_ONLY_ADAPTER_RETIREMENT_GATE_BY_MODULE[module_id]
@@ -613,6 +715,7 @@ FUNCTIONAL_MODULE_INVENTORY = tuple(
 __all__ = [
     "FUNCTIONAL_MODULE_INVENTORY",
     "FUNCTIONAL_SURFACE_CLASSIFICATION",
+    "PHYSICAL_THINNING_EVIDENCE",
     "REFS_ONLY_ADAPTER_RETIREMENT_GATE_BY_MODULE",
     "RETIRED_LEGACY_RESIDUE_TOMBSTONES",
 ]
