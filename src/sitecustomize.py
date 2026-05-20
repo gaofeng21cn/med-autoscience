@@ -82,6 +82,36 @@ def _existing_pycache_prefix_is_checkout_local(repo_root: Path) -> bool:
     return existing_path == repo_root or _path_is_inside(existing_path, repo_root)
 
 
+def _remove_empty_checkout_pycache_prefix(repo_root: Path) -> None:
+    existing = os.environ.get("PYTHONPYCACHEPREFIX")
+    if not existing:
+        return
+    try:
+        existing_path = Path(existing).expanduser().resolve()
+    except OSError:
+        return
+    if existing_path == repo_root or not _path_is_inside(existing_path, repo_root):
+        return
+    if existing_path.is_dir():
+        try:
+            directories = sorted(
+                (path for path in existing_path.rglob("*") if path.is_dir()),
+                key=lambda path: len(path.parts),
+                reverse=True,
+            )
+        except OSError:
+            directories = []
+        for directory in directories:
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
+    try:
+        existing_path.rmdir()
+    except OSError:
+        return
+
+
 def _configure_mas_runtime_pycache() -> None:
     existing_pycache_prefix = os.environ.get("PYTHONPYCACHEPREFIX")
     if existing_pycache_prefix:
@@ -95,6 +125,7 @@ def _configure_mas_runtime_pycache() -> None:
                 repo_root = cwd
         if repo_root is None or not _existing_pycache_prefix_is_checkout_local(repo_root):
             return
+        _remove_empty_checkout_pycache_prefix(repo_root)
         os.environ.pop("PYTHONPYCACHEPREFIX", None)
         sys.pycache_prefix = None
 
