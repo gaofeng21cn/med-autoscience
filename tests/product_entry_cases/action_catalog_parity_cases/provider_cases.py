@@ -312,8 +312,27 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
         "docs/active/opl_temporal_mas_runtime_retirement_program.md",
         "docs/decisions.md#2026-05-16默认-domain-slo-scheduler-projection-owner-迁到-opl-replacement",
     ]
-    assert tombstone["removal_policy"]["current_action"] == "legacy_active_path_tombstones_landed"
+    assert "legacy_active_path_tombstones_landed" in tombstone["removal_policy"]["history_actions"]
     assert tombstone["authority_boundary"]["can_authorize_submission_readiness"] is False
+
+    generated_default = manifest["functional_consumer_boundary"]["generated_default_caller_boundary"]
+    assert tombstone["generated_default_caller_boundary"] == generated_default
+    assert tombstone["physical_retirement_gate_matrix"] == manifest["functional_consumer_boundary"][
+        "physical_retirement_gate_matrix"
+    ]
+    assert tombstone["removal_policy"]["delete_or_tombstone_when"] == [
+        "generated_default_caller_boundary_proven",
+        "active_caller_count=0",
+        "opl_replacement_parity",
+        "mas_owner_receipt_parity",
+        "focused_tests_green",
+        "tombstone_refs_landed",
+    ]
+    assert tombstone["removal_policy"]["current_action"] == (
+        "retain_domain_receipt_adapter_refs_only_adapter_diagnostic_or_tombstone_until_gate_closes"
+    )
+
+
 def test_product_entry_manifest_exposes_provider_residency_typed_blocker(
     tmp_path: Path,
 ) -> None:

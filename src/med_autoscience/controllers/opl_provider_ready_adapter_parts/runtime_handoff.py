@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.controllers.domain_slo_scheduler_projection_parts.generated_caller_retirement import (
+    build_generated_default_caller_boundary,
+    build_physical_retirement_gate_matrix,
+)
+
 
 TARGET_DOMAIN_ID = "medautoscience"
 DOMAIN_OWNER = "med-autoscience"
 OPL_OWNER = "one-person-lab"
+SCHEMA_VERSION = 1
 
 _OPL_REPLACEMENT_SURFACES = [
     "provider_backed_family_runtime",
@@ -110,6 +116,10 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
         "forbidden_mas_roles": list(_FORBIDDEN_MAS_ROLES),
         "opl_replacement_surfaces": list(_OPL_REPLACEMENT_SURFACES),
         "code_path_roles": [dict(item) for item in _CODE_PATH_ROLES],
+        "generated_default_caller_boundary": build_generated_default_caller_boundary(
+            schema_version=SCHEMA_VERSION,
+            replacement_owner=OPL_OWNER,
+        ),
         "default_caller_policy": {
             "default_online_runtime_owner": OPL_OWNER,
             "default_provider": "Temporal",
@@ -121,6 +131,10 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
             "mas_default_persistence_engine_allowed": False,
             "mas_runtime_transport_active_as_generic_provider": False,
         },
+        "physical_retirement_gate_matrix": build_physical_retirement_gate_matrix(
+            schema_version=SCHEMA_VERSION,
+            replacement_owner=OPL_OWNER,
+        ),
         "physical_cleanup_gate": {
             "delete_or_archive_when_no_domain_direct_or_diagnostic_caller": True,
             "requires_opl_replacement_parity": True,

@@ -1053,6 +1053,136 @@
         "terminal_attach_transport"
       ]
     },
+    "generated_default_caller_boundary": {
+      "all_default_callers_migrated": true,
+      "allowed_mas_program_roles_after_cutover": [
+        "direct_skill_target",
+        "domain_handler",
+        "owner_receipt_signer",
+        "typed_blocker",
+        "ai_first_validator",
+        "diagnostic",
+        "refs_only_adapter"
+      ],
+      "default_caller_owner": "one-person-lab",
+      "default_caller_surfaces": [
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness"
+      ],
+      "mas_handwritten_shell_default_caller_allowed": false,
+      "mas_handwritten_shell_expansion_allowed": false,
+      "physical_delete_is_not_implied": true,
+      "proof_refs": [
+        "functional_consumer_boundary.generated_surface_handoff",
+        "family_action_catalog",
+        "family_stage_control_plane_descriptor",
+        "product_entry_manifest",
+        "sidecar_export",
+        "mcp_tool_manifest"
+      ],
+      "schema_version": 1,
+      "status": "opl_generated_hosted_shell_is_default_caller",
+      "surface_boundaries": [
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "domain_handler_target",
+          "parity_ref": "cli_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "cli",
+          "target_role": "opl_generated_command_surface"
+        },
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "domain_handler_target",
+          "parity_ref": "mcp_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "mcp",
+          "target_role": "opl_generated_mcp_descriptor_surface"
+        },
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "direct_skill_target",
+          "parity_ref": "skill_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "skill",
+          "target_role": "opl_generated_skill_descriptor_surface"
+        },
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "domain_handler_target",
+          "parity_ref": "product_entry_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "product_entry",
+          "target_role": "opl_generated_product_entry_surface"
+        },
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "domain_sidecar_dispatch_adapter",
+          "parity_ref": "sidecar_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "sidecar",
+          "target_role": "opl_generated_sidecar_handoff_surface"
+        },
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "domain_truth_status_projection",
+          "parity_ref": "status_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "status",
+          "target_role": "opl_generated_status_wrapper_over_mas_truth_refs"
+        },
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "domain_projection_refs",
+          "parity_ref": "workbench_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "workbench",
+          "target_role": "opl_hosted_workbench_shell_consuming_mas_refs"
+        },
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "domain_projection_builder",
+          "parity_ref": "projection_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "projection_shell",
+          "target_role": "opl_generated_projection_shell"
+        },
+        {
+          "active_default_caller_count": 0,
+          "default_caller_owner": "one-person-lab",
+          "mas_generic_owner_allowed": false,
+          "mas_retained_role": "focused_contract_harness",
+          "parity_ref": "test_lane_harness_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "test_lane_harness",
+          "target_role": "opl_generated_harness_consumer_over_mas_pack"
+        }
+      ],
+      "surface_kind": "mas_generated_default_caller_boundary"
+    },
     "generated_surface_handoff": {
       "current_mas_role": "handwritten_migration_bridge",
       "generated_surface_owner": "one-person-lab",
@@ -1709,6 +1839,193 @@
       },
       "status": "landed_domain_authority_pack_consumer",
       "surface_kind": "opl_functional_harness_consumer_coverage"
+    },
+    "physical_retirement_gate_matrix": {
+      "default_caller_boundary_ref": "functional_consumer_boundary.generated_default_caller_boundary",
+      "default_caller_owner": "one-person-lab",
+      "forbidden_claims": [
+        "physical_delete_already_completed",
+        "runtime_transport_active_caller_count_zero",
+        "sqlite_lifecycle_active_caller_count_zero",
+        "sidecar_dispatch_adapter_deleted",
+        "status_projection_deleted",
+        "workbench_shell_deleted",
+        "paper_closure_authorized_by_retirement_gate"
+      ],
+      "no_active_caller_summary": {
+        "active_default_caller_count": 0,
+        "active_default_caller_zero_proven": true,
+        "full_active_caller_zero_proven": false,
+        "physical_delete_candidate_count": 5,
+        "physical_delete_ready_count": 0
+      },
+      "physical_delete_requires_all_gates": [
+        "active_caller_count=0",
+        "opl_replacement_parity",
+        "mas_owner_receipt_parity",
+        "focused_tests_green",
+        "tombstone_refs_landed"
+      ],
+      "retirement_candidates": [
+        {
+          "active_caller_status": "domain_receipt_adapter_active",
+          "active_caller_zero_proven": false,
+          "active_default_caller_count": 0,
+          "active_default_caller_zero_proven": true,
+          "active_domain_or_diagnostic_callers": [
+            "MAS direct/local runtime diagnostic",
+            "runtime worker activity closeout receipt",
+            "controller recovery intent receipt refs"
+          ],
+          "code_paths": [
+            "src/med_autoscience/runtime_transport/",
+            "src/med_autoscience/controllers/runtime_watch_outer_loop_dispatch.py",
+            "src/med_autoscience/controllers/recovery_intent_ledger.py"
+          ],
+          "delete_gate_status": "blocked_domain_receipt_adapter_active",
+          "gate_results": {
+            "active_caller_count=0": false,
+            "focused_tests_green": "focused_lane_required",
+            "mas_owner_receipt_parity": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
+            "opl_replacement_parity": "provider_attempt_queue_retry_parity_required",
+            "tombstone_refs_landed": "required_before_delete"
+          },
+          "no_active_caller_proof": {
+            "default_callers": [],
+            "full_active_caller_status": "not_proven_retained_domain_or_diagnostic_adapter",
+            "physical_delete_allowed": false
+          },
+          "physical_delete_permitted": false,
+          "retained_as": "domain_receipt_adapter_or_standalone_diagnostic",
+          "surface_id": "runtime_transport"
+        },
+        {
+          "active_caller_status": "refs_only_domain_sidecar_adapter_active",
+          "active_caller_zero_proven": false,
+          "active_default_caller_count": 0,
+          "active_default_caller_zero_proven": true,
+          "active_domain_or_diagnostic_callers": [
+            "study_runtime event and snapshot refs",
+            "runtime lifecycle CLI refs",
+            "sidecar/product-entry lifecycle projections"
+          ],
+          "code_paths": [
+            "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+            "src/med_autoscience/runtime_protocol/study_runtime.py",
+            "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py"
+          ],
+          "delete_gate_status": "blocked_refs_only_lifecycle_adapter_active",
+          "gate_results": {
+            "active_caller_count=0": false,
+            "focused_tests_green": "focused_lane_required",
+            "mas_owner_receipt_parity": "domain_owner_receipt_ref_parity_required",
+            "opl_replacement_parity": "opl_runtime_lifecycle_index_parity_required",
+            "tombstone_refs_landed": "required_before_delete"
+          },
+          "no_active_caller_proof": {
+            "default_callers": [],
+            "full_active_caller_status": "not_proven_retained_domain_or_diagnostic_adapter",
+            "physical_delete_allowed": false
+          },
+          "physical_delete_permitted": false,
+          "retained_as": "refs_only_lifecycle_sidecar_index",
+          "surface_id": "runtime_lifecycle_sqlite"
+        },
+        {
+          "active_caller_status": "domain_projection_refs_active",
+          "active_caller_zero_proven": false,
+          "active_default_caller_count": 0,
+          "active_default_caller_zero_proven": true,
+          "active_domain_or_diagnostic_callers": [
+            "progress portal CLI projection",
+            "workspace cockpit domain projection",
+            "product-entry manifest read model"
+          ],
+          "code_paths": [
+            "src/med_autoscience/controllers/progress_portal.py",
+            "src/med_autoscience/controllers/progress_portal_parts/",
+            "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
+          ],
+          "delete_gate_status": "blocked_domain_projection_refs_active",
+          "gate_results": {
+            "active_caller_count=0": false,
+            "focused_tests_green": "focused_lane_required",
+            "mas_owner_receipt_parity": "domain_projection_receipt_refs_required",
+            "opl_replacement_parity": "generated_workbench_default_required",
+            "tombstone_refs_landed": "landed_for_retired_legacy_only"
+          },
+          "no_active_caller_proof": {
+            "default_callers": [],
+            "full_active_caller_status": "not_proven_retained_domain_or_diagnostic_adapter",
+            "physical_delete_allowed": false
+          },
+          "physical_delete_permitted": false,
+          "retained_as": "domain_projection_refs_for_opl_workbench",
+          "surface_id": "workbench_shell"
+        },
+        {
+          "active_caller_status": "domain_sidecar_dispatch_adapter_active",
+          "active_caller_zero_proven": false,
+          "active_default_caller_count": 0,
+          "active_default_caller_zero_proven": true,
+          "active_domain_or_diagnostic_callers": [
+            "sidecar export refs-only handoff",
+            "sidecar dispatch guarded owner receipt"
+          ],
+          "code_paths": [
+            "src/med_autoscience/controllers/sidecar_family_adapter.py"
+          ],
+          "delete_gate_status": "blocked_domain_dispatch_adapter_active",
+          "gate_results": {
+            "active_caller_count=0": false,
+            "focused_tests_green": "focused_lane_required",
+            "mas_owner_receipt_parity": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
+            "opl_replacement_parity": "opl_generated_sidecar_default_required",
+            "tombstone_refs_landed": "required_before_delete"
+          },
+          "no_active_caller_proof": {
+            "default_callers": [],
+            "full_active_caller_status": "not_proven_retained_domain_or_diagnostic_adapter",
+            "physical_delete_allowed": false
+          },
+          "physical_delete_permitted": false,
+          "retained_as": "domain_sidecar_dispatch_adapter",
+          "surface_id": "sidecar_adapter"
+        },
+        {
+          "active_caller_status": "domain_truth_status_projection_active",
+          "active_caller_zero_proven": false,
+          "active_default_caller_count": 0,
+          "active_default_caller_zero_proven": true,
+          "active_domain_or_diagnostic_callers": [
+            "study_runtime_status domain truth projection",
+            "product-entry status read model"
+          ],
+          "code_paths": [
+            "src/med_autoscience/controllers/product_entry_parts/",
+            "src/med_autoscience/controllers/study_runtime_status.py"
+          ],
+          "delete_gate_status": "blocked_domain_truth_status_projection_active",
+          "gate_results": {
+            "active_caller_count=0": false,
+            "focused_tests_green": "focused_lane_required",
+            "mas_owner_receipt_parity": "study_runtime_status_truth_refs_required",
+            "opl_replacement_parity": "opl_generated_status_default_required",
+            "tombstone_refs_landed": "landed_for_retired_legacy_only"
+          },
+          "no_active_caller_proof": {
+            "default_callers": [],
+            "full_active_caller_status": "not_proven_retained_domain_or_diagnostic_adapter",
+            "physical_delete_allowed": false
+          },
+          "physical_delete_permitted": false,
+          "retained_as": "domain_truth_status_projection",
+          "surface_id": "status_projection"
+        }
+      ],
+      "schema_version": 1,
+      "status": "physical_delete_blocked_until_all_gate_inputs_hold",
+      "surface_kind": "mas_generated_caller_retirement_gate_matrix"
     },
     "physical_thinning_evidence": {
       "body_included": false,
