@@ -169,6 +169,38 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert "MAS study truth" in handoff_policy["must_not_write"]
     assert "publication verdict" in handoff_policy["must_not_write"]
     assert "current_package" in handoff_policy["must_not_write"]
+    oma_handoff = generated["generated_surface_handoff"]["oma_agent_evidence_handoff"]
+    assert oma_handoff["consumer_id"] == "opl-meta-agent.agent:evidence"
+    assert oma_handoff["production_acceptance_ref"] == {
+        "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+        "role": "mas_domain_owned_production_acceptance",
+        "body_included": False,
+    }
+    assert oma_handoff["agent_lab_handoff_ref"]["ref"] == "contracts/agent_lab_handoff.json"
+    assert oma_handoff["owner_receipt_authority_ref"]["ref"] == "contracts/owner_receipt_contract.json"
+    assert oma_handoff["quality_authority_ref"]["role"] == "mas_quality_publication_authority"
+    assert oma_handoff["artifact_authority_ref"]["ref"] == "contracts/artifact_locator_contract.json"
+    assert oma_handoff["memory_authority_ref"]["ref"] == "contracts/memory_descriptor.json"
+    assert {
+        hint["ref"]
+        for hint in oma_handoff["editable_surface_hints"]
+    } >= {
+        "agent/prompts",
+        "agent/skills",
+        "agent/knowledge",
+        "agent/quality_gates",
+        "contracts/generated_surface_handoff.json",
+        "contracts/agent_lab_handoff.json",
+    }
+    assert all(hint["body_included"] is False for hint in oma_handoff["editable_surface_hints"])
+    assert oma_handoff["consumer_policy"] == {
+        "oma_may_consume_refs": True,
+        "oma_may_emit_candidate_patch_work_order": True,
+        "oma_may_sign_owner_receipt": False,
+        "oma_may_write_quality_verdict": False,
+        "oma_may_write_artifact_body": False,
+        "oma_may_write_memory_body": False,
+    }
     assert "skill" in generated["pack_compiler_input"]["generated_surfaces_requested"]
     assert generated["action_catalog"]["catalog_role"] == (
         "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"

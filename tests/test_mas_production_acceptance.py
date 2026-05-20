@@ -254,6 +254,41 @@ def test_agent_lab_handoff_is_connected_to_production_acceptance() -> None:
     ]
 
 
+def test_production_acceptance_exposes_same_oma_agent_evidence_refs() -> None:
+    payload = _acceptance()
+    oma = payload["oma_agent_evidence_refs"]
+
+    assert oma["consumer_id"] == "opl-meta-agent.agent:evidence"
+    assert oma["production_acceptance_ref"]["ref"] == (
+        "contracts/production_acceptance/mas-production-acceptance.json"
+    )
+    assert oma["agent_lab_handoff_ref"]["ref"] == "contracts/agent_lab_handoff.json"
+    assert oma["generated_surface_handoff_ref"]["ref"] == "contracts/generated_surface_handoff.json"
+    assert {item["role"] for item in oma["authority_refs"]} == {
+        "mas_owner_receipt_authority",
+        "mas_quality_publication_authority",
+        "mas_artifact_authority_locator",
+        "mas_memory_authority_locator",
+    }
+    assert {
+        item["ref"]
+        for item in oma["editable_surface_hints"]
+    } >= {
+        "agent/prompts",
+        "agent/skills",
+        "agent/knowledge",
+        "agent/quality_gates",
+        "contracts/generated_surface_handoff.json",
+        "contracts/agent_lab_handoff.json",
+    }
+    assert oma["consumer_policy"]["oma_may_consume_refs"] is True
+    assert oma["consumer_policy"]["oma_may_emit_candidate_patch_work_order"] is True
+    assert oma["consumer_policy"]["oma_may_sign_owner_receipt"] is False
+    assert oma["consumer_policy"]["oma_may_write_quality_verdict"] is False
+    assert oma["consumer_policy"]["oma_may_write_artifact_body"] is False
+    assert oma["consumer_policy"]["oma_may_write_memory_body"] is False
+
+
 def test_agent_lab_handoff_contract_declares_refs_only_consumers_and_suite_seed() -> None:
     handoff = _agent_lab_handoff()
 
@@ -280,6 +315,61 @@ def test_agent_lab_handoff_contract_declares_refs_only_consumers_and_suite_seed(
         "agent-lab-task:mas/memory-artifact-human-gate-scaleout",
         "agent-lab-task:mas/provider-slo-long-soak",
     ]
+
+
+def test_agent_lab_handoff_exposes_oma_agent_evidence_refs_without_authority_transfer() -> None:
+    handoff = _agent_lab_handoff()
+    oma = handoff["oma_agent_evidence_refs"]
+
+    assert oma["consumer_id"] == "opl-meta-agent.agent:evidence"
+    assert oma["production_acceptance_ref"] == {
+        "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+        "role": "mas_domain_owned_production_acceptance",
+        "body_included": False,
+    }
+    assert oma["agent_lab_handoff_ref"] == {
+        "ref": "contracts/agent_lab_handoff.json",
+        "role": "domain_agent_lab_production_evidence_handoff",
+        "body_included": False,
+    }
+    assert oma["generated_surface_handoff_ref"] == {
+        "ref": "contracts/generated_surface_handoff.json",
+        "role": "opl_generated_surface_handoff",
+        "body_included": False,
+    }
+
+    authority_refs = {item["role"]: item for item in oma["authority_refs"]}
+    assert set(authority_refs) == {
+        "mas_owner_receipt_authority",
+        "mas_quality_publication_authority",
+        "mas_artifact_authority_locator",
+        "mas_memory_authority_locator",
+    }
+    assert authority_refs["mas_owner_receipt_authority"]["ref"] == "contracts/owner_receipt_contract.json"
+    assert authority_refs["mas_quality_publication_authority"]["ref"] == "publication_eval/latest.json"
+    assert authority_refs["mas_artifact_authority_locator"]["ref"] == "contracts/artifact_locator_contract.json"
+    assert authority_refs["mas_memory_authority_locator"]["ref"] == "contracts/memory_descriptor.json"
+    assert all(item["body_included"] is False for item in authority_refs.values())
+
+    editable_refs = {item["ref"] for item in oma["editable_surface_hints"]}
+    assert editable_refs >= {
+        "agent/prompts",
+        "agent/skills",
+        "agent/knowledge",
+        "agent/quality_gates",
+        "contracts/generated_surface_handoff.json",
+        "contracts/agent_lab_handoff.json",
+        "contracts/production_acceptance/mas-production-acceptance.json",
+    }
+    assert all(item["body_included"] is False for item in oma["editable_surface_hints"])
+    assert oma["consumer_policy"] == {
+        "oma_may_consume_refs": True,
+        "oma_may_emit_candidate_patch_work_order": True,
+        "oma_may_sign_owner_receipt": False,
+        "oma_may_write_quality_verdict": False,
+        "oma_may_write_artifact_body": False,
+        "oma_may_write_memory_body": False,
+    }
 
 
 def test_agent_lab_handoff_tasks_keep_domain_receipts_as_closeout_authority() -> None:

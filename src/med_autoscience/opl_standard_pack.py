@@ -414,6 +414,100 @@ def _generated_surface_handoff() -> dict[str, Any]:
             "minimal_authority_function_refs",
             "no_forbidden_write_evidence",
         ],
+        "oma_agent_evidence_handoff": {
+            "consumer_id": "opl-meta-agent.agent:evidence",
+            "handoff_role": "refs_only_generated_surface_and_authority_locator_input",
+            "production_acceptance_ref": {
+                "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+                "role": "mas_domain_owned_production_acceptance",
+                "body_included": False,
+            },
+            "agent_lab_handoff_ref": {
+                "ref": "contracts/agent_lab_handoff.json",
+                "role": "domain_agent_lab_production_evidence_handoff",
+                "body_included": False,
+            },
+            "owner_receipt_authority_ref": {
+                "ref": "contracts/owner_receipt_contract.json",
+                "role": "mas_owner_receipt_authority",
+                "body_included": False,
+            },
+            "quality_authority_ref": {
+                "ref": "publication_eval/latest.json",
+                "role": "mas_quality_publication_authority",
+                "body_included": False,
+            },
+            "artifact_authority_ref": {
+                "ref": "contracts/artifact_locator_contract.json",
+                "role": "mas_artifact_authority_locator",
+                "body_included": False,
+            },
+            "memory_authority_ref": {
+                "ref": "contracts/memory_descriptor.json",
+                "role": "mas_memory_authority_locator",
+                "body_included": False,
+            },
+            "editable_surface_hints": [
+                {
+                    "ref": "agent/prompts",
+                    "role": "declarative_stage_prompt_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "agent/skills",
+                    "role": "declarative_stage_skill_policy_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "agent/knowledge",
+                    "role": "declarative_domain_knowledge_ref_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "agent/quality_gates",
+                    "role": "declarative_quality_gate_ref_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "contracts/pack_compiler_input.json",
+                    "role": "pack_compiler_input_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "contracts/generated_surface_handoff.json",
+                    "role": "generated_surface_handoff_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "contracts/agent_lab_handoff.json",
+                    "role": "agent_evidence_suite_seed_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+                    "role": "production_acceptance_ref_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "tests/test_opl_standard_pack.py",
+                    "role": "standard_pack_contract_test_surface",
+                    "body_included": False,
+                },
+                {
+                    "ref": "tests/test_mas_production_acceptance.py",
+                    "role": "agent_evidence_handoff_contract_test_surface",
+                    "body_included": False,
+                },
+            ],
+            "consumer_policy": {
+                "oma_may_consume_refs": True,
+                "oma_may_emit_candidate_patch_work_order": True,
+                "oma_may_sign_owner_receipt": False,
+                "oma_may_write_quality_verdict": False,
+                "oma_may_write_artifact_body": False,
+                "oma_may_write_memory_body": False,
+            },
+        },
     }
 
 

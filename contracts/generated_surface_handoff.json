@@ -74,6 +74,100 @@
       "surface_id": "functional_harness_cases"
     }
   ],
+  "oma_agent_evidence_handoff": {
+    "agent_lab_handoff_ref": {
+      "body_included": false,
+      "ref": "contracts/agent_lab_handoff.json",
+      "role": "domain_agent_lab_production_evidence_handoff"
+    },
+    "artifact_authority_ref": {
+      "body_included": false,
+      "ref": "contracts/artifact_locator_contract.json",
+      "role": "mas_artifact_authority_locator"
+    },
+    "consumer_id": "opl-meta-agent.agent:evidence",
+    "consumer_policy": {
+      "oma_may_consume_refs": true,
+      "oma_may_emit_candidate_patch_work_order": true,
+      "oma_may_sign_owner_receipt": false,
+      "oma_may_write_artifact_body": false,
+      "oma_may_write_memory_body": false,
+      "oma_may_write_quality_verdict": false
+    },
+    "editable_surface_hints": [
+      {
+        "body_included": false,
+        "ref": "agent/prompts",
+        "role": "declarative_stage_prompt_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "agent/skills",
+        "role": "declarative_stage_skill_policy_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "agent/knowledge",
+        "role": "declarative_domain_knowledge_ref_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "agent/quality_gates",
+        "role": "declarative_quality_gate_ref_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "contracts/pack_compiler_input.json",
+        "role": "pack_compiler_input_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "contracts/generated_surface_handoff.json",
+        "role": "generated_surface_handoff_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "contracts/agent_lab_handoff.json",
+        "role": "agent_evidence_suite_seed_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+        "role": "production_acceptance_ref_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "tests/test_opl_standard_pack.py",
+        "role": "standard_pack_contract_test_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "tests/test_mas_production_acceptance.py",
+        "role": "agent_evidence_handoff_contract_test_surface"
+      }
+    ],
+    "handoff_role": "refs_only_generated_surface_and_authority_locator_input",
+    "memory_authority_ref": {
+      "body_included": false,
+      "ref": "contracts/memory_descriptor.json",
+      "role": "mas_memory_authority_locator"
+    },
+    "owner_receipt_authority_ref": {
+      "body_included": false,
+      "ref": "contracts/owner_receipt_contract.json",
+      "role": "mas_owner_receipt_authority"
+    },
+    "production_acceptance_ref": {
+      "body_included": false,
+      "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+      "role": "mas_domain_owned_production_acceptance"
+    },
+    "quality_authority_ref": {
+      "body_included": false,
+      "ref": "publication_eval/latest.json",
+      "role": "mas_quality_publication_authority"
+    }
+  },
   "required_domain_handoff": [
     "owner_receipt_schema",
     "typed_blocker_schema",
