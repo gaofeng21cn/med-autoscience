@@ -371,4 +371,32 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         )
         assert set(stage["stage_skill_surface_projection"]) == set(stage_skill_projection)
         assert stage["stage_skill_surface_projection"]["authority_boundary"]["can_close_paper"] is False
+        launch_packet = stage["codex_cli_launch_packet"]
+        assert launch_packet["surface_kind"] == "mas_codex_cli_stage_launch_packet"
+        assert launch_packet["stage_id"] == stage["stage_id"]
+        assert launch_packet["executor_requirements"] == "Codex CLI default"
+        assert launch_packet["prompt_ref"] == prompt_ref
+        assert launch_packet["skill_refs"] == stage["skills"]
+        assert launch_packet["knowledge_refs"] == stage["knowledge_refs"]
+        assert launch_packet["quality_gate_refs"] == stage["evaluation"]
+        assert launch_packet["quality_pack_refs"] == stage["quality_pack_refs"]
+        assert launch_packet["tool_refs"]["allowed_action_refs"] == stage["allowed_action_refs"]
+        assert launch_packet["tool_refs"]["default_executor_kind"] == "codex_cli_default"
+        assert launch_packet["tool_refs"]["can_write_mas_truth"] is False
+        assert launch_packet["expected_receipt_refs"]["owner_receipt_contract_ref"] == (
+            "/product_entry_manifest/owner_receipt_contract"
+        )
+        assert launch_packet["expected_receipt_refs"]["stage_status_ref"] == "/progress_projection"
+        assert launch_packet["expected_receipt_refs"]["runtime_event_refs"] == (
+            expected_runtime_event_refs[stage["stage_id"]]
+        )
+        assert launch_packet["expected_receipt_refs"]["independent_gate_receipt_required"] is (
+            stage["stage_id"] in independent_gate_stage_ids
+        )
+        assert launch_packet["ai_first_boundary"]["contract_role"] == "boundary_and_evidence_refs_only"
+        assert launch_packet["ai_first_boundary"]["script_verdict_authority"] is False
+        assert launch_packet["ai_first_boundary"]["self_review_closes_quality_gate"] is False
+        assert "quality_verdict" in launch_packet["forbidden_authority"]
+        assert "publication_readiness" in launch_packet["forbidden_authority"]
+        assert "provider_completion_as_medical_readiness" in launch_packet["forbidden_authority"]
         assert stage["authority_boundary"]["can_authorize_publication_quality"] is False

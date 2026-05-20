@@ -91,6 +91,145 @@
         "route_contract_owner": "MedAutoScience",
         "stage_knowledge_plane_owner": "MedAutoScience"
       },
+      "codex_cli_launch_packet": {
+        "ai_first_boundary": {
+          "codex_cli_may_review_only_as_separate_invocation": true,
+          "contract_role": "boundary_and_evidence_refs_only",
+          "independent_reviewer_auditor_required_when_gate_closes": true,
+          "script_verdict_authority": false,
+          "self_review_closes_quality_gate": false
+        },
+        "executor_requirements": "Codex CLI default",
+        "expected_receipt_refs": {
+          "independent_gate_receipt_required": true,
+          "owner_receipt_contract_ref": "/product_entry_manifest/owner_receipt_contract",
+          "runtime_event_refs": [
+            "runtime_event:domain_route_owner_route.direction_route_selected",
+            "runtime_event:controller_decisions.direction_route_selected"
+          ],
+          "stage_status_ref": "/progress_projection",
+          "valid_outcomes": [
+            "owner_receipt",
+            "typed_blocker",
+            "route_back_request",
+            "human_gate_request",
+            "no_op_with_currentness_proof"
+          ]
+        },
+        "forbidden_authority": [
+          "domain_truth",
+          "quality_verdict",
+          "publication_readiness",
+          "submission_readiness",
+          "artifact_authority",
+          "source_readiness_verdict",
+          "memory_writeback_acceptance",
+          "script_exit_code_as_publication_quality_verdict",
+          "function_return_value_as_ai_reviewer_quality_decision",
+          "test_pass_as_artifact_mutation_authorization",
+          "queue_completion_as_publication_route_memory_accept_reject",
+          "file_presence_as_source_readiness_verdict",
+          "provider_completion_as_medical_readiness"
+        ],
+        "knowledge_refs": [
+          {
+            "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/publication_route_memory.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "mas_publication_route_memory",
+            "ref_kind": "domain_memory_ref",
+            "role": "publication_route_memory_locator"
+          }
+        ],
+        "prompt_ref": {
+          "ref": "agent/prompts/direction_and_route_selection.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
+        },
+        "quality_gate_refs": [
+          {
+            "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+            "ref_kind": "json_pointer",
+            "role": "authority_boundary"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "progress_projection"
+          },
+          {
+            "ref": "/product_entry_manifest/owner_receipt_contract",
+            "ref_kind": "json_pointer",
+            "role": "owner_receipt_gate"
+          },
+          {
+            "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          },
+          {
+            "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          }
+        ],
+        "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
+          "medical_claim_evidence_pack",
+          "paper_reader_grounding_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "human_gate_pack"
+        ],
+        "skill_refs": [
+          {
+            "ref": "agent/skills/medical_research_execution.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "agent/skills/owner_receipt_and_route_control.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "med-autoscience",
+            "ref_kind": "skill_id",
+            "role": "domain_skill"
+          },
+          {
+            "ref": "mas",
+            "ref_kind": "skill_id",
+            "role": "codex_app_skill"
+          }
+        ],
+        "stage_id": "direction_and_route_selection",
+        "surface_kind": "mas_codex_cli_stage_launch_packet",
+        "tool_refs": {
+          "allowed_action_refs": [
+            "product_entry_status",
+            "workspace_cockpit",
+            "study_progress"
+          ],
+          "can_authorize_quality_verdict": false,
+          "can_write_mas_truth": false,
+          "default_executor_kind": "codex_cli_default",
+          "dispatch_boundary": "mas_guarded_actions_only"
+        },
+        "version": "mas-codex-cli-stage-launch-packet.v1"
+      },
       "deliverable_index_ref": {
         "blocking_only_when": "mas_human_gate_boundary_triggered",
         "can_authorize_publication_quality": false,
@@ -504,6 +643,138 @@
         "route_contract_owner": "MedAutoScience",
         "stage_knowledge_plane_owner": "MedAutoScience"
       },
+      "codex_cli_launch_packet": {
+        "ai_first_boundary": {
+          "codex_cli_may_review_only_as_separate_invocation": true,
+          "contract_role": "boundary_and_evidence_refs_only",
+          "independent_reviewer_auditor_required_when_gate_closes": true,
+          "script_verdict_authority": false,
+          "self_review_closes_quality_gate": false
+        },
+        "executor_requirements": "Codex CLI default",
+        "expected_receipt_refs": {
+          "independent_gate_receipt_required": false,
+          "owner_receipt_contract_ref": "/product_entry_manifest/owner_receipt_contract",
+          "runtime_event_refs": [
+            "runtime_event:controller_decisions.baseline_evidence_ready",
+            "runtime_event:evidence_ledger.baseline_evidence_ready"
+          ],
+          "stage_status_ref": "/progress_projection",
+          "valid_outcomes": [
+            "owner_receipt",
+            "typed_blocker",
+            "route_back_request",
+            "human_gate_request",
+            "no_op_with_currentness_proof"
+          ]
+        },
+        "forbidden_authority": [
+          "domain_truth",
+          "quality_verdict",
+          "publication_readiness",
+          "submission_readiness",
+          "artifact_authority",
+          "source_readiness_verdict",
+          "memory_writeback_acceptance",
+          "script_exit_code_as_publication_quality_verdict",
+          "function_return_value_as_ai_reviewer_quality_decision",
+          "test_pass_as_artifact_mutation_authorization",
+          "queue_completion_as_publication_route_memory_accept_reject",
+          "file_presence_as_source_readiness_verdict",
+          "provider_completion_as_medical_readiness"
+        ],
+        "knowledge_refs": [
+          {
+            "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/publication_route_memory.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          }
+        ],
+        "prompt_ref": {
+          "ref": "agent/prompts/baseline_and_evidence_setup.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
+        },
+        "quality_gate_refs": [
+          {
+            "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+            "ref_kind": "json_pointer",
+            "role": "authority_boundary"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "progress_projection"
+          },
+          {
+            "ref": "/product_entry_manifest/owner_receipt_contract",
+            "ref_kind": "json_pointer",
+            "role": "owner_receipt_gate"
+          },
+          {
+            "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          },
+          {
+            "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          }
+        ],
+        "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
+          "statistical_analysis_pack",
+          "stop_loss_pack",
+          "human_gate_pack"
+        ],
+        "skill_refs": [
+          {
+            "ref": "agent/skills/medical_research_execution.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "agent/skills/owner_receipt_and_route_control.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "med-autoscience",
+            "ref_kind": "skill_id",
+            "role": "domain_skill"
+          },
+          {
+            "ref": "mas",
+            "ref_kind": "skill_id",
+            "role": "codex_app_skill"
+          }
+        ],
+        "stage_id": "baseline_and_evidence_setup",
+        "surface_kind": "mas_codex_cli_stage_launch_packet",
+        "tool_refs": {
+          "allowed_action_refs": [
+            "submit_study_task",
+            "launch_study",
+            "study_progress"
+          ],
+          "can_authorize_quality_verdict": false,
+          "can_write_mas_truth": false,
+          "default_executor_kind": "codex_cli_default",
+          "dispatch_boundary": "mas_guarded_actions_only"
+        },
+        "version": "mas-codex-cli-stage-launch-packet.v1"
+      },
       "deliverable_index_ref": {
         "blocking_only_when": "mas_human_gate_boundary_triggered",
         "can_authorize_publication_quality": false,
@@ -905,6 +1176,147 @@
         "publication_gate_owner": "MedAutoScience",
         "route_contract_owner": "MedAutoScience",
         "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "codex_cli_launch_packet": {
+        "ai_first_boundary": {
+          "codex_cli_may_review_only_as_separate_invocation": true,
+          "contract_role": "boundary_and_evidence_refs_only",
+          "independent_reviewer_auditor_required_when_gate_closes": true,
+          "script_verdict_authority": false,
+          "self_review_closes_quality_gate": false
+        },
+        "executor_requirements": "Codex CLI default",
+        "expected_receipt_refs": {
+          "independent_gate_receipt_required": false,
+          "owner_receipt_contract_ref": "/product_entry_manifest/owner_receipt_contract",
+          "runtime_event_refs": [
+            "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+            "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
+          ],
+          "stage_status_ref": "/progress_projection",
+          "valid_outcomes": [
+            "owner_receipt",
+            "typed_blocker",
+            "route_back_request",
+            "human_gate_request",
+            "no_op_with_currentness_proof"
+          ]
+        },
+        "forbidden_authority": [
+          "domain_truth",
+          "quality_verdict",
+          "publication_readiness",
+          "submission_readiness",
+          "artifact_authority",
+          "source_readiness_verdict",
+          "memory_writeback_acceptance",
+          "script_exit_code_as_publication_quality_verdict",
+          "function_return_value_as_ai_reviewer_quality_decision",
+          "test_pass_as_artifact_mutation_authorization",
+          "queue_completion_as_publication_route_memory_accept_reject",
+          "file_presence_as_source_readiness_verdict",
+          "provider_completion_as_medical_readiness"
+        ],
+        "knowledge_refs": [
+          {
+            "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/publication_route_memory.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "mas_publication_route_memory",
+            "ref_kind": "domain_memory_ref",
+            "role": "publication_route_memory_locator"
+          }
+        ],
+        "prompt_ref": {
+          "ref": "agent/prompts/bounded_analysis_campaign.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
+        },
+        "quality_gate_refs": [
+          {
+            "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+            "ref_kind": "json_pointer",
+            "role": "authority_boundary"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "progress_projection"
+          },
+          {
+            "ref": "/product_entry_manifest/owner_receipt_contract",
+            "ref_kind": "json_pointer",
+            "role": "owner_receipt_gate"
+          },
+          {
+            "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          },
+          {
+            "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          }
+        ],
+        "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
+          "statistical_analysis_pack",
+          "display_to_claim_pack",
+          "figure_evidence_contract_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "human_gate_pack"
+        ],
+        "skill_refs": [
+          {
+            "ref": "agent/skills/medical_research_execution.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "agent/skills/owner_receipt_and_route_control.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "med-autoscience",
+            "ref_kind": "skill_id",
+            "role": "domain_skill"
+          },
+          {
+            "ref": "mas",
+            "ref_kind": "skill_id",
+            "role": "codex_app_skill"
+          }
+        ],
+        "stage_id": "bounded_analysis_campaign",
+        "surface_kind": "mas_codex_cli_stage_launch_packet",
+        "tool_refs": {
+          "allowed_action_refs": [
+            "launch_study",
+            "study_progress",
+            "sidecar_export",
+            "sidecar_dispatch"
+          ],
+          "can_authorize_quality_verdict": false,
+          "can_write_mas_truth": false,
+          "default_executor_kind": "codex_cli_default",
+          "dispatch_boundary": "mas_guarded_actions_only"
+        },
+        "version": "mas-codex-cli-stage-launch-packet.v1"
       },
       "deliverable_index_ref": {
         "blocking_only_when": "mas_human_gate_boundary_triggered",
@@ -1317,6 +1729,144 @@
         "route_contract_owner": "MedAutoScience",
         "stage_knowledge_plane_owner": "MedAutoScience"
       },
+      "codex_cli_launch_packet": {
+        "ai_first_boundary": {
+          "codex_cli_may_review_only_as_separate_invocation": true,
+          "contract_role": "boundary_and_evidence_refs_only",
+          "independent_reviewer_auditor_required_when_gate_closes": true,
+          "script_verdict_authority": false,
+          "self_review_closes_quality_gate": false
+        },
+        "executor_requirements": "Codex CLI default",
+        "expected_receipt_refs": {
+          "independent_gate_receipt_required": false,
+          "owner_receipt_contract_ref": "/product_entry_manifest/owner_receipt_contract",
+          "runtime_event_refs": [
+            "runtime_event:controller_decisions.manuscript_draft_reviewable",
+            "runtime_event:canonical_manuscript.manuscript_draft_reviewable"
+          ],
+          "stage_status_ref": "/progress_projection",
+          "valid_outcomes": [
+            "owner_receipt",
+            "typed_blocker",
+            "route_back_request",
+            "human_gate_request",
+            "no_op_with_currentness_proof"
+          ]
+        },
+        "forbidden_authority": [
+          "domain_truth",
+          "quality_verdict",
+          "publication_readiness",
+          "submission_readiness",
+          "artifact_authority",
+          "source_readiness_verdict",
+          "memory_writeback_acceptance",
+          "script_exit_code_as_publication_quality_verdict",
+          "function_return_value_as_ai_reviewer_quality_decision",
+          "test_pass_as_artifact_mutation_authorization",
+          "queue_completion_as_publication_route_memory_accept_reject",
+          "file_presence_as_source_readiness_verdict",
+          "provider_completion_as_medical_readiness"
+        ],
+        "knowledge_refs": [
+          {
+            "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/publication_route_memory.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          }
+        ],
+        "prompt_ref": {
+          "ref": "agent/prompts/manuscript_authoring.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
+        },
+        "quality_gate_refs": [
+          {
+            "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+            "ref_kind": "json_pointer",
+            "role": "authority_boundary"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "progress_projection"
+          },
+          {
+            "ref": "/product_entry_manifest/owner_receipt_contract",
+            "ref_kind": "json_pointer",
+            "role": "owner_receipt_gate"
+          },
+          {
+            "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          },
+          {
+            "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          }
+        ],
+        "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
+          "medical_claim_evidence_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "skill_refs": [
+          {
+            "ref": "agent/skills/medical_research_execution.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "agent/skills/owner_receipt_and_route_control.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "med-autoscience",
+            "ref_kind": "skill_id",
+            "role": "domain_skill"
+          },
+          {
+            "ref": "mas",
+            "ref_kind": "skill_id",
+            "role": "codex_app_skill"
+          }
+        ],
+        "stage_id": "manuscript_authoring",
+        "surface_kind": "mas_codex_cli_stage_launch_packet",
+        "tool_refs": {
+          "allowed_action_refs": [
+            "launch_study",
+            "study_progress",
+            "sidecar_export",
+            "sidecar_dispatch"
+          ],
+          "can_authorize_quality_verdict": false,
+          "can_write_mas_truth": false,
+          "default_executor_kind": "codex_cli_default",
+          "dispatch_boundary": "mas_guarded_actions_only"
+        },
+        "version": "mas-codex-cli-stage-launch-packet.v1"
+      },
       "deliverable_index_ref": {
         "blocking_only_when": "mas_human_gate_boundary_triggered",
         "can_authorize_publication_quality": false,
@@ -1726,6 +2276,152 @@
         "publication_gate_owner": "MedAutoScience",
         "route_contract_owner": "MedAutoScience",
         "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "codex_cli_launch_packet": {
+        "ai_first_boundary": {
+          "codex_cli_may_review_only_as_separate_invocation": true,
+          "contract_role": "boundary_and_evidence_refs_only",
+          "independent_reviewer_auditor_required_when_gate_closes": true,
+          "script_verdict_authority": false,
+          "self_review_closes_quality_gate": false
+        },
+        "executor_requirements": "Codex CLI default",
+        "expected_receipt_refs": {
+          "independent_gate_receipt_required": true,
+          "owner_receipt_contract_ref": "/product_entry_manifest/owner_receipt_contract",
+          "runtime_event_refs": [
+            "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+            "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded"
+          ],
+          "stage_status_ref": "/progress_projection",
+          "valid_outcomes": [
+            "owner_receipt",
+            "typed_blocker",
+            "route_back_request",
+            "human_gate_request",
+            "no_op_with_currentness_proof"
+          ]
+        },
+        "forbidden_authority": [
+          "domain_truth",
+          "quality_verdict",
+          "publication_readiness",
+          "submission_readiness",
+          "artifact_authority",
+          "source_readiness_verdict",
+          "memory_writeback_acceptance",
+          "script_exit_code_as_publication_quality_verdict",
+          "function_return_value_as_ai_reviewer_quality_decision",
+          "test_pass_as_artifact_mutation_authorization",
+          "queue_completion_as_publication_route_memory_accept_reject",
+          "file_presence_as_source_readiness_verdict",
+          "provider_completion_as_medical_readiness"
+        ],
+        "knowledge_refs": [
+          {
+            "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/publication_route_memory.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "mas_publication_route_memory",
+            "ref_kind": "domain_memory_ref",
+            "role": "publication_route_memory_locator"
+          }
+        ],
+        "prompt_ref": {
+          "ref": "agent/prompts/review_and_quality_gate.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
+        },
+        "quality_gate_refs": [
+          {
+            "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+            "ref_kind": "json_pointer",
+            "role": "authority_boundary"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "progress_projection"
+          },
+          {
+            "ref": "/product_entry_manifest/owner_receipt_contract",
+            "ref_kind": "json_pointer",
+            "role": "owner_receipt_gate"
+          },
+          {
+            "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          },
+          {
+            "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          }
+        ],
+        "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
+          "medical_claim_evidence_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "human_gate_pack"
+        ],
+        "skill_refs": [
+          {
+            "ref": "agent/skills/medical_research_execution.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "agent/skills/owner_receipt_and_route_control.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "med-autoscience",
+            "ref_kind": "skill_id",
+            "role": "domain_skill"
+          },
+          {
+            "ref": "mas",
+            "ref_kind": "skill_id",
+            "role": "codex_app_skill"
+          }
+        ],
+        "stage_id": "review_and_quality_gate",
+        "surface_kind": "mas_codex_cli_stage_launch_packet",
+        "tool_refs": {
+          "allowed_action_refs": [
+            "study_progress",
+            "product_entry",
+            "sidecar_export",
+            "sidecar_dispatch"
+          ],
+          "can_authorize_quality_verdict": false,
+          "can_write_mas_truth": false,
+          "default_executor_kind": "codex_cli_default",
+          "dispatch_boundary": "mas_guarded_actions_only"
+        },
+        "version": "mas-codex-cli-stage-launch-packet.v1"
       },
       "deliverable_index_ref": {
         "blocking_only_when": "mas_human_gate_boundary_triggered",
@@ -2149,6 +2845,152 @@
         "publication_gate_owner": "MedAutoScience",
         "route_contract_owner": "MedAutoScience",
         "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "codex_cli_launch_packet": {
+        "ai_first_boundary": {
+          "codex_cli_may_review_only_as_separate_invocation": true,
+          "contract_role": "boundary_and_evidence_refs_only",
+          "independent_reviewer_auditor_required_when_gate_closes": true,
+          "script_verdict_authority": false,
+          "self_review_closes_quality_gate": false
+        },
+        "executor_requirements": "Codex CLI default",
+        "expected_receipt_refs": {
+          "independent_gate_receipt_required": false,
+          "owner_receipt_contract_ref": "/product_entry_manifest/owner_receipt_contract",
+          "runtime_event_refs": [
+            "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
+            "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded"
+          ],
+          "stage_status_ref": "/progress_projection",
+          "valid_outcomes": [
+            "owner_receipt",
+            "typed_blocker",
+            "route_back_request",
+            "human_gate_request",
+            "no_op_with_currentness_proof"
+          ]
+        },
+        "forbidden_authority": [
+          "domain_truth",
+          "quality_verdict",
+          "publication_readiness",
+          "submission_readiness",
+          "artifact_authority",
+          "source_readiness_verdict",
+          "memory_writeback_acceptance",
+          "script_exit_code_as_publication_quality_verdict",
+          "function_return_value_as_ai_reviewer_quality_decision",
+          "test_pass_as_artifact_mutation_authorization",
+          "queue_completion_as_publication_route_memory_accept_reject",
+          "file_presence_as_source_readiness_verdict",
+          "provider_completion_as_medical_readiness"
+        ],
+        "knowledge_refs": [
+          {
+            "ref": "agent/knowledge/medical_research_truth.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/publication_route_memory.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_knowledge"
+          },
+          {
+            "ref": "mas_publication_route_memory",
+            "ref_kind": "domain_memory_ref",
+            "role": "publication_route_memory_locator"
+          }
+        ],
+        "prompt_ref": {
+          "ref": "agent/prompts/finalize_and_publication_handoff.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
+        },
+        "quality_gate_refs": [
+          {
+            "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+            "ref_kind": "json_pointer",
+            "role": "authority_boundary"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "progress_projection"
+          },
+          {
+            "ref": "/product_entry_manifest/owner_receipt_contract",
+            "ref_kind": "json_pointer",
+            "role": "owner_receipt_gate"
+          },
+          {
+            "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          },
+          {
+            "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+            "ref_kind": "repo_path",
+            "role": "agent_quality_gate"
+          }
+        ],
+        "quality_pack_refs": [
+          "ai_native_expert_judgment_pack",
+          "medical_claim_evidence_pack",
+          "reporting_guideline_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "paper_presentation_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "skill_refs": [
+          {
+            "ref": "agent/skills/medical_research_execution.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "agent/skills/owner_receipt_and_route_control.md",
+            "ref_kind": "repo_path",
+            "role": "domain_pack_skill_policy"
+          },
+          {
+            "ref": "med-autoscience",
+            "ref_kind": "skill_id",
+            "role": "domain_skill"
+          },
+          {
+            "ref": "mas",
+            "ref_kind": "skill_id",
+            "role": "codex_app_skill"
+          }
+        ],
+        "stage_id": "finalize_and_publication_handoff",
+        "surface_kind": "mas_codex_cli_stage_launch_packet",
+        "tool_refs": {
+          "allowed_action_refs": [
+            "study_progress",
+            "product_entry",
+            "sidecar_export"
+          ],
+          "can_authorize_quality_verdict": false,
+          "can_write_mas_truth": false,
+          "default_executor_kind": "codex_cli_default",
+          "dispatch_boundary": "mas_guarded_actions_only"
+        },
+        "version": "mas-codex-cli-stage-launch-packet.v1"
       },
       "deliverable_index_ref": {
         "blocking_only_when": "mas_human_gate_boundary_triggered",
