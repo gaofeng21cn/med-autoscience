@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-20：新 reviewer_revision 必须使旧 AI reviewer eval 失效
+
+- 决策：若 latest task intake 是 `reviewer_revision`，且其 `emitted_at` 晚于当前 `publication_eval/latest.json`，即使当前 eval 的 `assessment_provenance.owner=ai_reviewer`，domain route scan 也必须把 AI reviewer assessment 标为 stale/missing，并路由到 `return_to_ai_reviewer_workflow`。
+- 理由：DM002 暴露出用户最新医学论文质量反馈已进入 durable task intake，但旧 AI reviewer eval 仍被 read model 当作 current，导致 official quality loop 没有吸收新反馈。
+- 影响：这是 MAS domain agent 的 AI reviewer currentness 规则，不是 OPL 基座控制面变更。它只请求 AI reviewer owner 重新评估；不授权脚本判断论文质量，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、正文、submission package 或 `current_package`。
+
 ## 2026-05-20：当前 run 的 completed turn closeout 必须被 controller work unit 消费
 
 - 决策：当当前 active run 写出 `artifacts/runtime/turn_closeouts/<active_run_id>.json`，且 closeout 为 `status=completed`、`meaningful_artifact_delta=true`、未带 `blocked_reason`，controller work-unit evidence adoption 必须把它作为当前授权的完成证据消费，并写入 `controller_work_unit_evidence_adoption` / `artifact_written`，而不是继续重放同一 `manuscript_story_repair` 或其他 generic work unit。

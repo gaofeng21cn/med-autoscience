@@ -186,6 +186,98 @@ def test_scan_domain_routes_queues_specificity_and_ai_reviewer_actions_without_q
         assert action["handoff_packet"]["allowed_write_surfaces"] == ["artifacts/supervision/**"]
 
 
+def test_scan_domain_routes_marks_ai_reviewer_eval_stale_after_new_reviewer_revision(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_route_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::old",
+        "study_id": study_id,
+        "quest_id": "quest-dm002",
+        "emitted_at": "2026-05-19T12:00:00+00:00",
+        "assessment_provenance": {"owner": "ai_reviewer"},
+        "quality_assessment": {"medical_journal_prose_quality": {"status": "blocked"}},
+        "verdict": {"overall_verdict": "blocked"},
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "schema_version": 1,
+            "task_id": "study-task::dm002::20260520T083325Z",
+            "emitted_at": "2026-05-20T08:33:25+00:00",
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "task_intake_kind": "reviewer_revision",
+            "task_intent": "按最新专家反馈重新评估医学论文质量，补 CI、校准曲线、模型复现和正式图注。",
+        },
+    )
+
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            {
+                "study_id": study_id,
+                "study_root": str(study_root),
+                "quest_id": "quest-dm002",
+                "quest_status": "stopped",
+                "decision": "blocked",
+                "reason": "publication_gate_blocked",
+                "execution_owner_guard": {"supervisor_only": True},
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "none",
+                    "attempt_state": "idle",
+                    "retry_budget_remaining": 0,
+                },
+                "publication_eval": publication_eval,
+            },
+            {
+                "study_id": study_id,
+                "study_root": str(study_root),
+                "quest_id": "quest-dm002",
+                "current_stage": "publication_supervision",
+                "paper_stage": "publishability_gate_blocked",
+                "quality_review_loop": {"closure_state": "review_required"},
+                "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            },
+            "quest-dm002",
+            publication_eval,
+        ),
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["ai_reviewer_assessment"] == {
+        "present": False,
+        "owner": "ai_reviewer",
+        "required": True,
+        "missing": True,
+        "blocked_reason": "ai_reviewer_assessment_stale_after_reviewer_revision",
+        "task_id": "study-task::dm002::20260520T083325Z",
+        "task_emitted_at": "2026-05-20T08:33:25+00:00",
+        "publication_eval_emitted_at": "2026-05-19T12:00:00+00:00",
+    }
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["action_queue"][0]["authority"] == "observability_only"
+    assert study["action_queue"][0]["owner"] == "ai_reviewer"
+    assert study["action_queue"][0]["required_output_surface"] == "artifacts/publication_eval/latest.json"
+    assert study["paper_package_mutated"] is False
+
+
 def test_scan_domain_routes_apply_safe_actions_materializes_stopped_dm002_lifecycle_and_request_packets(
     monkeypatch,
     tmp_path: Path,

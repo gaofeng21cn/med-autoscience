@@ -535,6 +535,7 @@ def _study_projection(
         progress=progress_payload,
         publication_eval=publication_eval_payload,
         blocking_reasons=_blocking_reasons(status_payload, progress_payload),
+        study_root=study_root,
     )
     actions = _action_queue(
         status_payload,
@@ -628,6 +629,7 @@ def _study_projection(
             progress=progress_payload,
             publication_eval=publication_eval_payload,
             blocking_reasons=_blocking_reasons(status_payload, progress_payload),
+            study_root=study_root,
         )
         actions = _action_queue(
             status_payload,
@@ -668,6 +670,7 @@ def _study_projection(
             progress=progress_payload,
             publication_eval=publication_eval_payload,
             blocking_reasons=_blocking_reasons(status_payload, progress_payload),
+            study_root=study_root,
         )
         actions = _action_queue(
             status_payload,

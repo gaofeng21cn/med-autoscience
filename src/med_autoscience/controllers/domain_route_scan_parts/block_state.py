@@ -193,7 +193,7 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "artifact_os"
     if blocked_reason == "display_surface_materialization_failed":
         return "artifact_os"
-    if blocked_reason == "ai_reviewer_assessment_required":
+    if blocked_reason in {"ai_reviewer_assessment_required", "ai_reviewer_assessment_stale_after_reviewer_revision"}:
         return "ai_reviewer"
     if blocked_reason == "domain_transition_ai_reviewer_re_eval":
         return "ai_reviewer"

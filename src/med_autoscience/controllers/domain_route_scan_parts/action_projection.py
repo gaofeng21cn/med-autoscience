@@ -227,7 +227,11 @@ def action_queue(
         ]
         actions.insert(0, artifact_action)
     if ai_reviewer_assessment.get("missing") is True:
-        actions.append(_ai_reviewer_required_action(reason="ai_reviewer_assessment_required"))
+        actions.append(
+            _ai_reviewer_required_action(
+                reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
+            )
+        )
     return [
         decorate_action(
             study_id=study_id,
