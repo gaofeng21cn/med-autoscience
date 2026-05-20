@@ -1,0 +1,87 @@
+# MAS 私有实现与 OPL 迁移台账
+
+Status: `active_migration_inventory`
+Owner: `MedAutoScience`
+Purpose: `opl_private_implementation_migration_inventory`
+State: `active_support`
+Machine boundary: 本文是 machine-adjacent human-readable 台账，不是机器真相。可执行真相继续归 `contracts/functional_privatization_audit.json`、`contracts/private_functional_surface_policy.json`、`contracts/generated_surface_handoff.json`、`contracts/pack_compiler_input.json`、CLI/MCP/API 行为、sidecar receipt、runtime/controller durable surfaces、owner receipt 和真实 workspace artifact。
+
+## 目标态
+
+MAS 的 OPL 标准智能体目标态是：
+
+`Declarative Medical Research Pack + OPL hosted/generated surfaces + minimal authority functions`
+
+这表示：
+
+- `agent/` 和相关 contracts 声明医学研究 stage、prompt、skill、knowledge、quality gate、action catalog、receipt refs 和 forbidden authority boundary。
+- OPL hosted/generated surfaces 承接通用 CLI、MCP、Skill、product-entry、sidecar、status、workbench、projection shell、attempt、queue、retry/dead-letter、watch shell、generic state-machine runner、locator/index/lifecycle 和 operator workbench。
+- MAS repo 内长期保留的私有程序面只允许是医学 authority function、domain handler target、AI-first record validator、owner receipt signer、typed blocker materializer、body-free refs-only adapter、diagnostic/provenance reader 或 historical fixture。
+- OPL 可以托管、调度、索引、展示和 dispatch allowlisted task；不能写 MAS study truth、publication verdict、AI reviewer verdict、source readiness verdict、publication-route memory body、artifact authority、`current_package`、paper package 或 runtime/controller durable truth。
+
+本台账只记录当前源码形态和迁移门槛。它不表示 OPL provider long soak、真实 paper closure、publication-ready、medical-ready、artifact mutation authorization 或物理删除已经完成。
+
+## 分类词表
+
+| class | 含义 | 允许输出 | 退役口径 |
+| --- | --- | --- | --- |
+| `domain_authority_retained` | MAS 必须保留的医学研究 authority 或 authority validator。 | AI-first reviewer/auditor record refs、publication/source/memory/artifact verdict refs、owner receipt、typed blocker、guarded apply ref。 | 不迁到 OPL；只可继续收窄接口和验证 provenance。 |
+| `opl_framework_migration_candidate` | 当前仍有 MAS 手写外壳或 generic runtime/control 逻辑，但长期 owner 应迁到 OPL generated/hosted surface 或 OPL framework primitive。 | body-free task/locator/status/projection refs、dispatch receipt、diagnostic refs。 | OPL replacement parity、active caller cutover、MAS receipt parity、focused tests、no-forbidden-write proof 成立后迁移或删除。 |
+| `already_thin_adapter` | 已收薄为 refs-only / diagnostic / projection adapter，仍因 active domain 或 diagnostic caller 暂留。 | owner receipt ref、surface ref、artifact/source/workspace locator ref、cleanup/restore proof ref、typed blocker。 | active caller 清零且 OPL index/lifecycle/workbench parity 成立后 tombstone 或删除。 |
+| `needs_split_before_migration` | 文件或 surface 混合了 domain authority、read model、generic runner/watch/status shell、mutation guard 或 projection assembly；迁移前必须先按 owner 子域拆清。 | 当前只允许作为待拆控制面或迁移输入，不新增长期 authority claim。 | 先拆成 domain authority spec/validator 与 generic runner/watch/locator shell，再分别归入 retained 或 OPL migration candidate。 |
+
+## 当前 inventory
+
+| surface | current class | current caller / proof surface | MAS retains | OPL migration candidate | retirement / migration gate | verification entry |
+| --- | --- | --- | --- | --- | --- | --- |
+| `src/med_autoscience/controllers/study_runtime_decision_parts/status_and_decision.py` | `needs_split_before_migration` | `study_runtime_router.study_runtime_status(...)`、`runtime_watch` status refresh、`study-progress` / product-entry / sidecar status projection；当前文件约 998 行，混合 runtime context、publication gate materialization、manual finish dominance、controller authorization、runtime health、supervision refresh、runtime event 和 family orchestration companion。 | study truth interpretation、publication gate / manual finish dominance、controller authorization refs、runtime health semantics、owner receipt / typed blocker refs、source/readiness authority refs。 | generic status read-model assembly、generic state-machine runner inputs、runtime event watch shell、family orchestration projection、supervision refresh shell、status serialization/projection shell。 | 本轮作为 control-plane thinning item：先拆出 domain authority / verdict / owner-route 片段与 generic status/watch/projection shell；通用状态机、runner、queue、watch shell 长线迁 OPL；医学 verdict、study truth、artifact mutation、owner receipt、source readiness 留 MAS。禁止把本项写成已迁移或已完成物理删除。 | focused status/runtime decision tests；`study-runtime-status` CLI；`runtime-watch` focused tests；`git diff --check`；后续触碰 machine surface 时跑 `scripts/verify.sh` 或对应 pytest slice。 |
+| `src/med_autoscience/cli.py` 与 `src/med_autoscience/cli_parts/` | `opl_framework_migration_candidate` | MAS CLI direct path、lazy controller loader、product/runtime/source/delivery command dispatch；当前 `cli.py` 约 1391 行。 | direct MAS skill target、domain handler dispatch、AI-first validator command、owner receipt signer / typed blocker reader。 | generic CLI/MCP/product wrapper、generated help/descriptor/status/workbench shell、test-lane harness。 | OPL generated CLI/Skill/MCP/product-entry surface 成为 hosted/default caller；direct MAS path receipt parity、no-forbidden-write proof、no default caller on old wrapper/alias/facade；满足后删除或 tombstone 非 authority shell。 | public CLI tests、generated surface handoff checks、product-entry manifest tests、`scripts/verify.sh` for non-doc changes。 |
+| `src/med_autoscience/controllers/runtime_watch.py` 与 `runtime_watch_parts/` | `opl_framework_migration_candidate` | `watch-runtime` / `runtime-watch` one-shot tick、runtime status refresh、outer-loop wakeup、control-plane gate、managed wakeup、quest/runtime scan、reporting。 | MAS runtime health interpretation、paper-progress SLO semantics、owner route / safe action refs、typed blocker、AI doctor repair receipt refs、publication gate interaction constraints。 | generic watch shell、scheduler tick loop、outer-loop runner, retry/dead-letter transport, alert delivery shell, runtime scan/report assembly, provider cadence integration。 | OPL provider/runtime manager owns generic cadence/watch shell; MAS keeps one-shot domain diagnostic until replacement parity and paper-line receipt parity are proven. No long-running MAS-owned generic daemon claim. | `tests/test_runtime_watch.py`、`tests/test_runtime_protocol_runtime_watch.py`、runtime supervision / domain SLO focused tests。 |
+| scheduler / supervision lifecycle surfaces | `already_thin_adapter` for tombstone/provenance; `opl_framework_migration_candidate` for any active projection | `runtime-supervision-status` default manager is OPL; local LaunchAgent install path has no active default caller and is tombstone/provenance only. | outer supervision SLO interpretation、owner receipt、typed blocker、safe action refs、no-forbidden-write evidence。 | scheduler cadence、job registry、wakeup, retry/dead-letter, provider lifecycle, default outer supervision owner。 | `manager=local` direct path must fail closed; no install/status/remove/trigger active local payload. OPL provider/runtime manager parity remains required for production/full online claims. | domain SLO scheduler projection tests; legacy tombstone contract; runtime supervision CLI focused tests。 |
+| runtime transport / turn runner / worker lease | `already_thin_adapter` with deletion gate | `runtime_transport_handoff_projection`、runtime core tests、stage closeout receipt callers、worker diagnostic callers。 | domain owner receipt adapter、stage turn closeout receipt, guarded apply / typed blocker bridge, diagnostic refs。 | generic worker residency, attempt ledger, queue, transition runner, retry/dead-letter, provider transport。 | active caller count must reach 0 or migrate to OPL/MAS authority target; OPL replacement parity、domain receipt parity、focused tests、no-forbidden-write proof、history/tombstone refs required before physical deletion. | `tests/test_runtime_transport_mas_runtime_core.py`、`tests/test_study_runtime_transport.py`、real paper-line owner receipt canary。 |
+| `runtime_protocol/runtime_lifecycle_store.py` and lifecycle CLI | `already_thin_adapter` | runtime lifecycle CLI, study runtime event/snapshot refs, sidecar/product-entry lifecycle projections。 | owner receipt refs、surface refs、restore/retention proof refs、locator refs。 | generic persistence/lifecycle engine、restore-retention orchestration、workspace lifecycle index owner。 | OPL lifecycle index parity、domain owner receipt ref parity、focused lifecycle projection tests, no generic persistence claim, active caller cleanup. | `tests/test_runtime_lifecycle_store.py`、`tests/test_runtime_lifecycle_read_model.py`、`tests/test_runtime_lifecycle_contract.py`。 |
+| workspace / source locator and intake shell | `opl_framework_migration_candidate` | workspace init/readiness CLI, source readiness / external intake read models, sidecar substrate adapter refs。 | source readiness verdict、study charter and source truth interpretation、evidence ledger refs、body-free source refs。 | generic workspace locator/index, source intake shell, lifecycle/restore locator, generated workbench display。 | OPL locator/index and generated source/workspace surfaces can consume opaque refs; source body/readiness verdict stays MAS. Cutover requires no active generic shell caller in MAS and source readiness authority tests. | source readiness / workspace init focused tests; sidecar export contract tests。 |
+| product-entry / workspace cockpit / workbench / portal shell | `opl_framework_migration_candidate` | product-entry manifest/status, workspace cockpit, Progress Portal, workbench drilldown projections。 | MAS domain projection payload, study truth refs, publication/artifact/memory refs, typed blocker refs, safe action receipt refs。 | generic product-entry/status/workbench shell, App drilldown, operator dashboard, projection hosting。 | OPL generated product/status/workbench shell becomes production/default caller; MAS direct path and domain receipt parity retained; non-authority shell deleted or tombstoned after no-active-caller proof. | product-entry manifest/status tests; App/workbench drilldown proof; `contracts/generated_surface_handoff.json` checks。 |
+| publication quality verdict / AI reviewer quality decision | `domain_authority_retained` | AI reviewer workflow, `publication_eval/latest.json`, review ledger/evidence ledger refs, publication gate. | independent reviewer/auditor quality judgment, publication route decision, route-back semantics, quality typed blocker。 | none; OPL may index refs only. | Cannot be converted to script/test/queue completion verdict. Missing independent reviewer/auditor record must fail closed or route back. | private authority policy validator, publication eval workflow tests, AI reviewer record provenance checks。 |
+| artifact mutation / package authority | `domain_authority_retained` | delivery sync, artifact rebuild proof, submission package handoff, current package authority. | guarded artifact mutation authorization, rebuild/freshness proof interpretation, package authority receipt。 | generic artifact locator/gallery/lifecycle shell only. | OPL cannot write artifact body/package/current_package. Mutation requires MAS owner receipt or typed blocker. | artifact lifecycle tests, delivery sync tests, no-forbidden-write proof。 |
+| owner receipt signer / typed blocker materializer | `domain_authority_retained` | sidecar dispatch receipt, controller decisions, guarded apply, human gate/resume, stop-loss refs。 | receipt signing, blocker materialization, safe action refs, owner route proof。 | generic receipt ledger/index and transport only. | OPL stores/queries refs; MAS signs and interprets domain receipt/blocker. | sidecar dispatch tests; owner route / controller decision tests。 |
+
+## status_and_decision.py thinning item
+
+本轮 `status_and_decision.py` 的正确处置不是直接迁到 OPL，也不是继续把它当成 MAS 私有控制面长期扩写。它应作为 `needs_split_before_migration` 的 control-plane thinning item：
+
+1. 保留在 MAS 的 authority 子域：
+   - study truth 与 `StudyRuntimeStatus` 的医学语义解释。
+   - publication quality / publication gate / manual finish / submission authority 相关判断。
+   - source readiness、startup/runtime reentry gate 的医学研究约束。
+   - artifact mutation、owner receipt、typed blocker、controller authorization 和 forbidden-write 边界。
+
+2. 可迁往 OPL 的 generic 子域：
+   - generic status read-model assembly 和 serialization shell。
+   - state-machine runner、transition runner、queue / attempt / retry / dead-letter。
+   - watch shell、scheduler tick / provider cadence、runtime event relay 的通用外壳。
+   - workspace/source/artifact locator/index、family orchestration projection、operator workbench display shell。
+
+3. 拆分门槛：
+   - 每个拆出的子模块必须能说明 owner：authority、read-model、adapter 或 materializer。
+   - 新 OPL-facing shell 只能消费 MAS owner refs，不重新解释医学 verdict。
+   - 任何迁移声明必须同时给出 active caller proof、replacement parity、MAS receipt parity、focused tests、no-forbidden-write proof 和 tombstone/provenance refs。
+   - 在这些 proof 成立前，只能写成 retained adapter / migration candidate / needs split，不写成已完成。
+
+## 当前 caller / 退役门 / 验证入口
+
+| gate id | current caller status | retirement gate | validation entry |
+| --- | --- | --- | --- |
+| `generated_surface_active_caller_cutover` | Generated descriptors and handoff exist; hand-written MAS shells still serve direct path and some active diagnostic/domain callers. | OPL hosted/generated shell becomes production/default caller; old wrapper/alias/facade has no default caller; MAS direct path receipt parity and no-forbidden-write proof remain green. | generated surface handoff checks, product-entry / CLI / MCP focused tests, OPL descriptor validation. |
+| `refs_only_adapter_thinning` | Runtime lifecycle, storage maintenance, publication-route memory transport, artifact audit and terminal attach are refs-only but still have active callers. | active caller count clears or moves to OPL/MAS authority target; no body/verdict/blob output; OPL index/lifecycle/workbench parity proven. | lifecycle / storage / artifact / terminal focused tests; sidecar export contract tests. |
+| `runtime_transport_sqlite_physical_retirement` | Runtime transport, turn runner, worker lease and SQLite lifecycle remain active adapter/diagnostic surfaces. | OPL provider parity + MAS paper-line receipt parity + no-active-caller + focused tests + no-forbidden-write + tombstone refs. | runtime transport tests, lifecycle tests, real paper-line canary owner receipt or stable typed blocker. |
+| `workbench_sidecar_status_retirement` | Product-entry/workspace cockpit/sidecar/status still provide direct MAS path, OPL handoff input or diagnostic read model. | OPL generated product/status/workbench shell is default/production caller; MAS retains only domain handler target, receipt signer, typed blocker and authority refs. | product-entry manifest/status tests, sidecar export/dispatch tests, App/workbench drilldown evidence. |
+| `legacy_cleanup_physical_retirement` | Local LaunchAgent scheduler and workspace-local watch wrappers are tombstone/provenance only. | No compatibility alias, wrapper or active diagnostic bridge reintroduced; old refs stay history/tombstone only. | legacy tombstone contract, domain SLO scheduler projection tests, stale surface scan. |
+
+## 禁止误写
+
+- 不把 `active_private_generic_residue_count=0`、classification closed、descriptor ready、OPL cleanup ledger ready 或 production acceptance receipt 写成物理源码清零。
+- 不把 `runtime_backend_id=mas_runtime_core` 写成 MAS generic runtime owner；当前角色是 MAS domain owner receipt adapter。
+- 不把 OPL provider proof、stage production evidence receipt 或 generated surface proof 写成真实 paper closure、publication-ready、medical-ready、artifact mutation authorization 或 `current_package` 更新。
+- 不把 `status_and_decision.py` 本轮 thinning 写成 OPL 已接管 status/control plane；当前只是需要拆分后迁移的 control-plane item。
+- 不把 publication quality、AI reviewer quality、source readiness、publication-route memory accept/reject 或 artifact mutation authority 写成脚本、测试、queue completion、file presence 或同一 executor 自审可以决定。

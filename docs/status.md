@@ -48,6 +48,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain SLO projection active source 命名收口。剩余差距是 retained adapter / diagnostic 的物理删除门，不是 MAS generic runtime owner 复活，也不是已经清零：
 
+- 私有实现 / OPL 迁移台账已落到 [MAS 私有实现与 OPL 迁移台账](./runtime/opl_private_implementation_migration_inventory.md)。该台账把 `status_and_decision.py` 明确列为 `needs_split_before_migration` 的 control-plane thinning item：通用状态机、runner、queue、watch shell 和 status/projection 外壳长线迁 OPL；publication quality verdict、study truth、artifact mutation、owner receipt、source readiness 和 typed blocker 留 MAS。该台账是当前迁移治理索引，不表示迁移或物理删除已经完成。
 - `runtime_transport/`、turn runner、worker lease 与 `runtime_lifecycle_store.py` 仍有 active domain / diagnostic caller；当前角色只能是 domain receipt adapter、refs-only lifecycle sidecar、guarded apply / typed blocker bridge 或 standalone diagnostic。
 - `product_entry_parts/workspace_cockpit/`、product-entry manifest/status、sidecar provider 与 runtime status projection 仍承担 direct MAS path、OPL handoff 输入或 diagnostic read model；在 OPL generated product/status/workbench shell 成为 production/default caller 前，它们不能删除。
 - developer repair / worktree / verification 元数据不得长期留在 MAS domain handler；目标是迁入 OPL Agent Lab / developer repair lane 或 explicit contract refs。
