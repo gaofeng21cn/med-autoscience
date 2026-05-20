@@ -125,6 +125,13 @@ def _normalize_risk_group_label(cohort: str, risk_group: str) -> str:
     return f"{cohort.strip()} {normalized_group}"
 
 
+def _normalize_cohort_id(cohort: str) -> str:
+    normalized = "_".join(cohort.strip().casefold().split())
+    if not normalized:
+        raise ValueError("risk_group_composition_report.md contains an empty cohort label")
+    return normalized
+
+
 def _risk_group_rows_from_report(path: Path) -> list[dict[str, Any]]:
     header, rows = _load_markdown_table(path)
     normalized_header = {value.strip().casefold(): index for index, value in enumerate(header)}
@@ -156,9 +163,13 @@ def _risk_group_rows_from_report(path: Path) -> list[dict[str, Any]]:
             raise ValueError(f"{path.name} row {row_index + 1} requires finite observed and predicted risks")
         if observed_rate < 0.0 or predicted_rate < 0.0:
             raise ValueError(f"{path.name} row {row_index + 1} risks must be non-negative")
+        risk_group = row[normalized_header["risk_group"]].strip()
         summaries.append(
             {
-                "label": _normalize_risk_group_label(cohort, row[normalized_header["risk_group"]]),
+                "label": _normalize_risk_group_label(cohort, risk_group),
+                "cohort_id": _normalize_cohort_id(cohort),
+                "cohort_label": cohort,
+                "risk_group_label": risk_group,
                 "sample_size": sample_size,
                 "events_5y": _event_count_from_rate(support_count=sample_size, rate=observed_rate),
                 "mean_predicted_risk_5y": predicted_rate,

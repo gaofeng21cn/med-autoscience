@@ -826,6 +826,82 @@ def test_run_display_layout_qc_flags_non_monotonic_grouped_risk_summary() -> Non
     assert any(issue["rule_id"] == "observed_risk_order_not_monotonic" for issue in result["issues"])
     assert any(issue["rule_id"] == "event_count_order_not_monotonic" for issue in result["issues"])
 
+
+def test_run_display_layout_qc_checks_grouped_risk_order_within_each_cohort() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_survival_curve",
+        layout_sidecar={
+            "template_id": "time_to_event_risk_group_summary",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.18, y0=0.92, x1=0.34, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.06, y1=0.72),
+                make_box("panel_right_x_axis_title", "subplot_x_axis_title", x0=0.60, y0=0.92, x1=0.76, y1=0.97),
+                make_box("panel_right_y_axis_title", "subplot_y_axis_title", x0=0.50, y0=0.20, x1=0.54, y1=0.72),
+                make_box("panel_left_title", "panel_title", x0=0.16, y0=0.11, x1=0.34, y1=0.15),
+                make_box("panel_right_title", "panel_title", x0=0.58, y0=0.11, x1=0.80, y1=0.15),
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.80, x1=0.14, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.55, y0=0.80, x1=0.58, y1=0.85),
+            ],
+            "panel_boxes": [
+                make_box("panel_left", "panel", x0=0.10, y0=0.16, x1=0.44, y1=0.86),
+                make_box("panel_right", "panel", x0=0.54, y0=0.16, x1=0.88, y1=0.86),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "risk_group_summaries": [
+                    {
+                        "label": "China Q1 low",
+                        "cohort_id": "china",
+                        "sample_size": 3948,
+                        "events_5y": 16,
+                        "mean_predicted_risk_5y": 0.0157,
+                        "observed_km_risk_5y": 0.0041,
+                    },
+                    {
+                        "label": "China Q2",
+                        "cohort_id": "china",
+                        "sample_size": 3947,
+                        "events_5y": 39,
+                        "mean_predicted_risk_5y": 0.0184,
+                        "observed_km_risk_5y": 0.0099,
+                    },
+                    {
+                        "label": "China Q3",
+                        "cohort_id": "china",
+                        "sample_size": 3947,
+                        "events_5y": 67,
+                        "mean_predicted_risk_5y": 0.0204,
+                        "observed_km_risk_5y": 0.017,
+                    },
+                    {
+                        "label": "China Q4 high",
+                        "cohort_id": "china",
+                        "sample_size": 3947,
+                        "events_5y": 199,
+                        "mean_predicted_risk_5y": 0.0239,
+                        "observed_km_risk_5y": 0.0504,
+                    },
+                    {
+                        "label": "NHANES Q1 low",
+                        "cohort_id": "nhanes",
+                        "sample_size": 5659,
+                        "events_5y": 704,
+                        "mean_predicted_risk_5y": 0.0011,
+                        "observed_km_risk_5y": 0.1244,
+                    },
+                ],
+            },
+            "render_context": {"readability_override": {}},
+        },
+    )
+
+    assert result["status"] == "pass"
+    assert result["issues"] == []
+
+
 def test_run_display_layout_qc_flags_compressed_event_count_spread_for_grouped_risk_summary() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

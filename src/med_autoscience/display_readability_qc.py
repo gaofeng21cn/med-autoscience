@@ -74,6 +74,33 @@ def _resolve_threshold(
     return threshold
 
 
+def _risk_group_summary_key(summary: dict[str, Any]) -> str:
+    cohort_id = summary.get("cohort_id")
+    if cohort_id is None:
+        cohort_id = summary.get("cohort_label")
+    if cohort_id is None:
+        cohort_id = summary.get("cohort")
+    if cohort_id is None:
+        return "__single_ordered_sequence__"
+    normalized = str(cohort_id).strip()
+    if not normalized:
+        raise ValueError("layout_sidecar.metrics.risk_group_summaries cohort identifier must be non-empty")
+    return normalized
+
+
+def _risk_group_summary_target(group_key: str) -> str:
+    if group_key == "__single_ordered_sequence__":
+        return "metrics.risk_group_summaries"
+    return f"metrics.risk_group_summaries[{group_key}]"
+
+
+def _is_non_decreasing(values: list[float]) -> bool:
+    return all(
+        current_value + 1e-12 >= previous_value
+        for previous_value, current_value in zip(values[:-1], values[1:], strict=True)
+    )
+
+
 def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list[dict[str, Any]]:
     metrics = _require_mapping(layout_sidecar.get("metrics"), label="layout_sidecar.metrics")
     override = _readability_override(layout_sidecar)
@@ -156,9 +183,7 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
 
     risk_group_summaries = metrics.get("risk_group_summaries")
     if isinstance(risk_group_summaries, list) and len(risk_group_summaries) >= 2:
-        observed_risks: list[float] = []
-        predicted_risks: list[float] = []
-        event_counts: list[float] = []
+        grouped_summaries: dict[str, dict[str, list[float]]] = {}
         for index, item in enumerate(risk_group_summaries):
             summary = _require_mapping(item, label=f"layout_sidecar.metrics.risk_group_summaries[{index}]")
             observed_key = (
@@ -168,19 +193,24 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
                 "mean_predicted_risk_5y" if "mean_predicted_risk_5y" in summary else "predicted_risk"
             )
             event_key = "events_5y" if "events_5y" in summary else "events"
-            observed_risks.append(
+            group_key = _risk_group_summary_key(summary)
+            group = grouped_summaries.setdefault(
+                group_key,
+                {"observed_risks": [], "predicted_risks": [], "event_counts": []},
+            )
+            group["observed_risks"].append(
                 _require_numeric(
                     summary.get(observed_key),
                     label=f"layout_sidecar.metrics.risk_group_summaries[{index}].{observed_key}",
                 )
             )
-            predicted_risks.append(
+            group["predicted_risks"].append(
                 _require_numeric(
                     summary.get(predicted_key),
                     label=f"layout_sidecar.metrics.risk_group_summaries[{index}].{predicted_key}",
                 )
             )
-            event_counts.append(
+            group["event_counts"].append(
                 _require_numeric(
                     summary.get(event_key),
                     label=f"layout_sidecar.metrics.risk_group_summaries[{index}].{event_key}",
@@ -201,81 +231,73 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
             field_name="minimum_event_count_spread",
             default_value=DEFAULT_MIN_EVENT_COUNT_SPREAD,
         )
-        observed_spread = max(observed_risks) - min(observed_risks)
-        predicted_spread = max(predicted_risks) - min(predicted_risks)
-        event_count_spread = max(event_counts) - min(event_counts)
-        if observed_spread < minimum_observed_risk_spread:
-            issues.append(
-                _issue(
-                    rule_id="observed_risk_spread_not_readable",
-                    message="observed risk spread is too compressed to support manuscript-facing stratification",
-                    target="metrics.risk_group_summaries",
-                    observed={"observed_risk_spread": observed_spread},
-                    expected={"minimum_observed_risk_spread": minimum_observed_risk_spread},
-                )
-            )
-        if predicted_spread < minimum_predicted_risk_spread:
-            issues.append(
-                _issue(
-                    rule_id="predicted_risk_spread_not_readable",
-                    message="predicted risk spread is too compressed to support manuscript-facing stratification",
-                    target="metrics.risk_group_summaries",
-                    observed={"predicted_risk_spread": predicted_spread},
-                    expected={"minimum_predicted_risk_spread": minimum_predicted_risk_spread},
-                )
-            )
-        if event_count_spread < minimum_event_count_spread:
-            issues.append(
-                _issue(
-                    rule_id="event_count_spread_not_readable",
-                    message="event-count spread is too compressed to support manuscript-facing stratification",
-                    target="metrics.risk_group_summaries",
-                    observed={"event_count_spread": event_count_spread},
-                    expected={"minimum_event_count_spread": minimum_event_count_spread},
-                )
-            )
-        for previous_value, current_value in zip(
-            predicted_risks[:-1], predicted_risks[1:], strict=True
-        ):
-            if current_value + 1e-12 >= previous_value:
+        for group_key, group in grouped_summaries.items():
+            predicted_risks = group["predicted_risks"]
+            observed_risks = group["observed_risks"]
+            event_counts = group["event_counts"]
+            if len(predicted_risks) < 2:
                 continue
-            issues.append(
-                _issue(
-                    rule_id="predicted_risk_order_not_monotonic",
-                    message="predicted risk must remain monotonic non-decreasing across ordered risk groups",
-                    target="metrics.risk_group_summaries",
-                    observed={"predicted_risks": predicted_risks},
+            target = _risk_group_summary_target(group_key)
+            observed_spread = max(observed_risks) - min(observed_risks)
+            predicted_spread = max(predicted_risks) - min(predicted_risks)
+            event_count_spread = max(event_counts) - min(event_counts)
+            if observed_spread < minimum_observed_risk_spread:
+                issues.append(
+                    _issue(
+                        rule_id="observed_risk_spread_not_readable",
+                        message="observed risk spread is too compressed to support manuscript-facing stratification",
+                        target=target,
+                        observed={"observed_risk_spread": observed_spread},
+                        expected={"minimum_observed_risk_spread": minimum_observed_risk_spread},
+                    )
                 )
-            )
-            break
-        for previous_value, current_value in zip(
-            observed_risks[:-1], observed_risks[1:], strict=True
-        ):
-            if current_value + 1e-12 >= previous_value:
-                continue
-            issues.append(
-                _issue(
-                    rule_id="observed_risk_order_not_monotonic",
-                    message="observed risk must remain monotonic non-decreasing across ordered risk groups",
-                    target="metrics.risk_group_summaries",
-                    observed={"observed_risks": observed_risks},
+            if predicted_spread < minimum_predicted_risk_spread:
+                issues.append(
+                    _issue(
+                        rule_id="predicted_risk_spread_not_readable",
+                        message="predicted risk spread is too compressed to support manuscript-facing stratification",
+                        target=target,
+                        observed={"predicted_risk_spread": predicted_spread},
+                        expected={"minimum_predicted_risk_spread": minimum_predicted_risk_spread},
+                    )
                 )
-            )
-            break
-        for previous_value, current_value in zip(
-            event_counts[:-1], event_counts[1:], strict=True
-        ):
-            if current_value + 1e-12 >= previous_value:
-                continue
-            issues.append(
-                _issue(
-                    rule_id="event_count_order_not_monotonic",
-                    message="event counts must remain monotonic non-decreasing across ordered risk groups",
-                    target="metrics.risk_group_summaries",
-                    observed={"event_counts": event_counts},
+            if event_count_spread < minimum_event_count_spread:
+                issues.append(
+                    _issue(
+                        rule_id="event_count_spread_not_readable",
+                        message="event-count spread is too compressed to support manuscript-facing stratification",
+                        target=target,
+                        observed={"event_count_spread": event_count_spread},
+                        expected={"minimum_event_count_spread": minimum_event_count_spread},
+                    )
                 )
-            )
-            break
+            if not _is_non_decreasing(predicted_risks):
+                issues.append(
+                    _issue(
+                        rule_id="predicted_risk_order_not_monotonic",
+                        message="predicted risk must remain monotonic non-decreasing across ordered risk groups",
+                        target=target,
+                        observed={"predicted_risks": predicted_risks},
+                    )
+                )
+            if not _is_non_decreasing(observed_risks):
+                issues.append(
+                    _issue(
+                        rule_id="observed_risk_order_not_monotonic",
+                        message="observed risk must remain monotonic non-decreasing across ordered risk groups",
+                        target=target,
+                        observed={"observed_risks": observed_risks},
+                    )
+                )
+            if not _is_non_decreasing(event_counts):
+                issues.append(
+                    _issue(
+                        rule_id="event_count_order_not_monotonic",
+                        message="event counts must remain monotonic non-decreasing across ordered risk groups",
+                        target=target,
+                        observed={"event_counts": event_counts},
+                    )
+                )
 
     return issues
 

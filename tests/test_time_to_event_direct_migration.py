@@ -852,6 +852,14 @@ def test_run_time_to_event_direct_migration_materializes_current_transportabilit
         "China Q4 high",
         "NHANES Q1 low",
     ]
+    assert [item["cohort_id"] for item in f3["displays"][0]["risk_group_summaries"]] == [
+        "china",
+        "china",
+        "china",
+        "china",
+        "nhanes",
+    ]
+    assert f3["displays"][0]["risk_group_summaries"][-1]["risk_group_label"] == "Q1_low"
     assert f5["input_schema_id"] == "center_transportability_governance_summary_panel_inputs_v1"
     assert f5["displays"][0]["display_id"] == "transportability_governance"
     assert f5["displays"][0]["centers"][1]["center_label"] == "NHANES"
