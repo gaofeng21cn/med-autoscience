@@ -76,7 +76,8 @@ def recover_transport_model_provenance_or_typed_blocker(
         "execution_status": "executed",
         "blocked_reason": None,
         "owner_callable_surface": CALLABLE_SURFACE,
-        "next_owner": OWNER,
+        "next_owner": _text(payload.get("next_owner")) or OWNER,
+        "next_work_unit": _text(payload.get("next_work_unit")) or WORK_UNIT,
         "owner_result": payload,
         "result_path": str(result_path),
         "required_output_surface": str(result_path),
@@ -101,6 +102,15 @@ def _build_owner_result(
     )
     accepted_bundle_ref = provenance_search["accepted_bundle_ref"]
     recovered = accepted_bundle_ref is not None
+    terminal_blocker = not recovered and provenance_search.get("searched") is True and "accepted_bundle_ref" in provenance_search
+    next_owner = "analysis_harmonization_owner" if recovered else "decision" if terminal_blocker else OWNER
+    next_work_unit = (
+        "unit_harmonized_external_validation_rerun"
+        if recovered
+        else "methodology_reframe_route_decision"
+        if terminal_blocker
+        else WORK_UNIT
+    )
     return {
         "surface": "source_provenance_owner_result",
         "schema_version": 1,
@@ -110,6 +120,7 @@ def _build_owner_result(
         "work_unit": WORK_UNIT,
         "status": "completed" if recovered else "blocked",
         "blocked_reason": None if recovered else BLOCKED_REASON,
+        "source_blocked_reason": None if recovered else BLOCKED_REASON,
         "typed_blocker_owner": None if recovered else OWNER,
         "typed_blocker": None if recovered else _typed_blocker(assessment=assessment),
         "transport_model_provenance_recovered": recovered,
@@ -136,8 +147,10 @@ def _build_owner_result(
             "request_kind": _text(request.get("request_kind")) or WORK_UNIT,
         },
         "result_ref": str(result_path),
-        "next_owner": "analysis_harmonization_owner" if recovered else OWNER,
-        "next_work_unit": "unit_harmonized_external_validation_rerun" if recovered else WORK_UNIT,
+        "next_owner": next_owner,
+        "next_work_unit": next_work_unit,
+        "terminal_source_provenance_blocker": terminal_blocker,
+        "current_transport_claim_must_not_be_used_as_medical_conclusion": terminal_blocker,
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,

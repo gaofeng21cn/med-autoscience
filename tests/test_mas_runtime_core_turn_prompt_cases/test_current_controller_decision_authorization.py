@@ -514,6 +514,93 @@ def test_codex_exec_runner_prefers_blocked_closeout_owner_handoff_over_stale_con
     assert authorization["next_work_unit"]["unit_id"] == "recover_transport_model_provenance"
 
 
+def test_codex_exec_runner_uses_methodology_reframe_owner_handoff_authorization(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    workspace_root = tmp_path / "workspace"
+    quest_id = "002-dm"
+    quest_root = workspace_root / "runtime" / "quests" / quest_id
+    runtime_root = workspace_root / "runtime"
+    study_root = workspace_root / "studies" / quest_id
+    _write_workspace_python(quest_root)
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {quest_id}\n", encoding="utf-8")
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        json.dumps(
+            {
+                "status": "running",
+                "quest_id": quest_id,
+                "active_run_id": None,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "runtime_platform_repair_redrive",
+                "last_explicit_user_wakeup": {
+                    "source": "user_explicit_wakeup",
+                    "recorded_at": "2026-05-20T20:59:24+00:00",
+                    "cleared_keys": ["blocked_turn_closeout", "retry_state"],
+                    "cleared_wait_owner": "decision",
+                    "previous_continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+                    "owner_handoff_authorization": {
+                        "authorization_basis": "blocked_turn_closeout_owner_handoff",
+                        "blocked_reason": "methodology_reframe_required",
+                        "source_blocked_reason": "transport_model_provenance_recovery_required",
+                        "controller_actions": ["methodology_reframe_route_decision"],
+                        "next_owner": "decision",
+                        "work_unit_id": "methodology_reframe_route_decision",
+                        "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+                        "next_work_unit": {
+                            "unit_id": "methodology_reframe_route_decision",
+                            "lane": "analysis-campaign",
+                            "owner": "decision",
+                        },
+                        "owner_callable_surface": "decision_owner.methodology_reframe_route_decision",
+                    },
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id="run-methodology-reframe",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    authorization = runtime_state["current_controller_authorization"]
+
+    assert '"authorization_basis": "blocked_turn_closeout_owner_handoff"' in prompt
+    assert "methodology_reframe_route_decision" in prompt
+    assert "decision.methodology_reframe_route_decision" in prompt
+    assert "--action-types methodology_reframe_route_decision" in prompt
+    assert "recover_transport_model_provenance" not in prompt
+    assert "Do not route back to `source_provenance_owner`" in prompt
+    assert authorization["authorization_basis"] == "blocked_turn_closeout_owner_handoff"
+    assert authorization["active_run_id"] == "run-methodology-reframe"
+    assert authorization["controller_actions"] == ["methodology_reframe_route_decision"]
+    assert authorization["work_unit_id"] == "methodology_reframe_route_decision"
+    assert authorization["next_owner"] == "decision"
+    assert authorization["next_work_unit"]["unit_id"] == "methodology_reframe_route_decision"
+
+
 def test_codex_exec_runner_preserves_hard_methodology_route_fields_from_controller_decision(
     monkeypatch,
     tmp_path: Path,

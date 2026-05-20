@@ -258,6 +258,8 @@ def _runtime_authorized_owner_for_action(action_type: str) -> str:
         return "analysis_harmonization_owner"
     if action_type == "recover_transport_model_provenance":
         return "source_provenance_owner"
+    if action_type == "methodology_reframe_route_decision":
+        return "decision"
     if action_type == "provenance_limited_harmonization_audit":
         return "provenance_limited_harmonization_owner"
     if action_type in {"current_package_freshness_required", "artifact_display_surface_materialization_required"}:

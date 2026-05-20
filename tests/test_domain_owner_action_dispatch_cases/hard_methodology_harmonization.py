@@ -348,6 +348,11 @@ def test_execute_dispatch_hands_model_provenance_route_to_source_owner(
     assert execution["owner_result"]["blocked_reason"] == "transport_model_provenance_recovery_required"
     assert execution["owner_result"]["typed_blocker_owner"] == "source_provenance_owner"
     assert execution["owner_result"]["work_unit"] == "recover_transport_model_provenance"
+    assert execution["owner_result"]["next_owner"] == "decision"
+    assert execution["owner_result"]["next_work_unit"] == "methodology_reframe_route_decision"
+    assert execution["owner_result"]["terminal_source_provenance_blocker"] is True
+    assert execution["next_owner"] == "decision"
+    assert execution["next_work_unit"] == "methodology_reframe_route_decision"
     assert execution["owner_result"]["paper_package_mutation_allowed"] is False
     assert execution["owner_result"]["quality_gate_relaxation_allowed"] is False
     assert execution["owner_result"]["medical_claim_authoring_allowed"] is False
@@ -368,6 +373,9 @@ def test_execute_dispatch_hands_model_provenance_route_to_source_owner(
     assert owner_result["request_ref"]["path"] == str(request_path)
     assert owner_result["typed_blocker"]["blocker_id"] == "transport_model_provenance_recovery_required"
     assert owner_result["transport_model_provenance_recovered"] is False
+    assert owner_result["next_owner"] == "decision"
+    assert owner_result["next_work_unit"] == "methodology_reframe_route_decision"
+    assert owner_result["terminal_source_provenance_blocker"] is True
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()

@@ -110,6 +110,21 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         source_fingerprint_scope="analysis_harmonization_owner_result.blocking_owner_route",
     ),
     OwnerCallable(
+        owner="decision",
+        action_type="methodology_reframe_route_decision",
+        callable_surface="decision_owner.methodology_reframe_route_decision",
+        required_inputs=(
+            "artifacts/controller/source_provenance/latest.json",
+            "artifacts/controller/analysis_harmonization/latest.json",
+            "artifacts/controller_decisions/latest.json",
+        ),
+        required_outputs=("artifacts/controller_decisions/latest.json",),
+        artifact_delta_predicate="methodology_reframe_route_decision_written",
+        gate_replay_target=None,
+        idempotency_scope="methodology_reframe_work_unit",
+        source_fingerprint_scope="source_provenance_owner_result.terminal_blocker",
+    ),
+    OwnerCallable(
         owner="provenance_limited_harmonization_owner",
         action_type="provenance_limited_harmonization_audit",
         callable_surface="provenance_limited_harmonization_owner.provenance_limited_harmonization_audit_or_typed_blocker",
