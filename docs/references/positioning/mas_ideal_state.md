@@ -4,7 +4,7 @@ Owner: `MedAutoScience`
 Purpose: `north_star_reference`
 State: `active_support`
 Machine boundary: 本文是人读目标态参考。机器可读真相继续归 `contracts/`、源码、CLI/MCP/API 行为、product-entry manifest、sidecar receipt、runtime/controller durable surfaces、真实 workspace 与 generated artifact proof。
-Date: `2026-05-19`
+Date: `2026-05-21`
 
 ## 文档读法
 
@@ -26,6 +26,8 @@ MAS 不应长期维护一套独立 agent runtime platform。通用 scheduler、q
 Direct MAS app skill path 仍是一等入口。经 direct path 或 OPL-hosted path 调用时，都必须回到同一套 MAS-owned stage、controller、ledger、review、quality gate、domain transition table、publication-route memory 和 artifact surface。
 
 MAS 的理想物理源码形态也必须表达这个边界。`agent/` 是医学研究语义包；`contracts/` 是机器合同和 OPL handoff；`runtime/authority_functions/`、`src/med_autoscience/**` 或测试夹具中长期保留的程序面只能是 medical authority function、domain handler、refs-only adapter、native helper、diagnostic probe 或 fixture。`supervisor`、`supervision_scheduler`、`runtime_supervisor_*`、`runtime_transport`、`worker lease`、`turn runner`、`runtime_lifecycle_store.py` 这类名称不能长期让源码读者误以为 MAS 拥有 generic runtime / queue / scheduler / worker residency / persistence engine。当前若这些文件仍存在，理想处理是 rename、split、delete、archive 或 tombstone 到医学语义角色：domain route projection、owner action request、authority receipt dispatch、typed blocker reconcile、lifecycle refs adapter 或 diagnostic provenance。
+
+`analysis_harmonization_owner`、`source_provenance_owner`、`provenance_limited_harmonization_owner` 等 hard-methodology callable 是 MAS 可长期保留的 medical authority functions。它们的存在是为了产出医学方法学 evidence、owner receipt 或 typed blocker，不能被包装成 MAS 私有 generic runner、queue、attempt ledger、state-machine engine 或 App route；OPL 只负责 provider、queue、attempt、generic runner、projection 和 workbench shell。
 
 ## 长期 Owner 边界
 
@@ -106,7 +108,7 @@ MAS 达到生产级目标态时，应满足：
 - `mas_runtime_core`、runtime supervisor、turn runner、worker lease 与 runtime lifecycle SQLite 的长期角色必须是 `runtime_backend_is_generic_owner=false` 的 domain adapter / owner receipt / typed blocker / refs-only sidecar / diagnostic surface。它们不能重新声明 MAS-owned generic runtime、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 或 workbench owner。
 - runtime-guard stage descriptor 明确声明 machine-readable `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs`，OPL proof bundle / admission 能把 route decision、baseline/evidence readiness、analysis evidence closure、draft reviewability、AI reviewer gate receipt、publication handoff 和 replay/audit event refs 读成可组合合同，而不是只靠人读 stage 文案。
 - stage descriptor 明确声明 source scope、cohort query、OPL queue trigger、monitor 和 dashboard metric refs，OPL `stages cohort-loop` 能把每个 stage 读成 closed-loop ready；这只证明 launch/readiness 声明闭合，不替代真实 provider attempt、paper-line owner receipt 或 memory/artifact apply evidence。
-- OPL App/operator 能把 stage expected receipt / monitor freshness 缺口转成 refs-only `stage_production_evidence_receipt_record|verify` route，并提供 payload workorder / preflight；OPL production closeout 能把这些 open workorder 按 domain/stage 聚合成 `stage_evidence_workorder_packet` 供审计。MAS 只提供真实 owner receipt instance、typed blocker、no-regression、memory/artifact/human gate 或 long-soak refs，不维护私有 stage evidence ledger 或通用 App route，不把声明型占位 ref、OPL ledger receipt ref、workorder packet 或 body payload 当作成功证据。
+- OPL App/operator 能把 stage expected receipt / monitor freshness 缺口转成 refs-only `stage_production_evidence_receipt_record|verify` route，并提供 payload workorder / preflight；OPL production closeout 能在缺口出现时把 missing workorder 按 domain/stage 聚合成 `stage_evidence_workorder_packet` 供审计。MAS 只提供真实 owner receipt instance、typed blocker、no-regression、memory/artifact/human gate 或 long-soak refs，不维护私有 stage evidence ledger 或通用 App route，不把声明型占位 ref、OPL ledger receipt ref、workorder packet 或 body payload 当作成功证据。
 - 每个 stage 都应能被 Codex CLI default executor 直接启动：stage descriptor 必须投影 `codex_cli_launch_packet`，包含 prompt refs、skill/tool refs、knowledge refs、quality gate refs、expected receipt refs、forbidden authority 与 `executor_requirements=Codex CLI`。该 packet 只给执行器搭台、声明边界和证据义务，不用脚本替代医学判断、AI reviewer/auditor gate、publication verdict、artifact authority 或 source readiness。
 - Pack compiler input 只能用 `canonical_semantic_pack_root="agent/"` 和 `canonical_semantic_pack_role` 表达 canonical semantic pack；旧 `canonical_repo_source_semantic_pack_root` / `domain_pack_root` / `canonical_repo_source_semantic_pack` 不再作为机器接口。`required_domain_pack_paths` 只列真实语义文件，不能把 `agent/README.md` 这类人读入口当作 required semantic pack path。
 - `runtime_lifecycle_sqlite_reference_adapter`、`runtime_storage_maintenance` 和 `terminal_attach_transport` 若仍在源码中存在，长期角色只能是 refs / receipts / blockers / provenance adapter：它们不得输出 generic runtime verdict、generic cleanup policy、generic terminal owner、paper closure verdict 或 MAS-owned lifecycle/persistence/workbench owner claim。

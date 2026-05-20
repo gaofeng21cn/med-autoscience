@@ -4,7 +4,7 @@ Owner: `MedAutoScience`
 Purpose: `ideal_state_gap_plan`
 State: `active_plan`
 Machine boundary: 本文是人读 gap / completion plan。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、product-entry manifest、sidecar receipt、runtime/controller durable surfaces、真实 workspace 与 generated artifact proof。
-Date: `2026-05-20`
+Date: `2026-05-21`
 
 ## 文档读法
 
@@ -60,11 +60,13 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 2026-05-19 的 MAS stage cohort-loop refs 已补齐：每个 stage 的 `stage_contract` 都提供 source scope、auditable cohort query、OPL queue trigger、stage/runtime monitor 和 operator dashboard freshness metric refs。OPL isolated verification 读取当前 MAS main 后，`opl stages cohort-loop --domain mas` 返回 `stage_count=6`、`closed_loop_ready_count=6`、`blocker_count=0`。这关闭的是声明式 launch/readiness 闭环结构 gap；真实 paper-line provider launch、consumed refs、owner receipt、memory/artifact apply、human gate/resume 和 long-soak 仍在测试/证据差距中。
 
-2026-05-20 OPL 已把 stage production expected receipt / monitor freshness 的 unobserved 缺口变成 `stage_production_evidence_receipt_record|verify` safe action route，并在 App/operator route 中提供空 `payload_template`、`payload_ref_hints`、机器可审计 `payload_workorder` 与 record 前 preflight。`family-runtime production-closeout --family-defaults --provider temporal --executor-kind codex_cli --detail full --json` 现在还会输出 `stage_evidence_workorder_packet`，把 MAS/MAG/RCA 的 open workorder 按 domain/stage 聚合，便于 operator 审计 action id、payload owner、required refs、typed-blocker path 和 authority boundary。该能力属于 OPL App/operator evidence transport 和 refs-only ledger，不属于 MAS 私有功能面；MAS 的关闭责任是为真实 paper-line stage attempt 提供 owner receipt instance、typed blocker、no-regression evidence、memory/artifact/human gate receipt 或 long-soak refs，并把这些真实 refs 填入 OPL workorder。空 template、`owner_receipt:*` 这类声明型占位 ref、OPL ledger receipt ref、artifact/memory/domain truth body 都不能作为 MAS 成功证据提交。OPL 验证 stage evidence receipt 或输出 closeout workorder packet 只能证明 refs-only roundtrip / workorder projection 可用，不能声明 publication ready、paper closure、artifact mutation authorization 或 `current_package` 更新。
+2026-05-20 OPL 已把 stage production expected receipt / monitor freshness 的 unobserved 缺口变成 `stage_production_evidence_receipt_record|verify` safe action route，并在 App/operator route 中提供空 `payload_template`、`payload_ref_hints`、机器可审计 `payload_workorder` 与 record 前 preflight。`family-runtime production-closeout --family-defaults --provider temporal --executor-kind codex_cli --detail full --json` 可在缺口出现时输出 `stage_evidence_workorder_packet`，把 MAS/MAG/RCA 的 missing workorder 按 domain/stage 聚合，便于 operator 审计 action id、payload owner、required refs、typed-blocker path 和 authority boundary。该能力属于 OPL App/operator evidence transport 和 refs-only ledger，不属于 MAS 私有功能面；MAS 的关闭责任是为真实 paper-line stage attempt 提供 owner receipt instance、typed blocker、no-regression evidence、memory/artifact/human gate receipt 或 long-soak refs，并把这些真实 refs 填入 OPL workorder。空 template、`owner_receipt:*` 这类声明型占位 ref、OPL ledger receipt ref、artifact/memory/domain truth body 都不能作为 MAS 成功证据提交。OPL 验证 stage evidence receipt 或输出 closeout workorder packet 只能证明 refs-only roundtrip / workorder projection 可用，不能声明 publication ready、paper closure、artifact mutation authorization 或 `current_package` 更新。
 
 2026-05-21 MAS 已把 `stage_owned_typed_blocker_handoff` 补入 `contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence/opl_stage_evidence_receipt_handoff`，为 6 个 MAS stage 提供 MAS-owned `mas-stage-typed-blocker:*` refs，语义是 `real_paper_line_owner_receipt_or_live_monitor_freshness_pending`。OPL 已用这些 refs 逐 stage 执行 `stage-production-evidence:medautoscience:<stage>:record|verify`，App/readiness/production closeout 的 MAS stage evidence workorder 不再 open。该状态只关闭 OPL refs-only workorder accounting；真实 paper-line owner receipt、publication quality gate、artifact mutation receipt、memory/human-gate scaleout 和 long-soak 仍需后续 MAS owner chain 证据关闭。
 
 2026-05-21 MAS 又补齐一条 runtime/status 状态转移 focused proof：当 stopped runtime 仍携带当前 `controller_work_unit_pending` authorization 时，`study_runtime_status` 会记录 `controller_work_unit_pending_redrive` interaction arbitration，并返回 `resume / quest_waiting_platform_repair_redrive`；submission metadata-only package 或 synchronized delivery 不能覆盖这个当前 controller work unit。该修复证明 MAS domain runtime/status authority 继续负责医学论文 owner-chain state transition；它不是 OPL generic runner 上收，也不授权脚本判断 publication quality、artifact mutation 或 submission readiness。
+
+2026-05-21 MAS hard-methodology callable routing 已补齐：AI reviewer / controller 可能把 HDL/unit harmonization 问题表达为 `unit_harmonized_validation_uncertainty_and_grouped_calibration`，managed worker authorization 现在将其映射为 `analysis_harmonization_owner`，并通过 `domain-owner-action-dispatch --action-types unit_harmonized_external_validation_rerun --managed-runtime-worker` 调用 `analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`。该 callable 只能产出 unit-harmonized rerun evidence 或 MAS-owned typed blocker，并把 hard-methodology route 留在 MAS 医学方法学 authority boundary；OPL 仍只提供 provider、queue、attempt、generic transition runner、projection 和 App/workbench shell。该修复不写 paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 submission readiness，也不把 MAS owner callable 扩张成通用 runtime/control-plane owner。
 
 2026-05-19 的标准 pack 合同校准把 MAS `pack_compiler_input` 收到 OPL scaffold 的 canonical 形状：`canonical_semantic_pack_root="agent/"`、`canonical_semantic_pack_role="declarative_medical_research_semantics_for_opl_pack_compiler"`，不再暴露旧 `canonical_repo_source_semantic_pack_root`。`required_domain_pack_paths` 必须只指向真实 agent pack 语义文件，不能通过 README 或目录存在性替代 prompts / stages / skills / quality gates / knowledge 文件。
 
@@ -101,7 +103,7 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 2026-05-21 的 family transition materialization handoff 已落地：MAS `family_action_catalog` 新增 read-only `study_state_matrix` action，并同步到 product-entry shell、CLI/Skill descriptor 和 descriptor-only MCP projection。OPL 可以通过该 action 按 `family_transition_spec_descriptor.locator_refs` 物化 MAS-owned `family_transition_spec` 与 `family_transition_matrix_cases`，再用 OPL generic `family-transition-runner` 执行 matrix。MAS 只持有医学 domain transition table / read model / owner route 语义，不持有 generic state-machine runner；该 action 不写 study truth、不执行 domain action、不授权 publication quality、artifact authority 或 submission readiness。
 
-以下 6 项已作为功能/结构 closure gate 关闭：
+以下 7 项已作为功能/结构 closure gate 关闭：
 
 1. `generated_surface_active_caller_cutover`
    OPL generated / hosted CLI、MCP、Skill、product-entry、sidecar、status、workbench 和 projection descriptor 已 ready，并以 active-caller target proof 路由到 OPL generated surface 或 MAS domain handler target。MAS hand-written shell 只能继续作为 direct domain entry、domain handler、owner receipt signer、AI-first output validator、diagnostic cleanup 或 fixture/provenance。
@@ -121,6 +123,9 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 6. `family_transition_materialization_handoff`
    `study_state_matrix` 是 MAS-owned domain transition read model materializer，供 OPL 消费 spec/cases 并执行 generic matrix runner。MAS 不复制 OPL state-machine runner、queue、attempt ledger 或 route executor；matrix evaluated 只说明状态转移 spec/cases 可被 OPL runner 消费，不等于 paper-line owner receipt、publication quality、artifact mutation或 submission readiness。
+
+7. `hard_methodology_callable_routing`
+   `unit_harmonized_validation_uncertainty_and_grouped_calibration` 已被 mapped 到 `analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`。MAS 保留的是医学方法学 owner callable、evidence materialization 和 typed blocker authority；generic runtime、runner、queue、attempt ledger 与 App route 仍归 OPL。
 
 ## 当前物理源码形态差距
 
