@@ -9,7 +9,7 @@ def render_automation_ready_block() -> str:
         "",
         "Automation-ready signals include:",
         "- startup boundary has passed",
-        "- runtime backend is `mas_runtime_core` / `mas-runtime-core` or another registered MAS managed backend",
+        "- runtime backend is the registered OPL provider-backed stage runtime or an explicit registered MAS diagnostic backend",
         "- managed entry is enabled",
         "- `decision_policy` is `autonomous`",
         "- auto-resume is enabled for resumable quest states",

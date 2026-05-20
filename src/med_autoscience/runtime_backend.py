@@ -6,7 +6,8 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, Protocol
 
-DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "mas_runtime_core"
+DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "opl_provider_backed_stage_runtime"
+MAS_DOMAIN_RUNTIME_ADAPTER_BACKEND_ID = "mas_runtime_core"
 MAS_RUNTIME_OWNER = "one-person-lab"
 MAS_RUNTIME_SUBSTRATE = "opl_provider_backed_stage_runtime"
 MAS_DOMAIN_RUNTIME_ADAPTER_ROLE = "mas_domain_owner_receipt_adapter"
@@ -470,7 +471,15 @@ def runtime_backend_default_operation_contract(backend_id: str) -> dict[str, obj
         "runtime_engine_id": runtime_engine_id,
         "runtime_backend_role": MAS_DOMAIN_RUNTIME_ADAPTER_ROLE,
         "runtime_backend_is_generic_owner": False,
-        "domain_runtime_adapter_id": runtime_backend_id,
+        "default_runtime_backend_is_opl_provider_owned": runtime_backend_id == DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+        "delegated_domain_adapter_id": _non_empty_text(getattr(backend, "DELEGATED_DOMAIN_ADAPTER_ID", None)),
+        "delegated_domain_adapter_engine_id": _non_empty_text(
+            getattr(backend, "DELEGATED_DOMAIN_ADAPTER_ENGINE_ID", None)
+        ),
+        "domain_runtime_adapter_id": (
+            _non_empty_text(getattr(backend, "DELEGATED_DOMAIN_ADAPTER_ID", None))
+            or runtime_backend_id
+        ),
         "domain_runtime_adapter_role": MAS_DOMAIN_RUNTIME_ADAPTER_ROLE,
         "generic_runtime_owner": MAS_RUNTIME_OWNER,
         "generic_runtime_substrate": MAS_RUNTIME_SUBSTRATE,
@@ -497,6 +506,12 @@ def runtime_backend_default_operation_contract(backend_id: str) -> dict[str, obj
         "external_mds_allowed_uses": list(EXTERNAL_MDS_ALLOWED_USES),
     }
 
+
+register_lazy_managed_runtime_backend(
+    backend_id="opl_provider_backed_stage_runtime",
+    engine_id="opl-provider-backed-stage-runtime",
+    loader=lambda: import_module("med_autoscience.runtime_transport.opl_provider_backed_stage_runtime"),
+)
 
 register_lazy_managed_runtime_backend(
     backend_id="mas_runtime_core",

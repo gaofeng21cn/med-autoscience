@@ -8,10 +8,18 @@
 
 - `runtime_owner = one-person-lab`
 - `runtime_substrate = opl_provider_backed_stage_runtime`
-- `runtime_backend_id = mas_runtime_core`
-- `runtime_engine_id = mas-runtime-core`
-- `runtime_backend_role = mas_domain_owner_receipt_adapter`
+- `runtime_backend_id = opl_provider_backed_stage_runtime`
+- `runtime_engine_id = opl-provider-backed-stage-runtime`
+- `runtime_backend_role = opl_provider_default_runtime_with_mas_domain_adapter`
 - `runtime_backend_is_generic_owner = false`
+- `default_runtime_backend_is_opl_provider_owned = true`
+
+当前 delegated MAS domain adapter identity 是：
+
+- `delegated_domain_adapter_id = mas_runtime_core`
+- `delegated_domain_adapter_engine_id = mas-runtime-core`
+- `domain_runtime_adapter_id = mas_runtime_core`
+- `domain_runtime_adapter_role = mas_domain_owner_receipt_adapter`
 
 当前 research backend identity 是：
 
@@ -34,7 +42,8 @@
 2. `execution.runtime_backend`
 3. 对 `auto_entry == on_managed_research_intent` 的历史 managed execution：
    - 若 legacy `execution.engine` 指向 `med_deepscientist` 或为空
-   - controller 先把 execution 归一化到 `mas_runtime_core`
+   - controller 先把 execution 归一化到 profile 默认 backend；当前默认是 `opl_provider_backed_stage_runtime`
+   - controlled research metadata 仍解析到 `mas_runtime_core`
 4. 其余场景再使用 `execution.engine` 映射到已注册 backend
 
 fail-closed 规则：
@@ -68,6 +77,8 @@ managed runtime backend 必须显式暴露：
 
 - `CONTROLLED_RESEARCH_BACKEND_ID`
 - `CONTROLLED_RESEARCH_ENGINE_ID`
+- `DELEGATED_DOMAIN_ADAPTER_ID`
+- `DELEGATED_DOMAIN_ADAPTER_ENGINE_ID`
 
 `MedAutoScience` controller 只能通过这层 contract 调 backend，不得再直接依赖 backend-specific module name 作为控制逻辑判断条件。
 

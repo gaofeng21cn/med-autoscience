@@ -23,7 +23,7 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     if name not in __all__:
         raise AttributeError(name)
-    module = import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    module = import_module("med_autoscience.runtime_transport.opl_provider_backed_stage_runtime")
     value = getattr(module, name)
     globals()[name] = value
     return value

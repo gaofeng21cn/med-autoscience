@@ -483,9 +483,10 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-audit --profile pro
 
 ### 当前 `Hermes` 名义与宿主安装的关系
 
-`med_autoscience.runtime_transport.hermes` 当前只能按 explicit executor/proof diagnostic target 或 historical compatibility reference 理解。默认 MAS operation 走 `mas_runtime_core`，也就是说：
+`med_autoscience.runtime_transport.hermes` 当前只能按 explicit executor/proof diagnostic target 或 historical compatibility reference 理解。默认 MAS operation 走 OPL provider-backed stage runtime，并 delegated 到 `mas_runtime_core` 作为 MAS domain adapter，也就是说：
 
-- 本仓默认写出 `runtime_backend_id = mas_runtime_core` / `runtime_engine_id = mas-runtime-core`
+- 本仓默认写出 `runtime_backend_id = opl_provider_backed_stage_runtime` / `runtime_engine_id = opl-provider-backed-stage-runtime`
+- controlled research / delegated adapter metadata 继续写出 `research_backend_id = mas_runtime_core` / `delegated_domain_adapter_id = mas_runtime_core`
 - `Hermes gateway cron` 只负责 legacy scheduler diagnostic cleanup 语义：job registry、cadence、latest cron session、gateway liveness projection 和旧 job/script removal；不调用新的 MAS tick script，不持有 study truth、runtime authority、session truth 或 publication authority
 - explicit hosted Hermes / `hermes_agent` proof target 必须通过 runtime backend contract、readiness proof 和 fail-closed gate 显式接入；它不得成为 default provider 或 MAS runtime truth
 - MDS 只保留 frozen source archive、historical fixture、explicit archive import / provenance reference 和 read-only backend audit；runnable `runtime_transport/med_deepscientist.py` 已退役，不参与默认 watch/status/execute/recovery
@@ -518,7 +519,7 @@ Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析
 Phase 3 开始，transport 面也开始显式收口：
 
 - `med_autoscience.runtime_transport.mas_runtime_core`
-  - 负责默认 MAS-owned backend contract
+  - 负责 MAS domain adapter backend contract
   - 负责本地 runtime state、event、session/liveness projection、quest lifecycle control 和 artifact handoff
 - `med_autoscience.runtime_transport.hermes`
   - 只负责 explicit hosted/proof diagnostic target 或 compatibility reference
@@ -547,10 +548,10 @@ production code 只允许依赖 `runtime_protocol` / `runtime_transport` 的 bac
    - 这是 filesystem-facing truth
 4. `runtime_transport`
   - 只负责 substrate / backend transport
-  - 默认由 `mas_runtime_core` 持有；`hermes` 和 `med_deepscientist` 只服务显式 hosted/diagnostic/reference 场景
+  - 默认由 OPL provider-backed stage runtime 持有；`mas_runtime_core` 只服务 delegated MAS domain adapter / diagnostic 场景，`hermes` 和 `med_deepscientist` 只服务显式 hosted/diagnostic/reference 场景
   - 这是 process/network-facing truth
 5. `engine`
-  - 当前默认 engine 是 MAS-owned runtime core
+  - 当前默认 engine 是 OPL provider-backed stage runtime；MAS runtime core 只承担 delegated domain adapter / diagnostic engine
   - 旧 MDS daemon / UI / connector / team 行为只作为 historical fixture 或 explicit archive import reference
 
 对应关系应是单向的：

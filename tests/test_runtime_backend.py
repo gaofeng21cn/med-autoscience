@@ -271,14 +271,16 @@ class _BackendStub:
         }
 
 
-def test_default_managed_runtime_backend_registry_exposes_mas_runtime_core_without_runnable_mds() -> None:
+def test_default_managed_runtime_backend_registry_exposes_opl_provider_backed_stage_runtime_without_runnable_mds() -> None:
     module = importlib.import_module("med_autoscience.runtime_backend")
 
     backend = module.get_managed_runtime_backend(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
 
-    assert module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID == "mas_runtime_core"
-    assert backend.BACKEND_ID == "mas_runtime_core"
-    assert backend.ENGINE_ID == "mas-runtime-core"
+    assert module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID == "opl_provider_backed_stage_runtime"
+    assert backend.BACKEND_ID == "opl_provider_backed_stage_runtime"
+    assert backend.ENGINE_ID == "opl-provider-backed-stage-runtime"
+    assert backend.DELEGATED_DOMAIN_ADAPTER_ID == "mas_runtime_core"
+    assert backend.DELEGATED_DOMAIN_ADAPTER_ENGINE_ID == "mas-runtime-core"
     assert "med_deepscientist" not in module.registered_managed_runtime_backend_ids()
     assert module.try_get_managed_runtime_backend("med_deepscientist") is None
     assert module.try_get_managed_runtime_backend("hermes") is None
@@ -303,10 +305,13 @@ def test_default_runtime_backend_contract_makes_external_mds_archive_only() -> N
 
     assert contract["runtime_owner"] == "one-person-lab"
     assert contract["runtime_substrate"] == "opl_provider_backed_stage_runtime"
-    assert contract["runtime_backend_id"] == "mas_runtime_core"
-    assert contract["runtime_engine_id"] == "mas-runtime-core"
+    assert contract["runtime_backend_id"] == "opl_provider_backed_stage_runtime"
+    assert contract["runtime_engine_id"] == "opl-provider-backed-stage-runtime"
     assert contract["runtime_backend_role"] == "mas_domain_owner_receipt_adapter"
     assert contract["runtime_backend_is_generic_owner"] is False
+    assert contract["default_runtime_backend_is_opl_provider_owned"] is True
+    assert contract["delegated_domain_adapter_id"] == "mas_runtime_core"
+    assert contract["delegated_domain_adapter_engine_id"] == "mas-runtime-core"
     assert contract["domain_runtime_adapter_id"] == "mas_runtime_core"
     assert contract["domain_runtime_adapter_role"] == "mas_domain_owner_receipt_adapter"
     assert contract["generic_runtime_owner"] == "one-person-lab"

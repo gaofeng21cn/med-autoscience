@@ -299,7 +299,7 @@ wrapper 不应继续硬编码：
 - `runtime_root`
   - 当前 workspace 中 managed runtime quests 根目录；新 workspace 默认是 `runtime/quests`，旧 `ops/med-deepscientist/runtime/quests` 只作为 legacy diagnostic / restore reference
 - `managed_runtime_backend_id`
-  - 当前默认固定为 `mas_runtime_core`
+  - 当前默认固定为 `opl_provider_backed_stage_runtime`；`mas_runtime_core` 只是 delegated MAS domain adapter / diagnostic backend
 - `med_deepscientist_runtime_root`
   - 旧 workspace 中 `MedDeepScientist` 项目状态根目录；新 workspace 不把它作为默认 active runtime root
 - `med_deepscientist_repo_root`
@@ -314,7 +314,7 @@ wrapper 不应继续硬编码：
 - `ops/mas/config.env`
   - 显式指定 MAS runtime / supervision 配置；旧 `ops/med-deepscientist/config.env` 只作为 legacy diagnostic / restore reference
 
-当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `legacy_diagnostic.read_only` 下暴露它。它主要为 `backend-upgrade-check`、upstream intake、parity oracle 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 已把 `managed_runtime_backend_id=mas_runtime_core` 固定为默认 runtime owner / substrate；默认 scheduler owner 已迁到 OPL replacement，显式 local scheduler 只保留 tombstone/provenance refs，Hermes gateway cron 只承担旧 job/script/session/gateway 读取和 cleanup。MAS 默认 study/status/progress/cockpit 路径不依赖外部 `med-deepscientist` checkout。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这只说明 optional audit/oracle/intake reference 身份已受控，不说明旧 MDS resident daemon 行为已完全等价。新 workspace 必须在 `ops/mas/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`；这些字段只服务 audit-level 合约，不得把外部 MDS 恢复成默认运行依赖。
+当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `legacy_diagnostic.read_only` 下暴露它。它主要为 `backend-upgrade-check`、upstream intake、parity oracle 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 已把 `managed_runtime_backend_id=opl_provider_backed_stage_runtime` 固定为默认 runtime owner / substrate，`mas_runtime_core` 只作为 delegated MAS domain adapter / diagnostic backend；默认 scheduler owner 已迁到 OPL replacement，显式 local scheduler 只保留 tombstone/provenance refs，Hermes gateway cron 只承担旧 job/script/session/gateway 读取和 cleanup。MAS 默认 study/status/progress/cockpit 路径不依赖外部 `med-deepscientist` checkout。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这只说明 optional audit/oracle/intake reference 身份已受控，不说明旧 MDS resident daemon 行为已完全等价。新 workspace 必须在 `ops/mas/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`；这些字段只服务 audit-level 合约，不得把外部 MDS 恢复成默认运行依赖。
 ## 当前实现下的最小可运行 workspace 契约
 
 这份文档描述的是目标架构，但在当前实现里，新 workspace 还不是“只靠 6 个路径字段就能直接启动”的完全抽象状态。

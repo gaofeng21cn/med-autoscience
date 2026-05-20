@@ -115,10 +115,10 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
     assert payload == {
         "schema_version": 1,
-        "engine": "mas-runtime-core",
-        "runtime_backend_id": "mas_runtime_core",
-        "runtime_backend": "mas_runtime_core",
-        "runtime_engine_id": "mas-runtime-core",
+        "engine": "opl-provider-backed-stage-runtime",
+        "runtime_backend_id": "opl_provider_backed_stage_runtime",
+        "runtime_backend": "opl_provider_backed_stage_runtime",
+        "runtime_engine_id": "opl-provider-backed-stage-runtime",
         "research_backend_id": "mas_runtime_core",
         "research_backend": "mas_runtime_core",
         "research_engine_id": "mas-runtime-core",

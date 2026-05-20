@@ -73,7 +73,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
     assert profile.hermes_agent_repo_root == Path("/Users/gaofeng/workspace/_external/hermes-agent")
     assert profile.hermes_home_root == Path.home() / ".hermes"
-    assert profile.managed_runtime_backend_id == "mas_runtime_core"
+    assert profile.managed_runtime_backend_id == "opl_provider_backed_stage_runtime"
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
     assert profile.enable_medical_overlay is True
@@ -148,7 +148,7 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.med_deepscientist_repo_root is None
     assert profile.hermes_agent_repo_root is None
     assert profile.hermes_home_root == Path.home() / ".hermes"
-    assert profile.managed_runtime_backend_id == "mas_runtime_core"
+    assert profile.managed_runtime_backend_id == "opl_provider_backed_stage_runtime"
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "workspace"
     assert profile.medical_overlay_skills == (
@@ -270,10 +270,13 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["runtime_backend_contract"] == {
         "runtime_owner": "one-person-lab",
         "runtime_substrate": "opl_provider_backed_stage_runtime",
-        "runtime_backend_id": "mas_runtime_core",
-        "runtime_engine_id": "mas-runtime-core",
+        "runtime_backend_id": "opl_provider_backed_stage_runtime",
+        "runtime_engine_id": "opl-provider-backed-stage-runtime",
         "runtime_backend_role": "mas_domain_owner_receipt_adapter",
         "runtime_backend_is_generic_owner": False,
+        "default_runtime_backend_is_opl_provider_owned": True,
+        "delegated_domain_adapter_id": "mas_runtime_core",
+        "delegated_domain_adapter_engine_id": "mas-runtime-core",
         "domain_runtime_adapter_id": "mas_runtime_core",
         "domain_runtime_adapter_role": "mas_domain_owner_receipt_adapter",
         "generic_runtime_owner": "one-person-lab",
