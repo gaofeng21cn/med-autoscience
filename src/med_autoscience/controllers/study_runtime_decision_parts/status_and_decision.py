@@ -318,6 +318,8 @@ def _status_state(
                 StudyRuntimeReason.QUEST_ALREADY_COMPLETED,
             )
             return _finalize_result()
+        if _apply_completion_blocked_ai_reviewer_redrive_decision(result, study_root=study_root, publication_gate_report=publication_gate_report):
+            return _finalize_result()
         if publication_gate_report is not None and str(publication_gate_report.get("status") or "").strip() != "clear":
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -353,7 +355,6 @@ def _status_state(
             StudyRuntimeReason.STUDY_COMPLETION_READY,
         )
         return _finalize_result()
-
     if _is_delivered_human_review_milestone_without_live_worker(result, study_root=study_root):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,

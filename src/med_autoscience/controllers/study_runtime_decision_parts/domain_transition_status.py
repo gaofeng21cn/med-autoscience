@@ -131,6 +131,36 @@ def _current_ai_reviewer_domain_redrive_reason(
     return reason
 
 
+def _completion_blocked_ai_reviewer_redrive_reason(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+    publication_gate_report: dict[str, object] | None,
+) -> StudyRuntimeReason | None:
+    if publication_gate_report is None:
+        return None
+    if str(publication_gate_report.get("status") or "").strip() == "clear":
+        return None
+    return _current_ai_reviewer_domain_redrive_reason(status, study_root=study_root)
+
+
+def _apply_completion_blocked_ai_reviewer_redrive_decision(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+    publication_gate_report: dict[str, object] | None,
+) -> bool:
+    reason = _completion_blocked_ai_reviewer_redrive_reason(
+        status,
+        study_root=study_root,
+        publication_gate_report=publication_gate_report,
+    )
+    if reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
+        return False
+    status.set_decision(StudyRuntimeDecision.RESUME, reason)
+    return True
+
+
 def _apply_ai_reviewer_domain_redrive_decision(
     status: StudyRuntimeStatus,
     *,
@@ -193,8 +223,10 @@ def _apply_domain_transition_redrive_decision(
 
 
 __all__ = [
+    "_apply_completion_blocked_ai_reviewer_redrive_decision",
     "_apply_ai_reviewer_domain_redrive_decision",
     "_apply_domain_transition_redrive_decision",
+    "_completion_blocked_ai_reviewer_redrive_reason",
     "_current_ai_reviewer_domain_redrive_reason",
     "_publication_gate_domain_redrive_reason",
     "_has_domain_transition_runtime_redrive",

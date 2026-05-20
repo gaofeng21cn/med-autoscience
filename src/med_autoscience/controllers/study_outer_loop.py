@@ -12,6 +12,7 @@ from med_autoscience.controllers import publication_gate as publication_gate_con
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import quality_repair_batch
+from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.study_outer_loop_parts.decision_refs import (
     _build_study_decision_charter_ref,
     _latest_task_intake_yields_to_verified_fast_lane_closeout,
@@ -131,8 +132,9 @@ def _utc_now() -> str:
 
 
 def _read_closed_publication_gate_recheck_lifecycle(study_root: Path) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
     lifecycle_path = publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(
-        study_root=study_root
+        study_root=resolved_study_root
     )
     try:
         payload = json.loads(lifecycle_path.read_text(encoding="utf-8"))
@@ -148,6 +150,15 @@ def _read_closed_publication_gate_recheck_lifecycle(study_root: Path) -> dict[st
         return None
     work_unit = payload.get("work_unit")
     if isinstance(work_unit, dict) and str(work_unit.get("unit_id") or "").strip() == "publication_gate_recheck":
+        return None
+    publication_eval_entry = _read_latest_publication_eval_payload(study_root=resolved_study_root)
+    publication_eval_payload = publication_eval_entry[1] if publication_eval_entry is not None else {}
+    if story_surface_delta.ai_reviewer_recheck_supersedes_lifecycle(
+        study_root=resolved_study_root,
+        lifecycle=payload,
+        publication_eval=publication_eval_payload,
+        repair_evidence_path=resolved_study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+    ):
         return None
     return payload
 
