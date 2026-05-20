@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import publication_work_unit_lifecycle
+from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.domain_route_scan_parts import platform_current_controller
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
@@ -185,7 +186,11 @@ def _sync_current_controller_authorization_for_turn(
     run_id: str,
 ) -> dict[str, Any]:
     owner_handoff_authorization = _blocked_closeout_owner_handoff_authorization(runtime_state)
-    if owner_handoff_authorization:
+    if owner_handoff_authorization and not _terminal_source_provenance_handoff_is_superseded(
+        authorization=owner_handoff_authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    ):
         updated = dict(runtime_state)
         authorization = _bind_authorization_to_turn(
             authorization=owner_handoff_authorization,
@@ -205,6 +210,13 @@ def _sync_current_controller_authorization_for_turn(
         quest_root=quest_root,
         quest_id=quest_id,
     )
+    if not current_authorization and owner_handoff_authorization:
+        current_authorization = _runtime_state_controller_authorization_after_terminal_source_blocker(
+            runtime_state=runtime_state,
+            owner_handoff_authorization=owner_handoff_authorization,
+            quest_root=quest_root,
+            quest_id=quest_id,
+        )
     if not current_authorization:
         if _current_controller_decision_exists(quest_root=quest_root, quest_id=quest_id):
             updated = dict(runtime_state)
@@ -246,7 +258,11 @@ def _controller_authorization(
     if not isinstance(runtime_state, Mapping):
         return {}
     owner_handoff_authorization = _blocked_closeout_owner_handoff_authorization(runtime_state)
-    if owner_handoff_authorization:
+    if owner_handoff_authorization and not _terminal_source_provenance_handoff_is_superseded(
+        authorization=owner_handoff_authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    ):
         return owner_handoff_authorization
     current_controller_authorization = _current_controller_decision_authorization(
         quest_root=quest_root,
@@ -259,6 +275,15 @@ def _controller_authorization(
             quest_id=quest_id,
         ) is None:
             return current_controller_authorization
+    if owner_handoff_authorization:
+        runtime_authorization = _runtime_state_controller_authorization_after_terminal_source_blocker(
+            runtime_state=runtime_state,
+            owner_handoff_authorization=owner_handoff_authorization,
+            quest_root=quest_root,
+            quest_id=quest_id,
+        )
+        if runtime_authorization:
+            return runtime_authorization
     if _current_controller_decision_exists(quest_root=quest_root, quest_id=quest_id):
         return {}
     for key in ("current_controller_authorization", "last_controller_decision_authorization"):
@@ -284,6 +309,75 @@ def _blocked_closeout_owner_handoff_authorization(runtime_state: Mapping[str, An
     )
 
 
+def _terminal_source_provenance_handoff_is_superseded(
+    *,
+    authorization: Mapping[str, Any],
+    quest_root: Path | None,
+    quest_id: str | None,
+) -> bool:
+    if "recover_transport_model_provenance" not in _controller_action_names(authorization):
+        return False
+    if _text(authorization.get("next_owner")) != "source_provenance_owner":
+        return False
+    if "recover_transport_model_provenance" not in _controller_work_unit_ids(authorization):
+        return False
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
+    if study_root is None:
+        return False
+    result = source_provenance_owner_result.read_result(study_root=study_root)
+    if not source_provenance_owner_result.result_is_accepted_typed_blocker(result):
+        return False
+    return (
+        _text(_mapping(result).get("next_owner")) == source_provenance_owner_result.TERMINAL_ROUTE_NEXT_OWNER
+        and _text(_mapping(result).get("next_work_unit")) == "methodology_reframe_route_decision"
+        and _mapping(result).get("terminal_source_provenance_blocker") is True
+    )
+
+
+def _runtime_state_controller_authorization_after_terminal_source_blocker(
+    *,
+    runtime_state: Mapping[str, Any],
+    owner_handoff_authorization: Mapping[str, Any],
+    quest_root: Path | None,
+    quest_id: str | None,
+) -> dict[str, Any]:
+    if not _terminal_source_provenance_handoff_is_superseded(
+        authorization=owner_handoff_authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    ):
+        return {}
+    for key in ("last_controller_decision_authorization", "current_controller_authorization"):
+        value = runtime_state.get(key)
+        if not isinstance(value, Mapping):
+            continue
+        authorization = dict(value)
+        if (
+            "recover_transport_model_provenance" in _controller_work_unit_ids(authorization)
+            or "recover_transport_model_provenance" in _controller_action_names(authorization)
+        ):
+            continue
+        if _closed_publication_work_unit_for_authorization(
+            authorization=authorization,
+            quest_root=quest_root,
+            quest_id=quest_id,
+        ) is not None:
+            continue
+        return _normalized_controller_decision_authorization(authorization)
+    return {}
+
+
+def _normalized_controller_decision_authorization(authorization: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = dict(authorization)
+    normalized["authorization_basis"] = "current_controller_decision"
+    next_work_unit = _mapping(normalized.get("next_work_unit"))
+    if (next_work_unit_id := _text(next_work_unit.get("unit_id"))) is not None:
+        normalized.setdefault("work_unit_id", next_work_unit_id)
+    fingerprint = _text(normalized.get("blocker_authority_fingerprint")) or _text(next_work_unit.get("fingerprint"))
+    normalized.setdefault("work_unit_fingerprint", fingerprint)
+    return normalized
+
+
 def _current_controller_decision_authorization(
     *,
     quest_root: Path | None,
@@ -305,17 +399,7 @@ def _current_controller_decision_authorization(
     action_names = _controller_action_names(authorization)
     if not action_names:
         return {}
-    normalized = dict(authorization)
-    normalized["authorization_basis"] = "current_controller_decision"
-    next_work_unit = _mapping(normalized.get("next_work_unit"))
-    next_work_unit_id = _text(next_work_unit.get("unit_id"))
-    if next_work_unit_id is not None:
-        normalized.setdefault("work_unit_id", next_work_unit_id)
-    normalized.setdefault(
-        "work_unit_fingerprint",
-        _text(normalized.get("blocker_authority_fingerprint")) or _text(next_work_unit.get("fingerprint")),
-    )
-    return normalized
+    return _normalized_controller_decision_authorization(authorization)
 
 
 def _current_story_surface_delta_authorization(*, study_root: Path) -> dict[str, Any]:
@@ -339,7 +423,7 @@ def _current_controller_decision_exists(
 ) -> bool:
     if quest_root is None:
         return False
-    study_root = _resolve_study_root_from_quest_root_light(quest_root=Path(quest_root), quest_id=quest_id)
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
     if study_root is None:
         return False
     return (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
