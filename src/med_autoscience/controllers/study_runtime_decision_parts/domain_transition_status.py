@@ -155,6 +155,16 @@ def _has_controller_work_unit_pending_redrive(status: StudyRuntimeStatus) -> boo
     )
 
 
+def _has_stopped_runtime_redrive(status: StudyRuntimeStatus) -> bool:
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    return (
+        isinstance(interaction_arbitration, dict)
+        and str(interaction_arbitration.get("classification") or "").strip()
+        in _STOPPED_RUNTIME_REDRIVE_CLASSIFICATIONS
+        and str(interaction_arbitration.get("action") or "").strip() == "resume"
+    )
+
+
 def _current_ai_reviewer_domain_redrive_reason(
     status: StudyRuntimeStatus,
     *,
@@ -305,6 +315,7 @@ __all__ = [
     "_publication_gate_domain_redrive_reason",
     "_has_controller_work_unit_pending_redrive",
     "_has_domain_transition_runtime_redrive",
+    "_has_stopped_runtime_redrive",
     "_record_interaction_arbitration_if_required",
     "_domain_transition_runtime_redrive_reason",
 ]

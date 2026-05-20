@@ -9,6 +9,7 @@ from med_autoscience.controllers.study_runtime_decision_parts.domain_transition_
     _domain_transition_runtime_redrive_reason,
     _has_controller_work_unit_pending_redrive,
     _has_domain_transition_runtime_redrive,
+    _has_stopped_runtime_redrive,
     _publication_gate_domain_redrive_reason,
 )
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import (
@@ -50,6 +51,21 @@ from med_autoscience.controllers.study_runtime_types import (
     _RESUMABLE_QUEST_STATUSES,
 )
 from med_autoscience.runtime_protocol import quest_state
+
+
+def _stopped_runtime_redrive_reason(result: StudyRuntimeStatus) -> StudyRuntimeReason:
+    interaction_arbitration = result.extras.get("interaction_arbitration")
+    reason_code = (
+        str(interaction_arbitration.get("reason_code") or "").strip()
+        if isinstance(interaction_arbitration, dict)
+        else ""
+    )
+    if reason_code:
+        try:
+            return StudyRuntimeReason(reason_code)
+        except ValueError:
+            pass
+    return StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
 
 
 def _apply_live_quest_status_decision(
@@ -454,22 +470,22 @@ def _apply_stopped_or_failed_quest_status_decision(
             )
         )
     )
-    controller_work_unit_redrive = _has_controller_work_unit_pending_redrive(result)
+    stopped_runtime_redrive = _has_stopped_runtime_redrive(result)
     if (
         (submission_metadata_only_manual_finish or bundle_only_manual_finish)
         and not failed_task_intake_resume_allowed
-        and not controller_work_unit_redrive
+        and not stopped_runtime_redrive
     ):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
         )
         return finalize_result()
-    if controller_work_unit_redrive:
+    if stopped_runtime_redrive:
         _set_stopped_resume_or_blocked_decision(
             result=result,
             execution=execution,
-            resume_reason=StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
+            resume_reason=_stopped_runtime_redrive_reason(result),
             blocked_reason=StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
         )
         return finalize_result()
