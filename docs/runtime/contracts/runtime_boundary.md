@@ -12,6 +12,8 @@ Executor adapter note：generic executor adapter 归 `OPL`；MAS 只声明 execu
 
 Physical/source retirement note：`runtime_transport/mas_runtime_core*`、turn runner、worker lease、`runtime_lifecycle_store.py`、product cockpit、sidecar provider 和 runtime status projection 如果仍存在，只能按 domain receipt adapter、refs-only lifecycle sidecar、guarded apply / typed blocker bridge、standalone diagnostic、direct domain handler target 或 OPL handoff input 读取。它们的删除门是 OPL provider/generated parity、MAS paper-line receipt parity、focused tests、no-forbidden-write proof、provenance/tombstone refs 和 no-active-caller 同时成立；在 gate 未成立前写成 retained adapter / diagnostic with deletion gate，在 gate 成立后直接删除、archive 或 tombstone，不新增兼容 alias。
 
+2026-05-20 Lane E file-level cleanup gates：当前机器面已把 retained active-path residue 细化为 `runtime_transport_core_bridge`、`runtime_turn_runner_closeout_adapter`、`worker_lease_residency_projection`、`sqlite_lifecycle_sidecar_index` 与 `legacy_supervisor_scheduler_tombstone`。前四项仍有 active domain / diagnostic caller，当前 disposition 是 `retain_with_explicit_cleanup_gate`，不允许 rename、archive、delete 或 tombstone；只有在 `active_caller_count=0`、OPL replacement parity、domain receipt parity、focused tests、no-forbidden-write proof 和 history tombstone refs 同时成立后才能物理处置。`legacy_supervisor_scheduler_tombstone` 已证明 no active default caller，只保留 history/tombstone/provenance refs，不得恢复 alias、facade 或 compat wrapper。
+
 display / paper-facing asset packaging 独立线明确排除在这条 runtime 主线之外。
 
 ## 三层边界

@@ -456,7 +456,54 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert physical_groups["sqlite_lifecycle_residue"]["current_role"] == (
         "refs_only_domain_receipt_locator_and_lifecycle_ref_index"
     )
+    assert physical_evidence["active_path_residue_cleanup_gates_ref"] == (
+        "functional_consumer_boundary.active_path_residue_cleanup_gates"
+    )
+    cleanup_gates = {
+        item["residue_id"]: item for item in boundary["active_path_residue_cleanup_gates"]
+    }
+    assert set(cleanup_gates) == {
+        "runtime_transport_core_bridge",
+        "runtime_turn_runner_closeout_adapter",
+        "worker_lease_residency_projection",
+        "sqlite_lifecycle_sidecar_index",
+        "legacy_supervisor_scheduler_tombstone",
+    }
+    retained_residue_ids = {
+        "runtime_transport_core_bridge",
+        "runtime_turn_runner_closeout_adapter",
+        "worker_lease_residency_projection",
+        "sqlite_lifecycle_sidecar_index",
+    }
+    for residue_id in retained_residue_ids:
+        gate = cleanup_gates[residue_id]
+        assert gate["current_disposition"] == "retain_with_explicit_cleanup_gate"
+        assert gate["active_caller_count"] > 0
+        assert gate["no_active_caller_proven"] is False
+        assert gate["physical_delete_permitted"] is False
+        assert gate["archive_permitted"] is False
+        assert gate["rename_permitted"] is False
+        assert gate["tombstone_permitted"] is False
+        assert gate["no_alias_facade_compat_wrapper_allowed"] is True
+        assert gate["delete_or_tombstone_after"] == [
+            "active_caller_count=0",
+            "opl_replacement_parity_proven",
+            "domain_receipt_parity_proven",
+            "focused_tests_green",
+            "no_forbidden_write_proof",
+            "history_tombstone_refs_recorded",
+        ]
+        assert "paper_closure_verdict" in gate["must_not_emit"]
+    tombstone_gate = cleanup_gates["legacy_supervisor_scheduler_tombstone"]
+    assert tombstone_gate["current_disposition"] == "tombstone_only"
+    assert tombstone_gate["active_caller_count"] == 0
+    assert tombstone_gate["no_active_caller_proven"] is True
+    assert tombstone_gate["physical_delete_permitted"] is False
+    assert tombstone_gate["tombstone_permitted"] is True
     assert "mas_owned_generic_persistence_engine" in physical_evidence["forbidden_claims"]
+    assert "compat_alias_or_facade_retained_for_retired_runtime_path" in physical_evidence[
+        "forbidden_claims"
+    ]
     assert "physical_delete_already_completed" in physical_evidence["forbidden_claims"]
     retirement_matrix = boundary["physical_retirement_gate_matrix"]
     assert retirement_matrix["surface_kind"] == "mas_generated_caller_retirement_gate_matrix"

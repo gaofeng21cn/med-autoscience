@@ -14,6 +14,7 @@ from .generated_caller_retirement import (
     build_physical_retirement_gate_matrix,
 )
 from .consumer_migration_inventory import (
+    ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
     FUNCTIONAL_MODULE_INVENTORY,
     FUNCTIONAL_SURFACE_CLASSIFICATION,
     PHYSICAL_THINNING_EVIDENCE,
@@ -708,6 +709,13 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             else value
             for key, value in PHYSICAL_RETIREMENT_GATE_MATRIX.items()
         },
+        "active_path_residue_cleanup_gates": [
+            {
+                key: list(value) if isinstance(value, list) else value
+                for key, value in item.items()
+            }
+            for item in ACTIVE_PATH_RESIDUE_CLEANUP_GATES
+        ],
         "retired_legacy_residue_tombstones": [
             dict(item) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
         ],

@@ -215,6 +215,28 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert code_path_roles[
         "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py"
     ]["current_role"] == "refs_only_sqlite_sidecar_index"
+    cleanup_gates = {
+        item["residue_id"]: item
+        for item in runtime_handoff["physical_cleanup_gate"]["active_path_residue_cleanup_gates"]
+    }
+    assert runtime_handoff["physical_cleanup_gate"][
+        "no_alias_facade_compat_wrapper_allowed"
+    ] is True
+    assert set(cleanup_gates) == {
+        "runtime_transport_core_bridge",
+        "runtime_turn_runner_closeout_adapter",
+        "worker_lease_residency_projection",
+        "sqlite_lifecycle_sidecar_index",
+        "legacy_supervisor_scheduler_tombstone",
+    }
+    assert cleanup_gates["runtime_transport_core_bridge"]["active_caller_count"] > 0
+    assert cleanup_gates["runtime_transport_core_bridge"]["physical_delete_permitted"] is False
+    assert cleanup_gates["runtime_transport_core_bridge"]["no_active_caller_proven"] is False
+    assert cleanup_gates["sqlite_lifecycle_sidecar_index"]["current_role"] == (
+        "refs_only_domain_receipt_locator_and_lifecycle_ref_index"
+    )
+    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"]["active_caller_count"] == 0
+    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"]["tombstone_permitted"] is True
     assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
     assert provider["truth_source_precedence"]["opl_provider_attempt_history"] == "transport_receipt_only"
     assert provider["truth_source_precedence"]["paper_progress_requires_mas_artifact_delta_or_gate_owner"] is True
