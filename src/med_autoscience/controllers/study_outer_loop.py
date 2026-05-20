@@ -9,6 +9,7 @@ from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import publication_gate as publication_gate_controller
+from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.study_outer_loop_parts.decision_refs import (
@@ -127,6 +128,60 @@ _FINALIZE_WORK_UNIT_IDS = frozenset(
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _read_closed_publication_gate_recheck_lifecycle(study_root: Path) -> dict[str, Any] | None:
+    lifecycle_path = publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(
+        study_root=study_root
+    )
+    try:
+        payload = json.loads(lifecycle_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if not publication_work_unit_lifecycle.lifecycle_payload_is_closed(payload):
+        return None
+    if str(payload.get("recommended_next_route") or "").strip() != "return_to_publication_gate_recheck":
+        return None
+    if str(payload.get("next_owner") or "").strip() != "publication_gate":
+        return None
+    return payload
+
+
+def _publication_gate_recheck_action_from_closed_lifecycle(
+    *,
+    lifecycle: dict[str, Any],
+) -> dict[str, Any]:
+    work_unit = dict(lifecycle.get("work_unit") or {}) if isinstance(lifecycle.get("work_unit"), dict) else {}
+    return {
+        "action_id": "publication-work-unit-lifecycle::publication_gate_recheck",
+        "action_type": StudyDecisionType.ROUTE_BACK_SAME_LINE.value,
+        "priority": "now",
+        "reason": "publication_gate_recheck_required",
+        "route_target": "review",
+        "route_key_question": "已完成的 publication work unit 是否通过 publication gate replay？",
+        "route_rationale": (
+            "A controller-owned work unit has been consumed and handed off to the publication gate; "
+            "replay the gate before any stale same-line repair can be dispatched again."
+        ),
+        "requires_controller_decision": True,
+        "controller_action_type": StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value,
+        "work_unit_fingerprint": "publication-gate-recheck::closed-work-unit",
+        "next_work_unit": {
+            "unit_id": "publication_gate_recheck",
+            "lane": "review",
+            "summary": "Replay the publication gate for the closed controller work unit.",
+            "source_work_unit": work_unit or None,
+        },
+        "blocking_work_units": [
+            {
+                "unit_id": "publication_gate_recheck",
+                "lane": "review",
+                "summary": "Replay the publication gate for the closed controller work unit.",
+            }
+        ],
+    }
 
 
 def _decision_id(*, study_id: str, quest_id: str, decision_type: str, recorded_at: str) -> str:
@@ -296,6 +351,9 @@ def build_runtime_watch_outer_loop_tick_request(
         gate_report = publication_gate_controller.build_gate_report(
             publication_gate_controller.build_gate_state(quest_root)
         )
+    closed_publication_gate_recheck_lifecycle = _read_closed_publication_gate_recheck_lifecycle(
+        resolved_study_root
+    )
     evaluation_summary = _read_evaluation_summary_payload(study_root=resolved_study_root)
     task_intake_yields_to_fast_lane_closeout = _latest_task_intake_yields_to_verified_fast_lane_closeout(
         study_root=resolved_study_root,
@@ -481,6 +539,10 @@ def build_runtime_watch_outer_loop_tick_request(
         ):
             if batch_action is not None:
                 recommended_action = batch_action
+        if closed_publication_gate_recheck_lifecycle is not None:
+            recommended_action = _publication_gate_recheck_action_from_closed_lifecycle(
+                lifecycle=closed_publication_gate_recheck_lifecycle
+            )
     if recommended_action is None:
         return None
     recommended_action = _merge_publication_eval_methodology_work_unit(
