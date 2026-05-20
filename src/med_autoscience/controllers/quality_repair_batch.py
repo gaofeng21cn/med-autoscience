@@ -36,6 +36,13 @@ _ANALYSIS_REPAIR_ACTION = StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
 _HARD_METHODOLOGY_NEXT_OWNER = "analysis_harmonization_owner"
 _HARD_METHODOLOGY_NEXT_WORK_UNIT = "unit_harmonized_external_validation_rerun"
 _HARD_METHODOLOGY_BLOCKED_REASON = "unit_harmonized_rerun_required"
+_REPAIR_EXECUTION_BLOCK_NEXT_OWNER = "write"
+_REPAIR_EXECUTION_TOP_LEVEL_BLOCKERS = frozenset(
+    {
+        "invalid_analysis_history_residue_present",
+        "manuscript_story_surface_delta_missing",
+    }
+)
 
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
@@ -624,6 +631,16 @@ def _merge_upstream_unit_result(
     return result
 
 
+def _blocked_repair_execution_reason(repair_execution_evidence: Mapping[str, Any]) -> str | None:
+    if _non_empty_text(repair_execution_evidence.get("status")) != "blocked":
+        return None
+    for blocker in repair_execution_evidence.get("blockers") or ():
+        text = _non_empty_text(blocker)
+        if text in _REPAIR_EXECUTION_TOP_LEVEL_BLOCKERS:
+            return text
+    return None
+
+
 def build_quality_repair_batch_recommended_action(
     *,
     profile: WorkspaceProfile,
@@ -920,14 +937,15 @@ def run_quality_repair_batch(
         study_root=resolved_study_root,
         evidence=repair_execution_evidence,
     )
+    blocked_repair_reason = _blocked_repair_execution_reason(repair_execution_evidence)
     record = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": current_eval_id,
         "source_eval_artifact_path": source_eval_artifact_path,
         "source_summary_id": source_summary_id,
         "source_summary_artifact_path": source_summary_artifact_path,
-        "status": _non_empty_text(gate_clearing_result.get("status")) or "executed",
-        "ok": bool(gate_clearing_result.get("ok")),
+        "status": "blocked" if blocked_repair_reason else (_non_empty_text(gate_clearing_result.get("status")) or "executed"),
+        "ok": False if blocked_repair_reason else bool(gate_clearing_result.get("ok")),
         "quest_id": quest_id,
         "study_id": study_id,
         "quality_closure_state": _non_empty_text(quality_closure_truth.get("state")),
@@ -938,6 +956,14 @@ def run_quality_repair_batch(
         "paper_owner_surface_prepare": paper_owner_surface_prepare,
         "repair_execution_evidence": repair_execution_evidence,
         "repair_execution_evidence_path": str(repair_execution_evidence_path),
+        **(
+            {
+                "blocked_reason": blocked_repair_reason,
+                "next_owner": _REPAIR_EXECUTION_BLOCK_NEXT_OWNER,
+            }
+            if blocked_repair_reason
+            else {}
+        ),
     }
     record_path = stable_quality_repair_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)

@@ -45,6 +45,7 @@ _MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset(
         "medical_prose_quality_analysis_source_documentation_repair",
     }
 )
+_MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS = frozenset({"manuscript_story_repair"})
 _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
     Path("paper/draft.md"),
     Path("paper/build/review_manuscript.md"),
@@ -90,10 +91,12 @@ def build_repair_execution_evidence(
         study_root=resolved_study_root,
         changed_artifact_refs=changed_artifact_refs,
     )
-    meaningful_delta = bool(valid_changed_refs)
+    valid_changed_ref_delta = bool(valid_changed_refs)
+    meaningful_delta = valid_changed_ref_delta
     manuscript_surface_hygiene = _manuscript_surface_hygiene(
         study_root=resolved_study_root,
         work_unit_id=work_unit_id,
+        changed_artifact_refs=valid_changed_refs,
     )
     if manuscript_surface_hygiene["status"] == "blocked":
         meaningful_delta = False
@@ -117,7 +120,7 @@ def build_repair_execution_evidence(
     )
     if meaningful_delta or not controller_progress_delta:
         blockers.extend(ref_blockers)
-    if not meaningful_delta and not controller_progress_delta:
+    if not meaningful_delta and not controller_progress_delta and not valid_changed_ref_delta:
         blockers.append("canonical_artifact_delta_missing")
     blockers.extend(manuscript_surface_hygiene.get("blockers") or [])
 
@@ -419,18 +422,41 @@ def _default_ai_reviewer_recheck_ref(study_root: Path) -> str | None:
     return str(path.resolve()) if path.exists() else None
 
 
-def _manuscript_surface_hygiene(*, study_root: Path, work_unit_id: str) -> dict[str, Any]:
+def _manuscript_surface_hygiene(
+    *,
+    study_root: Path,
+    work_unit_id: str,
+    changed_artifact_refs: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
     required = work_unit_id in _MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS
     if not required:
-        return {"required": False, "status": "not_applicable", "surfaces": [], "hits": [], "blockers": []}
+        return {
+            "required": False,
+            "status": "not_applicable",
+            "surfaces": [],
+            "hits": [],
+            "blockers": [],
+            "story_surface_delta_required": False,
+            "story_surface_delta_present": False,
+        }
     surfaces = _existing_manuscript_story_surfaces(study_root=study_root)
     hits = _manuscript_surface_residue_hits(surfaces)
+    story_surface_delta_required = work_unit_id in _MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS
+    story_surface_delta_present = _story_surface_delta_present(
+        study_root=study_root,
+        changed_artifact_refs=changed_artifact_refs,
+    )
+    blockers = ["invalid_analysis_history_residue_present"] if hits else []
+    if story_surface_delta_required and not story_surface_delta_present:
+        blockers.append("manuscript_story_surface_delta_missing")
     return {
         "required": True,
-        "status": "blocked" if hits else "clear",
+        "status": "blocked" if blockers else "clear",
         "surfaces": [str(path.resolve()) for path in surfaces],
         "hits": hits,
-        "blockers": ["invalid_analysis_history_residue_present"] if hits else [],
+        "blockers": blockers,
+        "story_surface_delta_required": story_surface_delta_required,
+        "story_surface_delta_present": story_surface_delta_present,
     }
 
 
@@ -441,6 +467,24 @@ def _existing_manuscript_story_surfaces(*, study_root: Path) -> list[Path]:
         if path.exists() and path.is_file():
             surfaces.append(path)
     return surfaces
+
+
+def _story_surface_delta_present(
+    *,
+    study_root: Path,
+    changed_artifact_refs: Iterable[Mapping[str, Any]],
+) -> bool:
+    story_surfaces = {
+        (study_root / relative_path).expanduser().resolve()
+        for relative_path in _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
+    }
+    for ref in changed_artifact_refs:
+        path = _text(ref.get("path"))
+        if path is None:
+            continue
+        if Path(path).expanduser().resolve() in story_surfaces:
+            return True
+    return False
 
 
 def _manuscript_surface_residue_hits(surfaces: Iterable[Path]) -> list[dict[str, Any]]:

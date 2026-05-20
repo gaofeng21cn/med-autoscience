@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-20：manuscript story repair 必须证明正文稿面发生 delta
+
+- 决策：`manuscript_story_repair` 不能只靠 `claim_evidence_map`、`evidence_ledger`、`review_ledger`、display/table/figure 生成物或 gate replay 变化声明完成。若该 work unit 没有把 `paper/draft.md` 或 `paper/build/review_manuscript.md` 作为 canonical changed artifact ref，`repair_execution_evidence` 必须返回 `status=blocked`、`progress_delta_candidate=false`、`canonical_artifact_delta.status=blocked`，并给出 `manuscript_story_surface_delta_missing`。
+- 决策：`quality_repair_batch` 必须消费上述 blocked evidence，把批次顶层状态改为 `blocked`、`ok=false`、`next_owner=write`，不得继续把 gate-clearing batch 的局部 artifact delta 汇总成 completed repair。
+- 理由：DM002 暴露出 `manuscript_story_repair` 多次只更新 claim/evidence/review ledger 和 display 生成物，正文 `paper/draft.md` 与 `paper/build/review_manuscript.md` 未变，却被 runtime 记录成 meaningful artifact delta。这样会让 owner-chain 看起来已经修复“干净 external-validation story”，但用户看到的稿件仍停在旧正文。
+- 影响：这是 owner-surface currentness 和 typed blocker 规则，不是脚本式论文质量 verdict。它只防止错误 owner 用错 surface 关单；正式医学论文写作质量、publishability 和 submission readiness 仍由独立 AI reviewer、publication gate 与后续 delivery owner 决定。
+
 ## 2026-05-20：current AI reviewer route-back 必须压过重复 reviewer recheck
 
 - 决策：当 `publication_eval/latest.json` 由 `assessment_provenance.owner=ai_reviewer` 产出，且 `reviewer_operating_system.currentness_checks.medical_prose_review.status=current`、`route_back_required=true`、`route_target` 指向非 `review` owner，同时顶层 `recommended_actions[]` 有匹配的 `route_back_same_line` controller action 时，controller refresh 和 domain transition 不能再把同一份 current eval 解释成 `ai_reviewer_re_eval`。
