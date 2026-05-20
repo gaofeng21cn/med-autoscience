@@ -180,6 +180,16 @@ def normalized_result(report_payload: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def owner_handoff_payload(*, report_path: Path, source: str) -> dict[str, Any]:
+    return {
+        "reason": "completed_work_unit_evidence_adopted",
+        "next_owner": NEXT_OWNER,
+        "next_work_unit": None,
+        "report_ref": str(report_path),
+        "source": source,
+    }
+
+
 def _target_context_matches(
     *,
     marker: dict[str, Any],

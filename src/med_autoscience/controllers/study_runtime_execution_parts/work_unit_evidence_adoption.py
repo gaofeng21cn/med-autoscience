@@ -991,5 +991,9 @@ def adopt_controller_work_unit_evidence_if_present(
             event_type="artifact_written",
             payload=payload,
         )
+        control_intent.append_event(
+            study_root=study_root, identity=identity, event_type="owner_handoff",
+            payload=generic_completed_work_unit.owner_handoff_payload(report_path=report_path, source=source),
+        )
         return payload
     return None

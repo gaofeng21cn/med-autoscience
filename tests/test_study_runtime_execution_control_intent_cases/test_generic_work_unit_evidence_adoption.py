@@ -166,7 +166,10 @@ def test_execute_noop_runtime_decision_adopts_dm002_rebuttal_completion_receipt(
     next_route = status.to_dict()["controller_work_unit_next_route"]
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert [event["event_type"] for event in events] == ["delivered", "artifact_written"]
+    assert [event["event_type"] for event in events] == ["delivered", "artifact_written", "owner_handoff"]
+    lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    assert lifecycle["terminal_consumed"] is True
+    assert lifecycle["block_reason"] == "owner_handoff"
     assert adoption["report_ref"] == str(receipt_path)
     assert adoption["work_unit_id"] == route_key_question
     assert adoption["route_target"] == "analysis-campaign"
@@ -247,7 +250,7 @@ def test_execute_noop_runtime_decision_adopts_dm003_revised_manuscript_write_art
     adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert [event["event_type"] for event in events] == ["delivered", "artifact_written"]
+    assert [event["event_type"] for event in events] == ["delivered", "artifact_written", "owner_handoff"]
     assert adoption["report_ref"] == str(artifact_path)
     assert adoption["created_at"] == "2026-05-14T03:00:02+00:00"
     assert adoption["work_unit_id"] == route_key_question
@@ -325,7 +328,7 @@ def test_execute_noop_runtime_decision_adopts_generic_artifact_from_runtime_rela
     adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert [event["event_type"] for event in events] == ["artifact_written"]
+    assert [event["event_type"] for event in events] == ["artifact_written", "owner_handoff"]
     assert adoption["report_ref"] == str(artifact_path)
     assert adoption["created_at"] == "2026-05-14T03:13:30+00:00"
     assert adoption["work_unit_id"] == route_key_question
