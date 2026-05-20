@@ -296,8 +296,10 @@ def test_study_runtime_status_does_not_resume_paused_delivered_package_from_stal
 
     assert result["quest_status"] == "paused"
     assert result["decision"] == "blocked"
-    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["reason"] == "quest_user_paused_requires_explicit_wakeup"
     assert result["auto_runtime_parked"]["parked"] is True
+    assert result["auto_runtime_parked"]["awaiting_explicit_wakeup"] is True
+    assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "await_explicit_resume"
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] != "external_supervisor_required"
 
 

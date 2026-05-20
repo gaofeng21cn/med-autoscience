@@ -248,7 +248,7 @@ def project_domain_transition(
     if ai_reviewer_transition is not None:
         return ai_reviewer_transition
 
-    if _publication_gate_blocked(publication_eval):
+    if _publication_gate_blocked(publication_eval, status=status):
         return _transition(
             study_id=study_id,
             decision_type="publication_gate_blocker",
@@ -871,7 +871,9 @@ def _is_stop_loss(
     return bool({"stop_loss", "user_stop", "publishability_stop_loss_recommended", "stop"} & candidates)
 
 
-def _publication_gate_blocked(publication_eval: Mapping[str, Any]) -> bool:
+def _publication_gate_blocked(publication_eval: Mapping[str, Any], *, status: Mapping[str, Any]) -> bool:
+    if _status_reports_current_publication_gate_continue(status):
+        return False
     if _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval":
         return False
     verdict = _mapping(publication_eval.get("verdict"))
@@ -881,6 +883,14 @@ def _publication_gate_blocked(publication_eval: Mapping[str, Any]) -> bool:
         or bool(publication_eval.get("blockers"))
         or _text(verdict.get("overall_verdict")) == "blocked"
         or any(_text(item.get("severity")) in {"must_fix", "blocking", "blocked"} for item in gaps)
+    )
+
+
+def _status_reports_current_publication_gate_continue(status: Mapping[str, Any]) -> bool:
+    supervisor = _mapping(status.get("publication_supervisor_state"))
+    return (
+        _text(supervisor.get("supervisor_phase")) == "bundle_stage_ready"
+        and _text(supervisor.get("current_required_action")) == "continue_bundle_stage"
     )
 
 

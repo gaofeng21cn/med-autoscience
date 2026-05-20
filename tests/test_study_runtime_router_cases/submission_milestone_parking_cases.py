@@ -547,7 +547,8 @@ def test_mechanical_projection_current_package_does_not_park_abnormal_active_run
 
     assert result["quest_status"] == "active"
     assert result["decision"] == "resume"
-    assert result["reason"] == "quest_marked_running_but_no_live_session"
+    assert result["reason"] == "domain_transition_ai_reviewer_re_eval"
+    assert "quest_marked_running_but_no_live_session" in result["runtime_health_snapshot"]["blocking_reasons"]
     assert result["auto_runtime_parked"]["parked"] is False
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] in {
         "recover_runtime",

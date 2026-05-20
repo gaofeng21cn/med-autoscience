@@ -255,7 +255,9 @@ def _enable_explicit_user_wakeup_if_requested(
                 StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
             )
             return
-        _record_explicit_user_wakeup_projection(status=status, context=context)
+        wakeup_record = _record_explicit_user_wakeup_projection(status=status, context=context)
+        if wakeup_record is None:
+            return
         return
     if (
         status.decision is StudyRuntimeDecision.BLOCKED

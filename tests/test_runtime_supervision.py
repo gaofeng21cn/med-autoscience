@@ -30,7 +30,7 @@ def _managed_status_payload(
         "decision": decision,
         "reason": reason,
         "execution": {
-            "runtime_backend_id": "hermes",
+            "runtime_backend_id": "mas_runtime_core",
             "auto_entry": "on_managed_research_intent",
         },
         "runtime_liveness_audit": {
@@ -70,7 +70,7 @@ def test_runtime_supervision_escalation_points_user_back_to_mas_control_surface(
             "reason": "resume_request_failed",
             "quest_status": "running",
             "execution": {
-                "runtime_backend_id": "hermes",
+                "runtime_backend_id": "mas_runtime_core",
                 "auto_entry": "on_managed_research_intent",
             },
         },
@@ -345,7 +345,7 @@ def test_runtime_supervision_requires_active_run_id_for_live_projection(tmp_path
             "decision": "noop",
             "reason": "quest_already_running",
             "execution": {
-                "runtime_backend_id": "hermes",
+                "runtime_backend_id": "mas_runtime_core",
                 "auto_entry": "on_managed_research_intent",
             },
             "runtime_liveness_status": "live",

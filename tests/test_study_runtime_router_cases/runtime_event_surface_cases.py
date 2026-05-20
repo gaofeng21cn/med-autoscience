@@ -256,13 +256,13 @@ def test_study_runtime_status_does_not_echo_stale_runtime_escalation_ref_after_b
     assert "runtime_escalation_ref" not in result
 
 
-def test_study_runtime_status_uses_profile_default_hermes_substrate_without_mds_research_backend(
+def test_study_runtime_status_uses_profile_default_mas_runtime_core_substrate_without_mds_research_backend(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
-    profile = profile.__class__(**{**profile.__dict__, "managed_runtime_backend_id": "hermes"})
+    profile = profile.__class__(**{**profile.__dict__, "managed_runtime_backend_id": "mas_runtime_core"})
     write_study(
         profile.workspace_root,
         "001-risk",
@@ -296,9 +296,9 @@ def test_study_runtime_status_uses_profile_default_hermes_substrate_without_mds_
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
-    assert result["execution"]["runtime_backend_id"] == "hermes"
-    assert result["execution"]["runtime_backend"] == "hermes"
-    assert result["execution"]["runtime_engine_id"] == "hermes"
+    assert result["execution"]["runtime_backend_id"] == "mas_runtime_core"
+    assert result["execution"]["runtime_backend"] == "mas_runtime_core"
+    assert result["execution"]["runtime_engine_id"] == "mas-runtime-core"
     assert result["execution"]["research_backend_id"] == "mas_runtime_core"
     assert result["execution"]["research_engine_id"] == "mas-runtime-core"
     assert result["decision"] == "resume"

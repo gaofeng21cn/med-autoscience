@@ -10,6 +10,13 @@ def owner_token(value: str | None) -> str:
     normalized = (value or "").strip().lower().replace("-", "_")
     if ":" in normalized:
         normalized = normalized.split(":", 1)[0].strip()
+    compact = normalized.replace("/", "_")
+    if (
+        compact == "mas_controller"
+        or "mas controller" in normalized
+        or ("mas" in normalized and "controller" in normalized and "route authorization owner" in normalized)
+    ):
+        return "mas/controller"
     return normalized
 
 
