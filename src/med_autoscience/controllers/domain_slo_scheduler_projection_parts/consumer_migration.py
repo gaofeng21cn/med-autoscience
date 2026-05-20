@@ -21,6 +21,7 @@ SURFACE_KIND = "mas_legacy_domain_slo_diagnostic_consumer_migration"
 ACTIVE_PATH_ROLE = "opl_replacement_default"
 LOCAL_TOMBSTONE_PATH_ROLE = "physical_retired_tombstone_provenance_only"
 OPTIONAL_ADAPTER_PATH_ROLE = "legacy_scheduler_diagnostic_cleanup_only"
+HERMES_TOMBSTONE_PATH_ROLE = "physical_retired_tombstone_provenance_only"
 CURRENT_SCHEDULER_OWNER = "opl_provider_runtime_manager"
 LEGACY_SCHEDULER_OWNER = "mas_legacy_domain_slo_diagnostic"
 REPLACEMENT_OWNER = "one-person-lab"
@@ -814,11 +815,12 @@ def build_consumer_migration_contract(
     manager_key = str(manager or "").strip().lower()
     replacement_active = manager_key in {"opl", "opl_provider_runtime_manager"} or adapter_id == "opl_family_runtime_provider"
     local_tombstone = manager_key == "local" or adapter_id == "local_launchd_retired_tombstone"
+    hermes_tombstone = manager_key == "hermes" or adapter_id == "hermes_gateway_cron_retired_tombstone"
     active_path_role = (
         ACTIVE_PATH_ROLE
         if replacement_active
         else LOCAL_TOMBSTONE_PATH_ROLE
-        if local_tombstone
+        if local_tombstone or hermes_tombstone
         else OPTIONAL_ADAPTER_PATH_ROLE
     )
     return {
@@ -834,15 +836,15 @@ def build_consumer_migration_contract(
         "replacement_required_before_retirement": not replacement_active,
         "allowed_operations": (
             ["status", "remove_legacy_jobs"]
-            if not replacement_active and not local_tombstone
+            if not replacement_active and not local_tombstone and not hermes_tombstone
             else []
         ),
         "forbidden_operations": (
             ["ensure", "create", "edit", "resume", "trigger_run", "write_tick_script"]
-            if not replacement_active and not local_tombstone
+            if not replacement_active and not local_tombstone and not hermes_tombstone
             else []
         ),
-        "retirement_state": LOCAL_TOMBSTONE_RETIREMENT_STATE if local_tombstone else RETIREMENT_STATE,
+        "retirement_state": LOCAL_TOMBSTONE_RETIREMENT_STATE if local_tombstone or hermes_tombstone else RETIREMENT_STATE,
         "replacement_owner": REPLACEMENT_OWNER,
         "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
         "replacement_contract_expected": {

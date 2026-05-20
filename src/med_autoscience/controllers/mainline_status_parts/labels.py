@@ -17,7 +17,7 @@ _ENTRY_POINT_LABELS = {
     "submit_study_task": "提交 study 任务",
     "launch_study": "启动或续跑 study",
     "doctor": "运行 doctor",
-    "hermes_runtime_check": "检查 Hermes runtime",
+    "runtime_supervision_status": "查看 runtime 监管状态",
     "watch": "刷新监管与恢复",
 }
 

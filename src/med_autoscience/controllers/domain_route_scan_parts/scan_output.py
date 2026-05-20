@@ -32,7 +32,8 @@ def build_scan_domain_routes_payload(
             "default_adapter": "opl_family_runtime_provider",
             "legacy_diagnostic_scheduler_owner": "mas_legacy_domain_slo_diagnostic",
             "legacy_diagnostic_adapter": "local_launchd",
-            "optional_adapters": ["hermes_gateway_cron"],
+            "optional_adapters": [],
+            "retired_tombstone_adapters": ["hermes_gateway_cron_retired_tombstone"],
             "tick_contract": {
                 "command": "opl family-runtime provider-slo tick --provider temporal",
                 "cadence_owner": "opl_provider_runtime_manager",

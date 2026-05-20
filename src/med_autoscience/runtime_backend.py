@@ -503,8 +503,3 @@ register_lazy_managed_runtime_backend(
     engine_id="mas-runtime-core",
     loader=lambda: import_module("med_autoscience.runtime_transport.mas_runtime_core"),
 )
-register_lazy_managed_runtime_backend(
-    backend_id="hermes",
-    engine_id="hermes",
-    loader=lambda: import_module("med_autoscience.runtime_transport.hermes"),
-)

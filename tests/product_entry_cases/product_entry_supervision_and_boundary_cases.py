@@ -159,7 +159,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
     assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_runtime_contract"
     assert payload["phase3_clearance_lane"]["clearance_targets"][1]["target_id"] == "supervisor_service"
-    assert payload["phase3_clearance_lane"]["clearance_loop"][2]["step_id"] == "supervisor_service"
+    assert payload["phase3_clearance_lane"]["clearance_loop"][1]["step_id"] == "supervisor_service"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["current_backend_chain"] == [
         "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",

@@ -7,10 +7,9 @@ import platform
 from med_autoscience.ai_first_drift_audit import run_ai_first_drift_audit
 from med_autoscience.controllers.ai_first_observability import build_doctor_ai_first_observability_summary
 from med_autoscience.controllers import domain_slo_scheduler_projection
-from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.overlay import describe_medical_overlay
-from med_autoscience.workspace_contracts import inspect_workspace_contracts
+from med_autoscience.workspace_contracts import inspect_workspace_contracts, legacy_external_runtime_tombstone_contract
 
 
 @dataclass(frozen=True)
@@ -73,10 +72,7 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
         external_runtime_contract=dict(
             workspace_contracts.get(
                 "external_runtime_contract",
-                inspect_hermes_runtime_contract(
-                    hermes_agent_repo_root=profile.hermes_agent_repo_root,
-                    hermes_home_root=profile.hermes_home_root,
-                ),
+                legacy_external_runtime_tombstone_contract(),
             )
         ),
         workspace_domain_route_contract=dict(domain_slo_scheduler_projection.read_supervision_status(profile=profile)),

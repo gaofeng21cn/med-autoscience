@@ -10,7 +10,7 @@ from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_
 from med_autoscience.figure_routes import supported_required_route_help
 
 
-ACTIVE_SUPERVISION_MANAGERS = ("opl", "hermes")
+ACTIVE_SUPERVISION_MANAGERS = ("opl",)
 ACTIVE_SUPERVISION_ENSURE_MANAGERS = ("opl",)
 
 
@@ -616,10 +616,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     backend_audit_parser.add_argument("--profile", required=True)
     backend_audit_parser.add_argument("--refresh", action="store_true")
 
-    hermes_runtime_check_parser = subparsers.add_parser("hermes-runtime-check")
-    hermes_runtime_check_parser.add_argument("--profile")
-    hermes_runtime_check_parser.add_argument("--hermes-agent-repo-root")
-    hermes_runtime_check_parser.add_argument("--hermes-home-root")
     for command_name, prog in GROUPED_COMMAND_PROGS.items():
         choice = subparsers.choices.get(command_name)
         if choice is not None:

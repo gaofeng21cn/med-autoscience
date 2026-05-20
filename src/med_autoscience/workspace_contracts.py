@@ -7,7 +7,6 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
@@ -15,6 +14,25 @@ from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layo
 
 _REQUIRED_OVERRIDE_FIELDS = ("id", "source_path", "status", "target_surface")
 _PLACEHOLDER_LAUNCHER_MARKERS = ("ABS/PATH", "PATH/TO")
+
+
+def legacy_external_runtime_tombstone_contract() -> dict[str, object]:
+    return {
+        "surface_kind": "legacy_external_runtime_tombstone",
+        "runtime_kind": "hermes_agent",
+        "status": "retired_no_active_caller",
+        "ready": False,
+        "read_only": True,
+        "default_runtime_owner": "one-person-lab",
+        "history_ref": "docs/history/runtime/legacy_active_path_tombstones.md",
+        "tombstone_ref": "contracts/runtime/legacy-active-path-tombstones.json",
+        "can_write_domain_truth": False,
+        "can_authorize_publication_ready": False,
+        "callable_cli": False,
+        "callable_mcp": False,
+        "retained_context": "history_provenance_only",
+        "replacement_surface": "doctor.runtime_contract",
+    }
 
 
 def _collect_check_issues(checks: dict[str, bool], *, prefix: str) -> list[str]:
@@ -304,10 +322,7 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     }
 
     behavior_gate = inspect_behavior_equivalence_gate(layout.behavior_gate_path)
-    external_runtime_contract = inspect_hermes_runtime_contract(
-        hermes_agent_repo_root=profile.hermes_agent_repo_root,
-        hermes_home_root=profile.hermes_home_root,
-    )
+    external_runtime_contract = legacy_external_runtime_tombstone_contract()
     return {
         "runtime_contract": runtime_contract,
         "launcher_contract": launcher_contract,

@@ -551,7 +551,6 @@ def _phase2_user_product_loop() -> dict[str, Any]:
 
 def _phase3_clearance_lane() -> dict[str, Any]:
     doctor_command = "uv run python -m med_autoscience.cli doctor --profile <profile>"
-    hermes_runtime_check_command = "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>"
     supervisor_service_command = "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>"
     refresh_supervision_command = (
         "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> "
@@ -573,12 +572,9 @@ def _phase3_clearance_lane() -> dict[str, Any]:
         recommended_command=doctor_command,
         clearance_targets=[
             _build_shared_clearance_target(
-                target_id="external_runtime_contract",
-                title="Check optional hosted runtime contract",
-                commands=[
-                    doctor_command,
-                    hermes_runtime_check_command,
-                ],
+                target_id="mas_runtime_contract",
+                title="Check MAS runtime and legacy hosted-runtime tombstone contract",
+                commands=[doctor_command],
             ),
             _build_shared_clearance_target(
                 target_id="supervisor_service",
@@ -599,16 +595,10 @@ def _phase3_clearance_lane() -> dict[str, Any]:
         ],
         clearance_loop=[
             _build_shared_product_entry_program_step(
-                step_id="external_runtime_contract",
-                title="确认 optional hosted runtime contract 或 MAS runtime contract ready",
+                step_id="mas_runtime_contract",
+                title="确认 MAS runtime contract ready，旧 hosted runtime 仅保留 tombstone/provenance",
                 surface_kind="doctor_runtime_contract",
                 command=doctor_command,
-            ),
-            _build_shared_product_entry_program_step(
-                step_id="hermes_runtime_check",
-                title="显式检查 optional Hermes runtime 绑定证据",
-                surface_kind="hermes_runtime_check",
-                command=hermes_runtime_check_command,
             ),
             _build_shared_product_entry_program_step(
                 step_id="supervisor_service",
@@ -637,7 +627,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
         ],
         proof_surfaces=[
             _build_shared_product_entry_program_surface(
-                surface_kind="doctor.external_runtime_contract",
+                surface_kind="doctor.runtime_contract",
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_surface(
@@ -818,9 +808,9 @@ def _phase_ladder() -> list[dict[str, Any]]:
                     "purpose": "先看 workspace / MAS runtime contract readiness。",
                 },
                 {
-                    "name": "hermes_runtime_check",
-                    "command": "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>",
-                    "purpose": "显式检查 optional Hermes runtime 证据和 fail-closed gate。",
+                    "name": "runtime_supervision_status",
+                    "command": "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>",
+                    "purpose": "读取 OPL-owned supervision projection 与 legacy runtime tombstone。",
                 },
                 {
                     "name": "watch",

@@ -63,8 +63,6 @@ data_asset_updates_controller = _LazyModuleProxy(lambda: _load_controller("data_
 display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_pack_surface_sync"))
 display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
 delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspector"))
-hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
-hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
 domain_slo_scheduler_projection = _LazyModuleProxy(lambda: _load_controller("domain_slo_scheduler_projection"))
 domain_action_request_materializer = _LazyModuleProxy(lambda: _load_controller("domain_action_request_materializer"))
 domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain_owner_action_dispatch"))
@@ -484,18 +482,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "backend-audit":
         profile = load_profile(args.profile)
         result = backend_audit.run_backend_audit(profile, refresh=bool(args.refresh))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "hermes-runtime-check":
-        if not args.profile and not args.hermes_agent_repo_root:
-            parser.error("Specify at least one of --profile or --hermes-agent-repo-root")
-        profile = load_profile(args.profile) if args.profile else None
-        result = hermes_runtime_check.run_hermes_runtime_check(
-            profile=profile,
-            hermes_agent_repo_root=Path(args.hermes_agent_repo_root) if args.hermes_agent_repo_root else None,
-            hermes_home_root=Path(args.hermes_home_root) if args.hermes_home_root else None,
-        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

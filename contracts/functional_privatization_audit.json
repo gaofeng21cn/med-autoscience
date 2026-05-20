@@ -1710,6 +1710,107 @@
       "status": "landed_domain_authority_pack_consumer",
       "surface_kind": "opl_functional_harness_consumer_coverage"
     },
+    "physical_thinning_evidence": {
+      "body_included": false,
+      "does_not_claim_paper_closure": true,
+      "does_not_claim_physical_delete": true,
+      "evidence_contract_ref": "contracts/evidence/mas-evidence-lane.json#/physical_thinning_evidence",
+      "forbidden_claims": [
+        "mas_owned_generic_runner",
+        "mas_owned_generic_scheduler",
+        "mas_owned_generic_workbench",
+        "mas_owned_generic_persistence_engine",
+        "physical_delete_already_completed",
+        "paper_closure_authorized_by_thinning_evidence"
+      ],
+      "residue_groups": [
+        {
+          "closure_basis": [
+            "opl_replacement_parity",
+            "domain_receipt_parity",
+            "no_generic_owner_claim"
+          ],
+          "current_role": "domain_receipt_adapter_and_transition_spec_only",
+          "evidence_refs": [
+            "functional_module_inventory.generic_queue_attempt_retry_dead_letter",
+            "functional_module_inventory.generic_transition_runner",
+            "opl_functional_harness_consumer_coverage.queue_stage_attempt_typed_closeout",
+            "opl_functional_harness_consumer_coverage.generic_transition_runner"
+          ],
+          "generic_owner_claim_allowed": false,
+          "group_id": "runner_residue",
+          "module_ids": [
+            "generic_queue_attempt_retry_dead_letter",
+            "generic_transition_runner"
+          ],
+          "physical_delete_gate": "active_domain_or_diagnostic_caller_count=0 plus OPL parity plus focused tests"
+        },
+        {
+          "closure_basis": [
+            "no_active_default_caller",
+            "opl_replacement_parity",
+            "tombstone_or_diagnostic_refs"
+          ],
+          "current_role": "opl_scheduler_projection_and_legacy_tombstone_only",
+          "evidence_refs": [
+            "no_active_caller_proof.default_caller_count=0",
+            "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
+            "retired_legacy_residue_tombstones.scheduler_legacy_residue_without_active_caller"
+          ],
+          "generic_owner_claim_allowed": false,
+          "group_id": "supervisor_residue",
+          "module_ids": [
+            "generic_daemon_or_scheduler_lifecycle",
+            "local_launchd_scheduler_install_path",
+            "legacy_scheduler_default_aliases",
+            "scheduler_legacy_residue_without_active_caller"
+          ],
+          "physical_delete_gate": "no active default caller already proven; retained refs are tombstone/provenance only"
+        },
+        {
+          "closure_basis": [
+            "opl_replacement_parity",
+            "domain_projection_refs_only",
+            "tombstone_or_diagnostic_refs"
+          ],
+          "current_role": "mas_domain_projection_refs_for_opl_hosted_workbench",
+          "evidence_refs": [
+            "workbench_portal_generic_shell.proof_refs",
+            "retired_legacy_residue_tombstones.mas_generic_workbench_shell",
+            "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain"
+          ],
+          "generic_owner_claim_allowed": false,
+          "group_id": "workbench_residue",
+          "module_ids": [
+            "workbench_portal_generic_shell",
+            "mas_generic_workbench_shell"
+          ],
+          "physical_delete_gate": "OPL default workbench caller plus no MAS generic workbench default entry"
+        },
+        {
+          "closure_basis": [
+            "refs_only_adapter",
+            "opl_lifecycle_index_parity_gate",
+            "domain_receipt_parity_gate"
+          ],
+          "current_role": "refs_only_domain_receipt_locator_and_lifecycle_ref_index",
+          "evidence_refs": [
+            "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
+            "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter",
+            "functional_module_inventory.runtime_lifecycle_sqlite_reference_adapter.retirement_gate"
+          ],
+          "generic_owner_claim_allowed": false,
+          "group_id": "sqlite_lifecycle_residue",
+          "module_ids": [
+            "runtime_lifecycle_sqlite_reference_adapter"
+          ],
+          "physical_delete_gate": "active_caller_count=0 plus OPL lifecycle index parity plus domain owner receipt ref parity"
+        }
+      ],
+      "status": "generic_runtime_residue_closed_as_boundary_evidence_physical_delete_gated",
+      "surface_kind": "mas_physical_thinning_evidence",
+      "version": "mas-physical-thinning-evidence.v1"
+    },
     "proof_surfaces": [
       "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
       "runtime-supervision-status default manager=opl",

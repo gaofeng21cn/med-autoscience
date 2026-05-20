@@ -69,7 +69,6 @@ control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("contr
 continuous_soak_summary = _LazyModuleProxy(lambda: _load_controller("continuous_soak_summary"))
 data_assets = _LazyModuleProxy(lambda: _load_controller("data_assets"))
 external_research = _LazyModuleProxy(lambda: _load_controller("external_research"))
-hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
@@ -474,19 +473,6 @@ if _MISSING_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS:
 
 
 def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
-    def hermes_runtime_handler(handler_arguments: dict[str, Any]) -> dict[str, Any]:
-        profile_path = handler_arguments.get("profile_path")
-        hermes_agent_repo_root = handler_arguments.get("hermes_agent_repo_root")
-        if not isinstance(profile_path, str) and not isinstance(hermes_agent_repo_root, str):
-            raise ValueError("doctor_audit hermes_runtime requires profile_path or hermes_agent_repo_root")
-        profile = profiles.load_profile(profile_path) if isinstance(profile_path, str) else None
-        result = hermes_runtime_check.run_hermes_runtime_check(
-            profile=profile,
-            hermes_agent_repo_root=Path(hermes_agent_repo_root) if isinstance(hermes_agent_repo_root, str) else None,
-            hermes_home_root=_optional_path(handler_arguments, "hermes_home_root"),
-        )
-        return _tool_text_result(_json_text(result), structured=result)
-
     return call_mode_handler(
         tool_name="doctor_audit",
         arguments=arguments,
@@ -495,7 +481,6 @@ def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
             "profile": _call_show_profile,
             "overlay_status": _call_overlay_status,
             "backend_audit": _call_backend_audit,
-            "hermes_runtime": hermes_runtime_handler,
         },
     )
 

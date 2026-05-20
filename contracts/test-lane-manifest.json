@@ -128,7 +128,6 @@
     "outer-supervision-slo": {
       "kind": "focused_outer_supervision_slo_contract_gate",
       "paths": [
-        "tests/test_hermes_supervision.py",
         "tests/test_domain_slo_scheduler_projection.py",
         "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_runtime_reconcile_trigger.py",
@@ -154,7 +153,7 @@
       "legacy_local_tick_script_generated": false,
       "legacy_local_loaded_state_allowed": false,
       "legacy_local_cleanup_status": "tombstone_only",
-      "explicit_optional_adapter_id": "hermes_gateway_cron",
+      "retired_optional_adapter_id": "hermes_gateway_cron_retired_tombstone",
       "default_tick_interval_seconds": 300,
       "replacement_owner": "one-person-lab",
       "replacement_owner_surface": "opl_provider_runtime_manager",
@@ -234,7 +233,7 @@
       "legacy_active_path_role": "physical_retired_tombstone_provenance_only",
       "replacement_owner": "one-person-lab",
       "replacement_owner_surface": "opl_provider_runtime_manager",
-      "explicit_optional_adapter_id": "hermes_gateway_cron",
+      "retired_optional_adapter_id": "hermes_gateway_cron_retired_tombstone",
       "resident_daemon_allowed": false,
       "forbidden_authority_writes": [
         "paper/current_package",

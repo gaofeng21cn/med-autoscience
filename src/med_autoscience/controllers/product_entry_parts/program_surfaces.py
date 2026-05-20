@@ -126,7 +126,6 @@ def _build_phase3_clearance_lane(
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
     doctor_command = f"{prefix} doctor --profile {profile_arg}"
-    hermes_runtime_check_command = f"{prefix} hermes-runtime-check --profile {profile_arg}"
     supervisor_service_command = f"{prefix} runtime-supervision-status --profile {profile_arg}"
     refresh_supervision_command = (
         f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
@@ -145,12 +144,9 @@ def _build_phase3_clearance_lane(
         recommended_command=doctor_command,
         clearance_targets=[
             _build_shared_clearance_target(
-                target_id="external_runtime_contract",
-                title="Check optional hosted runtime contract",
-                commands=[
-                    doctor_command,
-                    hermes_runtime_check_command,
-                ],
+                target_id="mas_runtime_contract",
+                title="Check MAS runtime and legacy hosted-runtime tombstone contract",
+                commands=[doctor_command],
             ),
             _build_shared_clearance_target(
                 target_id="supervisor_service",
@@ -171,16 +167,10 @@ def _build_phase3_clearance_lane(
         ],
         clearance_loop=[
             _build_shared_product_entry_program_step(
-                step_id="external_runtime_contract",
-                title="确认 optional hosted runtime contract 或 MAS runtime contract ready",
+                step_id="mas_runtime_contract",
+                title="确认 MAS runtime contract ready，旧 hosted runtime 仅保留 tombstone/provenance",
                 surface_kind="doctor_runtime_contract",
                 command=doctor_command,
-            ),
-            _build_shared_product_entry_program_step(
-                step_id="hermes_runtime_check",
-                title="显式检查 optional Hermes runtime 绑定证据",
-                surface_kind="hermes_runtime_check",
-                command=hermes_runtime_check_command,
             ),
             _build_shared_product_entry_program_step(
                 step_id="supervisor_service",
@@ -209,7 +199,7 @@ def _build_phase3_clearance_lane(
         ],
         proof_surfaces=[
             _build_shared_product_entry_program_surface(
-                surface_kind="doctor.external_runtime_contract",
+                surface_kind="doctor.runtime_contract",
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_surface(
@@ -343,7 +333,7 @@ def _build_runtime_inventory_surface(
     availability = "ready" if ready_to_try_now else "blocked"
     health_status = "healthy" if ready_to_try_now else "attention_required"
     summary = (
-        "MAS runtime inventory 已连接 external Hermes runtime，当前可通过 workspace cockpit 持续监管并续跑 study。"
+        "MAS runtime inventory 已连接 MAS runtime contract 与 OPL supervision projection，当前可通过 workspace cockpit 持续监管并续跑 study。"
         if ready_to_try_now
         else "MAS runtime inventory 当前存在 blocking preflight，需要先恢复 runtime/监督前置状态。"
     )

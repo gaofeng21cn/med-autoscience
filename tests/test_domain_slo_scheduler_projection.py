@@ -251,95 +251,24 @@ def test_local_scheduler_status_and_remove_direct_calls_are_rejected(tmp_path: P
         module.remove_supervision(profile=profile, manager="local")
 
 
-def test_explicit_hermes_adapter_is_projected_under_mas_scheduler_owner(monkeypatch, tmp_path: Path) -> None:
+def test_hermes_scheduler_status_direct_call_is_rejected_after_physical_retirement(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_slo_scheduler_projection")
     profile = make_profile(tmp_path)
 
-    monkeypatch.setattr(
-        module.hermes_supervision,
-        "read_supervision_status",
-        lambda **_: {
-            "schema_version": 1,
-            "surface_kind": "workspace_runtime_supervision",
-            "owner": "hermes_gateway_cron",
-            "status": "loaded",
-            "loaded": True,
-            "job_name": "medautoscience-supervision-diabetes-abc12345",
-            "watch_command": ["watch-runtime", "--interval-seconds", "300"],
-        },
-    )
-
-    result = module.read_supervision_status(profile=profile, manager="hermes")
-
-    assert result["scheduler_owner"] == "mas_legacy_domain_slo_diagnostic"
-    assert result["adapter_id"] == "hermes_gateway_cron"
-    assert result["active_path_role"] == "legacy_scheduler_diagnostic_cleanup_only"
-    assert result["consumer_migration"]["replacement_owner"] == "one-person-lab"
-    assert result["consumer_migration"]["current_surface_allowed_until_replacement"] is False
-    assert result["consumer_migration"]["allowed_operations"] == ["status", "remove_legacy_jobs"]
-    assert set(result["consumer_migration"]["forbidden_operations"]) == {
-        "ensure",
-        "create",
-        "edit",
-        "resume",
-        "trigger_run",
-        "write_tick_script",
-    }
-    assert result["owner"] == "hermes_gateway_cron"
-    assert result["workspace_key"] == "diabetes-abc12345"
-    assert result["outer_supervision_slo"]["supervision_owner"] == "mas_legacy_domain_slo_diagnostic"
-    assert result["outer_supervision_slo"]["adapter_id"] == "hermes_gateway_cron"
-    assert result["outer_supervision_slo"]["handoff"]["replacement_owner"] == "one-person-lab"
-    assert result["outer_supervision_slo"]["consumer_migration"]["retirement_proof_required"] == [
-        "opl_replacement_contract_available",
-        "replacement_proof",
-        "no_active_caller_proof",
-        "no_forbidden_write",
-        "focused_cli_status_tests",
-        "git_diff_check",
-    ]
+    with pytest.raises(ValueError, match="Hermes gateway scheduler is physically retired"):
+        module.read_supervision_status(profile=profile, manager="hermes")
 
 
-def test_explicit_hermes_ensure_direct_call_returns_retired_tombstone_without_creating_job(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_hermes_scheduler_ensure_and_remove_direct_calls_are_rejected(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_slo_scheduler_projection")
     profile = make_profile(tmp_path)
-    called = {"ensure": False}
 
-    def fake_ensure_supervision(**_: object) -> dict[str, object]:
-        called["ensure"] = True
-        return {}
-
-    monkeypatch.setattr(module.hermes_supervision, "ensure_supervision", fake_ensure_supervision)
-    monkeypatch.setattr(
-        module.hermes_supervision,
-        "read_supervision_status",
-        lambda **_: {
-            "schema_version": 1,
-            "surface_kind": "workspace_runtime_supervision",
-            "owner": "hermes_gateway_cron",
-            "status": "not_installed",
-            "loaded": False,
-            "job_exists": False,
-        },
-    )
-
-    result = module.ensure_supervision(
-        profile=profile,
-        manager="hermes",
-        trigger_now=True,
-        write_install_proof=True,
-    )
-
-    assert called["ensure"] is False
-    assert result["action"] == "retired_ensure_path"
-    assert result["manager"] == "hermes"
-    assert result["adapter_id"] == "hermes_gateway_cron"
-    assert result["active_path_role"] == "legacy_scheduler_diagnostic_cleanup_only"
-    assert result["install_allowed"] is False
-    assert result["trigger_allowed"] is False
-    assert result["write_tick_script_allowed"] is False
-    assert result["write_install_proof"] is False
-    assert result["requested_write_install_proof"] is True
-    assert result["command_outputs"] == []
+    with pytest.raises(ValueError, match="Hermes gateway scheduler is physically retired"):
+        module.ensure_supervision(
+            profile=profile,
+            manager="hermes",
+            trigger_now=True,
+            write_install_proof=True,
+        )
+    with pytest.raises(ValueError, match="Hermes gateway scheduler is physically retired"):
+        module.remove_supervision(profile=profile, manager="hermes")

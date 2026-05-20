@@ -187,12 +187,8 @@ def _blocked_reasons(supervision: Mapping[str, Any]) -> list[str]:
         reasons.append("retired_legacy_cleanup_required")
     if status == "execution_failed":
         reasons.append("latest_scheduler_tick_execution_failed")
-        if adapter_id == "hermes_gateway_cron":
-            reasons.append("latest_hermes_cron_execution_failed")
     if status in {"not_loaded", "not_installed"} and supervision:
         reasons.append(f"domain_slo_scheduler_projection_{status}")
-        if adapter_id == "hermes_gateway_cron":
-            reasons.append(f"hermes_supervision_{status}")
     return list(dict.fromkeys(reasons))
 
 

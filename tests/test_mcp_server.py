@@ -227,12 +227,12 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
                 "execution:",
                 "  auto_entry: on_managed_research_intent",
                 "  quest_id: quest-001",
-                "  runtime_backend_id: hermes",
-                "  runtime_backend: hermes",
-                "  runtime_engine_id: hermes",
-                "  research_backend_id: med_deepscientist",
-                "  research_backend: med_deepscientist",
-                "  research_engine_id: med-deepscientist",
+                "  runtime_backend_id: mas_runtime_core",
+                "  runtime_backend: mas_runtime_core",
+                "  runtime_engine_id: mas-runtime-core",
+                "  research_backend_id: mas_runtime_core",
+                "  research_backend: mas_runtime_core",
+                "  research_engine_id: mas-runtime-core",
             ]
         )
         + "\n",
@@ -285,7 +285,7 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
     assert status_result["isError"] is False
     assert progress_result["isError"] is False
     assert cockpit_result["isError"] is False
-    assert status_result["structuredContent"]["execution"]["runtime_backend_id"] == "hermes"
+    assert status_result["structuredContent"]["execution"]["runtime_backend_id"] == "mas_runtime_core"
     assert progress_result["structuredContent"]["quest_root"] == str(workspace_root / "runtime" / "quests" / "quest-001")
     assert cockpit_result["structuredContent"]["profile_name"] == "minimal"
 

@@ -251,7 +251,8 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert matrix["default_operation_requires_external_mds"] is False
     assert matrix["default_supervision_owner"] == "opl_provider_runtime_manager"
     assert matrix["default_scheduler_adapter"] == "opl"
-    assert matrix["optional_scheduler_adapters"] == ["hermes_gateway_cron"]
+    assert matrix["optional_scheduler_adapters"] == []
+    assert matrix["retired_scheduler_adapters"] == ["hermes_gateway_cron_retired_tombstone"]
     assert matrix["default_tick_interval_seconds"] == 300
     assert matrix["default_tick_max_ticks"] == 1
     assert matrix["mas_default_runtime_is_resident_daemon"] is False
@@ -393,7 +394,8 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert continuity["active_scheduler_adapter"] == "opl"
     assert continuity["legacy_diagnostic_scheduler"] == "mas_legacy_domain_slo_diagnostic"
     assert continuity["legacy_diagnostic_scheduler_adapter"] == "local"
-    assert continuity["optional_scheduler_adapters"] == ["hermes_gateway_cron"]
+    assert continuity["optional_scheduler_adapters"] == []
+    assert continuity["retired_scheduler_adapters"] == ["hermes_gateway_cron_retired_tombstone"]
     assert continuity["runtime_session_read_model"]["role"] == "read_model"
     assert continuity["runtime_session_read_model"]["read_only"] is True
     assert continuity["runtime_session_read_model"]["writes_authority_surface"] is False

@@ -59,34 +59,15 @@ def test_show_profile_prints_resolved_contract(tmp_path: Path, capsys) -> None:
     assert "medical_overlay_scope: workspace" in captured.out
     assert "hermes_home_root: " in captured.out
     assert "autofigure" not in captured.out.lower()
-def test_hermes_runtime_check_command_prints_json(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_doctor_hermes_runtime_grouped_command_is_retired(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    hermes_runtime_check = importlib.import_module("med_autoscience.controllers.hermes_runtime_check")
 
-    expected = {
-        "decision": "blocked_hermes_provider_not_configured",
-        "recommended_actions": ["configure_hermes_model_or_provider"],
-    }
-    monkeypatch.setattr(
-        hermes_runtime_check,
-        "run_hermes_runtime_check",
-        lambda **_: expected,
-    )
-
-    exit_code = cli.main(
-        [
-            "doctor",
-            "hermes-runtime",
-            "--hermes-agent-repo-root",
-            str(tmp_path / "hermes-agent"),
-            "--hermes-home-root",
-            str(tmp_path / ".hermes"),
-        ]
-    )
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["doctor", "hermes-runtime", "--profile", str(tmp_path / "profile.toml")])
     captured = capsys.readouterr()
 
-    assert exit_code == 0
-    assert json.loads(captured.out) == expected
+    assert excinfo.value.code == "Grouped command requires a supported subcommand under `doctor`."
+    assert captured.err == ""
 def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, capsys) -> None:
     profile_path = tmp_path / "nfpitnet.local.toml"
     write_profile(profile_path)

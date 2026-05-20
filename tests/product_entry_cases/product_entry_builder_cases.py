@@ -86,7 +86,7 @@ def test_build_phase3_clearance_lane_uses_shared_builder(monkeypatch, tmp_path: 
     assert payload["surface_kind"] == "phase3_host_clearance_lane"
     assert str(captured["recommended_command"]).endswith("doctor --profile " + str(profile_ref.resolve()))
     assert len(captured["clearance_targets"]) == 3
-    assert len(captured["clearance_loop"]) == 6
+    assert len(captured["clearance_loop"]) == 5
     assert len(captured["proof_surfaces"]) == 5
 
 def test_build_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) -> None:

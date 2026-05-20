@@ -5,7 +5,7 @@ import hashlib
 import re
 from typing import Any
 
-from med_autoscience.controllers import hermes_supervision, outer_supervision_slo
+from med_autoscience.controllers import outer_supervision_slo
 from med_autoscience.controllers.domain_slo_scheduler_projection_parts import consumer_migration
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -15,10 +15,10 @@ SCHEDULER_OWNER = "opl_provider_runtime_manager"
 OPL_SCHEDULER_OWNER = SCHEDULER_OWNER
 LEGACY_MAS_SCHEDULER_OWNER = "mas_legacy_domain_slo_diagnostic"
 OPL_ADAPTER_ID = "opl_family_runtime_provider"
-HERMES_ADAPTER_ID = "hermes_gateway_cron"
 DEFAULT_MANAGER = "opl"
 DEFAULT_INTERVAL_SECONDS = 5 * 60
 RETIRED_LOCAL_ADAPTER_ID = "local_launchd_retired_tombstone"
+RETIRED_HERMES_ADAPTER_ID = "hermes_gateway_cron_retired_tombstone"
 
 
 def read_supervision_status(
@@ -36,7 +36,10 @@ def read_supervision_status(
             "OPL provider/runtime manager projection or read legacy tombstone refs."
         )
     elif manager_key == "hermes":
-        payload = _hermes_status(profile=profile, interval_seconds=interval_seconds)
+        raise ValueError(
+            "MAS Hermes gateway scheduler is physically retired; use manager='opl' for the "
+            "OPL provider/runtime manager projection or read legacy tombstone refs."
+        )
     else:
         raise ValueError(f"unsupported supervision scheduler manager: {manager}")
     return _with_scheduler_contract(
@@ -75,17 +78,9 @@ def ensure_supervision(
             "OPL provider/runtime manager projection or read legacy tombstone refs."
         )
     if manager_key == "hermes":
-        payload = _retired_hermes_scheduler_ensure_tombstone(
-            profile=profile,
-            interval_seconds=interval_seconds,
-            trigger_now=trigger_now,
-            dry_run=dry_run,
-            write_install_proof=write_install_proof,
-        )
-        return _attach_consumer_migration(
-            _project_hermes_result(payload),
-            adapter_id=HERMES_ADAPTER_ID,
-            manager="hermes",
+        raise ValueError(
+            "MAS Hermes gateway scheduler is physically retired; use manager='opl' for the "
+            "OPL provider/runtime manager projection or read legacy tombstone refs."
         )
     raise ValueError(f"unsupported supervision scheduler manager: {manager}")
 
@@ -115,11 +110,9 @@ def remove_supervision(
             "history/tombstone refs and OPL lifecycle receipt records, not an active manager path."
         )
     if manager_key == "hermes":
-        payload = hermes_supervision.remove_supervision(profile=profile, interval_seconds=interval_seconds)
-        return _attach_consumer_migration(
-            _project_hermes_result(payload),
-            adapter_id=HERMES_ADAPTER_ID,
-            manager="hermes",
+        raise ValueError(
+            "MAS Hermes gateway scheduler is physically retired; cleanup is represented by "
+            "history/tombstone refs and OPL lifecycle receipt records, not an active manager path."
         )
     raise ValueError(f"unsupported supervision scheduler manager: {manager}")
 
@@ -244,6 +237,11 @@ def _opl_replacement_status(*, profile: WorkspaceProfile, interval_seconds: int)
             "tombstone_ref": legacy_tombstone["tombstone_ref"],
             "retained_context": legacy_tombstone["retained_context"],
         },
+        "legacy_hermes_adapter": _retired_hermes_scheduler_tombstone(
+            profile=profile,
+            interval_seconds=interval_seconds,
+            requested_action="status",
+        ),
         "authority_boundary": _authority_boundary(),
     }
     payload["outer_supervision_slo"] = outer_supervision_slo.build_outer_supervision_slo_projection(
@@ -314,6 +312,7 @@ def _opl_replacement_contract(*, interval_seconds: int) -> dict[str, Any]:
         ],
         "legacy_scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
         "legacy_scheduler_role": "physical_retired_tombstone_provenance_only",
+        "legacy_hermes_scheduler_role": "physical_retired_tombstone_provenance_only",
     }
 
 
@@ -390,6 +389,73 @@ def _retired_local_scheduler_tombstone(
     }
 
 
+def _retired_hermes_scheduler_tombstone(
+    *,
+    profile: WorkspaceProfile,
+    interval_seconds: int,
+    requested_action: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "workspace_runtime_supervision_legacy_tombstone",
+        "status": "retired_physical_tombstone",
+        "action": "retired_physical_tombstone",
+        "requested_action": requested_action,
+        "manager": "hermes",
+        "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
+        "adapter_id": RETIRED_HERMES_ADAPTER_ID,
+        "active_path_role": consumer_migration.LOCAL_TOMBSTONE_PATH_ROLE,
+        "generated_at": _utc_now(),
+        "workspace_key": _workspace_key(profile),
+        "interval_seconds": interval_seconds,
+        "loaded": False,
+        "adapter_loaded": False,
+        "adapter_enabled": False,
+        "adapter_installed": False,
+        "job_exists": False,
+        "job_enabled": False,
+        "job_state": "retired_physical_tombstone",
+        "adapter_status": {
+            "adapter_installed": False,
+            "adapter_loaded": False,
+            "adapter_enabled": False,
+            "migration_state": "physical_retired_tombstone",
+        },
+        "schedule_spec": {"kind": "retired_physical_tombstone"},
+        "desired_schedule": "retired_physical_tombstone",
+        "overlap_policy": "not_applicable_retired_hermes_adapter",
+        "misfire_policy": "not_applicable_retired_hermes_adapter",
+        "watch_command": [],
+        "tick_sequence": [],
+        "drift_reasons": [],
+        "duplicate_job_ids": [],
+        "removed_job_ids": [],
+        "command_outputs": [],
+        "install_allowed": False,
+        "status_allowed": False,
+        "remove_allowed": False,
+        "trigger_allowed": False,
+        "write_install_proof": False,
+        "summary": (
+            "MAS Hermes gateway scheduler status/remove path has been physically retired; "
+            "only history/tombstone/provenance refs remain."
+        ),
+        "retained_context": "history_tombstone_provenance_only",
+        "tombstone_ref": (
+            "contracts/runtime/legacy-active-path-tombstones.json"
+            "#/tombstoned_surfaces/hermes_gateway_cron_scheduler"
+        ),
+        "history_ref": "docs/history/runtime/legacy_active_path_tombstones.md#hermes-gateway-cron",
+        "replacement_command": "runtime-ensure-supervision --profile <profile> --manager opl",
+        "cleanup_command": None,
+        "diagnostic_status_command": None,
+        "legacy_service": {},
+        "retired_artifacts": {},
+        "retired_legacy_cleanup_required": False,
+        "body_included": False,
+    }
+
+
 def _authority_boundary() -> dict[str, bool]:
     return {
         "can_install_domain_daemon": False,
@@ -411,108 +477,14 @@ def _authority_boundary() -> dict[str, bool]:
     }
 
 
-def _hermes_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[str, Any]:
-    payload = dict(hermes_supervision.read_supervision_status(profile=profile, interval_seconds=interval_seconds))
-    payload.update(
-        {
-            "adapter_id": HERMES_ADAPTER_ID,
-            "manager": "hermes",
-            "workspace_key": _workspace_key_from_hermes(payload) or _workspace_key(profile),
-            "adapter_installed": bool(payload.get("job_exists")),
-            "adapter_loaded": bool(payload.get("loaded")),
-            "adapter_enabled": bool(payload.get("job_enabled")),
-            "migration_state": payload.get("migration_state") or "none",
-            "last_receipt_ref": payload.get("latest_run_session_path"),
-        }
-    )
-    payload.setdefault("owner", HERMES_ADAPTER_ID)
-    return payload
-
-
-def _project_hermes_result(payload: dict[str, Any]) -> dict[str, Any]:
-    projected = dict(payload)
-    projected.setdefault("schema_version", SCHEMA_VERSION)
-    projected["scheduler_owner"] = LEGACY_MAS_SCHEDULER_OWNER
-    projected["adapter_id"] = HERMES_ADAPTER_ID
-    projected["manager"] = "hermes"
-    for key in ("before", "after"):
-        if isinstance(projected.get(key), dict):
-            projected[key] = _project_hermes_status_dict(projected[key])
-    return projected
-
-
-def _project_hermes_status_dict(payload: dict[str, Any]) -> dict[str, Any]:
-    return {
-        **payload,
-        "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
-        "adapter_id": HERMES_ADAPTER_ID,
-        "manager": "hermes",
-    }
-
-
-def _retired_hermes_scheduler_ensure_tombstone(
-    *,
-    profile: WorkspaceProfile,
-    interval_seconds: int,
-    trigger_now: bool,
-    dry_run: bool,
-    write_install_proof: bool,
-) -> dict[str, Any]:
-    before = _hermes_status(profile=profile, interval_seconds=interval_seconds)
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "surface_kind": "workspace_runtime_supervision_legacy_tombstone",
-        "status": "retired_ensure_path",
-        "action": "retired_ensure_path",
-        "requested_action": "ensure",
-        "manager": "hermes",
-        "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
-        "adapter_id": HERMES_ADAPTER_ID,
-        "generated_at": _utc_now(),
-        "workspace_key": _workspace_key(profile),
-        "interval_seconds": interval_seconds,
-        "before": before,
-        "after": before,
-        "dry_run": bool(dry_run),
-        "trigger_now": bool(trigger_now),
-        "write_install_proof": False,
-        "requested_write_install_proof": bool(write_install_proof),
-        "install_allowed": False,
-        "status_allowed": True,
-        "remove_allowed": True,
-        "trigger_allowed": False,
-        "write_tick_script_allowed": False,
-        "command_outputs": [],
-        "removed_job_ids": [],
-        "summary": (
-            "Hermes gateway cron ensure/create/refresh/trigger path is retired. "
-            "Use manager='opl' for active scheduler ownership, manager='hermes' status for legacy "
-            "diagnostics, or manager='hermes' remove for cleanup of existing legacy jobs."
-        ),
-        "replacement_command": "runtime-ensure-supervision --profile <profile> --manager opl",
-        "diagnostic_status_command": "runtime-supervision-status --profile <profile> --manager hermes",
-        "cleanup_command": "runtime-remove-supervision --profile <profile> --manager hermes",
-        "retained_context": "legacy_scheduler_diagnostic_cleanup_only",
-        "body_included": False,
-    }
-
-
 def _adapter_id_for_manager(manager: str) -> str:
     if manager == "opl":
         return OPL_ADAPTER_ID
     if manager == "hermes":
-        return HERMES_ADAPTER_ID
+        return RETIRED_HERMES_ADAPTER_ID
     if manager == "local":
         return RETIRED_LOCAL_ADAPTER_ID
     raise ValueError(f"unsupported supervision scheduler manager: {manager}")
-
-
-def _workspace_key_from_hermes(payload: dict[str, Any]) -> str | None:
-    job_name = str(payload.get("job_name") or "")
-    prefix = "medautoscience-supervision-"
-    if job_name.startswith(prefix):
-        return job_name[len(prefix) :]
-    return None
 
 
 def _normalize_manager(manager: str | None) -> str:

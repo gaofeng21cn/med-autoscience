@@ -14,12 +14,9 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         ),
         "clearance_targets": [
             {
-                "target_id": "external_runtime_contract",
-                "title": "Check optional hosted runtime contract",
-                "commands": [
-                    "uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve()),
-                    "uv run python -m med_autoscience.cli hermes-runtime-check --profile " + str(profile_ref.resolve()),
-                ],
+                "target_id": "mas_runtime_contract",
+                "title": "Check MAS runtime and legacy hosted-runtime tombstone contract",
+                "commands": ["uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve())],
             },
             {
                 "target_id": "supervisor_service",
@@ -57,20 +54,11 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         ],
         "clearance_loop": [
             {
-                "step_id": "external_runtime_contract",
-                "title": "确认 optional hosted runtime contract 或 MAS runtime contract ready",
+                "step_id": "mas_runtime_contract",
+                "title": "确认 MAS runtime contract ready，旧 hosted runtime 仅保留 tombstone/provenance",
                 "surface_kind": "doctor_runtime_contract",
                 "command": (
                     "uv run python -m med_autoscience.cli doctor --profile "
-                    + str(profile_ref.resolve())
-                ),
-            },
-            {
-                "step_id": "hermes_runtime_check",
-                "title": "显式检查 optional Hermes runtime 绑定证据",
-                "surface_kind": "hermes_runtime_check",
-                "command": (
-                    "uv run python -m med_autoscience.cli hermes-runtime-check --profile "
                     + str(profile_ref.resolve())
                 ),
             },
@@ -118,7 +106,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         ],
         "proof_surfaces": [
             {
-                "surface_kind": "doctor.external_runtime_contract",
+                "surface_kind": "doctor.runtime_contract",
                 "command": "uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve()),
             },
             {

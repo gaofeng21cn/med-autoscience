@@ -210,10 +210,10 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["phase3_clearance_lane"]["recommended_command"] == (
         "uv run python -m med_autoscience.cli doctor --profile <profile>"
     )
-    assert payload["phase3_clearance_lane"]["clearance_targets"][0]["target_id"] == "external_runtime_contract"
+    assert payload["phase3_clearance_lane"]["clearance_targets"][0]["target_id"] == "mas_runtime_contract"
     assert payload["phase3_clearance_lane"]["proof_surfaces"] == [
         {
-            "surface_kind": "doctor.external_runtime_contract",
+            "surface_kind": "doctor.runtime_contract",
             "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
         },
         {
@@ -236,8 +236,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
             "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
         },
     ]
-    assert payload["phase3_clearance_lane"]["clearance_loop"][0]["step_id"] == "external_runtime_contract"
-    assert payload["phase3_clearance_lane"]["clearance_loop"][3]["step_id"] == "refresh_supervision"
+    assert payload["phase3_clearance_lane"]["clearance_loop"][0]["step_id"] == "mas_runtime_contract"
+    assert payload["phase3_clearance_lane"]["clearance_loop"][2]["step_id"] == "refresh_supervision"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["substrate_targets"][0]["capability_id"] == "session_run_watch_recovery"
     assert payload["phase4_backend_deconstruction"]["deconstruction_map_ref"] == (
