@@ -30,13 +30,14 @@ from .runtime_event_relay import (
     runtime_event_outer_loop_input,
     runtime_event_status_snapshot,
 )
+from .owner_handoff_authorization import (
+    blocked_closeout_owner_handoff_authorization,
+    owner_token,
+)
 
 
 def _owner_token(value: str | None) -> str:
-    normalized = (value or "").strip().lower().replace("-", "_")
-    if ":" in normalized:
-        normalized = normalized.split(":", 1)[0].strip()
-    return normalized
+    return owner_token(value)
 
 
 def clear_stale_platform_repair_redrive_after_pause(
@@ -589,11 +590,19 @@ def record_explicit_waiting_owner_wakeup(
         for owner in callable_owner_names()
         if str(owner).strip()
     }
+    owner_handoff_authorization = blocked_closeout_owner_handoff_authorization(
+        quest_root=quest_root,
+        runtime_state=runtime_state,
+        blocked_closeout=blocked_closeout,
+        next_owner=next_owner,
+    )
     if (
         next_owner not in callable_owner_tokens
         and next_owner not in {"mas_controller", "controller"}
         and not next_owner.startswith("mas/controller ")
     ):
+        return None
+    if next_owner not in {"mas_controller", "controller"} and owner_handoff_authorization is None:
         return None
     if not isinstance(runtime_state.get("last_controller_decision_authorization"), dict):
         return None
@@ -620,13 +629,16 @@ def record_explicit_waiting_owner_wakeup(
     runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
     runtime_state["continuation_updated_at"] = recorded_at
     runtime_state["same_fingerprint_auto_turn_count"] = 0
-    runtime_state["last_explicit_user_wakeup"] = {
+    last_explicit_user_wakeup = {
         "source": source,
         "recorded_at": recorded_at,
         "cleared_keys": cleared_keys,
         "cleared_wait_owner": next_owner,
         "previous_continuation_reason": "blocked_turn_closeout_waiting_for_owner",
     }
+    if owner_handoff_authorization is not None:
+        last_explicit_user_wakeup["owner_handoff_authorization"] = owner_handoff_authorization
+    runtime_state["last_explicit_user_wakeup"] = last_explicit_user_wakeup
     runtime_state_path.write_text(
         json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",

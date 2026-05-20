@@ -11,6 +11,7 @@ from med_autoscience.controllers.domain_route_scan_parts import platform_current
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
 )
+from med_autoscience.runtime_transport import mas_runtime_core_turn_owner_handoff
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -43,7 +44,12 @@ _RUNTIME_REDRIVE_ACTION_NAMES = frozenset(
     }
 )
 _SUPERVISOR_DISPATCH_ACTION_NAMES = frozenset({"return_to_ai_reviewer_workflow"})
-_ANALYSIS_HARMONIZATION_DISPATCH_ACTION_NAMES = frozenset({"unit_harmonized_external_validation_rerun"})
+_DOMAIN_OWNER_DISPATCH_ACTION_NAMES = frozenset(
+    {
+        "unit_harmonized_external_validation_rerun",
+        "recover_transport_model_provenance",
+    }
+)
 _SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
 _ANALYSIS_HARMONIZATION_WORK_UNIT_IDS = frozenset(
     {
@@ -195,6 +201,23 @@ def _sync_current_controller_authorization_for_turn(
     quest_id: str,
     run_id: str,
 ) -> dict[str, Any]:
+    owner_handoff_authorization = _blocked_closeout_owner_handoff_authorization(runtime_state)
+    if owner_handoff_authorization:
+        updated = dict(runtime_state)
+        authorization = _bind_authorization_to_turn(
+            authorization=owner_handoff_authorization,
+            quest_root=quest_root,
+            quest_id=quest_id,
+            run_id=run_id,
+        )
+        if _mapping(updated.get("current_controller_authorization")) == authorization:
+            return updated
+        updated["quest_id"] = _text(updated.get("quest_id")) or quest_id
+        updated["current_controller_authorization"] = authorization
+        updated["current_controller_authorization_synced_at"] = _utc_now()
+        updated["current_controller_authorization_sync_status"] = "blocked_turn_closeout_owner_handoff"
+        _write_runtime_state(quest_root=quest_root, runtime_state=updated)
+        return updated
     current_authorization = _current_controller_decision_authorization(
         quest_root=quest_root,
         quest_id=quest_id,
@@ -239,6 +262,9 @@ def _controller_authorization(
 ) -> dict[str, Any]:
     if not isinstance(runtime_state, Mapping):
         return {}
+    owner_handoff_authorization = _blocked_closeout_owner_handoff_authorization(runtime_state)
+    if owner_handoff_authorization:
+        return owner_handoff_authorization
     current_controller_authorization = _current_controller_decision_authorization(
         quest_root=quest_root,
         quest_id=quest_id,
@@ -264,6 +290,15 @@ def _controller_authorization(
                 return {}
             return authorization
     return {}
+
+
+def _blocked_closeout_owner_handoff_authorization(runtime_state: Mapping[str, Any]) -> dict[str, Any]:
+    return mas_runtime_core_turn_owner_handoff.blocked_closeout_owner_handoff_authorization(
+        runtime_state,
+        action_names_for_authorization=_controller_action_names,
+        mapping=_mapping,
+        text=_text,
+    )
 
 
 def _current_controller_decision_authorization(
@@ -765,7 +800,7 @@ def _primary_controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[
 
 
 def _controller_action_command(*, action_name: str, quest_id: str) -> str | None:
-    if action_name in _SUPERVISOR_DISPATCH_ACTION_NAMES or action_name in _ANALYSIS_HARMONIZATION_DISPATCH_ACTION_NAMES:
+    if action_name in _SUPERVISOR_DISPATCH_ACTION_NAMES or action_name in _DOMAIN_OWNER_DISPATCH_ACTION_NAMES:
         return (
             '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
             "-m med_autoscience.cli domain-owner-action-dispatch "
@@ -910,7 +945,7 @@ def _controller_callable_action_present(action_names: list[str]) -> bool:
     return any(
         name in {"run_quality_repair_batch", "run_gate_clearing_batch"}
         or name in _SUPERVISOR_DISPATCH_ACTION_NAMES
-        or name in _ANALYSIS_HARMONIZATION_DISPATCH_ACTION_NAMES
+        or name in _DOMAIN_OWNER_DISPATCH_ACTION_NAMES
         for name in action_names
     )
 

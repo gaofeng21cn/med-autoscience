@@ -239,3 +239,93 @@ def test_waiting_controller_colon_owner_closeout_resumes_after_explicit_user_wak
     assert runtime_state["continuation_anchor"] == "decision"
     assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
     assert "blocked_turn_closeout" not in runtime_state
+
+
+def test_waiting_source_provenance_owner_closeout_records_executable_owner_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    _, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 0,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+                "blocked_turn_closeout": {
+                    "run_id": "run-hdl-blocked",
+                    "blocked_reason": "unit_harmonized_rerun_required",
+                    "next_owner": "source_provenance_owner",
+                    "closeout_path": str(
+                        quest_root / "artifacts" / "runtime" / "turn_closeouts" / "run-hdl-blocked.json"
+                    ),
+                },
+                "last_controller_decision_authorization": {
+                    "decision_id": "unit-harmonized-uncertainty-routeback",
+                    "controller_actions": ["ensure_study_runtime"],
+                    "route_target": "analysis-campaign",
+                    "work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "work_unit_fingerprint": (
+                        "domain-transition::route_back_same_line::"
+                        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+                    ),
+                    "next_work_unit": {
+                        "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                        "lane": "analysis-campaign",
+                    },
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: {
+            "ok": True,
+            "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract},
+        },
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: {
+            "ok": True,
+            "status": "running",
+            "snapshot": {"status": "running", "active_run_id": "run-source-provenance"},
+        },
+    )
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id=study_id,
+        explicit_user_wakeup=True,
+        source="user_explicit_wakeup",
+    )
+
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    handoff = runtime_state["last_explicit_user_wakeup"]["owner_handoff_authorization"]
+    assert result["explicit_user_wakeup"]["cleared_wait_owner"] == "source_provenance_owner"
+    assert handoff["authorization_basis"] == "blocked_turn_closeout_owner_handoff"
+    assert handoff["controller_actions"] == ["recover_transport_model_provenance"]
+    assert handoff["work_unit_id"] == "recover_transport_model_provenance"
+    assert handoff["next_owner"] == "source_provenance_owner"
+    assert handoff["next_work_unit"]["unit_id"] == "recover_transport_model_provenance"
+    assert handoff["owner_callable_surface"] == (
+        "source_provenance_owner.recover_transport_model_provenance_or_typed_blocker"
+    )
+    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+    assert "blocked_turn_closeout" not in runtime_state
