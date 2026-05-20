@@ -20,6 +20,7 @@ BLOCKED_CLOSEOUT_STATUS = "blocked"
 BLOCKED_CLOSEOUT_RUNNER_STATUS = "blocked_waiting_for_user"
 BLOCKED_CLOSEOUT_REASON = "blocked_turn_closeout_waiting_for_owner"
 TERMINAL_RUNTIME_STATUSES = frozenset({"stopped", "paused", "completed", "failed", "error", "cancelled"})
+SAME_OWNER_MANUSCRIPT_STORY_FOLLOWTHROUGH_REASON = "same_owner_manuscript_story_followthrough_required"
 
 
 def blocked_closeout_wait_state(*, completion: Mapping[str, Any], run_id: str) -> dict[str, Any]:
@@ -90,6 +91,20 @@ def inspect_runner_completion(
         }
     closeout = _read_json(closeout_path)
     closeout_fields = _closeout_fields(closeout)
+    if _same_owner_manuscript_story_followthrough_closeout(closeout_fields):
+        return {
+            "state": "incomplete",
+            "reason": SAME_OWNER_MANUSCRIPT_STORY_FOLLOWTHROUGH_REASON,
+            "run_id": run_id,
+            "raw_runner_status": normalized_runner_status,
+            "normalized_runner_status": INCOMPLETE_RUNNER_STATUS,
+            "closeout_path": str(closeout_path),
+            "stdout_path": str(stdout_path),
+            "stdout_event_count": stdout["event_count"],
+            "stdout_open_item_count": stdout["open_item_count"],
+            "stdout_turn_completed": stdout["turn_completed"],
+            **closeout_fields,
+        }
     invalid_delta_refs = _invalid_meaningful_delta_refs(closeout)
     if invalid_delta_refs:
         return {
@@ -134,12 +149,19 @@ def inspect_logical_turn_completion(*, quest_root: Path, run_id: str | None) -> 
         return None
     closeout = _read_json(closeout_path)
     closeout_fields = _closeout_fields(closeout)
+    same_owner_story_followthrough = _same_owner_manuscript_story_followthrough_closeout(closeout_fields)
     blocked_closeout = closeout_fields["closeout_status"] == BLOCKED_CLOSEOUT_STATUS
     latest_receipt = _read_json(quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json")
     receipt_status = _text(latest_receipt.get("status"))
     return {
         "state": "completed",
-        "reason": BLOCKED_CLOSEOUT_REASON if blocked_closeout else "logical_turn_completed",
+        "reason": (
+            SAME_OWNER_MANUSCRIPT_STORY_FOLLOWTHROUGH_REASON
+            if same_owner_story_followthrough
+            else BLOCKED_CLOSEOUT_REASON
+            if blocked_closeout
+            else "logical_turn_completed"
+        ),
         "run_id": run_id,
         "closeout_path": str(closeout_path),
         "stdout_path": str(stdout_path),
@@ -150,8 +172,14 @@ def inspect_logical_turn_completion(*, quest_root: Path, run_id: str | None) -> 
             _text(latest_receipt.get("run_id")) == run_id
             and receipt_status in TERMINAL_RECEIPT_STATUSES
         ),
-        "completion_runner_status": BLOCKED_CLOSEOUT_RUNNER_STATUS if blocked_closeout else "succeeded",
-        "target_status": "waiting_for_user" if blocked_closeout else "active",
+        "completion_runner_status": (
+            INCOMPLETE_RUNNER_STATUS
+            if same_owner_story_followthrough
+            else BLOCKED_CLOSEOUT_RUNNER_STATUS
+            if blocked_closeout
+            else "succeeded"
+        ),
+        "target_status": "active" if same_owner_story_followthrough else "waiting_for_user" if blocked_closeout else "active",
         **closeout_fields,
     }
 
@@ -218,6 +246,15 @@ def _closeout_fields(closeout: Mapping[str, Any]) -> dict[str, Any]:
         "blocked_reason": _text(closeout.get("blocked_reason")),
         "next_owner": _text(closeout.get("next_owner")),
     }
+
+
+def _same_owner_manuscript_story_followthrough_closeout(closeout_fields: Mapping[str, Any]) -> bool:
+    if _text(closeout_fields.get("closeout_status")) != BLOCKED_CLOSEOUT_STATUS:
+        return False
+    if _text(closeout_fields.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
+        return False
+    next_owner = (_text(closeout_fields.get("next_owner")) or "").lower()
+    return next_owner in {"write", "mas/write"}
 
 
 def next_retry_state(
