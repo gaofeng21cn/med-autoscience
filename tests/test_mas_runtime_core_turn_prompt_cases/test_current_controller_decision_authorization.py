@@ -464,3 +464,155 @@ def test_codex_exec_runner_prompt_prefers_current_ai_reviewer_decision_over_stal
         current_authorization["work_unit_fingerprint"]
         == "domain-transition::ai_reviewer_re_eval::ai_reviewer_recheck"
     )
+
+
+def test_codex_exec_runner_prompt_prefers_story_surface_delta_blocker_over_stale_gate_decision(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    workspace_root = tmp_path / "workspace"
+    quest_id = "002-dm-china-us-mortality-attribution"
+    quest_root = workspace_root / "runtime" / "quests" / quest_id
+    runtime_root = workspace_root / "runtime"
+    study_root = workspace_root / "studies" / quest_id
+    _write_workspace_python(quest_root)
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {quest_id}\n", encoding="utf-8")
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "status": "paused",
+  "last_controller_decision_authorization": {
+    "decision_id": "old-gate-recheck",
+    "controller_actions": ["run_gate_clearing_batch"],
+    "route_target": "publication_gate",
+    "work_unit_id": "publication_gate_recheck",
+    "work_unit_fingerprint": "publication-blockers::old-gate"
+  }
+}
+""",
+        encoding="utf-8",
+    )
+    eval_id = "publication-eval::dm002::story-current"
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    publication_eval_path.parent.mkdir(parents=True, exist_ok=True)
+    publication_eval_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": eval_id,
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "route_target": "write",
+                        "route_key_question": "Rewrite the manuscript around the clean external-validation story.",
+                        "route_rationale": "The current manuscript still carries internal correction-history language.",
+                        "work_unit_fingerprint": "ai_reviewer_story_clean_external_validation_v3",
+                        "next_work_unit": {
+                            "unit_id": "manuscript_story_repair",
+                            "lane": "write",
+                            "summary": "Repair manuscript story from current evidence without internal QA history.",
+                        },
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    quality_batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    quality_batch_path.parent.mkdir(parents=True, exist_ok=True)
+    quality_batch_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "blocked",
+                "source_eval_id": eval_id,
+                "next_owner": "write",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "repair_execution_evidence": {
+                    "blockers": ["manuscript_story_surface_delta_missing"],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    controller_decision_path.parent.mkdir(parents=True, exist_ok=True)
+    controller_decision_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_id": "stale-publication-gate-recheck",
+                "study_id": quest_id,
+                "quest_id": quest_id,
+                "emitted_at": "2026-05-19T12:00:00+00:00",
+                "decision_type": "publication_gate_blocker",
+                "publication_eval_ref": {
+                    "eval_id": eval_id,
+                    "artifact_path": str(publication_eval_path),
+                },
+                "requires_human_confirmation": False,
+                "controller_actions": [
+                    {
+                        "action_type": "run_gate_clearing_batch",
+                        "payload_ref": str(controller_decision_path),
+                    }
+                ],
+                "reason": "Stale gate recheck should not supersede write-owner story repair.",
+                "route_target": "publication_gate",
+                "route_key_question": "Recheck publication gate.",
+                "route_rationale": "Old lifecycle route.",
+                "work_unit_fingerprint": "publication-blockers::old-gate",
+                "next_work_unit": {
+                    "unit_id": "publication_gate_recheck",
+                    "lane": "publication_gate",
+                    "summary": "Recheck publication gate after upstream repairs.",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id="run-story-repair",
+        reason="explicit_user_wakeup",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    authorization = runtime_state["current_controller_authorization"]
+
+    assert "Active MAS controller work unit" in prompt
+    assert '"work_unit_id": "manuscript_story_repair"' in prompt
+    assert '"route_target": "write"' in prompt
+    assert '"controller_actions": [\n    "run_quality_repair_batch"\n  ]' in prompt
+    assert "Manuscript story repair follow-through contract" in prompt
+    assert "publication_gate_recheck" not in prompt
+    assert "run_gate_clearing_batch" not in prompt
+    assert authorization["authorization_basis"] == "quality_repair_story_surface_delta_blocker"
+    assert authorization["work_unit_id"] == "manuscript_story_repair"
+    assert authorization["route_target"] == "write"
+    assert authorization["controller_actions"] == ["run_quality_repair_batch"]
+    assert authorization["active_run_id"] == "run-story-repair"

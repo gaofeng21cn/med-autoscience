@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import publication_work_unit_lifecycle
+from med_autoscience.controllers.domain_route_scan_parts import platform_current_controller
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
 )
@@ -267,6 +268,9 @@ def _current_controller_decision_authorization(
     study_root = _resolve_study_root_from_quest_root_light(quest_root=Path(quest_root), quest_id=quest_id)
     if study_root is None:
         return {}
+    story_surface_delta_authorization = _current_story_surface_delta_authorization(study_root=study_root)
+    if story_surface_delta_authorization:
+        return story_surface_delta_authorization
     authorization = _load_controller_decision_authorization_context(study_root=study_root)
     if not isinstance(authorization, Mapping):
         return {}
@@ -286,6 +290,20 @@ def _current_controller_decision_authorization(
         _text(normalized.get("blocker_authority_fingerprint")) or _text(next_work_unit.get("fingerprint")),
     )
     return normalized
+
+
+def _current_story_surface_delta_authorization(*, study_root: Path) -> dict[str, Any]:
+    publication_eval_payload = _read_json_mapping(
+        Path(study_root).expanduser().resolve() / "artifacts" / "publication_eval" / "latest.json"
+    )
+    if not publication_eval_payload:
+        return {}
+    authorization = platform_current_controller.story_surface_delta_authorization_payload(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        read_json_object=_read_json_mapping_or_none,
+    )
+    return dict(authorization) if isinstance(authorization, Mapping) else {}
 
 
 def _current_controller_decision_exists(
@@ -761,12 +779,14 @@ def _ai_medical_prose_review_command(*, quest_id: str) -> str:
 def _compact_controller_authorization(authorization: Mapping[str, Any]) -> dict[str, Any]:
     keys = (
         "decision_id",
+        "authorization_basis",
         "controller_actions",
         "route_target",
         "route_key_question",
         "route_rationale",
         "work_unit_id",
         "work_unit_fingerprint",
+        "publication_eval_id",
         "next_work_unit",
         "blocking_work_units",
         "specificity_targets",
@@ -844,6 +864,11 @@ def _read_json_mapping(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _read_json_mapping_or_none(path: Path) -> dict[str, Any] | None:
+    payload = _read_json_mapping(path)
+    return payload or None
 
 
 def _yaml_string_field(path: Path, field_name: str) -> str | None:
