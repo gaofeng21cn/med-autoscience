@@ -438,6 +438,7 @@
 ## 2026-05-20：controller work unit 可消费同一投递 run 的 turn closeout
 
 - 决策：`controller_work_unit_evidence_adoption` 在处理 generic completed work unit 时，候选 `turn_closeout` 不只限当前 `active_run_id`，也包括同一 control-intent ledger 中本次授权之后已 `delivered` 的 run id。候选仍必须是 `status=completed`、`meaningful_artifact_delta=true`、未 blocked、时间不早于当前 authorization，并匹配当前 work unit / route / delivered run identity。
+- 决策：同一 control-intent business key 下若已有 `artifact_written` 后又出现新的 `delivered` 事件，旧 adoption 不再视为当前完成证据；controller 必须重新扫描最新 delivered-run closeout，避免旧 closeout 长期盖住后续更完整的 manuscript repair 或 gate recheck 证据。这是 evidence currentness 修复，不是质量 gate 放宽。
 - 理由：DM002 暴露出 managed runtime 在上一轮已写出 `paper/draft.md` / `paper/build/review_manuscript.md` 的 completed closeout 后，下一轮 active run 先启动，controller 只看当前 active run 会漏掉刚完成的 owner receipt，导致同一 `manuscript_story_repair` 被重复派发。
 - 影响：这是 owner receipt / currentness 消费修复，不放宽 publication gate、AI reviewer 或医学质量判断；旧决策、未投递 run、blocked closeout、无 meaningful manuscript delta 的记录仍不能关闭当前 work unit。
 

@@ -241,6 +241,135 @@ def test_execute_noop_runtime_decision_adopts_prior_delivered_run_closeout_after
     assert marker["active_run_id"] == "run-next"
 
 
+def test_execute_noop_runtime_decision_refreshes_prior_adoption_with_newer_delivered_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_story_repair_authorization(study_root)
+    _write_publication_eval_work_unit_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={
+            "delivery_mode": "managed_runtime_chat",
+            "message_id": "msg-story-repair-1",
+            "active_run_id": "run-story-1",
+            "source": "medautosci-test",
+        },
+        recorded_at="2026-05-20T02:39:00+00:00",
+    )
+    _write_turn_closeout(
+        quest_root=quest_root,
+        run_id="run-story-1",
+        artifact_refs=[
+            "paper/draft.md",
+            "paper/build/review_manuscript.md",
+        ],
+        completed_at="2026-05-20T03:08:12Z",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="artifact_written",
+        payload={
+            "active_run_id": "run-story-1",
+            "report_ref": str(
+                quest_root
+                / "artifacts"
+                / "runtime"
+                / "turn_closeouts"
+                / "run-story-1.json"
+            ),
+            "created_at": "2026-05-20T03:08:12+00:00",
+            "work_unit_id": "manuscript_story_repair",
+            "route_target": "analysis-campaign",
+            "recommended_next_route": "return_to_publication_gate_recheck",
+            "source": "medautosci-test",
+            "next_owner": "publication_gate",
+            "result": {
+                "completed": True,
+                "meaningful_artifact_delta": True,
+                "artifact_refs_count": 2,
+                "publication_gate_recheck_required": True,
+            },
+        },
+        recorded_at="2026-05-20T03:09:00+00:00",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={
+            "delivery_mode": "managed_runtime_chat",
+            "message_id": "msg-story-repair-2",
+            "active_run_id": "run-story-2",
+            "source": "medautosci-test",
+        },
+        recorded_at="2026-05-20T04:21:00+00:00",
+    )
+    closeout_path = _write_turn_closeout(
+        quest_root=quest_root,
+        run_id="run-story-2",
+        artifact_refs=[
+            "paper/draft.md",
+            "paper/build/review_manuscript.md",
+            "artifacts/reports/manuscript_story_repair/latest.json",
+            "artifacts/controller/repair_execution_evidence/latest.json",
+        ],
+        completed_at="2026-05-20T04:32:38Z",
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-next",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status_payload["active_run_id"] = "run-next"
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("newer delivered-run closeout must refresh prior evidence adoption")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+    events = control_intent.read_events(study_root=study_root)
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert [event["event_type"] for event in events] == [
+        "delivered",
+        "artifact_written",
+        "delivered",
+        "artifact_written",
+    ]
+    assert adoption["report_ref"] == str(closeout_path)
+    assert adoption["created_at"] == "2026-05-20T04:32:38+00:00"
+    assert adoption["result"]["artifact_refs_count"] == 4
+
+
 def _write_story_repair_authorization(study_root: Path) -> None:
     _write_controller_decision_authorization(
         study_root,
@@ -256,7 +385,13 @@ def _write_story_repair_authorization(study_root: Path) -> None:
     )
 
 
-def _write_turn_closeout(*, quest_root: Path, run_id: str, artifact_refs: list[str]) -> Path:
+def _write_turn_closeout(
+    *,
+    quest_root: Path,
+    run_id: str,
+    artifact_refs: list[str],
+    completed_at: str = "2026-05-20T03:08:12Z",
+) -> Path:
     closeout_path = quest_root / "artifacts" / "runtime" / "turn_closeouts" / f"{run_id}.json"
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
     closeout_path.write_text(
@@ -266,7 +401,7 @@ def _write_turn_closeout(*, quest_root: Path, run_id: str, artifact_refs: list[s
                 "quest_id": "quest-001",
                 "run_id": run_id,
                 "status": "completed",
-                "completed_at": "2026-05-20T03:08:12Z",
+                "completed_at": completed_at,
                 "meaningful_artifact_delta": True,
                 "artifact_refs": artifact_refs,
                 "blocked_reason": None,

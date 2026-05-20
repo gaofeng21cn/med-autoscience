@@ -695,8 +695,11 @@ def _existing_artifact_written_payload(
         business_key=identity.business_key,
         recorded_at=authorization_context.get("decision_emitted_at"),
     )
-    for event in events:
-        if _text(event.get("event_type")) != "artifact_written":
+    for event in reversed(events):
+        event_type = _text(event.get("event_type"))
+        if event_type == "delivered":
+            return None
+        if event_type != "artifact_written":
             continue
         payload = event.get("payload")
         if isinstance(payload, dict):
