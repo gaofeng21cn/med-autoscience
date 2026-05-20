@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-20：当前 run 的 completed turn closeout 必须被 controller work unit 消费
+
+- 决策：当当前 active run 写出 `artifacts/runtime/turn_closeouts/<active_run_id>.json`，且 closeout 为 `status=completed`、`meaningful_artifact_delta=true`、未带 `blocked_reason`，controller work-unit evidence adoption 必须把它作为当前授权的完成证据消费，并写入 `controller_work_unit_evidence_adoption` / `artifact_written`，而不是继续重放同一 `manuscript_story_repair` 或其他 generic work unit。
+- 决策：只有 `<active_run_id>` 精确匹配的 turn closeout 才可被消费。历史 run、非当前 run 或不带 meaningful artifact delta 的 closeout 不得关闭当前 work unit；这些情况仍按现有 relay/dedupe/runtime-liveness 逻辑处理。
+- 理由：DM002 暴露出 MAS write owner 已经更新 `paper/draft.md` 与 `paper/build/review_manuscript.md` 并写出有效 turn closeout，但 controller 只扫描 work-unit receipt / write / intake 等旧候选目录，未读取当前 run closeout，导致同一 `manuscript_story_repair` 被重复拉起。
+- 影响：这是 owner receipt/currentness 消费修复，不是质量门槛放宽。它只阻止已完成 work unit 被重复执行；医学论文质量、AI reviewer verdict、publication gate、submission package 和 `current_package` 仍必须由对应 MAS owner 重新评估和刷新。
+
 ## 2026-05-20：manuscript story repair 的稿面 currentness delta 可被同一 blocker 消费
 
 - 决策：`manuscript_story_repair` 仍要求 `paper/draft.md` 或 `paper/build/review_manuscript.md` 作为 canonical story-surface delta。若上一轮同一 `source_eval_id` 已因 `manuscript_story_surface_delta_missing` 阻塞，且 MAS write owner 随后更新了这些稿面，使其晚于触发 blocker 的 `publication_eval/latest.json`，`quality_repair_batch` 可以把稿面指纹作为 canonical changed refs 消费。

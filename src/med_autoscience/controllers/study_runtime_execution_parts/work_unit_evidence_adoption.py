@@ -968,6 +968,7 @@ def adopt_controller_work_unit_evidence_if_present(
             payload=report_payload,
             authorization_context=authorization_context,
             analysis_repair_authorized=False,
+            active_run_id=active_run_id,
         ):
             continue
         payload = {

@@ -17,17 +17,22 @@ def report_candidates(
     active_run_id: str | None = None,
 ) -> tuple[Path, ...]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
+    resolved_active_run_id = _text(active_run_id)
     roots = (
         resolved_quest_root / "artifacts" / "runtime" / "work_unit_receipts",
         resolved_quest_root / "artifacts" / "write",
         resolved_quest_root / "artifacts" / "intake",
     )
     candidates: list[Path] = []
+    turn_closeouts_root = resolved_quest_root / "artifacts" / "runtime" / "turn_closeouts"
+    if resolved_active_run_id is not None:
+        active_closeout = turn_closeouts_root / f"{resolved_active_run_id}.json"
+        if active_closeout.exists():
+            candidates.append(active_closeout)
     for root in roots:
         if root.exists():
             candidates.extend(path for path in root.glob("*.json") if path.is_file())
     candidates = sorted(candidates, key=_mtime_ns, reverse=True)
-    resolved_active_run_id = _text(active_run_id)
     if resolved_active_run_id is None:
         return tuple(candidates)
     active_run_candidates = [path for path in candidates if resolved_active_run_id in path.name]
@@ -78,6 +83,7 @@ def matches_completed_work_unit(
     payload: dict[str, Any],
     authorization_context: dict[str, Any],
     analysis_repair_authorized: bool,
+    active_run_id: str | None = None,
 ) -> bool:
     if analysis_repair_authorized:
         return False
@@ -101,9 +107,10 @@ def matches_completed_work_unit(
         authorization_context=authorization_context,
     ):
         return False
-    if not decision_matches and not _work_unit_ids_match(
-        payload=payload,
-        authorization_context=authorization_context,
+    if (
+        not decision_matches
+        and not _work_unit_ids_match(payload=payload, authorization_context=authorization_context)
+        and not _active_run_matches(payload=payload, active_run_id=active_run_id)
     ):
         return False
     return _route_target_matches_if_present(
@@ -166,6 +173,7 @@ def report_timestamp(payload: dict[str, Any]) -> str | None:
         payload.get("created_at")
         or payload.get("updated_at")
         or payload.get("emitted_at")
+        or payload.get("completed_at")
     )
 
 
@@ -225,6 +233,13 @@ def _payload_work_unit_matches_if_present(
         return True
     expected_values = _expected_work_unit_values(authorization_context)
     return bool(expected_values & observed_values)
+
+
+def _active_run_matches(*, payload: dict[str, Any], active_run_id: str | None) -> bool:
+    expected = _text(active_run_id)
+    if expected is None:
+        return False
+    return _text(payload.get("run_id")) == expected or _text(payload.get("active_run_id")) == expected
 
 
 def _work_unit_ids_match(*, payload: dict[str, Any], authorization_context: dict[str, Any]) -> bool:
