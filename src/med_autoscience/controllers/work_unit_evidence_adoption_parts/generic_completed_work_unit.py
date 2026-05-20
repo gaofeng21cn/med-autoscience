@@ -33,6 +33,12 @@ def report_candidates(
         active_closeout = turn_closeouts_root / f"{run_id}.json"
         if active_closeout.exists():
             candidates.append(active_closeout)
+    if turn_closeouts_root.exists():
+        candidates.extend(
+            path
+            for path in turn_closeouts_root.glob("*.json")
+            if path.is_file() and path not in candidates
+        )
     for root in roots:
         if root.exists():
             candidates.extend(path for path in root.glob("*.json") if path.is_file())
@@ -147,6 +153,10 @@ def matches_completed_work_unit(
         and not _work_unit_ids_match(payload=payload, authorization_context=authorization_context)
         and not _active_run_matches(payload=payload, active_run_id=active_run_id)
         and not _delivered_run_matches(payload=payload, delivered_run_ids=delivered_run_ids)
+        and not _artifact_refs_match_expected_work_unit(
+            payload=payload,
+            authorization_context=authorization_context,
+        )
     ):
         return False
     return _route_target_matches_if_present(
@@ -340,6 +350,34 @@ def _artifact_ref_count(value: object) -> int:
     if not isinstance(value, list):
         return 0
     return sum(1 for item in value if isinstance(item, dict) or _text(item) is not None)
+
+
+def _artifact_refs_match_expected_work_unit(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    expected_values = _expected_work_unit_values(authorization_context)
+    if "manuscript_story_repair" not in expected_values:
+        return False
+    refs = _artifact_ref_texts(payload.get("artifact_refs"))
+    return any(ref.endswith("paper/draft.md") for ref in refs) and any(
+        ref.endswith("paper/build/review_manuscript.md") for ref in refs
+    )
+
+
+def _artifact_ref_texts(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    refs: list[str] = []
+    for item in value:
+        if isinstance(item, dict):
+            text = _text(item.get("path") or item.get("artifact_path"))
+        else:
+            text = _text(item)
+        if text is not None:
+            refs.append(text)
+    return tuple(refs)
 
 
 def _timestamp_key(value: object) -> str | None:

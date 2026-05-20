@@ -370,12 +370,121 @@ def test_execute_noop_runtime_decision_refreshes_prior_adoption_with_newer_deliv
     assert adoption["result"]["artifact_refs_count"] == 4
 
 
-def _write_story_repair_authorization(study_root: Path) -> None:
+def test_execute_noop_runtime_decision_adopts_post_authorization_story_closeout_without_delivery_event(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_story_repair_authorization(study_root, emitted_at="2026-05-20T04:42:17+00:00")
+    _write_publication_eval_work_unit_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={
+            "delivery_mode": "managed_runtime_chat",
+            "message_id": "msg-story-repair-old",
+            "active_run_id": "run-story-old",
+            "source": "medautosci-test",
+        },
+        recorded_at="2026-05-20T02:54:17+00:00",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="artifact_written",
+        payload={
+            "active_run_id": "run-story-old",
+            "report_ref": str(
+                quest_root
+                / "artifacts"
+                / "runtime"
+                / "turn_closeouts"
+                / "run-story-old.json"
+            ),
+            "created_at": "2026-05-20T02:56:20+00:00",
+            "work_unit_id": "manuscript_story_repair",
+            "route_target": "analysis-campaign",
+            "recommended_next_route": "return_to_publication_gate_recheck",
+            "source": "medautosci-test",
+            "next_owner": "publication_gate",
+            "result": {
+                "completed": True,
+                "meaningful_artifact_delta": True,
+                "artifact_refs_count": 2,
+                "publication_gate_recheck_required": True,
+            },
+        },
+        recorded_at="2026-05-20T04:21:54+00:00",
+    )
+    closeout_path = _write_turn_closeout(
+        quest_root=quest_root,
+        run_id="run-story-no-ledger-delivery",
+        artifact_refs=[
+            "../../../studies/001-risk/paper/draft.md",
+            "../../../studies/001-risk/paper/build/review_manuscript.md",
+        ],
+        completed_at="2026-05-20T04:47:57Z",
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-next",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status_payload["active_run_id"] = "run-next"
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("post-authorization story closeout must be adopted even if delivery ledger is missing")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+    events = control_intent.read_events(study_root=study_root)
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert [event["event_type"] for event in events] == [
+        "delivered",
+        "artifact_written",
+        "artifact_written",
+    ]
+    assert adoption["report_ref"] == str(closeout_path)
+    assert adoption["created_at"] == "2026-05-20T04:47:57+00:00"
+    assert adoption["result"]["artifact_refs_count"] == 2
+
+
+def _write_story_repair_authorization(
+    study_root: Path,
+    *,
+    emitted_at: str = "2026-05-20T02:38:29+00:00",
+) -> None:
     _write_controller_decision_authorization(
         study_root,
         action_type="run_quality_repair_batch",
         decision_id="decision-story-repair",
-        emitted_at="2026-05-20T02:38:29+00:00",
+        emitted_at=emitted_at,
         work_unit_fingerprint="publication-blockers::story",
         next_work_unit={
             "unit_id": "manuscript_story_repair",
