@@ -18,7 +18,11 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)
 - [MAS Stage Surfaces](../runtime/contracts/stage_surfaces.md)
+
+过程归档只在需要追溯历史时读取，不作为 active 默认入口：
+
 - [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)
+- [Docs lifecycle governance closeout 2026-05-20](../history/program/docs_lifecycle_governance_closeout_2026_05_20.md)
 
 ## 当前 active 层次
 
@@ -26,7 +30,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 | --- | --- | --- |
 | 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前定位、当前边界、功能/结构差距、测试/证据差距、完善顺序和禁止误写口径。 |
 | 当前执行地图 | [MAS Current Development Lines](./current-development-lines.md) | 把所有仍有效线路归为 landed foundation、functional follow-through gate 或 production evidence gate；不要按 P0/P1/P2/P3 旧编号开平行计划。 |
-| 文档组合 / 历史归位 | [Program Portfolio Consolidation](./program_portfolio_consolidation.md) | 只说明 active 文档组合、唯一职责和历史记录去向；不替代 gap plan，也不作为第二 backlog。 |
+| 文档组合 / 历史归位 | [Program Portfolio Consolidation](./program_portfolio_consolidation.md) | 只说明 active program 文档唯一职责、历史记录去向和 direct retirement rule；不替代 gap plan，也不作为第二 backlog。 |
 | 目标 / 验收 owner | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 只定义 MAS 论文自治验收合同和 AI-first quality gate；dated evidence 与 full record 回 history。 |
 | Framework migration owner | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | 只维护 MAS 侧 provider/sidecar/legacy-retirement 边界和 live paper apply gate；OPL framework owner 回 OPL 仓。 |
 | Stage pack owner | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | 只维护 stage/prompt/skill/knowledge/quality gate 的标准形态；长 proof 流水回 history。 |

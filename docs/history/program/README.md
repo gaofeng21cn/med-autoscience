@@ -28,6 +28,7 @@
 
 已落地 closeout 与 activation 记录：
 
+- [Docs lifecycle governance closeout 2026-05-20](./docs_lifecycle_governance_closeout_2026_05_20.md)
 - [AI-first paper autonomy full record 2026-05-10](./ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)
 - [AI-first closeout handoff governance](./ai_first_closeout_handoff_governance.md)
 - [AI-first operationalization closeout](./ai_first_operationalization_closeout.md)

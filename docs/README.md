@@ -8,6 +8,7 @@
 | --- | --- |
 | 产品角色与边界 | [项目概览](./project.md) |
 | 当前运行真相 | [当前状态](./status.md) |
+| 当前执行地图 | [MAS 当前开发线路](./active/current-development-lines.md) |
 | 架构与 owner 边界 | [架构](./architecture.md) |
 | 不可变约束 | [不可变约束](./invariants.md) |
 | 持久决策 | [关键决策](./decisions.md) |
@@ -44,7 +45,7 @@ MAS repo source 只保存 locator、index、schema、receipt ref、restore/reten
 `capabilities/` 目录已物理退役；program-baton 内容进入 `active/`，
 medical-display 能力族进入 `delivery/medical-display/`。
 
-当前生命周期校准：`outer_loop_wakeup_and_decision_loop.md` 已从 active runtime/control 归档到 [history/runtime](./history/runtime/README.md)，只作 provenance。当前 control 语义从 [Study runtime control surface](./runtime/control/study_runtime_control_surface.md)、[Study runtime orchestration](./runtime/control/study_runtime_orchestration.md) 和 [Runtime event and outer-loop input contract](./runtime/contracts/runtime_event_and_outer_loop_input_contract.md) 读取。MAS local scheduler / LaunchAgent / legacy tick 已物理退役，只按 tombstone/provenance refs 理解，不写成 MAS 理想 runtime 常态。
+当前生命周期校准：`outer_loop_wakeup_and_decision_loop.md` 已从 active runtime/control 归档到 [history/runtime](./history/runtime/README.md)，只作 provenance。当前 control 语义从 [Study runtime control surface](./runtime/control/study_runtime_control_surface.md)、[Study runtime orchestration](./runtime/control/study_runtime_orchestration.md) 和 [Runtime event and outer-loop input contract](./runtime/contracts/runtime_event_and_outer_loop_input_contract.md) 读取。MAS local scheduler / LaunchAgent / legacy tick 已物理退役，只按 tombstone/provenance refs 理解，不写成 MAS 理想 runtime 常态。本轮 docs 生命周期治理 closeout 见 [Docs lifecycle governance closeout 2026-05-20](./history/program/docs_lifecycle_governance_closeout_2026_05_20.md)。
 
 ## 阅读规则
 
