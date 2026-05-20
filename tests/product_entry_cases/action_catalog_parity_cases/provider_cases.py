@@ -72,6 +72,80 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
     assert owner_contract["authority_boundary"]["can_write_artifact_gate"] is False
     assert owner_contract["authority_boundary"]["can_write_memory_body"] is False
 
+    evidence = read_model["paper_line_guarded_apply_evidence"]
+    assert evidence["surface_kind"] == "mas_paper_line_guarded_apply_evidence_scaleout"
+    assert evidence["mode"] == "domain_owned_refs_only"
+    assert evidence["body_included"] is False
+    assert evidence["artifact_body_included"] is False
+    assert evidence["memory_body_included"] is False
+    assert evidence["publication_eval_body_included"] is False
+    assert evidence["controller_decision_body_included"] is False
+    assert evidence["domain_verdict_claimed"] is False
+    assert evidence["provider_completion_is_paper_closure"] is False
+    assert evidence["opl_can_write_publication_eval"] is False
+    assert evidence["opl_can_write_controller_decisions"] is False
+    assert evidence["opl_can_write_artifact_gate"] is False
+    assert evidence["opl_can_write_memory_body"] is False
+    assert evidence["opl_can_write_final_verdict"] is False
+    assert evidence["required_owner_outcome_refs"] == [
+        "owner_receipt_ref",
+        "progress_delta_ref",
+        "ai_reviewer_gate_ref",
+        "artifact_movement_ref",
+        "human_gate_ref",
+        "stop_loss_ref",
+        "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
+    ]
+    outcomes = {item["outcome_id"]: item for item in evidence["domain_owned_outcome_refs"]}
+    assert set(outcomes) == {
+        "progress_delta",
+        "ai_reviewer_gate_movement",
+        "artifact_movement",
+        "human_gate",
+        "stop_loss",
+        "stable_typed_blocker",
+    }
+    assert outcomes["progress_delta"]["owner_surface_role"] == "progress_delta_ref"
+    assert outcomes["progress_delta"]["source_surfaces"] == [
+        "artifacts/controller/repair_execution_receipts/latest.json",
+        "artifacts/controller/repair_execution_evidence/latest.json",
+    ]
+    assert outcomes["ai_reviewer_gate_movement"]["owner_surface_role"] == "ai_reviewer_gate_ref"
+    assert outcomes["ai_reviewer_gate_movement"]["source_surfaces"] == [
+        "artifacts/publication_eval/latest.json",
+        "review_ledger",
+    ]
+    assert outcomes["artifact_movement"]["owner_surface_role"] == "artifact_movement_ref"
+    assert outcomes["artifact_movement"]["source_surfaces"] == [
+        "artifacts/controller/gate_replay_requests/latest.json",
+        "artifact_authority_receipt",
+    ]
+    assert outcomes["human_gate"]["owner_surface_role"] == "human_gate_ref"
+    assert outcomes["stop_loss"]["owner_surface_role"] == "stop_loss_ref"
+    assert outcomes["stable_typed_blocker"]["owner_surface_role"] == "stable_typed_blocker_ref"
+    assert all(item["body_included"] is False for item in outcomes.values())
+    assert all(item["write_permitted"] is False for item in outcomes.values())
+    assert all(item["domain_owned"] is True for item in outcomes.values())
+    assert all(item["opl_projection_only"] is True for item in outcomes.values())
+    assert set(evidence["forbidden_body_surfaces"]) == {
+        "publication_eval_body",
+        "controller_decision_body",
+        "artifact_gate_body",
+        "memory_body",
+        "final_verdict_body",
+    }
+    assert evidence["accepted_apply_results"] == [
+        "artifact_delta",
+        "gate_replay",
+        "ai_reviewer_re_eval",
+        "route_decision",
+        "human_gate",
+        "stop_loss",
+        "stable_blocker",
+    ]
+    assert evidence["scaleout_status"] == "pending_real_paper_line_owner_receipts"
+
     lifecycle_requests = manifest["lifecycle_apply_requests"]
     lifecycle_proof = manifest["lifecycle_guarded_apply_proof"]
     assert lifecycle_requests == provider_contract["lifecycle_apply_requests"]

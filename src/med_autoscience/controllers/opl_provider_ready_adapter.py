@@ -27,6 +27,7 @@ from med_autoscience.controllers.opl_provider_ready_adapter_parts.provider_readi
     build_provider_availability_from_opl_proof,
     build_provider_guarded_soak_read_model,
     build_provider_residency_read_model,
+    build_paper_line_guarded_apply_evidence_scaleout_surface,
     _provider_residency_receipt_refs_from_availability,
     load_opl_production_proof,
 )
@@ -241,6 +242,7 @@ __all__ = [
     "build_provider_availability_from_opl_proof",
     "build_physical_skeleton_layout_audit_surface",
     "build_provider_guarded_soak_read_model",
+    "build_paper_line_guarded_apply_evidence_scaleout_surface",
     "build_provider_residency_read_model",
     "build_runtime_transport_handoff_projection",
     "build_standard_domain_agent_skeleton_surface",

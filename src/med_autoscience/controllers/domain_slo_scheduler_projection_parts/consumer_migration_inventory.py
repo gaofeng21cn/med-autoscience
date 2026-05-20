@@ -216,6 +216,14 @@ PHYSICAL_THINNING_EVIDENCE = {
     "does_not_claim_physical_delete": True,
     "does_not_claim_paper_closure": True,
     "evidence_contract_ref": "contracts/evidence/mas-evidence-lane.json#/physical_thinning_evidence",
+    "physical_delete_requires_all_gates": [
+        "no_active_caller_proof",
+        "opl_replacement_parity",
+        "domain_receipt_parity",
+        "focused_tests",
+        "no_forbidden_write_proof",
+        "history_tombstone_refs",
+    ],
     "residue_groups": [
         {
             "group_id": "runner_residue",
@@ -230,6 +238,8 @@ PHYSICAL_THINNING_EVIDENCE = {
             ],
             "current_role": "domain_receipt_adapter_and_transition_spec_only",
             "generic_owner_claim_allowed": False,
+            "physical_delete_permitted": False,
+            "tombstone_or_parity_refs_required": True,
             "physical_delete_gate": "active_domain_or_diagnostic_caller_count=0 plus OPL parity plus focused tests",
             "evidence_refs": [
                 "functional_module_inventory.generic_queue_attempt_retry_dead_letter",
@@ -253,6 +263,8 @@ PHYSICAL_THINNING_EVIDENCE = {
             ],
             "current_role": "opl_scheduler_projection_and_legacy_tombstone_only",
             "generic_owner_claim_allowed": False,
+            "physical_delete_permitted": False,
+            "tombstone_or_parity_refs_required": True,
             "physical_delete_gate": "no active default caller already proven; retained refs are tombstone/provenance only",
             "evidence_refs": [
                 "no_active_caller_proof.default_caller_count=0",
@@ -273,6 +285,8 @@ PHYSICAL_THINNING_EVIDENCE = {
             ],
             "current_role": "mas_domain_projection_refs_for_opl_hosted_workbench",
             "generic_owner_claim_allowed": False,
+            "physical_delete_permitted": False,
+            "tombstone_or_parity_refs_required": True,
             "physical_delete_gate": "OPL default workbench caller plus no MAS generic workbench default entry",
             "evidence_refs": [
                 "workbench_portal_generic_shell.proof_refs",
@@ -292,6 +306,8 @@ PHYSICAL_THINNING_EVIDENCE = {
             ],
             "current_role": "refs_only_domain_receipt_locator_and_lifecycle_ref_index",
             "generic_owner_claim_allowed": False,
+            "physical_delete_permitted": False,
+            "tombstone_or_parity_refs_required": True,
             "physical_delete_gate": "active_caller_count=0 plus OPL lifecycle index parity plus domain owner receipt ref parity",
             "evidence_refs": [
                 "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
