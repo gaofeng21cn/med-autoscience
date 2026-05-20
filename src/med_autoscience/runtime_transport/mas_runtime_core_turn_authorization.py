@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import publication_work_unit_lifecycle
-from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.domain_route_scan_parts import platform_current_controller
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
@@ -318,10 +317,14 @@ def _owner_handoff_authorization_is_superseded(
     quest_root: Path | None,
     quest_id: str | None,
 ) -> bool:
-    terminal_source_superseded = _terminal_source_provenance_handoff_is_superseded(
-        authorization=authorization,
-        quest_root=quest_root,
-        quest_id=quest_id,
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
+    terminal_source_superseded = mas_runtime_core_turn_owner_handoff.terminal_source_provenance_handoff_superseded(
+        authorization,
+        study_root=study_root,
+        action_names_for_authorization=_controller_action_names,
+        work_unit_ids_for_authorization=_controller_work_unit_ids,
+        mapping=_mapping,
+        text=_text,
     )
     return mas_runtime_core_turn_owner_handoff.owner_handoff_authorization_is_superseded(
         authorization,
@@ -333,31 +336,6 @@ def _owner_handoff_authorization_is_superseded(
     )
 
 
-def _terminal_source_provenance_handoff_is_superseded(
-    *,
-    authorization: Mapping[str, Any],
-    quest_root: Path | None,
-    quest_id: str | None,
-) -> bool:
-    if "recover_transport_model_provenance" not in _controller_action_names(authorization):
-        return False
-    if _text(authorization.get("next_owner")) != "source_provenance_owner":
-        return False
-    if "recover_transport_model_provenance" not in _controller_work_unit_ids(authorization):
-        return False
-    study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
-    if study_root is None:
-        return False
-    result = source_provenance_owner_result.read_result(study_root=study_root)
-    if not source_provenance_owner_result.result_is_accepted_typed_blocker(result):
-        return False
-    return (
-        _text(_mapping(result).get("next_owner")) == source_provenance_owner_result.TERMINAL_ROUTE_NEXT_OWNER
-        and _text(_mapping(result).get("next_work_unit")) == "methodology_reframe_route_decision"
-        and _mapping(result).get("terminal_source_provenance_blocker") is True
-    )
-
-
 def _runtime_state_controller_authorization_after_terminal_source_blocker(
     *,
     runtime_state: Mapping[str, Any],
@@ -365,10 +343,14 @@ def _runtime_state_controller_authorization_after_terminal_source_blocker(
     quest_root: Path | None,
     quest_id: str | None,
 ) -> dict[str, Any]:
-    if not _terminal_source_provenance_handoff_is_superseded(
-        authorization=owner_handoff_authorization,
-        quest_root=quest_root,
-        quest_id=quest_id,
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
+    if not mas_runtime_core_turn_owner_handoff.terminal_source_provenance_handoff_superseded(
+        owner_handoff_authorization,
+        study_root=study_root,
+        action_names_for_authorization=_controller_action_names,
+        work_unit_ids_for_authorization=_controller_work_unit_ids,
+        mapping=_mapping,
+        text=_text,
     ):
         return {}
     for key in ("last_controller_decision_authorization", "current_controller_authorization"):

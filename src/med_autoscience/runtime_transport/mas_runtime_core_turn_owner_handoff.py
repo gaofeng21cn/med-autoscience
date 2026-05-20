@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.runtime_control import owner_callable_for_action
 
 
@@ -80,6 +82,33 @@ def methodology_reframe_handoff_superseded_by_current_decision(
     return bool(current_units.intersection(downstream_units) or current_actions.intersection(downstream_actions))
 
 
+def terminal_source_provenance_handoff_superseded(
+    authorization: Mapping[str, Any],
+    *,
+    study_root: Path | None,
+    action_names_for_authorization,
+    work_unit_ids_for_authorization,
+    mapping,
+    text,
+) -> bool:
+    if study_root is None:
+        return False
+    if "recover_transport_model_provenance" not in action_names_for_authorization(authorization):
+        return False
+    if text(authorization.get("next_owner")) != "source_provenance_owner":
+        return False
+    if "recover_transport_model_provenance" not in work_unit_ids_for_authorization(authorization):
+        return False
+    result = source_provenance_owner_result.read_result(study_root=study_root)
+    if not source_provenance_owner_result.result_is_accepted_typed_blocker(result):
+        return False
+    return (
+        text(mapping(result).get("next_owner")) == source_provenance_owner_result.TERMINAL_ROUTE_NEXT_OWNER
+        and text(mapping(result).get("next_work_unit")) == "methodology_reframe_route_decision"
+        and mapping(result).get("terminal_source_provenance_blocker") is True
+    )
+
+
 def owner_handoff_authorization_is_superseded(
     authorization: Mapping[str, Any],
     current_authorization: Mapping[str, Any] | None,
@@ -102,4 +131,5 @@ __all__ = [
     "blocked_closeout_owner_handoff_authorization",
     "methodology_reframe_handoff_superseded_by_current_decision",
     "owner_handoff_authorization_is_superseded",
+    "terminal_source_provenance_handoff_superseded",
 ]
