@@ -63,7 +63,41 @@ def _set_pytest_cache_dir(cache_dir: Path) -> None:
     os.environ["PYTEST_ADDOPTS"] = f"{existing} {value}".strip()
 
 
+def _path_is_inside(child: Path, parent: Path) -> bool:
+    try:
+        child.relative_to(parent)
+    except ValueError:
+        return False
+    return True
+
+
+def _existing_pycache_prefix_is_checkout_local(repo_root: Path) -> bool:
+    existing = os.environ.get("PYTHONPYCACHEPREFIX")
+    if not existing:
+        return False
+    try:
+        existing_path = Path(existing).expanduser().resolve()
+    except OSError:
+        return False
+    return existing_path == repo_root or _path_is_inside(existing_path, repo_root)
+
+
 def _configure_mas_runtime_pycache() -> None:
+    existing_pycache_prefix = os.environ.get("PYTHONPYCACHEPREFIX")
+    if existing_pycache_prefix:
+        repo_root = _mas_repo_root_from_import_path()
+        if repo_root is None:
+            try:
+                cwd = Path.cwd().resolve()
+            except OSError:
+                cwd = None
+            if cwd is not None and _is_mas_repo_root(cwd):
+                repo_root = cwd
+        if repo_root is None or not _existing_pycache_prefix_is_checkout_local(repo_root):
+            return
+        os.environ.pop("PYTHONPYCACHEPREFIX", None)
+        sys.pycache_prefix = None
+
     if os.environ.get("PYTHONPYCACHEPREFIX"):
         return
     try:

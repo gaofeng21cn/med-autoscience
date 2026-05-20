@@ -105,6 +105,37 @@ def test_sitecustomize_routes_editable_mas_import_path_caches_to_temp_root(tmp_p
     assert str(REPO_ROOT) not in lines[2]
 
 
+def test_sitecustomize_rejects_checkout_local_pycache_prefix(tmp_path: Path) -> None:
+    checkout_pycache_prefix = REPO_ROOT / ".mas-sitecustomize-sentinel-pycache"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import os, sys; "
+                "print(sys.pycache_prefix or ''); "
+                "print(os.environ.get('PYTHONPYCACHEPREFIX') or '')"
+            ),
+        ],
+        cwd=REPO_ROOT,
+        env=_sitecustomize_env(
+            tmp_path,
+            pythonpath=REPO_ROOT / "src",
+            pycache_prefix=checkout_pycache_prefix,
+        ),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    lines = result.stdout.splitlines()
+    assert lines[0] == lines[1]
+    assert lines[0].startswith(str(Path(tempfile.gettempdir()) / "mas-python-cache"))
+    assert str(REPO_ROOT) not in lines[0]
+    assert not checkout_pycache_prefix.exists()
+
+
 def test_sitecustomize_prevents_repo_cache_when_direct_pytest_is_used(tmp_path: Path) -> None:
     shutil.rmtree(REPO_ROOT / ".pytest_cache", ignore_errors=True)
     shutil.rmtree(REPO_ROOT / "src" / "med_autoscience" / "__pycache__", ignore_errors=True)
@@ -179,7 +210,12 @@ def test_sitecustomize_does_not_change_non_quest_cwd_pycache(tmp_path: Path) -> 
     assert result.stdout.strip() == ""
 
 
-def _sitecustomize_env(tmp_path: Path, *, pythonpath: Path | None = None) -> dict[str, str]:
+def _sitecustomize_env(
+    tmp_path: Path,
+    *,
+    pythonpath: Path | None = None,
+    pycache_prefix: Path | None = None,
+) -> dict[str, str]:
     env = os.environ.copy()
     env.pop("PYTEST_ADDOPTS", None)
     env.pop("PYTHONDONTWRITEBYTECODE", None)
@@ -191,4 +227,6 @@ def _sitecustomize_env(tmp_path: Path, *, pythonpath: Path | None = None) -> dic
     if pythonpath is not None:
         paths.append(str(pythonpath))
     env["PYTHONPATH"] = os.pathsep.join(paths)
+    if pycache_prefix is not None:
+        env["PYTHONPYCACHEPREFIX"] = str(pycache_prefix)
     return env
