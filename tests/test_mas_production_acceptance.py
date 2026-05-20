@@ -297,6 +297,39 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
         "progress_delta_ref_or_stable_typed_blocker_ref",
         "no_forbidden_write_proof_ref",
     ]
+    blocker_handoff = handoff["stage_owned_typed_blocker_handoff"]
+    blocker_refs = blocker_handoff["stage_typed_blocker_refs"]
+    assert blocker_handoff["surface_kind"] == "mas_stage_production_evidence_typed_blocker_handoff"
+    assert blocker_handoff["status"] == "ready_for_opl_stage_evidence_record_verify"
+    assert blocker_handoff["mode"] == "refs_only_domain_owned_blocker_refs"
+    assert len(blocker_refs) == 6
+    assert {item["stage_id"] for item in blocker_refs} == {
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff",
+    }
+    assert all(
+        item["typed_blocker_ref"].startswith("mas-stage-typed-blocker:")
+        for item in blocker_refs
+    )
+    assert all(
+        "real-paper-line-owner-receipt-or-monitor-freshness-pending" in item["typed_blocker_ref"]
+        for item in blocker_refs
+    )
+    assert blocker_handoff["authority_boundary"] == {
+        "mas_owns_typed_blocker_refs": True,
+        "opl_records_refs_only": True,
+        "opl_can_write_publication_eval": False,
+        "opl_can_write_controller_decisions": False,
+        "opl_can_write_artifact_gate": False,
+        "opl_can_write_memory_body": False,
+        "opl_can_authorize_publication_or_quality": False,
+        "publication_ready_claimed": False,
+        "current_package_update_claimed": False,
+    }
     proof_handoff = evidence["no_forbidden_write_proof_handoff"]
     assert proof_handoff["proof_ref_role"] == "no_forbidden_write_proof_ref"
     assert proof_handoff["must_be_recorded_with_each_opl_stage_evidence_receipt"] is True

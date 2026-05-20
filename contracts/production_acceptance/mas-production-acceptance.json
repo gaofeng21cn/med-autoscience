@@ -388,6 +388,50 @@
         "progress_delta_ref_or_stable_typed_blocker_ref",
         "no_forbidden_write_proof_ref"
       ],
+      "stage_owned_typed_blocker_handoff": {
+        "surface_kind": "mas_stage_production_evidence_typed_blocker_handoff",
+        "mode": "refs_only_domain_owned_blocker_refs",
+        "status": "ready_for_opl_stage_evidence_record_verify",
+        "blocker_semantics": "real_paper_line_owner_receipt_or_live_monitor_freshness_pending",
+        "recording_policy": "OPL may record these refs as typed_blocker_refs only; MAS still owns real paper-line receipt, memory/artifact/human-gate and publication quality closure.",
+        "stage_typed_blocker_refs": [
+          {
+            "stage_id": "direction_and_route_selection",
+            "typed_blocker_ref": "mas-stage-typed-blocker:direction_and_route_selection:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+          },
+          {
+            "stage_id": "baseline_and_evidence_setup",
+            "typed_blocker_ref": "mas-stage-typed-blocker:baseline_and_evidence_setup:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+          },
+          {
+            "stage_id": "bounded_analysis_campaign",
+            "typed_blocker_ref": "mas-stage-typed-blocker:bounded_analysis_campaign:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+          },
+          {
+            "stage_id": "manuscript_authoring",
+            "typed_blocker_ref": "mas-stage-typed-blocker:manuscript_authoring:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+          },
+          {
+            "stage_id": "review_and_quality_gate",
+            "typed_blocker_ref": "mas-stage-typed-blocker:review_and_quality_gate:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+          },
+          {
+            "stage_id": "finalize_and_publication_handoff",
+            "typed_blocker_ref": "mas-stage-typed-blocker:finalize_and_publication_handoff:real-paper-line-owner-receipt-or-monitor-freshness-pending"
+          }
+        ],
+        "authority_boundary": {
+          "mas_owns_typed_blocker_refs": true,
+          "opl_records_refs_only": true,
+          "opl_can_write_publication_eval": false,
+          "opl_can_write_controller_decisions": false,
+          "opl_can_write_artifact_gate": false,
+          "opl_can_write_memory_body": false,
+          "opl_can_authorize_publication_or_quality": false,
+          "publication_ready_claimed": false,
+          "current_package_update_claimed": false
+        }
+      },
       "forbidden_payloads": [
         "publication_eval_body",
         "controller_decision_body",
