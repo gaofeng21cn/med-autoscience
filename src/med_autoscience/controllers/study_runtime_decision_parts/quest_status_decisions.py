@@ -315,7 +315,7 @@ def _apply_resumable_quest_status_decision(
             result._record_dict_extra("human_takeover_contract", repaired_human_takeover)
             result = rebuild_status()
             result._record_dict_extra("human_takeover_contract", repaired_human_takeover)
-            quest_status = result.quest_status
+            return result
         else:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
