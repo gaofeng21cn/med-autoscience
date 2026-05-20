@@ -13,6 +13,7 @@ from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import quality_repair_paper_owner_surface
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_runtime_router
+from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
@@ -47,6 +48,19 @@ _REPAIR_EXECUTION_TOP_LEVEL_BLOCKERS = frozenset(
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / STABLE_QUALITY_REPAIR_BATCH_RELATIVE_PATH
+
+
+def story_surface_delta_blocker_supersedes_lifecycle(
+    *,
+    study_root: Path,
+    lifecycle: Mapping[str, Any],
+) -> bool:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    return story_surface_delta.blocker_supersedes_lifecycle(
+        study_root=resolved_study_root,
+        lifecycle=lifecycle,
+        batch_path=stable_quality_repair_batch_path(study_root=resolved_study_root),
+    )
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:

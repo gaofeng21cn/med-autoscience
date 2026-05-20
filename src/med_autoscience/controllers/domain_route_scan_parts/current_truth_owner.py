@@ -12,6 +12,7 @@ from med_autoscience.publication_eval_specificity_targets import specificity_tar
 
 
 RUNTIME_CONTROLLER_REDRIVE_REASON = "runtime_controller_redrive_required"
+QUALITY_REPAIR_BATCH_RELATIVE_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
 SPECIFICITY_WORK_UNIT_IDS = {"gate_needs_specificity", "needs_specificity"}
 RUNTIME_REDRIVE_ACTIONS = {
     "ensure_study_runtime",
@@ -144,6 +145,62 @@ def current_controller_runtime_route(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": decision_fingerprint,
     }
+
+
+def current_story_surface_delta_blocker_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    batch_path = resolved_study_root / QUALITY_REPAIR_BATCH_RELATIVE_PATH
+    batch = _read_json_object(batch_path)
+    if batch is None:
+        return None
+    source_eval_id = _text(batch.get("source_eval_id"))
+    if source_eval_id is None or source_eval_id != _text(publication_eval_payload.get("eval_id")):
+        return None
+    if _text(batch.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
+        return None
+    if _text(batch.get("next_owner")) != "write":
+        return None
+    action = _publication_story_repair_action(publication_eval_payload)
+    if action is None:
+        return None
+    next_work_unit = _mapping(action.get("next_work_unit"))
+    if _text(next_work_unit.get("unit_id")) != "manuscript_story_repair":
+        return None
+    gate_batch = _mapping(batch.get("gate_clearing_batch"))
+    return {
+        "decision_path": None,
+        "decision_id": None,
+        "controller_actions": ["run_quality_repair_batch"],
+        "route_target": "write",
+        "work_unit_id": "manuscript_story_repair",
+        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
+        or _text(gate_batch.get("work_unit_fingerprint"))
+        or _text(gate_batch.get("source_work_unit_fingerprint")),
+        "quality_repair_batch_path": str(batch_path),
+        "authorization_basis": "quality_repair_story_surface_delta_blocker",
+    }
+
+
+def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if not isinstance(action, Mapping):
+            continue
+        next_work_unit = _mapping(action.get("next_work_unit"))
+        if _text(action.get("action_type")) != "route_back_same_line":
+            continue
+        if _text(action.get("route_target")) != "write" and _text(next_work_unit.get("lane")) != "write":
+            continue
+        if _text(next_work_unit.get("unit_id")) != "manuscript_story_repair":
+            continue
+        return dict(action)
+    return None
 
 
 def methodology_reframe_runtime_route_allowed(
@@ -410,7 +467,9 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "QUALITY_REPAIR_BATCH_RELATIVE_PATH",
     "RUNTIME_CONTROLLER_REDRIVE_REASON",
+    "current_story_surface_delta_blocker_route",
     "current_controller_runtime_route",
     "next_owner_for_reason",
     "runtime_platform_repair_reason",

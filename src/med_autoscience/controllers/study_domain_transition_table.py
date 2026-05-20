@@ -213,6 +213,7 @@ def project_domain_transition(
         )
 
     lifecycle_gate_recheck_transition = publication_gate_lifecycle_transitions.project_transition(
+        study_root=root,
         study_id=study_id,
         lifecycle=work_unit_lifecycle,
         lifecycle_ref=work_unit_lifecycle_ref,

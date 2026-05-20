@@ -31,6 +31,19 @@ def apply_domain_transition_runtime_redrive(
         return None
     if decision_type == "ai_reviewer_re_eval":
         return None
+    story_surface_redrive = _story_surface_delta_redrive(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        runtime_state_path=runtime_state_path,
+        quest_id=quest_id,
+        publication_eval_payload=publication_eval_payload,
+        base=base,
+        decision_type=decision_type,
+        apply_current_controller_runtime_redrive=apply_current_controller_runtime_redrive,
+    )
+    if story_surface_redrive is not None:
+        return story_surface_redrive
     if decision_type == "publication_gate_blocker":
         return {
             **dict(base),
@@ -65,6 +78,41 @@ def apply_domain_transition_runtime_redrive(
         **apply_result,
         "domain_transition_decision_type": decision_type,
         "domain_transition_controller_route": route,
+    }
+
+
+def _story_surface_delta_redrive(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    runtime_state_path: Path,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+    base: Mapping[str, Any],
+    decision_type: str,
+    apply_current_controller_runtime_redrive: Callable[..., dict[str, Any]],
+) -> dict[str, Any] | None:
+    story_surface_route = current_truth_owner.current_story_surface_delta_blocker_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if story_surface_route is None:
+        return None
+    apply_result = apply_current_controller_runtime_redrive(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        runtime_state_path=runtime_state_path,
+        quest_id=quest_id,
+        publication_eval_payload=publication_eval_payload,
+        base={**dict(base), "reason": current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON},
+        repair_kind=f"domain_transition_{decision_type}_story_surface_delta_redrive",
+    )
+    return {
+        **apply_result,
+        "domain_transition_decision_type": decision_type,
+        "domain_transition_controller_route": story_surface_route,
     }
 
 

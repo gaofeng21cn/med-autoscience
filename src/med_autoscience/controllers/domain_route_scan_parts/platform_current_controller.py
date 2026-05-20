@@ -179,6 +179,77 @@ def current_controller_authorization_payload(
     return authorization
 
 
+def story_surface_delta_authorization_payload(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    read_json_object: Callable[[Path], dict[str, Any] | None],
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    batch_path = resolved_study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    batch = read_json_object(batch_path)
+    if batch is None:
+        return None
+    source_eval_id = text(batch.get("source_eval_id"))
+    if source_eval_id is None or source_eval_id != text(publication_eval_payload.get("eval_id")):
+        return None
+    if text(batch.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
+        return None
+    if text(batch.get("next_owner")) != "write":
+        return None
+    publication_action = _publication_story_repair_action(publication_eval_payload)
+    if publication_action is None:
+        return None
+    next_work_unit = mapping(publication_action.get("next_work_unit"))
+    if text(next_work_unit.get("unit_id")) != "manuscript_story_repair":
+        return None
+    gate_batch = mapping(batch.get("gate_clearing_batch"))
+    work_unit_fingerprint = (
+        text(publication_action.get("work_unit_fingerprint"))
+        or text(gate_batch.get("work_unit_fingerprint"))
+        or text(gate_batch.get("source_work_unit_fingerprint"))
+    )
+    return {
+        "decision_id": None,
+        "route_target": "write",
+        "route_key_question": text(publication_action.get("route_key_question")),
+        "route_rationale": text(publication_action.get("route_rationale")) or text(publication_action.get("reason")),
+        "source_route_key_question": text(publication_action.get("route_key_question")),
+        "work_unit_id": "manuscript_story_repair",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "publication_eval_id": source_eval_id,
+        "publication_eval_ref": {
+            "eval_id": source_eval_id,
+            "artifact_path": str((resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
+        },
+        "next_work_unit": dict(next_work_unit),
+        "blocking_work_units": [dict(next_work_unit)],
+        "controller_actions": ["run_quality_repair_batch"],
+        "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
+        "authorized_at": utc_now(),
+        "authorization_basis": "quality_repair_story_surface_delta_blocker",
+        "quality_repair_batch_ref": str(batch_path),
+    }
+
+
+def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if not isinstance(action, Mapping):
+            continue
+        next_work_unit = mapping(action.get("next_work_unit"))
+        if text(action.get("action_type")) != "route_back_same_line":
+            continue
+        if text(action.get("route_target")) != "write" and text(next_work_unit.get("lane")) != "write":
+            continue
+        if text(next_work_unit.get("unit_id")) != "manuscript_story_repair":
+            continue
+        return dict(action)
+    return None
+
+
 def _target_ready_next_work_unit(
     work_unit: Mapping[str, Any],
     publication_action: Mapping[str, Any],
@@ -249,6 +320,12 @@ def write_current_controller_authorization(
         read_json_object=read_json_object,
         allow_specificity_work_unit=allow_specificity_work_unit,
     )
+    if authorization is None:
+        authorization = story_surface_delta_authorization_payload(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            read_json_object=read_json_object,
+        )
     if authorization is None:
         return None
     runtime_state = read_json_object(runtime_state_path)

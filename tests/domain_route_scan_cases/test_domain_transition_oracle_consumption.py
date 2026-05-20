@@ -321,6 +321,136 @@ def test_apply_runtime_platform_repair_uses_current_domain_transition_route_over
     assert result["repair_kind"] == "domain_transition_bundle_stage_finalize_redrive"
 
 
+def test_apply_runtime_platform_repair_redrives_story_surface_delta_before_gate_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    quest_root = tmp_path / "runtime" / "quest-dm002"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    eval_id = "publication-eval::dm002::current"
+    runtime_state_path.parent.mkdir(parents=True)
+    runtime_state_path.write_text(
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "quest_id": "quest-dm002",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+                "pending_user_message_count": 0,
+                "last_controller_decision_authorization": {
+                    "decision_id": "old-gate-recheck",
+                    "route_target": "publication_gate",
+                    "work_unit_id": "publication_gate_recheck",
+                    "work_unit_fingerprint": "publication-blockers::old",
+                    "controller_actions": ["run_gate_clearing_batch"],
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    batch_path.parent.mkdir(parents=True)
+    batch_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "blocked",
+                "source_eval_id": eval_id,
+                "next_owner": "write",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "repair_execution_evidence": {
+                    "blockers": ["manuscript_story_surface_delta_missing"],
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "route_key_question": "Can the manuscript be rewritten around the current validated story?",
+                "route_rationale": "The current manuscript has not absorbed the latest story surface.",
+                "work_unit_fingerprint": "publication-blockers::story-surface",
+                "next_work_unit": {
+                    "unit_id": "manuscript_story_repair",
+                    "lane": "write",
+                    "summary": "Repair the manuscript story from current evidence surfaces.",
+                },
+            }
+        ],
+    }
+    ensure_calls: list[dict[str, object]] = []
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
+        runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+        authorization = runtime_state["last_controller_decision_authorization"]
+        assert authorization["authorization_basis"] == "quality_repair_story_surface_delta_blocker"
+        assert authorization["route_target"] == "write"
+        assert authorization["work_unit_id"] == "manuscript_story_repair"
+        assert authorization["controller_actions"] == ["run_quality_repair_batch"]
+        return {
+            "decision": "resume",
+            "quest_status": "running",
+            "runtime_liveness_audit": {
+                "active_run_id": "run-dm002-story-repair",
+                "runtime_audit": {
+                    "worker_running": True,
+                    "active_run_id": "run-dm002-story-repair",
+                },
+            },
+        }
+
+    monkeypatch.setattr(platform_repair.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+
+    result = platform_repair.apply_runtime_platform_repair(
+        profile=object(),
+        study_id="dm002",
+        study_root=study_root,
+        status={
+            "quest_id": "quest-dm002",
+            "quest_root": str(quest_root),
+            "quest_status": "waiting_for_user",
+            "domain_transition": {
+                "decision_type": "publication_gate_blocker",
+                "route_target": "publication_gate",
+                "controller_action": "run_gate_clearing_batch",
+                "next_work_unit": {
+                    "unit_id": "publication_gate_recheck",
+                    "lane": "publication_gate",
+                    "source_work_unit": {"unit_id": "manuscript_story_repair", "lane": "write"},
+                },
+                "typed_blocker": {"blocker_id": "publication_gate_blocked"},
+            },
+        },
+        progress={},
+        publication_eval_payload=publication_eval_payload,
+        developer_mode=_developer_apply_safe_mode(),
+        enabled=True,
+        repair_required=True,
+    )
+
+    assert len(ensure_calls) == 1
+    assert result is not None
+    assert result["dispatch_status"] == "applied"
+    assert result["repair_kind"] == "domain_transition_publication_gate_blocker_story_surface_delta_redrive"
+    assert result["domain_transition_controller_route"]["authorization_basis"] == (
+        "quality_repair_story_surface_delta_blocker"
+    )
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert runtime_state["continuation_reason"] == "controller_work_unit_pending"
+
+
 def _developer_apply_safe_mode() -> DeveloperSupervisorMode:
     return DeveloperSupervisorMode(
         mode="developer_apply_safe",

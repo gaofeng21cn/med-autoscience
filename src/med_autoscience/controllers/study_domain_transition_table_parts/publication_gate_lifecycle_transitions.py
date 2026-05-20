@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import publication_work_unit_lifecycle
+from med_autoscience.controllers import quality_repair_batch
 
 
 PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = Path(
@@ -14,6 +15,7 @@ PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = Path(
 
 def project_transition(
     *,
+    study_root: Path,
     study_id: str,
     lifecycle: Mapping[str, Any],
     lifecycle_ref: str | None,
@@ -22,6 +24,11 @@ def project_transition(
 ) -> dict[str, Any] | None:
     payload = dict(lifecycle) if isinstance(lifecycle, Mapping) else {}
     if not payload:
+        return None
+    if quality_repair_batch.story_surface_delta_blocker_supersedes_lifecycle(
+        study_root=study_root,
+        lifecycle=payload,
+    ):
         return None
     if not publication_work_unit_lifecycle.lifecycle_payload_is_closed(payload):
         return None
