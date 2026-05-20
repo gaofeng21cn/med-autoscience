@@ -5,6 +5,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
+
 
 _ROUTE_DECISION_OWNER_RECEIPT_VALUES = frozenset(
     {
@@ -245,15 +247,23 @@ def human_gate_resume_receipt_consumption(
     controller_decision_id = _text(controller_decision.get("decision_id"))
     if controller_decision_id and summary_decision_id and summary_decision_id != controller_decision_id:
         return {}
+    receipt_ref = str(summary_ref)
+    decision_ref = str(controller_decision_ref)
     return {
         "status": "consumed",
         "receipt_kind": "human_gate_resume_receipt",
         "gate_id": _text(summary.get("gate_id")),
         "decision_id": summary_decision_id or controller_decision_id,
         "decision_status": decision_status,
-        "receipt_ref": str(summary_ref),
-        "decision_ref": str(controller_decision_ref),
+        "receipt_ref": receipt_ref,
+        "decision_ref": decision_ref,
         "controller_action_types": controller_action_types,
+        "body_free_evidence_packet": build_body_free_evidence_packet(
+            ref=f"{receipt_ref}#{summary_decision_id or controller_decision_id}",
+            role="human_gate_or_resume_ref",
+            owner="MedAutoScience",
+            receipt_id=f"human-gate-resume:{summary_decision_id or controller_decision_id}",
+        ),
         "next_action": "honor_human_gate_resume_receipt",
     }
 

@@ -6,6 +6,8 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
+
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "artifact_retention_operations_plan"
@@ -153,20 +155,26 @@ def _retention_operation(*, workspace_root: Path, artifact: Mapping[str, Any]) -
         "projection_status": "not_projection",
         "runtime_retention_mode": "not_runtime",
     }
+    base["body_free_evidence_packet"] = _artifact_lifecycle_packet(
+        workspace_root=workspace_root,
+        operation=base,
+    )
     if cleanup_candidate_action == "delete-safe-cache":
-        return {
+        payload = {
             **base,
             "retention_action": "delete_safe_cache",
             "physical_delete_allowed": True,
             "target_sha256": _target_sha256(base["path"]),
         }
+        return _with_artifact_lifecycle_packet(workspace_root=workspace_root, operation=payload)
     if role in _KEEP_ONLINE_ROLES or cleanup_candidate_action == "keep-online":
-        return {
+        payload = {
             **base,
             "retention_action": "keep_online",
         }
+        return _with_artifact_lifecycle_packet(workspace_root=workspace_root, operation=payload)
     if role == "derived_projection" or lifecycle == "rebuildable_projection":
-        return {
+        payload = {
             **base,
             "retention_action": "regenerate_projection_then_remove_stale",
             "removal_marker": _REGENERATE_BEFORE_REMOVE_MARKER,
@@ -182,8 +190,9 @@ def _retention_operation(*, workspace_root: Path, artifact: Mapping[str, Any]) -
                 ]
             ),
         }
+        return _with_artifact_lifecycle_packet(workspace_root=workspace_root, operation=payload)
     if role == "runtime_ephemeral" and cleanup_candidate_action == "archive-compress":
-        return {
+        payload = {
             **base,
             "retention_action": "archive_compress_candidate_blocked",
             "runtime_retention_mode": "terminal_archive_compress_candidate",
@@ -199,14 +208,16 @@ def _retention_operation(*, workspace_root: Path, artifact: Mapping[str, Any]) -
                 ]
             ),
         }
+        return _with_artifact_lifecycle_packet(workspace_root=workspace_root, operation=payload)
     if role == "runtime_ephemeral":
-        return {
+        payload = {
             **base,
             "retention_action": "keep_online",
             "runtime_retention_mode": "audit_only",
         }
+        return _with_artifact_lifecycle_packet(workspace_root=workspace_root, operation=payload)
     if role == "cold_archive" or cleanup_candidate_action == "restore-gated":
-        return {
+        payload = {
             **base,
             "retention_action": "restore_contract_required",
             "restore_contract_gate": {
@@ -214,10 +225,12 @@ def _retention_operation(*, workspace_root: Path, artifact: Mapping[str, Any]) -
                 "status": "required_before_cleanup",
             },
         }
-    return {
+        return _with_artifact_lifecycle_packet(workspace_root=workspace_root, operation=payload)
+    payload = {
         **base,
         "retention_action": "keep_online",
     }
+    return _with_artifact_lifecycle_packet(workspace_root=workspace_root, operation=payload)
 
 
 def _terminal_retention_operation(operation: Mapping[str, Any]) -> dict[str, Any]:
@@ -227,7 +240,7 @@ def _terminal_retention_operation(operation: Mapping[str, Any]) -> dict[str, Any
         and _text(payload.get("cleanup_candidate_action")) == "archive-compress"
     ):
         blockers = _string_list(payload.get("blockers"))
-        return {
+        updated = {
             **payload,
             "retention_action": "terminal_archive_compact_after_manifest",
             "runtime_retention_mode": "terminal_archive_compact_after_manifest",
@@ -244,7 +257,48 @@ def _terminal_retention_operation(operation: Mapping[str, Any]) -> dict[str, Any
                 ]
             ),
         }
+        workspace_root = Path(_text(updated.get("path")) or ".").resolve()
+        return {
+            **updated,
+            "body_free_evidence_packet": _artifact_lifecycle_packet(
+                workspace_root=workspace_root,
+                operation=updated,
+            ),
+        }
     return payload
+
+
+def _with_artifact_lifecycle_packet(*, workspace_root: Path, operation: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(operation)
+    payload["body_free_evidence_packet"] = _artifact_lifecycle_packet(
+        workspace_root=workspace_root,
+        operation=payload,
+    )
+    return payload
+
+
+def _artifact_lifecycle_packet(*, workspace_root: Path, operation: Mapping[str, Any]) -> dict[str, Any]:
+    role = _text(operation.get("role"))
+    action = _text(operation.get("retention_action")) or _text(operation.get("cleanup_candidate_action"))
+    packet_role = _artifact_lifecycle_packet_role(action=action, role=role)
+    relative_ref = _text(operation.get("workspace_relative_path")) or _workspace_relative_path(operation, workspace_root)
+    receipt_id = f"artifact-lifecycle:{packet_role}:{_fingerprint_text(relative_ref or _text(operation.get('path')))}"
+    return build_body_free_evidence_packet(
+        ref=relative_ref or _text(operation.get("path")),
+        role=packet_role,
+        owner="MedAutoScience",
+        receipt_id=receipt_id,
+    )
+
+
+def _artifact_lifecycle_packet_role(*, action: str, role: str) -> str:
+    if action in {"regenerate_projection_then_remove_stale", "delete_safe_cache"}:
+        return "artifact_mutation_receipt_ref"
+    if action in {"restore_contract_required", "archive_compress_candidate_blocked", "terminal_archive_compact_after_manifest"}:
+        return "artifact_restore_receipt_ref"
+    if role in {"canonical_source", "data_release", "audit_log", "human_handoff_mirror"} or action == "keep_online":
+        return "artifact_retention_receipt_ref"
+    return "artifact_lifecycle_receipt_ref"
 
 
 def _summary(operations: list[Mapping[str, Any]]) -> dict[str, Any]:
@@ -349,6 +403,10 @@ def _target_sha256(path_text: str) -> str | None:
         digest.update(hashlib.sha256(child.read_bytes()).hexdigest().encode("ascii"))
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def _fingerprint_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
 
 
 def _workspace_relative_path(artifact: Mapping[str, Any], workspace_root: Path) -> str:
