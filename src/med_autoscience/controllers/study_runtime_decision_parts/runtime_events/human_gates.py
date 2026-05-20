@@ -345,6 +345,12 @@ def _set_running_quest_recovery_decision(
     status: StudyRuntimeStatus,
     execution: dict[str, object],
 ) -> None:
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    domain_redrive = (
+        isinstance(interaction_arbitration, dict)
+        and str(interaction_arbitration.get("classification") or "").strip() == "domain_transition_runtime_redrive"
+        and str(interaction_arbitration.get("action") or "").strip() == "resume"
+    )
     if _user_pause_contract_without_live_worker(status):
         status.set_decision(
             StudyRuntimeDecision.BLOCKED,
@@ -368,7 +374,11 @@ def _set_running_quest_recovery_decision(
     elif execution.get("auto_resume") is True:
         status.set_decision(
             StudyRuntimeDecision.RESUME,
-            StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
+            (
+                StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+                if domain_redrive
+                else StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION
+            ),
         )
     else:
         status.set_decision(

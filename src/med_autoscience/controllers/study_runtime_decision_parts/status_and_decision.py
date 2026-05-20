@@ -472,7 +472,7 @@ def _status_state(
             )
             return _finalize_result()
         if (
-            domain_redrive_reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL
+            not _has_domain_transition_runtime_redrive(result)
             and _should_park_delivered_or_redriven_package_without_live_worker(
                 result,
                 study_root=study_root,
@@ -631,7 +631,7 @@ def _status_state(
         elif execution.get("auto_resume") is True:
             result.set_decision(
                 StudyRuntimeDecision.RESUME,
-                StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
+                domain_redrive_reason or StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
             )
         else:
             result.set_decision(
