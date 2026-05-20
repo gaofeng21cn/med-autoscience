@@ -686,6 +686,11 @@ def test_existing_completed_adoption_before_decision_refreshes_publication_work_
     assert lifecycle["next_owner"] == "publication_gate"
     assert lifecycle["evidence_adoption"]["report_ref"] == str(closeout_path)
     assert lifecycle["work_unit"]["unit_id"] == "manuscript_story_repair"
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    marker_lifecycle = runtime_state["last_controller_decision_authorization"]["controller_work_unit_lifecycle"]
+    assert marker_lifecycle["lifecycle_state"] == "owner_handoff"
+    assert marker_lifecycle["latest_event_type"] == "owner_handoff"
+    assert marker_lifecycle["terminal_consumed"] is True
 
 
 def _write_story_repair_authorization(

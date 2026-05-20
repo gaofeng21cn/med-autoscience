@@ -697,6 +697,31 @@ def _controller_work_unit_lifecycle_projection(lifecycle: dict[str, Any] | None)
     }
 
 
+def _controller_work_unit_adoption_lifecycle(
+    *,
+    study_root: Path,
+    identity: control_intent.ControlIntentIdentity,
+    authorization_context: dict[str, Any],
+    evidence_adoption: dict[str, Any],
+) -> dict[str, Any]:
+    decision_emitted_at = _timestamp_key(authorization_context.get("decision_emitted_at"))
+    if decision_emitted_at is None:
+        return control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    lifecycle = control_intent.lifecycle_state_since(
+        study_root=study_root,
+        identity=identity,
+        recorded_at=decision_emitted_at,
+    )
+    if lifecycle.get("lifecycle_state") != "new":
+        return lifecycle
+    if evidence_adoption.get("already_recorded") is not True:
+        return lifecycle
+    full_lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    if full_lifecycle.get("terminal_consumed") is True:
+        return full_lifecycle
+    return lifecycle
+
+
 def existing_controller_work_unit_evidence_adoption(
     *,
     study_root: Path,
@@ -764,15 +789,12 @@ def record_controller_work_unit_evidence_adoption(
     authorization_context: dict[str, Any],
     evidence_adoption: dict[str, Any],
 ) -> None:
-    decision_emitted_at = _timestamp_key(authorization_context.get("decision_emitted_at"))
-    if decision_emitted_at is not None:
-        lifecycle = control_intent.lifecycle_state_since(
-            study_root=study_root,
-            identity=identity,
-            recorded_at=decision_emitted_at,
-        )
-    else:
-        lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    lifecycle = _controller_work_unit_adoption_lifecycle(
+        study_root=study_root,
+        identity=identity,
+        authorization_context=authorization_context,
+        evidence_adoption=evidence_adoption,
+    )
     relaunch_required = _result_requires_runtime_relaunch(dict(evidence_adoption.get("result") or {}))
     next_owner = _text(evidence_adoption.get("next_owner")) or "publication_gate"
     next_work_unit = _text(evidence_adoption.get("next_work_unit"))
