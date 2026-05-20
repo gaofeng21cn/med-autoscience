@@ -45,6 +45,15 @@ PAPER_LINE_GUARDED_APPLY_FORBIDDEN_BODIES = (
     "memory_body",
     "final_verdict_body",
 )
+PAPER_LINE_GUARDED_APPLY_OPL_REF_ROLES = (
+    "owner_receipt_ref",
+    "progress_delta_ref",
+    "ai_reviewer_gate_receipt_ref",
+    "artifact_movement_ref",
+    "human_gate_or_resume_ref",
+    "stable_typed_blocker_ref",
+    "no_forbidden_write_proof_ref",
+)
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "study_truth_write",
@@ -259,12 +268,57 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
     return {
         "surface_kind": PAPER_LINE_GUARDED_APPLY_EVIDENCE_SURFACE,
         "version": "mas-paper-line-guarded-apply-evidence-scaleout.v1",
+        "lane_id": "lane_4a_mas_evidence_scaleout",
         "mode": "domain_owned_refs_only",
         "owner": DOMAIN_OWNER,
         "provider_attempt_owner": OPL_OWNER,
         "scaleout_status": "pending_real_paper_line_owner_receipts",
+        "selected_evidence_surface": "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence",
         "required_owner_outcome_refs": list(PAPER_LINE_GUARDED_APPLY_REQUIRED_REFS),
         "accepted_apply_results": list(PAPER_LINE_GUARDED_APPLY_ACCEPTED_RESULTS),
+        "opl_ingestable_ref_contract": {
+            "ref_packet_role": "opl_agent_lab_evidence_scaleout_input",
+            "selected_surface": "existing_mas_paper_line_guarded_apply_evidence",
+            "allowed_ref_roles": list(PAPER_LINE_GUARDED_APPLY_OPL_REF_ROLES),
+            "closeout_requires_mas_owner_receipt_or_typed_blocker": True,
+            "opl_may_persist_refs_only": True,
+            "opl_may_write_domain_truth": False,
+            "opl_may_write_memory_body": False,
+            "opl_may_write_artifact_body": False,
+            "opl_may_authorize_publication_or_quality": False,
+        },
+        "scaleout_ref_packets": [
+            _paper_line_scaleout_ref_packet(
+                packet_id="progress_delta_ref_packet",
+                required_role="progress_delta_ref",
+                owner_surface="artifacts/controller/repair_execution_evidence/latest.json",
+                fallback_owner_surface="artifacts/runtime/turn_closeouts/<active_run_id>.json",
+            ),
+            _paper_line_scaleout_ref_packet(
+                packet_id="ai_reviewer_gate_receipt_ref_packet",
+                required_role="ai_reviewer_gate_receipt_ref",
+                owner_surface="artifacts/publication_eval/latest.json",
+                fallback_owner_surface="artifacts/supervision/requests/ai_reviewer/latest.json",
+            ),
+            _paper_line_scaleout_ref_packet(
+                packet_id="artifact_movement_ref_packet",
+                required_role="artifact_movement_ref",
+                owner_surface="artifact_authority_receipt",
+                fallback_owner_surface="artifacts/controller/gate_replay_requests/latest.json",
+            ),
+            _paper_line_scaleout_ref_packet(
+                packet_id="human_gate_or_resume_ref_packet",
+                required_role="human_gate_or_resume_ref",
+                owner_surface="artifacts/controller_decisions/latest.json",
+                fallback_owner_surface="human_gate_resume_receipt",
+            ),
+            _paper_line_scaleout_ref_packet(
+                packet_id="stable_typed_blocker_ref_packet",
+                required_role="stable_typed_blocker_ref",
+                owner_surface="typed_blocker_receipt",
+                fallback_owner_surface="artifacts/controller_decisions/latest.json",
+            ),
+        ],
         "domain_owned_outcome_refs": [
             _paper_line_outcome_ref(
                 outcome_id="progress_delta",
@@ -333,6 +387,26 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
             "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
             "product_entry_manifest.provider_guarded_soak_read_model",
         ],
+    }
+
+def _paper_line_scaleout_ref_packet(
+    *,
+    packet_id: str,
+    required_role: str,
+    owner_surface: str,
+    fallback_owner_surface: str,
+) -> dict[str, Any]:
+    return {
+        "packet_id": packet_id,
+        "owner": DOMAIN_OWNER,
+        "required_role": required_role,
+        "owner_surface": owner_surface,
+        "fallback_owner_surface": fallback_owner_surface,
+        "body_included": False,
+        "opl_ingestable": True,
+        "opl_projection_only": True,
+        "write_permitted": False,
+        "domain_truth_owner": DOMAIN_OWNER,
     }
 
 def _paper_line_outcome_ref(

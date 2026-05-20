@@ -74,7 +74,11 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
 
     evidence = read_model["paper_line_guarded_apply_evidence"]
     assert evidence["surface_kind"] == "mas_paper_line_guarded_apply_evidence_scaleout"
+    assert evidence["lane_id"] == "lane_4a_mas_evidence_scaleout"
     assert evidence["mode"] == "domain_owned_refs_only"
+    assert evidence["selected_evidence_surface"] == (
+        "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+    )
     assert evidence["body_included"] is False
     assert evidence["artifact_body_included"] is False
     assert evidence["memory_body_included"] is False
@@ -97,6 +101,46 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
         "stable_typed_blocker_ref",
         "no_forbidden_write_proof_ref",
     ]
+    opl_contract = evidence["opl_ingestable_ref_contract"]
+    assert opl_contract["ref_packet_role"] == "opl_agent_lab_evidence_scaleout_input"
+    assert opl_contract["selected_surface"] == "existing_mas_paper_line_guarded_apply_evidence"
+    assert opl_contract["allowed_ref_roles"] == [
+        "owner_receipt_ref",
+        "progress_delta_ref",
+        "ai_reviewer_gate_receipt_ref",
+        "artifact_movement_ref",
+        "human_gate_or_resume_ref",
+        "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
+    ]
+    assert opl_contract["closeout_requires_mas_owner_receipt_or_typed_blocker"] is True
+    assert opl_contract["opl_may_persist_refs_only"] is True
+    assert opl_contract["opl_may_write_domain_truth"] is False
+    assert opl_contract["opl_may_write_memory_body"] is False
+    assert opl_contract["opl_may_write_artifact_body"] is False
+    assert opl_contract["opl_may_authorize_publication_or_quality"] is False
+    packets = {item["required_role"]: item for item in evidence["scaleout_ref_packets"]}
+    assert set(packets) == {
+        "progress_delta_ref",
+        "ai_reviewer_gate_receipt_ref",
+        "artifact_movement_ref",
+        "human_gate_or_resume_ref",
+        "stable_typed_blocker_ref",
+    }
+    assert packets["progress_delta_ref"]["fallback_owner_surface"] == (
+        "artifacts/runtime/turn_closeouts/<active_run_id>.json"
+    )
+    assert packets["ai_reviewer_gate_receipt_ref"]["owner_surface"] == (
+        "artifacts/publication_eval/latest.json"
+    )
+    assert packets["artifact_movement_ref"]["owner_surface"] == "artifact_authority_receipt"
+    assert packets["human_gate_or_resume_ref"]["owner_surface"] == (
+        "artifacts/controller_decisions/latest.json"
+    )
+    assert packets["stable_typed_blocker_ref"]["owner_surface"] == "typed_blocker_receipt"
+    assert all(packet["body_included"] is False for packet in packets.values())
+    assert all(packet["opl_ingestable"] is True for packet in packets.values())
+    assert all(packet["write_permitted"] is False for packet in packets.values())
     outcomes = {item["outcome_id"]: item for item in evidence["domain_owned_outcome_refs"]}
     assert set(outcomes) == {
         "progress_delta",

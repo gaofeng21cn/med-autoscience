@@ -157,6 +157,11 @@
     "suite_kind": "agent_production_evidence_suite",
     "suite_role": "production_evidence_tail_control_plane",
     "domain_verdict_claimed": false,
+    "lane_4a_selected_evidence_surface": {
+      "ref": "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
+      "role": "selected_existing_mas_evidence_surface",
+      "body_included": false
+    },
     "target_opl_cli_refs": [
       {
         "ref": "opl agent-lab run --suite <suite.json> --json",
@@ -337,6 +342,14 @@
     "closeout_requires_domain_owner_receipt_or_typed_blocker": true,
     "publication_ready_requires_independent_domain_reviewer_or_auditor_gate": true,
     "artifact_mutation_requires_domain_artifact_authority_receipt": true,
-    "memory_accept_reject_requires_domain_memory_receipt": true
+    "memory_accept_reject_requires_domain_memory_receipt": true,
+    "lane_4a_scaleout_closeout_requires": [
+      "mas_owner_receipt_ref",
+      "progress_delta_ref",
+      "ai_reviewer_gate_receipt_ref",
+      "artifact_movement_ref",
+      "human_gate_or_resume_ref",
+      "stable_typed_blocker_ref"
+    ]
   }
 }
