@@ -490,11 +490,47 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
 def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> dict[str, Any]:
     runtime_event_refs = _required_runtime_event_refs(stage)
     cohort_loop_refs = _stage_cohort_loop_refs(stage)
+    stage_id = str(stage["stage_id"])
+    domain_stage_refs = list(stage["domain_stage_refs"])
+    allowed_action_refs = list(stage["allowed_action_refs"])
+    knowledge_refs = stage_knowledge_refs(stage)
+    quality_pack_refs = stage_quality_contract.quality_pack_ids_for_stages(domain_stage_refs)
+    skill_refs = [
+        *[
+            {"ref_kind": "repo_path", "ref": ref, "role": "domain_pack_skill_policy"}
+            for ref in AGENT_SKILL_REFS
+        ],
+        {"ref_kind": "skill_id", "ref": "med-autoscience", "role": "domain_skill"},
+        {"ref_kind": "skill_id", "ref": "mas", "role": "codex_app_skill"},
+    ]
+    prompt_ref = {
+        "ref_kind": "repo_path",
+        "ref": stage_prompt_ref(stage),
+        "role": "stage_prompt",
+    }
+    evaluation_refs = [
+        {
+            "ref_kind": "json_pointer",
+            "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+            "role": "authority_boundary",
+        },
+        {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_projection"},
+        {
+            "ref_kind": "json_pointer",
+            "ref": "/product_entry_manifest/owner_receipt_contract",
+            "role": "owner_receipt_gate",
+        },
+        *[
+            {"ref_kind": "repo_path", "ref": ref, "role": "agent_quality_gate"}
+            for ref in AGENT_QUALITY_GATE_REFS
+        ],
+    ]
+    independent_gate_receipt_required = bool(stage.get("independent_gate_receipt_required", False))
     source_refs = [
         *_plane_source_refs(descriptor),
         {
             "ref_kind": "route_stage_refs",
-            "ref": list(stage["domain_stage_refs"]),
+            "ref": domain_stage_refs,
             "role": "mas_route_projection",
         },
     ]
@@ -526,7 +562,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         "summary": f"{stage['title']} projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
         "goal": _stage_goal(stage, descriptor=descriptor),
         "owner": "MedAutoScience",
-        "domain_stage_refs": list(stage["domain_stage_refs"]),
+        "domain_stage_refs": domain_stage_refs,
         "inputs": [
             {"ref_kind": "json_pointer", "ref": "/family_action_catalog", "role": "allowed_action_catalog"},
             {
@@ -536,29 +572,16 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             },
             {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_read_model"},
         ],
-        "knowledge_refs": stage_knowledge_refs(stage),
-        "quality_pack_refs": stage_quality_contract.quality_pack_ids_for_stages(stage["domain_stage_refs"]),
+        "knowledge_refs": knowledge_refs,
+        "quality_pack_refs": quality_pack_refs,
         "quality_pack_projection": stage_quality_contract.build_stage_quality_pack_ref_projection(
-            stage["domain_stage_refs"]
+            domain_stage_refs
         ),
         "stage_skill_surface_projection": stage_skill_surface_projection.build_stage_skill_surface_projection(
-            stage_id=str(stage["stage_id"])
+            stage_id=stage_id
         ),
-        "skills": [
-            *[
-                {"ref_kind": "repo_path", "ref": ref, "role": "domain_pack_skill_policy"}
-                for ref in AGENT_SKILL_REFS
-            ],
-            {"ref_kind": "skill_id", "ref": "med-autoscience", "role": "domain_skill"},
-            {"ref_kind": "skill_id", "ref": "mas", "role": "codex_app_skill"},
-        ],
-        "prompt_refs": [
-            {
-                "ref_kind": "repo_path",
-                "ref": stage_prompt_ref(stage),
-                "role": "stage_prompt",
-            },
-        ],
+        "skills": skill_refs,
+        "prompt_refs": [prompt_ref],
         "policy_refs": [
             {"ref_kind": "repo_path", "ref": STAGE_ROUTE_CONTRACT_REF, "role": "route_contract"},
             {"ref_kind": "repo_path", "ref": STAGE_LED_AUTONOMY_POLICY_REF, "role": "stage_led_policy"},
@@ -568,7 +591,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
                 "role": "stage_domain_policy",
             },
         ],
-        "allowed_action_refs": list(stage["allowed_action_refs"]),
+        "allowed_action_refs": allowed_action_refs,
         "deliverable_index_ref": _stage_deliverable_index_ref(),
         "outputs": [
             {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "stage_status"},
@@ -579,19 +602,18 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
                 "role": "owner_route_projection",
             },
         ],
-        "evaluation": [
-            {"ref_kind": "json_pointer", "ref": "/family_stage_control_plane_descriptor/authority_boundary", "role": "authority_boundary"},
-            {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_projection"},
-            {
-                "ref_kind": "json_pointer",
-                "ref": "/product_entry_manifest/owner_receipt_contract",
-                "role": "owner_receipt_gate",
-            },
-            *[
-                {"ref_kind": "repo_path", "ref": ref, "role": "agent_quality_gate"}
-                for ref in AGENT_QUALITY_GATE_REFS
-            ],
-        ],
+        "evaluation": evaluation_refs,
+        "codex_cli_launch_packet": stage_skill_surface_projection.build_codex_cli_launch_packet(
+            stage_id=stage_id,
+            prompt_ref=prompt_ref,
+            skill_refs=skill_refs,
+            knowledge_refs=knowledge_refs,
+            quality_gate_refs=evaluation_refs,
+            quality_pack_refs=quality_pack_refs,
+            allowed_action_refs=allowed_action_refs,
+            expected_runtime_event_refs=runtime_event_refs,
+            independent_gate_receipt_required=independent_gate_receipt_required,
+        ),
         "handoff": {
             "next_owner": "MedAutoScience",
             "next_stage_refs": list(stage.get("next_stage_refs", [])),
@@ -616,7 +638,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "publication_gate_owner": "MedAutoScience",
             "opl_role": "projection_consumer_only",
             "maps_existing_routes_only": True,
-            "independent_gate_receipt_required": bool(stage.get("independent_gate_receipt_required", False)),
+            "independent_gate_receipt_required": independent_gate_receipt_required,
             "can_write_domain_truth": False,
             "can_replace_route_contract": False,
             "can_authorize_publication_quality": False,

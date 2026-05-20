@@ -211,6 +211,38 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     generated = build_standard_pack()
 
     for stage in generated["stage_control_plane"]["stages"]:
+        launch_packet = stage["codex_cli_launch_packet"]
+        assert launch_packet["surface_kind"] == "mas_codex_cli_stage_launch_packet"
+        assert launch_packet["stage_id"] == stage["stage_id"]
+        assert launch_packet["executor_requirements"] == "Codex CLI default"
+        assert launch_packet["prompt_ref"] == stage["prompt_refs"][0]
+        assert set(launch_packet["tool_refs"]["allowed_action_refs"]) == set(stage["allowed_action_refs"])
+        assert launch_packet["skill_refs"] == stage["skills"]
+        assert launch_packet["knowledge_refs"] == stage["knowledge_refs"]
+        assert launch_packet["quality_gate_refs"] == stage["evaluation"]
+        assert launch_packet["quality_pack_refs"] == stage["quality_pack_refs"]
+        assert launch_packet["expected_receipt_refs"]["owner_receipt_contract_ref"] == (
+            "/product_entry_manifest/owner_receipt_contract"
+        )
+        assert launch_packet["expected_receipt_refs"]["stage_status_ref"] == "/progress_projection"
+        assert launch_packet["expected_receipt_refs"]["runtime_event_refs"] == (
+            stage["stage_contract"]["runtime_event_refs"]
+        )
+        assert set(launch_packet["expected_receipt_refs"]["valid_outcomes"]) == {
+            "owner_receipt",
+            "typed_blocker",
+            "route_back_request",
+            "human_gate_request",
+            "no_op_with_currentness_proof",
+        }
+        assert launch_packet["ai_first_boundary"]["contract_role"] == "boundary_and_evidence_refs_only"
+        assert launch_packet["ai_first_boundary"]["script_verdict_authority"] is False
+        assert launch_packet["ai_first_boundary"]["self_review_closes_quality_gate"] is False
+        assert "quality_verdict" in launch_packet["forbidden_authority"]
+        assert "publication_readiness" in launch_packet["forbidden_authority"]
+        assert "script_exit_code_as_publication_quality_verdict" in launch_packet[
+            "forbidden_authority"
+        ]
         prompt_refs = stage["prompt_refs"]
         assert len(prompt_refs) == 1
         prompt_ref = prompt_refs[0]
