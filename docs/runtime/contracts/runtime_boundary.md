@@ -10,6 +10,8 @@ Current reading note：这里的 `Hermes` 指显式 `--manager hermes` 的 `Herm
 
 Executor adapter note：generic executor adapter 归 `OPL`；MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt。MAS 本地 `codex_cli_default` 只用于 standalone diagnostics；`Hermes-Agent` / `Claude Code` 只能作为 OPL 显式非默认 executor/proof/provenance/receipt 路径出现，不能扩展成 MAS-owned `executor_kind`、MAS-owned hosted executor 或 MAS runtime truth。2026-05-14 当前状态是 adapter/receipt/fail-closed 边界已落地；旧 hosted/runtime default caller 已退役。剩余验收分为真实 production-hosted soak / provider-hosted guarded apply / human gate-resume owner-chain proof、真实 workspace/runtime memory writeback receipt 泛化，以及按 `legacy_residue_audit` 对仍无 public caller 且无 fixture/provenance 价值的旧接口做物理删除。
 
+Physical/source retirement note：`runtime_transport/mas_runtime_core*`、turn runner、worker lease、`runtime_lifecycle_store.py`、product cockpit、sidecar provider 和 runtime status projection 如果仍存在，只能按 domain receipt adapter、refs-only lifecycle sidecar、guarded apply / typed blocker bridge、standalone diagnostic、direct domain handler target 或 OPL handoff input 读取。它们的删除门是 OPL provider/generated parity、MAS paper-line receipt parity、focused tests、no-forbidden-write proof、provenance/tombstone refs 和 no-active-caller 同时成立；在 gate 未成立前写成 retained adapter / diagnostic with deletion gate，在 gate 成立后直接删除、archive 或 tombstone，不新增兼容 alias。
+
 display / paper-facing asset packaging 独立线明确排除在这条 runtime 主线之外。
 
 ## 三层边界
