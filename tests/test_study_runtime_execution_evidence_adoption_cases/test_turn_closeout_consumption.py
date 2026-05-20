@@ -79,7 +79,7 @@ def test_execute_noop_runtime_decision_adopts_active_run_completed_turn_closeout
     adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert [event["event_type"] for event in events] == ["delivered", "artifact_written"]
+    assert [event["event_type"] for event in events] == ["delivered", "artifact_written", "owner_handoff"]
     assert adoption["report_ref"] == str(closeout_path)
     assert adoption["created_at"] == "2026-05-20T03:08:12+00:00"
     assert adoption["work_unit_id"] == "manuscript_story_repair"
@@ -228,9 +228,9 @@ def test_execute_noop_runtime_decision_adopts_prior_delivered_run_closeout_after
     adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert [event["event_type"] for event in events] == ["delivered", "artifact_written"]
+    assert [event["event_type"] for event in events] == ["delivered", "artifact_written", "owner_handoff"]
     assert adoption["report_ref"] == str(closeout_path)
-    assert adoption["active_run_id"] == "run-next"
+    assert adoption["active_run_id"] == "run-story"
     assert adoption["work_unit_id"] == "manuscript_story_repair"
     assert adoption["result"]["completed"] is True
     assert adoption["result"]["meaningful_artifact_delta"] is True
@@ -238,7 +238,7 @@ def test_execute_noop_runtime_decision_adopts_prior_delivered_run_closeout_after
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     marker = runtime_state["last_controller_decision_authorization"]
     assert marker["delivery_mode"] == "controller_work_unit_evidence_adoption"
-    assert marker["active_run_id"] == "run-next"
+    assert marker["active_run_id"] == "run-story"
 
 
 def test_execute_noop_runtime_decision_refreshes_prior_adoption_with_newer_delivered_closeout(
@@ -364,6 +364,7 @@ def test_execute_noop_runtime_decision_refreshes_prior_adoption_with_newer_deliv
         "artifact_written",
         "delivered",
         "artifact_written",
+        "owner_handoff",
     ]
     assert adoption["report_ref"] == str(closeout_path)
     assert adoption["created_at"] == "2026-05-20T04:32:38+00:00"
@@ -469,6 +470,7 @@ def test_execute_noop_runtime_decision_adopts_post_authorization_story_closeout_
         "delivered",
         "artifact_written",
         "artifact_written",
+        "owner_handoff",
     ]
     assert adoption["report_ref"] == str(closeout_path)
     assert adoption["created_at"] == "2026-05-20T04:47:57+00:00"
