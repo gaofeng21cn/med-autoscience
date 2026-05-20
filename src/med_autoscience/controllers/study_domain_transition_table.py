@@ -213,6 +213,17 @@ def project_domain_transition(
             completion_receipt_consumption=execution_receipt_consumption,
         )
 
+    stale_reviewer_revision_transition = ai_reviewer_transitions.project_stale_reviewer_revision_transition(
+        study_id=study_id,
+        study_root=root,
+        publication_eval=publication_eval,
+        publication_eval_relative_path=PUBLICATION_EVAL_RELATIVE_PATH,
+        source_refs=source_refs,
+        completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
+    )
+    if stale_reviewer_revision_transition is not None:
+        return stale_reviewer_revision_transition
+
     review_recheck_transition = story_surface_recheck_transition.project_transition(
         study_root=root,
         study_id=study_id,
@@ -227,6 +238,7 @@ def project_domain_transition(
 
     ai_reviewer_transition = ai_reviewer_transitions.project_transition(
         study_id=study_id,
+        study_root=root,
         publication_eval=publication_eval,
         active_run_id=active_run_id,
         publication_eval_relative_path=PUBLICATION_EVAL_RELATIVE_PATH,

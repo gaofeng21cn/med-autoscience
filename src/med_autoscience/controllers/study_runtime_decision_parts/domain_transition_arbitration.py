@@ -8,6 +8,7 @@ from med_autoscience.controllers import (
     study_state_matrix,
 )
 from med_autoscience.controllers.domain_route_scan_parts import hard_methodology_currentness
+from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.controllers.study_runtime_status_parts import StudyRuntimeStatus
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import _load_json_dict
 
@@ -76,6 +77,12 @@ def _domain_transition_status_candidate(
         decision_type in {"route_back_same_line", "stop_loss"}
         or route_decision in {"route_back_same_line", "stop_loss", "terminal_stop"}
         or route_target == "stop"
+    ):
+        return True
+    publication_eval = _load_json_dict(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH)
+    if ai_reviewer_transitions.stale_after_reviewer_revision(
+        study_root=study_root,
+        publication_eval=publication_eval,
     ):
         return True
     return False

@@ -10,6 +10,7 @@ from med_autoscience.controllers import provenance_limited_harmonization_owner_r
 from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.domain_route_scan_parts import action_decorators
 from med_autoscience.controllers.domain_route_scan_parts import artifact_freshness
+from med_autoscience.controllers.domain_route_scan_parts import ai_reviewer_actions
 from med_autoscience.controllers.domain_route_scan_parts import completion_evidence
 from med_autoscience.controllers.domain_route_scan_parts import current_truth_owner
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
@@ -131,7 +132,7 @@ def action_queue(
             decorate_action(
                 study_id=study_id,
                 quest_id=quest_id,
-                action=_ai_reviewer_required_action(reason="paper_authority_clean_migration_required"),
+                action=ai_reviewer_actions.ai_reviewer_required_action(reason="paper_authority_clean_migration_required"),
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,
@@ -146,6 +147,19 @@ def action_queue(
         publication_eval_payload=publication_eval_payload,
     ):
         return []
+    if ai_reviewer_actions.stale_reviewer_revision_required(ai_reviewer_assessment):
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=ai_reviewer_actions.ai_reviewer_required_action(
+                    reason=ai_reviewer_actions.STALE_AFTER_REVIEWER_REVISION_REASON
+                ),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     ai_reviewer_freshness_action = artifact_freshness.blocked_action_from_ai_reviewer_freshness_mismatch(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -228,7 +242,7 @@ def action_queue(
         actions.insert(0, artifact_action)
     if ai_reviewer_assessment.get("missing") is True:
         actions.append(
-            _ai_reviewer_required_action(
+            ai_reviewer_actions.ai_reviewer_required_action(
                 reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
             )
         )
@@ -772,20 +786,6 @@ def _clean_migration_rehydrate_execution_blocker(execution: Mapping[str, Any]) -
     return required_output_surface is not None and required_output_surface.endswith(
         "paper/medical_manuscript_blueprint_source.json"
     )
-
-
-def _ai_reviewer_required_action(*, reason: str) -> dict[str, Any]:
-    return {
-        "action_type": "return_to_ai_reviewer_workflow",
-        "authority": "observability_only",
-        "owner": "ai_reviewer",
-        "request_owner": "ai_reviewer",
-        "recommended_owner": "ai_reviewer",
-        "reason": reason,
-        "summary": "Request an AI reviewer-owned publication_eval assessment.",
-        "required_output_surface": "artifacts/publication_eval/latest.json",
-        "paper_package_mutation_allowed": False,
-    }
 
 
 def why_not_applied(

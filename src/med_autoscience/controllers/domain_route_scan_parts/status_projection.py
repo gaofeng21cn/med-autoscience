@@ -21,6 +21,7 @@ def resolve_why_not_applied(
             "current_package_freshness_required",
             "display_surface_materialization_failed",
             "ai_reviewer_assessment_required",
+            "ai_reviewer_assessment_stale_after_reviewer_revision",
         }:
             return top_action_reason
     if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":

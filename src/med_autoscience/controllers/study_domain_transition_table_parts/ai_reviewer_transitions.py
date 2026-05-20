@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -8,17 +9,29 @@ from med_autoscience.publication_eval_reviewer_os import (
     current_ai_reviewer_route_back_action,
     validate_ai_reviewer_operating_system_trace,
 )
+from med_autoscience.study_task_intake import read_latest_task_intake, task_intake_is_reviewer_revision
 
 
 def project_transition(
     *,
     study_id: str,
+    study_root: Path | None = None,
     publication_eval: Mapping[str, Any],
     active_run_id: str | None,
     publication_eval_relative_path: Path,
     source_refs: Iterable[str],
     completion_receipt_consumption: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    stale_transition = project_stale_reviewer_revision_transition(
+        study_id=study_id,
+        study_root=study_root,
+        publication_eval=publication_eval,
+        publication_eval_relative_path=publication_eval_relative_path,
+        source_refs=source_refs,
+        completion_receipt_consumption=completion_receipt_consumption,
+    )
+    if stale_transition is not None:
+        return stale_transition
     route_back_action = current_ai_reviewer_route_back_action(publication_eval)
     if route_back_action is not None:
         return _route_back_transition(
@@ -35,6 +48,38 @@ def project_transition(
             decision_type="ai_reviewer_re_eval",
             route_target="review",
             next_work_unit=_ai_reviewer_re_eval_work_unit(publication_eval),
+            controller_action="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            typed_blocker=None,
+            guard_boundary=_guard_boundary(required_owner_surface=str(publication_eval_relative_path)),
+            source_refs=source_refs,
+            completion_receipt_consumption=completion_receipt_consumption,
+        )
+    return None
+
+
+def project_stale_reviewer_revision_transition(
+    *,
+    study_id: str,
+    study_root: Path | None,
+    publication_eval: Mapping[str, Any],
+    publication_eval_relative_path: Path,
+    source_refs: Iterable[str],
+    completion_receipt_consumption: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if stale_after_reviewer_revision(
+        study_root=study_root,
+        publication_eval=publication_eval,
+    ):
+        return _transition(
+            study_id=study_id,
+            decision_type="ai_reviewer_re_eval",
+            route_target="review",
+            next_work_unit=_work_unit(
+                "ai_reviewer_medical_prose_quality_review",
+                "review",
+                "Re-run AI reviewer manuscript-quality review after the latest reviewer revision intake.",
+            ),
             controller_action="return_to_ai_reviewer_workflow",
             owner="ai_reviewer",
             typed_blocker=None,
@@ -119,6 +164,47 @@ def _ai_reviewer_trace_invalid(publication_eval: Mapping[str, Any]) -> bool:
     return bool(validate_ai_reviewer_operating_system_trace(publication_eval.get("reviewer_operating_system")))
 
 
+def stale_after_reviewer_revision(
+    *,
+    study_root: Path | None,
+    publication_eval: Mapping[str, Any],
+) -> bool:
+    if study_root is None:
+        return False
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    task_intake = read_latest_task_intake(study_root=study_root)
+    if not task_intake_is_reviewer_revision(task_intake):
+        return False
+    task_emitted_at = _surface_emitted_at(task_intake)
+    if task_emitted_at is None:
+        return False
+    publication_eval_emitted_at = _surface_emitted_at(publication_eval)
+    return publication_eval_emitted_at is None or publication_eval_emitted_at < task_emitted_at
+
+
+def _surface_emitted_at(payload: Mapping[str, Any] | None) -> datetime | None:
+    if not isinstance(payload, Mapping):
+        return None
+    return _timestamp(payload.get("emitted_at") or payload.get("generated_at") or payload.get("created_at"))
+
+
+def _timestamp(value: object) -> datetime | None:
+    text = _text(value)
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _ai_reviewer_re_eval_work_unit(publication_eval: Mapping[str, Any]) -> dict[str, str]:
     if _medical_prose_quality_unready(publication_eval) or _ai_reviewer_trace_invalid(publication_eval):
         return _work_unit(
@@ -201,4 +287,4 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-__all__ = ["project_transition"]
+__all__ = ["project_stale_reviewer_revision_transition", "project_transition", "stale_after_reviewer_revision"]
