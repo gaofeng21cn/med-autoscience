@@ -1,0 +1,79 @@
+{
+  "surface_kind": "opl_domain_workspace_file_lifecycle_policy",
+  "version": "opl-domain-workspace-file-lifecycle.v1",
+  "policy_owner": "one-person-lab",
+  "domain_id": "med-autoscience",
+  "structural_gate_only": true,
+  "repo_source_boundaries": {
+    "required_roots": [
+      "agent/",
+      "contracts/",
+      "runtime/authority_functions/",
+      "docs/",
+      "src/ or packages/"
+    ],
+    "source_truth_policy": "repo_source_contains_pack_contracts_authority_functions_and_domain_code_only",
+    "runtime_artifacts_live_in_source_repo": false,
+    "developer_checkout_may_define_app_runtime_without_explicit_override": false,
+    "forbidden_runtime_artifact_roots": [
+      "artifacts/",
+      "workspaces/",
+      "workspace/",
+      "runtime/artifacts/",
+      "runtime/workspaces/"
+    ]
+  },
+  "workspace_runtime_artifact_roots": {
+    "externalized": true,
+    "repo_source_policy": "locator_index_schema_receipt_refs_only",
+    "allowed_authoritative_roots": [
+      "workspace_root",
+      "runtime_artifact_root",
+      "user_runtime_state_root",
+      "OPL_STATE_DIR"
+    ],
+    "required_locator_refs": [
+      "workspace_root_ref",
+      "runtime_artifact_root_ref",
+      "artifact_locator_ref",
+      "restore_or_retention_receipt_ref"
+    ]
+  },
+  "byproduct_policy": {
+    "caches_and_install_artifacts_externalized": true,
+    "ignored_only_is_fallback_not_authority": true,
+    "forbidden_generated_paths": [
+      ".venv/",
+      "__pycache__/",
+      ".pytest_cache/",
+      "*.egg-info/",
+      "dist/",
+      "coverage/",
+      "node_modules/"
+    ]
+  },
+  "lifecycle_authority_split": {
+    "opl_owned_primitives": [
+      "workspace_lifecycle",
+      "file_lifecycle",
+      "artifact_locator_index",
+      "retention_restore_ledger",
+      "migration_ledger",
+      "operator_projection"
+    ],
+    "domain_owned_authority": [
+      "domain_truth",
+      "quality_export_visual_verdict",
+      "artifact_body_authority",
+      "memory_body_accept_reject",
+      "owner_receipt"
+    ]
+  },
+  "authority_boundary": {
+    "policy_can_claim_domain_ready_or_artifact_authority": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_mutate_domain_artifact_body": false,
+    "opl_can_authorize_quality_or_export": false
+  }
+}
