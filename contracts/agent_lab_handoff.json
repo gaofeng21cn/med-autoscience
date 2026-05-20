@@ -162,6 +162,11 @@
       "role": "selected_existing_mas_evidence_surface",
       "body_included": false
     },
+    "opl_stage_evidence_receipt_handoff_ref": {
+      "ref": "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence/opl_stage_evidence_receipt_handoff",
+      "role": "opl_expected_receipt_and_monitor_freshness_payload_hints",
+      "body_included": false
+    },
     "target_opl_cli_refs": [
       {
         "ref": "opl agent-lab run --suite <suite.json> --json",
@@ -202,6 +207,12 @@
           "agent_lab_suite_result_ref",
           "provider_attempt_ref",
           "sidecar_dispatch_ref",
+          "owner_receipt_ref",
+          "progress_delta_ref",
+          "ai_reviewer_gate_receipt_ref",
+          "artifact_movement_ref",
+          "human_gate_or_resume_ref",
+          "stable_typed_blocker_ref",
           "typed_blocker_ref",
           "no_forbidden_write_proof_ref"
         ],
@@ -239,6 +250,8 @@
         "allowed_opl_result_refs": [
           "agent_lab_suite_result_ref",
           "route_back_ref",
+          "artifact_movement_ref",
+          "human_gate_or_resume_ref",
           "typed_blocker_ref",
           "no_forbidden_write_proof_ref"
         ],
@@ -322,6 +335,7 @@
       "agent-lab-suite.json",
       "agent-lab-run-result.json",
       "developer-patch-work-order.json",
+      "opl-stage-evidence-receipt-workorder.json",
       "target-capability-improvement-candidate.json",
       "mechanism-patch-proposal.json",
       "no-forbidden-write-proof.json"
@@ -333,7 +347,9 @@
       "editable_surface_refs",
       "verification_command_refs",
       "owner_route",
-      "forbidden_write_proof_ref"
+      "forbidden_write_proof_ref",
+      "expected_receipt_ref",
+      "monitor_freshness_ref"
     ]
   },
   "receipt_closeout_policy": {
@@ -349,7 +365,8 @@
       "ai_reviewer_gate_receipt_ref",
       "artifact_movement_ref",
       "human_gate_or_resume_ref",
-      "stable_typed_blocker_ref"
+      "stable_typed_blocker_ref",
+      "no_forbidden_write_proof_ref"
     ]
   }
 }

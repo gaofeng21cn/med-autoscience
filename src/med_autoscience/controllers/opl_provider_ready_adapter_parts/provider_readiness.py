@@ -335,6 +335,12 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
         },
         "scaleout_ref_packets": [
             _paper_line_scaleout_ref_packet(
+                packet_id="owner_receipt_ref_packet",
+                required_role="owner_receipt_ref",
+                owner_surface="artifacts/runtime/owner_route/latest.json",
+                fallback_owner_surface="artifacts/runtime/opl_family_sidecar/dispatch_receipts/<sha256(task_id)[:20]>.json",
+            ),
+            _paper_line_scaleout_ref_packet(
                 packet_id="progress_delta_ref_packet",
                 required_role="progress_delta_ref",
                 owner_surface="artifacts/controller/repair_execution_evidence/latest.json",
@@ -364,7 +370,102 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
                 owner_surface="typed_blocker_receipt",
                 fallback_owner_surface="artifacts/controller_decisions/latest.json",
             ),
+            _paper_line_scaleout_ref_packet(
+                packet_id="no_forbidden_write_proof_ref_packet",
+                required_role="no_forbidden_write_proof_ref",
+                owner_surface="product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
+                fallback_owner_surface="sidecar_dispatch_response.forbidden_write_guard_proof",
+            ),
         ],
+        "opl_stage_evidence_receipt_handoff": {
+            "surface_kind": "mas_opl_stage_evidence_receipt_handoff",
+            "mode": "refs_only_payload_hints",
+            "record_action": "stage_production_evidence_receipt_record",
+            "verify_action": "stage_production_evidence_receipt_verify",
+            "selected_mas_surface": "paper_line_guarded_apply_evidence",
+            "payload_body_included": False,
+            "expected_receipt_ref_hints": [
+                _paper_line_opl_expected_receipt_hint(
+                    hint_id="owner_receipt",
+                    source_ref_role="owner_receipt_ref",
+                    source_packet_id="owner_receipt_ref_packet",
+                ),
+                _paper_line_opl_expected_receipt_hint(
+                    hint_id="progress_delta",
+                    source_ref_role="progress_delta_ref",
+                    source_packet_id="progress_delta_ref_packet",
+                ),
+                _paper_line_opl_expected_receipt_hint(
+                    hint_id="ai_reviewer_gate_receipt",
+                    source_ref_role="ai_reviewer_gate_receipt_ref",
+                    source_packet_id="ai_reviewer_gate_receipt_ref_packet",
+                ),
+                _paper_line_opl_expected_receipt_hint(
+                    hint_id="artifact_movement",
+                    source_ref_role="artifact_movement_ref",
+                    source_packet_id="artifact_movement_ref_packet",
+                ),
+                _paper_line_opl_expected_receipt_hint(
+                    hint_id="human_gate_or_resume",
+                    source_ref_role="human_gate_or_resume_ref",
+                    source_packet_id="human_gate_or_resume_ref_packet",
+                ),
+                _paper_line_opl_expected_receipt_hint(
+                    hint_id="stable_typed_blocker",
+                    source_ref_role="stable_typed_blocker_ref",
+                    source_packet_id="stable_typed_blocker_ref_packet",
+                ),
+                _paper_line_opl_expected_receipt_hint(
+                    hint_id="no_forbidden_write_proof",
+                    source_ref_role="no_forbidden_write_proof_ref",
+                    source_packet_id="no_forbidden_write_proof_ref_packet",
+                ),
+            ],
+            "monitor_freshness_ref_hints": [
+                _paper_line_monitor_freshness_hint(
+                    hint_id="paper_progress_delta_freshness",
+                    source_ref_roles=["owner_receipt_ref", "progress_delta_ref"],
+                ),
+                _paper_line_monitor_freshness_hint(
+                    hint_id="quality_gate_freshness",
+                    source_ref_roles=["ai_reviewer_gate_receipt_ref", "owner_receipt_ref"],
+                ),
+                _paper_line_monitor_freshness_hint(
+                    hint_id="artifact_movement_freshness",
+                    source_ref_roles=["artifact_movement_ref", "owner_receipt_ref"],
+                ),
+                _paper_line_monitor_freshness_hint(
+                    hint_id="human_gate_or_stable_blocker_freshness",
+                    source_ref_roles=["human_gate_or_resume_ref", "stable_typed_blocker_ref"],
+                ),
+                _paper_line_monitor_freshness_hint(
+                    hint_id="forbidden_write_guard_freshness",
+                    source_ref_roles=["no_forbidden_write_proof_ref"],
+                ),
+            ],
+            "closeout_requires": [
+                "mas_owner_receipt_ref",
+                "progress_delta_ref_or_stable_typed_blocker_ref",
+                "no_forbidden_write_proof_ref",
+            ],
+            "forbidden_payloads": list(PAPER_LINE_GUARDED_APPLY_FORBIDDEN_BODIES),
+            "opl_may_persist_refs_only": True,
+            "opl_may_write_domain_truth": False,
+            "opl_may_authorize_publication_or_quality": False,
+            "publication_ready_claimed": False,
+            "current_package_update_claimed": False,
+        },
+        "no_forbidden_write_proof_handoff": {
+            "proof_ref_role": "no_forbidden_write_proof_ref",
+            "owner_surface": "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
+            "fallback_owner_surface": "sidecar_dispatch_response.forbidden_write_guard_proof",
+            "result_policy": "accepted_no_forbidden_writes_or_fail_closed_typed_blocker",
+            "must_be_recorded_with_each_opl_stage_evidence_receipt": True,
+            "body_included": False,
+            "write_permitted": False,
+            "domain_truth_owner": DOMAIN_OWNER,
+            "opl_projection_only": True,
+        },
         "domain_owned_outcome_refs": [
             _paper_line_outcome_ref(
                 outcome_id="progress_delta",
@@ -432,6 +533,8 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
             "contracts/owner_receipt_contract.json",
             "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
             "product_entry_manifest.provider_guarded_soak_read_model",
+            "opl_stage_production_evidence_receipt_record",
+            "opl_stage_production_evidence_receipt_verify",
         ],
     }
 
@@ -469,6 +572,39 @@ def _paper_line_outcome_ref(
         "source_surfaces": source_surfaces,
         "body_included": False,
         "write_permitted": False,
+        "opl_projection_only": True,
+    }
+
+def _paper_line_opl_expected_receipt_hint(
+    *,
+    hint_id: str,
+    source_ref_role: str,
+    source_packet_id: str,
+) -> dict[str, Any]:
+    return {
+        "hint_id": hint_id,
+        "record_role": "expected_receipt_ref",
+        "source_ref_role": source_ref_role,
+        "source_packet_id": source_packet_id,
+        "body_included": False,
+        "write_permitted": False,
+        "domain_truth_owner": DOMAIN_OWNER,
+        "opl_projection_only": True,
+    }
+
+def _paper_line_monitor_freshness_hint(
+    *,
+    hint_id: str,
+    source_ref_roles: list[str],
+) -> dict[str, Any]:
+    return {
+        "hint_id": hint_id,
+        "record_role": "monitor_freshness_ref",
+        "source_ref_roles": source_ref_roles,
+        "freshness_mode": "ref_mtime_or_owner_receipt_fingerprint_only",
+        "body_included": False,
+        "write_permitted": False,
+        "domain_truth_owner": DOMAIN_OWNER,
         "opl_projection_only": True,
     }
 
