@@ -94,6 +94,11 @@ def _remove_empty_checkout_pycache_prefix(repo_root: Path) -> None:
         return
     if existing_path.is_dir():
         try:
+            for pyc_file in existing_path.rglob("*.pyc"):
+                try:
+                    pyc_file.unlink()
+                except OSError:
+                    pass
             directories = sorted(
                 (path for path in existing_path.rglob("*") if path.is_dir()),
                 key=lambda path: len(path.parts),
