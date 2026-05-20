@@ -78,6 +78,43 @@ def _fake_rerun_evidence(*, study_root: Path, **_: object) -> dict[str, object]:
     }
 
 
+def test_model_provenance_blocker_surfaces_source_owner_handoff(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.analysis_harmonization_owner")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_transport_inputs(study_root)
+
+    result = module.unit_harmonized_external_validation_rerun_or_typed_blocker(
+        profile=profile,
+        study_id=study_id,
+        dispatch={"action_type": "unit_harmonized_external_validation_rerun"},
+        request={"request_kind": "unit_harmonized_external_validation_rerun"},
+        apply=True,
+    )
+
+    owner_result = result["owner_result"]
+    assert owner_result["status"] == "blocked"
+    assert owner_result["blocked_reason"] == "unit_harmonized_rerun_required"
+    assert owner_result["next_owner"] == "source_provenance_owner"
+    assert owner_result["next_work_unit"] == "recover_transport_model_provenance"
+    assert owner_result["blocking_owner_route"]["blocked_reason"] == "transport_model_provenance_recovery_required"
+    assert result["next_owner"] == "source_provenance_owner"
+    assert result["next_work_unit"] == "recover_transport_model_provenance"
+    assert result["owner_callable_surface"] == (
+        "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker"
+    )
+    assert result["required_output_surface"] == str(
+        study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+    )
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "manuscript").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+
+
 def test_clean_rebuild_authorization_materializes_unit_harmonized_rerun_evidence(
     monkeypatch,
     tmp_path: Path,

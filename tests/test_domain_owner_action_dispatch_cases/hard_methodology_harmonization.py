@@ -107,6 +107,10 @@ def test_execute_dispatch_hands_terminal_hard_methodology_route_to_analysis_owne
     assert execution["owner_result"]["blocked_reason"] == "unit_harmonized_rerun_required"
     assert execution["owner_result"]["typed_blocker_owner"] == "analysis_harmonization_owner"
     assert execution["owner_result"]["work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert execution["owner_result"]["next_owner"] == "source_provenance_owner"
+    assert execution["owner_result"]["next_work_unit"] == "recover_transport_model_provenance"
+    assert execution["next_owner"] == "source_provenance_owner"
+    assert execution["next_work_unit"] == "recover_transport_model_provenance"
     assert execution["owner_result"]["paper_package_mutation_allowed"] is False
     assert execution["owner_result"]["quality_gate_relaxation_allowed"] is False
     assert execution["owner_result"]["medical_claim_authoring_allowed"] is False
