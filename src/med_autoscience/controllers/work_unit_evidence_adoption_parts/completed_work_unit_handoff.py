@@ -60,11 +60,27 @@ def _existing_artifact_written_payload(
     identity: control_intent.ControlIntentIdentity,
     authorization_context: dict[str, Any],
 ) -> dict[str, Any] | None:
-    events = control_intent.events_for_business_key_since(
-        study_root=study_root,
-        business_key=identity.business_key,
-        recorded_at=authorization_context.get("decision_emitted_at"),
+    payload = _latest_artifact_written_payload(
+        control_intent.events_for_business_key_since(
+            study_root=study_root,
+            business_key=identity.business_key,
+            recorded_at=authorization_context.get("decision_emitted_at"),
+        )
     )
+    if payload is not None:
+        return payload
+    lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    if lifecycle.get("terminal_consumed") is not True:
+        return None
+    return _latest_artifact_written_payload(
+        control_intent.events_for_business_key(
+            study_root=study_root,
+            business_key=identity.business_key,
+        )
+    )
+
+
+def _latest_artifact_written_payload(events: list[dict[str, Any]]) -> dict[str, Any] | None:
     for event in reversed(events):
         event_type = _text(event.get("event_type"))
         if event_type == "delivered":

@@ -573,6 +573,121 @@ def test_completed_story_repair_adoption_closes_publication_work_unit_lifecycle(
     assert sanitized["last_runtime_turn_state_sanitization"]["reason"] == "publication_work_unit_lifecycle_done"
 
 
+def test_existing_completed_adoption_before_decision_refreshes_publication_work_unit_lifecycle(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    quest_root = workspace_root / "runtime" / "quests" / "quest-001"
+    _write_story_repair_authorization(study_root, emitted_at="2026-05-20T06:42:29+00:00")
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+    quest_root.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("study_id: 001-risk\nquest_id: quest-001\n", encoding="utf-8")
+    _write_publication_eval_work_unit_authority(study_root)
+    _write_blocked_publication_work_unit_lifecycle(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    closeout_path = _write_turn_closeout(
+        quest_root=quest_root,
+        run_id="run-story-closed",
+        artifact_refs=[
+            "../../../studies/001-risk/paper/draft.md",
+            "../../../studies/001-risk/paper/build/review_manuscript.md",
+        ],
+        completed_at="2026-05-20T06:34:49Z",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="artifact_written",
+        payload={
+            "active_run_id": "run-story-closed",
+            "report_ref": str(closeout_path),
+            "created_at": "2026-05-20T06:34:49+00:00",
+            "work_unit_id": "manuscript_story_repair",
+            "route_target": "analysis-campaign",
+            "recommended_next_route": "return_to_publication_gate_recheck",
+            "source": "medautosci-test",
+            "next_owner": "publication_gate",
+            "status": "completed",
+            "result": {
+                "completed": True,
+                "meaningful_artifact_delta": True,
+                "artifact_refs_count": 2,
+                "publication_gate_recheck_required": True,
+            },
+        },
+        recorded_at="2026-05-20T06:42:16+00:00",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="owner_handoff",
+        payload={
+            "reason": "completed_work_unit_evidence_adopted",
+            "next_owner": "publication_gate",
+            "next_work_unit": None,
+            "report_ref": str(closeout_path),
+            "source": "medautosci-test",
+        },
+        recorded_at="2026-05-20T06:42:16+00:00",
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status_payload["active_run_id"] = None
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("completed existing adoption must refresh lifecycle instead of redelivering")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+    assert adoption["already_recorded"] is True
+    assert adoption["report_ref"] == str(closeout_path)
+    lifecycle = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "controller"
+            / "publication_work_unit_lifecycle"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert lifecycle["status"] == "owner_handoff"
+    assert lifecycle["gate_replay_status"] == "pending_recheck"
+    assert lifecycle["terminal_consumed"] is True
+    assert lifecycle["next_owner"] == "publication_gate"
+    assert lifecycle["evidence_adoption"]["report_ref"] == str(closeout_path)
+    assert lifecycle["work_unit"]["unit_id"] == "manuscript_story_repair"
+
+
 def _write_story_repair_authorization(
     study_root: Path,
     *,
@@ -621,3 +736,29 @@ def _write_turn_closeout(
         encoding="utf-8",
     )
     return closeout_path
+
+
+def _write_blocked_publication_work_unit_lifecycle(study_root: Path) -> None:
+    path = study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source_eval_id": "publication-eval::001-risk::quest-001::latest",
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "status": "blocked",
+                "work_unit": {"unit_id": "manuscript_story_repair"},
+                "unit_statuses": [
+                    {"unit_id": "repair_paper_live_paths", "status": "current"},
+                    {"unit_id": "materialize_display_surface", "status": "materialized"},
+                ],
+                "gate_replay_status": "blocked",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
