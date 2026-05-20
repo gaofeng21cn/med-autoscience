@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import publication_work_unit_lifecycle
+from med_autoscience.controllers import provenance_limited_harmonization_owner_result
 from med_autoscience.controllers.domain_route_scan_parts import platform_current_controller
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
@@ -145,6 +146,28 @@ def _sync_current_controller_authorization_for_turn(
         quest_root=quest_root,
         quest_id=quest_id,
     )
+    runtime_authorization = _runtime_state_downstream_authorization_after_provenance_limited_result(
+        runtime_state=runtime_state,
+        current_authorization=current_authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    if runtime_authorization:
+        updated = dict(runtime_state)
+        authorization = _bind_authorization_to_turn(
+            authorization=runtime_authorization,
+            quest_root=quest_root,
+            quest_id=quest_id,
+            run_id=run_id,
+        )
+        if _mapping(updated.get("current_controller_authorization")) == authorization:
+            return updated
+        updated["quest_id"] = _text(updated.get("quest_id")) or quest_id
+        updated["current_controller_authorization"] = authorization
+        updated["current_controller_authorization_synced_at"] = _utc_now()
+        updated["current_controller_authorization_sync_status"] = "downstream_hard_methodology_authorization"
+        _write_runtime_state(quest_root=quest_root, runtime_state=updated)
+        return updated
     if owner_handoff_authorization and not _owner_handoff_authorization_is_superseded(
         authorization=owner_handoff_authorization,
         current_authorization=current_authorization,
@@ -218,6 +241,14 @@ def _controller_authorization(
         quest_root=quest_root,
         quest_id=quest_id,
     )
+    runtime_authorization = _runtime_state_downstream_authorization_after_provenance_limited_result(
+        runtime_state=runtime_state,
+        current_authorization=current_controller_authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    if runtime_authorization:
+        return runtime_authorization
     if owner_handoff_authorization and not _owner_handoff_authorization_is_superseded(
         authorization=owner_handoff_authorization,
         current_authorization=current_controller_authorization,
@@ -255,6 +286,65 @@ def _controller_authorization(
                 return {}
             return authorization
     return {}
+
+
+def _runtime_state_downstream_authorization_after_provenance_limited_result(
+    *,
+    runtime_state: Mapping[str, Any],
+    current_authorization: Mapping[str, Any],
+    quest_root: Path | None,
+    quest_id: str | None,
+) -> dict[str, Any]:
+    if not isinstance(runtime_state, Mapping) or not isinstance(current_authorization, Mapping):
+        return {}
+    if not _authorization_is_provenance_limited_audit(current_authorization):
+        return {}
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
+    if study_root is None:
+        return {}
+    blocker_state = provenance_limited_harmonization_owner_result.typed_blocker_state(study_root=study_root)
+    if not _provenance_limited_result_routes_to_analysis_harmonization(blocker_state):
+        return {}
+    for key in ("last_controller_decision_authorization", "current_controller_authorization"):
+        authorization = _mapping(runtime_state.get(key))
+        if not _authorization_is_downstream_hard_methodology(authorization):
+            continue
+        if _closed_publication_work_unit_for_authorization(
+            authorization=authorization,
+            quest_root=quest_root,
+            quest_id=quest_id,
+        ) is not None:
+            continue
+        return _normalized_controller_decision_authorization(authorization)
+    return {}
+
+
+def _authorization_is_provenance_limited_audit(authorization: Mapping[str, Any]) -> bool:
+    return (
+        "provenance_limited_harmonization_audit" in set(_primary_controller_work_unit_ids(authorization))
+        or "provenance_limited_harmonization_audit" in set(_controller_action_names(authorization))
+    )
+
+
+def _authorization_is_downstream_hard_methodology(authorization: Mapping[str, Any]) -> bool:
+    return bool(
+        authorization
+        and set(_controller_work_unit_ids(authorization)).intersection(
+            {
+                "unit_harmonized_external_validation_rerun",
+                "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+            }
+        )
+    )
+
+
+def _provenance_limited_result_routes_to_analysis_harmonization(blocker_state: Mapping[str, Any] | None) -> bool:
+    state = _mapping(blocker_state)
+    return (
+        _text(state.get("blocked_reason")) == "unit_harmonized_rerun_required"
+        and _text(state.get("next_owner")) == "analysis_harmonization_owner"
+        and _text(state.get("next_work_unit")) == "unit_harmonized_external_validation_rerun"
+    )
 
 
 def _blocked_closeout_owner_handoff_authorization(runtime_state: Mapping[str, Any]) -> dict[str, Any]:

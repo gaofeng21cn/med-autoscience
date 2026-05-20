@@ -351,6 +351,184 @@ def test_codex_exec_runner_maps_unit_harmonized_uncertainty_work_unit_to_analysi
     )
 
 
+def test_codex_exec_runner_prefers_downstream_hard_methodology_authorization_after_audit_result(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    workspace_root = tmp_path / "workspace"
+    quest_id = "002-dm-china-us-mortality-attribution"
+    quest_root = workspace_root / "runtime" / "quests" / quest_id
+    runtime_root = workspace_root / "runtime"
+    study_root = workspace_root / "studies" / quest_id
+    _write_workspace_python(quest_root)
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {quest_id}\n", encoding="utf-8")
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        json.dumps(
+            {
+                "status": "running",
+                "quest_id": quest_id,
+                "active_run_id": "old-run",
+                "worker_running": False,
+                "last_controller_decision_authorization": {
+                    "authorization_basis": "current_controller_decision",
+                    "decision_id": "unit-harmonized-uncertainty-routeback",
+                    "controller_actions": ["ensure_study_runtime"],
+                    "route_target": "analysis-campaign",
+                    "route_key_question": (
+                        "unit_harmonized_validation_uncertainty_and_grouped_calibration: "
+                        "Add uncertainty intervals, grouped calibration evidence, and reproducibility details."
+                    ),
+                    "work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "work_unit_fingerprint": (
+                        "domain-transition::route_back_same_line::"
+                        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+                    ),
+                    "next_work_unit": {
+                        "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                        "lane": "analysis-campaign",
+                        "summary": (
+                            "Add uncertainty intervals, grouped calibration evidence, and reproducibility details "
+                            "to the unit-harmonized external validation."
+                        ),
+                    },
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    controller_decision_path.parent.mkdir(parents=True, exist_ok=True)
+    controller_decision_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_id": "stale-methodology-reframe",
+                "study_id": quest_id,
+                "quest_id": quest_id,
+                "emitted_at": "2026-05-20T22:17:48+00:00",
+                "decision_type": "bounded_analysis",
+                "charter_ref": {
+                    "charter_id": f"charter::{quest_id}::v1",
+                    "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                },
+                "runtime_escalation_ref": {
+                    "record_id": f"runtime-escalation::{quest_id}::methodology-reframe",
+                    "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                    "summary_ref": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                },
+                "publication_eval_ref": {
+                    "eval_id": f"publication-eval::{quest_id}::latest",
+                    "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                },
+                "requires_human_confirmation": False,
+                "controller_actions": [
+                    {
+                        "action_type": "ensure_study_runtime",
+                        "payload_ref": str(controller_decision_path),
+                    }
+                ],
+                "reason": "Consume terminal transported-model provenance blocker.",
+                "route_target": "analysis-campaign",
+                "route_key_question": "Can DM002 continue without original transported model provenance?",
+                "route_rationale": "Route back for methodology reframe before manuscript work.",
+                "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+                "next_work_unit": {
+                    "unit_id": "provenance_limited_harmonization_audit",
+                    "lane": "analysis-campaign",
+                    "summary": "Materialize provenance-limited audit before manuscript claim work.",
+                    "hard_methodology": True,
+                    "selected_route_option": "provenance_limited_harmonization_audit",
+                    "terminal_source_provenance_blocker_consumed": True,
+                    "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
+                    "route_options": [
+                        "stop_loss_current_transport_claim",
+                        "provenance_limited_harmonization_audit",
+                        "rebuild_reproducible_model_route",
+                        "human_gate",
+                    ],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    provenance_result_path = study_root / "artifacts" / "controller" / "provenance_limited_harmonization" / "latest.json"
+    provenance_result_path.parent.mkdir(parents=True, exist_ok=True)
+    provenance_result_path.write_text(
+        json.dumps(
+            {
+                "surface": "provenance_limited_harmonization_owner_result",
+                "schema_version": 1,
+                "generated_at": "2026-05-20T22:47:59+00:00",
+                "study_id": quest_id,
+                "owner": "provenance_limited_harmonization_owner",
+                "work_unit": "provenance_limited_harmonization_audit",
+                "status": "blocked",
+                "blocked_reason": "unit_harmonized_rerun_required",
+                "typed_blocker_owner": "provenance_limited_harmonization_owner",
+                "typed_blocker": {
+                    "blocker_id": "unit_harmonized_rerun_required",
+                    "owner": "provenance_limited_harmonization_owner",
+                    "work_unit": "provenance_limited_harmonization_audit",
+                    "blocking_reasons": ["unit_harmonized_rerun_required"],
+                },
+                "provenance_limited_audit_completed": True,
+                "terminal_source_provenance_blocker_consumed": True,
+                "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
+                "rebuild_authorization_consumed": True,
+                "recommended_next_route": "rebuild_reproducible_model_route",
+                "next_owner": "analysis_harmonization_owner",
+                "next_work_unit": "unit_harmonized_external_validation_rerun",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id="run-unit-harmonized-after-audit",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    authorization = runtime_state["current_controller_authorization"]
+
+    assert "unit_harmonized_validation_uncertainty_and_grouped_calibration" in prompt
+    assert "--action-types unit_harmonized_external_validation_rerun" in prompt
+    assert "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker" in prompt
+    assert "provenance_limited_harmonization_audit" not in prompt
+    assert authorization["decision_id"] == "unit-harmonized-uncertainty-routeback"
+    assert authorization["active_run_id"] == "run-unit-harmonized-after-audit"
+    assert authorization["controller_actions"] == ["unit_harmonized_external_validation_rerun"]
+    assert authorization["work_unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    assert authorization["work_unit_fingerprint"] == (
+        "domain-transition::route_back_same_line::"
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
+
+
 def test_codex_exec_runner_prefers_blocked_closeout_owner_handoff_over_stale_controller_decision(
     monkeypatch,
     tmp_path: Path,

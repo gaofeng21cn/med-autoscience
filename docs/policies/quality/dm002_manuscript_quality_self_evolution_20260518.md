@@ -200,3 +200,13 @@ Additional verification:
 
 - `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py::test_execute_dispatch_routes_authorized_terminal_source_blocker_to_clean_rebuild tests/runtime_supervisor_scan_cases/test_methodology_reframe_route_priority.py::test_scan_routes_clean_rebuild_decision_directly_to_analysis_owner tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py::test_clean_rebuild_methodology_decision_exposes_current_controller_runtime_route -q`: 3 passed.
 - `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_route_priority.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/test_provenance_limited_harmonization_owner.py tests/test_mas_runtime_core_turn_prompt_cases/test_current_controller_decision_authorization.py -q`: 30 passed.
+
+## Downstream Hard-Methodology Authorization Currentness Follow-Up
+
+The clean-rebuild decision route was present, but a live DM002 worker could still start from the older `controller_decisions/latest.json` pointing at `provenance_limited_harmonization_audit` after the provenance-limited owner had already written `next_owner=analysis_harmonization_owner` and `next_work_unit=unit_harmonized_external_validation_rerun`. That made the worker repeat a completed audit rather than continue the downstream hard-methodology owner chain.
+
+Follow-up patch:
+
+- Teach MAS turn authorization to treat a completed provenance-limited owner result as superseding the stale audit controller decision when runtime state already carries a downstream unit-harmonized authorization.
+- Prefer `unit_harmonized_validation_uncertainty_and_grouped_calibration` / `unit_harmonized_external_validation_rerun` in the managed worker prompt, while preserving the source-provenance and methodology-reframe paths when the provenance-limited owner result is absent or not current.
+- Keep the boundary explicit: this is MAS medical owner-chain currentness and prompt authorization; it does not add an OPL-style generic queue, attempt ledger, provider runner, or session control plane to MAS.
