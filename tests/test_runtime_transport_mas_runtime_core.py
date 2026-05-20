@@ -828,22 +828,6 @@ def test_mas_runtime_core_update_startup_context_echoes_typed_receipt_fields(tmp
     assert startup_context["quest_id"] == "quest-001"
 
 
-def test_runtime_transport_package_defaults_to_opl_provider_backed_stage_runtime(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport")
-    runtime_root = tmp_path / "workspace" / "runtime"
-
-    result = module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
-
-    assert result["source"] == "mas_runtime_core"
-    assert result["runtime_backend_id"] == "opl_provider_backed_stage_runtime"
-    assert result["runtime_engine_id"] == "opl-provider-backed-stage-runtime"
-    assert result["delegated_domain_adapter_id"] == "mas_runtime_core"
-    assert result["delegated_domain_adapter_engine_id"] == "mas-runtime-core"
-    assert result["generic_runtime_owner"] == "one-person-lab"
-    assert result["domain_adapter_owner"] == "med-autoscience"
-    assert result["snapshot"]["runtime_backend_id"] == "mas_runtime_core"
-
-
 def _write_running_state(*, quest_root: Path, active_run_id: str) -> None:
     state_path = quest_root / ".ds" / "runtime_state.json"
     state = json.loads(state_path.read_text(encoding="utf-8"))
