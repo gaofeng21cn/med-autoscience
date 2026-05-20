@@ -79,6 +79,15 @@ Before a first full draft is treated as generated:
 
 The gate is not the primary writing strategy. The primary strategy is contract-first generation through study charter and quality OS surfaces.
 
+## Reporting Closure Consumption
+
+`medical_reporting_audit` and `medical_publication_surface` must consume closed reporting truth surfaces before applying structured reporting blockers:
+
+- `paper/reporting_guideline_checklist.json` can close structured reporting checklist items only when the overall checklist and the mapped guideline domain are explicitly closed and have evidence refs.
+- Unsupported domain IDs, open statuses, or missing evidence do not clear structured reporting blockers.
+- `paper/table_figure_claim_map.json` can close the claim-to-display blocker only when it contains at least one claim with a table or figure reference.
+- This is a strict truth-surface bridge, not a legacy compatibility layer: stale placeholders inside `medical_reporting_contract.structured_reporting_contract` must not override newer closed guideline and claim-map surfaces.
+
 ## Finalize 授权边界
 
 初稿或修复稿进入 bundle/finalize 阶段前，MAS 必须同时满足交付 gate 与 AI reviewer 稿件质量闭合。`publication_gate` clear 只能说明机械完整性、证据投影或交付面阻塞已经清掉；它不能替代医学期刊论文质量判断。

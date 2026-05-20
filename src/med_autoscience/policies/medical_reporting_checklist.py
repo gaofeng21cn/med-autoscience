@@ -191,6 +191,103 @@ REPORTING_CHECKLIST_BLOCKER_KEYS = frozenset(
     }
 )
 
+STRUCTURED_REPORTING_SECTION_ITEMS: dict[str, tuple[str, ...]] = {
+    "methods_completeness": METHODS_COMPLETENESS_ITEMS,
+    "statistical_reporting": STATISTICAL_REPORTING_ITEMS,
+    "clinical_actionability": CLINICAL_ACTIONABILITY_ITEMS,
+    "prediction_methods": PREDICTION_MODEL_METHODS_ITEMS,
+    "prediction_model_reproducibility": PREDICTION_MODEL_REPRODUCIBILITY_ITEMS,
+    "variable_harmonization": VARIABLE_HARMONIZATION_ITEMS,
+    "time_to_event_prediction_reporting": TIME_TO_EVENT_PREDICTION_ITEMS,
+    "external_validation_reporting": EXTERNAL_VALIDATION_REPORTING_ITEMS,
+    "decision_curve_clinical_utility": DECISION_CURVE_CLINICAL_UTILITY_ITEMS,
+    "prediction_performance_reporting": PREDICTION_PERFORMANCE_REPORTING_ITEMS,
+    "validation_uncertainty_reporting": VALIDATION_UNCERTAINTY_ITEMS,
+    "prediction_display_reporting": PREDICTION_DISPLAY_REPORTING_ITEMS,
+    "survey_design_reporting": SURVEY_DESIGN_REPORTING_ITEMS,
+    "manuscript_voice_reporting": MANUSCRIPT_VOICE_REPORTING_ITEMS,
+    "baseline_balance_reporting": BASELINE_BALANCE_REPORTING_ITEMS,
+    "competing_risk_reporting": COMPETING_RISK_REPORTING_ITEMS,
+    "treatment_gap_reporting": TREATMENT_GAP_REPORTING_ITEMS,
+    "phenotype_derivation_reporting": PHENOTYPE_DERIVATION_REPORTING_ITEMS,
+    "baseline_characteristics_reporting": BASELINE_CHARACTERISTICS_REPORTING_ITEMS,
+    "data_quality_reporting": DATA_QUALITY_REPORTING_ITEMS,
+}
+
+_CLOSED_REPORTING_STATUSES = frozenset(
+    {
+        "closed",
+        "complete",
+        "clear",
+        "present",
+        "reported_as_limitation",
+        "not_applicable_with_rationale",
+    }
+)
+
+_REPORTING_GUIDELINE_DOMAIN_SECTION_ITEMS: dict[str, dict[str, tuple[str, ...] | None]] = {
+    "source_of_data_and_participants": {
+        "methods_completeness": ("study_design", "cohort"),
+        "prediction_methods": ("data_source_years", "inclusion_exclusion"),
+        "prediction_display_reporting": ("cohort_flow_diagram", "baseline_characteristics_table"),
+        "baseline_balance_reporting": (
+            "variable_level_missingness",
+            "standardized_mean_differences",
+            "denominator_rules",
+        ),
+        "survey_design_reporting": ("weighting_policy", "strata_cluster_handling"),
+    },
+    "outcome_definition_and_follow_up": {
+        "methods_completeness": ("statistical_analysis",),
+        "prediction_methods": ("endpoint_ascertainment", "follow_up_start", "censoring_rules"),
+        "time_to_event_prediction_reporting": ("absolute_risk_estimator", "calibration_time_horizon"),
+    },
+    "candidate_predictors_and_missing_data": {
+        "methods_completeness": ("variables",),
+        "prediction_methods": ("missing_data_handling", "variable_coding"),
+        "variable_harmonization": None,
+        "baseline_balance_reporting": ("variable_definition_anomalies",),
+    },
+    "model_specification_or_validation": {
+        "methods_completeness": ("model", "validation"),
+        "prediction_methods": ("model_tuning", "center_effect_handling"),
+        "prediction_model_reproducibility": None,
+        "time_to_event_prediction_reporting": (
+            "proportional_hazards_assessment",
+            "nonlinearity_assessment",
+            "competing_event_screen",
+        ),
+        "external_validation_reporting": (
+            "external_validation_cohort_definition",
+            "transport_without_refit_or_recalibration",
+            "calibration_update_policy",
+        ),
+    },
+    "performance_calibration_and_clinical_utility": {
+        "statistical_reporting": None,
+        "external_validation_reporting": (
+            "case_mix_and_covariate_support",
+            "risk_group_occupancy",
+            "observed_event_rate_and_denominators",
+        ),
+        "decision_curve_clinical_utility": None,
+        "prediction_performance_reporting": None,
+        "validation_uncertainty_reporting": None,
+        "prediction_display_reporting": (
+            "performance_metrics_table",
+            "main_text_table_rendering_in_submission_package",
+            "calibration_curve_with_uncertainty",
+            "risk_distribution_or_support_overlap",
+            "decision_curve_not_main_display_without_verified_net_benefit",
+            "figure_legibility_and_non_overlap",
+        ),
+    },
+    "interpretation_limitations_and_use_case": {
+        "survey_design_reporting": ("unweighted_analysis_label", "population_inference_boundary"),
+        "manuscript_voice_reporting": None,
+    },
+}
+
 
 def _required_status_map(items: tuple[str, ...], *, status: str = "required_before_first_full_draft") -> dict[str, dict[str, str]]:
     return {item: {"status": status} for item in items}
@@ -292,6 +389,97 @@ def _truthy_mapping_item(payload: dict[str, Any], key: str) -> bool:
     return value is True
 
 
+def _closed_status(value: object) -> bool:
+    if isinstance(value, dict):
+        raw_status = value.get("status")
+    else:
+        raw_status = value
+    return str(raw_status or "").strip().lower() in _CLOSED_REPORTING_STATUSES
+
+
+def _closure_evidence_present(item: dict[str, Any]) -> bool:
+    evidence = item.get("evidence") or item.get("evidence_refs") or item.get("source_paths")
+    if isinstance(evidence, list):
+        return any(str(ref or "").strip() for ref in evidence)
+    return bool(str(evidence or "").strip())
+
+
+def _closed_reporting_guideline_domains(reporting_closure: object) -> tuple[dict[str, Any], ...]:
+    if not isinstance(reporting_closure, dict) or not _closed_status(reporting_closure):
+        return ()
+    domains = reporting_closure.get("domains")
+    if not isinstance(domains, list):
+        return ()
+    closed_domains: list[dict[str, Any]] = []
+    for item in domains:
+        if not isinstance(item, dict):
+            continue
+        domain_id = str(item.get("domain_id") or item.get("id") or "").strip()
+        if not domain_id or domain_id not in _REPORTING_GUIDELINE_DOMAIN_SECTION_ITEMS:
+            continue
+        if not _closed_status(item) or not _closure_evidence_present(item):
+            continue
+        closed_domains.append(item)
+    return tuple(closed_domains)
+
+
+def _set_closed_reporting_items(
+    contract: dict[str, Any],
+    section_key: str,
+    item_keys: tuple[str, ...],
+    *,
+    evidence_refs: list[str],
+) -> None:
+    section = contract.get(section_key)
+    if not isinstance(section, dict):
+        section = {}
+    updated_section = dict(section)
+    for item_key in item_keys:
+        updated_section[item_key] = {
+            "status": "closed",
+            "evidence_refs": list(evidence_refs),
+            "closure_source": "reporting_guideline_checklist",
+        }
+    contract[section_key] = updated_section
+
+
+def _apply_reporting_closure(contract: dict[str, Any], reporting_closure: object) -> tuple[dict[str, Any], dict[str, Any]]:
+    merged = dict(contract)
+    consumed_domains: list[str] = []
+    for domain in _closed_reporting_guideline_domains(reporting_closure):
+        domain_id = str(domain.get("domain_id") or domain.get("id") or "").strip()
+        section_map = _REPORTING_GUIDELINE_DOMAIN_SECTION_ITEMS[domain_id]
+        evidence_refs = [str(ref).strip() for ref in domain.get("evidence") or [] if str(ref).strip()]
+        for section_key, item_keys in section_map.items():
+            section_items = STRUCTURED_REPORTING_SECTION_ITEMS.get(section_key, ())
+            if not section_items:
+                continue
+            _set_closed_reporting_items(
+                merged,
+                section_key,
+                section_items if item_keys is None else item_keys,
+                evidence_refs=evidence_refs,
+            )
+        consumed_domains.append(domain_id)
+    return merged, {
+        "status": "consumed" if consumed_domains else "not_consumed",
+        "consumed_domain_ids": consumed_domains,
+    }
+
+
+def _standalone_claim_map_items(payload: object) -> list[dict[str, Any]] | None:
+    raw_items: object
+    if isinstance(payload, dict):
+        raw_items = payload.get("items")
+        if not isinstance(raw_items, list):
+            raw_items = payload.get("claims")
+    else:
+        raw_items = payload
+    if not isinstance(raw_items, list):
+        return None
+    return [dict(item) for item in raw_items if isinstance(item, dict)]
+
+
 def _section_status(payload: object, required_items: tuple[str, ...]) -> dict[str, Any]:
     section = payload if isinstance(payload, dict) else {}
     missing_items = [item for item in required_items if not _truthy_mapping_item(section, item)]
@@ -317,7 +505,12 @@ def _claim_map_status(payload: object) -> dict[str, Any]:
         if not isinstance(item, dict):
             continue
         claim = str(item.get("claim") or item.get("claim_id") or "").strip()
-        displays = item.get("displays") or item.get("tables_figures") or item.get("table_figure_refs")
+        displays = (
+            item.get("displays")
+            or item.get("tables_figures")
+            or item.get("table_figure_refs")
+            or item.get("display_bindings")
+        )
         if claim and isinstance(displays, list) and displays:
             complete_items.append(item)
     return {
@@ -406,8 +599,25 @@ def _structured_contract_source(contract: dict[str, Any]) -> dict[str, Any]:
     return contract
 
 
-def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, Any]:
+def build_structured_reporting_checklist(
+    contract: dict[str, Any],
+    *,
+    reporting_closure: object | None = None,
+    table_figure_claim_map: object | None = None,
+) -> dict[str, Any]:
     contract = _structured_contract_source(contract)
+    reporting_closure_consumed = {"status": "not_provided", "consumed_domain_ids": []}
+    if reporting_closure is not None:
+        contract, reporting_closure_consumed = _apply_reporting_closure(contract, reporting_closure)
+    table_figure_claim_map_consumed = {"status": "not_provided", "mapped_claim_count": 0}
+    standalone_claim_items = _standalone_claim_map_items(table_figure_claim_map)
+    if standalone_claim_items is not None:
+        contract = dict(contract)
+        contract["table_figure_claim_map"] = standalone_claim_items
+        table_figure_claim_map_consumed = {
+            "status": "consumed",
+            "mapped_claim_count": _claim_map_status(standalone_claim_items)["mapped_claim_count"],
+        }
     actionability_required = _phenotype_actionability_required(contract)
     prediction_required = _prediction_model_required(contract)
     time_to_event_prediction_required = _time_to_event_prediction_required(contract)
@@ -444,6 +654,8 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
         return {
             "status": "not_required",
             "blockers": [],
+            "reporting_guideline_closure_consumed": reporting_closure_consumed,
+            "table_figure_claim_map_consumed": table_figure_claim_map_consumed,
             "methods_completeness": _not_required_section(METHODS_COMPLETENESS_ITEMS),
             "statistical_reporting": _not_required_section(STATISTICAL_REPORTING_ITEMS),
             "table_figure_claim_map": {
@@ -632,6 +844,8 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
     return {
         "status": "blocked" if blockers else "clear",
         "blockers": blockers,
+        "reporting_guideline_closure_consumed": reporting_closure_consumed,
+        "table_figure_claim_map_consumed": table_figure_claim_map_consumed,
         "methods_completeness": methods,
         "statistical_reporting": statistics,
         "table_figure_claim_map": claim_map,

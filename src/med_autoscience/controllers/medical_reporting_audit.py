@@ -24,6 +24,12 @@ def _load_json_dict(path: Path) -> dict[str, object] | None:
     return payload
 
 
+def _load_json_payload(path: Path) -> object | None:
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _quality_gate_expectation(reporting_contract: dict[str, object]) -> dict[str, object]:
     candidates: list[object] = [
         reporting_contract.get("quality_gate_expectation"),
@@ -266,7 +272,9 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         if not (paper_root / stub.filename).exists():
             blockers.append(stub.blocker_key)
 
-    if not (paper_root / "reporting_guideline_checklist.json").exists():
+    reporting_guideline_checklist_path = paper_root / "reporting_guideline_checklist.json"
+    reporting_guideline_checklist: dict[str, object] | None = None
+    if not reporting_guideline_checklist_path.exists():
         if (
             quality_gate_relaxation_allowed
             and submission_checklist_handoff_ready
@@ -275,7 +283,23 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
             advisories.append("missing_reporting_guideline_checklist")
         else:
             blockers.append("missing_reporting_guideline_checklist")
-    structured_reporting_checklist = build_structured_reporting_checklist(reporting_contract)
+    else:
+        try:
+            reporting_guideline_checklist = _load_json_dict(reporting_guideline_checklist_path)
+        except (OSError, ValueError, json.JSONDecodeError):
+            blockers.append("invalid_reporting_guideline_checklist")
+    table_figure_claim_map_path = paper_root / "table_figure_claim_map.json"
+    table_figure_claim_map: object | None = None
+    if table_figure_claim_map_path.exists():
+        try:
+            table_figure_claim_map = _load_json_payload(table_figure_claim_map_path)
+        except (OSError, json.JSONDecodeError):
+            blockers.append("invalid_table_figure_claim_map")
+    structured_reporting_checklist = build_structured_reporting_checklist(
+        reporting_contract,
+        reporting_closure=reporting_guideline_checklist,
+        table_figure_claim_map=table_figure_claim_map,
+    )
     blockers.extend(structured_reporting_checklist["blockers"])
     medical_story_contract_blockers = _medical_story_contract_blockers(paper_root)
     medical_story_contract_valid = not medical_story_contract_blockers

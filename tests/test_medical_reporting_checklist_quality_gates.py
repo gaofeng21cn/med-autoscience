@@ -184,3 +184,101 @@ def test_structured_reporting_checklist_keeps_non_phenotype_contract_not_require
     assert checklist["treatment_gap_reporting"]["status"] == "not_required"
     assert checklist["baseline_characteristics_reporting"]["status"] == "not_required"
     assert checklist["data_quality_reporting"]["status"] == "not_required"
+
+
+def test_structured_reporting_checklist_consumes_closed_tripod_reporting_surface() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+    contract = policy.build_default_structured_reporting_contract(
+        study_archetype="clinical_classifier",
+        manuscript_family="prediction_model",
+        endpoint_type="time_to_event",
+        external_validation_dataset="NHANES",
+    )
+    reporting_closure = {
+        "schema_version": 1,
+        "guideline_family": "TRIPOD",
+        "status": "closed",
+        "domains": [
+            {
+                "domain_id": domain_id,
+                "status": "closed",
+                "evidence": ["paper/reporting_guideline_checklist.json"],
+            }
+            for domain_id in [
+                "source_of_data_and_participants",
+                "outcome_definition_and_follow_up",
+                "candidate_predictors_and_missing_data",
+                "model_specification_or_validation",
+                "performance_calibration_and_clinical_utility",
+                "interpretation_limitations_and_use_case",
+            ]
+        ],
+    }
+    table_figure_claim_map = {
+        "schema_version": 1,
+        "items": [
+            {
+                "claim_id": "C1",
+                "claim": "External validation preserves risk ordering.",
+                "table_figure_refs": ["F2", "T2"],
+            }
+        ],
+    }
+
+    checklist = policy.build_structured_reporting_checklist(
+        contract,
+        reporting_closure=reporting_closure,
+        table_figure_claim_map=table_figure_claim_map,
+    )
+
+    assert checklist["status"] == "clear"
+    assert checklist["blockers"] == []
+    assert checklist["reporting_guideline_closure_consumed"]["consumed_domain_ids"] == [
+        "source_of_data_and_participants",
+        "outcome_definition_and_follow_up",
+        "candidate_predictors_and_missing_data",
+        "model_specification_or_validation",
+        "performance_calibration_and_clinical_utility",
+        "interpretation_limitations_and_use_case",
+    ]
+    assert checklist["table_figure_claim_map_consumed"]["mapped_claim_count"] == 1
+    assert checklist["variable_harmonization"]["status"] == "clear"
+    assert checklist["validation_uncertainty_reporting"]["status"] == "clear"
+    assert checklist["manuscript_voice_reporting"]["status"] == "clear"
+
+
+def test_structured_reporting_checklist_keeps_unknown_or_open_reporting_closure_fail_closed() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+    contract = policy.build_default_structured_reporting_contract(
+        study_archetype="clinical_classifier",
+        manuscript_family="prediction_model",
+        endpoint_type="time_to_event",
+        external_validation_dataset="NHANES",
+    )
+
+    checklist = policy.build_structured_reporting_checklist(
+        contract,
+        reporting_closure={
+            "schema_version": 1,
+            "guideline_family": "TRIPOD",
+            "status": "closed",
+            "domains": [
+                {
+                    "domain_id": "performance_calibration_and_clinical_utility",
+                    "status": "open",
+                    "evidence": ["paper/reporting_guideline_checklist.json"],
+                },
+                {
+                    "domain_id": "unsupported_domain",
+                    "status": "closed",
+                    "evidence": ["paper/reporting_guideline_checklist.json"],
+                },
+            ],
+        },
+        table_figure_claim_map={"items": [{"claim_id": "C1", "table_figure_refs": ["T2"]}]},
+    )
+
+    assert checklist["status"] == "blocked"
+    assert "prediction_performance_reporting_incomplete" in checklist["blockers"]
+    assert "validation_uncertainty_reporting_incomplete" in checklist["blockers"]
+    assert checklist["reporting_guideline_closure_consumed"]["consumed_domain_ids"] == []

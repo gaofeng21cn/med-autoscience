@@ -69,7 +69,17 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     reporting_contract_payload = load_json(reporting_contract_path, default={})
     if not isinstance(reporting_contract_payload, dict):
         reporting_contract_payload = {}
-    structured_reporting_checklist = build_structured_reporting_checklist(reporting_contract_payload)
+    reporting_guideline_checklist_payload = load_json(
+        state.paper_root / "reporting_guideline_checklist.json",
+        default=None,
+    )
+    if not isinstance(reporting_guideline_checklist_payload, dict):
+        reporting_guideline_checklist_payload = None
+    structured_reporting_checklist = build_structured_reporting_checklist(
+        reporting_contract_payload,
+        reporting_closure=reporting_guideline_checklist_payload,
+        table_figure_claim_map=load_json(state.paper_root / "table_figure_claim_map.json", default=None),
+    )
     display_story_roles = load_display_catalog_story_roles(reporting_contract_path)
     required_display_catalog_coverage_valid, required_display_catalog_hits = inspect_required_display_catalog_coverage(
         reporting_contract_path=reporting_contract_path,
