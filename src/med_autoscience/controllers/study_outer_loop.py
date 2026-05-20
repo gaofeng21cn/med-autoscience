@@ -146,6 +146,9 @@ def _read_closed_publication_gate_recheck_lifecycle(study_root: Path) -> dict[st
         return None
     if str(payload.get("next_owner") or "").strip() != "publication_gate":
         return None
+    work_unit = payload.get("work_unit")
+    if isinstance(work_unit, dict) and str(work_unit.get("unit_id") or "").strip() == "publication_gate_recheck":
+        return None
     return payload
 
 

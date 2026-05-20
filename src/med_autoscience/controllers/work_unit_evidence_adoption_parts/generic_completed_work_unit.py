@@ -7,6 +7,7 @@ from typing import Any, Iterable
 
 RECOMMENDED_NEXT_ROUTE = "return_to_publication_gate_recheck"
 NEXT_OWNER = "publication_gate"
+PUBLICATION_GATE_RECHECK_WORK_UNIT = "publication_gate_recheck"
 CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
 RUNTIME_RELAY_DELIVERY_MODES = frozenset({"managed_runtime_chat", "durable_queue_fallback"})
 DELIVERED_EVENT_TYPE = "delivered"
@@ -203,7 +204,11 @@ def matches_completed_work_unit(
     )
 
 
-def normalized_result(report_payload: dict[str, Any]) -> dict[str, Any]:
+def normalized_result(
+    report_payload: dict[str, Any],
+    *,
+    authorization_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     result = report_payload.get("result")
     normalized = dict(result) if isinstance(result, dict) else {}
     normalized.update(
@@ -212,9 +217,10 @@ def normalized_result(report_payload: dict[str, Any]) -> dict[str, Any]:
             "meaningful_artifact_delta": bool(report_payload.get("meaningful_artifact_delta")),
             "artifact_refs_count": _artifact_ref_count(report_payload.get("artifact_refs")),
             "source_refs_count": _artifact_ref_count(report_payload.get("source_refs")),
-            "publication_gate_recheck_required": True,
         }
     )
+    if not authorization_is_publication_gate_recheck(authorization_context or {}):
+        normalized["publication_gate_recheck_required"] = True
     return normalized
 
 
@@ -230,6 +236,10 @@ def owner_handoff_payload(*, report_path: Path, source: str) -> dict[str, Any]:
 
 def is_completed_adoption_payload(payload: dict[str, Any]) -> bool:
     return _text(payload.get("status")) == "completed" and _text(payload.get("recommended_next_route")) == RECOMMENDED_NEXT_ROUTE
+
+
+def authorization_is_publication_gate_recheck(authorization_context: dict[str, Any]) -> bool:
+    return _text(authorization_context.get("work_unit_id")) == PUBLICATION_GATE_RECHECK_WORK_UNIT
 
 
 def _target_context_matches(

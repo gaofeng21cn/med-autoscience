@@ -268,6 +268,7 @@ def _adopt_generic_completed_work_unit(
     source: str,
     authorized_run_ids: tuple[str, ...],
 ) -> dict[str, Any] | None:
+    is_gate_recheck = generic_completed_work_unit.authorization_is_publication_gate_recheck(authorization_context)
     for report_path in generic_completed_work_unit.report_candidates(
         quest_root,
         active_run_id=active_run_id,
@@ -289,10 +290,17 @@ def _adopt_generic_completed_work_unit(
             "created_at": generic_completed_work_unit.report_timestamp(report_payload),
             "work_unit_id": _text(authorization_context.get("work_unit_id")),
             "route_target": _text(authorization_context.get("route_target")),
-            "recommended_next_route": generic_completed_work_unit.RECOMMENDED_NEXT_ROUTE,
+            "recommended_next_route": (
+                "publication_gate_replay_completed"
+                if is_gate_recheck
+                else generic_completed_work_unit.RECOMMENDED_NEXT_ROUTE
+            ),
             "source": source,
-            "next_owner": generic_completed_work_unit.NEXT_OWNER,
-            "result": generic_completed_work_unit.normalized_result(report_payload),
+            "next_owner": "publication_gate" if is_gate_recheck else generic_completed_work_unit.NEXT_OWNER,
+            "result": generic_completed_work_unit.normalized_result(
+                report_payload,
+                authorization_context=authorization_context,
+            ),
         }
         if artifact_kind := _text(report_payload.get("artifact_kind")):
             payload["artifact_kind"] = artifact_kind
@@ -304,12 +312,13 @@ def _adopt_generic_completed_work_unit(
             event_type="artifact_written",
             payload=payload,
         )
-        control_intent.append_event(
-            study_root=study_root,
-            identity=identity,
-            event_type="owner_handoff",
-            payload=generic_completed_work_unit.owner_handoff_payload(report_path=report_path, source=source),
-        )
+        if not is_gate_recheck:
+            control_intent.append_event(
+                study_root=study_root,
+                identity=identity,
+                event_type="owner_handoff",
+                payload=generic_completed_work_unit.owner_handoff_payload(report_path=report_path, source=source),
+            )
         return payload
     return None
 

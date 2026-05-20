@@ -25,6 +25,8 @@ def mark_owner_handoff_if_completed(
     work_unit_id = _text(authorization_context.get("work_unit_id"))
     if work_unit_id is None:
         return
+    if work_unit_id == generic_completed_work_unit.PUBLICATION_GATE_RECHECK_WORK_UNIT:
+        return
     lifecycle_path = publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(
         study_root=study_root,
     )

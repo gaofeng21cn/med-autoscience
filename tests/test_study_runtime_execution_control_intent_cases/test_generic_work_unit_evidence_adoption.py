@@ -757,3 +757,109 @@ def test_execute_noop_runtime_decision_rejects_undated_generic_work_unit_artifac
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
     assert [event["event_type"] for event in events] == ["delivered", "skipped_duplicate"]
     assert "controller_work_unit_evidence_adoption" not in status.to_dict()
+
+
+def test_execute_noop_runtime_decision_adopts_publication_gate_recheck_without_self_handoff(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    decision_id = f"study-decision::{study_id}::{quest_id}::route_back_same_line::2026-05-20T07:55:10+00:00"
+    run_id = f"mas-run-{study_id}-20260520T082044154157Z"
+    study_root = tmp_path / "workspace" / "studies" / study_id
+    quest_root = tmp_path / "runtime" / "quests" / quest_id
+    _write_generic_controller_decision(
+        study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        decision_id=decision_id,
+        emitted_at="2026-05-20T07:55:10+00:00",
+        decision_type="route_back_same_line",
+        route_target="review",
+        route_key_question="已完成的 publication work unit 是否通过 publication gate replay？",
+    )
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    decision_payload = json.loads(decision_path.read_text(encoding="utf-8"))
+    decision_payload["controller_actions"] = [
+        {"action_type": "run_gate_clearing_batch", "payload_ref": str(decision_path)}
+    ]
+    decision_payload["work_unit_fingerprint"] = "publication-gate-recheck::closed-work-unit"
+    decision_payload["next_work_unit"] = {
+        "unit_id": "publication_gate_recheck",
+        "lane": "review",
+        "summary": "Replay the publication gate for the closed controller work unit.",
+    }
+    decision_payload["blocking_work_units"] = [
+        {
+            "unit_id": "publication_gate_recheck",
+            "lane": "review",
+            "summary": "Replay the publication gate for the closed controller work unit.",
+        }
+    ]
+    decision_path.write_text(json.dumps(decision_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    assert authorization_context["work_unit_id"] == "publication_gate_recheck"
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={"message_id": "msg-publication-gate-recheck", "active_run_id": run_id},
+        recorded_at="2026-05-20T08:20:44+00:00",
+    )
+    closeout_path = quest_root / "artifacts" / "runtime" / "turn_closeouts" / f"{run_id}.json"
+    closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    closeout_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "quest_id": quest_id,
+                "run_id": run_id,
+                "status": "completed",
+                "completed_at": "2026-05-20T08:23:59Z",
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    "artifacts/reports/publishability_gate/2026-05-20T082230Z.json",
+                    "../../../studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_clearing_batch/latest.json",
+                ],
+                "blocked_reason": None,
+                "next_owner": None,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_runtime_state(quest_root, {"status": "running", "active_run_id": run_id, "pending_user_message_count": 0})
+
+    status = _status_for(study_root, quest_root, study_id=study_id, quest_id=quest_id)
+    outcome = module._execute_runtime_decision(
+        status=status,
+        context=_context(study_root, quest_root, tmp_path / "runtime"),
+    )
+    events = control_intent.read_events(study_root=study_root)
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+    next_route = status.to_dict()["controller_work_unit_next_route"]
+    lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert [event["event_type"] for event in events] == ["delivered", "artifact_written"]
+    assert lifecycle["terminal_consumed"] is False
+    assert lifecycle["latest_event_type"] == "artifact_written"
+    assert adoption["report_ref"] == str(closeout_path)
+    assert adoption["work_unit_id"] == "publication_gate_recheck"
+    assert adoption["recommended_next_route"] == "publication_gate_replay_completed"
+    assert "publication_gate_recheck_required" not in adoption["result"]
+    assert next_route == {
+        "recommended_next_route": "publication_gate_replay_completed",
+        "owner": "publication_gate",
+        "quality_gate_relaxation_allowed": False,
+        "runtime_relaunch_required": False,
+    }

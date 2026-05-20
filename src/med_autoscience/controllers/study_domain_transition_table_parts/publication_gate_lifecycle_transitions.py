@@ -30,6 +30,8 @@ def project_transition(
     if _text(payload.get("next_owner")) != "publication_gate":
         return None
     work_unit = _compact_lifecycle_work_unit(payload.get("work_unit"))
+    if _text((work_unit or {}).get("unit_id")) == "publication_gate_recheck":
+        return None
     next_work_unit: dict[str, Any] = {
         "unit_id": "publication_gate_recheck",
         "lane": "review",
