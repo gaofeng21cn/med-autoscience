@@ -1,4 +1,87 @@
 from .shared import *  # noqa: F403
+
+
+def test_stopped_submission_metadata_package_resumes_current_controller_work_unit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="External validation framing needs unit-harmonized calibration evidence.",
+        paper_urls=["https://example.org/paper-2"],
+        journal_shortlist=["Diabetes Research and Clinical Practice"],
+        minimum_sci_ready_evidence_package=["external_validation", "calibration"],
+    )
+    quest_root = profile.runtime_root / study_id
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "stopped",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 0,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+                "last_controller_decision_authorization": {
+                    "authorization_basis": "controller_domain_transition",
+                    "decision_id": "study-decision::dm002::route-back-analysis",
+                    "source": "domain_route_scan_platform_repair",
+                    "route_target": "analysis-campaign",
+                    "work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "work_unit_fingerprint": (
+                        "domain-transition::route_back_same_line::"
+                        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+                    ),
+                    "controller_actions": ["ensure_study_runtime"],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=["author_metadata", "ethics_statement"],
+    )
+    write_synced_submission_delivery(study_root, quest_root)
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, study_id),
+    )
+
+    result = module.study_runtime_status(
+        profile=profile,
+        study_id=study_id,
+        include_progress_projection=False,
+    )
+
+    assert result["quest_status"] == "stopped"
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["interaction_arbitration"]["classification"] == "controller_work_unit_pending_redrive"
+
+
 def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_resumable(
     monkeypatch,
     tmp_path: Path,
