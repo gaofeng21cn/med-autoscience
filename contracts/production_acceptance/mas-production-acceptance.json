@@ -134,6 +134,18 @@
     },
     "scaleout_ref_packets": [
       {
+        "packet_id": "owner_receipt_ref_packet",
+        "owner": "med-autoscience",
+        "required_role": "owner_receipt_ref",
+        "owner_surface": "artifacts/runtime/owner_route/latest.json",
+        "fallback_owner_surface": "artifacts/runtime/opl_family_sidecar/dispatch_receipts/<sha256(task_id)[:20]>.json",
+        "body_included": false,
+        "opl_ingestable": true,
+        "opl_projection_only": true,
+        "write_permitted": false,
+        "domain_truth_owner": "med-autoscience"
+      },
+      {
         "packet_id": "progress_delta_ref_packet",
         "owner": "med-autoscience",
         "required_role": "progress_delta_ref",
@@ -192,8 +204,194 @@
         "opl_projection_only": true,
         "write_permitted": false,
         "domain_truth_owner": "med-autoscience"
+      },
+      {
+        "packet_id": "no_forbidden_write_proof_ref_packet",
+        "owner": "med-autoscience",
+        "required_role": "no_forbidden_write_proof_ref",
+        "owner_surface": "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
+        "fallback_owner_surface": "sidecar_dispatch_response.forbidden_write_guard_proof",
+        "body_included": false,
+        "opl_ingestable": true,
+        "opl_projection_only": true,
+        "write_permitted": false,
+        "domain_truth_owner": "med-autoscience"
       }
     ],
+    "opl_stage_evidence_receipt_handoff": {
+      "surface_kind": "mas_opl_stage_evidence_receipt_handoff",
+      "mode": "refs_only_payload_hints",
+      "record_action": "stage_production_evidence_receipt_record",
+      "verify_action": "stage_production_evidence_receipt_verify",
+      "selected_mas_surface": "paper_line_guarded_apply_evidence",
+      "payload_body_included": false,
+      "expected_receipt_ref_hints": [
+        {
+          "hint_id": "owner_receipt",
+          "record_role": "expected_receipt_ref",
+          "source_ref_role": "owner_receipt_ref",
+          "source_packet_id": "owner_receipt_ref_packet",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "progress_delta",
+          "record_role": "expected_receipt_ref",
+          "source_ref_role": "progress_delta_ref",
+          "source_packet_id": "progress_delta_ref_packet",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "ai_reviewer_gate_receipt",
+          "record_role": "expected_receipt_ref",
+          "source_ref_role": "ai_reviewer_gate_receipt_ref",
+          "source_packet_id": "ai_reviewer_gate_receipt_ref_packet",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "artifact_movement",
+          "record_role": "expected_receipt_ref",
+          "source_ref_role": "artifact_movement_ref",
+          "source_packet_id": "artifact_movement_ref_packet",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "human_gate_or_resume",
+          "record_role": "expected_receipt_ref",
+          "source_ref_role": "human_gate_or_resume_ref",
+          "source_packet_id": "human_gate_or_resume_ref_packet",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "stable_typed_blocker",
+          "record_role": "expected_receipt_ref",
+          "source_ref_role": "stable_typed_blocker_ref",
+          "source_packet_id": "stable_typed_blocker_ref_packet",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "no_forbidden_write_proof",
+          "record_role": "expected_receipt_ref",
+          "source_ref_role": "no_forbidden_write_proof_ref",
+          "source_packet_id": "no_forbidden_write_proof_ref_packet",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        }
+      ],
+      "monitor_freshness_ref_hints": [
+        {
+          "hint_id": "paper_progress_delta_freshness",
+          "record_role": "monitor_freshness_ref",
+          "source_ref_roles": [
+            "owner_receipt_ref",
+            "progress_delta_ref"
+          ],
+          "freshness_mode": "ref_mtime_or_owner_receipt_fingerprint_only",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "quality_gate_freshness",
+          "record_role": "monitor_freshness_ref",
+          "source_ref_roles": [
+            "ai_reviewer_gate_receipt_ref",
+            "owner_receipt_ref"
+          ],
+          "freshness_mode": "ref_mtime_or_owner_receipt_fingerprint_only",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "artifact_movement_freshness",
+          "record_role": "monitor_freshness_ref",
+          "source_ref_roles": [
+            "artifact_movement_ref",
+            "owner_receipt_ref"
+          ],
+          "freshness_mode": "ref_mtime_or_owner_receipt_fingerprint_only",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "human_gate_or_stable_blocker_freshness",
+          "record_role": "monitor_freshness_ref",
+          "source_ref_roles": [
+            "human_gate_or_resume_ref",
+            "stable_typed_blocker_ref"
+          ],
+          "freshness_mode": "ref_mtime_or_owner_receipt_fingerprint_only",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        },
+        {
+          "hint_id": "forbidden_write_guard_freshness",
+          "record_role": "monitor_freshness_ref",
+          "source_ref_roles": [
+            "no_forbidden_write_proof_ref"
+          ],
+          "freshness_mode": "ref_mtime_or_owner_receipt_fingerprint_only",
+          "body_included": false,
+          "write_permitted": false,
+          "domain_truth_owner": "med-autoscience",
+          "opl_projection_only": true
+        }
+      ],
+      "closeout_requires": [
+        "mas_owner_receipt_ref",
+        "progress_delta_ref_or_stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref"
+      ],
+      "forbidden_payloads": [
+        "publication_eval_body",
+        "controller_decision_body",
+        "artifact_gate_body",
+        "memory_body",
+        "final_verdict_body"
+      ],
+      "opl_may_persist_refs_only": true,
+      "opl_may_write_domain_truth": false,
+      "opl_may_authorize_publication_or_quality": false,
+      "publication_ready_claimed": false,
+      "current_package_update_claimed": false
+    },
+    "no_forbidden_write_proof_handoff": {
+      "proof_ref_role": "no_forbidden_write_proof_ref",
+      "owner_surface": "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
+      "fallback_owner_surface": "sidecar_dispatch_response.forbidden_write_guard_proof",
+      "result_policy": "accepted_no_forbidden_writes_or_fail_closed_typed_blocker",
+      "must_be_recorded_with_each_opl_stage_evidence_receipt": true,
+      "body_included": false,
+      "write_permitted": false,
+      "domain_truth_owner": "med-autoscience",
+      "opl_projection_only": true
+    },
     "domain_owned_outcome_refs": [
       {
         "outcome_id": "progress_delta",
@@ -296,7 +494,9 @@
     "source_contract_refs": [
       "contracts/owner_receipt_contract.json",
       "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
-      "product_entry_manifest.provider_guarded_soak_read_model"
+      "product_entry_manifest.provider_guarded_soak_read_model",
+      "opl_stage_production_evidence_receipt_record",
+      "opl_stage_production_evidence_receipt_verify"
     ]
   },
   "domain_acceptance_receipt": {

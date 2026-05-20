@@ -121,12 +121,15 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
     assert opl_contract["opl_may_authorize_publication_or_quality"] is False
     packets = {item["required_role"]: item for item in evidence["scaleout_ref_packets"]}
     assert set(packets) == {
+        "owner_receipt_ref",
         "progress_delta_ref",
         "ai_reviewer_gate_receipt_ref",
         "artifact_movement_ref",
         "human_gate_or_resume_ref",
         "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
     }
+    assert packets["owner_receipt_ref"]["owner_surface"] == "artifacts/runtime/owner_route/latest.json"
     assert packets["progress_delta_ref"]["fallback_owner_surface"] == (
         "artifacts/runtime/turn_closeouts/<active_run_id>.json"
     )
@@ -138,9 +141,63 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
         "artifacts/controller_decisions/latest.json"
     )
     assert packets["stable_typed_blocker_ref"]["owner_surface"] == "typed_blocker_receipt"
+    assert packets["no_forbidden_write_proof_ref"]["owner_surface"] == (
+        "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof"
+    )
     assert all(packet["body_included"] is False for packet in packets.values())
     assert all(packet["opl_ingestable"] is True for packet in packets.values())
     assert all(packet["write_permitted"] is False for packet in packets.values())
+
+    handoff = evidence["opl_stage_evidence_receipt_handoff"]
+    assert handoff["surface_kind"] == "mas_opl_stage_evidence_receipt_handoff"
+    assert handoff["mode"] == "refs_only_payload_hints"
+    assert handoff["record_action"] == "stage_production_evidence_receipt_record"
+    assert handoff["verify_action"] == "stage_production_evidence_receipt_verify"
+    assert handoff["payload_body_included"] is False
+    assert handoff["opl_may_persist_refs_only"] is True
+    assert handoff["opl_may_write_domain_truth"] is False
+    assert handoff["opl_may_authorize_publication_or_quality"] is False
+    assert handoff["publication_ready_claimed"] is False
+    assert handoff["current_package_update_claimed"] is False
+    expected_hints = {item["hint_id"]: item for item in handoff["expected_receipt_ref_hints"]}
+    assert set(expected_hints) == {
+        "owner_receipt",
+        "progress_delta",
+        "ai_reviewer_gate_receipt",
+        "artifact_movement",
+        "human_gate_or_resume",
+        "stable_typed_blocker",
+        "no_forbidden_write_proof",
+    }
+    assert expected_hints["owner_receipt"]["source_packet_id"] == "owner_receipt_ref_packet"
+    assert expected_hints["no_forbidden_write_proof"]["source_ref_role"] == "no_forbidden_write_proof_ref"
+    assert all(item["record_role"] == "expected_receipt_ref" for item in expected_hints.values())
+    assert all(item["body_included"] is False for item in expected_hints.values())
+    freshness = {item["hint_id"]: item for item in handoff["monitor_freshness_ref_hints"]}
+    assert set(freshness) == {
+        "paper_progress_delta_freshness",
+        "quality_gate_freshness",
+        "artifact_movement_freshness",
+        "human_gate_or_stable_blocker_freshness",
+        "forbidden_write_guard_freshness",
+    }
+    assert freshness["forbidden_write_guard_freshness"]["source_ref_roles"] == [
+        "no_forbidden_write_proof_ref"
+    ]
+    assert all(item["record_role"] == "monitor_freshness_ref" for item in freshness.values())
+    assert all(item["body_included"] is False for item in freshness.values())
+    assert handoff["closeout_requires"] == [
+        "mas_owner_receipt_ref",
+        "progress_delta_ref_or_stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
+    ]
+    no_forbidden = evidence["no_forbidden_write_proof_handoff"]
+    assert no_forbidden["proof_ref_role"] == "no_forbidden_write_proof_ref"
+    assert no_forbidden["must_be_recorded_with_each_opl_stage_evidence_receipt"] is True
+    assert no_forbidden["body_included"] is False
+    assert no_forbidden["write_permitted"] is False
+    assert no_forbidden["opl_projection_only"] is True
+
     outcomes = {item["outcome_id"]: item for item in evidence["domain_owned_outcome_refs"]}
     assert set(outcomes) == {
         "progress_delta",

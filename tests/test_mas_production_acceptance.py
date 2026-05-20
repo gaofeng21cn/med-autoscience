@@ -210,12 +210,17 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
     }
     packets = {item["required_role"]: item for item in evidence["scaleout_ref_packets"]}
     assert set(packets) == {
+        "owner_receipt_ref",
         "progress_delta_ref",
         "ai_reviewer_gate_receipt_ref",
         "artifact_movement_ref",
         "human_gate_or_resume_ref",
         "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
     }
+    assert packets["owner_receipt_ref"]["owner_surface"] == (
+        "artifacts/runtime/owner_route/latest.json"
+    )
     assert packets["progress_delta_ref"]["owner_surface"] == (
         "artifacts/controller/repair_execution_evidence/latest.json"
     )
@@ -229,11 +234,63 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
     assert packets["human_gate_or_resume_ref"]["fallback_owner_surface"] == (
         "human_gate_resume_receipt"
     )
+    assert packets["no_forbidden_write_proof_ref"]["owner_surface"] == (
+        "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof"
+    )
     assert all(item["body_included"] is False for item in packets.values())
     assert all(item["opl_ingestable"] is True for item in packets.values())
     assert all(item["opl_projection_only"] is True for item in packets.values())
     assert all(item["write_permitted"] is False for item in packets.values())
     assert all(item["domain_truth_owner"] == "med-autoscience" for item in packets.values())
+
+    handoff = evidence["opl_stage_evidence_receipt_handoff"]
+    assert handoff["surface_kind"] == "mas_opl_stage_evidence_receipt_handoff"
+    assert handoff["mode"] == "refs_only_payload_hints"
+    assert handoff["record_action"] == "stage_production_evidence_receipt_record"
+    assert handoff["verify_action"] == "stage_production_evidence_receipt_verify"
+    assert handoff["selected_mas_surface"] == "paper_line_guarded_apply_evidence"
+    assert handoff["payload_body_included"] is False
+    assert handoff["publication_ready_claimed"] is False
+    assert handoff["current_package_update_claimed"] is False
+    expected_hints = {item["hint_id"]: item for item in handoff["expected_receipt_ref_hints"]}
+    assert set(expected_hints) == {
+        "owner_receipt",
+        "progress_delta",
+        "ai_reviewer_gate_receipt",
+        "artifact_movement",
+        "human_gate_or_resume",
+        "stable_typed_blocker",
+        "no_forbidden_write_proof",
+    }
+    assert expected_hints["owner_receipt"]["source_ref_role"] == "owner_receipt_ref"
+    assert expected_hints["no_forbidden_write_proof"]["source_packet_id"] == (
+        "no_forbidden_write_proof_ref_packet"
+    )
+    assert all(item["record_role"] == "expected_receipt_ref" for item in expected_hints.values())
+    assert all(item["body_included"] is False for item in expected_hints.values())
+    freshness = {item["hint_id"]: item for item in handoff["monitor_freshness_ref_hints"]}
+    assert set(freshness) == {
+        "paper_progress_delta_freshness",
+        "quality_gate_freshness",
+        "artifact_movement_freshness",
+        "human_gate_or_stable_blocker_freshness",
+        "forbidden_write_guard_freshness",
+    }
+    assert freshness["forbidden_write_guard_freshness"]["source_ref_roles"] == [
+        "no_forbidden_write_proof_ref"
+    ]
+    assert all(item["record_role"] == "monitor_freshness_ref" for item in freshness.values())
+    assert handoff["closeout_requires"] == [
+        "mas_owner_receipt_ref",
+        "progress_delta_ref_or_stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
+    ]
+    proof_handoff = evidence["no_forbidden_write_proof_handoff"]
+    assert proof_handoff["proof_ref_role"] == "no_forbidden_write_proof_ref"
+    assert proof_handoff["must_be_recorded_with_each_opl_stage_evidence_receipt"] is True
+    assert proof_handoff["body_included"] is False
+    assert proof_handoff["write_permitted"] is False
+    assert proof_handoff["opl_projection_only"] is True
 
 
 def test_codex_first_landing_program_is_parallel_and_contract_light() -> None:
@@ -422,6 +479,11 @@ def test_agent_lab_handoff_contract_declares_refs_only_consumers_and_suite_seed(
         "role": "selected_existing_mas_evidence_surface",
         "body_included": False,
     }
+    assert suite["opl_stage_evidence_receipt_handoff_ref"] == {
+        "ref": "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence/opl_stage_evidence_receipt_handoff",
+        "role": "opl_expected_receipt_and_monitor_freshness_payload_hints",
+        "body_included": False,
+    }
     assert suite["required_task_ids"] == [
         "agent-lab-task:mas/real-paper-line-provider-canary",
         "agent-lab-task:mas/memory-artifact-human-gate-scaleout",
@@ -497,6 +559,18 @@ def test_agent_lab_handoff_tasks_keep_domain_receipts_as_closeout_authority() ->
     assert tasks["real_paper_line_provider_canary"]["owner_route"] == "MedAutoScience"
     assert "owner_receipt" in tasks["real_paper_line_provider_canary"]["required_return_shapes"]
     assert "no_forbidden_write_proof_ref" in tasks["real_paper_line_provider_canary"]["allowed_opl_result_refs"]
+    assert {
+        "owner_receipt_ref",
+        "progress_delta_ref",
+        "ai_reviewer_gate_receipt_ref",
+        "artifact_movement_ref",
+        "human_gate_or_resume_ref",
+        "stable_typed_blocker_ref",
+    } <= set(tasks["real_paper_line_provider_canary"]["allowed_opl_result_refs"])
+    assert {
+        "artifact_movement_ref",
+        "human_gate_or_resume_ref",
+    } <= set(tasks["memory_artifact_human_gate_scaleout"]["allowed_opl_result_refs"])
     assert "agent_lab_result_authorizes_domain_ready" in tasks["real_paper_line_provider_canary"][
         "forbidden_claims"
     ]
@@ -515,6 +589,7 @@ def test_agent_lab_handoff_tasks_keep_domain_receipts_as_closeout_authority() ->
         "artifact_movement_ref",
         "human_gate_or_resume_ref",
         "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
     ]
 
 
@@ -531,6 +606,7 @@ def test_agent_lab_handoff_work_order_has_traceability_and_forbidden_write_proof
         "agent-lab-suite.json",
         "agent-lab-run-result.json",
         "developer-patch-work-order.json",
+        "opl-stage-evidence-receipt-workorder.json",
         "target-capability-improvement-candidate.json",
         "mechanism-patch-proposal.json",
         "no-forbidden-write-proof.json",
@@ -543,4 +619,6 @@ def test_agent_lab_handoff_work_order_has_traceability_and_forbidden_write_proof
         "verification_command_refs",
         "owner_route",
         "forbidden_write_proof_ref",
+        "expected_receipt_ref",
+        "monitor_freshness_ref",
     }
