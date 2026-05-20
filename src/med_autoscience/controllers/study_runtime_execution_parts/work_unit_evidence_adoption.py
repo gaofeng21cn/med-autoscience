@@ -8,6 +8,7 @@ from med_autoscience.controllers import control_intent
 from med_autoscience.controllers.work_unit_evidence_adoption_parts import (
     analysis_claim_evidence_repair_receipt,
     analysis_stage_memory_handoff,
+    completed_work_unit_handoff,
     generic_completed_work_unit,
     hard_methodology_unit_harmonization,
 )
@@ -684,49 +685,6 @@ def _result_requires_runtime_relaunch(result: dict[str, Any]) -> bool:
     return False
 
 
-def _existing_artifact_written_payload(
-    *,
-    study_root: Path,
-    identity: control_intent.ControlIntentIdentity,
-    authorization_context: dict[str, Any],
-) -> dict[str, Any] | None:
-    events = control_intent.events_for_business_key_since(
-        study_root=study_root,
-        business_key=identity.business_key,
-        recorded_at=authorization_context.get("decision_emitted_at"),
-    )
-    for event in reversed(events):
-        event_type = _text(event.get("event_type"))
-        if event_type == "delivered":
-            return None
-        if event_type != "artifact_written":
-            continue
-        payload = event.get("payload")
-        if isinstance(payload, dict):
-            return dict(payload)
-        return {}
-    return None
-
-
-def existing_controller_work_unit_evidence_adoption(
-    *,
-    study_root: Path,
-    identity: control_intent.ControlIntentIdentity,
-    authorization_context: dict[str, Any],
-) -> dict[str, Any] | None:
-    existing_payload = _existing_artifact_written_payload(
-        study_root=study_root,
-        identity=identity,
-        authorization_context=authorization_context,
-    )
-    if existing_payload is None:
-        return None
-    return {
-        **existing_payload,
-        "already_recorded": True,
-    }
-
-
 def _controller_work_unit_lifecycle_projection(lifecycle: dict[str, Any] | None) -> dict[str, Any]:
     payload = lifecycle if isinstance(lifecycle, dict) else {}
     return {
@@ -736,6 +694,19 @@ def _controller_work_unit_lifecycle_projection(lifecycle: dict[str, Any] | None)
         "block_reason": payload.get("block_reason"),
         "terminal_consumed": bool(payload.get("terminal_consumed")),
     }
+
+
+def existing_controller_work_unit_evidence_adoption(
+    *,
+    study_root: Path,
+    identity: control_intent.ControlIntentIdentity,
+    authorization_context: dict[str, Any],
+) -> dict[str, Any] | None:
+    return completed_work_unit_handoff.existing_adoption_payload(
+        study_root=study_root,
+        identity=identity,
+        authorization_context=authorization_context,
+    )
 
 
 def _mark_controller_work_unit_evidence_adopted(
@@ -851,12 +822,18 @@ def adopt_controller_work_unit_evidence_if_present(
     active_run_id: str | None,
     source: str,
 ) -> dict[str, Any] | None:
-    existing_payload = existing_controller_work_unit_evidence_adoption(
+    existing_payload = completed_work_unit_handoff.existing_adoption_payload(
         study_root=study_root,
         identity=identity,
         authorization_context=authorization_context,
     )
     if existing_payload is not None:
+        completed_work_unit_handoff.ensure_existing_completed_handoff(
+            study_root=study_root,
+            identity=identity,
+            evidence_adoption=existing_payload,
+            source=source,
+        )
         return existing_payload
     has_delivery_for_current_decision = _has_prior_delivery_or_duplicate(
         study_root=study_root,

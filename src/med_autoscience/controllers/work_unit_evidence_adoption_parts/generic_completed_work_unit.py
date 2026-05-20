@@ -190,6 +190,10 @@ def owner_handoff_payload(*, report_path: Path, source: str) -> dict[str, Any]:
     }
 
 
+def is_completed_adoption_payload(payload: dict[str, Any]) -> bool:
+    return _text(payload.get("status")) == "completed" and _text(payload.get("recommended_next_route")) == RECOMMENDED_NEXT_ROUTE
+
+
 def _target_context_matches(
     *,
     marker: dict[str, Any],
