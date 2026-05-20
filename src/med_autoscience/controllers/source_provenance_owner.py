@@ -46,6 +46,29 @@ _PROVENANCE_REQUIREMENTS = (
     "original_result_artifact",
 )
 
+_SEARCH_TOKENS = ("model", "cox", "coef", "coeff", "survival", "hazard", "provenance", "result")
+_SEARCH_SUFFIXES = {".json", ".yaml", ".yml", ".csv", ".txt", ".md", ".pkl", ".pickle", ".joblib", ".rds", ".rda"}
+_EXCLUDED_SEARCH_PARTS = {
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    "__pycache__",
+    "consumer",
+    "controller",
+    "node_modules",
+    "requests",
+    "source_provenance",
+    "supervision",
+}
+_ROOT_SEARCH_LIMITS = {
+    "study_artifacts": {"max_depth": 5, "max_files_visited": 1500, "max_candidates": 80},
+    "study_analysis": {"max_depth": 6, "max_files_visited": 1500, "max_candidates": 80},
+    "study_experiments": {"max_depth": 6, "max_files_visited": 1500, "max_candidates": 80},
+    "study_paper_analysis": {"max_depth": 5, "max_files_visited": 1000, "max_candidates": 50},
+    "runtime_quest": {"max_depth": 5, "max_files_visited": 1200, "max_candidates": 60},
+    "legacy_archive": {"max_depth": 4, "max_files_visited": 800, "max_candidates": 40},
+}
+
 
 def stable_source_provenance_owner_result_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / RESULT_RELATIVE_PATH
@@ -245,7 +268,7 @@ def _provenance_assessment(
 
 def _provenance_search(*, profile: WorkspaceProfile, study_root: Path, study_id: str) -> dict[str, Any]:
     roots = _search_roots(profile=profile, study_root=study_root, study_id=study_id)
-    candidates = _candidate_files(roots)
+    candidates, root_scan_summaries = _candidate_files(roots)
     accepted_bundle_ref: str | None = None
     candidate_payloads: list[dict[str, Any]] = []
     for path in candidates:
@@ -263,7 +286,9 @@ def _provenance_search(*, profile: WorkspaceProfile, study_root: Path, study_id:
         )
     return {
         "searched": True,
+        "bounded_search": True,
         "search_roots": [{"root_kind": root_kind, "path": str(path), "available": path.exists()} for root_kind, path in roots],
+        "root_scan_summaries": root_scan_summaries,
         "candidate_count": len(candidate_payloads),
         "accepted_bundle_ref": accepted_bundle_ref,
         "candidates": candidate_payloads,
@@ -285,33 +310,98 @@ def _search_roots(*, profile: WorkspaceProfile, study_root: Path, study_id: str)
     ]
 
 
-def _candidate_files(roots: list[tuple[str, Path]]) -> list[Path]:
-    tokens = ("model", "cox", "coef", "coeff", "survival", "hazard", "provenance", "result")
-    suffixes = {".json", ".yaml", ".yml", ".csv", ".txt", ".md", ".pkl", ".pickle", ".joblib", ".rds", ".rda"}
-    excluded_parts = {"supervision", "requests", "consumer", "controller", "source_provenance"}
+def _candidate_files(roots: list[tuple[str, Path]]) -> tuple[list[Path], list[dict[str, Any]]]:
     candidates: list[Path] = []
     seen: set[Path] = set()
-    for _, root in roots:
-        if not root.is_dir():
+    summaries: list[dict[str, Any]] = []
+    for root_kind, root in roots:
+        root_candidates, summary = _candidate_files_for_root(root_kind=root_kind, root=root, seen=seen)
+        candidates.extend(root_candidates)
+        summaries.append(summary)
+    return sorted(candidates, key=lambda path: str(path)), summaries
+
+
+def _candidate_files_for_root(*, root_kind: str, root: Path, seen: set[Path]) -> tuple[list[Path], dict[str, Any]]:
+    limits = _ROOT_SEARCH_LIMITS.get(root_kind, {"max_depth": 4, "max_files_visited": 800, "max_candidates": 40})
+    max_depth = int(limits["max_depth"])
+    max_files_visited = int(limits["max_files_visited"])
+    max_candidates = int(limits["max_candidates"])
+    candidates: list[Path] = []
+    summary: dict[str, Any] = {
+        "root_kind": root_kind,
+        "path": str(root),
+        "available": root.is_dir(),
+        "bounded": True,
+        "max_depth": max_depth,
+        "max_files_visited": max_files_visited,
+        "max_candidates": max_candidates,
+        "directories_scanned": 0,
+        "files_visited": 0,
+        "candidate_count": 0,
+        "excluded_directory_count": 0,
+        "skipped_by_depth_count": 0,
+        "truncated": False,
+        "errors": [],
+    }
+    if not root.is_dir():
+        return candidates, summary
+
+    pending: list[tuple[Path, int]] = [(root, 0)]
+    while pending:
+        directory, depth = pending.pop()
+        try:
+            entries = sorted(directory.iterdir(), key=lambda path: path.name)
+        except OSError as exc:
+            summary["errors"].append({"path": str(directory), "error": exc.__class__.__name__})
             continue
-        for path in sorted(root.rglob("*")):
-            if not path.is_file():
+        summary["directories_scanned"] += 1
+        for entry in entries:
+            if entry.is_symlink():
                 continue
-            lowered_parts = {part.lower() for part in path.parts}
-            if lowered_parts.intersection(excluded_parts):
+            if entry.is_dir():
+                if entry.name.lower() in _EXCLUDED_SEARCH_PARTS:
+                    summary["excluded_directory_count"] += 1
+                    continue
+                if depth >= max_depth:
+                    summary["skipped_by_depth_count"] += 1
+                    continue
+                pending.append((entry, depth + 1))
                 continue
-            if path.suffix.lower() not in suffixes:
+            if not entry.is_file():
                 continue
-            name = path.name.lower()
-            parts = " ".join(part.lower() for part in path.parts[-4:])
-            if not any(token in name or token in parts for token in tokens):
+            summary["files_visited"] += 1
+            if summary["files_visited"] > max_files_visited:
+                summary["truncated"] = True
+                summary["files_visited"] = max_files_visited
+                summary["candidate_count"] = len(candidates)
+                return candidates, summary
+            if not _is_candidate_path(entry):
                 continue
-            resolved = path.resolve()
+            resolved = entry.resolve()
             if resolved in seen:
                 continue
             seen.add(resolved)
             candidates.append(resolved)
-    return candidates
+            if len(candidates) >= max_candidates:
+                summary["truncated"] = True
+                summary["candidate_count"] = len(candidates)
+                return candidates, summary
+        summary["candidate_count"] = len(candidates)
+    return candidates, summary
+
+
+def _is_candidate_path(path: Path) -> bool:
+    try:
+        lowered_parts = {part.lower() for part in path.parts}
+    except OSError:
+        return False
+    if lowered_parts.intersection(_EXCLUDED_SEARCH_PARTS):
+        return False
+    if path.suffix.lower() not in _SEARCH_SUFFIXES:
+        return False
+    name = path.name.lower()
+    recent_parts = " ".join(part.lower() for part in path.parts[-4:])
+    return any(token in name or token in recent_parts for token in _SEARCH_TOKENS)
 
 
 def _validate_candidate_bundle(path: Path) -> dict[str, Any]:
