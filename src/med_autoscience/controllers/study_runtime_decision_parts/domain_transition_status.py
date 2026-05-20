@@ -77,6 +77,24 @@ def _domain_transition_runtime_redrive_reason(status: StudyRuntimeStatus) -> Stu
         return StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
 
 
+def _publication_gate_domain_redrive_reason(status: StudyRuntimeStatus) -> StudyRuntimeReason | None:
+    domain_transition = status.extras.get("domain_transition")
+    if not isinstance(domain_transition, dict):
+        return None
+    if str(domain_transition.get("decision_type") or "").strip() != "publication_gate_blocker":
+        return None
+    arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy=str(status.execution.get("decision_policy") or "").strip() or None,
+        submission_metadata_only=False,
+        domain_transition=domain_transition,
+    )
+    if str(arbitration.get("action") or "").strip() != "resume":
+        return None
+    status.record_interaction_arbitration(arbitration)
+    return StudyRuntimeReason.DOMAIN_TRANSITION_PUBLICATION_GATE_BLOCKER
+
+
 def _has_domain_transition_runtime_redrive(status: StudyRuntimeStatus) -> bool:
     interaction_arbitration = status.extras.get("interaction_arbitration")
     return (
@@ -178,6 +196,7 @@ __all__ = [
     "_apply_ai_reviewer_domain_redrive_decision",
     "_apply_domain_transition_redrive_decision",
     "_current_ai_reviewer_domain_redrive_reason",
+    "_publication_gate_domain_redrive_reason",
     "_has_domain_transition_runtime_redrive",
     "_record_interaction_arbitration_if_required",
     "_domain_transition_runtime_redrive_reason",

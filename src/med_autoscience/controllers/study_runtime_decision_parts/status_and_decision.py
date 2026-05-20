@@ -443,7 +443,8 @@ def _status_state(
             result,
             study_root=study_root,
         )
-        domain_redrive_reason = _domain_transition_runtime_redrive_reason(result)
+        publication_gate_redrive_reason = _publication_gate_domain_redrive_reason(result)
+        domain_redrive_reason = publication_gate_redrive_reason or _domain_transition_runtime_redrive_reason(result)
         if _user_pause_contract_without_live_worker(
             result,
             audit_status=audit_status,

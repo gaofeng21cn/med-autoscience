@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
+from med_autoscience.controllers.study_domain_transition_table_parts import publication_gate_lifecycle_transitions
 from med_autoscience.study_delivery_package_contract import delivered_package_handoff_allowed, live_delivered_package_handoff_allowed
 
 
@@ -19,6 +20,9 @@ FAMILY_TRANSITION_OWNER = "med-autoscience"
 PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions/latest.json")
 REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path("artifacts/controller/repair_execution_evidence/latest.json")
+PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = (
+    publication_gate_lifecycle_transitions.PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH
+)
 _BUNDLE_STAGE_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
 _FINALIZE_WORK_UNIT_IDS = frozenset(
     {
@@ -43,6 +47,10 @@ def project_domain_transition(
     publication_eval, publication_eval_ref = _read_relative_json(root, PUBLICATION_EVAL_RELATIVE_PATH)
     controller_decision, controller_decision_ref = _read_relative_json(root, CONTROLLER_DECISION_RELATIVE_PATH)
     repair_evidence, repair_evidence_ref = _read_relative_json(root, REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH)
+    work_unit_lifecycle, work_unit_lifecycle_ref = _read_relative_json(
+        root,
+        PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH,
+    )
     execution_receipt_consumption = study_transition_receipt_consumption.execution_receipt_consumption(status)
     ai_reviewer_receipt_consumption = (
         study_transition_receipt_consumption.ai_reviewer_publication_eval_receipt_consumption(
@@ -69,6 +77,7 @@ def project_domain_transition(
         publication_eval_ref,
         controller_decision_ref,
         repair_evidence_ref,
+        work_unit_lifecycle_ref,
         _text(execution_receipt_consumption.get("source_ref")),
         _text(human_gate_resume_receipt_consumption.get("receipt_ref")),
         _text(human_gate_resume_receipt_consumption.get("decision_ref")),
@@ -202,6 +211,16 @@ def project_domain_transition(
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption,
         )
+
+    lifecycle_gate_recheck_transition = publication_gate_lifecycle_transitions.project_transition(
+        study_id=study_id,
+        lifecycle=work_unit_lifecycle,
+        lifecycle_ref=work_unit_lifecycle_ref,
+        source_refs=source_refs,
+        completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
+    )
+    if lifecycle_gate_recheck_transition is not None:
+        return lifecycle_gate_recheck_transition
 
     ai_reviewer_transition = ai_reviewer_transitions.project_transition(
         study_id=study_id,
