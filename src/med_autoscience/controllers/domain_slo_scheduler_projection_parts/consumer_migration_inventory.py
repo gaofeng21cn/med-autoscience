@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from med_autoscience.controllers.domain_slo_scheduler_projection_parts.active_path_workbench_status_gates import (
+    build_workbench_status_active_path_gates,
+)
+
 FUNCTIONAL_SURFACE_CLASSIFICATION = {
     "declarative_pack_generated_surface": [
         "workspace_source_intake_shell", "workbench_portal_generic_shell", "domain_route_scan_materialize_dispatch_shell",
@@ -353,6 +357,10 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         "no_alias_facade_compat_wrapper_allowed": True,
         "must_not_emit": list(_ACTIVE_PATH_MUST_NOT_EMIT),
     },
+    *build_workbench_status_active_path_gates(
+        delete_or_tombstone_after=_ACTIVE_PATH_DELETE_OR_TOMBSTONE_AFTER,
+        must_not_emit=_ACTIVE_PATH_MUST_NOT_EMIT,
+    ),
     {
         "residue_id": "legacy_supervisor_scheduler_tombstone",
         "residue_class": "supervisor",

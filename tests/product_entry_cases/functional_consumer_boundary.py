@@ -467,6 +467,9 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
         "sqlite_lifecycle_sidecar_index",
+        "workbench_shell_domain_projection_refs",
+        "sidecar_dispatch_adapter",
+        "status_projection_domain_truth_refs",
         "legacy_supervisor_scheduler_tombstone",
     }
     retained_residue_ids = {
@@ -474,6 +477,9 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
         "sqlite_lifecycle_sidecar_index",
+        "workbench_shell_domain_projection_refs",
+        "sidecar_dispatch_adapter",
+        "status_projection_domain_truth_refs",
     }
     for residue_id in retained_residue_ids:
         gate = cleanup_gates[residue_id]
@@ -564,6 +570,18 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
     )
     assert candidates["status_projection"]["retained_as"] == "domain_truth_status_projection"
+    assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
+        "domain_projection_refs_for_opl_workbench"
+    )
+    assert cleanup_gates["workbench_shell_domain_projection_refs"]["active_caller_count"] == 3
+    assert cleanup_gates["sidecar_dispatch_adapter"]["current_role"] == (
+        "domain_sidecar_dispatch_adapter_and_provider_diagnostic"
+    )
+    assert cleanup_gates["sidecar_dispatch_adapter"]["active_caller_count"] == 2
+    assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
+        "domain_truth_status_projection"
+    )
+    assert cleanup_gates["status_projection_domain_truth_refs"]["active_caller_count"] == 2
     assert retirement_matrix["no_active_caller_summary"] == {
         "active_default_caller_count": 0,
         "active_default_caller_zero_proven": True,

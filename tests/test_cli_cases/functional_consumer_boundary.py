@@ -221,6 +221,9 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
         "sqlite_lifecycle_sidecar_index",
+        "workbench_shell_domain_projection_refs",
+        "sidecar_dispatch_adapter",
+        "status_projection_domain_truth_refs",
         "legacy_supervisor_scheduler_tombstone",
     }
     retained_gate = cleanup_gates["runtime_transport_core_bridge"]
@@ -235,6 +238,18 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert "paper_closure_verdict" in retained_gate["must_not_emit"]
     sqlite_gate = cleanup_gates["sqlite_lifecycle_sidecar_index"]
     assert "tests/test_runtime_lifecycle_store.py" in sqlite_gate["focused_test_refs"]
+    workbench_gate = cleanup_gates["workbench_shell_domain_projection_refs"]
+    assert workbench_gate["current_role"] == "domain_projection_refs_for_opl_workbench"
+    assert workbench_gate["active_caller_count"] > 0
+    assert workbench_gate["physical_delete_permitted"] is False
+    sidecar_gate = cleanup_gates["sidecar_dispatch_adapter"]
+    assert sidecar_gate["current_role"] == (
+        "domain_sidecar_dispatch_adapter_and_provider_diagnostic"
+    )
+    assert sidecar_gate["physical_delete_permitted"] is False
+    status_gate = cleanup_gates["status_projection_domain_truth_refs"]
+    assert status_gate["current_role"] == "domain_truth_status_projection"
+    assert status_gate["no_active_caller_proven"] is False
     tombstone_gate = cleanup_gates["legacy_supervisor_scheduler_tombstone"]
     assert tombstone_gate["active_caller_count"] == 0
     assert tombstone_gate["no_active_caller_proven"] is True

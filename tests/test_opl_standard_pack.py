@@ -348,6 +348,18 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert cleanup_gates["runtime_turn_runner_closeout_adapter"][
         "no_alias_facade_compat_wrapper_allowed"
     ] is True
+    assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
+        "domain_projection_refs_for_opl_workbench"
+    )
+    assert cleanup_gates["workbench_shell_domain_projection_refs"][
+        "physical_delete_permitted"
+    ] is False
+    assert cleanup_gates["sidecar_dispatch_adapter"]["current_role"] == (
+        "domain_sidecar_dispatch_adapter_and_provider_diagnostic"
+    )
+    assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
+        "domain_truth_status_projection"
+    )
     assert cleanup_gates["legacy_supervisor_scheduler_tombstone"][
         "current_disposition"
     ] == "tombstone_only"

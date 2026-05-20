@@ -227,6 +227,9 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
         "sqlite_lifecycle_sidecar_index",
+        "workbench_shell_domain_projection_refs",
+        "sidecar_dispatch_adapter",
+        "status_projection_domain_truth_refs",
         "legacy_supervisor_scheduler_tombstone",
     }
     assert cleanup_gates["runtime_transport_core_bridge"]["active_caller_count"] > 0
@@ -234,6 +237,13 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert cleanup_gates["runtime_transport_core_bridge"]["no_active_caller_proven"] is False
     assert cleanup_gates["sqlite_lifecycle_sidecar_index"]["current_role"] == (
         "refs_only_domain_receipt_locator_and_lifecycle_ref_index"
+    )
+    assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
+        "domain_projection_refs_for_opl_workbench"
+    )
+    assert cleanup_gates["sidecar_dispatch_adapter"]["physical_delete_permitted"] is False
+    assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
+        "domain_truth_status_projection"
     )
     assert cleanup_gates["legacy_supervisor_scheduler_tombstone"]["active_caller_count"] == 0
     assert cleanup_gates["legacy_supervisor_scheduler_tombstone"]["tombstone_permitted"] is True
