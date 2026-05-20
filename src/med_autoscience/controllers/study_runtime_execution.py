@@ -127,13 +127,17 @@ def _enable_explicit_stopped_relaunch_if_requested(
     *,
     status: StudyRuntimeStatus,
 ) -> None:
-    if (
-        status.decision is not StudyRuntimeDecision.BLOCKED
-        or status.reason
-        not in {
+    explicit_rerun_request = (
+        status.decision is StudyRuntimeDecision.BLOCKED
+        and status.reason
+        in {
             StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,
             StudyRuntimeReason.QUEST_EXISTS_WITH_NON_RESUMABLE_STATE,
         }
+    )
+    controller_authorized_redrive = _is_controller_authorized_stopped_redrive(status)
+    if (
+        not (explicit_rerun_request or controller_authorized_redrive)
         or status.quest_status
         not in {
             StudyRuntimeQuestStatus.STOPPED,
@@ -156,6 +160,25 @@ def _enable_explicit_stopped_relaunch_if_requested(
     status.set_decision(
         StudyRuntimeDecision.RELAUNCH_STOPPED,
         StudyRuntimeReason.QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED,
+    )
+
+
+def _is_controller_authorized_stopped_redrive(status: StudyRuntimeStatus) -> bool:
+    if (
+        status.decision is not StudyRuntimeDecision.RESUME
+        or status.reason is not StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+    ):
+        return False
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    if not isinstance(interaction_arbitration, dict):
+        return False
+    return (
+        str(interaction_arbitration.get("classification") or "").strip()
+        in {
+            "controller_work_unit_pending_redrive",
+            "domain_transition_runtime_redrive",
+        }
+        and str(interaction_arbitration.get("action") or "").strip() == StudyRuntimeDecision.RESUME.value
     )
 
 

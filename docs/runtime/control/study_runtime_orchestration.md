@@ -442,6 +442,7 @@ workspace teardown 必须满足：
   - quest 已存在且满足恢复条件
 - `RELAUNCH_STOPPED`
   - quest 已处于 `stopped`，且 caller 已显式批准 stopped-quest relaunch
+  - caller 显式批准可以来自 CLI 的 `allow_stopped_relaunch=true`，也可以来自 controller-owned current work unit / domain transition redrive；两者都必须保留 MAS owner authorization 证据
 - `PAUSE`
   - 现有 live runtime 不再满足运行条件，必须收回到 paused
 - `SYNC_COMPLETION`
@@ -492,7 +493,7 @@ workspace teardown 必须满足：
   - 再执行 startup hydration 与 validation
   - hydration clear 后才允许 `resume_quest(...)`
 - stopped relaunch 路径
-  - controller 先把 blocked stopped 状态改写为 `RELAUNCH_STOPPED`
+  - controller 先把 blocked stopped 或 controller-authorized stopped redrive 状态改写为 `RELAUNCH_STOPPED`
   - transport 必须调用 `relaunch_stopped_quest(...)`，由 backend 显式释放 stopped/failed terminal state 后再启动新 turn
   - 普通 `resume_quest(...)` 对 `stopped` / `failed` 仍必须 fail-closed，不能被 stopped relaunch 需求放宽
   - 但 runtime binding / launch report 的 `last_action` 必须写成 `relaunch_stopped`
