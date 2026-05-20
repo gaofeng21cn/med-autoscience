@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-21：stopped controller work-unit redrive 优先于投稿元数据停车
+
+- 决策：当 `.ds/runtime_state.json` 已进入 `status=stopped`，但仍携带 `continuation_policy=auto`、`continuation_anchor=decision`、`continuation_reason=controller_work_unit_pending` 和当前 `last_controller_decision_authorization` 时，`study_runtime_status` 必须把它仲裁为 `controller_work_unit_pending_redrive` 并返回 `resume / quest_waiting_platform_repair_redrive`。即使当前 workspace 已存在 submission metadata-only package 或 synchronized delivery，MAS 也不能把这条当前 controller work unit 降级为投稿元数据停车。
+- 理由：stopped 运行态并不总是 terminal handoff；若当前 controller authorization 仍指向同线 work unit，MAS owner-chain 需要先完成 redrive 或产出 typed blocker。把它误判成 submission metadata waiting 会让当前论文线停在人工元数据门口，实际 work unit 无法被消费。
+- 影响：这是 MAS domain runtime/status authority 的状态转移修复，不是 OPL generic runtime 迁移，也不授权脚本判断论文质量、更新 `publication_eval/latest.json`、写正文、刷新 `current_package` 或声明 submission-ready。OPL 仍只托管 provider/attempt/queue/read model；MAS 继续持有 controller authorization、owner receipt、typed blocker 和 publication/artifact authority。
+
 ## 2026-05-20：新 reviewer_revision 必须使旧 AI reviewer eval 失效
 
 - 决策：若 latest task intake 是 `reviewer_revision`，且其 `emitted_at` 晚于当前 `publication_eval/latest.json`，即使当前 eval 的 `assessment_provenance.owner=ai_reviewer`，domain transition candidate 与 domain route scan 也必须把 AI reviewer assessment 标为 stale/missing，并路由到 `return_to_ai_reviewer_workflow`。

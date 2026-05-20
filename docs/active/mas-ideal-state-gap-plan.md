@@ -64,6 +64,8 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 2026-05-21 MAS 已把 `stage_owned_typed_blocker_handoff` 补入 `contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence/opl_stage_evidence_receipt_handoff`，为 6 个 MAS stage 提供 MAS-owned `mas-stage-typed-blocker:*` refs，语义是 `real_paper_line_owner_receipt_or_live_monitor_freshness_pending`。OPL 已用这些 refs 逐 stage 执行 `stage-production-evidence:medautoscience:<stage>:record|verify`，App/readiness/production closeout 的 MAS stage evidence workorder 不再 open。该状态只关闭 OPL refs-only workorder accounting；真实 paper-line owner receipt、publication quality gate、artifact mutation receipt、memory/human-gate scaleout 和 long-soak 仍需后续 MAS owner chain 证据关闭。
 
+2026-05-21 MAS 又补齐一条 runtime/status 状态转移 focused proof：当 stopped runtime 仍携带当前 `controller_work_unit_pending` authorization 时，`study_runtime_status` 会记录 `controller_work_unit_pending_redrive` interaction arbitration，并返回 `resume / quest_waiting_platform_repair_redrive`；submission metadata-only package 或 synchronized delivery 不能覆盖这个当前 controller work unit。该修复证明 MAS domain runtime/status authority 继续负责医学论文 owner-chain state transition；它不是 OPL generic runner 上收，也不授权脚本判断 publication quality、artifact mutation 或 submission readiness。
+
 2026-05-19 的标准 pack 合同校准把 MAS `pack_compiler_input` 收到 OPL scaffold 的 canonical 形状：`canonical_semantic_pack_root="agent/"`、`canonical_semantic_pack_role="declarative_medical_research_semantics_for_opl_pack_compiler"`，不再暴露旧 `canonical_repo_source_semantic_pack_root`。`required_domain_pack_paths` 必须只指向真实 agent pack 语义文件，不能通过 README 或目录存在性替代 prompts / stages / skills / quality gates / knowledge 文件。
 
 2026-05-20 的 Codex-first pack canonicalization 已把每个 stage 的 `codex_cli_launch_packet` 写入 `contracts/stage_control_plane.json` 并投影到 product-entry stage descriptor。该 packet 直接暴露 prompt refs、skill/tool refs、knowledge refs、quality gate refs、expected receipt refs、forbidden authority 与 `executor_requirements=Codex CLI`，用于让 Codex CLI default executor 直接启动 stage。它只定义执行边界、证据义务和禁止写面，不把医学判断、quality verdict、publication readiness 或 source/artifact authority 写成脚本逻辑。
@@ -135,6 +137,7 @@ MAS production acceptance receipt 已把 conformance 不能声明 live/domain-re
 - artifact lifecycle receipt scaleout：真实 workspace 产生 artifact mutation permission、cleanup/restore/retention guarded apply receipt 和 rebuild/freshness proof。
 - human gate / resume：approval、pause、human takeover、explicit wakeup 和 resume 操作链进入 MAS owner route，并证明不会越过 publication gate、AI reviewer gate 或 artifact authority。
 - provider SLO long soak：长时 provider-hosted run、restart/re-query、retry/dead-letter、no-forbidden-write 和 App/workbench drilldown 在真实 domain activity 中持续成立。
+- runtime/status state transition：stopped / waiting / paused / live 等状态与 controller authorization、domain transition、submission metadata handoff、AI reviewer routeback 的组合路径必须继续由 MAS focused tests 锁定；2026-05-21 已覆盖 stopped controller work-unit redrive 不被 metadata parking 覆盖，但真实 paper-line canary 仍需把该 redrive 走到 owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker。
 
 ## 一步到位 physical/source morphology closure 路线
 

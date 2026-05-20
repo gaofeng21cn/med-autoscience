@@ -30,6 +30,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - `contracts/production_acceptance/mas-production-acceptance.json` 只承认 structural / physical conformance 与 production-like receipt chain；它不授权 domain ready、publication ready、medical ready、artifact mutation 或 `current_package` 更新。
 - `paper_line_guarded_apply_evidence` 已作为 OPL-ingestable body-free ref packet 固化。它可暴露 progress delta、AI reviewer/gate receipt、artifact movement、human gate/resume 和 stable typed blocker refs；真实 closeout 仍需要 MAS owner receipt 或 stable typed blocker。
 - 2026-05-21 `paper_line_guarded_apply_evidence.opl_stage_evidence_receipt_handoff.stage_owned_typed_blocker_handoff` 已为 6 个 MAS stage 提供 MAS-owned typed blocker refs，并已被 OPL `stage_production_evidence_receipt_record|verify` refs-only ledger 消费。当前 OPL App/readiness/production closeout 不再把 MAS stage expected receipt / monitor freshness 显示为 open；这不声明任何具体 paper-line、publication quality、artifact mutation、memory writeback、human gate 或 long-soak 已完成。
+- 2026-05-21 `study_runtime_status` 已补齐 stopped controller work-unit redrive 状态转换：`stopped + controller_work_unit_pending + last_controller_decision_authorization` 会优先仲裁为 `controller_work_unit_pending_redrive` / `quest_waiting_platform_repair_redrive`，不会被 submission metadata-only package 或 synchronized delivery 误停车。对应 focused tests 覆盖 submission metadata waiting、platform repair redrive 与 AI reviewer submission metadata routeback 组合路径；该修复只消费 MAS owner-chain runtime/status truth，不改变 OPL/MAS 边界。
 
 ## 当前功能/结构状态
 
@@ -65,6 +66,7 @@ MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain
 - artifact lifecycle receipt scaleout：真实 workspace 产生 artifact mutation permission、cleanup/restore/retention guarded receipt 和 rebuild/freshness proof。
 - human gate / resume：approval、pause、human takeover、explicit wakeup 和 resume 操作链进入 MAS owner route，并证明不会越过 publication gate、AI reviewer gate 或 artifact authority。
 - provider SLO long soak：长时 provider-hosted run、restart/re-query、retry/dead-letter、no-forbidden-write 和 App/workbench drilldown 在真实 domain activity 中持续成立。
+- 状态转移 focused proof：stopped / waiting / paused / live 等 runtime 状态与 controller authorization、domain transition、submission metadata handoff 的组合路径需要继续用 focused tests 锁定。2026-05-21 已补 `stopped controller_work_unit_pending` 不被 metadata parking 覆盖的回归测试；后续真实 paper-line canary 仍需证明对应 redrive 能产出 owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker。
 
 ## 当前完善顺序
 
