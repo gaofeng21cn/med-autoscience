@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-21：provenance-limited rebuild handoff 必须覆盖旧 methodology decision
+
+- 决策：当 `artifacts/controller/provenance_limited_harmonization/latest.json` 已产出当前 `unit_harmonized_rerun_required` typed handoff，并明确 `next_owner=analysis_harmonization_owner`、`next_work_unit=unit_harmonized_external_validation_rerun`，且该 owner result 晚于它消费的 source provenance、controller decision 与 rebuild task intake 时，domain-route-scan 必须优先排 `analysis_harmonization_owner`，不能再被旧 `source_provenance/latest.json` terminal blocker 拉回 `methodology_reframe_route_decision`。
+- 理由：DM002 暴露出 MAS 已由 provenance-limited owner 消费 clean rebuild authorization 并交棒给 analysis owner，但 read model 仍先读取旧 source terminal blocker，导致 action queue 回退到上一轮 decision owner，阻断 unit-harmonized rerun。这里的 currentness 真相来自 MAS 医学 owner result 的时间顺序和 typed handoff，不是通用队列或控制面状态。
+- 影响：这是 MAS 标准 OPL Agent 的 domain owner-chain currentness 修复，只影响医学 owner route/read-model。它不把 OPL provider、queue、attempt ledger、session lifecycle 或 Agent Lab control plane 回塞进 MAS；也不授权写 `paper/`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`manuscript/current_package`、submission package 或 submission-ready verdict。
+
 ## 2026-05-21：stopped controller work-unit redrive 优先于投稿元数据停车
 
 - 决策：当 `.ds/runtime_state.json` 已进入 `status=stopped`，但仍携带 `continuation_policy=auto`、`continuation_anchor=decision`、`continuation_reason=controller_work_unit_pending` 和当前 `last_controller_decision_authorization` 时，`study_runtime_status` 必须把它仲裁为 `controller_work_unit_pending_redrive` 并返回 `resume / quest_waiting_platform_repair_redrive`。即使当前 workspace 已存在 submission metadata-only package 或 synchronized delivery，MAS 也不能把这条当前 controller work unit 降级为投稿元数据停车。

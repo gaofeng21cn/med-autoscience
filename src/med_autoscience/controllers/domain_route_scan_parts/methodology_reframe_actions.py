@@ -18,6 +18,8 @@ _AUDIT_ROUTE_OPTION = "provenance_limited_harmonization_audit"
 def methodology_reframe_route_decision_action(study_root: Path) -> dict[str, Any] | None:
     if _current_hard_methodology_handoff_supersedes_consumers(study_root):
         return None
+    if _current_provenance_limited_rebuild_handoff_supersedes_methodology_decision(study_root):
+        return None
     source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
     if not source_result_state:
         return None
@@ -209,6 +211,27 @@ def _current_hard_methodology_handoff_supersedes_consumers(study_root: Path) -> 
     return hard_methodology_currentness.handoff_supersedes_paths(
         source_ref=source_ref,
         consumer_paths=consumer_paths,
+    )
+
+
+def _current_provenance_limited_rebuild_handoff_supersedes_methodology_decision(study_root: Path) -> bool:
+    root = Path(study_root).expanduser().resolve()
+    state = provenance_limited_harmonization_owner_result.typed_blocker_state(study_root=root)
+    if not state:
+        return False
+    if _text(state.get("blocked_reason")) != provenance_limited_harmonization_owner_result.REBUILD_AUTHORIZED_RERUN_REQUIRED:
+        return False
+    if _text(state.get("next_owner")) != "analysis_harmonization_owner":
+        return False
+    result_ref = provenance_limited_harmonization_owner_result.result_path(study_root=root)
+    consumed_refs = (
+        source_provenance_owner_result.result_path(study_root=root),
+        root / "artifacts" / "controller_decisions" / "latest.json",
+        root / "artifacts" / "controller" / "task_intake" / "latest.json",
+    )
+    existing_consumed_refs = tuple(ref for ref in consumed_refs if ref.is_file())
+    return bool(existing_consumed_refs) and all(
+        _artifact_supersedes(newer_ref=result_ref, older_ref=ref) for ref in existing_consumed_refs
     )
 
 

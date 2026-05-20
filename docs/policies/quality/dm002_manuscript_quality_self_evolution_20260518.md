@@ -210,3 +210,19 @@ Follow-up patch:
 - Teach MAS turn authorization to treat a completed provenance-limited owner result as superseding the stale audit controller decision when runtime state already carries a downstream unit-harmonized authorization.
 - Prefer `unit_harmonized_validation_uncertainty_and_grouped_calibration` / `unit_harmonized_external_validation_rerun` in the managed worker prompt, while preserving the source-provenance and methodology-reframe paths when the provenance-limited owner result is absent or not current.
 - Keep the boundary explicit: this is MAS medical owner-chain currentness and prompt authorization; it does not add an OPL-style generic queue, attempt ledger, provider runner, or session control plane to MAS.
+
+## Route-Scan Rebuild Handoff Currentness Follow-Up
+
+The turn prompt authorization patch fixed worker instructions, but DM002 then exposed the matching read-model defect: `domain-route-scan` still evaluated the older source-provenance terminal blocker before the newer provenance-limited owner result, so the next queued action returned to `methodology_reframe_route_decision` instead of continuing the already-authorized unit-harmonized rerun.
+
+Follow-up patch:
+
+- Treat a current provenance-limited `unit_harmonized_rerun_required` typed handoff to `analysis_harmonization_owner` as superseding the stale methodology-reframe decision route.
+- Require that provenance-limited owner result to be newer than consumed source provenance, controller decision, and rebuild task-intake surfaces before it can suppress the older decision action.
+- Preserve fail-closed behavior when the provenance-limited result is missing, stale, not a rebuild handoff, or not routed to `analysis_harmonization_owner`.
+- Keep the OPL/MAS boundary explicit: the patch changes MAS domain owner-route currentness only; OPL remains the home for generic provider, queue, session, attempt, and Agent Lab control-plane mechanics.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/domain_route_scan_cases/test_methodology_reframe_route_priority.py::test_scan_prefers_current_provenance_limited_rebuild_handoff_over_stale_audit_decision -q`: 1 passed.
+- `scripts/run-pytest-clean.sh tests/domain_route_scan_cases/test_methodology_reframe_route_priority.py tests/domain_route_scan_cases/test_methodology_reframe_currentness.py tests/domain_route_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/domain_route_scan_cases/test_hard_methodology_currentness.py -q`: 18 passed.
