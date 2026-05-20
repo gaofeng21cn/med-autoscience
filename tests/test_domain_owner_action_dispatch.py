@@ -12,3 +12,4 @@ from .test_domain_owner_action_dispatch_cases.managed_runtime_authorization impo
 from .test_domain_owner_action_dispatch_cases.owner_route_validation import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.publication_gate_dispatch import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.runtime_platform_repair import *  # noqa: F403,F401
+from .test_domain_owner_action_dispatch_cases.source_provenance_owner import *  # noqa: F403,F401
