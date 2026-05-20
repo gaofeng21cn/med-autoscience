@@ -178,4 +178,32 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter" in thinning_groups[
         "sqlite_lifecycle_residue"
     ]["evidence_refs"]
+    cleanup_gates = {
+        item["residue_id"]: item for item in boundary["active_path_residue_cleanup_gates"]
+    }
+    assert set(cleanup_gates) == {
+        "runtime_transport_core_bridge",
+        "runtime_turn_runner_closeout_adapter",
+        "worker_lease_residency_projection",
+        "sqlite_lifecycle_sidecar_index",
+        "legacy_supervisor_scheduler_tombstone",
+    }
+    retained_gate = cleanup_gates["runtime_transport_core_bridge"]
+    assert retained_gate["active_caller_count"] > 0
+    assert retained_gate["no_active_caller_proven"] is False
+    assert retained_gate["physical_delete_permitted"] is False
+    assert retained_gate["archive_permitted"] is False
+    assert retained_gate["rename_permitted"] is False
+    assert retained_gate["tombstone_permitted"] is False
+    assert retained_gate["no_alias_facade_compat_wrapper_allowed"] is True
+    assert "active_caller_count=0" in retained_gate["delete_or_tombstone_after"]
+    assert "paper_closure_verdict" in retained_gate["must_not_emit"]
+    sqlite_gate = cleanup_gates["sqlite_lifecycle_sidecar_index"]
+    assert "tests/test_runtime_lifecycle_store.py" in sqlite_gate["focused_test_refs"]
+    tombstone_gate = cleanup_gates["legacy_supervisor_scheduler_tombstone"]
+    assert tombstone_gate["active_caller_count"] == 0
+    assert tombstone_gate["no_active_caller_proven"] is True
+    assert tombstone_gate["physical_delete_permitted"] is False
+    assert tombstone_gate["tombstone_permitted"] is True
+    assert tombstone_gate["delete_or_tombstone_after"] == []
     assert "physical_delete_already_completed" in thinning["forbidden_claims"]

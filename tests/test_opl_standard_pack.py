@@ -300,6 +300,28 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         assert provenance_boundary["body_policy"].endswith("_only")
         assert expected["must_not_emit"] in provenance_boundary["must_not_emit"]
         assert "paper_closure_verdict" in provenance_boundary["must_not_emit"]
+    cleanup_gates = {
+        item["residue_id"]: item for item in functional_boundary["active_path_residue_cleanup_gates"]
+    }
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["current_role"] == (
+        "stage_turn_closeout_and_owner_receipt_adapter"
+    )
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["active_caller_count"] > 0
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"][
+        "no_active_caller_proven"
+    ] is False
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"][
+        "physical_delete_permitted"
+    ] is False
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"][
+        "no_alias_facade_compat_wrapper_allowed"
+    ] is True
+    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"][
+        "current_disposition"
+    ] == "tombstone_only"
+    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"][
+        "no_active_caller_proven"
+    ] is True
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:

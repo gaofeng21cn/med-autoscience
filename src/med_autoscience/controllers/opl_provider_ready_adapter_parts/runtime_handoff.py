@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration_inventory import (
+    ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
+)
+
 
 TARGET_DOMAIN_ID = "medautoscience"
 DOMAIN_OWNER = "med-autoscience"
@@ -127,6 +131,14 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
             "requires_no_active_default_caller_proof": True,
             "requires_domain_receipt_parity": True,
             "history_tombstone_required": True,
+            "no_alias_facade_compat_wrapper_allowed": True,
+            "active_path_residue_cleanup_gates": [
+                {
+                    key: list(value) if isinstance(value, list) else value
+                    for key, value in item.items()
+                }
+                for item in ACTIVE_PATH_RESIDUE_CLEANUP_GATES
+            ],
         },
         "authority_boundary": {
             "opl_owns_runtime_transport": True,

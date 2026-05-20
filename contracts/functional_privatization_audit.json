@@ -8,6 +8,241 @@
   },
   "domain_id": "med-autoscience",
   "functional_consumer_boundary": {
+    "active_path_residue_cleanup_gates": [
+      {
+        "active_caller_count": 2,
+        "active_caller_proof_refs": [
+          "functional_module_inventory.generic_queue_attempt_retry_dead_letter.active_callers",
+          "runtime_transport_handoff_projection.code_path_roles.mas_runtime_core"
+        ],
+        "active_caller_status": "active_domain_or_diagnostic_caller_present",
+        "archive_permitted": false,
+        "current_disposition": "retain_with_explicit_cleanup_gate",
+        "current_paths": [
+          "src/med_autoscience/runtime_transport/mas_runtime_core.py",
+          "src/med_autoscience/runtime_transport/mas_runtime_core_pause_resume.py",
+          "src/med_autoscience/runtime_transport/mas_runtime_core_stopped_relaunch.py"
+        ],
+        "current_role": "domain_owner_receipt_adapter_or_standalone_diagnostic",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_replacement_parity_proven",
+          "domain_receipt_parity_proven",
+          "focused_tests_green",
+          "no_forbidden_write_proof",
+          "history_tombstone_refs_recorded"
+        ],
+        "domain_receipt_parity_status": "pending_real_paper_line_receipt_parity",
+        "focused_test_refs": [
+          "tests/test_runtime_transport_mas_runtime_core.py",
+          "tests/test_study_runtime_transport.py"
+        ],
+        "must_not_emit": [
+          "generic_scheduler_owner",
+          "generic_queue_owner",
+          "generic_attempt_ledger_owner",
+          "generic_worker_residency_owner",
+          "generic_persistence_engine_owner",
+          "generic_workbench_owner",
+          "paper_closure_verdict",
+          "publication_ready_verdict",
+          "artifact_mutation_authorization_without_mas_receipt"
+        ],
+        "no_active_caller_proven": false,
+        "no_alias_facade_compat_wrapper_allowed": true,
+        "opl_replacement_parity_status": "projected_not_sufficient_for_physical_delete",
+        "physical_delete_permitted": false,
+        "rename_permitted": false,
+        "residue_class": "runtime_transport",
+        "residue_id": "runtime_transport_core_bridge",
+        "tombstone_permitted": false
+      },
+      {
+        "active_caller_count": 2,
+        "active_caller_proof_refs": [
+          "runtime_transport_handoff_projection.code_path_roles.turn_runner",
+          "opl_functional_harness_consumer_coverage.queue_stage_attempt_typed_closeout"
+        ],
+        "active_caller_status": "active_stage_closeout_receipt_caller_present",
+        "archive_permitted": false,
+        "current_disposition": "retain_with_explicit_cleanup_gate",
+        "current_paths": [
+          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_runner.py",
+          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_completion.py",
+          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_receipts.py"
+        ],
+        "current_role": "stage_turn_closeout_and_owner_receipt_adapter",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_replacement_parity_proven",
+          "domain_receipt_parity_proven",
+          "focused_tests_green",
+          "no_forbidden_write_proof",
+          "history_tombstone_refs_recorded"
+        ],
+        "domain_receipt_parity_status": "pending_stage_closeout_receipt_parity",
+        "focused_test_refs": [
+          "tests/test_runtime_transport_mas_runtime_core.py",
+          "tests/test_study_runtime_transport.py"
+        ],
+        "must_not_emit": [
+          "generic_scheduler_owner",
+          "generic_queue_owner",
+          "generic_attempt_ledger_owner",
+          "generic_worker_residency_owner",
+          "generic_persistence_engine_owner",
+          "generic_workbench_owner",
+          "paper_closure_verdict",
+          "publication_ready_verdict",
+          "artifact_mutation_authorization_without_mas_receipt"
+        ],
+        "no_active_caller_proven": false,
+        "no_alias_facade_compat_wrapper_allowed": true,
+        "opl_replacement_parity_status": "queue_attempt_transport_projected_not_physical_delete_ready",
+        "physical_delete_permitted": false,
+        "rename_permitted": false,
+        "residue_class": "runtime_transport",
+        "residue_id": "runtime_turn_runner_closeout_adapter",
+        "tombstone_permitted": false
+      },
+      {
+        "active_caller_count": 2,
+        "active_caller_proof_refs": [
+          "runtime_transport_handoff_projection.code_path_roles.worker_lease",
+          "functional_module_inventory.generic_queue_attempt_retry_dead_letter.active_callers"
+        ],
+        "active_caller_status": "active_runtime_worker_diagnostic_caller_present",
+        "archive_permitted": false,
+        "current_disposition": "retain_with_explicit_cleanup_gate",
+        "current_paths": [
+          "src/med_autoscience/runtime_transport/mas_runtime_core_worker_leases.py",
+          "src/med_autoscience/runtime_transport/mas_runtime_core_worker_env.py",
+          "src/med_autoscience/runtime_transport/mas_runtime_core_worker_wrapper.py"
+        ],
+        "current_role": "worker_lease_receipt_ref_projection_not_residency_owner",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_replacement_parity_proven",
+          "domain_receipt_parity_proven",
+          "focused_tests_green",
+          "no_forbidden_write_proof",
+          "history_tombstone_refs_recorded"
+        ],
+        "domain_receipt_parity_status": "pending_worker_receipt_ref_parity",
+        "focused_test_refs": [
+          "tests/test_runtime_transport_mas_runtime_core.py",
+          "tests/test_runtime_transport_mas_runtime_core_stopped_relaunch.py"
+        ],
+        "must_not_emit": [
+          "generic_scheduler_owner",
+          "generic_queue_owner",
+          "generic_attempt_ledger_owner",
+          "generic_worker_residency_owner",
+          "generic_persistence_engine_owner",
+          "generic_workbench_owner",
+          "paper_closure_verdict",
+          "publication_ready_verdict",
+          "artifact_mutation_authorization_without_mas_receipt"
+        ],
+        "no_active_caller_proven": false,
+        "no_alias_facade_compat_wrapper_allowed": true,
+        "opl_replacement_parity_status": "worker_residency_manager_projected_not_physical_delete_ready",
+        "physical_delete_permitted": false,
+        "rename_permitted": false,
+        "residue_class": "runtime_transport",
+        "residue_id": "worker_lease_residency_projection",
+        "tombstone_permitted": false
+      },
+      {
+        "active_caller_count": 3,
+        "active_caller_proof_refs": [
+          "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter",
+          "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine"
+        ],
+        "active_caller_status": "active_domain_sidecar_ref_caller_present",
+        "archive_permitted": false,
+        "current_disposition": "retain_with_explicit_cleanup_gate",
+        "current_paths": [
+          "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+          "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/",
+          "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py"
+        ],
+        "current_role": "refs_only_domain_receipt_locator_and_lifecycle_ref_index",
+        "delete_or_tombstone_after": [
+          "active_caller_count=0",
+          "opl_replacement_parity_proven",
+          "domain_receipt_parity_proven",
+          "focused_tests_green",
+          "no_forbidden_write_proof",
+          "history_tombstone_refs_recorded"
+        ],
+        "domain_receipt_parity_status": "pending_owner_receipt_ref_parity",
+        "focused_test_refs": [
+          "tests/test_runtime_lifecycle_store.py",
+          "tests/test_runtime_lifecycle_read_model.py",
+          "tests/test_runtime_lifecycle_contract.py"
+        ],
+        "must_not_emit": [
+          "generic_scheduler_owner",
+          "generic_queue_owner",
+          "generic_attempt_ledger_owner",
+          "generic_worker_residency_owner",
+          "generic_persistence_engine_owner",
+          "generic_workbench_owner",
+          "paper_closure_verdict",
+          "publication_ready_verdict",
+          "artifact_mutation_authorization_without_mas_receipt"
+        ],
+        "no_active_caller_proven": false,
+        "no_alias_facade_compat_wrapper_allowed": true,
+        "opl_replacement_parity_status": "lifecycle_index_projected_not_physical_delete_ready",
+        "physical_delete_permitted": false,
+        "rename_permitted": false,
+        "residue_class": "sqlite_sidecar",
+        "residue_id": "sqlite_lifecycle_sidecar_index",
+        "tombstone_permitted": false
+      },
+      {
+        "active_caller_count": 0,
+        "active_caller_proof_refs": [
+          "no_active_caller_proof.default_caller_count=0",
+          "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only"
+        ],
+        "active_caller_status": "no_active_default_caller_proven",
+        "archive_permitted": false,
+        "current_disposition": "tombstone_only",
+        "current_paths": [
+          "contracts/runtime/legacy-active-path-tombstones.json",
+          "docs/history/runtime/legacy_active_path_tombstones.md"
+        ],
+        "current_role": "history_tombstone_provenance_only",
+        "delete_or_tombstone_after": [],
+        "domain_receipt_parity_status": "not_required_for_tombstone_provenance_ref",
+        "focused_test_refs": [
+          "tests/test_cli_cases/domain_slo_scheduler_projection_commands.py",
+          "tests/test_domain_slo_scheduler_projection.py"
+        ],
+        "must_not_emit": [
+          "generic_scheduler_owner",
+          "generic_queue_owner",
+          "generic_attempt_ledger_owner",
+          "generic_worker_residency_owner",
+          "generic_persistence_engine_owner",
+          "generic_workbench_owner",
+          "paper_closure_verdict",
+          "publication_ready_verdict",
+          "artifact_mutation_authorization_without_mas_receipt"
+        ],
+        "no_active_caller_proven": true,
+        "no_alias_facade_compat_wrapper_allowed": true,
+        "opl_replacement_parity_status": "replacement_projection_present",
+        "physical_delete_permitted": false,
+        "rename_permitted": false,
+        "residue_class": "supervisor",
+        "residue_id": "legacy_supervisor_scheduler_tombstone",
+        "tombstone_permitted": true
+      }
+    ],
     "consumer_role": "domain_authority_pack_thin_program_surface",
     "declarative_pack_compiler_input": {
       "compiler_outputs_expected": [
@@ -1711,6 +1946,7 @@
       "surface_kind": "opl_functional_harness_consumer_coverage"
     },
     "physical_thinning_evidence": {
+      "active_path_residue_cleanup_gates_ref": "functional_consumer_boundary.active_path_residue_cleanup_gates",
       "body_included": false,
       "does_not_claim_paper_closure": true,
       "does_not_claim_physical_delete": true,
@@ -1720,6 +1956,8 @@
         "mas_owned_generic_scheduler",
         "mas_owned_generic_workbench",
         "mas_owned_generic_persistence_engine",
+        "active_path_runtime_transport_deleted_without_parity",
+        "compat_alias_or_facade_retained_for_retired_runtime_path",
         "physical_delete_already_completed",
         "paper_closure_authorized_by_thinning_evidence"
       ],
