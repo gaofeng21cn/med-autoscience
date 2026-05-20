@@ -161,6 +161,86 @@ def test_execute_noop_runtime_decision_ignores_non_active_turn_closeout(
     assert "controller_work_unit_evidence_adoption" not in status.to_dict()
 
 
+def test_execute_noop_runtime_decision_adopts_prior_delivered_run_closeout_after_next_run_starts(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_story_repair_authorization(study_root)
+    _write_publication_eval_work_unit_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={
+            "delivery_mode": "managed_runtime_chat",
+            "message_id": "msg-story-repair",
+            "active_run_id": "run-story",
+            "source": "medautosci-test",
+        },
+        recorded_at="2026-05-20T02:39:00+00:00",
+    )
+    closeout_path = _write_turn_closeout(
+        quest_root=quest_root,
+        run_id="run-story",
+        artifact_refs=[
+            "paper/draft.md",
+            "paper/build/review_manuscript.md",
+            "artifacts/controller/quality_repair_batch/latest.json",
+        ],
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-next",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status_payload["active_run_id"] = "run-next"
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("completed delivered-run closeout must be adopted instead of redriving")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+    events = control_intent.read_events(study_root=study_root)
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert [event["event_type"] for event in events] == ["delivered", "artifact_written"]
+    assert adoption["report_ref"] == str(closeout_path)
+    assert adoption["active_run_id"] == "run-next"
+    assert adoption["work_unit_id"] == "manuscript_story_repair"
+    assert adoption["result"]["completed"] is True
+    assert adoption["result"]["meaningful_artifact_delta"] is True
+    assert adoption["result"]["artifact_refs_count"] == 3
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    marker = runtime_state["last_controller_decision_authorization"]
+    assert marker["delivery_mode"] == "controller_work_unit_evidence_adoption"
+    assert marker["active_run_id"] == "run-next"
+
+
 def _write_story_repair_authorization(study_root: Path) -> None:
     _write_controller_decision_authorization(
         study_root,

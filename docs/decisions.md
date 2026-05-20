@@ -435,6 +435,12 @@
 - 理由：DM002 的质量修复线暴露出 MAS controller 已经写入 T1/T2 claim binding 后，display materializer 会在 gate replay 中清空表格 claim binding，导致 `T1_T2_claim_bindings` 反复保持 open。这个问题属于 MAS 基座 materialization contract 缺陷，不应由单篇论文手工 patch table catalog 解决。
 - 影响：quality-repair-batch / gate-clearing replay 产出的 display-to-claim closure 必须以 controller materialization 后的 catalog 为准；表格 claim binding 是 paper-facing evidence surface 的一部分，后续显示物化、publishability gate 和 AI reviewer recheck 都不能把它降级为 optional metadata。
 
+## 2026-05-20：controller work unit 可消费同一投递 run 的 turn closeout
+
+- 决策：`controller_work_unit_evidence_adoption` 在处理 generic completed work unit 时，候选 `turn_closeout` 不只限当前 `active_run_id`，也包括同一 control-intent ledger 中本次授权之后已 `delivered` 的 run id。候选仍必须是 `status=completed`、`meaningful_artifact_delta=true`、未 blocked、时间不早于当前 authorization，并匹配当前 work unit / route / delivered run identity。
+- 理由：DM002 暴露出 managed runtime 在上一轮已写出 `paper/draft.md` / `paper/build/review_manuscript.md` 的 completed closeout 后，下一轮 active run 先启动，controller 只看当前 active run 会漏掉刚完成的 owner receipt，导致同一 `manuscript_story_repair` 被重复派发。
+- 影响：这是 owner receipt / currentness 消费修复，不放宽 publication gate、AI reviewer 或医学质量判断；旧决策、未投递 run、blocked closeout、无 meaningful manuscript delta 的记录仍不能关闭当前 work unit。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

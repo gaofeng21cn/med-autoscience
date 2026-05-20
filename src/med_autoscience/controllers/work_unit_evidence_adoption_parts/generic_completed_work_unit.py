@@ -2,22 +2,26 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 
 RECOMMENDED_NEXT_ROUTE = "return_to_publication_gate_recheck"
 NEXT_OWNER = "publication_gate"
 CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
 RUNTIME_RELAY_DELIVERY_MODES = frozenset({"managed_runtime_chat", "durable_queue_fallback"})
+DELIVERED_EVENT_TYPE = "delivered"
+SKIPPED_DUPLICATE_EVENT_TYPE = "skipped_duplicate"
 
 
 def report_candidates(
     quest_root: Path,
     *,
     active_run_id: str | None = None,
+    delivered_run_ids: Iterable[str] = (),
 ) -> tuple[Path, ...]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     resolved_active_run_id = _text(active_run_id)
+    authorized_run_ids = _unique_texts((resolved_active_run_id, *tuple(delivered_run_ids)))
     roots = (
         resolved_quest_root / "artifacts" / "runtime" / "work_unit_receipts",
         resolved_quest_root / "artifacts" / "write",
@@ -25,17 +29,17 @@ def report_candidates(
     )
     candidates: list[Path] = []
     turn_closeouts_root = resolved_quest_root / "artifacts" / "runtime" / "turn_closeouts"
-    if resolved_active_run_id is not None:
-        active_closeout = turn_closeouts_root / f"{resolved_active_run_id}.json"
+    for run_id in authorized_run_ids:
+        active_closeout = turn_closeouts_root / f"{run_id}.json"
         if active_closeout.exists():
             candidates.append(active_closeout)
     for root in roots:
         if root.exists():
             candidates.extend(path for path in root.glob("*.json") if path.is_file())
     candidates = sorted(candidates, key=_mtime_ns, reverse=True)
-    if resolved_active_run_id is None:
+    if not authorized_run_ids:
         return tuple(candidates)
-    active_run_candidates = [path for path in candidates if resolved_active_run_id in path.name]
+    active_run_candidates = [path for path in candidates if any(run_id in path.name for run_id in authorized_run_ids)]
     other_candidates = [path for path in candidates if path not in active_run_candidates]
     return tuple(active_run_candidates + other_candidates)
 
@@ -70,6 +74,36 @@ def has_matching_relay_marker(
     return _route_marker_matches(marker=marker, authorization_context=authorization_context)
 
 
+def delivered_run_ids_for_business_key(
+    *,
+    events: Iterable[dict[str, Any]],
+    decision_emitted_at: object,
+) -> tuple[str, ...]:
+    cutoff = _timestamp_key(decision_emitted_at)
+    delivered_run_ids: list[str] = []
+    seen: set[str] = set()
+    for event in events:
+        if _text(event.get("event_type")) != DELIVERED_EVENT_TYPE:
+            continue
+        recorded_at = _timestamp_key(event.get("recorded_at"))
+        if cutoff is not None and (recorded_at is None or recorded_at < cutoff):
+            continue
+        payload = event.get("payload")
+        active_run_id = _text(payload.get("active_run_id")) if isinstance(payload, dict) else None
+        if active_run_id is None or active_run_id in seen:
+            continue
+        seen.add(active_run_id)
+        delivered_run_ids.append(active_run_id)
+    return tuple(delivered_run_ids)
+
+
+def has_delivery_or_duplicate(events: Iterable[dict[str, Any]]) -> bool:
+    return any(
+        _text(event.get("event_type")) in {DELIVERED_EVENT_TYPE, SKIPPED_DUPLICATE_EVENT_TYPE}
+        for event in events
+    )
+
+
 def read_json_mapping(path: Path) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -84,6 +118,7 @@ def matches_completed_work_unit(
     authorization_context: dict[str, Any],
     analysis_repair_authorized: bool,
     active_run_id: str | None = None,
+    delivered_run_ids: Iterable[str] = (),
 ) -> bool:
     if analysis_repair_authorized:
         return False
@@ -111,6 +146,7 @@ def matches_completed_work_unit(
         not decision_matches
         and not _work_unit_ids_match(payload=payload, authorization_context=authorization_context)
         and not _active_run_matches(payload=payload, active_run_id=active_run_id)
+        and not _delivered_run_matches(payload=payload, delivered_run_ids=delivered_run_ids)
     ):
         return False
     return _route_target_matches_if_present(
@@ -242,6 +278,13 @@ def _active_run_matches(*, payload: dict[str, Any], active_run_id: str | None) -
     return _text(payload.get("run_id")) == expected or _text(payload.get("active_run_id")) == expected
 
 
+def _delivered_run_matches(*, payload: dict[str, Any], delivered_run_ids: Iterable[str]) -> bool:
+    delivered = set(_unique_texts(delivered_run_ids))
+    if not delivered:
+        return False
+    return _text(payload.get("run_id")) in delivered or _text(payload.get("active_run_id")) in delivered
+
+
 def _work_unit_ids_match(*, payload: dict[str, Any], authorization_context: dict[str, Any]) -> bool:
     return bool(
         _expected_work_unit_values(authorization_context)
@@ -318,3 +361,15 @@ def _mtime_ns(path: Path) -> int:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _unique_texts(values: Iterable[object]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        text = _text(value)
+        if text is None or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return tuple(result)

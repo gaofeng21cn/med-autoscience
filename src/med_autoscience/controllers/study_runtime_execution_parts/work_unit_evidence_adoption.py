@@ -839,20 +839,6 @@ def _has_prior_delivery_or_duplicate(
     )
 
 
-def _has_prior_delivery_or_duplicate_for_business_key(
-    *,
-    study_root: Path,
-    identity: control_intent.ControlIntentIdentity,
-) -> bool:
-    return any(
-        _text(event.get("event_type")) in {"delivered", "skipped_duplicate"}
-        for event in control_intent.events_for_business_key(
-            study_root=study_root,
-            business_key=identity.business_key,
-        )
-    )
-
-
 def adopt_controller_work_unit_evidence_if_present(
     *,
     study_root: Path,
@@ -874,9 +860,14 @@ def adopt_controller_work_unit_evidence_if_present(
         identity=identity,
         authorization_context=authorization_context,
     )
-    has_delivery_for_same_business_key = _has_prior_delivery_or_duplicate_for_business_key(
+    business_key_events = control_intent.events_for_business_key(
         study_root=study_root,
-        identity=identity,
+        business_key=identity.business_key,
+    )
+    has_delivery_for_same_business_key = generic_completed_work_unit.has_delivery_or_duplicate(business_key_events)
+    delivered_run_ids = generic_completed_work_unit.delivered_run_ids_for_business_key(
+        events=business_key_events,
+        decision_emitted_at=authorization_context.get("decision_emitted_at"),
     )
     has_matching_relay_marker = generic_completed_work_unit.has_matching_relay_marker(
         quest_root=quest_root,
@@ -962,13 +953,18 @@ def adopt_controller_work_unit_evidence_if_present(
                 )
             return payload
         return None
-    for report_path in generic_completed_work_unit.report_candidates(quest_root, active_run_id=active_run_id):
+    for report_path in generic_completed_work_unit.report_candidates(
+        quest_root,
+        active_run_id=active_run_id,
+        delivered_run_ids=delivered_run_ids,
+    ):
         report_payload = generic_completed_work_unit.read_json_mapping(report_path)
         if not generic_completed_work_unit.matches_completed_work_unit(
             payload=report_payload,
             authorization_context=authorization_context,
             analysis_repair_authorized=False,
             active_run_id=active_run_id,
+            delivered_run_ids=delivered_run_ids,
         ):
             continue
         payload = {
