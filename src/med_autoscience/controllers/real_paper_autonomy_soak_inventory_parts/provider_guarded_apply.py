@@ -5,6 +5,8 @@ import json
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
+from . import paper_line_canary
+
 
 def build_provider_hosted_guarded_apply_receipt_from_proof(
     *,
@@ -61,6 +63,17 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
         "guarded_apply_receipts": guarded_receipts,
         "typed_blockers": typed_blockers,
         "publication_route_memory_final_proof": dict(memory_proof),
+        "paper_line_provider_canary_closeout": paper_line_canary.build_provider_canary_closeout(
+            provider_attempt={
+                "attempt_id": provider_attempt_id,
+                "attempt_state": attempt_state,
+                "attempt_ready": True,
+            },
+            guarded_receipts=guarded_receipts,
+            forbidden_write_guard=_mapping(proof.get("forbidden_write_guard")),
+            source_refs=_source_refs(guarded_receipts=guarded_receipts, memory_proof=memory_proof),
+            source_fingerprint=source_fingerprint,
+        ),
         "forbidden_write_guard": dict(_mapping(proof.get("forbidden_write_guard"))),
         "source_refs": _source_refs(guarded_receipts=guarded_receipts, memory_proof=memory_proof),
         "summary": {
@@ -133,6 +146,20 @@ def build_provider_unavailable_guarded_apply_receipt(
             "opl_can_read_memory_body": False,
             "opl_can_accept_or_reject_writeback": False,
         },
+        "paper_line_provider_canary_closeout": paper_line_canary.build_provider_unavailable_canary_closeout(
+            provider_attempt={
+                "attempt_id": provider_attempt_id,
+                "attempt_state": "provider_unavailable",
+                "attempt_ready": False,
+            },
+            typed_blocker=typed_blocker,
+            forbidden_write_guard={
+                "aggregate_result": "fail_closed_provider_unavailable",
+                "can_write_domain_truth": False,
+                "can_write_current_package": False,
+            },
+            source_fingerprint=source_fingerprint,
+        ),
         "forbidden_write_guard": {
             "aggregate_result": "fail_closed_provider_unavailable",
             "can_write_domain_truth": False,

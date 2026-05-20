@@ -189,6 +189,29 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
         "stable_blocker",
     ]
     assert evidence["scaleout_status"] == "pending_real_paper_line_owner_receipts"
+    canary = evidence["real_paper_line_provider_canary_contract"]
+    assert canary == {
+        "gate_id": "real_paper_line_provider_canary",
+        "task_id": "agent-lab-task:mas/real-paper-line-provider-canary",
+        "success_criterion": "mas_owner_chain_returns_owner_receipt_or_stable_typed_blocker",
+        "provider_completion_is_success": False,
+        "selected_opl_ingestable_ref_surface": (
+            "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+        ),
+        "required_closeout_surface": "mas_real_paper_line_provider_canary_closeout",
+        "allowed_terminal_owner_results": [
+            "owner_receipt",
+            "stable_typed_blocker",
+        ],
+        "forbidden_authority": [
+            "provider_completion_authorizes_domain_ready",
+            "provider_or_opl_writes_publication_eval",
+            "provider_or_opl_writes_controller_decisions",
+            "provider_or_opl_writes_current_package",
+            "provider_or_opl_writes_memory_or_artifact_body",
+        ],
+        "body_included": False,
+    }
 
     lifecycle_requests = manifest["lifecycle_apply_requests"]
     lifecycle_proof = manifest["lifecycle_guarded_apply_proof"]

@@ -72,6 +72,22 @@ def test_sidecar_dispatch_records_provider_hosted_guarded_apply_receipt_without_
     assert result["provider_attempt"]["attempt_id"] == "opl-attempt-dm002-001"
     assert result["status"] == "typed_blocker"
     assert result["typed_blockers"][0]["blocker_id"].startswith("mas_owner_apply_receipt_missing:")
+    canary = result["paper_line_provider_canary_closeout"]
+    assert canary["surface_kind"] == "mas_real_paper_line_provider_canary_closeout"
+    assert canary["gate_id"] == "real_paper_line_provider_canary"
+    assert canary["success_criterion"] == "mas_owner_chain_returns_owner_receipt_or_stable_typed_blocker"
+    assert canary["provider_completion_is_success"] is False
+    assert canary["required_return_shape_satisfied"] is True
+    assert canary["owner_chain_result"]["result_kind"] == "stable_typed_blocker"
+    assert canary["owner_chain_result"]["owner_receipt_refs"] == []
+    assert canary["owner_chain_result"]["stable_typed_blocker_refs"][0].startswith(
+        "mas_owner_apply_receipt_missing:"
+    )
+    assert canary["selected_opl_ingestable_ref_surface"]["ref"] == (
+        "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+    )
+    assert canary["no_forbidden_write_proof"]["provider_or_opl_wrote_domain_truth"] is False
+    assert canary["no_forbidden_write_proof"]["provider_or_opl_wrote_current_package"] is False
     assert result["publication_route_memory_final_proof"]["status"] == "final_ref_chain_proven"
     assert result["publication_route_memory_final_proof"]["consumed_refs"] == [
         "publication_route_memory_seed__negative_result_stoploss"
@@ -193,6 +209,9 @@ def test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present(
     result = payload["dispatch"]["result"]
     assert result["status"] == "applied"
     assert result["provider_attempt"]["attempt_state"] == "mas_owner_receipt_present"
+    assert result["paper_line_provider_canary_closeout"]["required_return_shape_satisfied"] is True
+    assert result["paper_line_provider_canary_closeout"]["owner_chain_result"]["result_kind"] == "owner_receipt"
+    assert result["paper_line_provider_canary_closeout"]["provider_attempt"]["provider_attempt_wrote_mas_truth"] is False
     assert result["summary"]["provider_attempt_wrote_workspace"] is False
     assert result["summary"]["writes_performed_by_this_receipt"] is False
     assert result["guarded_apply_receipts"][0]["workspace_mutation"]["mutation_owner"] == "med-autoscience"
@@ -233,6 +252,11 @@ def test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_block
     assert result["status"] == "typed_blocker"
     assert result["provider_attempt"]["attempt_state"] == "provider_unavailable"
     assert result["provider_attempt"]["attempt_ready"] is False
+    assert result["paper_line_provider_canary_closeout"]["required_return_shape_satisfied"] is False
+    assert result["paper_line_provider_canary_closeout"]["owner_chain_result"]["result_kind"] == (
+        "provider_typed_blocker"
+    )
+    assert result["paper_line_provider_canary_closeout"]["provider_attempt"]["provider_completion_is_success"] is False
     assert result["typed_blockers"][0]["blocker_id"].startswith("provider_guarded_apply_unavailable:")
     assert result["summary"]["writes_performed"] is False
 

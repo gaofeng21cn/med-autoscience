@@ -453,6 +453,21 @@ def test_real_paper_autonomy_guarded_apply_proof_blocks_without_mas_owner_apply_
     assert payload["summary"]["typed_blocker_count"] == 3
     assert payload["summary"]["mas_owner_apply_receipt_count"] == 0
     assert payload["summary"]["artifact_delta_or_gate_progress_count"] == 0
+    canary = payload["paper_line_provider_canary_closeout"]
+    assert canary["surface_kind"] == "mas_real_paper_line_owner_chain_closeout"
+    assert canary["gate_id"] == "real_paper_line_provider_canary"
+    assert canary["provider_completion_is_success"] is False
+    assert canary["required_return_shape_satisfied"] is True
+    assert canary["owner_chain_result"]["result_kind"] == "stable_typed_blocker"
+    assert canary["owner_chain_result"]["owner_receipt_refs"] == []
+    assert canary["owner_chain_result"]["stable_typed_blocker_refs"][0].startswith(
+        "mas_owner_apply_receipt_missing:"
+    )
+    assert canary["selected_opl_ingestable_ref_surface"]["ref"] == (
+        "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+    )
+    assert canary["no_forbidden_write_proof"]["provider_or_opl_wrote_domain_truth"] is False
+    assert canary["no_forbidden_write_proof"]["provider_or_opl_wrote_current_package"] is False
     assert payload["publication_route_memory_final_proof"]["target_study"] == "DM002"
     assert payload["publication_route_memory_final_proof"]["status"] == "final_ref_chain_proven"
     assert payload["publication_route_memory_final_proof"]["body_included"] is False
@@ -532,6 +547,9 @@ def test_real_paper_autonomy_guarded_apply_proof_accepts_existing_mas_owner_prog
     assert payload["summary"]["typed_blocker_count"] == 0
     assert payload["summary"]["mas_owner_apply_receipt_count"] == 1
     assert payload["summary"]["artifact_delta_or_gate_progress_count"] == 1
+    assert payload["paper_line_provider_canary_closeout"]["required_return_shape_satisfied"] is True
+    assert payload["paper_line_provider_canary_closeout"]["owner_chain_result"]["result_kind"] == "owner_receipt"
+    assert payload["paper_line_provider_canary_closeout"]["owner_chain_result"]["owner_receipt_refs"]
     receipt = payload["guarded_apply_receipts"][0]
     assert receipt["apply_result"] == "artifact_delta"
     assert receipt["workspace_mutation"]["allowed_by_mas_owner_gate"] is True
@@ -638,6 +656,44 @@ def test_real_paper_autonomy_guarded_apply_proof_keeps_ai_reviewer_eval_read_onl
     assert receipt["mas_owner_apply_receipt_refs"] == []
     assert receipt["workspace_mutation"]["allowed_by_mas_owner_gate"] is False
     assert receipt["workspace_mutation"]["writes_performed"] is False
+
+
+def test_real_paper_line_provider_canary_closeout_uses_existing_evidence_surface(
+    tmp_path: Path,
+) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    (workspace / "portfolio").mkdir(parents=True)
+    dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
+    _write_json(
+        dm002 / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+    )
+
+    proof = build_real_paper_autonomy_guarded_apply_proof(
+        yang_root=yang_root,
+        profile_paths=[profile_path],
+        target_studies=("DM002",),
+    )
+    payload = proof["paper_line_provider_canary_closeout"]
+
+    assert payload["surface_kind"] == "mas_real_paper_line_owner_chain_closeout"
+    assert payload["closeout_status"] == "closed_by_mas_owner_chain"
+    assert payload["success_criterion"] == "mas_owner_chain_returns_owner_receipt_or_stable_typed_blocker"
+    assert payload["provider_completion_is_success"] is False
+    assert payload["selected_opl_ingestable_ref_surface"] == {
+        "ref": "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence",
+        "role": "only_opl_ingestable_refs_surface",
+        "body_included": False,
+    }
+    assert payload["owner_chain_result"]["result_kind"] == "stable_typed_blocker"
+    assert payload["owner_chain_result"]["owner"] == "MedAutoScience"
+    assert payload["owner_chain_result"]["body_included"] is False
+    assert payload["no_forbidden_write_proof"]["provider_or_opl_wrote_artifact_body"] is False
+    assert payload["no_forbidden_write_proof"]["provider_or_opl_wrote_memory_body"] is False
 
 
 def test_real_paper_autonomy_guarded_apply_proof_blocks_evidence_without_owner_receipt(

@@ -2,6 +2,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
+from . import paper_line_canary
+
 
 SOAK_EVIDENCE_STATES = {
     "artifact_delta",
@@ -53,6 +55,12 @@ def build_guarded_apply_proof_from_provider_proof(
         },
         "guarded_apply_receipts": guarded_receipts,
         "publication_route_memory_final_proof": memory_final_proof,
+        "paper_line_provider_canary_closeout": (
+            paper_line_canary.build_owner_chain_closeout_from_guarded_receipts(
+                guarded_receipts=guarded_receipts,
+                forbidden_write_guard=forbidden_guard,
+            )
+        ),
         "forbidden_write_guard": dict(forbidden_guard),
         "summary": {
             "target_study_count": len(target_studies),

@@ -473,6 +473,11 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
                 "idempotency_key": dedupe_key,
                 "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
                 "authority_boundary": "mas_owner_guarded_apply_only",
+                "selected_evidence_surface": (
+                    "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+                ),
+                "canary_gate_id": "real_paper_line_provider_canary",
+                "closeout_requires_mas_owner_receipt_or_typed_blocker": True,
             },
             "dispatch_owner": "med-autoscience",
             "profile_name": "nfpitnet",
@@ -486,6 +491,14 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
                     "role": "provider_guarded_soak_read_model",
                     "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
                     "exists": True,
+                },
+                {
+                    "role": "paper_line_guarded_apply_evidence",
+                    "ref": (
+                        "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+                    ),
+                    "exists": True,
+                    "body_included": False,
                 },
                 {
                     "role": "mas_guarded_apply_owner_receipt_contract",
