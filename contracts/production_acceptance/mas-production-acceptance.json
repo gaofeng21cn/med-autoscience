@@ -360,6 +360,28 @@
       "keep_legacy_wrapper_or_alias_after_default_caller_cutover"
     ]
   },
+  "agent_lab_handoff": {
+    "handoff_status": "ready_for_opl_meta_agent_and_agent_lab_execution",
+    "handoff_ref": {
+      "ref": "contracts/agent_lab_handoff.json",
+      "role": "mas_agent_lab_production_evidence_handoff",
+      "body_included": false
+    },
+    "suite_kind": "mas_production_evidence_suite",
+    "target_consumers": [
+      "one-person-lab.agent_lab",
+      "opl-meta-agent"
+    ],
+    "target_opl_cli": "opl agent-lab run --suite <suite.json> --json",
+    "target_meta_agent_cli": "npm run mas:evidence -- --mas-repo <mas_repo> --output-dir <dir> --opl-bin <opl>",
+    "domain_verdict_claimed": false,
+    "closeout_requires_mas_owner_receipt_or_typed_blocker": true,
+    "required_gate_ids": [
+      "real_paper_line_provider_canary",
+      "memory_artifact_human_gate_scaleout",
+      "provider_slo_long_soak"
+    ]
+  },
   "authority_boundary": {
     "opl_can_authorize_domain_ready": false,
     "provider_completion_is_domain_ready": false,
