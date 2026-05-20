@@ -932,6 +932,7 @@ def run_quality_repair_batch(
         source_summary_id=source_summary_id,
         source_summary_artifact_path=source_summary_artifact_path,
         gate_clearing_result=gate_clearing_result,
+        previous_quality_repair_batch=latest_batch,
     )
     repair_execution_evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
         study_root=resolved_study_root,

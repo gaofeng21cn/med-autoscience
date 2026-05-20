@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-20：manuscript story repair 的稿面 currentness delta 可被同一 blocker 消费
+
+- 决策：`manuscript_story_repair` 仍要求 `paper/draft.md` 或 `paper/build/review_manuscript.md` 作为 canonical story-surface delta。若上一轮同一 `source_eval_id` 已因 `manuscript_story_surface_delta_missing` 阻塞，且 MAS write owner 随后更新了这些稿面，使其晚于触发 blocker 的 `publication_eval/latest.json`，`quality_repair_batch` 可以把稿面指纹作为 canonical changed refs 消费。
+- 理由：DM002 暴露出 write owner 已修订 canonical 稿面，但 gate batch 只返回 claim/evidence/review ledger refs，controller 继续误判“没有稿面 delta”。这是 owner receipt/currentness 消费漏洞，不能通过放宽 quality gate 或脚本评价论文质量解决。
+- 影响：初次 repair batch、stale 稿面、ledger-only delta 和非同一 `source_eval_id` 的旧 blocker 仍 fail closed。该机制只解除“稿面 delta 不可见”的机械 blocker；医学写作质量、publishability、submission readiness 与 package refresh 仍由 AI reviewer、publication gate 和对应 MAS owner 决定。
+
 ## 2026-05-20：manuscript story repair 必须证明正文稿面发生 delta
 
 - 决策：`manuscript_story_repair` 不能只靠 `claim_evidence_map`、`evidence_ledger`、`review_ledger`、display/table/figure 生成物或 gate replay 变化声明完成。若该 work unit 没有把 `paper/draft.md` 或 `paper/build/review_manuscript.md` 作为 canonical changed artifact ref，`repair_execution_evidence` 必须返回 `status=blocked`、`progress_delta_candidate=false`、`canonical_artifact_delta.status=blocked`，并给出 `manuscript_story_surface_delta_missing`。

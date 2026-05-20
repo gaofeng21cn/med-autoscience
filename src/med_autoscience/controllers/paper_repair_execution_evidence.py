@@ -81,6 +81,7 @@ def build_repair_execution_evidence(
     controller_progress_refs: Iterable[object] | None = None,
     ai_reviewer_recheck_request_ref: object | None = None,
     authority_claims: Mapping[str, Any] | None = None,
+    previous_quality_repair_batch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     work_unit = _mapping(repair_work_unit)
@@ -90,6 +91,17 @@ def build_repair_execution_evidence(
     valid_changed_refs, excluded_refs, ref_blockers = _canonical_changed_refs(
         study_root=resolved_study_root,
         changed_artifact_refs=changed_artifact_refs,
+    )
+    normalized_source_refs = _reference_list(source_refs)
+    valid_changed_refs.extend(
+        _story_surface_currentness_delta_refs(
+            study_root=resolved_study_root,
+            work_unit_id=work_unit_id,
+            changed_artifact_refs=valid_changed_refs,
+            source_refs=normalized_source_refs,
+            source_eval_id=_text(finding.get("source_eval_id")),
+            previous_quality_repair_batch=previous_quality_repair_batch,
+        )
     )
     valid_changed_ref_delta = bool(valid_changed_refs)
     meaningful_delta = valid_changed_ref_delta
@@ -108,7 +120,6 @@ def build_repair_execution_evidence(
     )
     normalized_gate_refs = _reference_list(gate_replay_refs or ())
     normalized_controller_progress_refs = _reference_list(controller_progress_refs or ())
-    normalized_source_refs = _reference_list(source_refs)
     normalized_revision_log_ref = _first_reference(revision_log_ref)
     normalized_evidence_ledger_ref = _first_reference(evidence_ledger_ref)
     normalized_review_ledger_ref = _first_reference(review_ledger_ref) or normalized_revision_log_ref
@@ -234,6 +245,7 @@ def build_from_quality_repair_batch_result(
     source_summary_id: str | None,
     source_summary_artifact_path: str,
     gate_clearing_result: Mapping[str, Any],
+    previous_quality_repair_batch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     work_unit = _repair_work_unit(gate_clearing_result)
@@ -265,6 +277,7 @@ def build_from_quality_repair_batch_result(
         ),
         ai_reviewer_recheck_request_ref=_default_ai_reviewer_recheck_ref(resolved_study_root),
         authority_claims=_authority_claims_from_unit_results(gate_clearing_result.get("unit_results")),
+        previous_quality_repair_batch=previous_quality_repair_batch,
     )
 
 
@@ -438,14 +451,16 @@ def _manuscript_surface_hygiene(
             "blockers": [],
             "story_surface_delta_required": False,
             "story_surface_delta_present": False,
+            "story_surface_delta_refs": [],
         }
     surfaces = _existing_manuscript_story_surfaces(study_root=study_root)
     hits = _manuscript_surface_residue_hits(surfaces)
     story_surface_delta_required = work_unit_id in _MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS
-    story_surface_delta_present = _story_surface_delta_present(
+    story_surface_delta_refs = _story_surface_delta_refs(
         study_root=study_root,
         changed_artifact_refs=changed_artifact_refs,
     )
+    story_surface_delta_present = bool(story_surface_delta_refs)
     blockers = ["invalid_analysis_history_residue_present"] if hits else []
     if story_surface_delta_required and not story_surface_delta_present:
         blockers.append("manuscript_story_surface_delta_missing")
@@ -457,6 +472,7 @@ def _manuscript_surface_hygiene(
         "blockers": blockers,
         "story_surface_delta_required": story_surface_delta_required,
         "story_surface_delta_present": story_surface_delta_present,
+        "story_surface_delta_refs": story_surface_delta_refs,
     }
 
 
@@ -469,22 +485,135 @@ def _existing_manuscript_story_surfaces(*, study_root: Path) -> list[Path]:
     return surfaces
 
 
-def _story_surface_delta_present(
+def _story_surface_delta_refs(
     *,
     study_root: Path,
     changed_artifact_refs: Iterable[Mapping[str, Any]],
-) -> bool:
+) -> list[dict[str, Any]]:
     story_surfaces = {
         (study_root / relative_path).expanduser().resolve()
         for relative_path in _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
     }
+    refs: list[dict[str, Any]] = []
     for ref in changed_artifact_refs:
         path = _text(ref.get("path"))
         if path is None:
             continue
-        if Path(path).expanduser().resolve() in story_surfaces:
-            return True
-    return False
+        resolved = Path(path).expanduser().resolve()
+        if resolved not in story_surfaces:
+            continue
+        refs.append(dict(ref))
+    return refs
+
+
+def _story_surface_currentness_delta_refs(
+    *,
+    study_root: Path,
+    work_unit_id: str,
+    changed_artifact_refs: Iterable[Mapping[str, Any]],
+    source_refs: Iterable[str],
+    source_eval_id: str | None,
+    previous_quality_repair_batch: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    if work_unit_id not in _MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS:
+        return []
+    if not _previous_batch_blocks_same_story_surface_delta(
+        previous_quality_repair_batch,
+        source_eval_id=source_eval_id,
+    ):
+        return []
+    if _story_surface_delta_refs(study_root=study_root, changed_artifact_refs=changed_artifact_refs):
+        return []
+    baseline_ref = _previous_batch_source_eval_ref(
+        previous_quality_repair_batch,
+        source_eval_id=source_eval_id,
+    ) or _first_existing_file_ref(source_refs)
+    if baseline_ref is None:
+        return []
+    baseline_path = Path(baseline_ref).expanduser().resolve()
+    try:
+        baseline_mtime_ns = baseline_path.stat().st_mtime_ns
+    except OSError:
+        return []
+    refs: list[dict[str, Any]] = []
+    seen = {
+        _text(ref.get("path"))
+        for ref in changed_artifact_refs
+        if isinstance(ref, Mapping)
+    }
+    for surface in _existing_manuscript_story_surfaces(study_root=study_root):
+        try:
+            surface_mtime_ns = surface.stat().st_mtime_ns
+        except OSError:
+            continue
+        if surface_mtime_ns <= baseline_mtime_ns:
+            continue
+        resolved = str(surface.resolve())
+        if resolved in seen:
+            continue
+        fingerprint = _path_fingerprint(surface)
+        if fingerprint is None:
+            continue
+        refs.append(
+            {
+                "path": resolved,
+                "artifact_role": "canonical_manuscript_story_surface",
+                "reason": "surface_newer_than_source_eval",
+                "baseline_ref": str(baseline_path),
+                "surface_mtime_ns": surface_mtime_ns,
+                "baseline_mtime_ns": baseline_mtime_ns,
+                "fingerprint": fingerprint,
+            }
+        )
+    return refs
+
+
+def _previous_batch_blocks_same_story_surface_delta(
+    previous_quality_repair_batch: Mapping[str, Any] | None,
+    *,
+    source_eval_id: str | None,
+) -> bool:
+    payload = _mapping(previous_quality_repair_batch)
+    if not payload:
+        return False
+    if _text(payload.get("source_eval_id")) != source_eval_id:
+        return False
+    if _text(payload.get("blocked_reason")) == "manuscript_story_surface_delta_missing":
+        return True
+    evidence = _mapping(payload.get("repair_execution_evidence"))
+    if _text(evidence.get("status")) != "blocked":
+        return False
+    blockers = {_text(blocker) for blocker in evidence.get("blockers") or ()}
+    return "manuscript_story_surface_delta_missing" in blockers
+
+
+def _previous_batch_source_eval_ref(
+    previous_quality_repair_batch: Mapping[str, Any] | None,
+    *,
+    source_eval_id: str | None,
+) -> str | None:
+    payload = _mapping(previous_quality_repair_batch)
+    if not payload or _text(payload.get("source_eval_id")) != source_eval_id:
+        return None
+    ref = _text(payload.get("source_eval_artifact_path"))
+    if ref is None:
+        return None
+    path = Path(ref).expanduser()
+    if not path.exists() or not path.is_file():
+        return None
+    return str(path.resolve())
+
+
+def _first_existing_file_ref(refs: Iterable[str]) -> str | None:
+    for ref in refs:
+        text = _text(ref)
+        if text is None:
+            continue
+        path = Path(text).expanduser()
+        if not path.exists() or not path.is_file():
+            continue
+        return str(path.resolve())
+    return None
 
 
 def _manuscript_surface_residue_hits(surfaces: Iterable[Path]) -> list[dict[str, Any]]:
