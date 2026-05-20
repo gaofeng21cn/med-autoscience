@@ -9,6 +9,9 @@ from med_autoscience.profiles import WorkspaceProfile
 
 
 GUARDED_APPLY_OWNER_RECEIPT_CONTRACT = "mas-guarded-apply-owner-receipt.v2"
+PAPER_LINE_GUARDED_APPLY_EVIDENCE_REF = (
+    "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+)
 DEFAULT_GUARDED_APPLY_TARGETS = ("DM002", "DM003", "Obesity")
 
 
@@ -66,6 +69,7 @@ def _provider_hosted_guarded_apply_task(
             "opl_production_proof_ref": proof_ref,
             "provider_availability": provider_availability,
             "guarded_apply_owner_receipt_contract": GUARDED_APPLY_OWNER_RECEIPT_CONTRACT,
+            "paper_line_guarded_apply_evidence_ref": PAPER_LINE_GUARDED_APPLY_EVIDENCE_REF,
             "owner_source_refs": owner_source_refs,
         }
     )
@@ -79,6 +83,12 @@ def _provider_hosted_guarded_apply_task(
             "role": "provider_guarded_soak_read_model",
             "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
             "exists": True,
+        },
+        {
+            "role": "paper_line_guarded_apply_evidence",
+            "ref": PAPER_LINE_GUARDED_APPLY_EVIDENCE_REF,
+            "exists": True,
+            "body_included": False,
         },
         {
             "role": "mas_guarded_apply_owner_receipt_contract",
@@ -103,6 +113,9 @@ def _provider_hosted_guarded_apply_task(
             "idempotency_key": dedupe_key,
             "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
             "authority_boundary": "mas_owner_guarded_apply_only",
+            "selected_evidence_surface": PAPER_LINE_GUARDED_APPLY_EVIDENCE_REF,
+            "canary_gate_id": "real_paper_line_provider_canary",
+            "closeout_requires_mas_owner_receipt_or_typed_blocker": True,
         },
         "dispatch_owner": "med-autoscience",
         "profile_name": profile.name,

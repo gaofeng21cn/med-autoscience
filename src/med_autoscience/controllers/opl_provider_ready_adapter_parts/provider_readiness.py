@@ -54,6 +54,7 @@ PAPER_LINE_GUARDED_APPLY_OPL_REF_ROLES = (
     "stable_typed_blocker_ref",
     "no_forbidden_write_proof_ref",
 )
+REAL_PAPER_LINE_PROVIDER_CANARY_GATE = "real_paper_line_provider_canary"
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "study_truth_write",
@@ -274,6 +275,28 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
         "provider_attempt_owner": OPL_OWNER,
         "scaleout_status": "pending_real_paper_line_owner_receipts",
         "selected_evidence_surface": "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence",
+        "real_paper_line_provider_canary_contract": {
+            "gate_id": REAL_PAPER_LINE_PROVIDER_CANARY_GATE,
+            "task_id": "agent-lab-task:mas/real-paper-line-provider-canary",
+            "success_criterion": "mas_owner_chain_returns_owner_receipt_or_stable_typed_blocker",
+            "provider_completion_is_success": False,
+            "selected_opl_ingestable_ref_surface": (
+                "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+            ),
+            "required_closeout_surface": "mas_real_paper_line_provider_canary_closeout",
+            "allowed_terminal_owner_results": [
+                "owner_receipt",
+                "stable_typed_blocker",
+            ],
+            "forbidden_authority": [
+                "provider_completion_authorizes_domain_ready",
+                "provider_or_opl_writes_publication_eval",
+                "provider_or_opl_writes_controller_decisions",
+                "provider_or_opl_writes_current_package",
+                "provider_or_opl_writes_memory_or_artifact_body",
+            ],
+            "body_included": False,
+        },
         "required_owner_outcome_refs": list(PAPER_LINE_GUARDED_APPLY_REQUIRED_REFS),
         "accepted_apply_results": list(PAPER_LINE_GUARDED_APPLY_ACCEPTED_RESULTS),
         "opl_ingestable_ref_contract": {

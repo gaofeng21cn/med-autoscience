@@ -234,6 +234,18 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
     assert all(item["opl_projection_only"] is True for item in packets.values())
     assert all(item["write_permitted"] is False for item in packets.values())
     assert all(item["domain_truth_owner"] == "med-autoscience" for item in packets.values())
+    canary = evidence["real_paper_line_provider_canary_contract"]
+    assert canary["gate_id"] == "real_paper_line_provider_canary"
+    assert canary["task_id"] == "agent-lab-task:mas/real-paper-line-provider-canary"
+    assert canary["success_criterion"] == "mas_owner_chain_returns_owner_receipt_or_stable_typed_blocker"
+    assert canary["provider_completion_is_success"] is False
+    assert canary["selected_opl_ingestable_ref_surface"] == (
+        "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+    )
+    assert canary["required_closeout_surface"] == "mas_real_paper_line_provider_canary_closeout"
+    assert canary["allowed_terminal_owner_results"] == ["owner_receipt", "stable_typed_blocker"]
+    assert "provider_or_opl_writes_current_package" in canary["forbidden_authority"]
+    assert canary["body_included"] is False
 
 
 def test_codex_first_landing_program_is_parallel_and_contract_light() -> None:
