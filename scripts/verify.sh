@@ -13,6 +13,7 @@ export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"
 clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"
 
 run_sanity_checks() {
+  "${clean_python_runner}" scripts/repo_hygiene_audit.py --fix
   "${clean_python_runner}" scripts/repo_hygiene_audit.py
   "${clean_python_runner}" scripts/line_budget.py
 

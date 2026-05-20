@@ -83,3 +83,28 @@ def test_repo_hygiene_audit_rejects_nested_banned_artifacts(tmp_path: Path) -> N
 
     assert result.returncode == 1
     assert "src/med_autoscience/__pycache__" in result.stderr
+
+
+def test_repo_hygiene_audit_fix_removes_only_ignored_artifacts(tmp_path: Path) -> None:
+    _git_init(tmp_path)
+    ignored_cache = tmp_path / "src" / "med_autoscience" / "__pycache__"
+    ignored_cache.mkdir(parents=True)
+    (ignored_cache / "module.pyc").write_bytes(b"cache")
+    unignored_cache = tmp_path / "other" / "__pycache__"
+    unignored_cache.mkdir(parents=True)
+    (tmp_path / ".gitignore").write_text("src/med_autoscience/__pycache__/\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "--root", str(tmp_path), "--fix"],
+        cwd=REPO_ROOT,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "repo hygiene audit removed ignored artifact: src/med_autoscience/__pycache__" in result.stdout
+    assert ignored_cache.exists() is False
+    assert unignored_cache.exists() is True
+    assert "other/__pycache__" in result.stderr

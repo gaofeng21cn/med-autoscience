@@ -100,6 +100,59 @@ def audit_tracked_paths(root: Path) -> list[str]:
     return violations
 
 
+def cleanup_ignored_artifacts(root: Path) -> list[str]:
+    removed: list[str] = []
+
+    for current_root, dirnames, filenames in os.walk(root, topdown=True):
+        current_path = Path(current_root)
+        is_repo_root = current_path == root
+        kept_dirnames: list[str] = []
+
+        for dirname in sorted(dirnames):
+            directory_path = current_path / dirname
+            if is_repo_root and dirname in ALLOWED_ROOT_DIRECTORIES:
+                continue
+            if _is_banned_directory(dirname):
+                relative_path = _relative(directory_path, root)
+                if _is_git_ignored(root, relative_path):
+                    _remove_path(directory_path)
+                    removed.append(relative_path)
+                    continue
+            kept_dirnames.append(dirname)
+        dirnames[:] = kept_dirnames
+
+        for filename in sorted(filenames):
+            if is_repo_root and filename in ALLOWED_ROOT_FILES:
+                continue
+            file_path = current_path / filename
+            if _is_banned_file(filename):
+                relative_path = _relative(file_path, root)
+                if _is_git_ignored(root, relative_path):
+                    _remove_path(file_path)
+                    removed.append(relative_path)
+
+    return removed
+
+
+def _is_git_ignored(root: Path, relative_path: str) -> bool:
+    result = subprocess.run(
+        ["git", "-C", str(root), "check-ignore", "-q", "--", relative_path],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_dir():
+        for child in path.iterdir():
+            _remove_path(child)
+        path.rmdir()
+        return
+    path.unlink(missing_ok=True)
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Audit repo-local hygiene artifacts.")
     parser.add_argument(
@@ -107,6 +160,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         type=Path,
         default=None,
         help="Repository root to audit. Defaults to the current git root.",
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Remove banned artifacts only when they are already ignored by git.",
     )
     return parser.parse_args(argv)
 
@@ -117,6 +175,11 @@ def main(argv: list[str] | None = None) -> int:
     if not root.is_dir():
         print(f"repo hygiene audit: root is not a directory: {root}", file=sys.stderr)
         return 2
+
+    if args.fix:
+        removed = cleanup_ignored_artifacts(root)
+        for path in removed:
+            print(f"repo hygiene audit removed ignored artifact: {path}")
 
     violations = sorted(set(audit_filesystem(root) + audit_tracked_paths(root)))
     if violations:
