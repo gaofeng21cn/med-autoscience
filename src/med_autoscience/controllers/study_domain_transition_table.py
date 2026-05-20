@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
-from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.controllers.study_domain_transition_table_parts import publication_gate_lifecycle_transitions
+from med_autoscience.controllers.study_domain_transition_table_parts import story_surface_recheck_transition
 from med_autoscience.study_delivery_package_contract import delivered_package_handoff_allowed, live_delivered_package_handoff_allowed
 
 
@@ -20,7 +20,7 @@ FAMILY_TRANSITION_TARGET_DOMAIN_ID = "medautoscience"
 FAMILY_TRANSITION_OWNER = "med-autoscience"
 PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions/latest.json")
-REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path("artifacts/controller/repair_execution_evidence/latest.json")
+REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = story_surface_recheck_transition.REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH
 PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = (
     publication_gate_lifecycle_transitions.PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH
 )
@@ -213,28 +213,17 @@ def project_domain_transition(
             completion_receipt_consumption=execution_receipt_consumption,
         )
 
-    if story_surface_delta.ai_reviewer_recheck_supersedes_lifecycle(
-        study_root=root,
-        lifecycle=work_unit_lifecycle,
-        publication_eval=publication_eval,
-        repair_evidence_path=root / REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH,
-    ):
-        return story_surface_delta.ai_reviewer_recheck_action_from_story_delta(
-            study_id=study_id,
-            source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
-        )
-
-    lifecycle_gate_recheck_transition = publication_gate_lifecycle_transitions.project_transition(
+    review_recheck_transition = story_surface_recheck_transition.project_transition(
         study_root=root,
         study_id=study_id,
         lifecycle=work_unit_lifecycle,
         lifecycle_ref=work_unit_lifecycle_ref,
+        publication_eval=publication_eval,
         source_refs=source_refs,
         completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
     )
-    if lifecycle_gate_recheck_transition is not None:
-        return lifecycle_gate_recheck_transition
+    if review_recheck_transition is not None:
+        return review_recheck_transition
 
     ai_reviewer_transition = ai_reviewer_transitions.project_transition(
         study_id=study_id,
