@@ -261,6 +261,96 @@ def test_execute_noop_runtime_decision_terminalizes_existing_completed_work_unit
     assert status.to_dict()["controller_work_unit_evidence_adoption"]["already_recorded"] is True
 
 
+def test_execute_noop_runtime_decision_adopts_completed_closeout_from_superseded_relay_run(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    decision_id = f"study-decision::{study_id}::{quest_id}::route_back_same_line::2026-05-20T05:16:49+00:00"
+    route_key_question = "manuscript_story_repair"
+    completed_run_id = f"mas-run-{study_id}-20260520T051634348781Z"
+    duplicate_run_id = f"mas-run-{study_id}-20260520T053546990955Z"
+    study_root = tmp_path / "workspace" / "studies" / study_id
+    quest_root = tmp_path / "runtime" / "quests" / quest_id
+    _write_generic_controller_decision(
+        study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        decision_id=decision_id,
+        emitted_at="2026-05-20T05:16:49+00:00",
+        decision_type="route_back_same_line",
+        route_target="analysis-campaign",
+        route_key_question=route_key_question,
+    )
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    closeout_path = quest_root / "artifacts" / "runtime" / "turn_closeouts" / f"{completed_run_id}.json"
+    closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    closeout_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "quest_id": quest_id,
+                "run_id": completed_run_id,
+                "status": "completed",
+                "completed_at": "2026-05-20T05:31:50Z",
+                "meaningful_artifact_delta": True,
+                "artifact_refs": [
+                    "../../../studies/002-dm-china-us-mortality-attribution/paper/draft.md",
+                    "../../../studies/002-dm-china-us-mortality-attribution/paper/build/review_manuscript.md",
+                    "artifacts/reports/manuscript_story_repair/2026-05-20T053150Z.story_surface_delta_receipt.json",
+                ],
+                "blocked_reason": None,
+                "next_owner": None,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": duplicate_run_id,
+            "pending_user_message_count": 0,
+            "last_controller_decision_authorization": {
+                "decision_id": decision_id,
+                "route_target": "analysis-campaign",
+                "route_key_question": route_key_question,
+                "work_unit_id": route_key_question,
+                "control_intent_key": authorization_context.get("control_intent_key"),
+                "active_run_id": completed_run_id,
+                "delivery_mode": "managed_runtime_chat",
+                "message_id": "msg-2cd121e141433be9",
+            },
+        },
+    )
+
+    status = _status_for(study_root, quest_root, study_id=study_id, quest_id=quest_id)
+    outcome = module._execute_runtime_decision(
+        status=status,
+        context=_context(study_root, quest_root, tmp_path / "runtime"),
+    )
+    events = control_intent.read_events(study_root=study_root)
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+    lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert [event["event_type"] for event in events] == ["artifact_written", "owner_handoff"]
+    assert lifecycle["terminal_consumed"] is True
+    assert adoption["active_run_id"] == completed_run_id
+    assert adoption["report_ref"] == str(closeout_path)
+    assert adoption["status"] == "completed"
+
+
 def test_execute_noop_runtime_decision_adopts_dm003_revised_manuscript_write_artifact(
     tmp_path: Path,
 ) -> None:

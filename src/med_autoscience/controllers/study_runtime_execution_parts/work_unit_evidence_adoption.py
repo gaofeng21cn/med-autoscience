@@ -849,6 +849,13 @@ def adopt_controller_work_unit_evidence_if_present(
         events=business_key_events,
         decision_emitted_at=authorization_context.get("decision_emitted_at"),
     )
+    relay_run_ids = generic_completed_work_unit.relay_run_ids_for_authorization(
+        quest_root=quest_root,
+        authorization_context=authorization_context,
+        active_run_id=active_run_id,
+        work_unit_target_context_keys=_WORK_UNIT_TARGET_CONTEXT_KEYS,
+    )
+    authorized_run_ids = (*delivered_run_ids, *relay_run_ids)
     has_matching_relay_marker = generic_completed_work_unit.has_matching_relay_marker(
         quest_root=quest_root,
         authorization_context=authorization_context,
@@ -859,6 +866,7 @@ def adopt_controller_work_unit_evidence_if_present(
         not has_delivery_for_current_decision
         and not has_delivery_for_same_business_key
         and not has_matching_relay_marker
+        and not relay_run_ids
     ):
         return None
     if _authorization_matches_analysis_repair(authorization_context):
@@ -936,7 +944,7 @@ def adopt_controller_work_unit_evidence_if_present(
     for report_path in generic_completed_work_unit.report_candidates(
         quest_root,
         active_run_id=active_run_id,
-        delivered_run_ids=delivered_run_ids,
+        delivered_run_ids=authorized_run_ids,
     ):
         report_payload = generic_completed_work_unit.read_json_mapping(report_path)
         if not generic_completed_work_unit.matches_completed_work_unit(
@@ -944,11 +952,12 @@ def adopt_controller_work_unit_evidence_if_present(
             authorization_context=authorization_context,
             analysis_repair_authorized=False,
             active_run_id=active_run_id,
-            delivered_run_ids=delivered_run_ids,
+            delivered_run_ids=authorized_run_ids,
         ):
             continue
+        adopted_active_run_id = _text(report_payload.get("run_id")) or _text(report_payload.get("active_run_id"))
         payload = {
-            "active_run_id": active_run_id,
+            "active_run_id": adopted_active_run_id or active_run_id,
             "report_ref": str(report_path),
             "created_at": generic_completed_work_unit.report_timestamp(report_payload),
             "work_unit_id": _text(authorization_context.get("work_unit_id")),

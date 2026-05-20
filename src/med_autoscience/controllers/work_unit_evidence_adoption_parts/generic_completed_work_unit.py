@@ -57,27 +57,65 @@ def has_matching_relay_marker(
     active_run_id: str | None,
     work_unit_target_context_keys: tuple[str, ...],
 ) -> bool:
+    return _matching_relay_marker(
+        quest_root=quest_root,
+        authorization_context=authorization_context,
+        active_run_id=active_run_id,
+        work_unit_target_context_keys=work_unit_target_context_keys,
+        require_active_run_match=True,
+    ) is not None
+
+
+def relay_run_ids_for_authorization(
+    *,
+    quest_root: Path,
+    authorization_context: dict[str, Any],
+    active_run_id: str | None,
+    work_unit_target_context_keys: tuple[str, ...],
+) -> tuple[str, ...]:
+    marker = _matching_relay_marker(
+        quest_root=quest_root,
+        authorization_context=authorization_context,
+        active_run_id=active_run_id,
+        work_unit_target_context_keys=work_unit_target_context_keys,
+        require_active_run_match=False,
+    )
+    if marker is None:
+        return ()
+    return _unique_texts((_text(marker.get("active_run_id")),))
+
+
+def _matching_relay_marker(
+    *,
+    quest_root: Path,
+    authorization_context: dict[str, Any],
+    active_run_id: str | None,
+    work_unit_target_context_keys: tuple[str, ...],
+    require_active_run_match: bool,
+) -> dict[str, Any] | None:
     runtime_state = read_json_mapping(Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json")
     marker = runtime_state.get(CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
     if not isinstance(marker, dict):
-        return False
+        return None
     if _text(marker.get("delivery_mode")) not in RUNTIME_RELAY_DELIVERY_MODES:
-        return False
+        return None
     if _text(marker.get("message_id")) is None:
-        return False
+        return None
     current_active_run_id = _text(active_run_id)
     marker_active_run_id = _text(marker.get("active_run_id"))
-    if current_active_run_id is not None and marker_active_run_id != current_active_run_id:
-        return False
+    if require_active_run_match and current_active_run_id is not None and marker_active_run_id != current_active_run_id:
+        return None
     if not _target_context_matches(
         marker=marker,
         authorization_context=authorization_context,
         work_unit_target_context_keys=work_unit_target_context_keys,
     ):
-        return False
+        return None
     if _intent_key_matches(marker=marker, authorization_context=authorization_context):
-        return True
-    return _route_marker_matches(marker=marker, authorization_context=authorization_context)
+        return marker
+    if _route_marker_matches(marker=marker, authorization_context=authorization_context):
+        return marker
+    return None
 
 
 def delivered_run_ids_for_business_key(
