@@ -52,6 +52,7 @@ def methodology_reframe_handoff_superseded_by_current_decision(
     *,
     action_names_for_authorization,
     work_unit_ids_for_authorization,
+    primary_work_unit_ids_for_authorization,
     text,
 ) -> bool:
     if not isinstance(current_authorization, Mapping):
@@ -64,7 +65,7 @@ def methodology_reframe_handoff_superseded_by_current_decision(
         return False
     if text(authorization.get("next_owner")) != "decision":
         return False
-    current_units = set(work_unit_ids_for_authorization(current_authorization))
+    current_units = set(primary_work_unit_ids_for_authorization(current_authorization))
     current_actions = set(action_names_for_authorization(current_authorization))
     if not current_units or "methodology_reframe_route_decision" in current_units:
         return False
@@ -116,6 +117,7 @@ def owner_handoff_authorization_is_superseded(
     terminal_source_provenance_superseded: bool,
     action_names_for_authorization,
     work_unit_ids_for_authorization,
+    primary_work_unit_ids_for_authorization,
     text,
 ) -> bool:
     return bool(terminal_source_provenance_superseded) or methodology_reframe_handoff_superseded_by_current_decision(
@@ -123,6 +125,7 @@ def owner_handoff_authorization_is_superseded(
         current_authorization,
         action_names_for_authorization=action_names_for_authorization,
         work_unit_ids_for_authorization=work_unit_ids_for_authorization,
+        primary_work_unit_ids_for_authorization=primary_work_unit_ids_for_authorization,
         text=text,
     )
 

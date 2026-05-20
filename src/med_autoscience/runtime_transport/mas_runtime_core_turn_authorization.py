@@ -12,54 +12,10 @@ from med_autoscience.controllers.study_runtime_execution_parts.controller_author
     _load_controller_decision_authorization_context,
 )
 from med_autoscience.runtime_transport import mas_runtime_core_hard_methodology
+from med_autoscience.runtime_transport import mas_runtime_core_turn_actions
 from med_autoscience.runtime_transport import mas_runtime_core_turn_owner_handoff
-from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
-_QUALITY_REPAIR_BATCH_WORK_UNIT_IDS = frozenset(
-    {
-        "analysis_claim_evidence_repair",
-        "figure_results_trace_repair",
-        "manuscript_story_repair",
-        "treatment_gap_reporting_repair",
-        "submission_minimal_refresh",
-        "submission_delivery_sync_closure",
-        "display_reporting_contract_repair",
-        "controller_owned_publication_repair",
-        "local_architecture_overview_repair",
-        "medical_prose_quality_analysis_source_documentation_repair",
-    }
-)
-_GATE_CLEARING_BATCH_WORK_UNIT_IDS = frozenset(
-    {
-        "publication_gate_replay",
-        "submission_authority_sync_closure",
-        "submission_delivery_sync_closure",
-        "submission_minimal_refresh",
-    }
-)
-_RUNTIME_REDRIVE_ACTION_NAMES = frozenset(
-    {
-        "ensure_study_runtime",
-        "ensure_study_runtime_relaunch_stopped",
-    }
-)
-_SUPERVISOR_DISPATCH_ACTION_NAMES = frozenset({"return_to_ai_reviewer_workflow"})
-_DOMAIN_OWNER_DISPATCH_ACTION_NAMES = frozenset(
-    {
-        "unit_harmonized_external_validation_rerun",
-        "recover_transport_model_provenance",
-        "methodology_reframe_route_decision",
-        "provenance_limited_harmonization_audit",
-    }
-)
-_SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
-_ANALYSIS_HARMONIZATION_WORK_UNIT_IDS = frozenset(
-    {
-        "unit_harmonized_external_validation_rerun",
-        "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-    }
-)
 def _codex_turn_prompt(
     *,
     quest_id: str,
@@ -332,6 +288,7 @@ def _owner_handoff_authorization_is_superseded(
         terminal_source_provenance_superseded=terminal_source_superseded,
         action_names_for_authorization=_controller_action_names,
         work_unit_ids_for_authorization=_controller_work_unit_ids,
+        primary_work_unit_ids_for_authorization=_primary_controller_work_unit_ids,
         text=_text,
     )
 
@@ -453,6 +410,9 @@ def _bind_authorization_to_turn(
         bound["work_unit_id"] = next_work_unit_id
     if _text(bound.get("work_unit_fingerprint")) is None:
         bound["work_unit_fingerprint"] = _text(next_work_unit.get("fingerprint"))
+    action_names = _controller_action_names(bound)
+    if action_names:
+        bound["controller_actions"] = action_names
     return bound
 
 
@@ -754,112 +714,19 @@ def _ai_reviewer_redrive_execution_contract_prompt_section(
 
 
 def _controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
-    raw_actions = authorization.get("controller_actions")
-    if isinstance(raw_actions, str):
-        actions: list[object] = [raw_actions]
-    elif isinstance(raw_actions, (list, tuple)):
-        actions = list(raw_actions)
-    else:
-        actions = []
-    names: list[str] = []
-    for item in actions:
-        if isinstance(item, Mapping):
-            raw_name = item.get("action_type") or item.get("action") or item.get("name")
-        else:
-            raw_name = item
-        name = str(raw_name or "").strip()
-        if name and name not in names:
-            names.append(name)
-    if _specificity_targets_ready_for_quality_repair(authorization):
-        names = [name for name in names if name != "request_gate_specificity"]
-        if "run_quality_repair_batch" not in names:
-            names.append("run_quality_repair_batch")
-    elif _analysis_harmonization_work_unit_present(authorization):
-        names = [name for name in names if name not in _RUNTIME_REDRIVE_ACTION_NAMES]
-        if "unit_harmonized_external_validation_rerun" not in names:
-            names.append("unit_harmonized_external_validation_rerun")
-    elif (
-        not _controller_callable_action_present(names)
-        and _runtime_redrive_action_present(names)
-        and _gate_clearing_work_unit_present(authorization)
-    ):
-        names.append("run_gate_clearing_batch")
-    elif "run_quality_repair_batch" not in names and _quality_repair_work_unit_present(authorization):
-        names.append("run_quality_repair_batch")
-    elif not _controller_callable_action_present(names) and _gate_clearing_work_unit_present(authorization):
-        names.append("run_gate_clearing_batch")
-    return names
+    return mas_runtime_core_turn_actions.controller_action_names(authorization)
 
 
 def _controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[str]:
-    candidates: list[object] = [
-        authorization.get("work_unit_id"),
-        authorization.get("next_work_unit"),
-        authorization.get("blocking_work_units"),
-        authorization.get("work_unit_targets"),
-    ]
-    unit_ids: list[str] = []
-
-    def append_unit_id(value: object) -> None:
-        if isinstance(value, Mapping):
-            raw_value = value.get("unit_id") or value.get("work_unit_id") or value.get("id")
-        else:
-            raw_value = value
-        unit_id = str(raw_value or "").strip()
-        if unit_id and unit_id not in unit_ids:
-            unit_ids.append(unit_id)
-
-    for candidate in candidates:
-        if isinstance(candidate, (list, tuple)):
-            for item in candidate:
-                append_unit_id(item)
-        else:
-            append_unit_id(candidate)
-    return unit_ids
+    return mas_runtime_core_turn_actions.controller_work_unit_ids(authorization)
 
 
 def _primary_controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[str]:
-    candidates: list[object] = [
-        authorization.get("work_unit_id"),
-        authorization.get("next_work_unit"),
-    ]
-    unit_ids: list[str] = []
-
-    def append_unit_id(value: object) -> None:
-        if isinstance(value, Mapping):
-            raw_value = value.get("unit_id") or value.get("work_unit_id") or value.get("id")
-        else:
-            raw_value = value
-        unit_id = str(raw_value or "").strip()
-        if unit_id and unit_id not in unit_ids:
-            unit_ids.append(unit_id)
-
-    for candidate in candidates:
-        append_unit_id(candidate)
-    return unit_ids
+    return mas_runtime_core_turn_actions.primary_controller_work_unit_ids(authorization)
 
 
 def _controller_action_command(*, action_name: str, quest_id: str) -> str | None:
-    if action_name in _SUPERVISOR_DISPATCH_ACTION_NAMES or action_name in _DOMAIN_OWNER_DISPATCH_ACTION_NAMES:
-        return (
-            '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
-            "-m med_autoscience.cli domain-owner-action-dispatch "
-            '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --studies <study_id> '
-            f"--action-types {action_name} --mode developer_apply_safe --apply --managed-runtime-worker"
-        )
-    command_by_action = {
-        "run_quality_repair_batch": "quality-repair-batch",
-        "run_gate_clearing_batch": "gate-clearing-batch",
-    }
-    command_name = command_by_action.get(action_name)
-    if command_name is None:
-        return None
-    return (
-        '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
-        f"-m med_autoscience.cli {command_name} "
-        '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
-        f"--quest-id {quest_id}"
-    )
+    return mas_runtime_core_turn_actions.controller_action_command(action_name=action_name, quest_id=quest_id)
 
 
 def _ai_medical_prose_review_command(*, quest_id: str) -> str:
@@ -953,43 +820,6 @@ def _yaml_string_field(path: Path, field_name: str) -> str | None:
         value = stripped[len(prefix) :].strip().strip("\"'")
         return value or None
     return None
-
-
-def _controller_callable_action_present(action_names: list[str]) -> bool:
-    return any(
-        name in {"run_quality_repair_batch", "run_gate_clearing_batch"}
-        or name in _SUPERVISOR_DISPATCH_ACTION_NAMES
-        or name in _DOMAIN_OWNER_DISPATCH_ACTION_NAMES
-        for name in action_names
-    )
-
-
-def _runtime_redrive_action_present(action_names: list[str]) -> bool:
-    return any(name in _RUNTIME_REDRIVE_ACTION_NAMES for name in action_names)
-
-
-def _quality_repair_work_unit_present(authorization: Mapping[str, Any]) -> bool:
-    for unit_id in _controller_work_unit_ids(authorization):
-        if unit_id in _QUALITY_REPAIR_BATCH_WORK_UNIT_IDS:
-            return True
-    return False
-
-
-def _gate_clearing_work_unit_present(authorization: Mapping[str, Any]) -> bool:
-    for unit_id in _primary_controller_work_unit_ids(authorization):
-        if unit_id in _GATE_CLEARING_BATCH_WORK_UNIT_IDS:
-            return True
-    return False
-
-
-def _analysis_harmonization_work_unit_present(authorization: Mapping[str, Any]) -> bool:
-    return any(unit_id in _ANALYSIS_HARMONIZATION_WORK_UNIT_IDS for unit_id in _controller_work_unit_ids(authorization))
-
-
-def _specificity_targets_ready_for_quality_repair(authorization: Mapping[str, Any]) -> bool:
-    if not any(unit_id in _SPECIFICITY_WORK_UNIT_IDS for unit_id in _controller_work_unit_ids(authorization)):
-        return False
-    return specificity_target_status(authorization.get("specificity_targets")).get("complete") is True
 
 
 def _text(value: object) -> str | None:
