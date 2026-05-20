@@ -9,6 +9,10 @@ from .functional_followthrough_gaps import (
     build_functional_followthrough_gap_summary,
 )
 from .generated_surface_handoff import build_generated_surface_handoff
+from .generated_caller_retirement import (
+    build_generated_default_caller_boundary,
+    build_physical_retirement_gate_matrix,
+)
 from .consumer_migration_inventory import (
     FUNCTIONAL_MODULE_INVENTORY,
     FUNCTIONAL_SURFACE_CLASSIFICATION,
@@ -368,6 +372,14 @@ GENERATED_SURFACE_HANDOFF = build_generated_surface_handoff(
     schema_version=SCHEMA_VERSION,
     replacement_owner=REPLACEMENT_OWNER,
 )
+GENERATED_DEFAULT_CALLER_BOUNDARY = build_generated_default_caller_boundary(
+    schema_version=SCHEMA_VERSION,
+    replacement_owner=REPLACEMENT_OWNER,
+)
+PHYSICAL_RETIREMENT_GATE_MATRIX = build_physical_retirement_gate_matrix(
+    schema_version=SCHEMA_VERSION,
+    replacement_owner=REPLACEMENT_OWNER,
+)
 MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
     "surface_kind": "mas_minimal_authority_function_manifest",
     "schema_version": SCHEMA_VERSION,
@@ -635,6 +647,12 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             else value
             for key, value in GENERATED_SURFACE_HANDOFF.items()
         },
+        "generated_default_caller_boundary": {
+            key: [dict(item) if isinstance(item, dict) else item for item in value]
+            if isinstance(value, list)
+            else value
+            for key, value in GENERATED_DEFAULT_CALLER_BOUNDARY.items()
+        },
         "minimal_authority_function_manifest": {
             key: [dict(item) if isinstance(item, dict) else item for item in value]
             if isinstance(value, list)
@@ -684,6 +702,12 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         },
         "functional_followthrough_gap_summary": functional_followthrough_gap_summary,
         "physical_thinning_evidence": dict(PHYSICAL_THINNING_EVIDENCE),
+        "physical_retirement_gate_matrix": {
+            key: [dict(item) if isinstance(item, dict) else item for item in value]
+            if isinstance(value, list)
+            else value
+            for key, value in PHYSICAL_RETIREMENT_GATE_MATRIX.items()
+        },
         "retired_legacy_residue_tombstones": [
             dict(item) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
         ],
@@ -895,6 +919,7 @@ __all__ = [
     "FUNCTIONAL_SURFACE_CLASSIFICATION",
     "FUNCTIONAL_FOLLOWTHROUGH_GAPS_OPEN_STATUS",
     "GENERATED_SURFACE_HANDOFF",
+    "GENERATED_DEFAULT_CALLER_BOUNDARY",
     "MAS_RETAINED_AFTER_MIGRATION",
     "MAS_RETAINED_THIN_PROGRAM_SURFACES",
     "MINIMAL_AUTHORITY_FUNCTION_IDS",
@@ -917,6 +942,7 @@ __all__ = [
     "LOCAL_TOMBSTONE_PATH_ROLE",
     "OPTIONAL_ADAPTER_PATH_ROLE",
     "PHYSICAL_THINNING_EVIDENCE",
+    "PHYSICAL_RETIREMENT_GATE_MATRIX",
     "attach_consumer_migration_contract",
     "build_functional_consumer_boundary",
     "build_consumer_migration_contract",

@@ -93,6 +93,45 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert handoff_by_id["test_lane_harness"]["target_role"] == (
         "opl_generated_harness_consumer_over_mas_pack"
     )
+    generated_default = boundary["generated_default_caller_boundary"]
+    assert generated_default["surface_kind"] == "mas_generated_default_caller_boundary"
+    assert generated_default["status"] == "opl_generated_hosted_shell_is_default_caller"
+    assert generated_default["default_caller_owner"] == "one-person-lab"
+    assert generated_default["mas_handwritten_shell_default_caller_allowed"] is False
+    assert generated_default["mas_handwritten_shell_expansion_allowed"] is False
+    assert generated_default["all_default_callers_migrated"] is True
+    assert generated_default["physical_delete_is_not_implied"] is True
+    assert generated_default["default_caller_surfaces"] == [
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
+    generated_surfaces = {
+        item["surface_id"]: item for item in generated_default["surface_boundaries"]
+    }
+    assert set(generated_surfaces) == set(generated_default["default_caller_surfaces"])
+    assert generated_surfaces["cli"]["mas_retained_role"] == "domain_handler_target"
+    assert generated_surfaces["mcp"]["parity_ref"] == "mcp_descriptor_parity"
+    assert generated_surfaces["product_entry"]["default_caller_owner"] == "one-person-lab"
+    assert generated_surfaces["sidecar"]["mas_retained_role"] == "domain_sidecar_dispatch_adapter"
+    assert generated_surfaces["status"]["mas_retained_role"] == "domain_truth_status_projection"
+    assert generated_surfaces["workbench"]["mas_retained_role"] == "domain_projection_refs"
+    assert all(item["mas_generic_owner_allowed"] is False for item in generated_surfaces.values())
+    assert generated_default["allowed_mas_program_roles_after_cutover"] == [
+        "direct_skill_target",
+        "domain_handler",
+        "owner_receipt_signer",
+        "typed_blocker",
+        "ai_first_validator",
+        "diagnostic",
+        "refs_only_adapter",
+    ]
     authority = boundary["minimal_authority_function_manifest"]
     assert authority["surface_kind"] == "mas_minimal_authority_function_manifest"
     assert authority["status"] == "minimal_authority_functions_only"
@@ -419,6 +458,72 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     )
     assert "mas_owned_generic_persistence_engine" in physical_evidence["forbidden_claims"]
     assert "physical_delete_already_completed" in physical_evidence["forbidden_claims"]
+    retirement_matrix = boundary["physical_retirement_gate_matrix"]
+    assert retirement_matrix["surface_kind"] == "mas_generated_caller_retirement_gate_matrix"
+    assert retirement_matrix["status"] == "physical_delete_blocked_until_all_gate_inputs_hold"
+    assert retirement_matrix["default_caller_boundary_ref"] == (
+        "functional_consumer_boundary.generated_default_caller_boundary"
+    )
+    assert retirement_matrix["physical_delete_requires_all_gates"] == [
+        "active_caller_count=0",
+        "opl_replacement_parity",
+        "mas_owner_receipt_parity",
+        "focused_tests_green",
+        "tombstone_refs_landed",
+    ]
+    candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
+    assert set(candidates) == {
+        "runtime_transport",
+        "runtime_lifecycle_sqlite",
+        "workbench_shell",
+        "sidecar_adapter",
+        "status_projection",
+    }
+    for surface_id, candidate in candidates.items():
+        assert candidate["active_default_caller_count"] == 0
+        assert candidate["active_default_caller_zero_proven"] is True
+        assert candidate["active_caller_zero_proven"] is False
+        assert candidate["physical_delete_permitted"] is False
+        assert candidate["delete_gate_status"].startswith("blocked_")
+        assert candidate["retained_as"] in {
+            "domain_receipt_adapter_or_standalone_diagnostic",
+            "refs_only_lifecycle_sidecar_index",
+            "domain_projection_refs_for_opl_workbench",
+            "domain_sidecar_dispatch_adapter",
+            "domain_truth_status_projection",
+        }, surface_id
+        assert candidate["no_active_caller_proof"]["default_callers"] == []
+        assert candidate["no_active_caller_proof"]["full_active_caller_status"] == (
+            "not_proven_retained_domain_or_diagnostic_adapter"
+        )
+        assert candidate["no_active_caller_proof"]["physical_delete_allowed"] is False
+        assert candidate["gate_results"]["active_caller_count=0"] is False
+        assert candidate["gate_results"]["focused_tests_green"] == "focused_lane_required"
+        assert candidate["gate_results"]["tombstone_refs_landed"] in {
+            "required_before_delete",
+            "landed_for_retired_legacy_only",
+        }
+    assert candidates["runtime_transport"]["active_caller_status"] == (
+        "domain_receipt_adapter_active"
+    )
+    assert "src/med_autoscience/runtime_transport/" in candidates["runtime_transport"]["code_paths"]
+    assert candidates["runtime_lifecycle_sqlite"]["retained_as"] == (
+        "refs_only_lifecycle_sidecar_index"
+    )
+    assert candidates["workbench_shell"]["gate_results"]["opl_replacement_parity"] == (
+        "generated_workbench_default_required"
+    )
+    assert candidates["sidecar_adapter"]["gate_results"]["mas_owner_receipt_parity"] == (
+        "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
+    )
+    assert candidates["status_projection"]["retained_as"] == "domain_truth_status_projection"
+    assert retirement_matrix["no_active_caller_summary"] == {
+        "active_default_caller_count": 0,
+        "active_default_caller_zero_proven": True,
+        "full_active_caller_zero_proven": False,
+        "physical_delete_candidate_count": 5,
+        "physical_delete_ready_count": 0,
+    }
     tombstones = boundary["retired_legacy_residue_tombstones"]
     assert {item["residue_id"] for item in tombstones} == set(
         classification["legacy_cleanup_tombstone_provenance"]

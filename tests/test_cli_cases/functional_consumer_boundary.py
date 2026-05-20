@@ -65,6 +65,18 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     )
     assert handoff_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
     assert handoff_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
+    generated_default = boundary["generated_default_caller_boundary"]
+    assert generated_default["status"] == "opl_generated_hosted_shell_is_default_caller"
+    assert generated_default["default_caller_owner"] == "one-person-lab"
+    assert generated_default["mas_handwritten_shell_default_caller_allowed"] is False
+    assert generated_default["all_default_callers_migrated"] is True
+    generated_surfaces = {
+        item["surface_id"]: item for item in generated_default["surface_boundaries"]
+    }
+    assert generated_surfaces["sidecar"]["mas_retained_role"] == "domain_sidecar_dispatch_adapter"
+    assert generated_surfaces["sidecar"]["parity_ref"] == "sidecar_descriptor_parity"
+    assert generated_surfaces["workbench"]["default_caller_owner"] == "one-person-lab"
+    assert all(item["mas_generic_owner_allowed"] is False for item in generated_surfaces.values())
     authority = boundary["minimal_authority_function_manifest"]
     assert authority["surface_kind"] == "mas_minimal_authority_function_manifest"
     assert authority["function_ids"] == [
@@ -178,4 +190,27 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter" in thinning_groups[
         "sqlite_lifecycle_residue"
     ]["evidence_refs"]
+    retirement_matrix = boundary["physical_retirement_gate_matrix"]
+    candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
+    assert set(candidates) == {
+        "runtime_transport",
+        "runtime_lifecycle_sqlite",
+        "workbench_shell",
+        "sidecar_adapter",
+        "status_projection",
+    }
+    assert retirement_matrix["no_active_caller_summary"]["active_default_caller_count"] == 0
+    assert retirement_matrix["no_active_caller_summary"]["full_active_caller_zero_proven"] is False
+    assert retirement_matrix["no_active_caller_summary"]["physical_delete_ready_count"] == 0
+    assert candidates["runtime_transport"]["physical_delete_permitted"] is False
+    assert candidates["runtime_lifecycle_sqlite"]["active_caller_status"] == (
+        "refs_only_domain_sidecar_adapter_active"
+    )
+    assert candidates["sidecar_adapter"]["active_default_caller_zero_proven"] is True
+    assert candidates["workbench_shell"]["retained_as"] == (
+        "domain_projection_refs_for_opl_workbench"
+    )
+    assert candidates["status_projection"]["no_active_caller_proof"]["full_active_caller_status"] == (
+        "not_proven_retained_domain_or_diagnostic_adapter"
+    )
     assert "physical_delete_already_completed" in thinning["forbidden_claims"]

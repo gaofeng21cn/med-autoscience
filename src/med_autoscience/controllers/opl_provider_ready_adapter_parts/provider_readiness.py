@@ -5,11 +5,16 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
+from med_autoscience.controllers.domain_slo_scheduler_projection_parts.generated_caller_retirement import (
+    build_generated_default_caller_boundary,
+    build_physical_retirement_gate_matrix,
+)
 
 
 TARGET_DOMAIN_ID = "medautoscience"
 DOMAIN_OWNER = "med-autoscience"
 OPL_OWNER = "one-person-lab"
+SCHEMA_VERSION = 1
 DEFAULT_PROVIDER_GUARDED_SOAK_TARGETS = ("DM002", "DM003", "Obesity")
 PROVIDER_HOSTED_PROOF_SURFACE = "real_paper_autonomy_provider_hosted_paper_proof"
 GUARDED_APPLY_PROOF_SURFACE = "real_paper_autonomy_guarded_apply_proof"
@@ -575,6 +580,14 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         "target_domain_id": TARGET_DOMAIN_ID,
         "status": "no_active_default_caller_proven",
         "active_default_callers": [],
+        "generated_default_caller_boundary": build_generated_default_caller_boundary(
+            schema_version=SCHEMA_VERSION,
+            replacement_owner=OPL_OWNER,
+        ),
+        "physical_retirement_gate_matrix": build_physical_retirement_gate_matrix(
+            schema_version=SCHEMA_VERSION,
+            replacement_owner=OPL_OWNER,
+        ),
         "replacement_parity_refs": [
             "/opl_provider_ready_contract/provider_topology",
             "/opl_provider_ready_contract/managed_temporal_state_consistency",
@@ -601,12 +614,17 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         ],
         "removal_policy": {
             "delete_or_tombstone_when": [
-                "no_default_cli_mcp_product_entry_or_skill_caller",
-                "no_opl_active_reference",
-                "no_fixture_or_provenance_dependency",
-                "replacement_diagnostic_or_history_link_exists",
+                "generated_default_caller_boundary_proven",
+                "active_caller_count=0",
+                "opl_replacement_parity",
+                "mas_owner_receipt_parity",
+                "focused_tests_green",
+                "tombstone_refs_landed",
             ],
-            "current_action": "legacy_active_path_tombstones_landed",
+            "current_action": (
+                "retain_domain_receipt_adapter_refs_only_adapter_diagnostic_or_tombstone_until_gate_closes"
+            ),
+            "history_actions": ["legacy_active_path_tombstones_landed"],
         },
         "authority_boundary": {
             "proof_role": "caller_inventory_and_tombstone_read_model",

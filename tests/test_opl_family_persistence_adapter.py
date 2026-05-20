@@ -188,6 +188,22 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "mas_default_persistence_engine_allowed": False,
         "mas_runtime_transport_active_as_generic_provider": False,
     }
+    assert runtime_handoff["generated_default_caller_boundary"] == payload[
+        "functional_consumer_boundary"
+    ]["generated_default_caller_boundary"]
+    assert runtime_handoff["physical_retirement_gate_matrix"] == payload[
+        "functional_consumer_boundary"
+    ]["physical_retirement_gate_matrix"]
+    retirement_candidates = {
+        item["surface_id"]: item
+        for item in runtime_handoff["physical_retirement_gate_matrix"]["retirement_candidates"]
+    }
+    assert retirement_candidates["runtime_transport"]["physical_delete_permitted"] is False
+    assert retirement_candidates["runtime_transport"]["active_default_caller_zero_proven"] is True
+    assert retirement_candidates["runtime_transport"]["active_caller_zero_proven"] is False
+    assert retirement_candidates["runtime_lifecycle_sqlite"]["retained_as"] == (
+        "refs_only_lifecycle_sidecar_index"
+    )
     assert "generic_queue_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "generic_persistence_engine_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "provider_backed_family_runtime" in runtime_handoff["opl_replacement_surfaces"]

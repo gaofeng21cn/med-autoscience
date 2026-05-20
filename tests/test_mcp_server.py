@@ -668,6 +668,42 @@ def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path)
     assert "control_plane_migration_audit" in result["content"][0]["text"]
 
 
+def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    result = module.call_tool(
+        "product_entry",
+        {
+            "mode": "product_entry_manifest",
+            "profile_path": str(profile_path),
+        },
+    )
+
+    assert result["isError"] is False
+    manifest = result["structuredContent"]
+    boundary = manifest["functional_consumer_boundary"]
+    generated_default = boundary["generated_default_caller_boundary"]
+    assert generated_default["status"] == "opl_generated_hosted_shell_is_default_caller"
+    assert generated_default["default_caller_owner"] == "one-person-lab"
+    assert generated_default["all_default_callers_migrated"] is True
+    mcp_surface = {
+        item["surface_id"]: item for item in generated_default["surface_boundaries"]
+    }["mcp"]
+    assert mcp_surface["mas_retained_role"] == "domain_handler_target"
+    assert mcp_surface["parity_ref"] == "mcp_descriptor_parity"
+    assert mcp_surface["mas_generic_owner_allowed"] is False
+    retirement_matrix = boundary["physical_retirement_gate_matrix"]
+    candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
+    assert candidates["sidecar_adapter"]["active_default_caller_count"] == 0
+    assert candidates["sidecar_adapter"]["physical_delete_permitted"] is False
+    assert candidates["status_projection"]["retained_as"] == "domain_truth_status_projection"
+    assert manifest["runtime_transport_handoff_projection"]["generated_default_caller_boundary"] == (
+        generated_default
+    )
+
+
 def test_mcp_product_entry_can_call_cleanup_apply(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}

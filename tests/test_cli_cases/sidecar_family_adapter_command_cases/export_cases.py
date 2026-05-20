@@ -213,6 +213,19 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "domain_owner_receipt_adapter_or_standalone_diagnostic"
     )
     assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_as_generic_provider"] is False
+    assert runtime_handoff["generated_default_caller_boundary"] == payload[
+        "functional_consumer_boundary"
+    ]["generated_default_caller_boundary"]
+    assert runtime_handoff["physical_retirement_gate_matrix"] == payload[
+        "functional_consumer_boundary"
+    ]["physical_retirement_gate_matrix"]
+    assert runtime_handoff["physical_retirement_gate_matrix"]["no_active_caller_summary"] == {
+        "active_default_caller_count": 0,
+        "active_default_caller_zero_proven": True,
+        "full_active_caller_zero_proven": False,
+        "physical_delete_candidate_count": 5,
+        "physical_delete_ready_count": 0,
+    }
     assert "generic_worker_residency_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "legacy_provider" not in provider["provider_topology"]
     assert "legacy_provider_classification" not in provider["provider_topology"]
