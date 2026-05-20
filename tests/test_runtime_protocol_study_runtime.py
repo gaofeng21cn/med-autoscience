@@ -139,9 +139,9 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     }
 
 
-def test_write_runtime_binding_supports_explicit_hermes_backend_metadata(tmp_path: Path) -> None:
+def test_write_runtime_binding_supports_explicit_mas_runtime_core_backend_metadata(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
-    runtime_root = tmp_path / "workspace" / "ops" / "hermes" / "runtime"
+    runtime_root = tmp_path / "workspace" / "runtime"
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     binding_path = study_root / "runtime_binding.yaml"
 
@@ -150,19 +150,19 @@ def test_write_runtime_binding_supports_explicit_hermes_backend_metadata(tmp_pat
         runtime_root=runtime_root,
         study_id="001-risk",
         study_root=study_root,
-        quest_id="quest-hermes-001",
+        quest_id="quest-mas-runtime-core-001",
         last_action="resume",
         source="test-source",
         recorded_at="2026-04-11T12:00:00+00:00",
-        runtime_backend_id="hermes",
-        runtime_engine_id="hermes",
+        runtime_backend_id="mas_runtime_core",
+        runtime_engine_id="mas-runtime-core",
     )
 
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
-    assert payload["engine"] == "hermes"
-    assert payload["runtime_backend_id"] == "hermes"
-    assert payload["runtime_backend"] == "hermes"
-    assert payload["runtime_engine_id"] == "hermes"
+    assert payload["engine"] == "mas-runtime-core"
+    assert payload["runtime_backend_id"] == "mas_runtime_core"
+    assert payload["runtime_backend"] == "mas_runtime_core"
+    assert payload["runtime_engine_id"] == "mas-runtime-core"
     assert payload["runtime_home"] == str(runtime_root)
     assert payload["runtime_quests_root"] == str(runtime_root / "quests")
     assert "med_deepscientist_runtime_root" not in payload
@@ -173,9 +173,11 @@ def test_write_runtime_binding_supports_explicit_hermes_backend_metadata(tmp_pat
     }
 
 
-def test_write_runtime_binding_records_controlled_research_backend_metadata_for_hermes(tmp_path: Path) -> None:
+def test_write_runtime_binding_records_controlled_research_backend_metadata_for_mas_runtime_core(
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
-    runtime_root = tmp_path / "workspace" / "ops" / "hermes" / "runtime"
+    runtime_root = tmp_path / "workspace" / "runtime"
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     binding_path = study_root / "runtime_binding.yaml"
 
@@ -184,12 +186,12 @@ def test_write_runtime_binding_records_controlled_research_backend_metadata_for_
         runtime_root=runtime_root,
         study_id="001-risk",
         study_root=study_root,
-        quest_id="quest-hermes-001",
+        quest_id="quest-mas-runtime-core-001",
         last_action="resume",
         source="test-source",
         recorded_at="2026-04-11T12:00:00+00:00",
-        runtime_backend_id="hermes",
-        runtime_engine_id="hermes",
+        runtime_backend_id="mas_runtime_core",
+        runtime_engine_id="mas-runtime-core",
     )
 
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
@@ -198,41 +200,39 @@ def test_write_runtime_binding_records_controlled_research_backend_metadata_for_
     assert payload["research_engine_id"] == "mas-runtime-core"
 
 
-def test_runtime_binding_backend_metadata_resolves_explicit_hermes_backend() -> None:
+def test_runtime_binding_backend_metadata_resolves_explicit_mas_runtime_core_backend() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
     backend_id, engine_id = module._runtime_binding_backend_metadata(
         {
             "execution": {
-                "runtime_backend_id": "hermes",
-                "runtime_engine_id": "hermes",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
                 "auto_entry": "on_managed_research_intent",
             }
         }
     )
 
-    assert backend_id == "hermes"
-    assert engine_id == "hermes"
+    assert backend_id == "mas_runtime_core"
+    assert engine_id == "mas-runtime-core"
 
 
-def test_runtime_binding_backend_metadata_uses_profile_default_hermes_substrate_for_legacy_med_deepscientist_execution() -> None:
+def test_runtime_binding_backend_metadata_rejects_retired_hermes_substrate_for_legacy_med_deepscientist_execution() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
-    backend_id, engine_id = module._runtime_binding_backend_metadata(
-        {
-            "execution": {
-                "engine": "med-deepscientist",
-                "runtime_backend_id": "hermes",
-                "runtime_engine_id": "hermes",
-                "research_backend_id": "med_deepscientist",
-                "research_engine_id": "med-deepscientist",
-                "auto_entry": "on_managed_research_intent",
+    with pytest.raises(ValueError, match="unknown managed runtime backend in status execution: hermes"):
+        module._runtime_binding_backend_metadata(
+            {
+                "execution": {
+                    "engine": "med-deepscientist",
+                    "runtime_backend_id": "hermes",
+                    "runtime_engine_id": "hermes",
+                    "research_backend_id": "med_deepscientist",
+                    "research_engine_id": "med-deepscientist",
+                    "auto_entry": "on_managed_research_intent",
+                }
             }
-        }
-    )
-
-    assert backend_id == "hermes"
-    assert engine_id == "hermes"
+        )
 
 
 def test_write_launch_report_records_runtime_payload(tmp_path: Path) -> None:

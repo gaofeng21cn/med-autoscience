@@ -1,4 +1,5 @@
 from .shared import *  # noqa: F403
+from .submission_metadata_waiting_cases_cases.test_stopped_domain_transition_relaunch import *  # noqa: F403,F401
 
 
 def test_stopped_submission_metadata_package_resumes_current_controller_work_unit(
