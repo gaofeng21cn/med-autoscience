@@ -138,6 +138,40 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "mcp_public_runtime": True,
         },
         {
+            "action_id": "study_state_matrix",
+            "title": "Materialize MAS study state matrix",
+            "summary": (
+                "只读物化 MAS-owned study_state_matrix，包括 domain_transition_table、"
+                "family_transition_spec 和 family_transition_matrix_cases，供 OPL generic "
+                "transition runner 消费；不写 study truth、不执行 domain action、不授权论文质量或投稿就绪。"
+            ),
+            "effect": "read_only",
+            "command": "{prefix} study-state-matrix --profile {profile} --format json",
+            "surface_kind": "study_state_matrix",
+            "workspace_locator_fields": ["profile_ref"],
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": "MedAutoScience",
+                "descriptor_projection_owner": "one-person-lab",
+                "domain_handler_target_owner": MAS_TRUTH_OWNER,
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "domain_transition_read_model_materialization",
+                "runner_owner": "OPL Framework",
+                "domain_transition_owner": MAS_TRUTH_OWNER,
+                "can_write_domain_truth": False,
+                "can_execute_domain_action": False,
+                "can_authorize_publication_quality": False,
+                "can_authorize_submission_readiness": False,
+                "authoritative_truth_refs": [
+                    "/study_runtime_status",
+                    "/runtime_watch",
+                    "/publication_eval/latest.json",
+                    "/controller_decisions/latest.json",
+                ],
+            },
+        },
+        {
             "action_id": "export_inspection_package",
             "title": "Export human inspection package",
             "summary": (

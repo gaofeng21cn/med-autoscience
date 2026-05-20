@@ -99,7 +99,9 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 2026-05-19 的 OPL legacy cleanup 进一步证明 MAS tombstone proof refs 已被 OPL gate 接受：`opl agents legacy-cleanup apply --domain mas --mode dry-run` 返回 `plan_status=ready` 与 `lifecycle_apply.status=dry_run_ready`，随后 `--mode apply` 写入 OPL refs-only lifecycle ledger 的空计划 closure batch receipt，`--mode verify` 可读回 `verified_receipt_count=1`。MAS manifest 现在向 OPL 暴露 replacement parity refs、no-regression evidence refs、history refs 和 tombstone refs；这只关闭 OPL cleanup ledger blocker，不表示 MAS tracked runtime transport 或 SQLite sidecar 已物理删除，也不表示真实 paper-line provider apply、App 发布路径或 App/workbench 用户路径已完成。
 
-以下 5 项已作为功能/结构 closure gate 关闭：
+2026-05-21 的 family transition materialization handoff 已落地：MAS `family_action_catalog` 新增 read-only `study_state_matrix` action，并同步到 product-entry shell、CLI/Skill descriptor 和 descriptor-only MCP projection。OPL 可以通过该 action 按 `family_transition_spec_descriptor.locator_refs` 物化 MAS-owned `family_transition_spec` 与 `family_transition_matrix_cases`，再用 OPL generic `family-transition-runner` 执行 matrix。MAS 只持有医学 domain transition table / read model / owner route 语义，不持有 generic state-machine runner；该 action 不写 study truth、不执行 domain action、不授权 publication quality、artifact authority 或 submission readiness。
+
+以下 6 项已作为功能/结构 closure gate 关闭：
 
 1. `generated_surface_active_caller_cutover`
    OPL generated / hosted CLI、MCP、Skill、product-entry、sidecar、status、workbench 和 projection descriptor 已 ready，并以 active-caller target proof 路由到 OPL generated surface 或 MAS domain handler target。MAS hand-written shell 只能继续作为 direct domain entry、domain handler、owner receipt signer、AI-first output validator、diagnostic cleanup 或 fixture/provenance。
@@ -116,6 +118,9 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 5. `lifecycle_locator_retention_restore_ledger_reconciliation`
    lifecycle locator、retention、restore、cleanup ledger 和 workspace/runtime artifact root locator 已按 OPL primitive 与 MAS artifact/source/memory authority 对账。MAS 不持有 generic restore-retention engine，只持有 artifact authority、receipt refs 和 guarded permission；真实 workspace 中的 accepted/rejected writeback、artifact mutation、cleanup/restore/retention receipt 仍需 scaleout。
+
+6. `family_transition_materialization_handoff`
+   `study_state_matrix` 是 MAS-owned domain transition read model materializer，供 OPL 消费 spec/cases 并执行 generic matrix runner。MAS 不复制 OPL state-machine runner、queue、attempt ledger 或 route executor；matrix evaluated 只说明状态转移 spec/cases 可被 OPL runner 消费，不等于 paper-line owner receipt、publication quality、artifact mutation或 submission readiness。
 
 ## 当前物理源码形态差距
 
@@ -138,6 +143,7 @@ MAS production acceptance receipt 已把 conformance 不能声明 live/domain-re
 - human gate / resume：approval、pause、human takeover、explicit wakeup 和 resume 操作链进入 MAS owner route，并证明不会越过 publication gate、AI reviewer gate 或 artifact authority。
 - provider SLO long soak：长时 provider-hosted run、restart/re-query、retry/dead-letter、no-forbidden-write 和 App/workbench drilldown 在真实 domain activity 中持续成立。
 - runtime/status state transition：stopped / waiting / paused / live 等状态与 controller authorization、domain transition、submission metadata handoff、AI reviewer routeback 的组合路径必须继续由 MAS focused tests 锁定；2026-05-21 已覆盖 stopped controller work-unit redrive 不被 metadata parking 覆盖，但真实 paper-line canary 仍需把该 redrive 走到 owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker。
+- family transition materialization：`study_state_matrix` action 与 OPL generic matrix runner 已有 focused proof；真实关闭仍需要 paper-line canary 证明 matrix route/work-unit 进入 MAS owner chain，并产出 owner receipt、typed blocker、progress delta、gate replay、human gate 或 stop-loss。
 
 ## 一步到位 physical/source morphology closure 路线
 
@@ -150,6 +156,7 @@ MAS production acceptance receipt 已把 conformance 不能声明 live/domain-re
 | `runtime_transport_sqlite_physical_retirement` | `runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease、`runtime_lifecycle_store.py` 和 SQLite lifecycle writer | `generated_default_caller_boundary` / `physical_retirement_gate_matrix` 已机器化删除门；active caller 清零或迁到 OPL provider / MAS authority target；OPL provider parity、MAS paper-line receipt parity、focused tests、provenance/tombstone refs 与 no-active-caller 同时成立；剩余代码只能是必要 domain receipt adapter 或 diagnostic | 至少一条真实 paper-line canary 给出 MAS owner receipt、artifact delta、gate replay、route decision、stop-loss 或 stable typed blocker；restart/re-query、retry/dead-letter 与 no-forbidden-write 证明持续成立 |
 | `workbench_sidecar_status_retirement` | `product_entry_parts/workspace_cockpit/`、product-entry status、sidecar provider、runtime status projection 和旧 product/workbench wrapper | generated/default caller retirement proof 已列出允许角色；OPL generated product/status/workbench shell 成为 production/default caller后，MAS 只输出 domain projection refs、receipt signer、typed blocker、authority refs 和 direct skill target；legacy cockpit/workbench shell 无 active caller | App/workbench drilldown 能展示 provider refs、stage review refs、memory refs、artifact refs、safe action receipt refs 和 typed blockers；真实用户路径与发布/截图证据补齐 |
 | `real_paper_line_canary` | 从 proof/conformance 进入真实论文线 owner-chain | `mas_real_paper_line_provider_canary_closeout` contract 已落地；选取一条真实 paper line，从 OPL provider attempt 进入 MAS sidecar dispatch，再由 MAS owner surface 产出 owner receipt 或 stable typed blocker；Lane 4A ref packet 只暴露 progress delta、AI reviewer/gate receipt、artifact movement、human gate/resume、stop-loss 或 typed blocker refs；整个链路不写 OPL 不该写的 truth/body/package | `contracts/agent_lab_handoff.json` 已声明通用 `agent_production_evidence_suite` 的 MAS 实例，其中包含 real-paper-line task；`paper_line_guarded_apply_evidence` 已作为 OPL-ingestable refs surface 固化；当前已落地 canary harness / closeout contract，但 live real paper-line owner receipt 或 stable typed blocker 仍待产生；canary 结果只能证明该链路可运行，不能直接写成 publication-ready、medical-ready 或 `current_package` authority |
+| `family_transition_route_canary` | `study_state_matrix` / domain transition table 到 OPL generic matrix runner 的真实 owner-chain落地 | MAS 只提供 read-only transition table / spec / cases；OPL 负责 runner、attempt、queue、retry/dead-letter 和 projection；domain route、quality verdict、artifact authority 和 owner receipt 仍由 MAS 授权 | 已有 focused proof 覆盖 action catalog / product-entry / CLI / Skill / descriptor-only MCP projection 与 OPL materialization；仍缺真实 paper-line owner-chain receipt 或 stable typed blocker，不能把 matrix pass 写成 paper ready |
 | `memory_artifact_human_gate_long_soak` | production evidence tail | publication-route memory、artifact lifecycle、human gate/resume、expected receipt instance、monitor freshness 和 provider SLO 都以 MAS owner receipt / typed blocker 作为唯一关闭证据；OPL 只持 refs、transport、projection、payload workorder/preflight 和 stage evidence receipt ledger；body-free evidence packet shape 已落地 | `contracts/agent_lab_handoff.json` 已声明 memory/artifact/human gate scaleout 和 provider SLO long-soak tasks；Agent Lab result、`opl-meta-agent` work order 与 OPL stage evidence receipt 只是证据/候选或 refs-only roundtrip，关闭仍需要真实 memory receipt、artifact authority receipt、human gate/resume receipt、provider SLO receipt、MAS owner receipt 或 typed blocker |
 
 ## 并行落地顺序
@@ -172,6 +179,7 @@ MAS production acceptance receipt 已把 conformance 不能声明 live/domain-re
 - 不能把 `runtime_backend_id=mas_runtime_core` 读成 MAS generic runtime owner；当前 machine contract 已明确 `runtime_owner=one-person-lab`、`runtime_substrate=opl_provider_backed_stage_runtime`、`runtime_backend_role=mas_domain_owner_receipt_adapter`、`runtime_backend_is_generic_owner=false`。
 - 不能把 MAS legacy cleanup dry-run / apply / verify ready 写成物理源码已清零；它只证明 OPL cleanup gate 和 refs-only ledger 可消费 MAS replacement / no-regression / history / tombstone refs。
 - 不能把 OPL `stage_production_evidence_receipt_record|verify` 写成 MAS production ready；它只证明 expected receipt / monitor freshness 的 refs-only record/verify route、payload workorder 和 preflight 可用，真实关闭仍需要 MAS owner receipt instance、typed blocker、memory/artifact/human gate 或 long-soak evidence。
+- 不能把 `study_state_matrix` 或 OPL `family-transition-runner` matrix pass 写成 MAS paper closure、publication quality、artifact authority、submission readiness 或 domain ready；它只证明状态转移 spec/cases 的 read-only materialization 和 generic runner consumption。
 - 不能把 generated surface cutover、refs-only adapter 收薄、legacy physical retirement、OPL App/workbench drilldown 或 lifecycle ledger 对账的结构 closure 写成真实 paper closure、publication-ready、artifact mutation authorization 或 provider long-soak 已完成。
 - 不能把真实 paper apply、memory receipt、artifact receipt、human gate/resume 或 provider SLO 写成可以由 repo tests 替代的事项。
 - 不能把 `publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict` 或类似 verdict 写成脚本/函数直接决定；它们必须是 AI-first stage quality gate 的可审计输出，程序只做校验、持久化、签收和防越权。

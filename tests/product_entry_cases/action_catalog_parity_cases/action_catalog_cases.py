@@ -71,6 +71,58 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
     assert mcp_tools["study_runtime"]["metadata"]["action_catalog_projection"] == mcp_projection["study_runtime"]
 
 
+def test_mas_action_catalog_exposes_study_state_matrix_for_opl_transition_runner(tmp_path: Path) -> None:
+    action_catalog = importlib.import_module("med_autoscience.action_catalog")
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    mcp_server = importlib.import_module("med_autoscience.mcp_server")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    cli_projection = {item["action_id"]: item for item in action_catalog.project_mas_action_catalog("cli", catalog)}
+    product_entry_projection = {
+        item["action_key"]: item for item in action_catalog.project_mas_action_catalog("product_entry", catalog)
+    }
+    skill_projection = {
+        item["action_id"]: item for item in action_catalog.project_mas_action_catalog("skill", catalog)
+    }
+    mcp_projection = {
+        item["name"]: item for item in action_catalog.project_mas_action_catalog(
+            "mcp",
+            action_catalog.build_mas_action_catalog(),
+        )
+    }
+    mcp_tool_names = {tool["name"] for tool in mcp_server.build_tool_manifest()}
+
+    matrix = cli_projection["study_state_matrix"]
+    assert matrix["effect"] == "read_only"
+    assert matrix["surface_kind"] == "study_state_matrix"
+    assert matrix["command"] == (
+        "uv run python -m med_autoscience.cli study-state-matrix --profile "
+        + str(profile_ref.resolve())
+        + " --format json"
+    )
+
+    action = {item["action_id"]: item for item in catalog["actions"]}["study_state_matrix"]
+    assert action["authority_boundary"]["surface_authority"] == (
+        "domain_transition_read_model_materialization"
+    )
+    assert action["authority_boundary"]["runner_owner"] == "OPL Framework"
+    assert action["authority_boundary"]["domain_transition_owner"] == "MedAutoScience"
+    assert action["authority_boundary"]["can_write_domain_truth"] is False
+    assert action["authority_boundary"]["can_execute_domain_action"] is False
+    assert action["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert action["authority_boundary"]["can_authorize_submission_readiness"] is False
+
+    assert manifest["product_entry_shell"]["study_state_matrix"]["command"] == matrix["command"]
+    assert product_entry_projection["study_state_matrix"]["command"] == matrix["command"]
+    assert skill_projection["study_state_matrix"]["command"] == matrix["command"]
+    assert mcp_projection["study_state_matrix"]["descriptor_only"] is True
+    assert mcp_projection["study_state_matrix"]["public_runtime"] is False
+    assert "study_state_matrix" not in mcp_tool_names
+
+
 def test_mas_action_catalog_projects_sidecar_bridge_without_new_mcp_tool(tmp_path: Path) -> None:
     action_catalog = importlib.import_module("med_autoscience.action_catalog")
     mcp_server = importlib.import_module("med_autoscience.mcp_server")
