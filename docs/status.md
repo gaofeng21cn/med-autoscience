@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-05-20**
+**更新时间：2026-05-21**
 
 Owner: `MedAutoScience`
 Purpose: `current_truth_summary`
@@ -31,6 +31,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - `paper_line_guarded_apply_evidence` 已作为 OPL-ingestable body-free ref packet 固化。它可暴露 progress delta、AI reviewer/gate receipt、artifact movement、human gate/resume 和 stable typed blocker refs；真实 closeout 仍需要 MAS owner receipt 或 stable typed blocker。
 - 2026-05-21 `paper_line_guarded_apply_evidence.opl_stage_evidence_receipt_handoff.stage_owned_typed_blocker_handoff` 已为 6 个 MAS stage 提供 MAS-owned typed blocker refs，并已被 OPL `stage_production_evidence_receipt_record|verify` refs-only ledger 消费。当前 OPL App/readiness/production closeout 不再把 MAS stage expected receipt / monitor freshness 显示为 open；这不声明任何具体 paper-line、publication quality、artifact mutation、memory writeback、human gate 或 long-soak 已完成。
 - 2026-05-21 `study_runtime_status` 已补齐 stopped controller work-unit redrive 状态转换：`stopped + controller_work_unit_pending + last_controller_decision_authorization` 会优先仲裁为 `controller_work_unit_pending_redrive` / `quest_waiting_platform_repair_redrive`，不会被 submission metadata-only package 或 synchronized delivery 误停车。对应 focused tests 覆盖 submission metadata waiting、platform repair redrive 与 AI reviewer submission metadata routeback 组合路径；该修复只消费 MAS owner-chain runtime/status truth，不改变 OPL/MAS 边界。
+- 2026-05-21 `family_action_catalog` 新增 read-only `study_state_matrix` action，并同步到 product-entry shell、CLI/Skill descriptor 和 descriptor-only MCP projection。该 action 只物化 MAS-owned `study_state_matrix` / `domain_transition_table` / `family_transition_spec` / `family_transition_matrix_cases`，供 OPL generic `family-transition-runner` 消费；它不写 study truth、不执行 domain action、不授权 publication quality / submission readiness，也不会作为 public MCP runtime tool 暴露。
 
 ## 当前功能/结构状态
 
@@ -43,6 +44,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 | `legacy_cleanup_physical_retirement` | local LaunchAgent install path、workspace-local wrapper、旧 status/remove cleanup diagnostic、旧 alias/facade/test entry 已进入 physical retirement / tombstone / provenance 口径。`manager=local` direct call 必须 fail closed。 |
 | `opl_app_workbench_drilldown` | MAS route/source/quality/artifact/memory/blocker/action refs 已作为 OPL App/workbench drilldown 输入；MAS 不复制通用工作台 owner。 |
 | `lifecycle_locator_retention_restore_ledger_reconciliation` | lifecycle locator、retention、restore、cleanup ledger 与 workspace runtime artifact root locator 已按 OPL generic lifecycle shell / MAS artifact authority receipt 边界对账。 |
+| `family_transition_materialization_handoff` | MAS 只暴露 read-only `study_state_matrix` materialization；OPL 负责消费 spec/cases 并执行 generic transition matrix runner。MAS 不持有 generic state-machine runner，也不把 matrix pass 写成 publication / submission ready。 |
 
 这些 gate 的关闭不等于真实 paper closure、publication-ready、artifact mutation authorization、provider long-soak 或 MAS runtime transport / SQLite sidecar 物理删除。
 
@@ -67,6 +69,7 @@ MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain
 - human gate / resume：approval、pause、human takeover、explicit wakeup 和 resume 操作链进入 MAS owner route，并证明不会越过 publication gate、AI reviewer gate 或 artifact authority。
 - provider SLO long soak：长时 provider-hosted run、restart/re-query、retry/dead-letter、no-forbidden-write 和 App/workbench drilldown 在真实 domain activity 中持续成立。
 - 状态转移 focused proof：stopped / waiting / paused / live 等 runtime 状态与 controller authorization、domain transition、submission metadata handoff 的组合路径需要继续用 focused tests 锁定。2026-05-21 已补 `stopped controller_work_unit_pending` 不被 metadata parking 覆盖的回归测试；后续真实 paper-line canary 仍需证明对应 redrive 能产出 owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker。
+- family transition materialization proof：`study_state_matrix` action 与 OPL generic matrix runner 已有 focused proof；后续真实 paper-line canary 仍需证明 matrix route/work-unit 能进入 MAS owner chain，并产出 owner receipt、typed blocker、progress delta、gate replay、human gate 或 stop-loss。
 
 ## 当前完善顺序
 
