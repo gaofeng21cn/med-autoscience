@@ -262,6 +262,25 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
     )
     write_synced_submission_delivery(study_root, quest_root)
     publication_eval_path = _write_publication_eval(study_root, quest_root)
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "schema_version": 1,
+            "recorded_at": "2026-05-20T22:16:03+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "health_status": "recovering",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "active_run_id": "stale-run-from-before-failed-status",
+            "runtime_reason": "quest_waiting_platform_repair_redrive",
+            "summary": (
+                "live worker 已超过 meaningful artifact delta 活动窗口；监管心跳新鲜只能证明监控新鲜，"
+                "不能证明论文正常推进。"
+            ),
+            "next_action_summary": "等待 runtime supervision 的 health_status 回到 live，再确认研究继续推进。",
+        },
+    )
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -460,9 +479,17 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
     assert result["current_stage"] == "runtime_blocked"
+    assert result["active_run_id"] is None
     assert result["auto_runtime_parked"]["parked"] is False
     assert result["parked_state"] is None
     assert result["intervention_lane"]["lane_id"] != "auto_runtime_parked"
+    assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert result["intervention_lane"]["repair_mode"] == "bounded_analysis"
+    assert result["intervention_lane"]["route_target"] == "analysis-campaign"
+    assert result["intervention_lane"]["route_key_question"] == (
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
+    assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
     assert result["interaction_arbitration"] is None
     assert result["domain_transition"]["route_target"] == "analysis-campaign"
     assert result["domain_transition"]["next_work_unit"]["unit_id"] == (

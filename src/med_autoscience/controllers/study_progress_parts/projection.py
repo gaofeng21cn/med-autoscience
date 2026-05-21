@@ -933,6 +933,11 @@ def _status_absorbing_live_runtime_surfaces(
     runtime_supervision_payload: Mapping[str, Any] | None,
     launch_report_payload: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
+    quest_status = _non_empty_text(status.get("quest_status"))
+    if quest_status not in {"active", "running"}:
+        return status
+    if _mapping_copy(status.get("domain_transition")):
+        return status
     live = _live_runtime_supervision_facts(runtime_supervision_payload, study_id=study_id)
     if live is None:
         return status

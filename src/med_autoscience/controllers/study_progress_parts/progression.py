@@ -28,6 +28,49 @@ _module_reexport(_publication_runtime)
 _live_managed_runtime_present = live_managed_runtime_present
 _runtime_recovery_pending_from_status = runtime_recovery_pending_from_status
 
+
+def _domain_transition_route_repair(status: dict[str, Any]) -> dict[str, Any] | None:
+    domain_transition = _mapping_copy(status.get("domain_transition"))
+    if not domain_transition:
+        return None
+    route_target = _non_empty_text(domain_transition.get("route_target"))
+    if route_target is None:
+        return None
+    next_work_unit = _mapping_copy(domain_transition.get("next_work_unit"))
+    unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+    summary = _non_empty_text(next_work_unit.get("summary"))
+    route_key_question = (
+        _non_empty_text(domain_transition.get("route_key_question"))
+        or unit_id
+        or summary
+        or route_target
+    )
+    action_type = _non_empty_text(domain_transition.get("decision_type")) or "route_back_same_line"
+    route_label = _paper_stage_label(route_target) or route_target
+    repair_mode = "bounded_analysis" if route_target == "analysis-campaign" else _route_repair_mode(action_type)
+    candidate = {
+        "action_id": _non_empty_text(domain_transition.get("action_id")),
+        "action_type": action_type,
+        "priority": _non_empty_text(domain_transition.get("priority")) or "now",
+        "repair_mode": repair_mode,
+        "repair_mode_label": _ROUTE_REPAIR_MODE_LABELS.get(repair_mode),
+        "route_target": route_target,
+        "route_target_label": route_label,
+        "route_key_question": route_key_question,
+        "route_rationale": (
+            _non_empty_text(domain_transition.get("route_rationale"))
+            or summary
+            or _non_empty_text(status.get("reason"))
+        ),
+    }
+    route_summary = _route_repair_summary(candidate)
+    if route_summary is not None:
+        candidate["route_summary"] = route_summary
+    if unit_id is not None:
+        candidate["work_unit_id"] = unit_id
+    return candidate
+
+
 def _event(
     *,
     timestamp: str | None,
@@ -718,6 +761,22 @@ def _intervention_lane(
     specificity_request = _publication_eval_specificity_request(publication_eval_payload)
     if specificity_request is not None:
         return specificity_intervention_lane(specificity_request)
+    domain_transition_repair = _domain_transition_route_repair(status)
+    if domain_transition_repair is not None and not live_managed_runtime:
+        route_summary = _route_repair_summary(domain_transition_repair)
+        payload = {
+            "lane_id": "quality_floor_blocker",
+            "title": (
+                "优先完成有限补充分析"
+                if _non_empty_text(domain_transition_repair.get("repair_mode")) == "bounded_analysis"
+                else "优先收口同线质量硬阻塞"
+            ),
+            "severity": "critical",
+            "summary": route_summary or blocker_summary or current_stage_summary or next_system_action,
+            "recommended_action_id": _non_empty_text(domain_transition_repair.get("action_type")) or "inspect_progress",
+        }
+        payload.update(domain_transition_repair)
+        return payload
     if activity_timeout_state(progress_freshness) == "timed_out":
         return activity_timeout_lane(
             progress_freshness=progress_freshness,

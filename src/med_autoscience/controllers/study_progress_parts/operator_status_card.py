@@ -38,10 +38,6 @@ def _operator_status_handling_state(
         return _non_empty_text((auto_runtime_parked or {}).get("parked_state")) or "auto_runtime_parked"
     if current_stage in {"managed_runtime_recovering", "managed_runtime_degraded", "managed_runtime_escalated"}:
         return "runtime_recovering"
-    if _manual_finish_active(manual_finish_contract):
-        return "package_ready_handoff"
-    if lane_id == "manual_finishing":
-        return "package_ready_handoff"
     if lane_id == "workspace_supervision_gap":
         return "runtime_supervision_recovering"
     if lane_id == "publication_gate_specificity_required":
@@ -54,6 +50,10 @@ def _operator_status_handling_state(
         return "paper_surface_refresh_in_progress"
     if lane_id == "quality_floor_blocker":
         return "scientific_or_quality_repair_in_progress"
+    if _manual_finish_active(manual_finish_contract):
+        return "package_ready_handoff"
+    if lane_id == "manual_finishing":
+        return "package_ready_handoff"
     if lane_id in {"runtime_recovery_required", "runtime_blocker"} or runtime_unhealthy_stage:
         return "runtime_recovering"
     return "monitor_only"
