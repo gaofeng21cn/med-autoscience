@@ -41,19 +41,24 @@ def execute_quality_repair_batch(
             "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
             "quest_root": str(quest_root),
         }
-    executed = bool(owner_result.get("ok")) if isinstance(owner_result, Mapping) else False
     result_payload = dict(owner_result) if isinstance(owner_result, Mapping) else {}
+    handoff_ready = (
+        result_payload.get("status") == "handoff_ready"
+        and isinstance(result_payload.get("writer_worker_handoff"), Mapping)
+    )
+    executed = bool(owner_result.get("ok")) if isinstance(owner_result, Mapping) else False
     return {
-        "execution_status": "executed" if executed else "blocked",
+        "execution_status": "handoff_ready" if handoff_ready else ("executed" if executed else "blocked"),
         "blocked_reason": (
             None
-            if executed
+            if executed or handoff_ready
             else _text(result_payload.get("blocked_reason"))
             or _text(result_payload.get("status"))
             or "quality_repair_batch_not_applied"
         ),
         "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
         "owner_result": result_payload if result_payload else owner_result,
+        **({"writer_worker_handoff": dict(result_payload["writer_worker_handoff"])} if handoff_ready else {}),
         "quest_root": str(quest_root),
     }
 

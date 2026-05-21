@@ -372,9 +372,11 @@ def _with_paper_repair(
     task: Mapping[str, Any],
 ) -> dict[str, Any]:
     result = _execute_paper_repair(profile=profile, study_id=study_id, task=task)
-    receipt["will_start_llm_worker"] = False
+    receipt["will_start_llm_worker"] = _mapping(result).get("execution_status") == "handoff_ready"
     receipt["dispatch"]["execution_policy"] = "mas_owner_paper_repair_execute"
     receipt["dispatch"]["result"] = result
+    if _mapping(result).get("execution_status") == "handoff_ready":
+        receipt["dispatch"]["downstream_worker_handoff"] = _mapping(result).get("writer_worker_handoff")
     if _mapping(result).get("accepted") is False:
         receipt["accepted"] = False
         receipt["reason"] = _text(_mapping(result).get("typed_blocker")) or "paper_repair_executor_blocked"

@@ -899,7 +899,7 @@ def dispatch_domain_owner_actions(
                 "generated_at": generated_at,
                 "study_id": study_id,
                 "executions": study_executions,
-                "executed_count": sum(item.get("execution_status") == "executed" for item in study_executions),
+                "executed_count": sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in study_executions),
                 "blocked_count": sum(item.get("execution_status") == "blocked" for item in study_executions),
                 "codex_dispatch_count": sum(item.get("will_start_llm") is True for item in study_executions),
                 "suppressed_dispatch_count": sum(
@@ -942,7 +942,7 @@ def dispatch_domain_owner_actions(
         "requested_action_types": list(resolved_action_types),
         "managed_runtime_worker": bool(managed_runtime_worker),
         "execution_count": len(executions),
-        "executed_count": sum(item.get("execution_status") == "executed" for item in executions),
+        "executed_count": sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in executions),
         "blocked_count": sum(item.get("execution_status") == "blocked" for item in executions),
         "repeat_suppressed_count": sum(item.get("execution_status") == "repeat_suppressed" for item in executions),
         "dry_run_count": sum(item.get("execution_status") == "dry_run" for item in executions),

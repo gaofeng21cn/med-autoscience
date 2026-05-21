@@ -151,6 +151,11 @@ def executor_action_cost(
             reason=f"default_executor_dispatch_{status}",
             action_fingerprint=action_fingerprint,
         )
+    if status == "handoff_ready":
+        return codex_worker_dispatch_contract(
+            reason="default_executor_dispatch_writer_handoff_ready",
+            action_fingerprint=action_fingerprint,
+        )
     if action_type == "runtime_platform_repair" and runtime_platform_repair_started_worker(execution):
         return codex_worker_dispatch_contract(
             reason="runtime_platform_repair_started_codex_worker",

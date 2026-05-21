@@ -371,7 +371,9 @@ def test_quality_repair_batch_consumes_manuscript_story_surface_currentness_delt
         quest_id="quest-002",
         source="test-source",
     )
-    assert first_result["status"] == "blocked"
+    assert first_result["status"] == "handoff_ready"
+    assert first_result["next_owner"] == "write"
+    assert first_result["writer_worker_handoff"]["next_executable_owner"] == "write"
     draft.write_text("Clean external validation manuscript story after write-owner repair.\n", encoding="utf-8")
     _set_mtime(draft, 1_700_000_300)
 
@@ -464,8 +466,10 @@ def test_quality_repair_batch_does_not_infer_story_delta_from_stale_manuscript_s
         source="test-source",
     )
 
-    assert result["status"] == "blocked"
-    assert result["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert result["status"] == "handoff_ready"
+    assert result["blocked_reason"] is None
+    assert result["next_owner"] == "write"
+    assert result["writer_worker_handoff"]["next_executable_owner"] == "write"
     evidence = result["repair_execution_evidence"]
     assert evidence["progress_delta_candidate"] is False
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False
@@ -647,7 +651,7 @@ def test_quality_repair_batch_writes_repair_execution_evidence(monkeypatch, tmp_
     assert record["repair_execution_evidence"] == evidence
 
 
-def test_quality_repair_batch_blocks_story_repair_without_manuscript_surface_delta(
+def test_quality_repair_batch_returns_writer_handoff_without_manuscript_surface_delta(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -709,10 +713,11 @@ def test_quality_repair_batch_blocks_story_repair_without_manuscript_surface_del
         source="test-source",
     )
 
-    assert result["ok"] is False
-    assert result["status"] == "blocked"
-    assert result["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert result["ok"] is True
+    assert result["status"] == "handoff_ready"
+    assert result["blocked_reason"] is None
     assert result["next_owner"] == "write"
+    assert result["writer_worker_handoff"]["next_executable_owner"] == "write"
     evidence = result["repair_execution_evidence"]
     assert evidence["status"] == "blocked"
     assert evidence["progress_delta_candidate"] is False

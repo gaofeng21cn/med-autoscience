@@ -11,7 +11,10 @@ from tests.domain_owner_action_dispatch_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def test_execute_dispatch_runs_quality_repair_batch_for_write_owner_route(monkeypatch, tmp_path: Path) -> None:
+def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_not_blocked(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -68,10 +71,19 @@ def test_execute_dispatch_runs_quality_repair_batch_for_write_owner_route(monkey
     def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
         called.update(kwargs)
         return {
-            "ok": False,
-            "status": "blocked",
-            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "ok": True,
+            "status": "handoff_ready",
+            "blocked_reason": None,
             "next_owner": "write",
+            "writer_worker_handoff": {
+                "surface": "default_executor_dispatch_request",
+                "dispatch_status": "ready",
+                "next_executable_owner": "write",
+                "required_output_surface": (
+                    "canonical manuscript story-surface delta or "
+                    "typed blocker:manuscript_story_surface_delta_missing"
+                ),
+            },
         }
 
     monkeypatch.setattr(
@@ -88,11 +100,17 @@ def test_execute_dispatch_runs_quality_repair_batch_for_write_owner_route(monkey
         apply=True,
     )
 
-    assert result["blocked_count"] == 1
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["codex_dispatch_count"] == 1
     execution = result["executions"][0]
     assert execution["owner_route_current"] is True
-    assert execution["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    assert execution["action_class"] == "codex_worker_dispatch"
+    assert execution["will_start_llm"] is True
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
+    assert execution["writer_worker_handoff"]["next_executable_owner"] == "write"
     assert called["study_id"] == study_id
     assert called["quest_id"] == f"quest-{study_id}"
     route_context = called["control_plane_route_context"]

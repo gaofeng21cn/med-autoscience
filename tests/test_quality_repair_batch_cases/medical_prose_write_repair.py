@@ -13,7 +13,7 @@ from tests.test_quality_repair_batch_cases.upstream_paper_owner_surface import (
 )
 
 
-def test_medical_prose_write_repair_blocks_ledger_only_delta_until_write_owner_updates_manuscript(
+def test_medical_prose_write_repair_returns_writer_handoff_for_missing_story_delta(
     monkeypatch: Any,
     tmp_path: Path,
 ) -> None:
@@ -101,10 +101,16 @@ def test_medical_prose_write_repair_blocks_ledger_only_delta_until_write_owner_u
     )
 
     evidence = result["repair_execution_evidence"]
-    assert result["ok"] is False
-    assert result["status"] == "blocked"
-    assert result["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert result["ok"] is True
+    assert result["status"] == "handoff_ready"
+    assert result["blocked_reason"] is None
     assert result["next_owner"] == "write"
+    handoff = result["writer_worker_handoff"]
+    assert handoff["surface"] == "default_executor_dispatch_request"
+    assert handoff["dispatch_status"] == "ready"
+    assert handoff["next_executable_owner"] == "write"
+    assert "canonical manuscript story-surface delta" in handoff["required_output_surface"]
+    assert handoff["typed_blocker_if_unresolved"] == "manuscript_story_surface_delta_missing"
     assert evidence["progress_delta_candidate"] is False
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_required"] is True
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False

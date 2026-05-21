@@ -219,7 +219,7 @@ def test_sidecar_dispatch_routes_quality_repair_batch_callable_inside_mas_owner(
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
-def test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta(
+def test_sidecar_dispatch_accepts_quality_repair_writer_handoff_without_dead_lettering(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -252,10 +252,21 @@ def test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta(
         _write_json(evidence_path, evidence)
         return {
             "ok": True,
-            "status": "blocked",
+            "status": "handoff_ready",
+            "blocked_reason": None,
+            "next_owner": "write",
             "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
             "repair_execution_evidence": evidence,
             "repair_execution_evidence_path": str(evidence_path),
+            "writer_worker_handoff": {
+                "surface": "default_executor_dispatch_request",
+                "dispatch_status": "ready",
+                "next_executable_owner": "write",
+                "required_output_surface": (
+                    "canonical manuscript story-surface delta or "
+                    "typed blocker:manuscript_story_surface_delta_missing"
+                ),
+            },
         }
 
     monkeypatch.setattr(adapter.paper_repair_executor.quality_repair_batch, "run_quality_repair_batch", fake_run_quality_repair_batch)
@@ -286,14 +297,21 @@ def test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta(
     exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
-    assert exit_code == 1
-    assert payload["accepted"] is False
-    assert payload["reason"] == "manuscript_story_surface_delta_missing"
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["will_start_llm_worker"] is True
+    assert "reason" not in payload
     paper_receipt = payload["dispatch"]["result"]
-    assert paper_receipt["accepted"] is False
-    assert paper_receipt["execution_status"] == "blocked"
-    assert paper_receipt["typed_blocker"] == "manuscript_story_surface_delta_missing"
+    assert paper_receipt["accepted"] is True
+    assert paper_receipt["execution_status"] == "handoff_ready"
+    assert paper_receipt["typed_blocker"] is None
     assert paper_receipt["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
+    handoff = paper_receipt["writer_worker_handoff"]
+    assert handoff["surface"] == "default_executor_dispatch_request"
+    assert handoff["dispatch_status"] == "ready"
+    assert handoff["next_executable_owner"] == "write"
+    assert "canonical manuscript story-surface delta" in handoff["required_output_surface"]
+    assert payload["dispatch"]["downstream_worker_handoff"]["next_executable_owner"] == "write"
 
 
 def test_sidecar_dispatch_prefers_runtime_binding_quest_id_for_quality_repair_batch_callable(

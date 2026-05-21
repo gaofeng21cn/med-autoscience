@@ -166,6 +166,14 @@
 - 理由：DM003 暴露出 medical prose route-back 被 MAS upstream repair 处理时只更新 ledger/request，用户看到的高质量医学初稿稿面没有前移。该规则把 prose/write repair 的 owner surface 与 `manuscript_story_repair` 对齐，防止 quality repair batch 用内部 ledger 变化替代正文修订。
 - 影响：这是 canonical paper owner surface currentness 修复，不是医学质量 ready verdict。AI reviewer、publication gate 和后续 delivery owner 仍负责正式质量判断、publishability 与 submission-facing package；controller repair 只保证 write repair 不再 ledger-only 完成，也不把 MAS/controller/AI reviewer 内部运行态措辞写入论文正文。
 
+## 2026-05-22：story-surface blocker 是 writer handoff ready，不是 terminal dispatch blocker
+
+- 决策：`quality_repair_batch` 对 `manuscript_story_surface_delta_missing` 的本轮证据判断仍保持 fail-closed：没有 `paper/draft.md` 或 `paper/build/review_manuscript.md` delta 时，不得声明 paper repair completed、quality ready 或 submission-ready。但当该 blocker 已明确 `next_owner=write` 时，batch 的 owner result 必须返回 `status=handoff_ready`、`ok=true`、`blocked_reason=null`，并携带 `default_executor_dispatch_request` 形态的 `writer_worker_handoff`，要求 write owner 产出 canonical manuscript story-surface delta 或同名 typed blocker。
+- 决策：`paper_repair_executor`、`domain_owner_action_dispatch`、runtime dispatch cost 和 MAS sidecar dispatch 必须把该 `handoff_ready` 视为可调度下游 worker 交接。sidecar 顶层 receipt 保持 `accepted=true`、`will_start_llm_worker=true`，并暴露 downstream writer handoff；不得把该 case 变成 OPL queue 的 terminal reject、retry/dead-letter 或 generic owner callable blocker。
+- 决策：writer handoff 只能授权 canonical paper/write owner surface，例如 `paper/draft.md`、`paper/build/review_manuscript.md`、claim-evidence/evidence/review ledger；它继续禁止 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package、quality gate verdict 和 MAS platform/runtime surface 写入。
+- 理由：DM002/DM003 暴露出 `manuscript_story_surface_delta_missing` 被错误提升为终态 blocked receipt，导致 OPL provider 层反复 retry/dead-letter，而真实缺口是 MAS write owner 还没有接过正文稿面修订。正确边界是 MAS 医学论文 owner-chain 继续交给 writer，不是 OPL queue/runtime 修复，也不是手工 patch 单篇论文。
+- 影响：这是 MAS paper autonomy / owner dispatch / sidecar receipt 语义修复。它只把 same-owner write follow-through 变成可执行 worker handoff，不放宽 AI reviewer 或 publication gate，不授权直接改 DM002 study truth、delivery package、current package、publication eval、controller decision 或 submission readiness。
+
 ## 2026-05-21：provenance-limited rebuild handoff 必须覆盖旧 methodology decision
 
 - 决策：当 `artifacts/controller/provenance_limited_harmonization/latest.json` 已产出当前 `unit_harmonized_rerun_required` typed handoff，并明确 `next_owner=analysis_harmonization_owner`、`next_work_unit=unit_harmonized_external_validation_rerun`，且该 owner result 晚于它消费的 source provenance、controller decision 与 rebuild task intake 时，domain-route-scan 必须优先排 `analysis_harmonization_owner`，不能再被旧 `source_provenance/latest.json` terminal blocker 拉回 `methodology_reframe_route_decision`。

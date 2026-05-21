@@ -26,6 +26,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
 from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_results import (
     owner_result_blocker,
     owner_result_executed,
+    owner_result_handoff_ready,
 )
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -461,7 +462,8 @@ def _owner_callable_result(
     owner_callable_surface: str,
     owner_result: Mapping[str, Any],
 ) -> dict[str, Any]:
-    execution_status = "executed" if accepted else "blocked"
+    handoff_ready = owner_result_handoff_ready(owner_result)
+    execution_status = "handoff_ready" if handoff_ready else ("executed" if accepted else "blocked")
     typed_blocker = None if accepted else owner_result_blocker(owner_result)
     changed_refs = _changed_refs_from_owner_result(owner_result)
     evidence_path = _owner_result_evidence_path(study_root=study_root, owner_result=owner_result)
@@ -481,6 +483,8 @@ def _owner_callable_result(
     )
     receipt["owner_callable_surface"] = owner_callable_surface
     receipt["owner_result_status"] = _text(owner_result.get("status"))
+    if handoff_ready:
+        receipt["writer_worker_handoff"] = dict(_mapping(owner_result.get("writer_worker_handoff")))
     receipt_path = _write_owner_receipt(study_root=study_root, receipt=receipt)
     return {
         "surface": SURFACE,
@@ -497,6 +501,7 @@ def _owner_callable_result(
         "owner_receipt_ref": str(receipt_path),
         "repair_execution_evidence_ref": str(evidence_path),
         "canonical_artifact_delta": _mapping(_mapping(owner_result.get("repair_execution_evidence")).get("canonical_artifact_delta")),
+        **({"writer_worker_handoff": dict(_mapping(owner_result.get("writer_worker_handoff")))} if handoff_ready else {}),
         "authority_boundary": _authority_boundary(),
     }
 

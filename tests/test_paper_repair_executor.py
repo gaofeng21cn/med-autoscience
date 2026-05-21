@@ -197,6 +197,70 @@ def test_paper_repair_executor_routes_quality_repair_batch_callable_without_stru
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_paper_repair_executor_accepts_quality_repair_writer_handoff_without_terminal_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    quality_module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = profile.studies_root / "005-dpcc"
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        evidence = {
+            "surface": "repair_execution_evidence",
+            "status": "blocked",
+            "progress_delta_candidate": False,
+            "canonical_artifact_delta": {"meaningful_artifact_delta": False},
+            "manuscript_surface_hygiene": {
+                "story_surface_delta_required": True,
+                "story_surface_delta_present": False,
+            },
+        }
+        _write_json(evidence_path, evidence)
+        return {
+            "ok": True,
+            "status": "handoff_ready",
+            "blocked_reason": None,
+            "next_owner": "write",
+            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+            "repair_execution_evidence": evidence,
+            "repair_execution_evidence_path": str(evidence_path),
+            "writer_worker_handoff": {
+                "surface": "default_executor_dispatch_request",
+                "dispatch_status": "ready",
+                "next_executable_owner": "write",
+                "required_output_surface": (
+                    "canonical manuscript story-surface delta or "
+                    "typed blocker:manuscript_story_surface_delta_missing"
+                ),
+            },
+        }
+
+    monkeypatch.setattr(quality_module, "run_quality_repair_batch", fake_run_quality_repair_batch)
+    work_unit = _work_unit("text_repair", unit_id="unit-quality-batch-handoff")
+    work_unit["callable_surface"] = "quality_repair_batch.run_quality_repair_batch"
+    work_unit.pop("canonical_patch")
+
+    result = module.dispatch_repair_work_unit(
+        profile=profile,
+        study_id="005-dpcc",
+        quest_id="quest-005",
+        study_root=study_root,
+        repair_work_unit=work_unit,
+        apply=True,
+    )
+
+    assert result["accepted"] is True
+    assert result["execution_status"] == "handoff_ready"
+    assert result["typed_blocker"] is None
+    assert result["owner_receipt"]["direct_current_package_write"] is False
+    assert result["writer_worker_handoff"]["next_executable_owner"] == "write"
+    assert "canonical manuscript story-surface delta" in result["writer_worker_handoff"]["required_output_surface"]
+    assert not (study_root / "manuscript" / "current_package").exists()
+
+
 def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
     monkeypatch,
     tmp_path: Path,

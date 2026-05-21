@@ -5,6 +5,8 @@ from typing import Any
 
 
 def owner_result_executed(owner_result: Mapping[str, Any]) -> bool:
+    if owner_result_handoff_ready(owner_result):
+        return True
     if _owner_result_has_blocker(owner_result):
         return False
     if owner_result.get("ok") is False:
@@ -16,6 +18,17 @@ def owner_result_executed(owner_result: Mapping[str, Any]) -> bool:
     if int(owner_result.get("executed_count") or 0) > 0 and int(owner_result.get("blocked_count") or 0) == 0:
         return True
     return False
+
+
+def owner_result_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
+    if _text(owner_result.get("status")) != "handoff_ready":
+        return False
+    handoff = _mapping(owner_result.get("writer_worker_handoff"))
+    return (
+        _text(handoff.get("surface")) == "default_executor_dispatch_request"
+        and _text(handoff.get("dispatch_status")) == "ready"
+        and _text(handoff.get("next_executable_owner")) == "write"
+    )
 
 
 def owner_result_blocker(owner_result: Mapping[str, Any]) -> str:
@@ -103,4 +116,4 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["owner_result_blocker", "owner_result_executed"]
+__all__ = ["owner_result_blocker", "owner_result_executed", "owner_result_handoff_ready"]

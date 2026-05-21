@@ -13,8 +13,10 @@ from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import quality_repair_paper_owner_surface
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_runtime_router
+from med_autoscience.controllers.quality_repair_batch_parts import repair_execution_gate
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.quality_repair_batch_parts import upstream_route_context
+from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
@@ -38,13 +40,6 @@ _ANALYSIS_REPAIR_ACTION = StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
 _HARD_METHODOLOGY_NEXT_OWNER = "analysis_harmonization_owner"
 _HARD_METHODOLOGY_NEXT_WORK_UNIT = "unit_harmonized_external_validation_rerun"
 _HARD_METHODOLOGY_BLOCKED_REASON = "unit_harmonized_rerun_required"
-_REPAIR_EXECUTION_BLOCK_NEXT_OWNER = "write"
-_REPAIR_EXECUTION_TOP_LEVEL_BLOCKERS = frozenset(
-    {
-        "invalid_analysis_history_residue_present",
-        "manuscript_story_surface_delta_missing",
-    }
-)
 
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
@@ -602,52 +597,6 @@ def _apply_explicit_upstream_publication_work_unit(
     )
 
 
-def _selected_work_unit_id_from_gate_result(gate_clearing_result: Mapping[str, Any]) -> str | None:
-    for key in ("selected_publication_work_unit", "current_publication_work_unit", "explicit_publication_work_unit"):
-        payload = gate_clearing_result.get(key)
-        if isinstance(payload, Mapping):
-            text = _non_empty_text(payload.get("unit_id"))
-            if text:
-                return text
-    for item in gate_clearing_result.get("unit_results") or []:
-        if not isinstance(item, Mapping):
-            continue
-        text = _non_empty_text(item.get("unit_id"))
-        if text in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
-            return text
-    return None
-
-
-def _merge_upstream_unit_result(
-    *,
-    gate_clearing_result: Mapping[str, Any],
-    upstream_unit_result: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    result = dict(gate_clearing_result)
-    if not isinstance(upstream_unit_result, Mapping):
-        return result
-    unit_results = [
-        dict(item)
-        for item in (result.get("unit_results") or [])
-        if isinstance(item, Mapping)
-    ]
-    unit_id = _non_empty_text(upstream_unit_result.get("unit_id"))
-    if unit_id and not any(_non_empty_text(item.get("unit_id")) == unit_id for item in unit_results):
-        unit_results.insert(0, dict(upstream_unit_result))
-    result["unit_results"] = unit_results
-    return result
-
-
-def _blocked_repair_execution_reason(repair_execution_evidence: Mapping[str, Any]) -> str | None:
-    if _non_empty_text(repair_execution_evidence.get("status")) != "blocked":
-        return None
-    for blocker in repair_execution_evidence.get("blockers") or ():
-        text = _non_empty_text(blocker)
-        if text in _REPAIR_EXECUTION_TOP_LEVEL_BLOCKERS:
-            return text
-    return None
-
-
 def build_quality_repair_batch_recommended_action(
     *,
     profile: WorkspaceProfile,
@@ -931,10 +880,13 @@ def run_quality_repair_batch(
         quest_id=quest_id,
         study_root=resolved_study_root,
         gate_report=gate_report,
-        work_unit_id=_selected_work_unit_id_from_gate_result(gate_clearing_result),
+        work_unit_id=repair_execution_gate.selected_work_unit_id_from_gate_result(
+            gate_clearing_result,
+            upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+        ),
         source_eval_id=current_eval_id,
     )
-    gate_clearing_result = _merge_upstream_unit_result(
+    gate_clearing_result = repair_execution_gate.merge_upstream_unit_result(
         gate_clearing_result=gate_clearing_result,
         upstream_unit_result=upstream_unit_result,
     )
@@ -958,15 +910,37 @@ def run_quality_repair_batch(
         study_root=resolved_study_root,
         evidence=repair_execution_evidence,
     )
-    blocked_repair_reason = _blocked_repair_execution_reason(repair_execution_evidence)
+    blocked_repair_reason = repair_execution_gate.blocked_repair_execution_reason(repair_execution_evidence)
+    writer_worker_handoff = (
+        writer_handoff.build_writer_worker_handoff(
+            profile=profile,
+            study_id=study_id,
+            quest_id=quest_id,
+            schema_version=SCHEMA_VERSION,
+            source_eval_id=current_eval_id,
+            source_eval_artifact_path=source_eval_artifact_path,
+            source_summary_artifact_path=source_summary_artifact_path,
+            repair_execution_evidence_path=repair_execution_evidence_path,
+            blocked_repair_reason=blocked_repair_reason,
+            control_plane_route_context=resolved_route_context,
+        )
+        if writer_handoff.should_emit_writer_handoff(blocked_repair_reason)
+        else None
+    )
     record = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": current_eval_id,
         "source_eval_artifact_path": source_eval_artifact_path,
         "source_summary_id": source_summary_id,
         "source_summary_artifact_path": source_summary_artifact_path,
-        "status": "blocked" if blocked_repair_reason else (_non_empty_text(gate_clearing_result.get("status")) or "executed"),
-        "ok": False if blocked_repair_reason else bool(gate_clearing_result.get("ok")),
+        "status": (
+            "handoff_ready"
+            if writer_worker_handoff is not None
+            else "blocked"
+            if blocked_repair_reason
+            else (_non_empty_text(gate_clearing_result.get("status")) or "executed")
+        ),
+        "ok": True if writer_worker_handoff is not None else (False if blocked_repair_reason else bool(gate_clearing_result.get("ok"))),
         "quest_id": quest_id,
         "study_id": study_id,
         "quality_closure_state": _non_empty_text(quality_closure_truth.get("state")),
@@ -977,10 +951,11 @@ def run_quality_repair_batch(
         "paper_owner_surface_prepare": paper_owner_surface_prepare,
         "repair_execution_evidence": repair_execution_evidence,
         "repair_execution_evidence_path": str(repair_execution_evidence_path),
+        **({"writer_worker_handoff": writer_worker_handoff} if writer_worker_handoff is not None else {}),
         **(
             {
-                "blocked_reason": blocked_repair_reason,
-                "next_owner": _REPAIR_EXECUTION_BLOCK_NEXT_OWNER,
+                "blocked_reason": None if writer_worker_handoff is not None else blocked_repair_reason,
+                "next_owner": writer_handoff.NEXT_OWNER,
             }
             if blocked_repair_reason
             else {}
