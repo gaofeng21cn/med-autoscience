@@ -49,6 +49,14 @@ def owner_handoff_allowed(
         return repeat_suppression.provenance_limited_harmonization_route(
             owner_route
         ) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
+    if action_type == "run_quality_repair_batch":
+        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        return (
+            _text(owner_route.get("next_owner")) == "write"
+            and _text(owner_route.get("failure_signature")) == "manuscript_story_surface_delta_missing"
+            and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
+        )
     if action_type == "runtime_platform_repair":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
