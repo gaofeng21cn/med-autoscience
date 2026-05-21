@@ -23,6 +23,10 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     materialize_ai_reviewer_request,
     stable_ai_reviewer_request_path,
 )
+from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_results import (
+    owner_result_blocker,
+    owner_result_executed,
+)
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
@@ -231,7 +235,7 @@ def _dispatch_quality_repair_batch_callable(
     )
     return _owner_callable_result(
         generated_at=generated_at,
-        accepted=_owner_result_executed(owner_result),
+        accepted=owner_result_executed(owner_result),
         study_id=study_id,
         quest_id=quest_id,
         study_root=study_root,
@@ -276,7 +280,7 @@ def _dispatch_ai_reviewer_callable(
     )
     return _owner_callable_result(
         generated_at=generated_at,
-        accepted=_owner_result_executed(owner_result),
+        accepted=owner_result_executed(owner_result),
         study_id=study_id,
         quest_id=quest_id,
         study_root=study_root,
@@ -458,7 +462,7 @@ def _owner_callable_result(
     owner_result: Mapping[str, Any],
 ) -> dict[str, Any]:
     execution_status = "executed" if accepted else "blocked"
-    typed_blocker = None if accepted else _owner_result_blocker(owner_result)
+    typed_blocker = None if accepted else owner_result_blocker(owner_result)
     changed_refs = _changed_refs_from_owner_result(owner_result)
     evidence_path = _owner_result_evidence_path(study_root=study_root, owner_result=owner_result)
     receipt = _owner_receipt(
@@ -495,35 +499,6 @@ def _owner_callable_result(
         "canonical_artifact_delta": _mapping(_mapping(owner_result.get("repair_execution_evidence")).get("canonical_artifact_delta")),
         "authority_boundary": _authority_boundary(),
     }
-
-
-def _owner_result_executed(owner_result: Mapping[str, Any]) -> bool:
-    if owner_result.get("ok") is True:
-        return True
-    if _text(owner_result.get("status")) in {"executed", "skipped_duplicate_eval"}:
-        return True
-    if int(owner_result.get("executed_count") or 0) > 0 and int(owner_result.get("blocked_count") or 0) == 0:
-        return True
-    return False
-
-
-def _owner_result_blocker(owner_result: Mapping[str, Any]) -> str:
-    for execution in owner_result.get("executions") or ():
-        if not isinstance(execution, Mapping):
-            continue
-        if reason := _text(execution.get("blocked_reason")):
-            return reason
-        if _text(execution.get("execution_status")) == "repeat_suppressed":
-            return "repeat_suppressed"
-        if why_not_applied := _text(execution.get("why_not_applied")):
-            return why_not_applied
-    if int(owner_result.get("repeat_suppressed_count") or 0) > 0:
-        return "repeat_suppressed"
-    return (
-        _text(owner_result.get("blocked_reason"))
-        or _text(owner_result.get("reason"))
-        or "owner_callable_surface_blocked"
-    )
 
 
 def _owner_result_evidence_path(*, study_root: Path, owner_result: Mapping[str, Any]) -> Path:

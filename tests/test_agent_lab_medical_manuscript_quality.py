@@ -241,6 +241,7 @@ def test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets(
     assert "recorded-treatment-gap-terminology" in joined_refs
     assert "bp-and-data-quality-assessment" in joined_refs
     assert "baseline-characteristics-table" in joined_refs
+    assert "medical-prose-write-repair-story-surface-delta" in joined_refs
 
     target_ids = {target["target_id"] for target in work_order["study_quality_targets"]}
     assert {
@@ -254,7 +255,17 @@ def test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets(
         "reference_and_journal_style",
         "claim_evidence_alignment_without_runtime_language",
         "route_back_for_method_or_data_errors",
+        "medical_prose_write_repair_requires_story_surface_delta",
     }.issubset(target_ids)
+    assert (
+        "mechanism-edit-ref:mas/quality-repair-blocked-evidence-dispatch-rejection"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
+    assert (
+        "regression-suite:mas/medical-prose-write-repair-story-surface-delta"
+        in task["promotion_gate"]["regression_suite_refs"]
+    )
+    assert "quality_repair_blocked_evidence_dispatch_rejection" in work_order["required_patch_scopes"]
     assert mechanism_work_order["study_quality_targets"] == work_order["study_quality_targets"]
     assert mechanism_work_order["study_quality_target_family"] == work_order["study_quality_target_family"]
 
