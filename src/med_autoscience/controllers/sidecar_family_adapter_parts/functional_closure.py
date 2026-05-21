@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.legacy_residue_audit import build_legacy_residue_audit
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
@@ -27,7 +26,6 @@ def build_sidecar_functional_closure_projection(
     workspace_runtime_evidence_receipt = (
         opl_provider_ready_adapter.build_workspace_runtime_evidence_receipt_surface(profile=profile)
     )
-    legacy_residue_audit = build_legacy_residue_audit()
     standard_domain_agent_skeleton = (
         opl_provider_ready_adapter.build_standard_domain_agent_skeleton_surface()
     )
@@ -40,14 +38,12 @@ def build_sidecar_functional_closure_projection(
             lifecycle_guarded_apply_proof=provider_ready_contract["lifecycle_guarded_apply_proof"],
             workspace_runtime_evidence_receipt=workspace_runtime_evidence_receipt,
             legacy_retirement_tombstone_proof=provider_ready_contract["legacy_retirement_tombstone_proof"],
-            legacy_residue_audit=legacy_residue_audit,
             standard_domain_agent_skeleton=standard_domain_agent_skeleton,
         )
     )
     return {
         "provider_ready_contract": provider_ready_contract,
         "workspace_runtime_evidence_receipt": workspace_runtime_evidence_receipt,
-        "legacy_residue_audit": legacy_residue_audit,
         "standard_domain_agent_skeleton": standard_domain_agent_skeleton,
         "functional_closure_status_projection": functional_closure_status_projection,
     }

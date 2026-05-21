@@ -281,7 +281,6 @@ def export_family_sidecar(
         ),
         "legacy_retirement_tombstone_proof": opl_provider_ready_adapter.build_legacy_retirement_tombstone_proof(),
         "workspace_runtime_evidence_receipt": functional_closure["workspace_runtime_evidence_receipt"],
-        "legacy_residue_audit": functional_closure["legacy_residue_audit"],
         "standard_domain_agent_skeleton": functional_closure["standard_domain_agent_skeleton"],
         "mas_functional_closure_status_projection": (
             functional_closure["functional_closure_status_projection"]
