@@ -826,7 +826,8 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "runtime-supervision-status default manager=opl",
             "product_entry_manifest.functional_consumer_boundary",
             "sidecar_export.functional_consumer_boundary",
-            "legacy_residue_audit.summary.default_caller_count",
+            "legacy_retirement_tombstone_proof.active_default_callers",
+            "functional_consumer_boundary.retired_legacy_residue_tombstones",
         ],
         "forbidden_regressions": [
             "mas_default_generic_scheduler",

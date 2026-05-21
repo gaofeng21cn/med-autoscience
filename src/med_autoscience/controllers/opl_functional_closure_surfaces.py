@@ -159,7 +159,6 @@ def build_functional_closure_status_projection(
     lifecycle_guarded_apply_proof: Mapping[str, Any],
     workspace_runtime_evidence_receipt: Mapping[str, Any],
     legacy_retirement_tombstone_proof: Mapping[str, Any],
-    legacy_residue_audit: Mapping[str, Any],
     standard_domain_agent_skeleton: Mapping[str, Any],
     domain_memory_descriptor: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -337,16 +336,12 @@ def build_functional_closure_status_projection(
             gate_class="functional_follow_through_gate",
             owner_surface_refs=[
                 "/product_entry_manifest/legacy_retirement_tombstone_proof",
-                "/product_entry_manifest/legacy_residue_audit",
+                "/product_entry_manifest/functional_consumer_boundary/retired_legacy_residue_tombstones",
             ],
-            status=_legacy_status(
-                legacy_retirement_tombstone_proof=legacy_retirement_tombstone_proof,
-                legacy_residue_audit=legacy_residue_audit,
-            ),
-            typed_blockers=_legacy_blockers(legacy_residue_audit),
+            status=_legacy_status(legacy_retirement_tombstone_proof=legacy_retirement_tombstone_proof),
+            typed_blockers=[],
             evidence_refs=_status_refs(
                 legacy_retirement_tombstone_proof,
-                legacy_residue_audit,
             ),
         ),
         _line(
@@ -379,12 +374,12 @@ def build_functional_closure_status_projection(
             line_id="p3_foundation_guard",
             gate_class="landed_foundation",
             owner_surface_refs=[
-                "/product_entry_manifest/legacy_residue_audit",
                 "/product_entry_manifest/legacy_retirement_tombstone_proof",
+                "/product_entry_manifest/functional_consumer_boundary/retired_legacy_residue_tombstones",
             ],
             status="maintenance_only_no_default_mds_dependency",
             typed_blockers=[],
-            evidence_refs=_status_refs(legacy_residue_audit, legacy_retirement_tombstone_proof),
+            evidence_refs=_status_refs(legacy_retirement_tombstone_proof),
         ),
     ]
     return {
@@ -523,45 +518,14 @@ def _repo_source_anchors_landed(skeleton: Mapping[str, Any]) -> bool:
 def _legacy_status(
     *,
     legacy_retirement_tombstone_proof: Mapping[str, Any],
-    legacy_residue_audit: Mapping[str, Any],
 ) -> str:
     active_default_callers = legacy_retirement_tombstone_proof.get("active_default_callers")
-    summary = legacy_residue_audit.get("summary")
-    cleanup_pending_count = (
-        summary.get("cleanup_pending_count") if isinstance(summary, Mapping) else None
-    )
-    if active_default_callers == [] and cleanup_pending_count == 0:
+    retired_surfaces = legacy_retirement_tombstone_proof.get("retired_or_tombstoned_surfaces")
+    if active_default_callers == [] and isinstance(retired_surfaces, list):
         return "no_active_default_caller_proven_cleanup_policy_satisfied"
     if active_default_callers == []:
         return "no_active_default_caller_proven_cleanup_review_pending"
     return "typed_blocker"
-
-
-def _legacy_blockers(legacy_residue_audit: Mapping[str, Any]) -> list[dict[str, Any]]:
-    findings = legacy_residue_audit.get("findings")
-    if not isinstance(findings, list):
-        return [
-            _typed_blocker(
-                "legacy_residue_audit_missing_findings",
-                owner=DOMAIN_OWNER,
-                required_surface="legacy_residue_audit.findings",
-                reason="Legacy retirement needs structured findings before cleanup can proceed.",
-            )
-        ]
-    blockers: list[dict[str, Any]] = []
-    for item in findings:
-        if not isinstance(item, Mapping):
-            continue
-        if item.get("delete_allowed") is True:
-            blockers.append(
-                _typed_blocker(
-                    f"legacy_residue_delete_allowed:{item.get('residue_id')}",
-                    owner=DOMAIN_OWNER,
-                    required_surface="focused cleanup tests and replacement proof",
-                    reason="A legacy residue is deletable and needs a focused cleanup patch.",
-                )
-            )
-    return blockers
 
 
 def _functional_closure_summary(lines: list[dict[str, Any]]) -> dict[str, Any]:

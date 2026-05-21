@@ -493,7 +493,7 @@ def test_provider_residency_read_model_requires_all_opl_receipts() -> None:
     ]
 
 
-def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_callers(
+def test_product_entry_manifest_omits_retired_legacy_residue_audit_surface(
     tmp_path: Path,
 ) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
@@ -502,36 +502,23 @@ def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_cal
     profile_ref = tmp_path / "profile.local.toml"
 
     manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
-    audit = manifest["legacy_residue_audit"]
+    assert "legacy_residue_audit" not in manifest
 
-    assert audit["surface_kind"] == "mas_legacy_residue_audit"
-    assert audit["status"] == "default_callers_retired_with_references_retained"
-    assert audit["scan_policy"] == {
-        "docs_are_not_machine_truth": True,
-        "stale_term_scan_is_review_input_only": True,
-        "delete_only_when_replacement_proof_and_no_default_caller": True,
+    tombstone = manifest["legacy_retirement_tombstone_proof"]
+    assert tombstone["status"] == "no_active_default_caller_proven"
+    assert tombstone["active_default_callers"] == []
+    assert tombstone["tombstone_refs"] == [
+        "contracts/runtime/legacy-active-path-tombstones.json",
+        "docs/history/runtime/legacy_active_path_tombstones.md",
+    ]
+
+    boundary = manifest["functional_consumer_boundary"]
+    tombstones = boundary["retired_legacy_residue_tombstones"]
+    assert {item["residue_id"] for item in tombstones} == {
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller",
     }
-    assert audit["summary"]["default_caller_count"] == 0
-    assert audit["summary"]["cleanup_pending_count"] == 0
-    assert audit["summary"]["tombstoned_count"] == 2
-    assert audit["summary"]["retired_no_default_caller_count"] == 1
-    assert "provider_runtime_residency_read_model" in audit["replacement_surfaces"]
-    by_id = {item["residue_id"]: item for item in audit["findings"]}
-    assert by_id["hermes_agent_executor_adapter"]["default_caller"] is False
-    assert by_id["hermes_agent_executor_adapter"]["disposition"] == "retain_reference"
-    assert by_id["hermes_gateway_cron_scheduler"]["disposition"] == "retired_no_default_caller"
-    assert by_id["workspace_local_scheduler_wording"]["disposition"] == "tombstoned"
-    assert by_id["workspace_local_scheduler_wording"]["current_role"] == (
-        "retired_physical_tombstone_provenance_only"
-    )
-    assert by_id["med_deepscientist_backend_reference"]["current_role"] == (
-        "historical_fixture_provenance_parity_oracle"
-    )
-    assert by_id["hosted_runtime_binding_wording"]["disposition"] == "tombstoned"
-    assert by_id["hosted_runtime_binding_wording"]["delete_allowed"] is False
-    assert "contracts/runtime/legacy-active-path-tombstones.json" in by_id[
-        "hosted_runtime_binding_wording"
-    ]["replacement_proof_refs"]
-    assert all(item["body_included"] is False for item in audit["findings"])
-    assert audit["authority_boundary"]["audit_can_delete_code"] is False
-    assert audit["authority_boundary"]["audit_can_change_runtime_defaults"] is False
+    assert all(item["active_caller_count"] == 0 for item in tombstones)
+    assert all(item["current_role"] == "history_tombstone_provenance_only" for item in tombstones)

@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-21：旧 residue audit 不再作为 current product/sidecar surface 暴露
+
+- 决策：已进入 tombstone/provenance 的旧 MDS / Hermes / local scheduler residue 不再通过 current product-entry manifest 或 sidecar export 暴露独立 audit surface。当前机器真相只保留 `legacy_retirement_tombstone_proof`、`functional_consumer_boundary.retired_legacy_residue_tombstones` 和 `contracts/runtime/legacy-active-path-tombstones.json`。
+- 理由：旧 audit surface 已无 active caller，只是在 current manifest 上重复呈现 tombstone/provenance 结论，继续保留会让 product/sidecar 面看起来仍有 legacy cleanup entrypoint。清理后，测试改为断言旧 audit 字段不存在，并继续检查 tombstone proof 与 retired residue machine surface。
+- 影响：这只删除已无 current caller 的 audit 程序面，不删除仍有 active domain / diagnostic caller 的 `runtime_transport/`、turn runner、worker lease、`runtime_lifecycle_store.py`、workbench shell、sidecar dispatch adapter 或 status projection。后者仍按 active caller proof、OPL parity、MAS receipt parity、focused tests、no-forbidden-write proof 和 tombstone/provenance refs 的删除门推进。
+
 ## 2026-05-21：provenance-limited rebuild handoff 必须覆盖旧 methodology decision
 
 - 决策：当 `artifacts/controller/provenance_limited_harmonization/latest.json` 已产出当前 `unit_harmonized_rerun_required` typed handoff，并明确 `next_owner=analysis_harmonization_owner`、`next_work_unit=unit_harmonized_external_validation_rerun`，且该 owner result 晚于它消费的 source provenance、controller decision 与 rebuild task intake 时，domain-route-scan 必须优先排 `analysis_harmonization_owner`，不能再被旧 `source_provenance/latest.json` terminal blocker 拉回 `methodology_reframe_route_decision`。
