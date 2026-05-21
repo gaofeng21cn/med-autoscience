@@ -326,7 +326,7 @@ def _platform_repair_decision_redrive(continuation_state: dict[str, Any] | None)
         return None
     if continuation_anchor != "decision":
         return None
-    if continuation_reason != "runtime_platform_repair_redrive":
+    if continuation_reason != "controller_work_unit_pending":
         return None
     pending_count = continuation_state.get("pending_user_message_count")
     if isinstance(pending_count, int) and pending_count > 0:

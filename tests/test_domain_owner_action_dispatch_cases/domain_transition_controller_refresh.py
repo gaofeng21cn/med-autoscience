@@ -87,7 +87,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
         },
         "blocking_work_units": [{"unit_id": "ai_reviewer_recheck", "lane": "review"}],
     }
-    resume_calls: list[dict[str, object]] = []
+    ensure_calls: list[dict[str, object]] = []
 
     monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
@@ -114,29 +114,16 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
             },
         }
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        resume_calls.append(dict(kwargs))
-        runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "fresh-domain-transition-ai-reviewer-decision"
-        assert authorization["controller_actions"] == ["return_to_ai_reviewer_workflow"]
-        assert authorization["route_target"] == "review"
-        assert authorization["work_unit_id"] == "ai_reviewer_recheck"
-        assert authorization["work_unit_fingerprint"] == work_unit_fingerprint
-        assert authorization["next_work_unit"]["unit_id"] == "ai_reviewer_recheck"
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "decision": "resume",
-            "quest_status": "running",
-        }
+    def fail_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
+        raise AssertionError("MAS must not resume OPL-owned runtime workers")
 
     monkeypatch.setattr(
         outer_loop,
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fail_ensure_study_runtime)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -147,13 +134,22 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
 
     refresh = result["refreshes"][0]
     runtime_authorization = refresh["runtime_authorization"]
+    current_authorization = runtime_authorization["current_controller_authorization"]
     assert result["materialized_count"] == 1
-    assert runtime_authorization["authorization_status"] == "written"
-    assert runtime_authorization["runtime_resume_status"] == "requested"
-    assert runtime_authorization["current_controller_authorization"]["decision_id"] == (
+    assert runtime_authorization["authorization_status"] == "owner_handoff_ready"
+    assert runtime_authorization["runtime_resume_status"] == "owner_route_required"
+    assert runtime_authorization["queue_owner"] == "one-person-lab"
+    assert runtime_authorization["runtime_state_mutated"] is False
+    assert runtime_authorization["runtime_owner_handoff"]["authority_boundary"]["mas_resumes_provider_worker"] is False
+    assert current_authorization["written"] is False
+    assert current_authorization["runtime_state_mutated"] is False
+    assert current_authorization["decision_id"] == "fresh-domain-transition-ai-reviewer-decision"
+    assert current_authorization["controller_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert current_authorization["work_unit_id"] == "ai_reviewer_recheck"
+    assert current_authorization["proposed_runtime_state"]["last_controller_decision_authorization"]["decision_id"] == (
         "fresh-domain-transition-ai-reviewer-decision"
     )
-    assert len(resume_calls) == 1
+    assert ensure_calls == []
 
 
 def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_finalize_runtime(
@@ -237,7 +233,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
         },
         "blocking_work_units": [{"unit_id": "submission_authority_sync_closure", "lane": "controller"}],
     }
-    resume_calls: list[dict[str, object]] = []
+    ensure_calls: list[dict[str, object]] = []
 
     monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
@@ -264,29 +260,16 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
             },
         }
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        resume_calls.append(dict(kwargs))
-        runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "fresh-domain-transition-bundle-stage-decision"
-        assert authorization["controller_actions"] == ["ensure_study_runtime"]
-        assert authorization["route_target"] == "finalize"
-        assert authorization["work_unit_id"] == "submission_authority_sync_closure"
-        assert authorization["work_unit_fingerprint"] == work_unit_fingerprint
-        assert authorization["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "decision": "resume",
-            "quest_status": "running",
-        }
+    def fail_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
+        raise AssertionError("MAS must hand off bundle-stage runtime routing to OPL")
 
     monkeypatch.setattr(
         outer_loop,
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fail_ensure_study_runtime)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -296,13 +279,21 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
     )
 
     runtime_authorization = result["refreshes"][0]["runtime_authorization"]
+    current_authorization = runtime_authorization["current_controller_authorization"]
     assert result["materialized_count"] == 1
-    assert runtime_authorization["authorization_status"] == "written"
-    assert runtime_authorization["runtime_resume_status"] == "requested"
-    assert runtime_authorization["current_controller_authorization"]["decision_id"] == (
+    assert runtime_authorization["authorization_status"] == "owner_handoff_ready"
+    assert runtime_authorization["runtime_resume_status"] == "owner_route_required"
+    assert runtime_authorization["queue_owner"] == "one-person-lab"
+    assert runtime_authorization["runtime_state_mutated"] is False
+    assert current_authorization["written"] is False
+    assert current_authorization["runtime_state_mutated"] is False
+    assert current_authorization["decision_id"] == "fresh-domain-transition-bundle-stage-decision"
+    assert current_authorization["controller_actions"] == ["ensure_study_runtime"]
+    assert current_authorization["work_unit_id"] == "submission_authority_sync_closure"
+    assert current_authorization["proposed_runtime_state"]["last_controller_decision_authorization"]["decision_id"] == (
         "fresh-domain-transition-bundle-stage-decision"
     )
-    assert len(resume_calls) == 1
+    assert ensure_calls == []
 
 
 def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
@@ -420,56 +411,20 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
             },
         }
 
-    def fake_pause_study_runtime(**_: object) -> dict[str, object]:
+    def fail_pause_study_runtime(**_: object) -> dict[str, object]:
         calls.append("pause")
-        runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
-        assert runtime_state["active_run_id"] == stale_run_id
-        assert runtime_state["worker_running"] is True
-        runtime_state["status"] = "paused"
-        runtime_state["active_run_id"] = None
-        runtime_state["worker_running"] = False
-        module._write_json(quest_root / ".ds" / "runtime_state.json", runtime_state)
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "decision": "pause",
-            "quest_status": "paused",
-            "active_run_id": None,
-        }
+        raise AssertionError("MAS must not pause OPL-owned live workers")
 
     def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
         calls.append("resume")
-        runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
-        assert runtime_state["active_run_id"] is None
-        assert runtime_state["worker_running"] is False
-        assert runtime_state["last_controller_decision_authorization"]["work_unit_fingerprint"] == work_unit_fingerprint
-        fresh_prompt = quest_root / ".ds" / "runs" / fresh_run_id / "prompt.md"
-        fresh_prompt.parent.mkdir(parents=True, exist_ok=True)
-        fresh_prompt.write_text(
-            f"Active MAS controller work unit: {work_unit_fingerprint}\n"
-            '"work_unit_id": "submission_authority_sync_closure"\n',
-            encoding="utf-8",
-        )
-        runtime_state["status"] = "running"
-        runtime_state["active_run_id"] = fresh_run_id
-        runtime_state["worker_running"] = True
-        module._write_json(quest_root / ".ds" / "runtime_state.json", runtime_state)
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "decision": "resume",
-            "quest_status": "running",
-            "active_run_id": fresh_run_id,
-            "worker_running": True,
-            "started": True,
-        }
+        raise AssertionError("MAS must not resume OPL-owned live workers")
 
     monkeypatch.setattr(
         outer_loop,
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.study_runtime_router, "pause_study_runtime", fake_pause_study_runtime)
+    monkeypatch.setattr(module.study_runtime_router, "pause_study_runtime", fail_pause_study_runtime)
     monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
@@ -482,12 +437,14 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
     runtime_authorization = result["refreshes"][0]["runtime_authorization"]
     prompt_refresh = runtime_authorization["active_prompt_refresh"]
     runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
-    assert calls == ["pause", "resume"]
-    assert runtime_authorization["runtime_resume_status"] == "requested"
-    assert prompt_refresh["status"] == "fresh_turn_forced"
+    assert calls == []
+    assert runtime_authorization["runtime_resume_status"] == "owner_route_required"
+    assert runtime_authorization["queue_owner"] == "one-person-lab"
+    assert prompt_refresh["status"] == "owner_route_required"
+    assert prompt_refresh["runtime_state_mutated"] is False
     assert prompt_refresh["stale_active_run_id"] == stale_run_id
     assert prompt_refresh["expected_work_unit_fingerprint"] == work_unit_fingerprint
-    assert runtime_state["active_run_id"] == fresh_run_id
+    assert runtime_state["active_run_id"] == stale_run_id
 
 
 def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_authorization(
@@ -602,21 +559,9 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
     def fail_pause_study_runtime(**_: object) -> dict[str, object]:
         raise AssertionError("aligned live prompt must not be paused")
 
-    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
+    def fail_ensure_study_runtime(**_: object) -> dict[str, object]:
         calls.append("resume")
-        runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
-        assert runtime_state["active_run_id"] == live_run_id
-        assert runtime_state["worker_running"] is True
-        assert runtime_state["last_controller_decision_authorization"]["work_unit_fingerprint"] == work_unit_fingerprint
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "decision": "resume",
-            "quest_status": "running",
-            "active_run_id": live_run_id,
-            "worker_running": True,
-            "queued": True,
-        }
+        raise AssertionError("MAS must not call ensure_study_runtime for aligned live prompts")
 
     monkeypatch.setattr(
         outer_loop,
@@ -624,7 +569,7 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
         fake_materialize_non_dispatching_outer_loop_decision,
     )
     monkeypatch.setattr(module.study_runtime_router, "pause_study_runtime", fail_pause_study_runtime)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fail_ensure_study_runtime)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -634,6 +579,7 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
     )
 
     runtime_authorization = result["refreshes"][0]["runtime_authorization"]
-    assert calls == ["resume"]
-    assert runtime_authorization["runtime_resume_status"] == "requested"
+    assert calls == []
+    assert runtime_authorization["runtime_resume_status"] == "owner_route_required"
+    assert runtime_authorization["queue_owner"] == "one-person-lab"
     assert "active_prompt_refresh" not in runtime_authorization

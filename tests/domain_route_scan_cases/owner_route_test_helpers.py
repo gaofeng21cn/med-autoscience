@@ -44,7 +44,8 @@ def assert_owner_route_required(
     if quest_root is None:
         return None
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    assert "last_opl_runtime_owner_route_handoff" not in runtime_state
+    actual_runtime_state = dict(runtime_state)
+    assert "last_opl_runtime_owner_route_handoff" not in actual_runtime_state
     handoff_record_path = (
         quest_root.parents[2]
         / "studies"
@@ -58,4 +59,58 @@ def assert_owner_route_required(
     assert handoff_record["runtime_state_mutated"] is False
     assert handoff_record["handoff"]["queue_owner"] == "one-person-lab"
     assert handoff_record["handoff"]["authority_boundary"]["mas_resumes_provider_worker"] is False
-    return runtime_state
+    return _projected_owner_runtime_state(actual_runtime_state, apply_result)
+
+
+def assert_controller_authorization_handoff(
+    apply_result: dict[str, Any],
+    *,
+    expected_decision_id: str | None = None,
+    expected_work_unit_id: str | None = None,
+) -> dict[str, Any]:
+    assert apply_result["current_controller_authorization_written"] is False
+    authorization = apply_result["current_controller_authorization"]
+    assert authorization["written"] is False
+    assert authorization["runtime_state_mutated"] is False
+    assert authorization["delegated_runtime_owner"] == "one-person-lab"
+    if expected_decision_id is not None:
+        assert authorization["decision_id"] == expected_decision_id
+    if expected_work_unit_id is not None:
+        assert authorization["work_unit_id"] == expected_work_unit_id
+    return authorization
+
+
+def _projected_owner_runtime_state(runtime_state: dict[str, Any], apply_result: dict[str, Any]) -> dict[str, Any]:
+    projected = dict(runtime_state)
+    for key in (
+        "stale_specificity_clear",
+        "stale_controller_terminal_clear",
+        "owner_handoff_clear",
+        "existing_pending_user_message_resume",
+    ):
+        clear_result = apply_result.get(key)
+        if not isinstance(clear_result, dict):
+            continue
+        if clear_result.get("runtime_state_mutated") is False:
+            for cleared_key in clear_result.get("cleared_keys") or []:
+                assert cleared_key in runtime_state
+        for cleared_key in clear_result.get("cleared_keys") or []:
+            projected.pop(cleared_key, None)
+        proposed = clear_result.get("proposed_runtime_state")
+        if isinstance(proposed, dict):
+            projected.update(proposed)
+        if clear_result.get("clear_reason"):
+            projected["last_runtime_platform_repair"] = {
+                "clear_reason": clear_result.get("clear_reason"),
+                "cleared_keys": list(clear_result.get("cleared_keys") or []),
+                "runtime_state_mutated": False,
+                "delegated_runtime_owner": clear_result.get("delegated_runtime_owner"),
+            }
+    authorization = apply_result.get("current_controller_authorization")
+    if isinstance(authorization, dict):
+        for cleared_key in authorization.get("cleared_keys") or []:
+            projected.pop(cleared_key, None)
+        proposed = authorization.get("proposed_runtime_state")
+        if isinstance(proposed, dict):
+            projected.update(proposed)
+    return projected

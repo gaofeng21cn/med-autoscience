@@ -12,6 +12,12 @@
 - 理由：`.ds/runtime_state.json` 是 generic runtime/provider 状态面；即使 MAS 不再直接 relaunch/resume，只要继续清 `active_run_id` 或写 continuation state，就仍在替 OPL 维护 runtime liveness/control-plane。正确边界是 MAS 发布 owner-route refs，OPL queue/attempt/provider 消费这些 refs。
 - 影响：owner-route apply result 的 `allowed_write_surfaces` 收窄到 `artifacts/supervision/**` 与 autonomy repair lifecycle/action refs；OPL 通过 sidecar task hydration 读取 handoff artifact。该路径不写论文、publication eval、controller decisions、submission package、current package，也不声明 OPL 已完成 dispatch。
 
+## 2026-05-21：controller refresh 只能产出 OPL runtime-owner handoff
+
+- 决策：`refresh_controller_decisions_for_current_publication_eval` 在物化 current controller decision 后，不再调用 `ensure_study_runtime`、不 pause/resume live worker、不写 `last_controller_decision_authorization` 到 `.ds/runtime_state.json`，也不向 `.ds/events.jsonl` 追加 runtime event。它只能返回 refs-only `runtime_owner_handoff`，其中包括 current work unit、fingerprint、proposed runtime-state delta、`queue_owner=one-person-lab` 与 authority boundary。
+- 理由：AI reviewer route-back、publication aftercare、domain transition 和 bundle-stage closeout 都是 MAS domain truth / owner-route refs；真正的 queue hydration、provider attempt、retry/dead-letter、pending user message redrive、live prompt refresh 与 worker lifecycle 是 OPL generic runtime 职责。继续由 MAS 写 authorization 或触发 provider resume，会把 MAS 重新变成私有 runtime/control-plane owner。
+- 影响：旧测试中“MAS 写 authorization 后请求 resume”的断言已改为“MAS 不调用 provider lifecycle API、不改 runtime state、只交给 OPL owner route”。`authorization_status` 使用 `owner_handoff_ready` / `pending_user_message_owner_handoff_ready`，`runtime_resume_status=owner_route_required`。论文、publication eval、controller decisions、current package 与 submission package 的权威仍由对应 MAS owner surface 决定。
+
 ## 2026-05-21：domain route-back 在 progress read-model 中优先于交付停驻投影
 
 - 决策：`study_progress` 必须只读透传当前 `domain_transition`，并且当 `domain_transition` 指向当前 route-back owner / work unit 时，即使 `interaction_arbitration` 尚未存在，`auto_runtime_parked` 也不得把该状态投影为 submission metadata、package-ready handoff 或 manual-finish parking。

@@ -303,11 +303,7 @@ def _runtime_platform_repair_redrive_pending(status: Mapping[str, Any]) -> bool:
     return bool(
         _text(continuation_state.get("continuation_policy")) == "auto"
         and _text(continuation_state.get("continuation_anchor")) == "decision"
-        and _text(continuation_state.get("continuation_reason"))
-        in {
-            "runtime_platform_repair_redrive",
-            "controller_work_unit_pending",
-        }
+        and _text(continuation_state.get("continuation_reason")) == "controller_work_unit_pending"
     )
 
 

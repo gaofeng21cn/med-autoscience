@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import study_runtime_router
+from ..domain_route_scan_parts import pending_user_messages
 from ..domain_route_scan_parts import platform_current_controller, platform_repair_pending_redrive
 
 
@@ -60,18 +61,12 @@ def authorize_current_controller_decision_after_refresh(
             "runtime_resume_status": "skipped",
         }
     quest_id = _text(status_payload.get("quest_id"))
-    authorization = platform_current_controller.write_current_controller_authorization(
+    authorization = _current_controller_authorization_handoff(
         runtime_state_path=runtime_state_path,
         study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         publication_eval_payload=publication_eval_payload,
-        read_json_object=_read_json_object,
-        write_json=_write_json,
-        append_json_line=_append_json_line,
-        continuation_reason="controller_work_unit_pending",
-        repair_clear_reason="ai_reviewer_controller_decision_refresh",
-        repair_extra={"controller_decision_refresh_source": source},
     )
     if authorization is None:
         return {
@@ -80,7 +75,7 @@ def authorize_current_controller_decision_after_refresh(
             "runtime_state_path": str(runtime_state_path),
             "runtime_resume_status": "skipped",
         }
-    if authorization.get("written") is not True:
+    if authorization.get("written") is not True and authorization.get("handoff_ready") is not True:
         if _text(authorization.get("reason")) == "pending_user_messages_present":
             return _resume_existing_pending_user_message(
                 profile=profile,
@@ -101,7 +96,7 @@ def authorize_current_controller_decision_after_refresh(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
-        authorization_status="written",
+        authorization_status="owner_handoff_ready",
         authorization=authorization,
         source=source,
     )
@@ -122,6 +117,7 @@ def _resume_existing_pending_user_message(
         study_id=study_id,
         quest_id=quest_id,
         source=source,
+        runtime_state=_read_json_object(runtime_state_path),
     )
     if pending_resume.get("marked") is not True:
         return {
@@ -135,7 +131,7 @@ def _resume_existing_pending_user_message(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
-        authorization_status="pending_user_message_redrive_marked",
+        authorization_status="pending_user_message_owner_handoff_ready",
         authorization=authorization,
         source=source,
         existing_pending_user_message_resume=pending_resume,
@@ -152,66 +148,49 @@ def _request_runtime_resume(
     source: str,
     existing_pending_user_message_resume: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    active_prompt_refresh = _force_fresh_turn_if_active_prompt_is_stale(
+    active_prompt_refresh = _runtime_owner_prompt_refresh_handoff(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
         authorization=authorization,
         source=source,
     )
-    if active_prompt_refresh is not None and active_prompt_refresh.get("status") == "blocked":
-        payload: dict[str, Any] = {
-            "authorization_status": authorization_status,
-            "current_controller_authorization": dict(authorization),
-            "runtime_resume_status": "blocked",
-            "runtime_resume_blocked_reason": _text(active_prompt_refresh.get("reason"))
-            or "active_prompt_refresh_failed",
-            "active_prompt_refresh": active_prompt_refresh,
-        }
-        if existing_pending_user_message_resume is not None:
-            payload["existing_pending_user_message_resume"] = dict(existing_pending_user_message_resume)
-        return payload
-    try:
-        resume_result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            source=source,
-        )
-    except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        payload: dict[str, Any] = {
-            "authorization_status": authorization_status,
-            "current_controller_authorization": dict(authorization),
-            "runtime_resume_status": "blocked",
-            "runtime_resume_blocked_reason": "ensure_study_runtime_failed",
-            "error": str(exc),
-        }
-        if existing_pending_user_message_resume is not None:
-            payload["existing_pending_user_message_resume"] = dict(existing_pending_user_message_resume)
-        if active_prompt_refresh is not None:
-            payload["active_prompt_refresh"] = active_prompt_refresh
-        return payload
     payload = {
         "authorization_status": authorization_status,
         "current_controller_authorization": dict(authorization),
-        "runtime_resume_status": "requested",
-        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
+        "runtime_resume_status": "owner_route_required",
+        "queue_owner": "one-person-lab",
+        "delegated_runtime_owner": "one-person-lab",
+        "runtime_state_mutated": False,
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "runtime_owner_handoff": {
+            "surface_kind": "mas_controller_authorization_runtime_handoff",
+            "study_id": study_id,
+            "quest_id": _text(authorization.get("quest_id")),
+            "source": source,
+            "runtime_state_path": _text(authorization.get("path")),
+            "work_unit_id": _text(authorization.get("work_unit_id")),
+            "work_unit_fingerprint": _text(authorization.get("work_unit_fingerprint")),
+            "queue_owner": "one-person-lab",
+            "domain_truth_owner": "med-autoscience",
+            "recommended_task_kind": "domain_route/reconcile-apply",
+            "authority_boundary": {
+                "mas_writes_generic_runtime_queue": False,
+                "mas_submits_runtime_chat": False,
+                "mas_resumes_provider_worker": False,
+                "opl_writes_mas_truth": False,
+                "mas_owner_receipt_required": True,
+            },
+        },
     }
     if active_prompt_refresh is not None:
-        active_prompt_refresh = {
-            **active_prompt_refresh,
-            "post_resume_alignment": _active_prompt_alignment(authorization=authorization),
-        }
-        if active_prompt_refresh["post_resume_alignment"].get("status") == "stale":
-            payload["runtime_resume_status"] = "blocked"
-            payload["runtime_resume_blocked_reason"] = "fresh_turn_prompt_still_stale"
         payload["active_prompt_refresh"] = active_prompt_refresh
     if existing_pending_user_message_resume is not None:
         payload["existing_pending_user_message_resume"] = dict(existing_pending_user_message_resume)
     return payload
 
 
-def _force_fresh_turn_if_active_prompt_is_stale(
+def _runtime_owner_prompt_refresh_handoff(
     *,
     profile: WorkspaceProfile,
     study_id: str,
@@ -219,28 +198,75 @@ def _force_fresh_turn_if_active_prompt_is_stale(
     authorization: Mapping[str, Any],
     source: str,
 ) -> dict[str, Any] | None:
+    _ = (profile, study_id, study_root, source)
     alignment = _active_prompt_alignment(authorization=authorization)
     if alignment.get("status") not in {"prompt_unavailable", "stale"}:
         return None
-    try:
-        pause_result = study_runtime_router.pause_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            source=source,
-        )
-    except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        return {
-            **alignment,
-            "status": "blocked",
-            "reason": "stale_active_prompt_pause_failed",
-            "error": str(exc),
-        }
     return {
         **alignment,
-        "status": "fresh_turn_forced",
+        "status": "owner_route_required",
         "reason": "active_codex_prompt_stale_for_current_controller_authorization",
-        "pause_result": dict(pause_result) if isinstance(pause_result, Mapping) else pause_result,
+        "queue_owner": "one-person-lab",
+        "runtime_state_mutated": False,
+        "recommended_task_kind": "domain_route/reconcile-apply",
+    }
+
+
+def _current_controller_authorization_handoff(
+    *,
+    runtime_state_path: Path,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    authorization = platform_current_controller.current_controller_authorization_payload(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        read_json_object=_read_json_object,
+        allow_specificity_work_unit=False,
+    )
+    if authorization is None:
+        authorization = platform_current_controller.story_surface_delta_authorization_payload(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            read_json_object=_read_json_object,
+        )
+    if authorization is None:
+        return None
+    runtime_state = _read_json_object(runtime_state_path)
+    if runtime_state is None:
+        return {"written": False, "handoff_ready": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
+    if pending_user_messages.pending_count(runtime_state) > 0:
+        return {"written": False, "handoff_ready": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path), **authorization}
+    clearable_keys: list[str] = []
+    for key in (
+        "retry_state",
+        "last_stage_fingerprint",
+        "last_stage_fingerprint_at",
+        "blocked_turn_closeout",
+        "last_liveness_reconcile_reason",
+    ):
+        if key in runtime_state:
+            clearable_keys.append(key)
+    return {
+        "written": False,
+        "handoff_ready": True,
+        "runtime_state_mutated": False,
+        "events_jsonl_mutated": False,
+        "delegated_runtime_owner": "one-person-lab",
+        "path": str(runtime_state_path),
+        "study_id": study_id,
+        "quest_id": _text(runtime_state.get("quest_id")) or quest_id,
+        "cleared_keys": clearable_keys,
+        "proposed_runtime_state": {
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+            "last_controller_decision_authorization": authorization,
+            "same_fingerprint_auto_turn_count": 0,
+        },
+        **authorization,
     }
 
 

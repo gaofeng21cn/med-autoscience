@@ -4,7 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
+from tests.domain_route_scan_cases.owner_route_test_helpers import (
+    assert_controller_authorization_handoff,
+    assert_owner_route_required,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -217,7 +220,7 @@ def test_scan_domain_routes_redrives_target_ready_mas_controller_closeout_with_c
         expected_reason="stale_publication_gate_closeout_targets_resolved",
     )
     assert apply_result["reason"] == "stale_publication_gate_closeout_targets_resolved"
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(apply_result)
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
     assert runtime_state["pending_user_message_count"] == 2
     authorization = runtime_state["last_controller_decision_authorization"]

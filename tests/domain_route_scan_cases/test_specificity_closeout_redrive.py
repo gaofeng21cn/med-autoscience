@@ -4,7 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
+from tests.domain_route_scan_cases.owner_route_test_helpers import (
+    assert_controller_authorization_handoff,
+    assert_owner_route_required,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -195,7 +198,7 @@ def test_scan_domain_routes_redrives_publication_gate_closeout_after_specificity
         expected_reason="stale_publication_gate_closeout_targets_resolved",
     )
     assert apply_result["reason"] == "stale_publication_gate_closeout_targets_resolved"
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(apply_result)
     assert apply_result["stale_specificity_cleared"] is True
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
     assert apply_result["existing_pending_user_message_resume"] is None
@@ -379,7 +382,7 @@ def test_scan_domain_routes_redrives_controller_authorized_paper_line_owner_clos
         expected_reason="stale_publication_gate_closeout_targets_resolved",
     )
     assert apply_result["reason"] == "stale_publication_gate_closeout_targets_resolved"
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(apply_result)
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
     assert "blocked_turn_closeout" not in runtime_state
     assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
@@ -550,7 +553,7 @@ def test_scan_domain_routes_redrives_mas_controller_closeout_when_specificity_au
         quest_root=quest_root,
         expected_reason="stale_publication_gate_closeout_targets_resolved",
     )
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(apply_result)
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
     assert "blocked_turn_closeout" not in runtime_state
     authorization = runtime_state["last_controller_decision_authorization"]
@@ -697,11 +700,11 @@ def test_scan_domain_routes_redrives_mas_controller_closeout_when_authorization_
         expected_reason="stale_publication_gate_closeout_targets_resolved",
     )
     assert apply_result["reason"] == "stale_publication_gate_closeout_targets_resolved"
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(apply_result)
     assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-specificity-after-closeout"
 
 
-def test_scan_domain_routes_resumes_pending_platform_redrive_after_stale_specificity_clear(
+def test_scan_domain_routes_ignores_legacy_runtime_platform_repair_redrive_state(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -826,15 +829,8 @@ def test_scan_domain_routes_resumes_pending_platform_redrive_after_stale_specifi
     )
 
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    runtime_state = assert_owner_route_required(
-        apply_result=apply_result,
-        ensure_calls=ensure_calls,
-        quest_root=quest_root,
-        expected_reason="runtime_controller_redrive_required",
-    )
-    assert apply_result["repair_kind"] == "pending_runtime_platform_repair_redrive"
-    assert apply_result["current_controller_authorization_written"] is True
-    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-specificity-after-clear"
+    assert apply_result is None
+    assert ensure_calls == []
 
 
 def _specificity_targets(study_root: Path) -> list[dict[str, str]]:

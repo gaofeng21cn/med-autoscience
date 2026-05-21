@@ -4,7 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
+from tests.domain_route_scan_cases.owner_route_test_helpers import (
+    assert_controller_authorization_handoff,
+    assert_owner_route_required,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -154,12 +157,18 @@ def test_scan_domain_routes_redrives_mas_controller_owner_handoff_for_current_pa
     )
     assert apply_result["reason"] == "runtime_controller_redrive_required"
     assert apply_result["repair_kind"] == "current_controller_owner_handoff_redrive"
-    assert apply_result["current_controller_authorization_written"] is True
+    authorization = assert_controller_authorization_handoff(
+        apply_result,
+        expected_decision_id="current-dpcc-owner-handoff-redrive",
+        expected_work_unit_id="analysis_claim_evidence_repair",
+    )
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
-    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
+    assert authorization["proposed_runtime_state"]["last_controller_decision_authorization"]["decision_id"] == (
         "current-dpcc-owner-handoff-redrive"
     )
-    assert "blocked_turn_closeout" not in runtime_state
+    actual_runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert "last_controller_decision_authorization" not in actual_runtime_state
+    assert "blocked_turn_closeout" in actual_runtime_state
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 

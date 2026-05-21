@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers.domain_route_scan_parts import current_truth_owner
 from med_autoscience.controllers.domain_route_scan_parts import abnormal_stopped_runtime
+from med_autoscience.controllers.domain_route_scan_parts import pending_user_messages
 from med_autoscience.controllers.domain_route_scan_parts import platform_current_controller
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.domain_route_scan_parts import platform_repair_closeout_redrive
@@ -30,9 +31,6 @@ SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES = [
 ]
 RUNTIME_PLATFORM_REPAIR_ALLOWED_WRITE_SURFACES = [
     *SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES,
-    "quest_root/.ds/runtime_state.json",
-    "quest_root/.ds/events.jsonl",
-    "artifacts/runtime/**",
 ]
 SUPERVISION_FORBIDDEN_ACTIONS = [
     "paper_package_mutation",
@@ -200,13 +198,18 @@ def _apply_current_controller_runtime_redrive(
         quest_id=quest_id,
         publication_eval_payload=publication_eval_payload,
     )
-    if authorization is not None and authorization.get("written") is not True:
+    if (
+        authorization is not None
+        and authorization.get("written") is not True
+        and authorization.get("handoff_ready") is not True
+    ):
         if _text(authorization.get("reason")) == "pending_user_messages_present":
             pending_resume = platform_repair_pending_redrive.mark_existing_pending_user_message_redrive(
                 runtime_state_path=runtime_state_path,
                 study_id=study_id,
                 quest_id=quest_id,
                 source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+                runtime_state=_read_json_object(runtime_state_path),
             )
             if pending_resume.get("marked") is not True:
                 return {
@@ -368,16 +371,8 @@ def _runtime_platform_repair_redrive_pending(runtime_state: Mapping[str, Any]) -
     return bool(
         _text(runtime_state.get("continuation_policy")) == "auto"
         and _text(runtime_state.get("continuation_anchor")) == "decision"
-        and (
-            (
-                _text(runtime_state.get("continuation_reason")) == "runtime_platform_repair_redrive"
-                and not _mapping(runtime_state.get("last_controller_decision_authorization"))
-            )
-            or (
-                _text(runtime_state.get("continuation_reason")) == "controller_work_unit_pending"
-                and bool(_mapping(runtime_state.get("last_controller_decision_authorization")))
-            )
-        )
+        and _text(runtime_state.get("continuation_reason")) == "controller_work_unit_pending"
+        and bool(_mapping(runtime_state.get("last_controller_decision_authorization")))
     )
 
 
@@ -397,22 +392,21 @@ def _apply_pending_runtime_platform_repair_redrive(
         and _mapping(runtime_state.get("last_controller_decision_authorization"))
     ):
         authorization: dict[str, Any] | None = {
-            "written": True,
+            "written": False,
+            "handoff_ready": True,
+            "existing_runtime_authorization": True,
+            "runtime_state_mutated": False,
+            "delegated_runtime_owner": "one-person-lab",
             "path": str(runtime_state_path),
             **_mapping(runtime_state.get("last_controller_decision_authorization")),
         }
     else:
-        authorization = platform_current_controller.write_current_controller_authorization(
+        authorization = _write_current_controller_authorization(
             runtime_state_path=runtime_state_path,
             study_root=study_root,
             study_id=study_id,
             quest_id=quest_id,
             publication_eval_payload=publication_eval_payload,
-            read_json_object=_read_json_object,
-            write_json=_write_json,
-            append_json_line=_append_json_line,
-            continuation_reason="runtime_platform_repair_redrive",
-            repair_clear_reason="pending_runtime_platform_repair_redrive",
             allow_specificity_work_unit=True,
         )
     if authorization is None:
@@ -424,7 +418,7 @@ def _apply_pending_runtime_platform_repair_redrive(
             "current_controller_authorization": None,
             "current_controller_authorization_written": False,
         }
-    if authorization.get("written") is not True:
+    if authorization.get("written") is not True and authorization.get("handoff_ready") is not True:
         return {
             **dict(base),
             "dispatch_status": "blocked",
@@ -441,7 +435,7 @@ def _apply_pending_runtime_platform_repair_redrive(
         reason=current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON,
         repair_kind="pending_runtime_platform_repair_redrive",
         authorization=authorization,
-        authorization_written=True,
+        authorization_written=authorization.get("written") is True,
     )
 
 
@@ -504,17 +498,88 @@ def _write_current_controller_authorization(
     quest_id: str | None,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    return platform_current_controller.write_current_controller_authorization(
+    return _current_controller_authorization_handoff(
         runtime_state_path=runtime_state_path,
         study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         publication_eval_payload=publication_eval_payload,
-        read_json_object=_read_json_object,
-        write_json=_write_json,
-        append_json_line=_append_json_line,
-        preserve_live_worker_state=False,
+        allow_specificity_work_unit=False,
     )
+
+
+def _current_controller_authorization_handoff(
+    *,
+    runtime_state_path: Path,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+    allow_specificity_work_unit: bool,
+) -> dict[str, Any] | None:
+    authorization = platform_current_controller.current_controller_authorization_payload(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        read_json_object=_read_json_object,
+        allow_specificity_work_unit=allow_specificity_work_unit,
+    )
+    if authorization is None:
+        authorization = platform_current_controller.story_surface_delta_authorization_payload(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            read_json_object=_read_json_object,
+        )
+    if authorization is None:
+        return None
+    runtime_state = _read_json_object(runtime_state_path)
+    if runtime_state is None:
+        return {
+            "written": False,
+            "handoff_ready": False,
+            "reason": "runtime_state_missing_or_invalid",
+            "path": str(runtime_state_path),
+        }
+    if pending_user_messages.pending_count(runtime_state) > 0:
+        return {
+            "written": False,
+            "handoff_ready": False,
+            "reason": "pending_user_messages_present",
+            "path": str(runtime_state_path),
+            **authorization,
+        }
+    clearable_keys: list[str] = []
+    for key in (
+        "retry_state",
+        "last_stage_fingerprint",
+        "last_stage_fingerprint_at",
+        "blocked_turn_closeout",
+        "last_liveness_reconcile_reason",
+    ):
+        if key in runtime_state:
+            clearable_keys.append(key)
+    return {
+        "written": False,
+        "handoff_ready": True,
+        "runtime_state_mutated": False,
+        "events_jsonl_mutated": False,
+        "delegated_runtime_owner": "one-person-lab",
+        "path": str(runtime_state_path),
+        "study_id": study_id,
+        "quest_id": _text(runtime_state.get("quest_id")) or quest_id,
+        "cleared_keys": clearable_keys,
+        "proposed_runtime_state": {
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+            "active_run_id": None,
+            "worker_running": False,
+            "same_fingerprint_auto_turn_count": 0,
+            "last_controller_decision_authorization": authorization,
+        },
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        **authorization,
+    }
 
 
 def _controller_decision_supersedes_specificity(
@@ -738,6 +803,7 @@ def apply_runtime_platform_repair(
             study_id=study_id,
             quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
             source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+            runtime_state=runtime_state,
         )
         blocked_turn_closeout_clear = platform_repair_pending_redrive.blocked_turn_closeout_clear_result(
             pending_resume
@@ -874,6 +940,7 @@ def apply_runtime_platform_repair(
             study_id=study_id,
             quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
             source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+            runtime_state=runtime_state,
         )
         blocked_turn_closeout_clear = (
             platform_repair_pending_redrive.blocked_turn_closeout_clear_result(pending_resume)

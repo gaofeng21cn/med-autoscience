@@ -128,7 +128,7 @@ def clear_stale_publication_gate_closeout(
     else:
         return {"cleared": False, "reason": "specificity_closeout_not_found", "path": str(runtime_state_path)}
 
-    cleared_keys: list[str] = []
+    clearable_keys: list[str] = []
     for key in (
         "last_controller_decision_authorization",
         "control_intent_lifecycle",
@@ -140,43 +140,15 @@ def clear_stale_publication_gate_closeout(
         "last_liveness_reconcile_reason",
     ):
         if key in runtime_state:
-            runtime_state.pop(key, None)
-            cleared_keys.append(key)
-    runtime_state["quest_id"] = _text(runtime_state.get("quest_id")) or quest_id
-    runtime_state["active_run_id"] = None
-    runtime_state["worker_running"] = False
-    runtime_state["continuation_policy"] = "auto"
-    runtime_state["continuation_anchor"] = "decision"
-    runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
-    runtime_state["continuation_updated_at"] = _utc_now()
-    runtime_state["same_fingerprint_auto_turn_count"] = 0
-    runtime_state["last_runtime_platform_repair"] = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "source": source,
-        "clear_reason": "stale_publication_gate_closeout_targets_resolved",
-        "cleared_keys": cleared_keys,
-        "applied_at": _utc_now(),
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-    }
-    _write_json(runtime_state_path, runtime_state)
-    _append_json_line(
-        runtime_state_path.parent / "events.jsonl",
-        {
-            "event_id": f"mas-runtime-platform-repair::{study_id}::{_utc_now()}",
-            "type": "mas.runtime_platform_repair",
-            "study_id": study_id,
-            "quest_id": quest_id,
-            "source": source,
-            "clear_reason": "stale_publication_gate_closeout_targets_resolved",
-            "cleared_keys": cleared_keys,
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "created_at": _utc_now(),
-        },
+            clearable_keys.append(key)
+    return _runtime_state_clear_handoff(
+        runtime_state_path=runtime_state_path,
+        study_id=study_id,
+        quest_id=quest_id,
+        source=source,
+        clear_reason="stale_publication_gate_closeout_targets_resolved",
+        clearable_keys=clearable_keys,
     )
-    return {"cleared": True, "cleared_keys": cleared_keys, "path": str(runtime_state_path)}
 
 
 def _runtime_authorization_stale_specificity(runtime_state: Mapping[str, Any]) -> bool:
@@ -356,7 +328,7 @@ def clear_stale_controller_runtime_state(
         return {"cleared": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
     if not runtime_state_has_controller_terminal(runtime_state):
         return {"cleared": False, "reason": "stale_controller_terminal_not_found", "path": str(runtime_state_path)}
-    cleared_keys: list[str] = []
+    clearable_keys: list[str] = []
     for key in (
         "last_controller_decision_authorization",
         "control_intent_lifecycle",
@@ -368,43 +340,15 @@ def clear_stale_controller_runtime_state(
         "last_liveness_reconcile_reason",
     ):
         if key in runtime_state:
-            runtime_state.pop(key, None)
-            cleared_keys.append(key)
-    runtime_state["quest_id"] = _text(runtime_state.get("quest_id")) or quest_id
-    runtime_state["active_run_id"] = None
-    runtime_state["worker_running"] = False
-    runtime_state["continuation_policy"] = "auto"
-    runtime_state["continuation_anchor"] = "decision"
-    runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
-    runtime_state["continuation_updated_at"] = _utc_now()
-    runtime_state["same_fingerprint_auto_turn_count"] = 0
-    runtime_state["last_runtime_platform_repair"] = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "source": source,
-        "clear_reason": clear_reason,
-        "cleared_keys": cleared_keys,
-        "applied_at": _utc_now(),
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-    }
-    _write_json(runtime_state_path, runtime_state)
-    _append_json_line(
-        runtime_state_path.parent / "events.jsonl",
-        {
-            "event_id": f"mas-runtime-platform-repair::{study_id}::{_utc_now()}",
-            "type": "mas.runtime_platform_repair",
-            "study_id": study_id,
-            "quest_id": quest_id,
-            "source": source,
-            "clear_reason": clear_reason,
-            "cleared_keys": cleared_keys,
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "created_at": _utc_now(),
-        },
+            clearable_keys.append(key)
+    return _runtime_state_clear_handoff(
+        runtime_state_path=runtime_state_path,
+        study_id=study_id,
+        quest_id=quest_id,
+        source=source,
+        clear_reason=clear_reason,
+        clearable_keys=clearable_keys,
     )
-    return {"cleared": True, "cleared_keys": cleared_keys, "path": str(runtime_state_path)}
 
 
 def clear_stale_specificity_runtime_state(
@@ -514,20 +458,11 @@ def apply_if_targets_resolved(
             "gate_status": gate_status,
             "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
         }
-    authorization = platform_current_controller.write_current_controller_authorization(
+    authorization = _controller_authorization_handoff(
         runtime_state_path=runtime_state_path,
         study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
         publication_eval_payload=publication_eval_payload,
-        read_json_object=_read_json_object,
-        write_json=_write_json,
-        append_json_line=_append_json_line,
-        continuation_reason="runtime_platform_repair_redrive",
-        repair_clear_reason="stale_publication_gate_closeout_targets_resolved",
-        repair_extra={"cleared_keys": clear_result.get("cleared_keys")},
         allow_specificity_work_unit=True,
-        allow_pending_control_messages=allow_pending_control_messages,
     )
     if authorization is None:
         return {
@@ -542,19 +477,6 @@ def apply_if_targets_resolved(
             "current_controller_authorization": None,
             "current_controller_authorization_written": False,
         }
-    if authorization.get("written") is not True:
-        return {
-            **dict(base),
-            "dispatch_status": "blocked",
-            "reason": _text(authorization.get("reason")) or "current_controller_authorization_not_written",
-            "stale_specificity_clear": clear_result,
-            "stale_specificity_cleared": True,
-            "gate_status": gate_status,
-            "existing_pending_user_message_resume": None,
-            "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
-            "current_controller_authorization": authorization,
-            "current_controller_authorization_written": False,
-        }
     _ = (profile, study_root, source)
     return platform_repair_owner_route.apply_result(
         base=base,
@@ -564,7 +486,7 @@ def apply_if_targets_resolved(
         reason="stale_publication_gate_closeout_targets_resolved",
         repair_kind="stale_publication_gate_closeout_targets_resolved",
         authorization=authorization,
-        authorization_written=True,
+        authorization_written=False,
         extra={
             "stale_specificity_clear": clear_result,
             "stale_specificity_cleared": True,
@@ -585,6 +507,82 @@ def blocked_turn_closeout_clear_result(clear_result: Mapping[str, Any] | None) -
         "cleared": True,
         "cleared_keys": [key for key in cleared_keys if key in {"blocked_turn_closeout", "last_liveness_reconcile_reason"}],
         "path": _text(clear_result.get("path")),
+        "runtime_state_mutated": clear_result.get("runtime_state_mutated") is True,
+        "delegated_runtime_owner": _text(clear_result.get("delegated_runtime_owner")),
+    }
+
+
+def _runtime_state_clear_handoff(
+    *,
+    runtime_state_path: Path,
+    study_id: str,
+    quest_id: str | None,
+    source: str,
+    clear_reason: str,
+    clearable_keys: list[str],
+) -> dict[str, Any]:
+    return {
+        "cleared": True,
+        "cleared_keys": clearable_keys,
+        "path": str(runtime_state_path),
+        "runtime_state_mutated": False,
+        "events_jsonl_mutated": False,
+        "delegated_runtime_owner": "one-person-lab",
+        "source": source,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "clear_reason": clear_reason,
+        "proposed_runtime_state": {
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "runtime_platform_repair_redrive",
+            "active_run_id": None,
+            "worker_running": False,
+            "same_fingerprint_auto_turn_count": 0,
+        },
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+    }
+
+
+def _controller_authorization_handoff(
+    *,
+    runtime_state_path: Path,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    allow_specificity_work_unit: bool = False,
+) -> dict[str, Any] | None:
+    authorization = platform_current_controller.current_controller_authorization_payload(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        read_json_object=_read_json_object,
+        allow_specificity_work_unit=allow_specificity_work_unit,
+    )
+    if authorization is None:
+        authorization = platform_current_controller.story_surface_delta_authorization_payload(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            read_json_object=_read_json_object,
+        )
+    if authorization is None:
+        return None
+    return {
+        "written": False,
+        "handoff_ready": True,
+        "runtime_state_mutated": False,
+        "events_jsonl_mutated": False,
+        "delegated_runtime_owner": "one-person-lab",
+        "path": str(runtime_state_path),
+        "proposed_runtime_state": {
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+            "active_run_id": None,
+            "worker_running": False,
+            "same_fingerprint_auto_turn_count": 0,
+            "last_controller_decision_authorization": authorization,
+        },
+        **authorization,
     }
 
 

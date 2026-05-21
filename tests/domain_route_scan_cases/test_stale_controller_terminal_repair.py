@@ -4,7 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
+from tests.domain_route_scan_cases.owner_route_test_helpers import (
+    assert_controller_authorization_handoff,
+    assert_owner_route_required,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -305,7 +308,7 @@ def test_scan_domain_routes_writes_current_controller_authorization_before_no_li
         quest_root=quest_root,
         expected_reason="opl_runtime_owner_route_required",
     )
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(apply_result)
     assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-dpcc-analysis-redrive"
     assert study["blocked_reason"] == "opl_runtime_owner_route_required"
     assert study["next_owner"] == "one-person-lab"
@@ -463,7 +466,7 @@ def test_scan_domain_routes_resumes_waiting_controller_work_unit_pending_after_a
         expected_reason=None,
     )
     assert apply_result["repair_kind"] == "pending_runtime_platform_repair_redrive"
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(apply_result)
     assert runtime_state["last_controller_decision_authorization"] == authorization
     assert study["external_supervisor_required"] is False
 
@@ -647,7 +650,7 @@ def test_scan_domain_routes_applies_current_controller_redrive_for_live_activity
     assert apply_result["repair_kind"] == "live_activity_timeout_current_controller_redrive"
     assert apply_result["force_fresh_turn"]["forced"] is False
     assert apply_result["force_fresh_turn"]["reason"] == "opl_runtime_owner_route_required"
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(apply_result)
     assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-dpcc-live-timeout-redrive"
     assert study["blocked_reason"] == "runtime_controller_redrive_required"
     assert study["next_owner"] == "one-person-lab"
