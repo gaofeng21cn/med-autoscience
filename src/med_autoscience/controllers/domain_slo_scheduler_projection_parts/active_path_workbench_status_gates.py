@@ -71,6 +71,8 @@ def build_workbench_status_active_path_gates(
             "current_paths": [
                 "src/med_autoscience/controllers/sidecar_family_adapter.py",
                 "src/med_autoscience/controllers/sidecar_family_adapter_parts/",
+                "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+                "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py",
             ],
             "current_role": "domain_sidecar_dispatch_adapter",
             "active_caller_status": "active_domain_sidecar_dispatch_caller_present",
@@ -85,6 +87,25 @@ def build_workbench_status_active_path_gates(
                 "physical_retirement_gate_matrix.retirement_candidates.sidecar_adapter",
                 "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
             ],
+            "latest_thinning_evidence": {
+                "status": "sidecar_export_projection_split_to_parts_facade_retained",
+                "facade_path": "src/med_autoscience/controllers/sidecar_family_adapter.py",
+                "facade_role": "dispatch_facade_and_public_export_only",
+                "extracted_paths": [
+                    (
+                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "export_projection.py"
+                    ),
+                    (
+                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "dispatch_orchestration.py"
+                    ),
+                ],
+                "retained_active_caller_count": 1,
+                "does_not_claim_physical_delete": True,
+                "does_not_claim_opl_default_caller": True,
+                "does_not_claim_domain_receipt_parity": True,
+            },
             "focused_test_refs": sidecar_focused_test_refs,
             "deletion_readiness_worklist": {
                 "surface_kind": "mas_sidecar_dispatch_adapter_deletion_readiness",

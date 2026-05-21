@@ -360,6 +360,18 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     sidecar_worklist = cleanup_gates["sidecar_dispatch_adapter"]["deletion_readiness_worklist"]
     assert sidecar_worklist["can_delete"] is False
     assert sidecar_worklist["active_caller_count"] == 1
+    sidecar_paths = cleanup_gates["sidecar_dispatch_adapter"]["current_paths"]
+    assert "src/med_autoscience/controllers/sidecar_family_adapter.py" in sidecar_paths
+    assert (
+        "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py"
+        in sidecar_paths
+    )
+    sidecar_thinning = cleanup_gates["sidecar_dispatch_adapter"]["latest_thinning_evidence"]
+    assert sidecar_thinning["status"] == (
+        "sidecar_export_projection_split_to_parts_facade_retained"
+    )
+    assert sidecar_thinning["does_not_claim_physical_delete"] is True
+    assert sidecar_thinning["does_not_claim_domain_receipt_parity"] is True
     assert "no_forbidden_write_proof" in {
         item["gate"] for item in sidecar_worklist["missing_gate_inputs"]
     }

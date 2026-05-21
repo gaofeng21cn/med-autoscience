@@ -276,7 +276,9 @@
         "current_disposition": "retain_with_explicit_cleanup_gate",
         "current_paths": [
           "src/med_autoscience/controllers/sidecar_family_adapter.py",
-          "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+          "src/med_autoscience/controllers/sidecar_family_adapter_parts/",
+          "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+          "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
         ],
         "current_role": "domain_sidecar_dispatch_adapter",
         "delete_or_tombstone_after": [
@@ -362,6 +364,19 @@
           "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py",
           "tests/test_cli_cases/sidecar_family_adapter_command_cases/dispatch_cases.py"
         ],
+        "latest_thinning_evidence": {
+          "does_not_claim_domain_receipt_parity": true,
+          "does_not_claim_opl_default_caller": true,
+          "does_not_claim_physical_delete": true,
+          "extracted_paths": [
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
+          ],
+          "facade_path": "src/med_autoscience/controllers/sidecar_family_adapter.py",
+          "facade_role": "dispatch_facade_and_public_export_only",
+          "retained_active_caller_count": 1,
+          "status": "sidecar_export_projection_split_to_parts_facade_retained"
+        },
         "must_not_emit": [
           "generic_scheduler_owner",
           "generic_queue_owner",
@@ -1721,7 +1736,9 @@
         },
         {
           "current_paths": [
-            "src/med_autoscience/controllers/sidecar_family_adapter.py"
+            "src/med_autoscience/controllers/sidecar_family_adapter.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
           ],
           "current_role": "migration_bridge_export_dispatch_adapter",
           "surface_id": "sidecar",
@@ -2472,7 +2489,9 @@
             "sidecar dispatch guarded owner receipt"
           ],
           "code_paths": [
-            "src/med_autoscience/controllers/sidecar_family_adapter.py"
+            "src/med_autoscience/controllers/sidecar_family_adapter.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
           ],
           "delete_gate_status": "blocked_domain_dispatch_adapter_active",
           "deletion_readiness_worklist_ref": "functional_consumer_boundary.active_path_residue_cleanup_gates.sidecar_dispatch_adapter.deletion_readiness_worklist",
@@ -2482,6 +2501,15 @@
             "mas_owner_receipt_parity": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
             "opl_replacement_parity": "opl_generated_sidecar_default_required",
             "tombstone_refs_landed": "required_before_delete"
+          },
+          "latest_thinning_evidence": {
+            "does_not_claim_physical_delete": true,
+            "extracted_paths": [
+              "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+              "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
+            ],
+            "facade_path": "src/med_autoscience/controllers/sidecar_family_adapter.py",
+            "status": "sidecar_export_projection_split_to_parts_facade_retained"
           },
           "no_active_caller_proof": {
             "default_callers": [],

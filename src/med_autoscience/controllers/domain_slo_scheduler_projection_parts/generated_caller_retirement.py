@@ -173,6 +173,7 @@ def _retirement_candidate(
     active_domain_or_diagnostic_callers: list[str],
     deletion_readiness_worklist_ref: str | None = None,
     no_forbidden_write_proof_refs: list[str] | None = None,
+    latest_thinning_evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     candidate = {
         "surface_id": surface_id,
@@ -196,6 +197,8 @@ def _retirement_candidate(
         candidate["deletion_readiness_worklist_ref"] = deletion_readiness_worklist_ref
     if no_forbidden_write_proof_refs is not None:
         candidate["no_forbidden_write_proof_refs"] = list(no_forbidden_write_proof_refs)
+    if latest_thinning_evidence is not None:
+        candidate["latest_thinning_evidence"] = dict(latest_thinning_evidence)
     return candidate
 
 
@@ -277,7 +280,17 @@ def build_physical_retirement_gate_matrix(
             ),
             _retirement_candidate(
                 surface_id="sidecar_adapter",
-                code_paths=["src/med_autoscience/controllers/sidecar_family_adapter.py"],
+                code_paths=[
+                    "src/med_autoscience/controllers/sidecar_family_adapter.py",
+                    (
+                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "export_projection.py"
+                    ),
+                    (
+                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "dispatch_orchestration.py"
+                    ),
+                ],
                 active_caller_status="domain_sidecar_dispatch_adapter_active",
                 retained_as="domain_sidecar_dispatch_adapter",
                 delete_gate_status="blocked_domain_dispatch_adapter_active",
@@ -303,6 +316,21 @@ def build_physical_retirement_gate_matrix(
                     ),
                     "sidecar_dispatch_response.forbidden_write_guard_proof",
                 ],
+                latest_thinning_evidence={
+                    "status": "sidecar_export_projection_split_to_parts_facade_retained",
+                    "facade_path": "src/med_autoscience/controllers/sidecar_family_adapter.py",
+                    "extracted_paths": [
+                        (
+                            "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                            "export_projection.py"
+                        ),
+                        (
+                            "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                            "dispatch_orchestration.py"
+                        ),
+                    ],
+                    "does_not_claim_physical_delete": True,
+                },
             ),
             _retirement_candidate(
                 surface_id="status_projection",
