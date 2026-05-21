@@ -9,6 +9,7 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .quest_status_decisions import *  # noqa: F403
     from .runtime_health_dominance import *  # noqa: F403
     from .status_finalization import *  # noqa: F403
+    from .status_projection_shell import *  # noqa: F403
     from .supervisor_state_overrides import *  # noqa: F403
 
 
@@ -175,77 +176,21 @@ def _status_state(
     )
 
     def _finalize_result() -> StudyRuntimeStatus:
-        if quest_runtime.runtime_liveness_audit is not None or quest_runtime.bash_session_audit is not None:
-            router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
-        _record_runtime_recovery_lifecycle_if_required(result)
-        router._record_autonomous_runtime_notice_if_required(
+        return finalize_status_projection_shell(
             status=result,
-            runtime_root=runtime_root,
-            launch_report_path=launch_report_path,
-        )
-        _record_execution_owner_guard(status=result, quest_root=quest_root)
-        _record_supervisor_tick_audit(status=result, study_root=study_root)
-        _record_runtime_health_dominance(
-            status=result,
-            study_root=study_root,
             study_id=study_id,
-            quest_id=quest_id,
-            recorded_at=router._utc_now(),
-        )
-        if not result.should_refresh_startup_hydration_while_blocked():
-            result.extras.pop("runtime_escalation_ref", None)
-        else:
-            runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(quest_root=quest_root)
-            if runtime_escalation_ref is not None:
-                result.record_runtime_escalation_ref(runtime_escalation_ref)
-        if sync_runtime_summary:
-            _sync_runtime_summary_if_needed(
-                status=result,
-                runtime_context=runtime_context,
-            )
-        _refresh_runtime_supervision_from_status_if_needed(
-            status=result,
+            profile=profile,
             study_root=study_root,
-            runtime_context=runtime_context,
-            router=router,
-            sync_runtime_summary=sync_runtime_summary,
-        )
-        _record_runtime_event(
-            status=result,
+            quest_id=quest_id,
+            quest_root=quest_root,
+            quest_runtime=quest_runtime,
             runtime_context=runtime_context,
             runtime_backend=managed_runtime_backend,
+            router=router,
+            entry_mode=entry_mode,
+            sync_runtime_summary=sync_runtime_summary,
+            include_progress_projection=include_progress_projection,
         )
-        _record_family_orchestration_companion(
-            status=result,
-            study_root=study_root,
-            runtime_context=runtime_context,
-        )
-        _record_runtime_worker_activity(result)
-        _record_auto_runtime_parked_projection(result)
-        result.extras["study_truth_snapshot"] = study_truth_kernel.derive_truth_snapshot_from_status_payload(
-            study_root=study_root,
-            study_id=study_id,
-            status_payload=result.to_dict(),
-            recorded_at=router._utc_now(),
-        )
-        from med_autoscience.controllers import study_control_plane_kernel
-
-        result.extras["control_plane_snapshot"] = study_control_plane_kernel.build_control_plane_snapshot(
-            result.to_dict()
-        )
-        if include_progress_projection:
-            from med_autoscience.controllers import study_progress as study_progress_controller
-
-            result.record_progress_projection(
-                study_progress_controller.build_study_progress_projection(
-                    profile=profile,
-                    study_id=study_id,
-                    study_root=study_root,
-                    status_payload=result,
-                    entry_mode=entry_mode,
-                )
-            )
-        return result
 
     if explicit_runtime_backend_id is not None and managed_runtime_backend is None:
         result.set_decision(
