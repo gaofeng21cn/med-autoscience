@@ -147,7 +147,7 @@ def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_stale_tas
         ],
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
 
     request = module.build_runtime_watch_outer_loop_tick_request(
         study_root=study_root,
@@ -285,7 +285,7 @@ def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_publicati
         ],
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
 
     request = module.build_runtime_watch_outer_loop_tick_request(
         study_root=study_root,
@@ -422,7 +422,7 @@ def test_runtime_watch_outer_loop_routes_bundle_stage_ready_before_stale_task_in
         "submission_minimal_authority_status": "current",
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -602,7 +602,7 @@ def test_runtime_watch_outer_loop_routes_bundle_ready_eval_review_unit_to_finali
         "submission_minimal_authority_status": "current",
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -754,7 +754,7 @@ def test_runtime_watch_outer_loop_routes_bundle_blocked_eval_review_unit_to_fina
         "submission_minimal_authority_source_signature": "source::old",
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -893,7 +893,7 @@ def test_runtime_watch_outer_loop_keeps_current_write_task_intake_before_clear_b
         "current_required_action": "continue_bundle_stage",
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
 
     request = module.build_runtime_watch_outer_loop_tick_request(
         study_root=study_root,

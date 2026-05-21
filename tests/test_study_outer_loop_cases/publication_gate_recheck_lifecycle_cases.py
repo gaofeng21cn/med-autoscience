@@ -109,13 +109,13 @@ def test_build_runtime_watch_outer_loop_tick_request_honors_closed_publication_w
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        module.publication_gate_controller,
+        _runtime_watch_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
-        module,
+        _runtime_watch_tick_request_module(),
         "recommended_task_intake_action",
         lambda **_: {
             "action_id": "task-intake::001-risk::write",

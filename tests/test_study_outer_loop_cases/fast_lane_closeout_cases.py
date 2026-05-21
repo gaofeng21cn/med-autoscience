@@ -148,11 +148,11 @@ def test_build_runtime_watch_outer_loop_tick_request_stops_live_runtime_after_fa
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        module.publication_gate_controller,
+        _runtime_watch_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -339,11 +339,11 @@ def test_build_runtime_watch_outer_loop_tick_request_does_not_stop_when_fast_lan
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        module.publication_gate_controller,
+        _runtime_watch_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
 
     request = module.build_runtime_watch_outer_loop_tick_request(
         study_root=study_root,

@@ -14,6 +14,10 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _runtime_watch_tick_request_module() -> object:
+    return importlib.import_module("med_autoscience.controllers.study_outer_loop_parts.tick_request")
+
+
 def _write_runtime_escalation_record(
     module: object,
     quest_root: Path,
@@ -168,7 +172,6 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> dict[str, str
         "eval_id": payload["eval_id"],
         "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
-
 
 
 

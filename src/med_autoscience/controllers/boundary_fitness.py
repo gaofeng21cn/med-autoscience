@@ -15,7 +15,6 @@ SHARED_BASE_BUCKET_LINE_LIMIT = 800
 DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/runtime_watch.py": 1499,
     "src/med_autoscience/cli.py": 1475,
-    "src/med_autoscience/controllers/study_outer_loop.py": 1410,
     "src/med_autoscience/controllers/gate_clearing_batch.py": 1363,
     "src/med_autoscience/controllers/study_runtime_execution.py": 1346,
     "src/med_autoscience/controllers/mainline_status.py": 1301,

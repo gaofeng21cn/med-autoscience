@@ -113,13 +113,13 @@ def test_build_runtime_watch_outer_loop_tick_request_routes_quality_repair_batch
     )
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        module.publication_gate_controller,
+        _runtime_watch_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
-        module,
+        _runtime_watch_tick_request_module(),
         "recommended_task_intake_action",
         lambda **_: {
             "action_id": "task-intake::001-risk::analysis-campaign",
@@ -327,12 +327,12 @@ def test_ai_reviewer_currentness_preempts_stale_methodology_intake_and_repair_ba
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        module.publication_gate_controller,
+        _runtime_watch_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: gate_report)
-    monkeypatch.setattr(module, "recommended_task_intake_action", lambda **_: stale_analysis_action)
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_runtime_watch_tick_request_module(), "recommended_task_intake_action", lambda **_: stale_analysis_action)
     monkeypatch.setattr(module.quality_repair_batch, "build_quality_repair_batch_recommended_action", lambda **_: stale_analysis_action)
     monkeypatch.setattr(module.gate_clearing_batch, "build_gate_clearing_batch_recommended_action", lambda **_: None)
 

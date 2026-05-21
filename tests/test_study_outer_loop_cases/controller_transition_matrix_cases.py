@@ -848,7 +848,7 @@ def test_runtime_watch_outer_loop_controller_transition_matrix(
         ),
     )
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(case.gate_report))
+    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(case.gate_report))
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -859,7 +859,7 @@ def test_runtime_watch_outer_loop_controller_transition_matrix(
         "build_quality_repair_batch_recommended_action",
         lambda **_: None,
     )
-    monkeypatch.setattr(module, "recommended_task_intake_action", lambda **_: case.task_intake_action)
+    monkeypatch.setattr(_runtime_watch_tick_request_module(), "recommended_task_intake_action", lambda **_: case.task_intake_action)
 
     request = module.build_runtime_watch_outer_loop_tick_request(
         study_root=study_root,
