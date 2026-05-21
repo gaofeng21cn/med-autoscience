@@ -10,6 +10,13 @@ from med_autoscience.developer_supervisor_mode import EXPECTED_DEVELOPER_GITHUB_
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
 
 
+PROFILE_TABLE_MISNESTED_TOP_LEVEL_KEYS = {
+    "developer_supervisor_mode",
+    "github_username",
+    "mas_developer_github_usernames",
+}
+
+
 def quote_toml_string(value: str | Path) -> str:
     return json.dumps(str(value), ensure_ascii=False)
 
@@ -201,8 +208,19 @@ def merge_workspace_profile_content(
     hermes_home_root: Path | None,
     github_username: str | None,
 ) -> str:
+    merge_entries = render_workspace_profile_entries(
+        workspace_root=workspace_root,
+        workspace_name=workspace_name,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
+        hermes_agent_repo_root=hermes_agent_repo_root,
+        hermes_home_root=hermes_home_root,
+        include_hermes_placeholders=False,
+        github_username=github_username,
+    )
+    repaired_content = remove_misnested_workspace_profile_entries(existing_content)
     try:
-        payload = tomllib.loads(existing_content)
+        payload = tomllib.loads(repaired_content)
     except tomllib.TOMLDecodeError:
         return existing_content
     if not isinstance(payload, dict):
@@ -216,28 +234,37 @@ def merge_workspace_profile_content(
     }
     if not required_identity_keys.issubset(payload):
         return existing_content
-    merge_entries = render_workspace_profile_entries(
-        workspace_root=workspace_root,
-        workspace_name=workspace_name,
-        default_publication_profile=default_publication_profile,
-        default_citation_style=default_citation_style,
-        hermes_agent_repo_root=hermes_agent_repo_root,
-        hermes_home_root=hermes_home_root,
-        include_hermes_placeholders=False,
-        github_username=github_username,
-    )
     missing_lines = [
         line
         for key, line in merge_entries
         if key not in payload
     ]
     if not missing_lines:
-        return existing_content
-    root_lines, table_lines = split_root_and_table_lines(existing_content)
+        return repaired_content
+    root_lines, table_lines = split_root_and_table_lines(repaired_content)
     root = "\n".join(root_lines).rstrip()
     tables = "\n".join(table_lines).rstrip()
     merged_root = f"{root}{chr(10) if root else ''}{chr(10).join(missing_lines)}"
     return f"{merged_root}{chr(10) * 2 if tables else chr(10)}{tables}{chr(10) if tables else ''}"
+
+
+def remove_misnested_workspace_profile_entries(existing_content: str) -> str:
+    output_lines: list[str] = []
+    in_table = False
+    changed = False
+    for line in existing_content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("["):
+            in_table = True
+        if in_table:
+            key = _profile_assignment_key(stripped)
+            if key in PROFILE_TABLE_MISNESTED_TOP_LEVEL_KEYS:
+                changed = True
+                continue
+        output_lines.append(line)
+    if not changed:
+        return existing_content
+    return "\n".join(output_lines).rstrip() + "\n"
 
 
 def split_root_and_table_lines(content: str) -> tuple[list[str], list[str]]:
@@ -247,3 +274,11 @@ def split_root_and_table_lines(content: str) -> tuple[list[str], list[str]]:
         if stripped.startswith("[") and stripped.endswith("]"):
             return lines[:index], lines[index:]
     return lines, []
+
+
+def _profile_assignment_key(stripped_line: str) -> str | None:
+    if not stripped_line or stripped_line.startswith("#") or "=" not in stripped_line:
+        return None
+    key, _ = stripped_line.split("=", 1)
+    key = key.strip()
+    return key or None

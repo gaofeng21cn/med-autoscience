@@ -391,6 +391,69 @@ def test_init_workspace_merges_profile_root_keys_before_existing_tables(monkeypa
     assert profile_text.count('mas_developer_github_usernames = ["gaofeng21cn"]') == 1
 
 
+def test_bootstrap_repairs_table_misnested_developer_profile_keys(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "profile-repair-workspace"
+
+    monkeypatch.setattr(module, "_detect_github_username", lambda: "gaofeng21cn")
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="profile-repair",
+        dry_run=False,
+        force=False,
+    )
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "profile-repair.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "profile-repair"',
+                f'workspace_root = "{workspace_root}"',
+                f'runtime_root = "{workspace_root / "runtime" / "quests"}"',
+                f'studies_root = "{workspace_root / "studies"}"',
+                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                "",
+                "[explicit_archive_import_ref]",
+                'runtime_root = "/tmp/legacy-runtime"',
+                'developer_supervisor_mode = "external_observe"',
+                'mas_developer_github_usernames = ["gaofeng21cn"]',
+                'github_username = "gaofeng21cn"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    first = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="profile-repair",
+        dry_run=False,
+        force=False,
+    )
+    second = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="profile-repair",
+        dry_run=False,
+        force=False,
+    )
+
+    profile_text = profile_path.read_text(encoding="utf-8")
+    assert str(profile_path) in first["upgraded_files"]
+    assert str(profile_path) in second["skipped_files"]
+    assert profile_text.count('developer_supervisor_mode = "external_observe"') == 1
+    assert profile_text.count('mas_developer_github_usernames = ["gaofeng21cn"]') == 1
+    assert profile_text.count('github_username = "gaofeng21cn"') == 1
+    assert profile_text.index('developer_supervisor_mode = "external_observe"') < profile_text.index(
+        "[explicit_archive_import_ref]"
+    )
+    profile = profiles.load_profile(profile_path)
+    assert profile.developer_supervisor_mode == "external_observe"
+    assert profile.github_username == "gaofeng21cn"
+    assert profile.mas_developer_github_usernames == ("gaofeng21cn",)
+
+
 def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "pituitary-workspace"
