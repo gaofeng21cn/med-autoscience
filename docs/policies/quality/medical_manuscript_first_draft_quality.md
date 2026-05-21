@@ -36,11 +36,12 @@ The durable fix is therefore pre-draft routing plus manuscript-native prose gene
 
 ## 2026-05-16 DPCC 003 平台缺陷复盘
 
-DPCC 003 暴露的不是单篇返修 intake 缺失，而是初稿前质量授权链路缺了一段硬门槛。MAS 已经有 `medical_reporting_checklist`、AI reviewer 质量边界和 first-draft quality policy，但 phenotype / treatment-gap observational paper 的结构化报告合同没有稳定进入所有初稿前 owner surface：
+DPCC 003 暴露的不是单篇返修 intake 缺失，而是初稿前质量授权链路曾缺少一段硬门槛。当前 MAS 已把 phenotype / treatment-gap observational paper 的结构化报告合同接入初稿前 owner surface：
 
-- `study_charter` 只把 prediction-model 默认报告项物化为 charter contract；`clinical_subtype_reconstruction` / `phenotype_real_world_treatment_gap` 没有自动生成 phenotype derivation、recorded treatment-gap、baseline characteristics 和 data-quality reporting obligations。
-- `medical_reporting_contract` 只给 prediction-model manuscript 返回 structured reporting contract；DPCC 这类 clinical-observation subtype paper 只有表图壳和 STROBE guideline，不包含方法透明度与数据质量必填项。
-- `pre_draft_quality_runtime` 在授权 first full draft 前检查 AI reviewer provenance、blueprint、readiness ledger 和 authoring workplan，但没有消费 charter-owned structured reporting checklist；因此后置 `medical_reporting_audit` 能发现部分问题，初稿生成却没有提前 fail-close。
+- `study_charter` 与 `medical_reporting_contract` 必须为 `clinical_subtype_reconstruction` / `phenotype_real_world_treatment_gap` 物化 phenotype derivation、recorded treatment-gap、baseline characteristics 和 data-quality reporting obligations。
+- `pre_draft_quality_runtime` 在授权 first full draft 前读取 charter-owned structured reporting checklist；未闭合时 `full_drafting_authorized=false`，并 route back 到 `pre_draft_writing_readiness`。
+- `medical_reporting_audit` 与 `medical_publication_surface` 继续作为后置 safety net，防止 checklist closure 漂移或交付物把内部控制语言带入正文。
+- Agent Lab medical manuscript quality suite 还必须把 DPCC 003 这类交付物反馈转成 study-family-specific regression target，让 OMA/opl-meta-agent patch MAS repo 时看到 phenotype / treatment-gap 目标，而不是复用 DM002 external-validation target。
 
 新的平台要求是：phenotype / treatment-gap paper 的以下项目必须在 first full draft 前成为 machine-readable blocker，而不是交付后的审稿式补救项：
 

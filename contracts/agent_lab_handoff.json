@@ -313,6 +313,79 @@
   },
   "meta_agent_work_order_contract": {
     "target_script_ref": "npm run agent:evidence -- --agent-repo <agent_repo> --output-dir <dir> --opl-bin <opl>",
+    "external_suite_improvement_policy": {
+      "medical_manuscript_quality": {
+        "default_change_refs": [
+          "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
+          "prompt_ref:ai_reviewer_medical_prose_quality_review",
+          "skill_ref:medical-research-write",
+          "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution"
+        ],
+        "change_ref_mappings": [
+          {
+            "study_quality_target_family": "prediction_model_external_validation",
+            "target_surface_refs": [
+              "stage_policy_ref:mas/write/pre_draft_prediction_model_reporting",
+              "quality_contract_ref:prediction_model_first_draft_quality",
+              "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
+              "mechanism-edit-ref:mas/source-provenance-owner-recovery",
+              "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption"
+            ],
+            "quality_target_refs": [
+              "hdl_harmonization_and_sensitivity",
+              "model_reproducibility_and_baseline_survival",
+              "visible_baseline_and_performance_tables",
+              "uncertainty_intervals_and_validation_metrics",
+              "nhanes_weighting_or_unweighted_framing",
+              "calibration_risk_collapse_figure_quality"
+            ]
+          },
+          {
+            "study_quality_target_family": "observational_phenotype_treatment_gap",
+            "target_surface_refs": [
+              "stage_policy_ref:mas/write/pre_draft_observational_phenotype_reporting",
+              "quality_contract_ref:phenotype_treatment_gap_first_draft_quality",
+              "mechanism-edit-ref:mas/clinical-phenotype-derivation-reporting",
+              "mechanism-edit-ref:mas/recorded-treatment-gap-reporting",
+              "mechanism-edit-ref:mas/data-quality-assessment-reporting",
+              "mechanism-edit-ref:mas/baseline-characteristics-table-reporting"
+            ],
+            "quality_target_refs": [
+              "phenotype_derivation_transparency",
+              "recorded_treatment_gap_terminology",
+              "bp_and_data_quality_assessment",
+              "baseline_characteristics_table",
+              "formal_figures_and_tables",
+              "numeric_abstract_results_with_uncertainty",
+              "restrained_discussion_and_prose",
+              "reference_and_journal_style",
+              "claim_evidence_alignment_without_runtime_language",
+              "route_back_for_method_or_data_errors"
+            ]
+          }
+        ],
+        "patch_surface_hints": [
+          "src/med_autoscience/controllers/agent_lab_medical_manuscript_quality.py",
+          "src/med_autoscience/controllers/pre_draft_quality_runtime.py",
+          "src/med_autoscience/policies/medical_reporting_contract.py",
+          "src/med_autoscience/policies/medical_reporting_checklist.py",
+          "src/med_autoscience/overlay/templates/medical-research-write.SKILL.md",
+          "tests/test_agent_lab_medical_manuscript_quality.py",
+          "tests/test_pre_draft_quality_runtime.py",
+          "tests/test_medical_reporting_checklist_quality_gates.py",
+          "docs/policies/quality/medical_manuscript_first_draft_quality.md"
+        ],
+        "runtime_required_surface_refs": [
+          "publication_eval/latest.json",
+          "paper/evidence_ledger.json",
+          "paper/review/review_ledger.json",
+          "artifacts/controller/task_intake/latest.json",
+          "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json"
+        ],
+        "can_authorize_quality_verdict": false,
+        "can_write_study_truth": false
+      }
+    },
     "editable_surface_refs": [
       "agent/prompts",
       "agent/skills",

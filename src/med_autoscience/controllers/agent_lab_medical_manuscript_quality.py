@@ -15,6 +15,9 @@ from .agent_lab_medical_manuscript_quality_parts.quality_boundary import (
     SUITE_RELATIVE_PATH,
     SURFACE_KIND,
 )
+from .agent_lab_medical_manuscript_quality_parts.study_quality_targets import (
+    study_quality_target_profile,
+)
 from .agent_lab_medical_manuscript_quality_parts.patch_loop_closeout import (
     build_refs_only_patch_loop_closeout_bundle,
 )
@@ -228,17 +231,8 @@ def _blocker_refs(*, prose_status: str, feedback_ref: str | None, study_id: str)
     if prose_status != "ready":
         refs.append(f"rubric-gap:mas/{study_id}/medical_journal_prose_quality:{prose_status}")
     if feedback_ref is not None:
-        refs.extend(
-            [
-                f"rubric-gap:mas/{study_id}/hdl-harmonization-and-sensitivity",
-                f"rubric-gap:mas/{study_id}/model-reproducibility-and-baseline-survival",
-                f"rubric-gap:mas/{study_id}/table1-table2-visible-baseline-performance",
-                f"rubric-gap:mas/{study_id}/uncertainty-intervals-and-validation-metrics",
-                f"rubric-gap:mas/{study_id}/nhanes-survey-weighting-and-unweighted-framing",
-                f"rubric-gap:mas/{study_id}/calibration-risk-collapse-and-figure-quality",
-                f"rubric-gap:mas/{study_id}/internal-quality-language-purge",
-            ]
-        )
+        profile = study_quality_target_profile(study_id=study_id)
+        refs.extend(f"rubric-gap:mas/{study_id}/{slug}" for slug in profile["blocker_ref_slugs"])
     return refs
 
 
@@ -393,6 +387,7 @@ def _mechanism_evolution_inputs(
 
 
 def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> dict[str, Any]:
+    profile = study_quality_target_profile(study_id=study_id)
     return {
         "work_order_id": DEVELOPER_PATCH_WORK_ORDER_ID,
         "owner_agent": "opl-meta-agent",
@@ -416,20 +411,8 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
             "write_stage_pre_draft_prediction_model_reporting",
             "regression_tests_and_docs",
         ],
-        "dm002_quality_targets": [
-            "HDL harmonization and sensitivity or typed blocker",
-            "model reproducibility and baseline survival provenance",
-            "Table 1 and Table 2 visible baseline/performance reporting",
-            "uncertainty intervals and validation metrics",
-            "NHANES weighting or unweighted framing",
-            "calibration and risk-collapse figure quality",
-            "internal quality-language purge",
-            "controller read-model consumes analysis harmonization typed blocker without requeue",
-            "decision owner consumes terminal source-provenance blocker into methodology reframe route",
-            "AI-native expert judgment remains primary; contracts and rubrics only block below-floor gaps",
-            "cross-stage vulnerability scan traces reviewer feedback through review, analysis, write, figure, and publication gate",
-            "internal error and debug history stay in diagnostics or incident learning, not the paper main story",
-        ],
+        "study_quality_target_family": profile["family"],
+        "study_quality_targets": profile["targets"],
         "quality_judgment_boundary": dict(QUALITY_JUDGMENT_BOUNDARY),
         "cross_stage_vulnerability_audit": dict(CROSS_STAGE_VULNERABILITY_AUDIT),
         "paper_story_exclusion_policy": dict(PAPER_STORY_EXCLUSION_POLICY),
@@ -446,7 +429,6 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
         "can_authorize_quality_verdict": False,
         "can_mutate_paper_package": False,
     }
-
 
 def _controller_read_model_feedback_refs(*, root: Path, study_id: str) -> list[str]:
     refs = _existing_refs(

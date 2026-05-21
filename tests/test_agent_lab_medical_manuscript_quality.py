@@ -92,6 +92,17 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "source_provenance_owner_recovery" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "source_provenance_terminal_blocker_route_back" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "methodology_reframe_decision_owner_route" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    assert "dm002_quality_targets" not in task["improvement_candidate"]["developer_patch_work_order"]
+    assert task["improvement_candidate"]["developer_patch_work_order"]["study_quality_target_family"] == (
+        "prediction_model_external_validation"
+    )
+    dm002_target_ids = {
+        target["target_id"]
+        for target in task["improvement_candidate"]["developer_patch_work_order"]["study_quality_targets"]
+    }
+    assert "hdl_harmonization_and_sensitivity" in dm002_target_ids
+    assert "nhanes_weighting_or_unweighted_framing" in dm002_target_ids
+    assert "calibration_risk_collapse_figure_quality" in dm002_target_ids
     assert (
         "ai_native_expert_judgment_first_quality_boundary"
         in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
@@ -176,6 +187,69 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert story_exclusion["debug_history_can_authorize_quality_ready"] is False
     assert task["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert task["authority_boundary"]["can_mutate_domain_artifact"] is False
+
+
+def test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.agent_lab_medical_manuscript_quality")
+    study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_text(study_root / "paper" / "draft.md", "# Draft\n")
+    _write_json(study_root / "paper" / "evidence_ledger.json", {"items": []})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": "AI reviewer must re-evaluate manuscript quality.",
+                }
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "task_intent": "reviewer_revision",
+            "summary": (
+                "Reviewer requests phenotype derivation transparency, treatment-gap terminology, "
+                "BP/data-quality reporting, a baseline table, and journal-level prose."
+            ),
+        },
+    )
+
+    suite = module.build_medical_manuscript_quality_agent_lab_suite(study_root=study_root)
+    task = suite["tasks"][0]
+    work_order = task["improvement_candidate"]["developer_patch_work_order"]
+    mechanism_work_order = task["mechanism_evolution_inputs"]["developer_patch_work_order"]
+    joined_refs = " ".join(task["improvement_candidate"]["evidence_refs"])
+
+    assert work_order["study_quality_target_family"] == "observational_phenotype_treatment_gap"
+    assert "dm002_quality_targets" not in work_order
+    assert "hdl-harmonization" not in joined_refs
+    assert "nhanes-survey-weighting" not in joined_refs
+    assert "calibration-risk-collapse" not in joined_refs
+    assert "phenotype-derivation-transparency" in joined_refs
+    assert "recorded-treatment-gap-terminology" in joined_refs
+    assert "bp-and-data-quality-assessment" in joined_refs
+    assert "baseline-characteristics-table" in joined_refs
+
+    target_ids = {target["target_id"] for target in work_order["study_quality_targets"]}
+    assert {
+        "phenotype_derivation_transparency",
+        "recorded_treatment_gap_terminology",
+        "bp_and_data_quality_assessment",
+        "baseline_characteristics_table",
+        "formal_figures_and_tables",
+        "numeric_abstract_results_with_uncertainty",
+        "restrained_discussion_and_prose",
+        "reference_and_journal_style",
+        "claim_evidence_alignment_without_runtime_language",
+        "route_back_for_method_or_data_errors",
+    }.issubset(target_ids)
+    assert mechanism_work_order["study_quality_targets"] == work_order["study_quality_targets"]
+    assert mechanism_work_order["study_quality_target_family"] == work_order["study_quality_target_family"]
 
 
 def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_reviewer_and_analysis_queue(
