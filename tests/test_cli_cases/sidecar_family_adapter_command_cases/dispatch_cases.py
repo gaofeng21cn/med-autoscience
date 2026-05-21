@@ -290,6 +290,75 @@ def test_sidecar_dispatch_routes_embedded_ai_reviewer_callable_inside_mas_owner(
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_sidecar_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
+        return {
+            "surface": "default_executor_dispatch_executor",
+            "executed_count": 0,
+            "blocked_count": 1,
+            "repeat_suppressed_count": 0,
+            "executions": [
+                {
+                    "execution_status": "blocked",
+                    "blocked_reason": "ai_reviewer_request_missing",
+                    "owner_callable_surface": (
+                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                    ),
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        adapter.paper_repair_executor.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        fake_dispatch_domain_owner_actions,
+    )
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "paper-task-ai-reviewer-callable-blocked",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/repair-recheck",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "repair_work_unit": {
+                    "unit_id": "unit-ai-reviewer-blocked",
+                    "work_unit_type": "ai_reviewer_recheck",
+                    "owner": "ai_reviewer",
+                    "callable_surface": (
+                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                    ),
+                    "source_fingerprint": "sha256:unit-ai-reviewer-blocked",
+                    "source_refs": ["artifacts/publication_eval/latest.json"],
+                    "gate_replay_target": "controller_decisions/latest.json",
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    paper_receipt = payload["dispatch"]["result"]
+    assert paper_receipt["accepted"] is False
+    assert paper_receipt["execution_status"] == "blocked"
+    assert paper_receipt["typed_blocker"] == "ai_reviewer_request_missing"
+
+
 def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executor(
     monkeypatch,
     tmp_path: Path,

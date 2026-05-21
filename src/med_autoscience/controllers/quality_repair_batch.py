@@ -14,6 +14,7 @@ from med_autoscience.controllers import quality_repair_paper_owner_surface
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
+from med_autoscience.controllers.quality_repair_batch_parts import upstream_route_context
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
@@ -372,23 +373,38 @@ def _controller_route_context_for_publication_work_unit(
         dict(gate_report),
         specificity_targets=_upstream_repair_specificity_targets(publication_eval_payload),
     )
-    next_work_unit = publication_work_unit_payload.get("next_work_unit")
-    if not isinstance(next_work_unit, Mapping):
-        return None
-    work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
-    if work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
-        return None
-    return {
-        "controller_route_context": {
-            "control_surface": "quality_repair_batch",
-            "controller_action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
-            "work_unit_id": work_unit_id,
-            "requires_human_confirmation": False,
-            "source_eval_id": source_eval_id,
-            "gate_fingerprint": _non_empty_text(gate_report.get("gate_fingerprint")),
-            "work_unit_fingerprint": _non_empty_text(publication_work_unit_payload.get("fingerprint")),
-        }
-    }
+    publication_work_unit_payload = _apply_explicit_upstream_publication_work_unit(
+        publication_work_unit_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    return _controller_route_context_for_publication_work_unit_payload(
+        publication_work_unit_payload=publication_work_unit_payload,
+        gate_report=gate_report,
+        source_eval_id=source_eval_id,
+    )
+
+
+def _controller_route_context_for_publication_work_unit_payload(
+    *,
+    publication_work_unit_payload: Mapping[str, Any],
+    gate_report: Mapping[str, Any],
+    source_eval_id: str | None,
+) -> dict[str, Any] | None:
+    return upstream_route_context.controller_route_context_for_publication_work_unit_payload(
+        publication_work_unit_payload=publication_work_unit_payload,
+        gate_report=gate_report,
+        source_eval_id=source_eval_id,
+        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+        controller_action_type=StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+        non_empty_text=_non_empty_text,
+    )
+
+
+def _route_context_work_unit_id(route_context: Mapping[str, Any] | None) -> str | None:
+    return upstream_route_context.route_context_work_unit_id(
+        route_context,
+        non_empty_text=_non_empty_text,
+    )
 
 
 def _route_action_for_controller_context(route_context: Mapping[str, Any] | None) -> str:
@@ -557,56 +573,33 @@ def _hard_methodology_owner_handoff_record(
     }
 
 
-def _explicit_analysis_publication_work_unit(
+def _explicit_upstream_publication_work_unit(
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    actions = publication_eval_payload.get("recommended_actions")
-    if not isinstance(actions, list):
-        return None
-    for action in actions:
-        if not isinstance(action, Mapping):
-            continue
-        if action.get("requires_controller_decision") is not True:
-            continue
-        next_work_unit = _compact_publication_work_unit(action.get("next_work_unit"))
-        if next_work_unit is None:
-            continue
-        action_type = _non_empty_text(action.get("action_type"))
-        route_target = _non_empty_text(action.get("route_target"))
-        lane = _non_empty_text(next_work_unit.get("lane"))
-        if (
-            action_type != StudyDecisionType.BOUNDED_ANALYSIS.value
-            and route_target != "analysis-campaign"
-            and lane != "analysis-campaign"
-        ):
-            continue
-        blocking_work_units = [
-            compact
-            for item in (action.get("blocking_work_units") or [])
-            if (compact := _compact_publication_work_unit(item)) is not None
-        ] or [next_work_unit]
-        return {
-            "work_unit_fingerprint": _non_empty_text(action.get("work_unit_fingerprint")),
-            "next_work_unit": next_work_unit,
-            "blocking_work_units": blocking_work_units,
-        }
-    return None
+    return upstream_route_context.explicit_upstream_publication_work_unit(
+        publication_eval_payload,
+        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+        compact_publication_work_unit=_compact_publication_work_unit,
+        non_empty_text=_non_empty_text,
+        bounded_analysis_action=StudyDecisionType.BOUNDED_ANALYSIS.value,
+        route_back_same_line_action=StudyDecisionType.ROUTE_BACK_SAME_LINE.value,
+    )
 
 
-def _apply_explicit_analysis_publication_work_unit(
+def _apply_explicit_upstream_publication_work_unit(
     publication_work_unit_payload: Mapping[str, Any],
     *,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
-    explicit = _explicit_analysis_publication_work_unit(publication_eval_payload)
-    if explicit is None:
-        return dict(publication_work_unit_payload)
-    payload = dict(publication_work_unit_payload)
-    if explicit.get("work_unit_fingerprint"):
-        payload["fingerprint"] = explicit["work_unit_fingerprint"]
-    payload["next_work_unit"] = explicit["next_work_unit"]
-    payload["blocking_work_units"] = explicit["blocking_work_units"]
-    return payload
+    return upstream_route_context.apply_explicit_upstream_publication_work_unit(
+        publication_work_unit_payload,
+        publication_eval_payload=publication_eval_payload,
+        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+        compact_publication_work_unit=_compact_publication_work_unit,
+        non_empty_text=_non_empty_text,
+        bounded_analysis_action=StudyDecisionType.BOUNDED_ANALYSIS.value,
+        route_back_same_line_action=StudyDecisionType.ROUTE_BACK_SAME_LINE.value,
+    )
 
 
 def _selected_work_unit_id_from_gate_result(gate_clearing_result: Mapping[str, Any]) -> str | None:
@@ -688,7 +681,7 @@ def build_quality_repair_batch_recommended_action(
         gate_report,
         specificity_targets=specificity_targets,
     )
-    publication_work_unit_payload = _apply_explicit_analysis_publication_work_unit(
+    publication_work_unit_payload = _apply_explicit_upstream_publication_work_unit(
         publication_work_unit_payload,
         publication_eval_payload=publication_eval_payload,
     )
@@ -793,6 +786,10 @@ def run_quality_repair_batch(
         gate_report,
         specificity_targets=specificity_targets,
     )
+    publication_work_unit_payload = _apply_explicit_upstream_publication_work_unit(
+        publication_work_unit_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
     hard_methodology_target = _hard_methodology_target_from_publication_work_units(publication_work_unit_payload)
     summary_payload = _read_quality_summary(study_root=resolved_study_root)
     summary_payload = _effective_quality_summary(
@@ -801,7 +798,16 @@ def run_quality_repair_batch(
         summary_payload=summary_payload,
     )
     if _has_explicit_controller_route_context(resolved_route_context):
-        controller_route_context = None
+        explicit_work_unit_id = _route_context_work_unit_id(resolved_route_context)
+        controller_route_context = (
+            _controller_route_context_for_publication_work_unit_payload(
+                publication_work_unit_payload=publication_work_unit_payload,
+                gate_report=gate_report,
+                source_eval_id=current_eval_id,
+            )
+            if explicit_work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+            else None
+        )
     else:
         if _same_line_paper_repair_required(summary_payload):
             controller_route_context = _controller_route_context_for_publication_work_unit(

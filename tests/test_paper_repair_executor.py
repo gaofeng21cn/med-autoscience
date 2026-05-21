@@ -259,6 +259,105 @@ def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_paper_repair_executor_preserves_ai_reviewer_dispatch_blocked_reason(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    profile = make_profile(tmp_path)
+    study_root = profile.studies_root / "006b-dpcc"
+
+    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
+        return {
+            "surface": "default_executor_dispatch_executor",
+            "executed_count": 0,
+            "blocked_count": 1,
+            "repeat_suppressed_count": 0,
+            "executions": [
+                {
+                    "execution_status": "blocked",
+                    "blocked_reason": "ai_reviewer_request_missing",
+                    "owner_callable_surface": (
+                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                    ),
+                }
+            ],
+        }
+
+    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
+
+    result = module.dispatch_repair_work_unit(
+        profile=profile,
+        study_id="006b-dpcc",
+        quest_id="quest-006b",
+        study_root=study_root,
+        repair_work_unit={
+            **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-blocked"),
+            "owner": "ai_reviewer",
+            "callable_surface": (
+                "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+            ),
+        },
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    assert result["execution_status"] == "blocked"
+    assert result["typed_blocker"] == "ai_reviewer_request_missing"
+    assert result["owner_receipt"]["blocked_reason"] == "ai_reviewer_request_missing"
+
+
+def test_paper_repair_executor_preserves_ai_reviewer_repeat_suppressed_reason(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    profile = make_profile(tmp_path)
+    study_root = profile.studies_root / "006c-dpcc"
+
+    def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
+        return {
+            "surface": "default_executor_dispatch_executor",
+            "executed_count": 0,
+            "blocked_count": 0,
+            "repeat_suppressed_count": 1,
+            "executions": [
+                {
+                    "execution_status": "repeat_suppressed",
+                    "blocked_reason": "repeat_suppressed",
+                    "why_not_applied": "repeat_suppressed",
+                    "owner_callable_surface": (
+                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                    ),
+                }
+            ],
+        }
+
+    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
+
+    result = module.dispatch_repair_work_unit(
+        profile=profile,
+        study_id="006c-dpcc",
+        quest_id="quest-006c",
+        study_root=study_root,
+        repair_work_unit={
+            **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-repeat"),
+            "owner": "ai_reviewer",
+            "callable_surface": (
+                "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+            ),
+        },
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    assert result["execution_status"] == "blocked"
+    assert result["typed_blocker"] == "repeat_suppressed"
+    assert result["owner_result"]["repeat_suppressed_count"] == 1
+
+
 def test_paper_repair_executor_dry_run_does_not_write(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
     study_root = tmp_path / "workspace" / "studies" / "004-dry-run"

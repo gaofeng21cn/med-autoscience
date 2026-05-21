@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-22：medical prose write repair 是上游 paper-write owner，不得继承 stale bundle route
+
+- 决策：AI reviewer 当前 medical prose route-back 生成的 `medical_prose_write_repair` 是 upstream publishability repair work unit，control-plane route gate 必须授权为 `paper_write`。它可以在 `publication_supervisor_state.bundle_tasks_downstream_only` 和 `bundle_build_allowed=false` 时继续由 MAS managed owner 修 canonical paper / evidence / review / display-facing repair surfaces，但不能写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission readiness verdict。
+- 决策：`quality_repair_batch` 收到 caller-provided `controller_route_context` 时，若当前 AI reviewer-backed `publication_eval/latest.json` 显式给出 upstream `route_back_same_line` work unit，例如 `medical_prose_write_repair`，必须用当前 publication eval 的 paper-write route 覆盖 stale `submission_minimal_refresh` / bundle route context。只有 downstream package/delivery work unit 才继续走 `bundle_build` / `delivery_sync` / `submission_materialize`。
+- 决策：`paper_autonomy/repair-recheck` 调到 AI reviewer callable 后，若 `domain_owner_action_dispatch` 返回 blocked 或 repeat-suppressed execution，paper repair receipt 必须保留 `executions[].blocked_reason` / `repeat_suppressed` 作为 typed blocker，不得退化为泛型 `owner_callable_surface_blocked`。这让 OPL queue / Agent Lab / foreground supervisor 能看见真实 owner blocker，而不是误诊为 callable 缺失。
+- 理由：DM003 暴露出医学论文写作质量反馈已经被 AI reviewer 转成 `medical_prose_write_repair`，但旧 controller route context 仍指向 bundle/package work unit，导致 `run_quality_repair_batch` 选择 `bundle_build` 并被 downstream-only gate 拦住。同时 AI reviewer callable blocked/repeat-suppressed 的具体原因被 receipt 丢成泛型 blocker，使前台难以判断是 owner request、repeat suppression 还是 callable surface 缺失。
+- 影响：这是 MAS owner-route / paper repair contract 修复，不是 quality gate 放宽，也不是 OPL queue 或 provider lifecycle 修复。正式质量关闭仍必须由后续 AI reviewer-backed `publication_eval/latest.json`、publication gate replay、owner receipt 和 package freshness proof 共同完成。
+
 ## 2026-05-22：analysis harmonization AI reviewer currentness 必须同时覆盖 ref identity 与 ref version/time
 
 - 决策：`analysis_harmonization_owner` completed result 交回 `ai_reviewer_medical_prose_quality_review` 时，`publication_eval/latest.json` 只有在 AI reviewer-owned provenance 同时覆盖 required currentness refs 的路径身份，并且 eval 时间不早于这些 refs 的结构化时间或文件 mtime 时，才能视为当前。仅在 `source_refs` 中出现相同路径不足以关闭 re-eval。

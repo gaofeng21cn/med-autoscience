@@ -334,6 +334,17 @@ def _owner_result_executed(owner_result: Mapping[str, Any]) -> bool:
 
 
 def _owner_result_blocker(owner_result: Mapping[str, Any]) -> str:
+    for execution in owner_result.get("executions") or ():
+        if not isinstance(execution, Mapping):
+            continue
+        if reason := _text(execution.get("blocked_reason")):
+            return reason
+        if _text(execution.get("execution_status")) == "repeat_suppressed":
+            return "repeat_suppressed"
+        if why_not_applied := _text(execution.get("why_not_applied")):
+            return why_not_applied
+    if int(owner_result.get("repeat_suppressed_count") or 0) > 0:
+        return "repeat_suppressed"
     return (
         _text(owner_result.get("blocked_reason"))
         or _text(owner_result.get("reason"))
