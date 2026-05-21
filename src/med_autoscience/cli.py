@@ -26,7 +26,11 @@ from med_autoscience.cli_parts.product_entry_commands import handle_product_entr
 from med_autoscience.cli_parts.live_console_commands import handle_live_console_command
 from med_autoscience.cli_parts.runtime_lifecycle_commands import handle_runtime_lifecycle_command
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
+from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
+from med_autoscience.cli_parts.watch_supervision_commands import handle_watch_supervision_command
+from med_autoscience.cli_parts.workbench_commands import handle_workbench_command
+from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
 
 @lru_cache(maxsize=None)
 def _load_module(module_name: str) -> Any:
@@ -237,150 +241,6 @@ def _resolve_study_and_quest_for_batch_command(
     return profile, study_root, quest_id
 
 
-def _render_progress_portal_command_text(result: dict[str, Any]) -> str:
-    lines = ["MAS Progress Portal"]
-    status = result.get("status")
-    if status:
-        lines.append(f"status: {status}")
-    url = result.get("url")
-    if url:
-        lines.append(f"url: {url}")
-    html_path = result.get("html_path") or result.get("output_html_path")
-    if html_path:
-        lines.append(f"html: {html_path}")
-    payload_path = result.get("payload_path")
-    if payload_path:
-        lines.append(f"payload: {payload_path}")
-    hosted_package_path = result.get("hosted_package_path")
-    if hosted_package_path:
-        lines.append(f"hosted_package: {hosted_package_path}")
-    return "\n".join(lines) + "\n"
-
-
-def _render_portal_console_soak_text(result: dict[str, Any]) -> str:
-    lines = ["MAS Portal Console Soak"]
-    if status := result.get("status"):
-        lines.append(f"status: {status}")
-    if report_path := result.get("report_path"):
-        lines.append(f"report: {report_path}")
-    evidence = result.get("evidence")
-    if isinstance(evidence, dict):
-        for key, value in evidence.items():
-            item_status = value.get("status") if isinstance(value, dict) else None
-            if item_status:
-                lines.append(f"{key}: {item_status}")
-    return "\n".join(lines) + "\n"
-
-
-def _handle_stage_memory_command(args: argparse.Namespace, *, parser: argparse.ArgumentParser) -> int | None:
-    if args.command == "publication-route-memory-apply-seed":
-        if args.seed_library:
-            result = stage_knowledge_plane.apply_publication_route_memory_seed_library(
-                workspace_root=Path(args.workspace_root),
-                seed_library_path=Path(args.seed_library),
-                apply=bool(args.apply),
-            )
-        else:
-            result = stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
-                workspace_root=Path(args.workspace_root),
-                seed_fixture_path=Path(args.seed_fixture),
-                apply=bool(args.apply),
-            )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "publication-route-memory-inventory":
-        result = publication_route_memory_inventory.build_publication_route_memory_inventory(
-            workspace_root=Path(args.workspace_root),
-            stage=args.stage,
-            route_family_tags=args.route_families,
-            statuses=args.statuses,
-            include_card_body=bool(args.include_card_body),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "stage-knowledge-packet":
-        result = stage_knowledge_plane.materialize_stage_knowledge_packet(
-            study_id=args.study_id,
-            stage=args.stage,
-            study_root=Path(args.study_root),
-            workspace_root=Path(args.workspace_root),
-            quest_root=Path(args.quest_root) if args.quest_root else None,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "stage-memory-closeout-route":
-        if args.closeout_packet:
-            closeout_packet = _load_json_object_file(args.closeout_packet)
-            closeout_packet_ref = str(Path(args.closeout_packet))
-        else:
-            if not args.materialize_closeout_packet:
-                parser.error("--closeout-payload requires --materialize-closeout-packet")
-            if not args.study_id or not args.stage:
-                parser.error("--closeout-payload requires --study-id and --stage")
-            closeout_packet = stage_knowledge_plane.materialize_stage_memory_closeout_packet(
-                study_id=args.study_id,
-                stage=args.stage,
-                study_root=Path(args.study_root),
-                workspace_root=Path(args.workspace_root),
-                closeout_payload=_load_json_object_file(args.closeout_payload),
-            )
-            closeout_packet_ref = str(closeout_packet.get("artifact_path") or "")
-
-        result = stage_knowledge_plane.route_stage_memory_closeout(
-            closeout_packet=closeout_packet,
-            study_root=Path(args.study_root),
-            workspace_root=Path(args.workspace_root),
-            apply=bool(args.apply),
-        )
-        if closeout_packet_ref:
-            result = {**result, "closeout_packet_ref": closeout_packet_ref}
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "paper-soak-memory-proof":
-        result = stage_knowledge_plane.materialize_paper_soak_memory_apply_proof(
-            study_id=args.study_id,
-            stage=args.stage,
-            study_root=Path(args.study_root),
-            workspace_root=Path(args.workspace_root),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "real-paper-autonomy-soak-projection":
-        result = real_paper_autonomy_soak_inventory.build_real_paper_autonomy_soak_projection(
-            yang_root=Path(args.yang_root),
-            profile_paths=[Path(path) for path in args.profiles] if args.profiles else None,
-            target_studies=tuple(args.target_studies or ("DM002", "DM003", "Obesity")),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "real-paper-autonomy-provider-hosted-paper-proof":
-        result = real_paper_autonomy_soak_inventory.build_real_paper_autonomy_provider_hosted_paper_proof(
-            yang_root=Path(args.yang_root),
-            profile_paths=[Path(path) for path in args.profiles] if args.profiles else None,
-            target_studies=tuple(args.target_studies or ("DM002", "DM003", "Obesity")),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "real-paper-autonomy-guarded-apply-proof":
-        result = real_paper_autonomy_soak_inventory.build_real_paper_autonomy_guarded_apply_proof(
-            yang_root=Path(args.yang_root),
-            profile_paths=[Path(path) for path in args.profiles] if args.profiles else None,
-            target_studies=tuple(args.target_studies or ("DM002", "DM003", "Obesity")),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    return None
-
-
-
 def build_parser() -> argparse.ArgumentParser:
     return _build_cli_parser(study_cycle_profiler=study_cycle_profiler)
 
@@ -475,7 +335,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    stage_memory_result = _handle_stage_memory_command(args, parser=parser)
+    stage_memory_result = handle_stage_memory_command(
+        args,
+        parser=parser,
+        stage_knowledge_plane=stage_knowledge_plane,
+        publication_route_memory_inventory=publication_route_memory_inventory,
+        real_paper_autonomy_soak_inventory=real_paper_autonomy_soak_inventory,
+        load_json_object_file=_load_json_object_file,
+    )
     if stage_memory_result is not None:
         return stage_memory_result
 
@@ -721,59 +588,15 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if bool(result.get("accepted")) else 1
 
-    if args.command == "workspace-cockpit":
-        profile = load_profile(args.profile)
-        result = product_entry.read_workspace_cockpit(
-            profile=profile,
-            profile_ref=Path(args.profile),
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(product_entry.render_workspace_cockpit_markdown(result), end="")
-        return 0
-
-    if args.command == "progress-portal":
-        if bool(getattr(args, "enable_actions", False)) and not bool(args.serve):
-            raise SystemExit("--enable-actions requires --serve")
-        profile = load_profile(args.profile)
-        common_kwargs = {
-            "profile": profile,
-            "profile_ref": Path(args.profile),
-            "study_id": args.study_id,
-            "study_root": Path(args.study_root) if args.study_root else None,
-            "entry_mode": args.entry_mode,
-            "open_browser": bool(args.open),
-        }
-        if args.serve:
-            result = progress_portal.serve_progress_portal(
-                **common_kwargs,
-                host=str(args.host),
-                port=int(args.port),
-                interval_seconds=int(args.interval_seconds),
-                enable_actions=bool(args.enable_actions),
-            )
-        else:
-            result = progress_portal.materialize_progress_portal(**common_kwargs)
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(_render_progress_portal_command_text(result), end="")
-        return 0
-
-    if args.command == "portal-console-soak":
-        profile = load_profile(args.profile)
-        result = portal_console_soak.run_portal_console_soak(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-        )
-        if args.format == "json":
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-        else:
-            print(_render_portal_console_soak_text(result), end="")
-        return 0
+    workbench_result = handle_workbench_command(
+        args,
+        product_entry=product_entry,
+        progress_portal=progress_portal,
+        portal_console_soak=portal_console_soak,
+        load_profile=load_profile,
+    )
+    if workbench_result is not None:
+        return workbench_result
 
     product_entry_result = handle_product_entry_command(
         args,
@@ -784,85 +607,15 @@ def main(argv: list[str] | None = None) -> int:
     if product_entry_result is not None:
         return product_entry_result
 
-    if args.command == "watch":
-        if bool(args.quest_root) == bool(args.runtime_root):
-            parser.error("Specify exactly one of --quest-root or --runtime-root")
-        if args.quest_root and args.profile:
-            parser.error("--profile is only supported with --runtime-root")
-        if args.quest_root and args.ensure_study_runtimes:
-            parser.error("--ensure-study-runtimes is only supported with --runtime-root")
-        if args.quest_root and args.apply_supervisor_platform_repair:
-            parser.error("--apply-supervisor-platform-repair is only supported with --runtime-root")
-        if args.quest_root and args.loop:
-            parser.error("--loop is only supported with --runtime-root")
-        if args.ensure_study_runtimes and not args.profile:
-            parser.error("--ensure-study-runtimes requires --profile")
-        if args.apply_supervisor_platform_repair and not args.ensure_study_runtimes:
-            parser.error("--apply-supervisor-platform-repair requires --ensure-study-runtimes")
-        if args.apply_supervisor_platform_repair and not args.apply:
-            parser.error("--apply-supervisor-platform-repair requires --apply")
-        if args.quest_root:
-            result = runtime_watch.run_watch_for_quest(
-                quest_root=Path(args.quest_root),
-                apply=args.apply,
-            )
-        else:
-            profile = load_profile(args.profile) if args.profile else None
-            if args.loop:
-                result = runtime_watch.run_watch_loop(
-                    runtime_root=Path(args.runtime_root),
-                    apply=args.apply,
-                    profile=profile,
-                    ensure_study_runtimes=bool(args.ensure_study_runtimes),
-                    apply_supervisor_platform_repair=bool(args.apply_supervisor_platform_repair),
-                    interval_seconds=args.interval_seconds,
-                    max_ticks=args.max_ticks,
-                )
-            else:
-                result = runtime_watch.run_watch_for_runtime(
-                    runtime_root=Path(args.runtime_root),
-                    apply=args.apply,
-                    profile=profile,
-                    ensure_study_runtimes=bool(args.ensure_study_runtimes),
-                    apply_supervisor_platform_repair=bool(args.apply_supervisor_platform_repair),
-                )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        if args.loop and isinstance(result, dict) and list(result.get("tick_errors") or []):
-            return 1
-        return 0
-
-    if args.command == "runtime-supervision-status":
-        profile = load_profile(args.profile)
-        result = domain_slo_scheduler_projection.read_supervision_status(
-            profile=profile,
-            interval_seconds=int(args.interval_seconds),
-            manager=str(args.manager),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "runtime-ensure-supervision":
-        profile = load_profile(args.profile)
-        result = domain_slo_scheduler_projection.ensure_supervision(
-            profile=profile,
-            interval_seconds=int(args.interval_seconds),
-            trigger_now=not bool(args.no_trigger_now),
-            manager=str(args.manager),
-            dry_run=bool(args.dry_run),
-            write_install_proof=bool(args.write_install_proof),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "runtime-remove-supervision":
-        profile = load_profile(args.profile)
-        result = domain_slo_scheduler_projection.remove_supervision(
-            profile=profile,
-            interval_seconds=int(args.interval_seconds),
-            manager=str(args.manager),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
+    watch_supervision_result = handle_watch_supervision_command(
+        args,
+        parser=parser,
+        runtime_watch=runtime_watch,
+        domain_slo_scheduler_projection=domain_slo_scheduler_projection,
+        load_profile=load_profile,
+    )
+    if watch_supervision_result is not None:
+        return watch_supervision_result
 
     if args.command == "domain-route-scan":
         profile = load_profile(args.profile)
@@ -974,97 +727,27 @@ def main(argv: list[str] | None = None) -> int:
     if storage_exit_code is not None:
         return storage_exit_code
 
-    if args.command == "init-data-assets":
-        result = data_assets.init_data_assets(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "data-assets-status":
-        result = data_assets.data_assets_status(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "init-portfolio-memory":
-        result = portfolio_memory_controller.init_portfolio_memory(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "portfolio-memory-status":
-        result = portfolio_memory_controller.portfolio_memory_status(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "init-workspace-literature":
-        result = workspace_literature_controller.init_workspace_literature(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "workspace-literature-status":
-        result = workspace_literature_controller.workspace_literature_status(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "prepare-external-research":
-        result = external_research_controller.prepare_external_research(
-            workspace_root=Path(args.workspace_root),
-            as_of_date=args.as_of_date,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "external-research-status":
-        result = external_research_controller.external_research_status(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "assess-data-asset-impact":
-        result = data_assets.assess_data_asset_impact(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "validate-public-registry":
-        result = data_assets.validate_public_registry(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "startup-data-readiness":
-        result = startup_data_readiness_controller.startup_data_readiness(workspace_root=Path(args.workspace_root))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "apply-data-asset-update":
-        result = data_asset_updates_controller.apply_data_asset_update(
-            workspace_root=Path(args.workspace_root),
-            payload=_load_json_payload_from_args(args),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "diff-private-release":
-        result = data_assets.build_private_release_diff(
-            workspace_root=Path(args.workspace_root),
-            family_id=args.family_id,
-            from_version=args.from_version,
-            to_version=args.to_version,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "data-asset-gate":
-        result = data_asset_gate.run_controller(
-            quest_root=Path(args.quest_root),
-            apply=args.apply,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "tooluniverse-status":
-        result = tooluniverse_adapter.detect_tooluniverse(
-            workspace_root=Path(args.workspace_root) if args.workspace_root else None,
-            tooluniverse_root=Path(args.tooluniverse_root) if args.tooluniverse_root else None,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
+    workspace_data_result = handle_workspace_data_command(
+        args,
+        data_asset_gate=data_asset_gate,
+        data_assets=data_assets,
+        data_asset_updates_controller=data_asset_updates_controller,
+        external_research_controller=external_research_controller,
+        portfolio_memory_controller=portfolio_memory_controller,
+        startup_data_readiness_controller=startup_data_readiness_controller,
+        tooluniverse_adapter=tooluniverse_adapter,
+        workspace_init_controller=workspace_init_controller,
+        workspace_literature_controller=workspace_literature_controller,
+        load_profile=load_profile,
+        load_doctor_module=_load_doctor_module,
+        overlay_installer=overlay_installer,
+        analysis_bundle_controller=analysis_bundle_controller,
+        domain_slo_scheduler_projection=domain_slo_scheduler_projection,
+        overlay_request_from_args=_overlay_request_from_args,
+        load_json_payload_from_args=_load_json_payload_from_args,
+    )
+    if workspace_data_result is not None:
+        return workspace_data_result
 
     if args.command == "export-submission-minimal":
         result = submission_minimal.create_submission_minimal_package(
@@ -1263,83 +946,6 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "overlay-status":
-        result = overlay_installer.describe_medical_overlay(**_overlay_request_from_args(args))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "install-medical-overlay":
-        result = overlay_installer.install_medical_overlay(**_overlay_request_from_args(args))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "reapply-medical-overlay":
-        result = overlay_installer.reapply_medical_overlay(**_overlay_request_from_args(args))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "bootstrap":
-        profile = load_profile(args.profile)
-        workspace_surface_refresh = workspace_init_controller.init_workspace(
-            workspace_root=profile.workspace_root,
-            workspace_name=profile.name,
-            dry_run=False,
-            force=False,
-            default_publication_profile=profile.default_publication_profile,
-            default_citation_style=profile.default_citation_style,
-            hermes_agent_repo_root=profile.hermes_agent_repo_root,
-            hermes_home_root=profile.hermes_home_root,
-        )
-        supervision_bootstrap = domain_slo_scheduler_projection.ensure_supervision(
-            profile=profile,
-            manager="opl",
-            trigger_now=False,
-            write_install_proof=True,
-        )
-        doctor = _load_doctor_module()
-        doctor_report = doctor.build_doctor_report(profile)
-        overlay_install = None
-        overlay_status = None
-        overlay_bootstrap = None
-        analysis_bundle = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
-        if profile.enable_medical_overlay:
-            overlay_request = doctor.overlay_request_from_profile(profile)
-            overlay_bootstrap = overlay_installer.ensure_medical_overlay(
-                **overlay_request,
-                mode=profile.medical_overlay_bootstrap_mode,
-            )
-            overlay_install = overlay_bootstrap.get("action_result")
-            overlay_status = overlay_bootstrap.get("post_status") or overlay_bootstrap.get("pre_status")
-        workspace_root = profile.workspace_root
-        data_assets_refresh = data_asset_updates_controller.refresh_data_assets(workspace_root=workspace_root)
-        result = {
-            "profile": profile.name,
-            "workspace_surface_refresh": workspace_surface_refresh,
-            "doctor": {
-                "workspace_exists": doctor_report.workspace_exists,
-                "runtime_exists": doctor_report.runtime_exists,
-                "studies_exists": doctor_report.studies_exists,
-                "portfolio_exists": doctor_report.portfolio_exists,
-                "med_deepscientist_runtime_exists": doctor_report.med_deepscientist_runtime_exists,
-                "medical_overlay_enabled": doctor_report.medical_overlay_enabled,
-                "medical_overlay_ready": (
-                    bool(overlay_status.get("all_targets_ready")) if overlay_status is not None else doctor_report.medical_overlay_ready
-                ),
-                "medical_overlay_scope": doctor_report.profile.medical_overlay_scope,
-                "medical_overlay_bootstrap_mode": doctor_report.profile.medical_overlay_bootstrap_mode,
-                "research_route_bias_policy": doctor_report.profile.research_route_bias_policy,
-                "preferred_study_archetypes": list(doctor_report.profile.preferred_study_archetypes),
-            },
-            "analysis_bundle": analysis_bundle,
-            "overlay_bootstrap": overlay_bootstrap,
-            "overlay_install": overlay_install,
-            "overlay_status": overlay_status,
-            "data_assets": data_assets_refresh,
-            "supervision_bootstrap": supervision_bootstrap,
-        }
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
     if args.command == "ensure-study-runtime":
         profile = load_profile(args.profile)
         result = study_runtime_router.ensure_study_runtime(
@@ -1362,21 +968,6 @@ def main(argv: list[str] | None = None) -> int:
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "init-workspace":
-        result = workspace_init_controller.init_workspace(
-            workspace_root=Path(args.workspace_root),
-            workspace_name=str(args.workspace_name),
-            dry_run=bool(args.dry_run),
-            force=bool(args.force),
-            default_publication_profile=str(args.default_publication_profile),
-            default_citation_style=str(args.default_citation_style),
-            hermes_agent_repo_root=Path(args.hermes_agent_repo_root) if args.hermes_agent_repo_root else None,
-            hermes_home_root=Path(args.hermes_home_root) if args.hermes_home_root else None,
-            initialize_git=bool(args.with_git),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

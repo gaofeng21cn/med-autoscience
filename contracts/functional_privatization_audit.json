@@ -1131,6 +1131,10 @@
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/cli.py",
+          "src/med_autoscience/cli_parts/stage_memory_commands.py",
+          "src/med_autoscience/cli_parts/watch_supervision_commands.py",
+          "src/med_autoscience/cli_parts/workbench_commands.py",
+          "src/med_autoscience/cli_parts/workspace_data_commands.py",
           "src/med_autoscience/mcp_server.py",
           "src/med_autoscience/controllers/product_entry.py",
           "plugins/mas/skills/mas/SKILL.md"
