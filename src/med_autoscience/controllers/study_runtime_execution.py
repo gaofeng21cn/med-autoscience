@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.controllers import runtime_health_kernel, study_control_plane_kernel
 
 from .study_runtime_execution_parts import action_family_dispatch as _action_family_dispatch
 from .study_runtime_execution_parts import receipt_materialization as _receipt_materialization
@@ -61,6 +62,7 @@ __all__ = [
     "_execute_resume_runtime_decision",
     "_execute_runtime_decision",
     "_persist_runtime_artifacts",
+    "_refresh_runtime_read_models_after_runtime_decision_override",
     "_record_autonomous_runtime_notice_if_required",
     "_run_runtime_preflight",
 ]
@@ -135,9 +137,13 @@ def _enable_explicit_stopped_relaunch_if_requested(
             StudyRuntimeReason.QUEST_EXISTS_WITH_NON_RESUMABLE_STATE,
         }
     )
+    explicit_terminal_resume_request = (
+        status.decision is StudyRuntimeDecision.RESUME
+        and status.reason is StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING
+    )
     controller_authorized_redrive = _is_controller_authorized_stopped_redrive(status)
     if (
-        not (explicit_rerun_request or controller_authorized_redrive)
+        not (explicit_rerun_request or explicit_terminal_resume_request or controller_authorized_redrive)
         or status.quest_status
         not in {
             StudyRuntimeQuestStatus.STOPPED,
@@ -161,6 +167,22 @@ def _enable_explicit_stopped_relaunch_if_requested(
         StudyRuntimeDecision.RELAUNCH_STOPPED,
         StudyRuntimeReason.QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED,
     )
+
+
+def _refresh_runtime_read_models_after_runtime_decision_override(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+) -> None:
+    status.extras["runtime_health_snapshot"] = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
+        study_root=context.study_root,
+        study_id=context.study_id,
+        quest_id=context.quest_id,
+        status_payload=status.to_dict(),
+        recorded_at=_router_module()._utc_now(),
+    )
+    status.extras["runtime_health_epoch"] = status.extras["runtime_health_snapshot"].get("runtime_health_epoch")
+    status.extras["control_plane_snapshot"] = study_control_plane_kernel.build_control_plane_snapshot(status.to_dict())
 
 
 def _is_controller_authorized_stopped_redrive(status: StudyRuntimeStatus) -> bool:

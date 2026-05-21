@@ -41,6 +41,7 @@ from med_autoscience.controllers.study_runtime_execution import (
     _execute_resume_runtime_decision,
     _execute_runtime_decision,
     _persist_runtime_artifacts,
+    _refresh_runtime_read_models_after_runtime_decision_override,
     _run_runtime_preflight,
 )
 from med_autoscience.controllers.study_runtime_resolution import (
@@ -242,10 +243,16 @@ def ensure_study_runtime(
         entry_mode=entry_mode,
         sync_runtime_summary=False,
     )
+    pre_override_decision = (status.decision, status.reason)
     if allow_stopped_relaunch:
         _enable_explicit_stopped_relaunch_if_requested(status=status)
     if explicit_user_wakeup:
         _enable_explicit_user_wakeup_if_requested(status=status, context=context)
+    if (
+        (status.decision, status.reason) != pre_override_decision
+        and status.decision is StudyRuntimeDecision.RELAUNCH_STOPPED
+    ):
+        _refresh_runtime_read_models_after_runtime_decision_override(status=status, context=context)
     _run_runtime_preflight(status=status, context=context)
     outcome = _execute_runtime_decision(status=status, context=context)
     _persist_runtime_artifacts(

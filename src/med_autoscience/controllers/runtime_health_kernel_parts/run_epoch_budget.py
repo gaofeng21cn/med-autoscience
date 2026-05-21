@@ -31,6 +31,16 @@ def current_run_epoch_start_sequence(
     return None
 
 
+def latest_release_sequence(events: list[dict[str, Any]]) -> int | None:
+    for event in reversed(events):
+        if str(event.get("event_type") or "") != "attempt_released":
+            continue
+        sequence = event_sequence(event)
+        if sequence is not None:
+            return sequence
+    return None
+
+
 def event_belongs_to_run_epoch(
     event: Mapping[str, Any],
     *,
@@ -62,7 +72,14 @@ def events_for_budget(
 ) -> list[dict[str, Any]]:
     selected = [event for event in events if str(event.get("event_type") or "") in event_types]
     if active_run_id is None:
-        return selected
+        release_sequence = latest_release_sequence(events)
+        if release_sequence is None:
+            return selected
+        return [
+            event
+            for event in selected
+            if (sequence := event_sequence(event)) is not None and sequence > release_sequence
+        ]
     epoch_start_sequence = current_run_epoch_start_sequence(
         events,
         active_run_id,

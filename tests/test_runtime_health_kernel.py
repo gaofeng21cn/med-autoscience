@@ -134,6 +134,54 @@ def test_runtime_health_recovery_budget_exhaustion_escalates(tmp_path: Path) -> 
     assert "runtime_recovery_retry_budget_exhausted" in snapshot["blocking_reasons"]
 
 
+def test_runtime_health_explicit_relaunch_starts_new_recovery_budget_epoch(tmp_path: Path) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm-cvd"
+    for sequence in range(1, 4):
+        module.append_runtime_health_event(
+            study_root=study_root,
+            study_id="002-dm-cvd",
+            quest_id="002-dm-cvd",
+            event_type="recover_attempt",
+            payload={
+                "attempt_state": "failed",
+                "failure_reason": "quest_marked_running_but_no_live_session",
+            },
+            recorded_at=f"2026-05-01T00:0{sequence}:00+00:00",
+        )
+    status_payload = {
+        "study_id": "002-dm-cvd",
+        "study_root": str(study_root),
+        "quest_id": "002-dm-cvd",
+        "quest_status": "failed",
+        "decision": "relaunch_stopped",
+        "reason": "quest_stopped_explicit_relaunch_requested",
+        "runtime_liveness_audit": {
+            "status": "none",
+            "runtime_audit": {
+                "status": "none",
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    }
+
+    snapshot = module.derive_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="002-dm-cvd",
+        quest_id="002-dm-cvd",
+        status_payload=status_payload,
+        recorded_at="2026-05-01T00:04:00+00:00",
+    )
+
+    assert snapshot["attempt_state"] == "idle"
+    assert snapshot["attempt_count"] == 1
+    assert snapshot["retry_budget_remaining"] == 2
+    assert snapshot["canonical_runtime_action"] == "continue_supervising_runtime"
+    assert "runtime_recovery_retry_budget_exhausted" not in snapshot["blocking_reasons"]
+
+
 def test_runtime_health_submission_metadata_parking_dominates_stale_recovery_budget(tmp_path: Path) -> None:
     module = _kernel()
     study_root = tmp_path / "studies" / "001-dm-cvd"

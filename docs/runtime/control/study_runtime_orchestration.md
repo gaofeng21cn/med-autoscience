@@ -445,6 +445,7 @@ workspace teardown 必须满足：
 - `RELAUNCH_STOPPED`
   - quest 已处于 `stopped`，且 caller 已显式批准 stopped-quest relaunch
   - caller 显式批准可以来自 CLI 的 `allow_stopped_relaunch=true`，也可以来自 controller-owned current work unit / domain transition redrive；两者都必须保留 MAS owner authorization 证据
+  - 若 quest 已处于 `failed` 终态，而最新同线修订 / invalid-blocking 状态已由 controller 判为可恢复，`allow_stopped_relaunch=true` 同样必须走 `RELAUNCH_STOPPED`，不能退回普通 `RESUME`
 - `PAUSE`
   - 现有 live runtime 不再满足运行条件，必须收回到 paused
 - `SYNC_COMPLETION`
@@ -460,6 +461,7 @@ workspace teardown 必须满足：
 
 - `stop` **不是** `StudyRuntimeDecision` 的一部分；它属于 outer-loop controller action surface，见 `./study_runtime_control_surface.md`
 - 一旦 quest 进入 `stopped`，当前 P1 contract 下：
+  - `failed` 终态按同一 terminal relaunch 边界处理
   - `study_runtime_status(...)` 必须返回 `BLOCKED`
   - reason 固定为 `quest_stopped_requires_explicit_rerun`
   - `ensure_study_runtime(...)` 不得自动把 stopped quest 当成 resumable 状态

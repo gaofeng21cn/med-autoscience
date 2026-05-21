@@ -1,4 +1,5 @@
 from .shared import *  # noqa: F403
+from .submission_metadata_waiting_cases_cases.test_failed_reviewer_revision_explicit_relaunch import *  # noqa: F403,F401
 from .submission_metadata_waiting_cases_cases.test_stopped_domain_transition_relaunch import *  # noqa: F403,F401
 
 

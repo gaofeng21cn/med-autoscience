@@ -808,6 +808,23 @@ def _status_payload_runtime_health_events(
     decision = _text(status_payload.get("decision"))
     if decision in _RECOVERY_DECISIONS:
         event_type = "relaunch_attempt" if decision == "relaunch_stopped" else "recover_attempt"
+        if event_type == "relaunch_attempt":
+            sequence += 1
+            events.append(
+                _transient_event(
+                    study_id=study_id,
+                    quest_id=quest_id,
+                    event_type="attempt_released",
+                    payload={
+                        "release_reason": "explicit_relaunch_stopped",
+                        "decision": decision,
+                        "reason": _text(status_payload.get("reason")),
+                        "previous_budget_scope": "terminal_runtime_recovery",
+                    },
+                    recorded_at=recorded_at,
+                    sequence=sequence,
+                )
+            )
         sequence += 1
         events.append(
             _transient_event(
