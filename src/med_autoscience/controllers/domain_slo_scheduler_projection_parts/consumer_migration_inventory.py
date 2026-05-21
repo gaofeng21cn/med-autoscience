@@ -699,6 +699,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "code_paths": [
             "src/med_autoscience/controllers/runtime_live_console.py",
             "src/med_autoscience/controllers/runtime_live_console_ui.py",
+            "src/med_autoscience/controllers/runtime_live_console_ui_parts/rendering.py",
         ],
         "active_callers": ["runtime live-console CLI", "Progress Portal links"],
         "active_caller_status": "read_only_terminal_projection_active",

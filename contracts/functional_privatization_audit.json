@@ -1026,7 +1026,8 @@
         "classification": "refs_only_adapter",
         "code_paths": [
           "src/med_autoscience/controllers/runtime_live_console.py",
-          "src/med_autoscience/controllers/runtime_live_console_ui.py"
+          "src/med_autoscience/controllers/runtime_live_console_ui.py",
+          "src/med_autoscience/controllers/runtime_live_console_ui_parts/rendering.py"
         ],
         "migration_action": "keep_read_only_terminal_refs_adapter_for_opl_operator_workbench",
         "module_id": "terminal_attach_transport",
