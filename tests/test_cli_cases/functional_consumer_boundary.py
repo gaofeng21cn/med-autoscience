@@ -243,9 +243,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert workbench_gate["active_caller_count"] > 0
     assert workbench_gate["physical_delete_permitted"] is False
     sidecar_gate = cleanup_gates["sidecar_dispatch_adapter"]
-    assert sidecar_gate["current_role"] == (
-        "domain_sidecar_dispatch_adapter_and_provider_diagnostic"
-    )
+    assert sidecar_gate["current_role"] == "domain_sidecar_dispatch_adapter"
     assert sidecar_gate["physical_delete_permitted"] is False
     status_gate = cleanup_gates["status_projection_domain_truth_refs"]
     assert status_gate["current_role"] == "domain_truth_status_projection"

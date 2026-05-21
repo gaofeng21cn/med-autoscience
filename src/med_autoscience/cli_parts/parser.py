@@ -360,25 +360,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     resolve_reference_papers_parser = subparsers.add_parser("resolve-reference-papers")
     resolve_reference_papers_parser.add_argument("--quest-root", required=True)
 
-    recommend_sidecar_parser = subparsers.add_parser("recommend-sidecar")
-    recommend_sidecar_parser.add_argument("--provider", required=True)
-    recommend_sidecar_parser.add_argument("--quest-root", required=True)
-    recommend_sidecar_parser.add_argument("--payload-file", type=str)
-    recommend_sidecar_parser.add_argument("--payload-json", type=str)
-    recommend_sidecar_parser.add_argument("--instance-id", type=str)
-
-    provision_sidecar_parser = subparsers.add_parser("provision-sidecar")
-    provision_sidecar_parser.add_argument("--provider", required=True)
-    provision_sidecar_parser.add_argument("--quest-root", required=True)
-    provision_sidecar_parser.add_argument("--payload-file", type=str)
-    provision_sidecar_parser.add_argument("--payload-json", type=str)
-    provision_sidecar_parser.add_argument("--instance-id", type=str)
-
-    import_sidecar_parser = subparsers.add_parser("import-sidecar")
-    import_sidecar_parser.add_argument("--provider", required=True)
-    import_sidecar_parser.add_argument("--quest-root", required=True)
-    import_sidecar_parser.add_argument("--instance-id", type=str)
-
     export_submission_targets_parser = subparsers.add_parser("export-submission-targets")
     export_submission_targets_parser.add_argument("--paper-root", type=str)
     export_submission_targets_parser.add_argument("--profile", type=str)

@@ -732,7 +732,7 @@
           "runtime_transport/mas_runtime_core*",
           "runtime_protocol/runtime_lifecycle_store.py",
           "product_entry_parts/workspace_cockpit",
-          "sidecar_provider",
+          "sidecar_family_adapter",
           "runtime status projection"
         ],
         "done_criteria": [

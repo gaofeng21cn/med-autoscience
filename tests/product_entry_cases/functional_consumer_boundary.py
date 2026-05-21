@@ -575,9 +575,9 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     )
     assert cleanup_gates["workbench_shell_domain_projection_refs"]["active_caller_count"] == 3
     assert cleanup_gates["sidecar_dispatch_adapter"]["current_role"] == (
-        "domain_sidecar_dispatch_adapter_and_provider_diagnostic"
+        "domain_sidecar_dispatch_adapter"
     )
-    assert cleanup_gates["sidecar_dispatch_adapter"]["active_caller_count"] == 2
+    assert cleanup_gates["sidecar_dispatch_adapter"]["active_caller_count"] == 1
     assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
         "domain_truth_status_projection"
     )

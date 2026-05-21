@@ -114,7 +114,6 @@ publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate")
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
-sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
 sidecar_family_adapter = _LazyModuleProxy(lambda: _load_controller("sidecar_family_adapter"))
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
 publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
@@ -798,35 +797,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "resolve-reference-papers":
         result = reference_papers_controller.resolve_reference_papers(
             quest_root=Path(args.quest_root),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "recommend-sidecar":
-        result = sidecar_provider_controller.recommend_sidecar(
-            quest_root=Path(args.quest_root),
-            provider_id=args.provider,
-            payload=_load_json_payload_from_args(args),
-            instance_id=args.instance_id,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "provision-sidecar":
-        result = sidecar_provider_controller.provision_sidecar(
-            quest_root=Path(args.quest_root),
-            provider_id=args.provider,
-            payload=_load_json_payload_from_args(args),
-            instance_id=args.instance_id,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "import-sidecar":
-        result = sidecar_provider_controller.import_sidecar_result(
-            quest_root=Path(args.quest_root),
-            provider_id=args.provider,
-            instance_id=args.instance_id,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

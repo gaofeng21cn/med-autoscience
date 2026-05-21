@@ -1,22 +1,20 @@
-# Sidecar Provider 与 Figure Routes 指南
+# Sidecar Bridge 与 Figure Routes 指南
 
-> 这个指南可以从 [`../../../runtime/contracts/agent_runtime_interface.md`](../../../runtime/contracts/agent_runtime_interface.md) 中的“sidecar provider 与 figure routes 指南”入口访问，是对运行层中 sidecar 周期的稳定说明。
+> 这个指南可以从 [`../../../runtime/contracts/agent_runtime_interface.md`](../../../runtime/contracts/agent_runtime_interface.md) 中的“sidecar provider 与 figure routes 指南”入口访问，是对运行层中 sidecar / figure route 边界的稳定说明。
 
-## 1. Sidecar provider 在 MedAutoScience 的定位
+## 1. Sidecar bridge 在 MedAutoScience 的定位
 
-1. **主线 runtime 默认是 MAS-owned runtime/artifact/quality surfaces。** Sidecar provider 只是为 `MedAutoScience` 提供受控扩展的 bounded route，不能取代主线 runtime 处理模型训练、评估或结果收敛流程。外部 `MedDeepScientist` 只可作为显式 backend audit、historical fixture / explicit archive import reference 或 parity oracle reference，不是默认执行前置。
-2. **Sidecar 不是随意“绕过主线”的后门。** 任何 sidecar 调用都应报告其 trigger、recommendation gate 结论，以及最终 handoff root，这样人类审阅者可以追溯为什么选择 sidecar 以及它的输出对主线决策有哪些影响。
+1. **主线 runtime 默认是 MAS-owned runtime/artifact/quality surfaces。** Sidecar bridge 只是让 OPL provider-backed family runtime 进入 MAS owner surface 的受控入口，不能取代主线 runtime 处理模型训练、评估或结果收敛流程。外部 `MedDeepScientist` 只可作为显式 backend audit、historical fixture / explicit archive import reference 或 parity oracle reference，不是默认执行前置。
+2. **Sidecar 不是随意“绕过主线”的后门。** 任何 sidecar 调用都应报告其 trigger、task ref、owner route 与 dispatch receipt，这样人类审阅者可以追溯为什么进入 sidecar bridge 以及它的输出对主线决策有哪些影响。
 
-## 2. Sidecar provider 契约
+## 2. Sidecar bridge 契约
 
 Sidecar 运行必须遵守下列核心契约条款：
 
-- **统一 provider 入口。** Sidecar provider 只能通过 generic controller / CLI 入口调用：`recommend-sidecar --provider <provider>`、`provision-sidecar --provider <provider>`、`import-sidecar --provider <provider>`。旧的 provider-specific wrapper command / controller / adapter 不是活跃接口。
-- **Recommendation gate。** Sidecar 不得自行决定何时执行。它必须先经过 recommendation gate；当 gate 为推荐态时，结论会落到 `runtime/quests/<quest-id>/sidecars/<provider>/<instance-id>/recommendation.json`，等待明确确认后才能继续。
-- **Frozen input contract。** Sidecar 接受的输入必须冻结为只读 contract，并落到 `runtime/quests/<quest-id>/sidecars/<provider>/<instance-id>/input_contract.json`。Sidecar 不得直接改写源数据、模型 checkpoint、registry 或主线结果文件。
-- **Handoff root 明确。** Sidecar 执行阶段只能向 `runtime/quests/<quest-id>/sidecars/<provider>/<instance-id>/handoff/` 产生产物。调用方只读取这个 handoff root，而不是从临时目录、对话附件或未登记缓存中“顺手拿结果”。
-- **Manifest/Hash 对齐。** Handoff 内必须提供 `sidecar_manifest.json`，并且其中的 `input_contract_hash`、`artifacts_generated` 等字段需要与冻结 contract 和真实产物对齐。导入时如果 hash 不一致，必须直接阻断，而不是静默兼容。
-- **Import into audit surface。** Sidecar 的可消费结果必须再导入到 `runtime/quests/<quest-id>/artifacts/<domain>/<provider>/<instance-id>/`。也就是说，`sidecars/` 是受控执行与交接面，`artifacts/` 才是供主线审阅、复核和交付引用的审计面。
+- **统一 bridge 入口。** MAS 仓内活跃 sidecar 入口是 `sidecar export` / `sidecar dispatch`。Generic provider recommendation / provisioning / import lifecycle 已迁出 MAS 活跃面，不再由 `recommend-sidecar`、`provision-sidecar`、`import-sidecar` 或 provider registry 承担。
+- **OPL owns transport.** OPL provider 可以承载 stage attempt、queue/wakeup、retry/dead-letter、human-gate signal、attempt receipt 和 projection；MAS 只接受 allowlisted task refs 并返回 owner receipt、typed blocker 或 refs-only dispatch receipt。
+- **Domain authority preserved.** Sidecar bridge 不得写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、source body、memory body 或 artifact body。
+- **Refs and receipts only.** Sidecar bridge 的输入输出必须是 task refs、source refs、artifact refs、receipt refs 或 typed blockers；如果需要外部 research/analysis progression，先由 publication aftercare 或 OPL provider 形成 owner-route task，再经 MAS owner chain 处理。
 
 ## 3. Figure illustration 的平台边界
 

@@ -27,7 +27,6 @@ __all__ = [
     "reference_papers",
     "runtime_reentry_gate",
     "runtime_watch",
-    "sidecar_provider",
     "study_runtime_router",
     "study_delivery_sync",
     "study_progress",

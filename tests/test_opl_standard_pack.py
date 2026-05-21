@@ -355,7 +355,7 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "physical_delete_permitted"
     ] is False
     assert cleanup_gates["sidecar_dispatch_adapter"]["current_role"] == (
-        "domain_sidecar_dispatch_adapter_and_provider_diagnostic"
+        "domain_sidecar_dispatch_adapter"
     )
     assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
         "domain_truth_status_projection"

@@ -265,20 +265,19 @@
         "tombstone_permitted": false
       },
       {
-        "active_caller_count": 2,
+        "active_caller_count": 1,
         "active_caller_proof_refs": [
           "physical_retirement_gate_matrix.retirement_candidates.sidecar_adapter",
           "sidecar_export.functional_consumer_boundary.generated_surface_handoff"
         ],
-        "active_caller_status": "active_domain_sidecar_dispatch_or_provider_caller_present",
+        "active_caller_status": "active_domain_sidecar_dispatch_caller_present",
         "archive_permitted": false,
         "current_disposition": "retain_with_explicit_cleanup_gate",
         "current_paths": [
           "src/med_autoscience/controllers/sidecar_family_adapter.py",
-          "src/med_autoscience/controllers/sidecar_family_adapter_parts/",
-          "src/med_autoscience/controllers/sidecar_provider.py"
+          "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
         ],
-        "current_role": "domain_sidecar_dispatch_adapter_and_provider_diagnostic",
+        "current_role": "domain_sidecar_dispatch_adapter",
         "delete_or_tombstone_after": [
           "active_caller_count=0",
           "opl_replacement_parity_proven",
@@ -290,8 +289,7 @@
         "domain_receipt_parity_status": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
         "focused_test_refs": [
           "tests/test_cli_cases/sidecar_family_adapter_command.py",
-          "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py",
-          "tests/test_sidecar_provider_adapter.py"
+          "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py"
         ],
         "must_not_emit": [
           "generic_scheduler_owner",
@@ -1131,10 +1129,6 @@
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/cli.py",
-          "src/med_autoscience/cli_parts/stage_memory_commands.py",
-          "src/med_autoscience/cli_parts/watch_supervision_commands.py",
-          "src/med_autoscience/cli_parts/workbench_commands.py",
-          "src/med_autoscience/cli_parts/workspace_data_commands.py",
           "src/med_autoscience/mcp_server.py",
           "src/med_autoscience/controllers/product_entry.py",
           "plugins/mas/skills/mas/SKILL.md"

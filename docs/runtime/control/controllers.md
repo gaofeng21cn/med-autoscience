@@ -22,11 +22,10 @@
 8. managed study runtime orchestration
 9. runtime storage maintenance
 10. MAS sidecar family bridge export/dispatch
-11. generic sidecar provider recommendation/provision/import
-12. delivery inspection / inspection package contract
-13. clean paper-authority migration and re-materialization owner routing
-14. Agent Lab medical manuscript quality refs-only suite projection
-15. publication aftercare / ARIS analysis queue / AI reviewer refresh refs-only progression control
+11. delivery inspection / inspection package contract
+12. clean paper-authority migration and re-materialization owner routing
+13. Agent Lab medical manuscript quality refs-only suite projection
+14. publication aftercare / ARIS analysis queue / AI reviewer refresh refs-only progression control
 
 对应的 Python 实现在包内：
 
@@ -42,7 +41,6 @@
 - `src/med_autoscience/controllers/study_runtime_types.py`
 - `src/med_autoscience/controllers/runtime_storage_maintenance.py`
 - `src/med_autoscience/controllers/sidecar_family_adapter.py`
-- `src/med_autoscience/controllers/sidecar_provider.py`
 - `src/med_autoscience/controllers/delivery_inspector.py`
 - `src/med_autoscience/controllers/submission_inspection_export.py`
 - `src/med_autoscience/controllers/paper_authority_migration.py`
@@ -64,9 +62,6 @@
 - `tests/test_study_runtime_router.py`
 - `tests/test_runtime_storage_maintenance.py`
 - `tests/test_cli_cases/sidecar_family_adapter_command.py`
-- `tests/test_sidecar_provider_aris.py`
-- `tests/test_sidecar_provider_adapter.py`
-- `tests/test_sidecar_provider_registry.py`
 - `tests/test_delivery_inspector.py`
 - `tests/test_delivery_visibility.py`
 - `tests/test_inspection_package_contract.py`
@@ -110,7 +105,7 @@
 
 MAS sidecar bridge 是 `OPL` provider-backed family runtime 进入 MAS owner surface 的受控入口，不是新的 controller truth owner。`sidecar export` 只把 MAS-owned runtime/status/source refs 投影给 typed family queue；`sidecar dispatch` 只接受 allowlisted task，回到 MAS controller/runtime owner chain 产出 dispatch receipt。OPL provider 可以承载 stage attempt、queue/wakeup、retry/dead-letter、human-gate signal、attempt receipt 和 projection，但不得写 study truth、publication quality verdict、artifact gate、paper package、`study_runtime_status` 或 `runtime_watch`。这条边界的机器合同由 `contracts/test-lane-manifest.json` 的 `focused_lanes.mas-entry-boundary` 持有；本文件只做人读导航。
 
-Generic sidecar provider 是 bounded extension 的统一 controller surface。Provider-specific CLI / controller / adapter wrapper 不再作为活跃入口；`aris` 这类 provider 通过 `recommend-sidecar --provider aris`、`provision-sidecar --provider aris`、`import-sidecar --provider aris` 和 `sidecars.registry` 暴露。Provider 行为归 `sidecar_provider` controller、generic adapter 与 provider registry，而不是独立的 provider 命令或 thin wrapper。
+Generic sidecar provider lifecycle CLI 已退役，不再作为 MAS 活跃 controller surface。外部 research/analysis progression 通过 publication aftercare 的 refs-only owner-route task 投影或 OPL provider-backed family runtime 进入 MAS sidecar family bridge；MAS 仓不再保留 `recommend-sidecar` / `provision-sidecar` / `import-sidecar` 这类 provider registry、workspace provisioning 或 import control-plane 壳。任何可执行任务仍必须回到 MAS owner chain，并由 `sidecar export` / `sidecar dispatch` 产出 owner receipt、typed blocker 或 refs-only dispatch receipt。
 
 后续优先顺序：
 

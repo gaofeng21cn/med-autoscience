@@ -66,11 +66,10 @@ def build_workbench_status_active_path_gates(
             "current_paths": [
                 "src/med_autoscience/controllers/sidecar_family_adapter.py",
                 "src/med_autoscience/controllers/sidecar_family_adapter_parts/",
-                "src/med_autoscience/controllers/sidecar_provider.py",
             ],
-            "current_role": "domain_sidecar_dispatch_adapter_and_provider_diagnostic",
-            "active_caller_status": "active_domain_sidecar_dispatch_or_provider_caller_present",
-            "active_caller_count": 2,
+            "current_role": "domain_sidecar_dispatch_adapter",
+            "active_caller_status": "active_domain_sidecar_dispatch_caller_present",
+            "active_caller_count": 1,
             "opl_replacement_parity_status": (
                 "opl_generated_sidecar_default_projected_not_physical_delete_ready"
             ),
@@ -84,7 +83,6 @@ def build_workbench_status_active_path_gates(
             "focused_test_refs": [
                 "tests/test_cli_cases/sidecar_family_adapter_command.py",
                 "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py",
-                "tests/test_sidecar_provider_adapter.py",
             ],
         },
         {
