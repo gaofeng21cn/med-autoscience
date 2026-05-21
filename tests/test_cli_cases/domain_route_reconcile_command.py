@@ -355,6 +355,7 @@ def test_domain_route_reconcile_dispatches_medical_prose_quality_repair_batch(
     tmp_path: Path,
 ) -> None:
     reconcile = importlib.import_module("med_autoscience.controllers.domain_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
