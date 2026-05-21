@@ -85,6 +85,46 @@ pythonpath_root="${MAS_CLEAN_RUNNER_SOURCE_ROOT:-${repo_root}}"
 export PYTHONPATH="${pythonpath_root}/src:${pythonpath_root}${PYTHONPATH:+:${PYTHONPATH}}"
 export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider -o cache_dir=${tmp_root}/pytest-cache"
 
+cli_apply_requires_analysis_extra() {
+  if [[ "$#" -lt 3 ]]; then
+    return 1
+  fi
+  if [[ "${1}" != "-m" || "${2}" != "med_autoscience.cli" ]]; then
+    return 1
+  fi
+
+  local command="${3}"
+  local subcommand="${4:-}"
+  local start_index=4
+  if [[ "${command}" == "runtime" ]]; then
+    command="${subcommand}"
+    start_index=5
+  elif [[ "${command}" == "sidecar" ]]; then
+    if [[ "${subcommand}" == "dispatch" ]]; then
+      return 0
+    fi
+    return 1
+  fi
+
+  case "${command}" in
+    domain-route-reconcile|domain-owner-action-dispatch)
+      local arg
+      for arg in "${@:start_index}"; do
+        if [[ "${arg}" == "--apply" ]]; then
+          return 0
+        fi
+      done
+      ;;
+  esac
+  return 1
+}
+
+analysis_extra_enabled=0
+if [[ "${MAS_CLEAN_RUNNER_ANALYSIS_EXTRA:-0}" == "1" ]] || cli_apply_requires_analysis_extra "$@"; then
+  analysis_extra_enabled=1
+  export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1
+fi
+
 entrypoint_bin="${tmp_root}/bin"
 mkdir -p "${entrypoint_bin}"
 
@@ -105,14 +145,21 @@ write_launcher medautosci med_autoscience.cli
 write_launcher medautosci-mcp med_autoscience.mcp_server
 export PATH="${entrypoint_bin}:${PATH}"
 
-sync_marker="${tmp_root}/uv-sync.done"
+if [[ "${analysis_extra_enabled}" == "1" ]]; then
+  sync_marker="${tmp_root}/uv-sync.analysis.done"
+else
+  sync_marker="${tmp_root}/uv-sync.done"
+fi
 if [[ "${MAS_CLEAN_RUNNER_SKIP_SYNC:-0}" != "1" && ! -f "${sync_marker}" ]]; then
   uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)
-  if [[ "${MAS_CLEAN_RUNNER_ANALYSIS_EXTRA:-0}" == "1" ]]; then
+  if [[ "${analysis_extra_enabled}" == "1" ]]; then
     uv_sync_args+=(--extra analysis)
   fi
   UV_NO_SYNC=0 "${uv_sync_args[@]}"
   touch "${sync_marker}"
+  if [[ "${analysis_extra_enabled}" == "1" ]]; then
+    touch "${tmp_root}/uv-sync.done"
+  fi
 fi
 export MAS_CLEAN_RUNNER_SKIP_SYNC=1
 

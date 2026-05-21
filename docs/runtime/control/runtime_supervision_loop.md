@@ -141,6 +141,7 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - repeat suppression 的职责是阻断重复 dispatch 和无效 LLM 花费；它不得阻断 owner handoff、publication gate recheck 或 AI reviewer / writer next owner。
 - `paper_progress_stall` read model 统一表达 `same_fingerprint_loop`、`read_churn_without_artifact_delta`、`stale_truth_surface`、`runtime_recovery_retry_budget_exhausted`、handoff 状态和 source refs。
 - `domain-route-reconcile --dry-run` 是零 dispatch 诊断；`--apply` 只有在 fresh owner_route、未 parked、未 completed、无 human gate、无 publication gate missing、retry budget 未耗尽且 action fingerprint 新鲜时，才能通过 Codex worker dispatch。
+- clean Python runner 对 `domain-route-reconcile --apply`、`domain-owner-action-dispatch --apply` 和 `sidecar dispatch` 这类 owner apply 入口启用 analysis extra，确保 analysis / harmonization owner 拿到 reproducible model rebuild 所需的统计依赖；dry-run 继续保持轻量同步，不安装 analysis extra。
 - study-progress、Portal、Live Console、workspace cockpit、Product Entry 和 OPL handoff 只能投影 `affects_output`、`next_owner`、`why_not_running`、`same_fingerprint_or_handoff`、`will_start_llm`、safe reconcile command 和 source refs；它们不得写 paper/package、publication gate、controller decision、runtime SQLite 或 quality/publication/submission ready。
 
 2026-05-10 durable autonomy closeout 又把 `autonomy_progress_slo_status` 的 breach 解释收成正式 read model：
