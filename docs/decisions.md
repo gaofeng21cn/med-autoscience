@@ -6,6 +6,12 @@
 - 理由：DM002 当前症状是 MAS 已有 AI reviewer-backed `route_back_same_line -> analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration`，但 human/status 面仍被 `quest_waiting_platform_repair_redrive`、submission metadata parking 和 external_supervisor route 覆盖。这是 OPL runtime/provider 投影和任务 hydration 缺口，不能继续靠 MAS 私有 runtime/status arbitration 补洞。
 - 影响：本轮不得新增 MAS runtime liveness patch。若需要推进真实论文线，应通过 OPL family runtime queue/attempt hydration 消费 MAS sidecar/domain route refs，再回到 MAS owner surface 产出 domain receipt 或 stable typed blocker；MAS repo 只允许补 domain pack、owner callable、quality gate、receipt schema、refs-only adapter 或边界台账。
 
+## 2026-05-21：OPL owner-route handoff 不得写 `.ds` runtime state
+
+- 决策：`domain_route_scan_platform_repair` 触发 `quest_waiting_opl_runtime_owner_route` 时，MAS 只能写 `artifacts/supervision/owner_route_handoff/latest.json` 这类 MAS-owned supervision artifact，并通过 `sidecar export` 暴露 `domain_route/reconcile-apply` pending task。它不得把 `last_opl_runtime_owner_route_handoff`、`wait_for_opl_runtime_owner`、`active_run_id=None` 或 `worker_running=False` 写回 `quest_root/.ds/runtime_state.json` / `.ds/events.jsonl`。
+- 理由：`.ds/runtime_state.json` 是 generic runtime/provider 状态面；即使 MAS 不再直接 relaunch/resume，只要继续清 `active_run_id` 或写 continuation state，就仍在替 OPL 维护 runtime liveness/control-plane。正确边界是 MAS 发布 owner-route refs，OPL queue/attempt/provider 消费这些 refs。
+- 影响：owner-route apply result 的 `allowed_write_surfaces` 收窄到 `artifacts/supervision/**` 与 autonomy repair lifecycle/action refs；OPL 通过 sidecar task hydration 读取 handoff artifact。该路径不写论文、publication eval、controller decisions、submission package、current package，也不声明 OPL 已完成 dispatch。
+
 ## 2026-05-21：domain route-back 在 progress read-model 中优先于交付停驻投影
 
 - 决策：`study_progress` 必须只读透传当前 `domain_transition`，并且当 `domain_transition` 指向当前 route-back owner / work unit 时，即使 `interaction_arbitration` 尚未存在，`auto_runtime_parked` 也不得把该状态投影为 submission metadata、package-ready handoff 或 manual-finish parking。

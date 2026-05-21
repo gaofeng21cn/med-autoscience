@@ -91,6 +91,26 @@ def write_runtime_platform_repair_lifecycle(
             "supervision_scan": str(study_root / supervision_latest_relative_path),
         },
     }
+    handoff = apply_result.get("opl_runtime_owner_route_handoff")
+    if state == "owner_route_required" and isinstance(handoff, Mapping):
+        handoff_payload = {
+            "surface_kind": "mas_runtime_owner_route_handoff_record",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "recorded_at": _utc_now(),
+            "source": "domain_route_scan_platform_repair",
+            "handoff": dict(handoff),
+            "queue_owner": "one-person-lab",
+            "domain_truth_owner": "med-autoscience",
+            "recommended_task_kind": "domain_route/reconcile-apply",
+            "runtime_state_mutated": False,
+            "authority_boundary": dict(apply_result.get("authority_boundary") or {}),
+            "last_apply_attempt": dict(apply_result),
+        }
+        handoff_path = study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
+        _write_json(handoff_path, handoff_payload)
+        payload["refs"]["owner_route_handoff"] = str(handoff_path)
     _write_json(study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json", payload)
     return payload
 

@@ -86,12 +86,7 @@ def _assert_opl_runtime_owner_route_block(result: dict[str, object]) -> dict[str
 
 def _assert_runtime_state_waits_for_opl_owner(quest_root: Path) -> dict[str, object]:
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
-    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
-    handoff = runtime_state["last_opl_runtime_owner_route_handoff"]
-    assert handoff["queue_owner"] == "one-person-lab"
-    assert handoff["authority_boundary"]["mas_resumes_provider_worker"] is False
+    assert "last_opl_runtime_owner_route_handoff" not in runtime_state
     return runtime_state
 
 
@@ -593,7 +588,6 @@ def _write_native_runtime_event_for_status_test(*, quest_root: Path, quest_id: s
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
-
 
 
 

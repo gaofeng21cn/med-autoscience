@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from importlib import import_module
+import json
 from pathlib import Path
 from typing import Any
 
@@ -415,6 +416,33 @@ def _record_opl_runtime_owner_route_handoff_projection(
     runtime_state_path = str(wakeup_record.get("runtime_state_path") or "").strip()
     if not runtime_state_path:
         return
+    owner_route_record = wakeup_record.get("owner_route_handoff")
+    handoff = (
+        dict(owner_route_record.get("handoff"))
+        if isinstance(owner_route_record, dict) and isinstance(owner_route_record.get("handoff"), dict)
+        else {}
+    )
+    if not handoff:
+        handoff = {
+            "surface_kind": "mas_runtime_owner_route_handoff",
+            "domain_truth_owner": "med-autoscience",
+            "queue_owner": "one-person-lab",
+            "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
+            "recommended_task_kind": "domain_route/reconcile-apply",
+            "runtime_state_path": runtime_state_path,
+            "source": wakeup_record.get("source"),
+            "reason": StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE.value,
+            "authority_boundary": {
+                "mas_writes_generic_runtime_queue": False,
+                "mas_submits_runtime_chat": False,
+                "mas_resumes_provider_worker": False,
+                "opl_writes_mas_truth": False,
+                "mas_owner_receipt_required": True,
+            },
+        }
+    handoff.setdefault("study_id", status.study_id)
+    handoff.setdefault("quest_id", status.quest_id)
+    handoff.setdefault("reason", StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE.value)
     status.record_interaction_arbitration(
         StudyRuntimeInteractionArbitration.from_payload(
             {
@@ -435,12 +463,13 @@ def _record_opl_runtime_owner_route_handoff_projection(
         )
     )
     status.extras["opl_runtime_owner_route_handoff"] = {
-        "surface_kind": "mas_runtime_owner_route_handoff",
+        **handoff,
+        "surface_kind": str(handoff.get("surface_kind") or "mas_runtime_owner_route_handoff"),
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
         "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
         "recommended_task_kind": "domain_route/reconcile-apply",
-        "reason": StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE.value,
+        "reason": str(handoff.get("reason") or StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE.value),
         "runtime_state_path": runtime_state_path,
         "authority_boundary": {
             "mas_writes_generic_runtime_queue": False,
@@ -450,6 +479,31 @@ def _record_opl_runtime_owner_route_handoff_projection(
             "mas_owner_receipt_required": True,
         },
     }
+    handoff_path = Path(status.study_root) / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
+    handoff_path.parent.mkdir(parents=True, exist_ok=True)
+    handoff_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_runtime_owner_route_handoff_record",
+                "schema_version": 1,
+                "study_id": status.study_id,
+                "quest_id": status.quest_id,
+                "recorded_at": str(handoff.get("recorded_at") or wakeup_record.get("recorded_at") or ""),
+                "source": str(wakeup_record.get("source") or handoff.get("source") or "study_runtime_execution"),
+                "handoff": status.extras["opl_runtime_owner_route_handoff"],
+                "queue_owner": "one-person-lab",
+                "domain_truth_owner": "med-autoscience",
+                "recommended_task_kind": "domain_route/reconcile-apply",
+                "runtime_state_mutated": False,
+                "authority_boundary": status.extras["opl_runtime_owner_route_handoff"]["authority_boundary"],
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def _build_context_create_payload(context: StudyRuntimeExecutionContext) -> dict[str, Any]:

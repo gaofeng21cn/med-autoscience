@@ -73,7 +73,7 @@ def test_waiting_platform_repair_redrive_resumes_after_explicit_user_wakeup(
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
-    _, quest_root = _write_managed_study(profile, study_id)
+    study_root, quest_root = _write_managed_study(profile, study_id)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     write_text(
         runtime_state_path,
@@ -121,8 +121,15 @@ def test_waiting_platform_repair_redrive_resumes_after_explicit_user_wakeup(
     assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
     assert runtime_state["last_explicit_user_wakeup"]["cleared_platform_repair_redrive"] is True
     assert runtime_state["last_explicit_user_wakeup"]["handoff_kind"] == "opl_runtime_owner_route"
-    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
     assert runtime_state["pending_user_message_count"] == 1
-    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
-    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert "last_opl_runtime_owner_route_handoff" not in runtime_state
+    assert runtime_state["continuation_policy"] == "auto"
+    assert runtime_state["continuation_anchor"] == "decision"
+    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+    handoff_record = json.loads(
+        (study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert handoff_record["runtime_state_mutated"] is False
+    assert handoff_record["handoff"]["queue_owner"] == "one-person-lab"

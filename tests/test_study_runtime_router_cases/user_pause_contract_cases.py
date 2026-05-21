@@ -106,7 +106,7 @@ def test_user_paused_quest_blocks_auto_resume_even_when_auto_resume_is_enabled(
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
-    _, quest_root = _write_managed_study(profile, study_id)
+    study_root, quest_root = _write_managed_study(profile, study_id)
     write_text(
         quest_root / ".ds" / "runtime_state.json",
         json.dumps(
@@ -147,7 +147,7 @@ def test_user_paused_quest_resumes_after_explicit_user_wakeup(
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
-    _, quest_root = _write_managed_study(profile, study_id)
+    study_root, quest_root = _write_managed_study(profile, study_id)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     write_text(
         runtime_state_path,
@@ -209,7 +209,7 @@ def test_waiting_controller_owner_closeout_resumes_after_explicit_user_wakeup(
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
-    _, quest_root = _write_managed_study(profile, study_id)
+    study_root, quest_root = _write_managed_study(profile, study_id)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     write_text(
         runtime_state_path,
@@ -283,11 +283,18 @@ def test_waiting_controller_owner_closeout_resumes_after_explicit_user_wakeup(
     assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
     assert runtime_state["pending_user_message_count"] == 2
     assert runtime_state["last_explicit_user_wakeup"]["handoff_kind"] == "opl_runtime_owner_route"
-    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
-    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
-    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert "last_opl_runtime_owner_route_handoff" not in runtime_state
+    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
+    assert runtime_state["continuation_anchor"] == "turn_closeout"
+    assert runtime_state["continuation_reason"] == "blocked_turn_closeout_waiting_for_owner"
     assert "blocked_turn_closeout" not in runtime_state
+    handoff_record = json.loads(
+        (study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert handoff_record["runtime_state_mutated"] is False
+    assert handoff_record["handoff"]["queue_owner"] == "one-person-lab"
 
 
 def test_waiting_pending_user_message_redrive_resumes_without_explicit_wakeup(
