@@ -913,6 +913,44 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         },
     },
 )
+
+PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT = {
+    "surface_kind": "mas_physical_morphology_lane_d_closeout",
+    "lane_id": "mas_physical_thinning_closeout",
+    "status": "gated_retained_refs_only_or_diagnostic_residue",
+    "delete_or_archive_authorized": False,
+    "tombstone_new_active_residue_authorized": False,
+    "decision": "retain_with_explicit_cleanup_gate",
+    "required_before_delete_archive_or_tombstone": list(_ACTIVE_PATH_DELETE_OR_TOMBSTONE_AFTER),
+    "no_alias_facade_compat_wrapper_allowed": True,
+    "retained_residue_ids": [
+        item["residue_id"]
+        for item in ACTIVE_PATH_RESIDUE_CLEANUP_GATES
+        if not item["no_active_caller_proven"]
+    ],
+    "tombstone_only_residue_ids": [
+        item["residue_id"]
+        for item in ACTIVE_PATH_RESIDUE_CLEANUP_GATES
+        if item["no_active_caller_proven"]
+    ],
+    "retained_residue_reasons": {
+        item["residue_id"]: {
+            "current_role": item["current_role"],
+            "current_disposition": item["current_disposition"],
+            "active_caller_status": item["active_caller_status"],
+            "active_caller_count": item["active_caller_count"],
+            "opl_replacement_parity_status": item["opl_replacement_parity_status"],
+            "domain_receipt_parity_status": item["domain_receipt_parity_status"],
+            "physical_delete_permitted": item["physical_delete_permitted"],
+            "archive_permitted": item["archive_permitted"],
+            "rename_permitted": item["rename_permitted"],
+            "tombstone_permitted": item["tombstone_permitted"],
+            "focused_test_refs": list(item["focused_test_refs"]),
+        }
+        for item in ACTIVE_PATH_RESIDUE_CLEANUP_GATES
+        if not item["no_active_caller_proven"]
+    },
+}
 FUNCTIONAL_MODULE_INVENTORY = tuple(
     _module_with_retirement_gate(dict(item)) for item in _FUNCTIONAL_MODULE_INVENTORY
 )
@@ -920,6 +958,7 @@ FUNCTIONAL_MODULE_INVENTORY = tuple(
 
 __all__ = [
     "ACTIVE_PATH_RESIDUE_CLEANUP_GATES",
+    "PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT",
     "FUNCTIONAL_MODULE_INVENTORY",
     "FUNCTIONAL_SURFACE_CLASSIFICATION",
     "PHYSICAL_THINNING_EVIDENCE",

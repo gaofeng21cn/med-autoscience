@@ -238,6 +238,23 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert cleanup_gates["sqlite_lifecycle_sidecar_index"]["current_role"] == (
         "refs_only_domain_receipt_locator_and_lifecycle_ref_index"
     )
+    lane_d_closeout = runtime_handoff["physical_cleanup_gate"]["lane_d_closeout"]
+    assert lane_d_closeout["status"] == "gated_retained_refs_only_or_diagnostic_residue"
+    assert lane_d_closeout["delete_or_archive_authorized"] is False
+    assert lane_d_closeout["tombstone_new_active_residue_authorized"] is False
+    assert lane_d_closeout["no_alias_facade_compat_wrapper_allowed"] is True
+    assert set(lane_d_closeout["retained_residue_ids"]) == {
+        "runtime_transport_core_bridge",
+        "runtime_turn_runner_closeout_adapter",
+        "worker_lease_residency_projection",
+        "sqlite_lifecycle_sidecar_index",
+        "workbench_shell_domain_projection_refs",
+        "sidecar_dispatch_adapter",
+        "status_projection_domain_truth_refs",
+    }
+    assert lane_d_closeout["retained_residue_reasons"]["worker_lease_residency_projection"][
+        "active_caller_status"
+    ] == "active_runtime_worker_diagnostic_caller_present"
     assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
         "domain_projection_refs_for_opl_workbench"
     )

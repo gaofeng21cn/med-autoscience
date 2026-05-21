@@ -4,6 +4,7 @@ from typing import Any
 
 from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration_inventory import (
     ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
+    PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT,
 )
 from med_autoscience.controllers.domain_slo_scheduler_projection_parts.generated_caller_retirement import (
     build_generated_default_caller_boundary,
@@ -152,6 +153,10 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
                 }
                 for item in ACTIVE_PATH_RESIDUE_CLEANUP_GATES
             ],
+            "lane_d_closeout": {
+                key: list(value) if isinstance(value, list) else value
+                for key, value in PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT.items()
+            },
         },
         "authority_boundary": {
             "opl_owns_runtime_transport": True,
