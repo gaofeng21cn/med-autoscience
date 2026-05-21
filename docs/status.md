@@ -9,7 +9,7 @@ Machine boundary: 本文是人读 current-state 摘要。机器真相继续归 `
 
 ## 当前角色
 
-`Med Auto Science` 是医学研究 domain agent，也是 OPL-compatible package。单一 MAS app skill 是 direct path 的稳定入口；经 OPL 托管时，OPL 承载 stage-led runtime、attempt、queue、human gate transport、generated surface、projection 和 App/workbench shell。
+`Med Auto Science` 是医学研究 domain agent，也是 OPL-compatible package。单一 MAS app skill 是 direct path 的稳定入口；经 OPL 托管时，OPL/Temporal 是默认启用的 hosted autonomous runtime，承载持久在线 stage-led runtime、attempt、queue、wakeup、retry/dead-letter、resume、human gate transport、generated surface、projection 和 App/workbench shell。Codex App 不是任务启动后的外围持续 driver。
 
 MAS 持有医学研究 truth、stage semantics、AI reviewer / auditor quality gate、publication route、domain transition table、publication-route memory body/writeback decision、artifact/package authority、runtime-facing owner receipt/projection、typed blocker 和 safe action refs。OPL 不写 MAS study truth、memory body、publication verdict、artifact authority 或 `current_package`。
 
@@ -24,7 +24,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - Direct MAS app skill path 与 OPL-hosted path 共享同一 MAS-owned stage、controller、durable truth、quality verdict 和 artifact surface。
 - OPL generated / hosted surfaces 可以生成或托管 CLI / MCP / Skill / product-entry / status / workbench descriptor，并 dispatch allowlisted MAS task；它们不能写 MAS study truth、publication-route memory body、AI reviewer verdict、publication verdict、artifact authority、source body 或 `current_package`。
 - Workspace/file lifecycle 已按 repo-source 与 live/runtime 写集分层：开发 checkout 只承载 semantic pack、机器合同、authority-function descriptor/receipt refs、domain handler/native helper 和人读治理；真实 workspace state、runtime artifact、receipt instance、paper/package/export artifact 和临时 build/cache/venv/pycache/pytest cache/install sync 副产物必须进入受控 study workspace/runtime artifact root 或用户级 runtime state。
-- `DEFAULT_MANAGED_RUNTIME_BACKEND_ID` 已切到 `opl_provider_backed_stage_runtime`；`runtime_backend_default_operation_contract`、product-entry manifest 与 sidecar export 声明默认 generic runtime owner 为 `one-person-lab`，默认 backend 为 `opl_provider_backed_stage_runtime`，delegated domain adapter 为 `mas_runtime_core`。`mas_runtime_core` 的角色是 `mas_domain_owner_receipt_adapter` / diagnostic adapter，不是 MAS-owned generic runtime platform。
+- `DEFAULT_MANAGED_RUNTIME_BACKEND_ID` 已切到 `opl_provider_backed_stage_runtime`；`runtime_backend_default_operation_contract`、product-entry manifest 与 sidecar export 声明默认 generic runtime owner 为 `one-person-lab`，默认 backend 为 `opl_provider_backed_stage_runtime`，delegated domain adapter 为 `mas_runtime_core`。`runtime_backend_default_operation_contract.default_autonomous_runtime`、`provider_topology.default_autonomous_runtime`、`managed_temporal_state_consistency.default_autonomous_runtime` 与 `runtime_transport_handoff_projection.default_caller_policy` 共同声明：hosted autonomous runtime 默认启用，provider 为 `temporal`，wakeup/retry/resume owner 为 OPL，`codex_app_outer_driver_required=false`，`mas_daemon_scheduler_attempt_loop_allowed=false`。`mas_runtime_core` 的角色是 `mas_domain_owner_receipt_adapter` / diagnostic adapter，不是 MAS-owned generic runtime platform。
 - `functional_consumer_boundary` 已关闭未分类 generic owner 回流，并把 MAS 私有面限定为 declarative pack / generated surface handoff、refs-only adapter、minimal authority function 或 legacy tombstone/provenance gate。
 - MAS stage control plane 已为 6 个 runtime-guard stage 声明 `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs`；stage cohort-loop refs 也已声明 source scope、cohort query、OPL queue trigger、monitor 和 dashboard metric refs。
 - `contracts/production_acceptance/mas-production-acceptance.json` 只承认 structural / physical conformance 与 production-like receipt chain；它不授权 domain ready、publication ready、medical ready、artifact mutation 或 `current_package` 更新。
@@ -103,6 +103,7 @@ MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain
 - 不能把 `runtime_transport/`、domain route、turn runner、worker lease 或 `runtime_lifecycle_store.py` 的存在写成 MAS 仍拥有 generic runtime；也不能反过来写成它们已经物理删除。
 - 不能把 OPL `stage_production_evidence_receipt_record|verify` 写成 MAS production ready；它只是 expected receipt / monitor freshness 的 refs-only record/verify route。
 - 不能把 MDS/DeepScientist、Hermes、local scheduler 或旧 workspace wrapper 写成 MAS 默认 active runtime owner。
+- 不能把 Codex App 外围会话、MAS daemon/scheduler、MAS attempt loop 或 `mas_runtime_core` 写成任务启动后的默认持久在线调度 owner；默认托管自治运行 owner 是 OPL/Temporal。
 - 不能把 dated specs、dated closeout、follow-through 记录或历史 full record 当成 current truth。
 
 ## 下一跳

@@ -11,6 +11,17 @@ MAS_DOMAIN_RUNTIME_ADAPTER_BACKEND_ID = "mas_runtime_core"
 MAS_RUNTIME_OWNER = "one-person-lab"
 MAS_RUNTIME_SUBSTRATE = "opl_provider_backed_stage_runtime"
 MAS_DOMAIN_RUNTIME_ADAPTER_ROLE = "mas_domain_owner_receipt_adapter"
+DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT: dict[str, object] = {
+    "enabled_by_default": True,
+    "hosted_runtime_owner": MAS_RUNTIME_OWNER,
+    "hosted_runtime_provider": "temporal",
+    "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
+    "persistent_online_control_plane": "opl_temporal",
+    "task_start_handoff": "mas_sidecar_or_domain_entry_to_opl_temporal_attempt",
+    "wakeup_retry_resume_owner": MAS_RUNTIME_OWNER,
+    "codex_app_outer_driver_required": False,
+    "mas_daemon_scheduler_attempt_loop_allowed": False,
+}
 CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER = "controlled_research_backend"
 EXTERNAL_MDS_ALLOWED_USES = (
     "source_provenance_ref",
@@ -471,6 +482,7 @@ def runtime_backend_default_operation_contract(backend_id: str) -> dict[str, obj
         "runtime_engine_id": runtime_engine_id,
         "runtime_backend_role": MAS_DOMAIN_RUNTIME_ADAPTER_ROLE,
         "runtime_backend_is_generic_owner": False,
+        "default_autonomous_runtime": dict(DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT),
         "default_runtime_backend_is_opl_provider_owned": runtime_backend_id == DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
         "delegated_domain_adapter_id": _non_empty_text(getattr(backend, "DELEGATED_DOMAIN_ADAPTER_ID", None)),
         "delegated_domain_adapter_engine_id": _non_empty_text(

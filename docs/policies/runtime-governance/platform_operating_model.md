@@ -20,7 +20,7 @@
 - `OPL` 是完整智能体运行框架，可托管 stage attempt、queue、wakeup、retry/dead-letter、approval、projection 和 shared lifecycle/index 能力；它不替代 `MedAutoScience` 的医学研究 owner 身份。
 - `Stage` 是一次大型任务步骤；`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。
 - OPL provider-backed stage runtime 是当前 generic runtime owner；`MAS Runtime OS` 只承担 MAS domain runtime adapter、owner receipt、typed blocker、event refs、guarded apply 与 diagnostic surface；`MedDeepScientist` 只保留 frozen source archive、historical fixture、explicit archive import reference、backend audit、upstream intake 和 parity oracle。
-- OPL provider / Temporal 只能承载、唤醒、记录和派发 attempt；`hermes_agent` 只作为显式非默认 executor/proof lane，旧 Hermes provider 或 local scheduler 只作 history/provenance/dev/CI/offline diagnostic，不持有 MAS study truth、publication quality、artifact authority 或 current package。
+- OPL provider / Temporal 默认承载任务启动后的持久在线调度、唤醒、记录、派发 attempt、retry/dead-letter 和 resume；`hermes_agent` 只作为显式非默认 executor/proof lane，旧 Hermes provider 或 local scheduler 只作 history/provenance/dev/CI/offline baseline，不持有 MAS study truth、publication quality、artifact authority 或 current package。
 
 旧定位说明已归档到 [Historical Framework Positioning](../../history/runtime/historical_framework_positioning.md)。当前 active 口径以独立 medical research domain agent 与 OPL stage-led framework 托管边界为准。
 
@@ -100,10 +100,11 @@
 2. Agent 检查数据资产状态，包括私有版本、公开数据机会、startup readiness。
 3. Agent 按研究偏置策略，优先选择高可塑性、易形成医学证据包的课题 archetype。
 4. Agent 为当前 quest 安装或重覆写医学 overlay，把门控与写作约束前移到执行阶段。
-5. `Codex CLI` 在 MAS stage packet 约束内执行实验、写作、修复和交付准备。
-6. `MedAutoScience` 在关键节点执行 publication gate、data-asset gate、AI reviewer、medical publication surface 等治理。
-7. 若主线结果偏弱，Agent 应尽快止损、改题、补 sidecar 或切换路线，而不是继续空转。
-8. 当证据面足够时，平台导出投稿包，并同步到 study 的正式交付路径。
+5. Hosted path 由 OPL/Temporal 持久在线管理 stage attempt、wakeup、retry、resume 和 queue；Codex App 不承担外围持续 driver。
+6. `Codex CLI` 在 MAS stage packet 约束内执行实验、写作、修复和交付准备。
+7. `MedAutoScience` 在关键节点执行 publication gate、data-asset gate、AI reviewer、medical publication surface 等治理。
+8. 若主线结果偏弱，Agent 应尽快止损、改题、补 sidecar 或切换路线，而不是继续空转。
+9. 当证据面足够时，平台导出投稿包，并同步到 study 的正式交付路径。
 
 ## 研究路线偏置
 

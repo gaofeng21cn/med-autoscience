@@ -7,8 +7,9 @@
 - repo-tracked contract、durable surface、stable runtime / controller surface 和 generated artifact 是当前权威；本地工具状态、历史 session、prompt、log 或 hook 只能归档到用户级状态，不得替代仓库真相。项目级 `.codex/` 与 `.omx/` 已退役。
 - formal-entry matrix 固定为 `CLI`（默认入口）/ `MCP`（协议层）/ `controller`（控制面）；能力表达遵循 `policy -> controller -> overlay -> adapter` 主链路，避免旁路。
 - `MedAutoScience` 对外第一身份固定为独立 medical research domain agent，单一 MAS app skill 承接稳定 capability surface；OPL handoff、product-entry manifest 与其他机器桥接只作为集成或参考层，不改写第一主语。
-- 默认执行链是 `Codex-default host-agent runtime + MAS stable capability surface`。`Codex CLI` 是 stage 内默认 concrete executor；`hermes_agent` 只允许作为显式非默认 executor / proof lane，旧 Hermes provider 或 local carrier 只能进入 history / provenance / dev / CI / offline diagnostic 语境。
+- 默认执行链是 `OPL/Temporal hosted autonomous runtime + Codex CLI default stage executor + MAS stable capability surface`。任务启动后，持久在线调度、唤醒、retry、resume、attempt ledger 和 worker residency 归 OPL/Temporal；`Codex CLI` 是 stage 内默认 concrete executor；Codex App 不是外围持续 driver。`hermes_agent` 只允许作为显式非默认 executor / proof lane，旧 Hermes provider 或 local carrier 只能进入 history / provenance / dev / CI / offline diagnostic 语境。
 - OPL-hosted production path 必须依赖 Temporal-backed provider transport / record / dispatch stage attempt；local / legacy substrate 不能生成 MAS 医学研究 truth，也不能替代 OPL Full online readiness。
+- MAS 不得新增或恢复 generic daemon、scheduler、attempt loop、queue hydration、retry/dead-letter、resume 或 worker residency owner；这些只能作为 OPL/Temporal owner route 的 refs、receipt、typed blocker 或 tombstone/provenance surface 被 MAS 投影。
 
 ## OPL 边界与标准 Agent 目标
 

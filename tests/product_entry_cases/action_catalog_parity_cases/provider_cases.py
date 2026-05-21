@@ -322,6 +322,11 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     assert manifest["opl_provider_ready_contract"]["provider_topology"]["provider_state"] == (
         "production_residency_proven"
     )
+    assert manifest["opl_provider_ready_contract"]["provider_topology"]["hosted_runtime_policy"] == (
+        "default_enabled_opl_temporal_hosted_autonomy"
+    )
+    assert manifest["opl_provider_ready_contract"]["provider_topology"]["codex_app_outer_driver_required"] is False
+    assert manifest["opl_provider_ready_contract"]["provider_topology"]["mas_daemon_scheduler_attempt_loop_allowed"] is False
     assert availability["status"] == "available"
     assert availability["provider_attempt_available"] is True
     assert availability["proof_ref"] == str(proof_ref)
@@ -330,6 +335,10 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     managed_state = manifest["managed_temporal_state_consistency"]
     assert managed_state == manifest["opl_provider_ready_contract"]["managed_temporal_state_consistency"]
     assert managed_state["status"] == "consistent"
+    assert managed_state["default_autonomous_runtime"]["enabled_by_default"] is True
+    assert managed_state["default_autonomous_runtime"]["persistent_online_control_plane"] == "opl_temporal"
+    assert managed_state["default_autonomous_runtime"]["codex_app_outer_driver_required"] is False
+    assert managed_state["default_autonomous_runtime"]["mas_daemon_scheduler_attempt_loop_allowed"] is False
     assert managed_state["managed_state"]["address_source"] == "managed_local_service_state"
     assert managed_state["managed_state"]["lifecycle_status"] == "ready"
     assert managed_state["managed_state"]["server_reachable"] is True
@@ -370,7 +379,7 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
         "explicit_optional_executor_adapter",
         "retired_no_default_caller",
         "fixture_or_provenance_only",
-        "standalone_diagnostics_only",
+        "tombstone_provenance_only",
     }
     assert tombstone["physical_tombstone_refs"] == [
         "contracts/runtime/legacy-active-path-tombstones.json",

@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-21：OPL/Temporal hosted autonomous runtime 是 MAS 默认运行口径
+
+- 决策：MAS hosted path 的默认运行口径固定为 OPL/Temporal hosted autonomous runtime。任务启动后，durable stage attempt、queue、wakeup、retry/dead-letter、resume、worker residency 和 generic lifecycle/projection 由 OPL/Temporal 持有；MAS 不内置或恢复 generic daemon、scheduler、attempt loop、queue hydration、provider retry 或 resume owner。
+- 决策：`Codex CLI` 是 stage 内默认 concrete executor，继续负责读取 MAS stage packet、调用 MAS controller/tool、产出分析、写作、修复、验证与 stage closeout；Codex App / MAS app skill 是 direct entry 和人机操作面，不是任务启动后的外围持续 driver。
+- 决策：`runtime_backend_default_operation_contract.default_autonomous_runtime`、product-entry `provider_topology.default_autonomous_runtime`、product-entry/sidecar `managed_temporal_state_consistency.default_autonomous_runtime` 和 `runtime_transport_handoff_projection.default_caller_policy` 必须持续暴露该口径：`hosted_runtime_owner=one-person-lab`、`hosted_runtime_provider=temporal`、`wakeup_retry_resume_owner=one-person-lab`、`codex_app_outer_driver_required=false`、`mas_daemon_scheduler_attempt_loop_allowed=false`。
+- 理由：MAS 是标准 OPL domain agent，应该保留医学研究 truth、stage semantics、AI reviewer / quality gate、publication route、artifact authority、owner receipt 和 typed blocker；长期在线调度、唤醒、retry、resume 和 attempt ledger 是 OPL Framework / Temporal 的 generic runtime 能力。
+- 影响：后续 runtime/status/sidecar/product-entry/docs 变更若把 `mas_runtime_core`、Codex App 外围会话、local scheduler、Hermes cron 或 MAS runtime transport 写成默认 generic runtime owner，均视为边界回归。真实 paper-line 进展仍以 MAS owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker 为准。
+
 ## 2026-05-21：runtime liveness / redrive 仲裁不得继续在 MAS 私有控制面扩写
 
 - 决策：暂停并撤回把 `active_run_id` liveness 过滤、stopped/failed redrive 仲裁、provider resume 选择或 current AI reviewer route-back hydrate 继续写进 `study_outer_loop.py` / `status_and_decision.py` / `domain_transition_arbitration.py` 的修复方向。MAS 只能输出医学 owner route、controller authorization refs、AI reviewer/publication gate verdict refs、owner receipt 和 typed blocker；通用 liveness、attempt、queue、redrive、hydration、retry/dead-letter 与 provider resume 由 OPL provider/runtime manager 承担。

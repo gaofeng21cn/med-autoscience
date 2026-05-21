@@ -24,6 +24,8 @@ Machine boundary: 本文是人读 program owner。机器真相继续归 MAS cont
 
 P2 的当前口径是：OPL-hosted MAS 的 descriptor、sidecar、guarded apply receipt、publication-route memory receipt chain、OPL Temporal production residency proof ingestion、managed Temporal state projection 和 legacy no-default-caller tombstone proof 已形成可维护基础面；这些只证明 framework transition 可承载 MAS refs 和 blockers，不证明 paper closure、publication quality 或 submission readiness。
 
+当前默认运行口径已机器化：MAS hosted path 在任务启动后默认启用 OPL/Temporal hosted autonomous runtime。`runtime_backend_default_operation_contract.default_autonomous_runtime`、product-entry `provider_topology.default_autonomous_runtime`、sidecar / product-entry `managed_temporal_state_consistency.default_autonomous_runtime` 和 `runtime_transport_handoff_projection.default_caller_policy` 都声明 OPL/Temporal 持有持久在线调度、唤醒、retry、resume、attempt ledger 和 worker residency；`codex_app_outer_driver_required=false`，`mas_daemon_scheduler_attempt_loop_allowed=false`。`Codex CLI` 仍是 stage 内默认 concrete executor，不是 MAS 私有 daemon 或 scheduler。
+
 真实 paper-line long-running apply 仍是 production evidence gate。P2 后续只保留 framework/runtime owner 边界和 MAS-owned receipt 输出要求；具体工程收口回到 OPL production closure matrix 与 MAS 当前 development lines。每项结果要么进入 MAS-owned receipt / locator / typed blocker surface，要么明确返回 owner guard、live gate、authorization 或 contract gap。
 
 MAS 侧已经落地：
