@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -74,26 +75,6 @@ def test_scan_domain_routes_resumes_existing_pending_message_for_no_live_redrive
         },
     )
 
-    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
-        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-        assert runtime_state["pending_user_message_count"] == 1
-        assert runtime_state["continuation_anchor"] == "user_message_queue"
-        assert runtime_state["continuation_reason"] == "runtime_platform_repair_resume_existing_pending_user_message"
-        assert runtime_state["same_fingerprint_auto_turn_count"] == 0
-        assert "last_controller_decision_authorization" not in runtime_state
-        assert "retry_state" not in runtime_state
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "running",
-            "decision": "resume",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-dpcc-pending-recovered",
-                "runtime_audit": {"worker_running": True, "active_run_id": "run-dpcc-pending-recovered"},
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -137,11 +118,14 @@ def test_scan_domain_routes_resumes_existing_pending_message_for_no_live_redrive
     )
 
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = assert_owner_route_required(apply_result=apply_result, quest_root=quest_root)
     assert apply_result["current_controller_authorization_written"] is False
     assert apply_result["current_controller_authorization"]["reason"] == "pending_user_messages_present"
     assert apply_result["existing_pending_user_message_resume"]["marked"] is True
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dpcc-pending-recovered"
+    assert runtime_state["pending_user_message_count"] == 1
+    assert runtime_state["same_fingerprint_auto_turn_count"] == 0
+    assert "last_controller_decision_authorization" not in runtime_state
+    assert "retry_state" not in runtime_state
 
 
 def test_scan_domain_routes_blocks_pending_redrive_when_resume_adopts_evidence_without_live_worker(
@@ -204,21 +188,6 @@ def test_scan_domain_routes_blocks_pending_redrive_when_resume_adopts_evidence_w
         },
     )
 
-    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "waiting_for_user",
-            "decision": "noop",
-            "reason": "controller_work_unit_evidence_adopted",
-            "active_run_id": None,
-            "runtime_liveness_audit": {
-                "active_run_id": None,
-                "runtime_audit": {"worker_running": False, "active_run_id": None},
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -270,8 +239,11 @@ def test_scan_domain_routes_blocks_pending_redrive_when_resume_adopts_evidence_w
     )
 
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "blocked"
-    assert apply_result["reason"] == "runtime_relaunch_no_live_run_started"
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        quest_root=quest_root,
+        expected_reason="runtime_controller_redrive_required",
+    )
     assert apply_result["current_controller_authorization_written"] is True
-    assert apply_result["resume_result"]["reason"] == "controller_work_unit_evidence_adopted"
-    assert result["studies"][0]["ai_repair_lifecycle"]["state"] == "blocked"
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "pending-dpcc-write-redrive"
+    assert result["studies"][0]["ai_repair_lifecycle"]["state"] == "owner_route_required"

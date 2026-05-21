@@ -106,6 +106,10 @@ def applied(value: Mapping[str, Any] | None) -> bool:
     return value is not None and _text(value.get("dispatch_status")) == "applied"
 
 
+def owner_route_required(value: Mapping[str, Any] | None) -> bool:
+    return value is not None and _text(value.get("dispatch_status")) == "owner_route_required"
+
+
 def _runtime_repair_retry_budget(runtime_health: Mapping[str, Any]) -> int:
     remaining = runtime_health.get("retry_budget_remaining")
     if isinstance(remaining, int) and remaining > 0:
@@ -135,4 +139,5 @@ __all__ = [
     "applied",
     "merge_evidence_adoption_projection",
     "merge_runtime_fact",
+    "owner_route_required",
 ]

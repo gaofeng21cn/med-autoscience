@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -32,7 +33,10 @@ def test_scan_domain_routes_runtime_repair_routes_package_freshness_terminal_to_
         },
     )
 
-    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
+    ensure_calls: list[dict[str, object]] = []
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
         return {
             "study_id": "001-dm-cvd-mortality-risk",
             "quest_id": "quest-dm",
@@ -101,22 +105,24 @@ def test_scan_domain_routes_runtime_repair_routes_package_freshness_terminal_to_
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "blocked"
-    assert apply_result["reason"] == "current_package_freshness_required"
+    assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
     assert apply_result["repair_kind"] == "active_runtime_no_live_worker_relaunch"
-    assert apply_result["resume_postcondition"]["terminal_reason"] == "current_package_freshness_required"
-    assert [item["action_type"] for item in study["action_queue"]] == ["current_package_freshness_required"]
-    assert study["action_queue"][0]["owner"] == "artifact_os"
-    assert study["ai_repair_lifecycle"]["state"] == "blocked"
-    assert study["ai_repair_lifecycle"]["blocked_reason"] == "current_package_freshness_required"
-    assert study["ai_repair_lifecycle"]["next_owner"] == "artifact_os"
-    assert study["why_not_applied"] == "current_package_freshness_required"
-    assert study["blocked_reason"] == "current_package_freshness_required"
-    assert study["next_owner"] == "artifact_os"
+    assert [item["action_type"] for item in study["action_queue"]] == []
+    assert study["ai_repair_lifecycle"]["state"] == "owner_route_required"
+    assert study["ai_repair_lifecycle"]["blocked_reason"] == "opl_runtime_owner_route_required"
+    assert study["ai_repair_lifecycle"]["next_owner"] == "one-person-lab"
+    assert study["why_not_applied"] == "runtime_recovery_retry_budget_exhausted"
+    assert study["blocked_reason"] == "opl_runtime_owner_route_required"
+    assert study["next_owner"] == "one-person-lab"
     assert study["external_supervisor_required"] is False
-    assert study["owner_route"]["next_owner"] == "artifact_os"
-    assert study["owner_route"]["owner_reason"] == "current_package_freshness_required"
-    assert study["owner_route"]["allowed_actions"] == ["current_package_freshness_required"]
+    assert study["owner_route"]["next_owner"] == "one-person-lab"
+    assert study["owner_route"]["owner_reason"] == "opl_runtime_owner_route_required"
+    assert study["owner_route"]["allowed_actions"] == []
     assert study["paper_package_mutated"] is False
 
 

@@ -697,6 +697,8 @@ def _study_projection(
         lifecycle = {}
     if applied_repair_merge.applied(runtime_platform_repair_apply):
         actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
+    if applied_repair_merge.owner_route_required(runtime_platform_repair_apply):
+        actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
     if (
         runtime_platform_repair_apply is not None
         and _text(runtime_platform_repair_apply.get("dispatch_status")) == "blocked"

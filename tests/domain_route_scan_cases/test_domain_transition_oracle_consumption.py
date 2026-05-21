@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers.domain_route_scan_parts import platform_repair
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from med_autoscience.controllers.domain_route_scan_parts import action_projection
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 
@@ -170,12 +171,6 @@ def test_apply_runtime_platform_repair_does_not_redrive_terminal_domain_transiti
     )
     ensure_calls: list[dict[str, object]] = []
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        return {"decision": "resume"}
-
-    monkeypatch.setattr(platform_repair.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
-
     result = platform_repair.apply_runtime_platform_repair(
         profile=object(),
         study_id="study-001",
@@ -267,27 +262,6 @@ def test_apply_runtime_platform_repair_uses_current_domain_transition_route_over
     )
     ensure_calls: list[dict[str, object]] = []
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "fresh-bundle-stage-decision"
-        assert authorization["route_target"] == "finalize"
-        assert authorization["work_unit_id"] == "submission_authority_sync_closure"
-        assert authorization["work_unit_fingerprint"] == (
-            "domain-transition::bundle_stage_finalize::submission_authority_sync_closure"
-        )
-        return {
-            "decision": "resume",
-            "quest_status": "running",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-fresh-bundle-stage",
-                "runtime_audit": {"worker_running": True, "active_run_id": "run-fresh-bundle-stage"},
-            },
-        }
-
-    monkeypatch.setattr(platform_repair.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
-
     result = platform_repair.apply_runtime_platform_repair(
         profile=object(),
         study_id="study-002",
@@ -315,10 +289,20 @@ def test_apply_runtime_platform_repair_uses_current_domain_transition_route_over
         repair_required=True,
     )
 
-    assert len(ensure_calls) == 1
     assert result is not None
-    assert result["dispatch_status"] == "applied"
+    runtime_state = assert_owner_route_required(
+        apply_result=result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+    )
     assert result["repair_kind"] == "domain_transition_bundle_stage_finalize_redrive"
+    authorization = runtime_state["last_controller_decision_authorization"]
+    assert authorization["decision_id"] == "fresh-bundle-stage-decision"
+    assert authorization["route_target"] == "finalize"
+    assert authorization["work_unit_id"] == "submission_authority_sync_closure"
+    assert authorization["work_unit_fingerprint"] == (
+        "domain-transition::bundle_stage_finalize::submission_authority_sync_closure"
+    )
 
 
 def test_apply_runtime_platform_repair_redrives_story_surface_delta_before_gate_blocker(
@@ -391,28 +375,6 @@ def test_apply_runtime_platform_repair_redrives_story_surface_delta_before_gate_
     }
     ensure_calls: list[dict[str, object]] = []
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["authorization_basis"] == "quality_repair_story_surface_delta_blocker"
-        assert authorization["route_target"] == "write"
-        assert authorization["work_unit_id"] == "manuscript_story_repair"
-        assert authorization["controller_actions"] == ["run_quality_repair_batch"]
-        return {
-            "decision": "resume",
-            "quest_status": "running",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-dm002-story-repair",
-                "runtime_audit": {
-                    "worker_running": True,
-                    "active_run_id": "run-dm002-story-repair",
-                },
-            },
-        }
-
-    monkeypatch.setattr(platform_repair.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
-
     result = platform_repair.apply_runtime_platform_repair(
         profile=object(),
         study_id="dm002",
@@ -440,15 +402,21 @@ def test_apply_runtime_platform_repair_redrives_story_surface_delta_before_gate_
         repair_required=True,
     )
 
-    assert len(ensure_calls) == 1
     assert result is not None
-    assert result["dispatch_status"] == "applied"
+    runtime_state = assert_owner_route_required(
+        apply_result=result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+    )
     assert result["repair_kind"] == "domain_transition_publication_gate_blocker_story_surface_delta_redrive"
     assert result["domain_transition_controller_route"]["authorization_basis"] == (
         "quality_repair_story_surface_delta_blocker"
     )
-    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-    assert runtime_state["continuation_reason"] == "controller_work_unit_pending"
+    authorization = runtime_state["last_controller_decision_authorization"]
+    assert authorization["authorization_basis"] == "quality_repair_story_surface_delta_blocker"
+    assert authorization["route_target"] == "write"
+    assert authorization["work_unit_id"] == "manuscript_story_repair"
+    assert authorization["controller_actions"] == ["run_quality_repair_batch"]
 
 
 def _developer_apply_safe_mode() -> DeveloperSupervisorMode:

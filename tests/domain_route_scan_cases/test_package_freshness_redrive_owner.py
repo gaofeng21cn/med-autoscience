@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -151,18 +152,23 @@ def test_scan_domain_routes_keeps_upstream_quality_repair_owned_by_mas_controlle
     )
 
     study = result["studies"][0]
-    action_types = [item["action_type"] for item in study["action_queue"]]
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "blocked"
-    assert study["runtime_platform_repair_apply"]["reason"] == "runtime_controller_redrive_required"
-    assert study["runtime_platform_repair_apply"]["current_controller_authorization_written"] is True
-    assert action_types == ["runtime_platform_repair"]
-    assert "current_package_freshness_required" not in action_types
-    assert study["ai_repair_lifecycle"]["blocked_reason"] == "runtime_controller_redrive_required"
-    assert study["ai_repair_lifecycle"]["next_owner"] == "mas_controller"
+    apply_result = study["runtime_platform_repair_apply"]
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
+    assert apply_result["current_controller_authorization_written"] is True
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
+        "current-analysis-claim-evidence-repair"
+    )
+    assert [item["action_type"] for item in study["action_queue"]] == []
+    assert study["ai_repair_lifecycle"]["blocked_reason"] == "opl_runtime_owner_route_required"
+    assert study["ai_repair_lifecycle"]["next_owner"] == "one-person-lab"
     assert study["ai_repair_lifecycle"]["external_supervisor_required"] is False
-    assert study["blocked_reason"] == "runtime_controller_redrive_required"
-    assert study["next_owner"] == "mas_controller"
-    assert study["owner_route"]["next_owner"] == "mas_controller"
-    assert study["owner_route"]["allowed_actions"] == ["runtime_platform_repair"]
+    assert study["blocked_reason"] == "opl_runtime_owner_route_required"
+    assert study["next_owner"] == "one-person-lab"
+    assert study["owner_route"]["next_owner"] == "one-person-lab"
+    assert study["owner_route"]["allowed_actions"] == []
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False

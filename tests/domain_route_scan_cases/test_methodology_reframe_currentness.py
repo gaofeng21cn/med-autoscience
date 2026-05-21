@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
 
 
@@ -230,15 +231,6 @@ def test_platform_repair_prefers_methodology_reframe_route_over_stale_gate_speci
         }
     )
     _write_json(decision_path, decision)
-    monkeypatch.setattr(
-        repair_module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda **_: {
-            "decision": "resume",
-            "runtime_liveness_audit": {"active_run_id": "run-methodology-redrive"},
-        },
-    )
-
     result = repair_module.apply_runtime_platform_repair(
         profile=profile,
         study_id=study_id,
@@ -261,12 +253,14 @@ def test_platform_repair_prefers_methodology_reframe_route_over_stale_gate_speci
     )
 
     assert result is not None
-    assert result["dispatch_status"] == "applied"
-    assert result["reason"] == "runtime_controller_redrive_required"
+    assert_owner_route_required(
+        apply_result=result,
+        quest_root=quest_root,
+        expected_reason="runtime_controller_redrive_required",
+    )
     assert result["repair_kind"] == "current_controller_runtime_route_redrive"
     assert result["current_controller_authorization_written"] is True
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-    assert runtime_state["continuation_reason"] == "controller_work_unit_pending"
     assert runtime_state["last_controller_decision_authorization"]["decision_id"] == decision["decision_id"]
     assert runtime_state["last_controller_decision_authorization"]["work_unit_fingerprint"] == (
         "decision::methodology_reframe_route_decision"

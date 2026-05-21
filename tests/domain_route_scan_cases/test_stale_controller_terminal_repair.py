@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -154,20 +155,22 @@ def test_scan_domain_routes_clears_stale_package_terminal_when_current_controlle
         apply_runtime_platform_repair=True,
     )
 
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     study = result["studies"][0]
-    assert len(ensure_calls) == 1
+    apply_result = study["runtime_platform_repair_apply"]
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
     authorization = runtime_state["last_controller_decision_authorization"]
     assert authorization["decision_id"] == "current-analysis-redrive"
     assert authorization["work_unit_id"] == "analysis_claim_evidence_repair"
     assert "retry_state" not in runtime_state
     assert runtime_state["same_fingerprint_auto_turn_count"] == 0
-    assert runtime_state["continuation_reason"] == "controller_work_unit_pending"
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
-    assert study["runtime_platform_repair_apply"]["stale_controller_terminal_cleared"] is True
-    assert study["runtime_platform_repair_apply"]["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dm002-recovered"
-    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
-    assert study["next_owner"] == "ai_reviewer"
+    assert apply_result["stale_controller_terminal_cleared"] is True
+    assert study["blocked_reason"] == "opl_runtime_owner_route_required"
+    assert study["next_owner"] == "one-person-lab"
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 
@@ -296,10 +299,16 @@ def test_scan_domain_routes_writes_current_controller_authorization_before_no_li
     )
 
     study = result["studies"][0]
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
-    assert study["runtime_platform_repair_apply"]["current_controller_authorization_written"] is True
-    assert study["runtime_platform_repair_apply"]["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dpcc-recovered"
-    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
+    apply_result = study["runtime_platform_repair_apply"]
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
+    assert apply_result["current_controller_authorization_written"] is True
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-dpcc-analysis-redrive"
+    assert study["blocked_reason"] == "opl_runtime_owner_route_required"
+    assert study["next_owner"] == "one-person-lab"
     assert study["external_supervisor_required"] is False
 
 
@@ -445,14 +454,17 @@ def test_scan_domain_routes_resumes_waiting_controller_work_unit_pending_after_a
         persist_surfaces=False,
     )
 
-    assert len(ensure_calls) == 1
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
-    assert apply_result["reason"] == "runtime_platform_repair_redrive_pending_authorization"
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason=None,
+    )
     assert apply_result["repair_kind"] == "pending_runtime_platform_repair_redrive"
     assert apply_result["current_controller_authorization_written"] is True
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dpcc-after-auth"
+    assert runtime_state["last_controller_decision_authorization"] == authorization
     assert study["external_supervisor_required"] is False
 
 
@@ -625,17 +637,20 @@ def test_scan_domain_routes_applies_current_controller_redrive_for_live_activity
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert len(pause_calls) == 1
-    assert pause_calls[0]["study_id"] == study_id
-    assert pause_calls[0]["source"] == "domain_route_scan_platform_repair"
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        pause_calls=pause_calls,
+        quest_root=quest_root,
+        expected_reason=None,
+    )
     assert apply_result["reason"] == "runtime_controller_redrive_required"
     assert apply_result["repair_kind"] == "live_activity_timeout_current_controller_redrive"
-    assert apply_result["force_fresh_turn"]["forced"] is True
-    assert apply_result["force_fresh_turn"]["reason"] == "live_activity_timeout_force_fresh_turn"
+    assert apply_result["force_fresh_turn"]["forced"] is False
+    assert apply_result["force_fresh_turn"]["reason"] == "opl_runtime_owner_route_required"
     assert apply_result["current_controller_authorization_written"] is True
-    assert apply_result["resume_result"]["resume_postcondition"]["active_run_id"] == "run-dpcc-redriven"
-    assert study["blocked_reason"] is None
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-dpcc-live-timeout-redrive"
+    assert study["blocked_reason"] == "runtime_controller_redrive_required"
+    assert study["next_owner"] == "one-person-lab"
     assert study["external_supervisor_required"] is False
 
 
@@ -789,6 +804,12 @@ def test_scan_domain_routes_derives_live_activity_timeout_from_progress_when_run
     )
 
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        quest_root=quest_root,
+        expected_reason=None,
+    )
     assert apply_result["repair_kind"] == "live_activity_timeout_current_controller_redrive"
-    assert apply_result["resume_result"]["resume_postcondition"]["active_run_id"] == "run-dpcc-progress-redriven"
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
+        "current-dpcc-progress-timeout-redrive"
+    )

@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -174,12 +175,14 @@ def test_scan_domain_routes_explicit_runtime_platform_repair_relaunches_abnormal
     )
 
     study = result["studies"][0]
-    assert len(ensure_calls) == 1
-    assert ensure_calls[0]["source"] == "domain_route_scan_platform_repair"
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
-    assert study["runtime_platform_repair_apply"]["reason"] == "abnormal_stopped_runtime_relaunch_requested"
-    assert study["runtime_platform_repair_apply"]["repair_kind"] == "abnormal_stopped_runtime_relaunch"
-    assert study["runtime_platform_repair_apply"]["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dm-recovered"
+    apply_result = study["runtime_platform_repair_apply"]
+    assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
+    assert apply_result["repair_kind"] == "abnormal_stopped_runtime_relaunch"
     assert study["ai_repair_lifecycle"]["top_action"]["repair_kind"] == "abnormal_stopped_runtime_relaunch"
     assert study["paper_package_mutated"] is False
 
@@ -280,14 +283,16 @@ def test_scan_domain_routes_explicit_runtime_platform_repair_relaunches_active_r
     )
 
     study = result["studies"][0]
-    assert len(ensure_calls) == 1
-    assert ensure_calls[0]["source"] == "domain_route_scan_platform_repair"
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
-    assert study["runtime_platform_repair_apply"]["reason"] == "abnormal_stopped_runtime_relaunch_requested"
-    assert study["runtime_platform_repair_apply"]["repair_kind"] == "active_runtime_no_live_worker_relaunch"
-    assert "controller_supersession" not in study["runtime_platform_repair_apply"]
-    assert study["runtime_platform_repair_apply"]["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dm-recovered"
-    assert study["ai_repair_lifecycle"]["state"] == "applied"
+    apply_result = study["runtime_platform_repair_apply"]
+    assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
+    assert apply_result["repair_kind"] == "active_runtime_no_live_worker_relaunch"
+    assert "controller_supersession" not in apply_result
+    assert study["ai_repair_lifecycle"]["state"] == "owner_route_required"
     assert study["paper_package_mutated"] is False
 
 
@@ -377,12 +382,14 @@ def test_scan_domain_routes_blocks_runtime_platform_repair_when_relaunch_starts_
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "blocked"
-    assert apply_result["reason"] == "runtime_relaunch_no_live_run_started"
+    assert_owner_route_required(
+        apply_result=apply_result,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
     assert apply_result["repair_kind"] == "active_runtime_no_live_worker_relaunch"
-    assert apply_result["resume_postcondition"]["failure_mode"] == "no_live_run_started"
-    assert study["ai_repair_lifecycle"]["state"] == "blocked"
-    assert study["ai_repair_lifecycle"]["blocked_reason"] == "runtime_relaunch_no_live_run_started"
+    assert study["ai_repair_lifecycle"]["state"] == "owner_route_required"
+    assert study["ai_repair_lifecycle"]["next_owner"] == "one-person-lab"
     assert study["why_not_applied"] == "runtime_recovery_retry_budget_exhausted"
     assert study["paper_package_mutated"] is False
 
@@ -661,18 +668,17 @@ def test_scan_domain_routes_runtime_repair_routes_controller_gate_skip_to_public
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "blocked"
-    assert apply_result["reason"] == "publication_gate_specificity_required"
+    assert_owner_route_required(
+        apply_result=apply_result,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
     assert apply_result["repair_kind"] == "active_runtime_no_live_worker_relaunch"
-    assert apply_result["resume_postcondition"]["terminal_reason"] == "gate_needs_specificity"
-    assert [item["action_type"] for item in study["action_queue"]] == ["publication_gate_specificity_required"]
-    assert study["action_queue"][0]["owner"] == "publication_gate"
-    assert study["ai_repair_lifecycle"]["state"] == "blocked"
-    assert study["ai_repair_lifecycle"]["blocked_reason"] == "publication_gate_specificity_required"
-    assert study["ai_repair_lifecycle"]["next_owner"] == "publication_gate"
-    assert study["why_not_applied"] == "publication_gate_specificity_required"
-    assert study["blocked_reason"] == "publication_gate_specificity_required"
-    assert study["next_owner"] == "publication_gate"
+    assert study["action_queue"] == []
+    assert study["ai_repair_lifecycle"]["state"] == "owner_route_required"
+    assert study["ai_repair_lifecycle"]["next_owner"] == "one-person-lab"
+    assert study["blocked_reason"] == "opl_runtime_owner_route_required"
+    assert study["next_owner"] == "one-person-lab"
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 
@@ -850,22 +856,23 @@ def test_scan_domain_routes_clears_stale_specificity_terminal_when_targets_are_c
         apply_runtime_platform_repair=True,
     )
 
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     study = result["studies"][0]
-    assert len(ensure_calls) == 1
+    apply_result = study["runtime_platform_repair_apply"]
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="stale_specificity_terminal_targets_resolved",
+    )
     assert "last_controller_decision_authorization" not in runtime_state
     assert "retry_state" not in runtime_state
     assert runtime_state["same_fingerprint_auto_turn_count"] == 0
-    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
     assert study["gate_specificity"]["status"] == "specific_targets_present"
-    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
-    assert study["runtime_platform_repair_apply"]["reason"] == "stale_specificity_terminal_targets_resolved"
-    assert study["runtime_platform_repair_apply"]["stale_specificity_cleared"] is True
-    assert study["runtime_platform_repair_apply"]["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dm-recovered"
+    assert study["action_queue"] == []
+    assert apply_result["stale_specificity_cleared"] is True
     assert study["why_not_applied"] == "ai_reviewer_assessment_required"
-    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
-    assert study["next_owner"] == "ai_reviewer"
+    assert study["blocked_reason"] == "stale_specificity_terminal_targets_resolved"
+    assert study["next_owner"] == "one-person-lab"
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 

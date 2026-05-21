@@ -4,33 +4,13 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _assert_owner_route_required(
-    *,
-    apply_result: dict,
-    ensure_calls: list[dict[str, object]],
-    quest_root: Path,
-    expected_reason: str,
-) -> dict:
-    assert ensure_calls == []
-    assert apply_result["dispatch_status"] == "owner_route_required"
-    assert apply_result["reason"] == expected_reason
-    assert apply_result["queue_owner"] == "one-person-lab"
-    assert apply_result["authority_boundary"]["mas_resumes_provider_worker"] is False
-    assert apply_result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
-    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
-    return runtime_state
 
 
 def test_scan_domain_routes_dispatches_external_supervisor_repair_after_repeated_block(
@@ -257,7 +237,7 @@ def test_scan_domain_routes_applies_external_supervisor_redrive_when_specificity
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    runtime_state = _assert_owner_route_required(
+    runtime_state = assert_owner_route_required(
         apply_result=apply_result,
         ensure_calls=ensure_calls,
         quest_root=quest_root,
@@ -393,7 +373,7 @@ def test_scan_domain_routes_redrives_half_repaired_pending_queue_with_stale_clos
     )
 
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    runtime_state = _assert_owner_route_required(
+    runtime_state = assert_owner_route_required(
         apply_result=apply_result,
         ensure_calls=ensure_calls,
         quest_root=quest_root,

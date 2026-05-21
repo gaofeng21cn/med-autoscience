@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -74,34 +75,6 @@ def test_scan_domain_routes_redrives_mas_controller_owner_handoff_for_current_pa
             "same_fingerprint_auto_turn_count": 4,
         },
     )
-
-    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
-        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-        assert "blocked_turn_closeout" not in runtime_state
-        assert "last_liveness_reconcile_reason" not in runtime_state
-        assert runtime_state["continuation_policy"] == "auto"
-        assert runtime_state["continuation_anchor"] == "decision"
-        assert runtime_state["continuation_reason"] == "controller_work_unit_pending"
-        assert runtime_state["same_fingerprint_auto_turn_count"] == 0
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "current-dpcc-owner-handoff-redrive"
-        assert authorization["work_unit_id"] == "analysis_claim_evidence_repair"
-        assert authorization["work_unit_targets"][0]["target_kind"] == "claim"
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "running",
-            "decision": "resume",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-dpcc-owner-handoff-recovered",
-                "runtime_audit": {
-                    "worker_running": True,
-                    "active_run_id": "run-dpcc-owner-handoff-recovered",
-                },
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -174,12 +147,19 @@ def test_scan_domain_routes_redrives_mas_controller_owner_handoff_for_current_pa
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        quest_root=quest_root,
+        expected_reason=None,
+    )
     assert apply_result["reason"] == "runtime_controller_redrive_required"
     assert apply_result["repair_kind"] == "current_controller_owner_handoff_redrive"
     assert apply_result["current_controller_authorization_written"] is True
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dpcc-owner-handoff-recovered"
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
+        "current-dpcc-owner-handoff-redrive"
+    )
+    assert "blocked_turn_closeout" not in runtime_state
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 
@@ -255,55 +235,6 @@ def test_scan_domain_routes_applies_authorized_controller_work_unit_wait_redrive
         },
     )
     ensure_calls: list[dict[str, object]] = []
-
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "current-authorized-work-unit-redrive"
-        assert authorization["work_unit_id"] == "analysis_claim_evidence_repair"
-        assert runtime_state["continuation_reason"] == "controller_work_unit_pending"
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "running",
-            "decision": "resume",
-            "reason": "controller_work_unit_evidence_adopted",
-            "controller_work_unit_evidence_adoption": {
-                "already_recorded": True,
-                "work_unit_id": "analysis_claim_evidence_repair",
-                "route_target": "analysis-campaign",
-                "recommended_next_route": "handoff_to_next_owner",
-                "analysis_lane_status": "exhausted_for_current_fingerprint",
-                "next_owner": "write/ai_reviewer",
-                "next_work_unit": "manuscript_story_repair",
-                "result": {
-                    "analysis_lane_status": "exhausted_for_current_fingerprint",
-                    "meaningful_artifact_delta": True,
-                    "local_traceability_repair_complete": True,
-                },
-            },
-            "controller_decision_authorization_deduped": {
-                "source": "controller_work_unit_evidence_adoption",
-                "lifecycle": {"lifecycle_state": "owner_handoff"},
-            },
-            "controller_work_unit_next_route": {
-                "recommended_next_route": "handoff_to_next_owner",
-                "owner": "write/ai_reviewer",
-                "quality_gate_relaxation_allowed": False,
-                "runtime_relaunch_required": False,
-                "next_work_unit": "manuscript_story_repair",
-            },
-            "runtime_liveness_audit": {
-                "active_run_id": "run-authorized-work-unit-redrive",
-                "runtime_audit": {
-                    "worker_running": True,
-                    "active_run_id": "run-authorized-work-unit-redrive",
-                },
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
     monkeypatch.setattr(
         module,
         "_read_study_projection_inputs",
@@ -379,15 +310,19 @@ def test_scan_domain_routes_applies_authorized_controller_work_unit_wait_redrive
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert len(ensure_calls) == 1
-    assert apply_result["dispatch_status"] == "applied"
-    assert apply_result["reason"] == "controller_work_unit_pending_redrive"
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason=None,
+    )
+    assert apply_result["reason"] == "runtime_controller_redrive_required"
     assert apply_result["repair_kind"] == "controller_work_unit_pending_redrive"
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-authorized-work-unit-redrive"
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
+        "current-authorized-work-unit-redrive"
+    )
     assert study["external_supervisor_required"] is False
-    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
-    assert study["action_queue"][0]["owner"] == "write/ai_reviewer"
-    assert study["action_queue"][0]["next_work_unit"] == "manuscript_story_repair"
-    assert study["why_not_applied"] == "controller_work_unit_owner_handoff_required"
-    assert study["next_owner"] == "write/ai_reviewer"
+    assert study["action_queue"] == []
+    assert study["blocked_reason"] == "runtime_controller_redrive_required"
+    assert study["next_owner"] == "one-person-lab"
     assert study["paper_package_mutated"] is False

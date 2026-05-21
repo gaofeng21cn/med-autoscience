@@ -149,6 +149,12 @@ def projection_block_state(
     completion_state = completion_evidence.block_state(status, progress)
     if completion_state is not None:
         return completion_state
+    if lifecycle.get("opl_runtime_owner_route_required") is True:
+        return {
+            "blocked_reason": _text(lifecycle.get("blocked_reason")),
+            "next_owner": "one-person-lab",
+            "external_supervisor_required": False,
+        }
     blocked_reason = _text(lifecycle.get("blocked_reason"))
     if why_not_applied in {evidence_adoption.RECHECK_REASON, evidence_adoption.OWNER_HANDOFF_REASON} or (
         why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions)

@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -324,18 +325,18 @@ def test_scan_domain_routes_explicit_runtime_platform_repair_relaunches_failed_n
     )
 
     study = result["studies"][0]
-    assert len(ensure_calls) == 1
-    assert ensure_calls[0]["source"] == "domain_route_scan_platform_repair"
-    assert ensure_calls[0]["allow_stopped_relaunch"] is True
-    assert status_calls >= 2
-    assert progress_calls >= 2
-    assert study["quest_status"] == "running"
-    assert study["active_run_id"] == "run-dpcc-recovered"
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
-    assert study["runtime_platform_repair_apply"]["repair_kind"] == "failed_non_resumable_relaunch"
-    assert study["runtime_platform_repair_apply"]["resume_result"]["decision"] == "relaunch_stopped"
-    assert study["runtime_platform_repair_apply"]["reason"] == "abnormal_stopped_runtime_relaunch_requested"
-    assert study["recovery_intent"]["current_action"] == "await_next_tick"
-    assert study["recovery_intent"]["retry_budget"] == {"remaining": 3, "exhausted": False}
-    assert study["owner_route"]["current_owner"] == "managed_runtime"
+    apply_result = study["runtime_platform_repair_apply"]
+    assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="opl_runtime_owner_route_required",
+    )
+    assert apply_result["repair_kind"] == "failed_non_resumable_relaunch"
+    assert status_calls == 1
+    assert progress_calls == 1
+    assert study["quest_status"] == "failed"
+    assert study["active_run_id"] is None
+    assert study["recovery_intent"]["current_action"] == "escalated"
+    assert study["owner_route"]["next_owner"] == "one-person-lab"
     assert study["paper_package_mutated"] is False

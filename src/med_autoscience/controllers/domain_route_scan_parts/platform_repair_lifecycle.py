@@ -34,11 +34,18 @@ def write_runtime_platform_repair_lifecycle(
     forbidden_actions: Sequence[str],
 ) -> dict[str, Any]:
     dispatch_status = _text(apply_result.get("dispatch_status")) or "blocked"
-    state = "applied" if dispatch_status == "applied" else "blocked"
+    if dispatch_status == "applied":
+        state = "applied"
+    elif dispatch_status == "owner_route_required":
+        state = "owner_route_required"
+    else:
+        state = "blocked"
     repair_kind = _text(apply_result.get("repair_kind")) or "stale_specificity_terminal_gate_redrive"
     blocked_reason = None if state == "applied" else _text(apply_result.get("reason"))
     next_owner = (
-        current_truth_owner.next_owner_for_reason(blocked_reason)
+        "one-person-lab"
+        if state == "owner_route_required"
+        else current_truth_owner.next_owner_for_reason(blocked_reason)
         or (
             "publication_gate"
             if blocked_reason == "publication_gate_specificity_required"
@@ -53,7 +60,11 @@ def write_runtime_platform_repair_lifecycle(
         "study_id": study_id,
         "quest_id": quest_id,
         "state": state,
-        "authority": "observability_only" if next_owner in {"publication_gate", "artifact_os"} else "external_supervisor",
+        "authority": (
+            "observability_only"
+            if next_owner in {"publication_gate", "artifact_os", "one-person-lab"}
+            else "external_supervisor"
+        ),
         "allowed_write_surfaces": list(allowed_write_surfaces),
         "forbidden_actions": list(forbidden_actions),
         "top_action": {
@@ -72,6 +83,7 @@ def write_runtime_platform_repair_lifecycle(
         "blocked_reason": blocked_reason,
         "next_owner": None if state == "applied" else next_owner,
         "external_supervisor_required": state != "applied" and next_owner == "external_supervisor",
+        "opl_runtime_owner_route_required": state == "owner_route_required",
         "quality_gate_relaxation_allowed": False,
         "dispatch_status": dispatch_status,
         "last_apply_attempt": dict(apply_result),

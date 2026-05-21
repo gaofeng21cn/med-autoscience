@@ -4,38 +4,13 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _assert_owner_route_required(
-    *,
-    apply_result: dict,
-    ensure_calls: list[dict[str, object]],
-    quest_root: Path,
-    expected_reason: str,
-) -> dict:
-    assert ensure_calls == []
-    assert apply_result["dispatch_status"] == "owner_route_required"
-    assert apply_result["reason"] == expected_reason
-    assert apply_result["queue_owner"] == "one-person-lab"
-    assert apply_result["domain_truth_owner"] == "med-autoscience"
-    assert apply_result["recommended_task_kind"] == "domain_route/reconcile-apply"
-    assert apply_result["authority_boundary"]["mas_resumes_provider_worker"] is False
-    handoff = apply_result["opl_runtime_owner_route_handoff"]
-    assert handoff["queue_owner"] == "one-person-lab"
-    assert handoff["reason"] == expected_reason
-    assert handoff["authority_boundary"]["mas_submits_runtime_chat"] is False
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
-    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
-    return runtime_state
 
 
 def test_scan_domain_routes_redrives_publication_gate_closeout_after_specificity_targets_resolve(
@@ -124,41 +99,11 @@ def test_scan_domain_routes_redrives_publication_gate_closeout_after_specificity
     )
     ensure_calls: list[dict[str, object]] = []
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-        assert "blocked_turn_closeout" not in runtime_state
-        assert "last_liveness_reconcile_reason" not in runtime_state
-        assert runtime_state["pending_user_message_count"] == 0
-        assert runtime_state["continuation_anchor"] == "decision"
-        assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "current-specificity"
-        assert authorization["work_unit_id"] == "gate_needs_specificity"
-        assert authorization["work_unit_fingerprint"] == "publication-blockers::obesity"
-        assert authorization["next_work_unit"] == {"unit_id": "gate_needs_specificity", "lane": "controller"}
-        assert {item["target_kind"] for item in authorization["specificity_targets"]} == {
-            "claim",
-            "figure",
-            "table",
-            "metric",
-            "source_path",
-        }
-        assert runtime_state["last_runtime_platform_repair"]["clear_reason"] == (
-            "stale_publication_gate_closeout_targets_resolved"
-        )
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "running",
-            "decision": "resume",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-obesity-recovered",
-                "runtime_audit": {"worker_running": True, "active_run_id": "run-obesity-recovered"},
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: ensure_calls.append(dict(kwargs)) or {"unexpected": True},
+    )
     monkeypatch.setattr(
         module.study_runtime_router,
         "study_runtime_status",
@@ -243,7 +188,7 @@ def test_scan_domain_routes_redrives_publication_gate_closeout_after_specificity
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    runtime_state = _assert_owner_route_required(
+    runtime_state = assert_owner_route_required(
         apply_result=apply_result,
         ensure_calls=ensure_calls,
         quest_root=quest_root,
@@ -338,36 +283,11 @@ def test_scan_domain_routes_redrives_controller_authorized_paper_line_owner_clos
     )
     ensure_calls: list[dict[str, object]] = []
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-        assert "blocked_turn_closeout" not in runtime_state
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "current-specificity-paper-line-owner"
-        assert authorization["work_unit_id"] == "gate_needs_specificity"
-        assert authorization["next_work_unit"] == {"unit_id": "gate_needs_specificity", "lane": "controller"}
-        assert {item["target_kind"] for item in authorization["specificity_targets"]} == {
-            "claim",
-            "figure",
-            "table",
-            "metric",
-            "source_path",
-        }
-        assert runtime_state["last_runtime_platform_repair"]["clear_reason"] == (
-            "stale_publication_gate_closeout_targets_resolved"
-        )
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "running",
-            "decision": "resume",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-dpcc-paper-line-redriven",
-                "runtime_audit": {"worker_running": True, "active_run_id": "run-dpcc-paper-line-redriven"},
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: ensure_calls.append(dict(kwargs)) or {"unexpected": True},
+    )
     monkeypatch.setattr(
         module.study_runtime_router,
         "study_runtime_status",
@@ -452,7 +372,7 @@ def test_scan_domain_routes_redrives_controller_authorized_paper_line_owner_clos
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    runtime_state = _assert_owner_route_required(
+    runtime_state = assert_owner_route_required(
         apply_result=apply_result,
         ensure_calls=ensure_calls,
         quest_root=quest_root,
@@ -552,34 +472,11 @@ def test_scan_domain_routes_redrives_mas_controller_closeout_when_specificity_au
     )
     ensure_calls: list[dict[str, object]] = []
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-        assert "blocked_turn_closeout" not in runtime_state
-        assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "current-specificity-with-targets"
-        assert authorization["work_unit_id"] == "gate_needs_specificity"
-        assert "non_executable_reason" not in authorization
-        assert {item["target_kind"] for item in authorization["specificity_targets"]} == {
-            "claim",
-            "figure",
-            "table",
-            "metric",
-            "source_path",
-        }
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "running",
-            "decision": "resume",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-obesity-redriven",
-                "runtime_audit": {"worker_running": True, "active_run_id": "run-obesity-redriven"},
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: ensure_calls.append(dict(kwargs)) or {"unexpected": True},
+    )
     monkeypatch.setattr(
         module.study_runtime_router,
         "study_runtime_status",
@@ -647,7 +544,7 @@ def test_scan_domain_routes_redrives_mas_controller_closeout_when_specificity_au
     )
 
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    runtime_state = _assert_owner_route_required(
+    runtime_state = assert_owner_route_required(
         apply_result=apply_result,
         ensure_calls=ensure_calls,
         quest_root=quest_root,
@@ -721,32 +618,11 @@ def test_scan_domain_routes_redrives_mas_controller_closeout_when_authorization_
     )
     ensure_calls: list[dict[str, object]] = []
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-        assert "blocked_turn_closeout" not in runtime_state
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "current-specificity-after-closeout"
-        assert authorization["work_unit_id"] == "gate_needs_specificity"
-        assert {item["target_kind"] for item in authorization["specificity_targets"]} == {
-            "claim",
-            "figure",
-            "table",
-            "metric",
-            "source_path",
-        }
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "running",
-            "decision": "resume",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-obesity-after-closeout",
-                "runtime_audit": {"worker_running": True, "active_run_id": "run-obesity-after-closeout"},
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: ensure_calls.append(dict(kwargs)) or {"unexpected": True},
+    )
     monkeypatch.setattr(
         module.study_runtime_router,
         "study_runtime_status",
@@ -814,7 +690,7 @@ def test_scan_domain_routes_redrives_mas_controller_closeout_when_authorization_
     )
 
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    runtime_state = _assert_owner_route_required(
+    runtime_state = assert_owner_route_required(
         apply_result=apply_result,
         ensure_calls=ensure_calls,
         quest_root=quest_root,
@@ -882,32 +758,11 @@ def test_scan_domain_routes_resumes_pending_platform_redrive_after_stale_specifi
     )
     ensure_calls: list[dict[str, object]] = []
 
-    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
-        ensure_calls.append(dict(kwargs))
-        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-        assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
-        authorization = runtime_state["last_controller_decision_authorization"]
-        assert authorization["decision_id"] == "current-specificity-after-clear"
-        assert authorization["work_unit_id"] == "gate_needs_specificity"
-        assert {item["target_kind"] for item in authorization["specificity_targets"]} == {
-            "claim",
-            "figure",
-            "table",
-            "metric",
-            "source_path",
-        }
-        return {
-            "study_id": study_id,
-            "quest_id": study_id,
-            "quest_status": "running",
-            "decision": "resume",
-            "runtime_liveness_audit": {
-                "active_run_id": "run-obesity-after-clear",
-                "runtime_audit": {"worker_running": True, "active_run_id": "run-obesity-after-clear"},
-            },
-        }
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: ensure_calls.append(dict(kwargs)) or {"unexpected": True},
+    )
     monkeypatch.setattr(
         module.study_runtime_router,
         "study_runtime_status",
@@ -971,7 +826,7 @@ def test_scan_domain_routes_resumes_pending_platform_redrive_after_stale_specifi
     )
 
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    runtime_state = _assert_owner_route_required(
+    runtime_state = assert_owner_route_required(
         apply_result=apply_result,
         ensure_calls=ensure_calls,
         quest_root=quest_root,

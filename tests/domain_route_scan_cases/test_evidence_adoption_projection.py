@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -507,7 +508,10 @@ def test_scan_domain_routes_redrives_adopted_handoff_when_progress_activity_time
         },
     )
 
-    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
+    ensure_calls: list[dict[str, object]] = []
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
         runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
         authorization = runtime_state["last_controller_decision_authorization"]
         assert authorization["decision_id"] == "decision-adopted-handoff-timeout-redrive"
@@ -622,9 +626,19 @@ def test_scan_domain_routes_redrives_adopted_handoff_when_progress_activity_time
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="runtime_controller_redrive_required",
+    )
     assert apply_result["repair_kind"] == "live_activity_timeout_current_controller_redrive"
-    assert apply_result["resume_result"]["resume_postcondition"]["active_run_id"] == "run-adopted-timeout-redriven"
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
+        "decision-adopted-handoff-timeout-redrive"
+    )
+    assert study["blocked_reason"] == "controller_work_unit_owner_handoff_required"
+    assert study["next_owner"] == "write/ai_reviewer"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert study["paper_package_mutated"] is False
 
 
