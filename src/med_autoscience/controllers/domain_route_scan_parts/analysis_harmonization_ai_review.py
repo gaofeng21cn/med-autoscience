@@ -90,7 +90,7 @@ def publication_eval_covers_currentness_refs(
     )
     if not all(ref in refs for ref in required_refs):
         return False
-    eval_timestamp = _payload_timestamp(publication_eval_payload)
+    eval_timestamp = _reviewer_assessment_timestamp(publication_eval_payload)
     for ref in required_refs:
         ref_timestamp = _ref_timestamp(Path(ref))
         if ref_timestamp is not None and eval_timestamp is None:
@@ -166,6 +166,24 @@ def _payload_timestamp(payload: Mapping[str, Any]) -> datetime | None:
         if timestamp is not None:
             return timestamp
     return None
+
+
+def _reviewer_assessment_timestamp(payload: Mapping[str, Any]) -> datetime | None:
+    for value in (
+        payload.get("eval_id"),
+        _mapping(payload.get("reviewer_operating_system")).get("trace_id"),
+    ):
+        timestamp = _parse_identifier_timestamp(value)
+        if timestamp is not None:
+            return timestamp
+    return _payload_timestamp(payload)
+
+
+def _parse_identifier_timestamp(value: object) -> datetime | None:
+    text = _text(value)
+    if text is None or "::" not in text:
+        return None
+    return _parse_timestamp(text.rsplit("::", 1)[-1])
 
 
 def _parse_timestamp(value: object) -> datetime | None:

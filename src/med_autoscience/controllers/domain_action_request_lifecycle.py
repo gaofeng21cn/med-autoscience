@@ -283,7 +283,7 @@ def _record_missing_currentness_refs(
     if not required_refs:
         return []
     source_refs = _record_source_refs(study_root=study_root, record=record)
-    record_timestamp = _payload_timestamp(record)
+    record_timestamp = _reviewer_assessment_timestamp(record)
     missing_or_stale: list[str] = []
     for ref in required_refs:
         if ref not in source_refs:
@@ -322,6 +322,24 @@ def _payload_timestamp(payload: Mapping[str, Any]) -> datetime | None:
         if timestamp is not None:
             return timestamp
     return None
+
+
+def _reviewer_assessment_timestamp(payload: Mapping[str, Any]) -> datetime | None:
+    for value in (
+        payload.get("eval_id"),
+        _mapping(payload.get("reviewer_operating_system")).get("trace_id"),
+    ):
+        timestamp = _parse_identifier_timestamp(value)
+        if timestamp is not None:
+            return timestamp
+    return _payload_timestamp(payload)
+
+
+def _parse_identifier_timestamp(value: object) -> datetime | None:
+    text = _text(value)
+    if text is None or "::" not in text:
+        return None
+    return _parse_timestamp(text.rsplit("::", 1)[-1])
 
 
 def _parse_timestamp(value: object) -> datetime | None:
