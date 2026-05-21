@@ -5,6 +5,11 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.story_surface_work_units import (
+    STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
+    is_story_surface_delta_write_work_unit,
+)
+
 
 BLOCKED_REASON = "manuscript_story_surface_delta_missing"
 WORK_UNIT_ID = "manuscript_story_repair"
@@ -20,7 +25,7 @@ def blocker_supersedes_lifecycle(
     work_unit = lifecycle.get("work_unit")
     if not isinstance(work_unit, Mapping):
         return False
-    if _non_empty_text(work_unit.get("unit_id")) != WORK_UNIT_ID:
+    if not is_story_surface_delta_write_work_unit(work_unit.get("unit_id")):
         return False
     source_eval_id = _non_empty_text(lifecycle.get("source_eval_id"))
     if source_eval_id is None:
@@ -55,7 +60,7 @@ def ai_reviewer_recheck_supersedes_lifecycle(
     work_unit = lifecycle.get("work_unit")
     if not isinstance(work_unit, Mapping):
         return False
-    if _non_empty_text(work_unit.get("unit_id")) != WORK_UNIT_ID:
+    if not is_story_surface_delta_write_work_unit(work_unit.get("unit_id")):
         return False
     source_eval_id = _non_empty_text(lifecycle.get("source_eval_id"))
     if source_eval_id is None:
@@ -128,7 +133,7 @@ def _repair_evidence_matches_completed_story_delta(
     repair_work_unit = repair_evidence.get("repair_work_unit")
     if not isinstance(repair_work_unit, Mapping):
         return False
-    if _non_empty_text(repair_work_unit.get("unit_id")) != WORK_UNIT_ID:
+    if not is_story_surface_delta_write_work_unit(repair_work_unit.get("unit_id")):
         return False
     hygiene = repair_evidence.get("manuscript_surface_hygiene")
     if not isinstance(hygiene, Mapping):
@@ -167,6 +172,7 @@ def _non_empty_text(value: object) -> str | None:
 __all__ = [
     "AI_REVIEWER_RECHECK_WORK_UNIT_ID",
     "BLOCKED_REASON",
+    "STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS",
     "WORK_UNIT_ID",
     "ai_reviewer_recheck_action_from_story_delta",
     "ai_reviewer_recheck_supersedes_lifecycle",

@@ -369,6 +369,41 @@ def test_resolve_medical_reporting_contract_for_clinical_subtype_reconstruction(
         }
 
 
+def test_resolve_medical_reporting_contract_for_primary_care_gap_manuscript() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
+    checklist_policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+
+    contract = module.resolve_medical_reporting_contract(
+        study_archetype="clinical_subtype_reconstruction",
+        manuscript_family="primary_care_gap",
+        endpoint_type="descriptive",
+        submission_target_family="general_medical_journal",
+    )
+
+    assert contract.reporting_guideline_family == "STROBE"
+    assert contract.table_shell_requirements == (
+        "table1_baseline_characteristics",
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
+    )
+    assert contract.figure_shell_requirements == (
+        "cohort_flow_figure",
+        "phenotype_gap_structure_figure",
+        "site_held_out_stability_figure",
+        "treatment_gap_alignment_figure",
+    )
+    structured_contract = contract.structured_reporting_contract
+    assert structured_contract["manuscript_family"] == "primary_care_gap"
+    assert structured_contract["clinical_actionability_required"] is True
+    for section_name, required_items in (
+        ("phenotype_derivation_reporting", checklist_policy.PHENOTYPE_DERIVATION_REPORTING_ITEMS),
+        ("treatment_gap_reporting", checklist_policy.TREATMENT_GAP_REPORTING_ITEMS),
+        ("baseline_characteristics_reporting", checklist_policy.BASELINE_CHARACTERISTICS_REPORTING_ITEMS),
+        ("data_quality_reporting", checklist_policy.DATA_QUALITY_REPORTING_ITEMS),
+    ):
+        assert set(structured_contract[section_name]) == set(required_items)
+
+
 def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
 

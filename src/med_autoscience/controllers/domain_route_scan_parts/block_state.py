@@ -143,6 +143,16 @@ def projection_block_state(
             "next_owner": "ai_reviewer",
             "external_supervisor_required": False,
         }
+    if _has_write_quality_repair_action(actions):
+        return {
+            "blocked_reason": _write_quality_repair_blocked_reason(
+                study_root=study_root,
+                publication_eval_payload=publication_eval_payload,
+                actions=actions,
+            ),
+            "next_owner": "write",
+            "external_supervisor_required": False,
+        }
     if completion_evidence.completed_current_truth(status, progress):
         return _clear_block_state()
     parked_state = parked_truth.block_state(
@@ -258,6 +268,33 @@ def _has_clean_paper_authority_rehydrate_action(actions: list[dict[str, Any]]) -
         and _text(action.get("owner")) == "write"
         for action in actions
     )
+
+
+def _has_write_quality_repair_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "run_quality_repair_batch"
+        and _text(action.get("owner")) == "write"
+        for action in actions
+    )
+
+
+def _write_quality_repair_blocked_reason(
+    *,
+    study_root: Any,
+    publication_eval_payload: Mapping[str, Any] | None,
+    actions: list[dict[str, Any]],
+) -> str:
+    if study_root is not None and publication_eval_payload is not None:
+        route = current_truth_owner.current_story_surface_delta_blocker_route(
+            study_root=Path(study_root),
+            publication_eval_payload=publication_eval_payload,
+        )
+        if route is not None:
+            return "manuscript_story_surface_delta_missing"
+    for action in actions:
+        if _text(action.get("action_type")) == "run_quality_repair_batch":
+            return _text(action.get("reason")) or "run_quality_repair_batch"
+    return "run_quality_repair_batch"
 
 
 def _has_hard_methodology_handoff_action(actions: list[dict[str, Any]]) -> bool:
