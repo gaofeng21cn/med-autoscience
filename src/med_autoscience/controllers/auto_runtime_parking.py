@@ -271,6 +271,7 @@ def _state_from_reason(
     if interaction_classification in {
         "blocked_closeout_owner_redrive",
         "controller_work_unit_pending_redrive",
+        "domain_transition_runtime_redrive",
         "platform_repair_decision_redrive",
         "pending_user_message_redrive",
     }:

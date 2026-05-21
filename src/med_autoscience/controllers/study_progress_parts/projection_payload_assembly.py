@@ -136,6 +136,7 @@ def _progress_control_contract_fields(
         "physician_decision_summary": physician_decision_summary,
         "user_decision_summary": physician_decision_summary,
         **_runtime_decision_fields(status),
+        "domain_transition": _mapping_copy(status.get("domain_transition")) or None,
         "continuation_state": continuation_state or None,
         "family_checkpoint_lineage": family_checkpoint_lineage or None,
         "interaction_arbitration": interaction_arbitration or None,

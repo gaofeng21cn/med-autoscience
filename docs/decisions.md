@@ -6,6 +6,12 @@
 - 理由：DM002 当前症状是 MAS 已有 AI reviewer-backed `route_back_same_line -> analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration`，但 human/status 面仍被 `quest_waiting_platform_repair_redrive`、submission metadata parking 和 external_supervisor route 覆盖。这是 OPL runtime/provider 投影和任务 hydration 缺口，不能继续靠 MAS 私有 runtime/status arbitration 补洞。
 - 影响：本轮不得新增 MAS runtime liveness patch。若需要推进真实论文线，应通过 OPL family runtime queue/attempt hydration 消费 MAS sidecar/domain route refs，再回到 MAS owner surface 产出 domain receipt 或 stable typed blocker；MAS repo 只允许补 domain pack、owner callable、quality gate、receipt schema、refs-only adapter 或边界台账。
 
+## 2026-05-21：domain route-back 在 progress read-model 中优先于交付停驻投影
+
+- 决策：`study_progress` 必须只读透传当前 `domain_transition`，并且当 `interaction_arbitration.classification=domain_transition_runtime_redrive` 时，`auto_runtime_parked` 不得把该状态投影为 submission metadata、package-ready handoff 或 manual-finish parking。
+- 理由：DM002 暴露出医学 owner 已经给出 `analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration` work unit，但人读进度面仍显示交付停驻，导致维护者看不到下一步应由哪个医学 owner 处理。这里需要修的是 MAS domain read-model 的可见性和优先级，不是让 MAS 接管 OPL 的 liveness、queue、attempt 或 provider resume。
+- 影响：该修复只改变 `study_progress` / Progress Portal / product-facing projection 的只读显示。它不生成 runtime attempt，不写 `.ds/user_message_queue.json`，不调用 generic runtime chat，不写 `paper/`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`manuscript/current_package` 或 submission package，也不声明 OPL queue/provider 已消费 owner-route。
+
 ## 2026-05-21：旧 residue audit 不再作为 current product/sidecar surface 暴露
 
 - 决策：已进入 tombstone/provenance 的旧 MDS / Hermes / local scheduler residue 不再通过 current product-entry manifest 或 sidecar export 暴露独立 audit surface。当前机器真相只保留 `legacy_retirement_tombstone_proof`、`functional_consumer_boundary.retired_legacy_residue_tombstones` 和 `contracts/runtime/legacy-active-path-tombstones.json`。

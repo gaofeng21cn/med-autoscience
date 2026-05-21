@@ -364,6 +364,126 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 
 
+def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / study_id
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=[
+            "author_metadata",
+            "ethics_statement",
+        ],
+    )
+    write_synced_submission_delivery(study_root, quest_root)
+    publication_eval_path = _write_publication_eval(study_root, quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": study_id,
+                "auto_resume": True,
+            },
+            "quest_id": study_id,
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "failed",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": (
+                    "AI reviewer route-back requires harmonized validation uncertainty and grouped calibration."
+                ),
+            },
+            "domain_transition": {
+                "study_id": study_id,
+                "decision_type": "route_back_same_line",
+                "route_target": "analysis-campaign",
+                "next_work_unit": {
+                    "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "lane": "analysis-campaign",
+                    "summary": (
+                        "Add uncertainty intervals, grouped calibration evidence, and reproducibility "
+                        "details to the unit-harmonized external validation."
+                    ),
+                },
+                "controller_action": "ensure_study_runtime",
+                "owner": "analysis-campaign",
+                "typed_blocker": None,
+            },
+            "interaction_arbitration": {
+                "classification": "domain_transition_runtime_redrive",
+                "action": "resume",
+                "reason_code": "quest_waiting_opl_runtime_owner_route",
+                "requires_user_input": False,
+                "valid_blocking": False,
+                "kind": "domain_transition",
+                "domain_transition_decision_type": "route_back_same_line",
+                "domain_transition_route_target": "analysis-campaign",
+                "domain_transition_controller_action": "ensure_study_runtime",
+                "next_work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+            },
+            "continuation_state": {
+                "quest_status": "failed",
+                "active_run_id": None,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "runtime_platform_repair_redrive",
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    assert result["current_stage"] == "runtime_blocked"
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["parked_state"] is None
+    assert result["intervention_lane"]["lane_id"] != "auto_runtime_parked"
+    assert result["interaction_arbitration"]["classification"] == "domain_transition_runtime_redrive"
+    assert result["domain_transition"]["route_target"] == "analysis-campaign"
+    assert result["domain_transition"]["next_work_unit"]["unit_id"] == (
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
+    assert "外部投稿元数据" not in result["current_stage_summary"]
+    assert "补齐外部投稿元数据" not in result["next_system_action"]
+    assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+
+
 def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_progress(
     monkeypatch,
     tmp_path: Path,
