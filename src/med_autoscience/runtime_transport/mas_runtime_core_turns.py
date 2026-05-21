@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
-import json
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_transport import mas_runtime_core_turn_monitor as turn_monitor
 from med_autoscience.runtime_transport import mas_runtime_core_turn_blocks as turn_blocks
+from med_autoscience.runtime_transport import mas_runtime_core_turn_state as turn_state
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     BLOCKED_CLOSEOUT_RUNNER_STATUS,
     INCOMPLETE_RUNNER_STATUS,
@@ -40,10 +40,7 @@ from med_autoscience.runtime_transport import mas_runtime_core_delayed_turns as 
 from med_autoscience.runtime_transport.mas_runtime_core_pause_resume import release_paused_explicit_resume
 from med_autoscience.runtime_transport.mas_runtime_core_turn_paths import (
     delayed_turn_path,
-    event_log_path,
-    queue_path,
     run_root as _run_root,
-    state_path,
     turn_receipts_path,
     worker_lease_path,
 )
@@ -73,7 +70,6 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_policy import (
 
 
 _TURN_RUNNER: MasTurnRunner = CodexExecTurnRunner()
-_NOW: Callable[[], datetime] = lambda: datetime.now(UTC)
 def set_turn_runner_for_tests(runner: MasTurnRunner) -> None:
     global _TURN_RUNNER
     _TURN_RUNNER = runner
@@ -85,13 +81,11 @@ def reset_turn_runner_for_tests() -> None:
 
 
 def set_clock_for_tests(clock: Callable[[], datetime]) -> None:
-    global _NOW
-    _NOW = clock
+    turn_state.set_clock_for_tests(clock)
 
 
 def reset_clock_for_tests() -> None:
-    global _NOW
-    _NOW = lambda: datetime.now(UTC)
+    turn_state.reset_clock_for_tests()
 
 
 def set_delayed_timers_enabled_for_tests(enabled: bool) -> None:
@@ -99,43 +93,29 @@ def set_delayed_timers_enabled_for_tests(enabled: bool) -> None:
 
 
 def utc_now() -> str:
-    return _NOW().astimezone(UTC).replace(microsecond=0).isoformat()
+    return turn_state.utc_now()
 
 
 def run_id(*, quest_id: str) -> str:
-    slug = _NOW().astimezone(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    slug = turn_state.now().strftime("%Y%m%dT%H%M%S%fZ")
     safe_quest_id = "".join(ch if ch.isalnum() or ch in "-_." else "-" for ch in quest_id).strip("-") or "quest"
     return f"mas-run-{safe_quest_id}-{slug}"
 
 
 def read_json(path: Path) -> dict[str, Any]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-    return payload if isinstance(payload, dict) else {}
+    return turn_state.read_json(path)
 
 
 def write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    turn_state.write_json(path, payload)
 
 
 def append_jsonl(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(dict(payload), ensure_ascii=False, sort_keys=True) + "\n")
+    turn_state.append_jsonl(path, payload)
 
 
 def load_state(*, quest_root: Path) -> dict[str, Any]:
-    state = read_json(state_path(quest_root))
-    state.setdefault("quest_id", quest_root.name)
-    state.setdefault("runtime_backend_id", BACKEND_ID)
-    state.setdefault("runtime_engine_id", ENGINE_ID)
-    state.setdefault("external_mds_required", False)
-    state.setdefault("continuation_policy", "auto")
-    state["pending_user_message_count"] = int(state.get("pending_user_message_count") or 0)
-    return state
+    return turn_state.load_state(quest_root=quest_root)
 
 
 def persist_state(
@@ -146,40 +126,25 @@ def persist_state(
     event_name: str,
     delete_keys: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
-    now = utc_now()
-    previous = load_state(quest_root=quest_root)
-    for key in delete_keys or ():
-        previous.pop(key, None)
-    payload = {
-        **previous,
-        **dict(updates),
-        "quest_id": quest_root.name,
-        "runtime_backend_id": BACKEND_ID,
-        "runtime_engine_id": ENGINE_ID,
-        "external_mds_required": False,
-        "source": source,
-        "updated_at": now,
-    }
-    payload.setdefault("continuation_policy", "auto")
-    payload["pending_user_message_count"] = int(payload.get("pending_user_message_count") or 0)
-    write_json(state_path(quest_root), payload)
-    append_runtime_event(quest_root=quest_root, event={"event": event_name, "source": source, "recorded_at": now, "snapshot": payload})
-    return payload
+    return turn_state.persist_state(
+        quest_root=quest_root,
+        updates=updates,
+        source=source,
+        event_name=event_name,
+        delete_keys=delete_keys,
+    )
 
 
 def append_runtime_event(*, quest_root: Path, event: Mapping[str, Any]) -> None:
-    append_jsonl(event_log_path(quest_root), event)
+    turn_state.append_runtime_event(quest_root=quest_root, event=event)
 
 
 def load_message_queue(*, quest_root: Path) -> dict[str, Any]:
-    payload = read_json(queue_path(quest_root))
-    pending = payload.get("pending") if isinstance(payload.get("pending"), list) else []
-    completed = payload.get("completed") if isinstance(payload.get("completed"), list) else []
-    return {"schema_version": 1, "pending": list(pending), "completed": list(completed)}
+    return turn_state.load_message_queue(quest_root=quest_root)
 
 
 def write_message_queue(*, quest_root: Path, queue: Mapping[str, Any]) -> None:
-    write_json(queue_path(quest_root), queue)
+    turn_state.write_message_queue(quest_root=quest_root, queue=queue)
 
 
 def submit_user_message(
@@ -714,7 +679,7 @@ def inspect_turn_lifecycle(*, quest_root: Path) -> dict[str, Any]:
     lease_status = _lease_payload_status(
         lease=lease,
         run_id=active_run_id,
-        now=_NOW,
+        now=turn_state.now,
         parse_time=parse_time,
         pid_live_check=pid_live,
         ttl_seconds=WORKER_LEASE_TTL_SECONDS,
@@ -750,7 +715,7 @@ def drain_due_delayed_turn(*, quest_root: Path, source: str) -> dict[str, Any] |
         return None
     scheduled_at = parse_time(text(delayed.get("scheduled_at")))
     delay_seconds = float(delayed.get("delay_seconds") or 0)
-    if scheduled_at is None or (_NOW().astimezone(UTC) - scheduled_at).total_seconds() < delay_seconds:
+    if scheduled_at is None or (turn_state.now() - scheduled_at).total_seconds() < delay_seconds:
         return None
     if state.get("worker_running") is True and text(state.get("active_run_id")):
         return None
@@ -825,21 +790,7 @@ def reconcile_stale_liveness(*, quest_root: Path, source: str) -> dict[str, Any]
 
 
 def snapshot(*, quest_root: Path, state: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    runtime_state = dict(state or load_state(quest_root=quest_root))
-    active_run_id = text(runtime_state.get("active_run_id"))
-    return {
-        "quest_id": str(runtime_state.get("quest_id") or quest_root.name),
-        "status": text(runtime_state.get("status")),
-        "active_run_id": active_run_id,
-        "runtime_backend_id": str(runtime_state.get("runtime_backend_id") or BACKEND_ID),
-        "runtime_engine_id": str(runtime_state.get("runtime_engine_id") or ENGINE_ID),
-        "worker_running": runtime_state.get("worker_running") if isinstance(runtime_state.get("worker_running"), bool) else None,
-        "worker_pending": runtime_state.get("worker_pending") if isinstance(runtime_state.get("worker_pending"), bool) else None,
-        "stop_requested": runtime_state.get("stop_requested") if isinstance(runtime_state.get("stop_requested"), bool) else None,
-        "pending_user_message_count": int(runtime_state.get("pending_user_message_count") or 0),
-        "continuation_policy": text(runtime_state.get("continuation_policy")) or "auto",
-        "updated_at": text(runtime_state.get("updated_at")),
-    }
+    return turn_state.snapshot(quest_root=quest_root, state=state)
 
 
 def _next_turn_after_normalization(
@@ -986,7 +937,7 @@ def _worker_lease_live(*, quest_root: Path, run_id: str) -> bool:
     return _lease_payload_live(
         lease=read_json(worker_lease_path(quest_root=quest_root, run_id=run_id)),
         run_id=run_id,
-        now=_NOW,
+        now=turn_state.now,
         parse_time=parse_time,
         pid_live_check=pid_live,
         ttl_seconds=WORKER_LEASE_TTL_SECONDS,
