@@ -53,6 +53,12 @@
 - 理由：DM002 暴露出旧 AI reviewer eval 的 `source_refs` 已包含 `analysis_harmonization/latest.json` 与 unit-harmonized rerun evidence 路径，但 eval 的 `emitted_at` 早于新 analysis owner result，导致 MAS 误判旧评审已覆盖新证据。
 - 影响：这是 MAS AI reviewer owner-chain currentness 修复，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical `paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict；它只让 controller/read-model 在旧 eval 早于新 evidence 时重新排 AI reviewer owner workflow。
 
+## 2026-05-22：workspace profile merge 必须把 root keys 插在 TOML table 之前
+
+- 决策：`medautosci init-workspace` 合并既有 workspace profile 时，缺失的 root-level entries 必须插入第一个 TOML table 之前，不得追加到文件末尾。
+- 理由：DM002 workspace 的 local profile 已包含 `[explicit_archive_import_ref]`，旧 merge 会把 `developer_supervisor_mode`、`mas_developer_github_usernames` 和 `github_username` 追加进该子表；下一次 merge 又认为 root key 缺失并再次追加，最终 profile 出现 duplicate key，所有 MAS CLI 在 TOML parse 阶段失败。
+- 影响：这是 MAS workspace bootstrap/profile hygiene 修复，不改 study truth、runtime state、paper surface、publication eval、controller decisions 或 current package；现有坏 profile 仍需一次性整理成 root-level 单份配置。
+
 ## 2026-05-22：current medical prose route-back 必须合成完整 AI reviewer publication eval record
 
 - 决策：当 `artifacts/supervision/requests/ai_reviewer/latest.json` 没有携带完整 `ai_reviewer_record`，但当前 `artifacts/publication_eval/medical_prose_review.json` 是 AI reviewer-owned、request/manuscript current，并且 `route_back_recommendation.required=true` 指向 `write` 或 `analysis-campaign` 时，`return_to_ai_reviewer_workflow` 不得回退到旧 `publication_eval/latest.json` 或报 `ai_reviewer_record_incomplete`。MAS owner workflow 必须由 current prose review 合成完整 AI reviewer-backed `publication_eval/latest.json` route-back record，包含 `quality_assessment`、`future_facing_limitations_plan`、reviewer OS currentness、`route_back_same_line` recommended action 和 downstream-only package freshness。

@@ -233,6 +233,17 @@ def merge_workspace_profile_content(
     ]
     if not missing_lines:
         return existing_content
-    base = existing_content.rstrip()
-    separator = "\n\n" if base else ""
-    return f"{base}{separator}{chr(10).join(missing_lines)}\n"
+    root_lines, table_lines = split_root_and_table_lines(existing_content)
+    root = "\n".join(root_lines).rstrip()
+    tables = "\n".join(table_lines).rstrip()
+    merged_root = f"{root}{chr(10) if root else ''}{chr(10).join(missing_lines)}"
+    return f"{merged_root}{chr(10) * 2 if tables else chr(10)}{tables}{chr(10) if tables else ''}"
+
+
+def split_root_and_table_lines(content: str) -> tuple[list[str], list[str]]:
+    lines = content.rstrip().splitlines()
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            return lines[:index], lines[index:]
+    return lines, []

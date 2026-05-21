@@ -352,6 +352,45 @@ def test_init_workspace_records_detected_github_username_in_profile(monkeypatch,
     assert 'github_username = "someone-else"' in profile_text
     assert 'mas_developer_github_usernames = ["gaofeng21cn"]' in profile_text
 
+
+def test_init_workspace_merges_profile_root_keys_before_existing_tables(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "existing-table-workspace"
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "existing-table.local.toml"
+    profile_path.parent.mkdir(parents=True)
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "existing-table"',
+                f'workspace_root = "{workspace_root}"',
+                f'runtime_root = "{workspace_root / "runtime" / "quests"}"',
+                f'studies_root = "{workspace_root / "studies"}"',
+                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                "",
+                "[explicit_archive_import_ref]",
+                'runtime_root = "/tmp/archive"',
+                "read_only = true",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "_detect_github_username", lambda: "gaofeng21cn")
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="existing-table",
+        dry_run=False,
+        force=False,
+    )
+
+    profile_text = profile_path.read_text(encoding="utf-8")
+    assert profile_text.index('github_username = "gaofeng21cn"') < profile_text.index("[explicit_archive_import_ref]")
+    assert profile_text.count('developer_supervisor_mode = "external_observe"') == 1
+    assert profile_text.count('mas_developer_github_usernames = ["gaofeng21cn"]') == 1
+
+
 def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "pituitary-workspace"
