@@ -658,6 +658,108 @@ def test_ai_reviewer_request_materialization_rejects_record_stale_after_unit_har
     ]
 
 
+def test_ai_reviewer_request_materialization_rejects_record_that_mentions_but_predates_unit_harmonized_rerun(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    response_root = study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses"
+    stale_record_path = response_root / "20260520T181412Z_publication_eval_record.json"
+    analysis_root = study_root / "artifacts" / "controller" / "analysis_harmonization"
+    analysis_path = analysis_root / "latest.json"
+    rerun_path = analysis_root / "unit_harmonized_external_validation_rerun.json"
+    quality_assessment = {
+        dimension: {
+            "status": "partial" if dimension == "evidence_strength" else "ready",
+            "summary": f"{dimension} reviewer assessment.",
+        }
+        for dimension in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "medical_journal_prose_quality",
+            "human_review_readiness",
+        )
+    }
+    stale_record = {
+        "eval_id": "publication-eval::002-risk::quest-002::2026-05-20T18:14:12+00:00",
+        "study_id": "002-risk",
+        "quest_id": "quest-002",
+        "emitted_at": "2026-05-20T18:14:12+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "source_refs": [str(analysis_path), str(rerun_path)],
+        },
+        "quality_assessment": quality_assessment,
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Current review predates the completed unit-harmonized evidence.",
+                "impact_on_claim": "Claims remain constrained until the newer evidence is reviewed.",
+                "required_future_analysis_data_or_design": "Rerun AI reviewer against the current harmonized evidence.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+    }
+    analysis_path.parent.mkdir(parents=True)
+    analysis_path.write_text(
+        json.dumps(
+            {
+                "surface": "analysis_harmonization_owner_result",
+                "owner": "analysis_harmonization_owner",
+                "work_unit": "unit_harmonized_external_validation_rerun",
+                "status": "completed",
+                "generated_at": "2026-05-21T20:49:54+00:00",
+                "unit_harmonized_rerun_completed": True,
+                "rerun_evidence_ref": str(rerun_path),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    rerun_path.write_text(
+        json.dumps(
+            {
+                "surface": "unit_harmonized_external_validation_rerun_evidence",
+                "status": "completed",
+                "generated_at": "2026-05-21T20:49:54+00:00",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    response_root.mkdir(parents=True)
+    stale_record_path.write_text(json.dumps(stale_record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="002-risk",
+        quest_id="quest-002",
+        source_surface="runtime_supervisor_scan",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+        },
+    )
+
+    materialized = materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    persisted = read_ai_reviewer_request(study_root=study_root)
+
+    assert "ai_reviewer_record" not in materialized
+    assert "publication_eval_record_ref" not in materialized
+    assert persisted is not None
+    assert "ai_reviewer_record" not in persisted
+    assert persisted["request_lifecycle"]["blocked_reason"] == "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+    assert persisted["request_lifecycle"]["stale_record_ref"] == str(stale_record_path.resolve())
+    assert persisted["request_lifecycle"]["required_currentness_refs"] == [
+        str(analysis_path.resolve()),
+        str(rerun_path.resolve()),
+    ]
+
+
 def test_ai_reviewer_request_materialization_rejects_prepopulated_record_stale_after_unit_harmonized_rerun(
     tmp_path,
 ) -> None:

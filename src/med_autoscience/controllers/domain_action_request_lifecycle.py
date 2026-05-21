@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -282,7 +283,60 @@ def _record_missing_currentness_refs(
     if not required_refs:
         return []
     source_refs = _record_source_refs(study_root=study_root, record=record)
-    return [ref for ref in required_refs if ref not in source_refs]
+    record_timestamp = _payload_timestamp(record)
+    missing_or_stale: list[str] = []
+    for ref in required_refs:
+        if ref not in source_refs:
+            missing_or_stale.append(ref)
+            continue
+        ref_timestamp = _ref_timestamp(Path(ref))
+        if ref_timestamp is not None and (
+            record_timestamp is None or record_timestamp < ref_timestamp
+        ):
+            missing_or_stale.append(ref)
+    return missing_or_stale
+
+
+def _ref_timestamp(path: Path) -> datetime | None:
+    payload = _read_json_object(path)
+    timestamp = _payload_timestamp(payload or {})
+    if timestamp is not None:
+        return timestamp
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
+def _payload_timestamp(payload: Mapping[str, Any]) -> datetime | None:
+    for key in (
+        "emitted_at",
+        "generated_at",
+        "completed_at",
+        "finished_at",
+        "updated_at",
+        "created_at",
+        "recorded_at",
+    ):
+        timestamp = _parse_timestamp(payload.get(key))
+        if timestamp is not None:
+            return timestamp
+    return None
+
+
+def _parse_timestamp(value: object) -> datetime | None:
+    text = _text(value)
+    if text is None:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _block_ai_reviewer_record_manuscript_story_leakage(

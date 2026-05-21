@@ -48,6 +48,7 @@
 
 - 决策：`analysis_harmonization_owner` completed result 交回 `ai_reviewer_medical_prose_quality_review` 时，`publication_eval/latest.json` 只有在 AI reviewer-owned provenance 同时覆盖 required currentness refs 的路径身份，并且 eval 时间不早于这些 refs 的结构化时间或文件 mtime 时，才能视为当前。仅在 `source_refs` 中出现相同路径不足以关闭 re-eval。
 - 决策：缺少 eval 时间戳而 required ref 可解析出时间时，必须 fail closed 到 `return_to_ai_reviewer_workflow`。缺少 required ref 时间时才允许用路径身份判断覆盖，避免凭空制造版本号，同时不把旧 eval 冒充为当前。
+- 决策：`domain_action_request_lifecycle` 物化 AI reviewer request 时必须应用同一 currentness 规则。候选 `ai_reviewer_responses/*_publication_eval_record.json` 或预置 record 即使引用了 required refs，只要其 `emitted_at/generated_at/completed_at/finished_at/updated_at/created_at/recorded_at` 早于 required refs 的结构化时间或文件 mtime，就必须保留 `ai_reviewer_record_stale_after_unit_harmonized_rerun` blocker，等待新的 AI reviewer record。
 - 理由：DM002 暴露出旧 AI reviewer eval 的 `source_refs` 已包含 `analysis_harmonization/latest.json` 与 unit-harmonized rerun evidence 路径，但 eval 的 `emitted_at` 早于新 analysis owner result，导致 MAS 误判旧评审已覆盖新证据。
 - 影响：这是 MAS AI reviewer owner-chain currentness 修复，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical `paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict；它只让 controller/read-model 在旧 eval 早于新 evidence 时重新排 AI reviewer owner workflow。
 
