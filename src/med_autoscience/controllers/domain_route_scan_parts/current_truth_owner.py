@@ -173,8 +173,6 @@ def current_story_surface_delta_blocker_route(
         return None
     next_work_unit = _mapping(action.get("next_work_unit"))
     work_unit_id = _text(next_work_unit.get("unit_id"))
-    if not is_story_surface_delta_write_work_unit(work_unit_id):
-        return None
     gate_batch = _mapping(batch.get("gate_clearing_batch"))
     return {
         "decision_path": None,
@@ -201,8 +199,6 @@ def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]
         if _text(action.get("action_type")) != "route_back_same_line":
             continue
         if _text(action.get("route_target")) != "write" and _text(next_work_unit.get("lane")) != "write":
-            continue
-        if not is_story_surface_delta_write_work_unit(_text(next_work_unit.get("unit_id"))):
             continue
         return dict(action)
     return None

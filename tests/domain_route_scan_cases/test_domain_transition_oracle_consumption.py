@@ -385,11 +385,11 @@ def test_scan_story_surface_blocker_overrides_stale_ai_reviewer_lifecycle(monkey
             {
                 "action_type": "route_back_same_line",
                 "route_target": "write",
-                "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+                "work_unit_fingerprint": "dm002_same_line_publication_paper_repair_20260521",
                 "next_work_unit": {
-                    "unit_id": "medical_prose_write_repair",
+                    "unit_id": "dm002_same_line_publication_paper_repair",
                     "lane": "write",
-                    "summary": "Repair medical journal prose quality against the current story surface.",
+                    "summary": "Controller-authorized paper repair and package rebuild from latest evidence.",
                 },
             }
         ],
@@ -414,7 +414,7 @@ def test_scan_story_surface_blocker_overrides_stale_ai_reviewer_lifecycle(monkey
     action = study["action_queue"][0]
     assert action["owner"] == "write"
     assert action["reason"] == "manuscript_story_surface_delta_missing"
-    assert action["next_work_unit"] == "medical_prose_write_repair"
+    assert action["next_work_unit"] == "dm002_same_line_publication_paper_repair"
     assert action["controller_route"]["authorization_basis"] == "quality_repair_story_surface_delta_blocker"
     assert study["owner_route"]["next_owner"] == "write"
     assert study["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
