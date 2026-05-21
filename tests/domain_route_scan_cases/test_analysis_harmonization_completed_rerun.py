@@ -467,6 +467,7 @@ def test_completed_unit_harmonized_rerun_does_not_requeue_current_ai_reviewer_ev
     publication_eval = {
         "schema_version": 1,
         "eval_id": "publication-eval::dm002::post-harmonization-review",
+        "emitted_at": "2999-01-01T00:00:00+00:00",
         "study_id": study_id,
         "quest_id": quest_id,
         "assessment_provenance": {

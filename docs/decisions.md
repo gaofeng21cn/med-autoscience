@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：analysis harmonization AI reviewer currentness 必须同时覆盖 ref identity 与 ref version/time
+
+- 决策：`analysis_harmonization_owner` completed result 交回 `ai_reviewer_medical_prose_quality_review` 时，`publication_eval/latest.json` 只有在 AI reviewer-owned provenance 同时覆盖 required currentness refs 的路径身份，并且 eval 时间不早于这些 refs 的结构化时间或文件 mtime 时，才能视为当前。仅在 `source_refs` 中出现相同路径不足以关闭 re-eval。
+- 决策：缺少 eval 时间戳而 required ref 可解析出时间时，必须 fail closed 到 `return_to_ai_reviewer_workflow`。缺少 required ref 时间时才允许用路径身份判断覆盖，避免凭空制造版本号，同时不把旧 eval 冒充为当前。
+- 理由：DM002 暴露出旧 AI reviewer eval 的 `source_refs` 已包含 `analysis_harmonization/latest.json` 与 unit-harmonized rerun evidence 路径，但 eval 的 `emitted_at` 早于新 analysis owner result，导致 MAS 误判旧评审已覆盖新证据。
+- 影响：这是 MAS AI reviewer owner-chain currentness 修复，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical `paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict；它只让 controller/read-model 在旧 eval 早于新 evidence 时重新排 AI reviewer owner workflow。
+
 ## 2026-05-22：当前 medical prose review route-back 必须解除 AI reviewer dispatch repeat suppression
 
 - 决策：`return_to_ai_reviewer_workflow` 的 required-output pending 判定不再只依赖监督 scan 中的 `ai_reviewer_assessment.missing=true`。当 `artifacts/supervision/requests/ai_reviewer/latest.json` 携带的 AI reviewer record 尚未写入 `publication_eval/latest.json`，或当前 `artifacts/publication_eval/medical_prose_review.json` 明确 `route_back_recommendation.required=true` 且 route target 为 `write` / `analysis-campaign` / `blueprint`、但 `publication_eval/latest.json` 的 reviewer OS 和 recommended action 还没有消费同一路由时，executor dispatch 与 request materializer 都必须把 required output 视为 pending，不得 repeat suppress。

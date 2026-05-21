@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -87,7 +88,16 @@ def publication_eval_covers_currentness_refs(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     )
-    return all(ref in refs for ref in required_refs)
+    if not all(ref in refs for ref in required_refs):
+        return False
+    eval_timestamp = _payload_timestamp(publication_eval_payload)
+    for ref in required_refs:
+        ref_timestamp = _ref_timestamp(Path(ref))
+        if ref_timestamp is not None and eval_timestamp is None:
+            return False
+        if ref_timestamp is not None and eval_timestamp is not None and ref_timestamp > eval_timestamp:
+            return False
+    return True
 
 
 def publication_eval_source_refs(
@@ -129,6 +139,48 @@ def _read_json_object(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _ref_timestamp(path: Path) -> datetime | None:
+    payload = _read_json_object(path)
+    timestamp = _payload_timestamp(payload)
+    if timestamp is not None:
+        return timestamp
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
+def _payload_timestamp(payload: Mapping[str, Any]) -> datetime | None:
+    for key in (
+        "emitted_at",
+        "generated_at",
+        "completed_at",
+        "finished_at",
+        "updated_at",
+        "created_at",
+        "recorded_at",
+    ):
+        timestamp = _parse_timestamp(payload.get(key))
+        if timestamp is not None:
+            return timestamp
+    return None
+
+
+def _parse_timestamp(value: object) -> datetime | None:
+    text = _text(value)
+    if text is None:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _mapping(value: object) -> dict[str, Any]:
