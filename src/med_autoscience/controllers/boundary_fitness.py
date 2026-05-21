@@ -25,7 +25,6 @@ DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/stage_knowledge_plane.py": 1199,
     "tests/test_progress_portal.py": 1245,
     "src/med_autoscience/controllers/progress_portal.py": 1207,
-    "src/med_autoscience/controllers/workspace_init.py": 1186,
     "tests/product_entry_cases/product_entry_preflight_and_task_submission.py": 1180,
     "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_workflow_dispatch.py": 1110,
     "src/med_autoscience/controllers/study_progress_parts/projection.py": 1155,

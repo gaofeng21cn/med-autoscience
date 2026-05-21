@@ -3,12 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from pathlib import Path
-import json
 import re
-import shlex
 import shutil
 import subprocess
-import tomllib
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
 from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
@@ -42,7 +39,12 @@ from med_autoscience.controllers.workspace_init_parts.retired_entries import (
     retired_file_cleanup_reason,
     retired_workspace_service_paths,
 )
-from med_autoscience.developer_supervisor_mode import EXPECTED_DEVELOPER_GITHUB_LOGIN
+from med_autoscience.controllers.workspace_init_parts.legacy_entries import legacy_managed_runtime_entry_reason
+from med_autoscience.controllers.workspace_init_parts.profile_config import (
+    merge_medautoscience_config_content,
+    merge_workspace_profile_content,
+    render_workspace_profile_entries,
+)
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
@@ -235,10 +237,6 @@ def _render_workspace_pyproject(*, workspace_root: Path, workspace_name: str) ->
     )
 
 
-def _quote_toml_string(value: str | Path) -> str:
-    return json.dumps(str(value), ensure_ascii=False)
-
-
 def _detect_github_username() -> str | None:
     env_login = os.environ.get("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN")
     if env_login and env_login.strip():
@@ -261,95 +259,6 @@ def _detect_github_username() -> str | None:
     return login or None
 
 
-def _render_workspace_profile_entries(
-    *,
-    workspace_root: Path,
-    workspace_name: str,
-    default_publication_profile: str,
-    default_citation_style: str,
-    hermes_agent_repo_root: Path | None,
-    hermes_home_root: Path | None,
-    include_hermes_placeholders: bool,
-) -> list[tuple[str, str]]:
-    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
-    github_username = _detect_github_username()
-    entries: list[tuple[str, str]] = [
-        ("name", f"name = {_quote_toml_string(workspace_name)}"),
-        ("workspace_root", f"workspace_root = {_quote_toml_string(workspace_root)}"),
-        ("runtime_root", f"runtime_root = {_quote_toml_string(layout.quests_root)}"),
-        ("managed_runtime_home", f"managed_runtime_home = {_quote_toml_string(layout.runtime_root)}"),
-        ("studies_root", f"studies_root = {_quote_toml_string(workspace_root / 'studies')}"),
-        ("portfolio_root", f"portfolio_root = {_quote_toml_string(workspace_root / 'portfolio')}"),
-    ]
-    if hermes_agent_repo_root is not None:
-        entries.append(
-            (
-                "hermes_agent_repo_root",
-                f"hermes_agent_repo_root = {_quote_toml_string(Path(hermes_agent_repo_root).expanduser().resolve())}",
-            )
-        )
-        resolved_hermes_home_root = (
-            Path(hermes_home_root).expanduser().resolve()
-            if hermes_home_root is not None
-            else (Path.home() / ".hermes").resolve()
-        )
-        entries.append(
-            (
-                "hermes_home_root",
-                f"hermes_home_root = {_quote_toml_string(resolved_hermes_home_root)}",
-            )
-        )
-    elif include_hermes_placeholders:
-        entries.extend(
-            [
-                ("hermes_agent_repo_root", 'hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"'),
-                ("hermes_home_root", 'hermes_home_root = "~/.hermes"'),
-            ]
-        )
-    entries.extend(
-        [
-            (
-                "default_publication_profile",
-                f"default_publication_profile = {_quote_toml_string(default_publication_profile)}",
-            ),
-            ("default_citation_style", f"default_citation_style = {_quote_toml_string(default_citation_style)}"),
-            ("enable_medical_overlay", "enable_medical_overlay = true"),
-            ("medical_overlay_scope", 'medical_overlay_scope = "workspace"'),
-            (
-                "medical_overlay_skills",
-                'medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "figure-polish", "write", "review", "rebuttal", "finalize"]',
-            ),
-            ("medical_overlay_bootstrap_mode", 'medical_overlay_bootstrap_mode = "ensure_ready"'),
-            ("research_route_bias_policy", 'research_route_bias_policy = "high_plasticity_medical"'),
-            (
-                "preferred_study_archetypes",
-                'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
-            ),
-            (
-                "default_startup_anchor_policy",
-                'default_startup_anchor_policy = "scout_first_for_continue_existing_state"',
-            ),
-            ("legacy_code_execution_policy", 'legacy_code_execution_policy = "forbid_without_user_approval"'),
-            (
-                "public_data_discovery_policy",
-                'public_data_discovery_policy = "required_for_scout_route_selection"',
-            ),
-            (
-                "startup_boundary_requirements",
-                'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
-            ),
-            ("developer_supervisor_mode", 'developer_supervisor_mode = "external_observe"'),
-            (
-                "mas_developer_github_usernames",
-                f"mas_developer_github_usernames = [{_quote_toml_string(EXPECTED_DEVELOPER_GITHUB_LOGIN)}]",
-            ),
-        ]
-    )
-    if github_username is not None:
-        entries.append(("github_username", f"github_username = {_quote_toml_string(github_username)}"))
-    return entries
-
-
 def _render_workspace_profile(
     *,
     workspace_root: Path,
@@ -360,7 +269,7 @@ def _render_workspace_profile(
     hermes_home_root: Path | None,
     include_hermes_placeholders: bool,
 ) -> str:
-    entries = _render_workspace_profile_entries(
+    entries = render_workspace_profile_entries(
         workspace_root=workspace_root,
         workspace_name=workspace_name,
         default_publication_profile=default_publication_profile,
@@ -368,232 +277,9 @@ def _render_workspace_profile(
         hermes_agent_repo_root=hermes_agent_repo_root,
         hermes_home_root=hermes_home_root,
         include_hermes_placeholders=include_hermes_placeholders,
+        github_username=_detect_github_username(),
     )
     return "\n".join(line for _, line in entries) + "\n"
-
-
-def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -> str | None:
-    suffix = path.parts[-4:]
-    for detector in (
-        _legacy_mas_bridge_entry_reason,
-        _legacy_medautoscience_shared_entry_reason,
-        _legacy_watch_runtime_entry_reason,
-        _legacy_supervisor_entry_reason,
-        _legacy_workspace_command_entry_reason,
-    ):
-        reason = detector(path=path, suffix=suffix, existing_content=existing_content)
-        if reason is not None:
-            return reason
-    return None
-
-
-def _legacy_mas_bridge_entry_reason(*, path: Path, suffix: tuple[str, ...], existing_content: str) -> str | None:
-    if len(path.parts) >= 3 and path.parts[-3:] == ("ops", "mas", "config.env"):
-        if "MED_DEEPSCIENTIST_LAUNCHER" in existing_content:
-            return "legacy_mds_launcher_bridge_config"
-        return None
-    if suffix == ("ops", "mas", "bin", "_shared.sh"):
-        if "MED_DEEPSCIENTIST_LAUNCHER" in existing_content or "run_med_deepscientist_launcher" in existing_content:
-            return "legacy_mds_launcher_bridge_shared"
-        return None
-    if len(suffix) == 4 and suffix[:3] == ("ops", "mas", "bin"):
-        if "run_med_deepscientist_launcher" in existing_content:
-            return "legacy_mds_launcher_bridge_forward"
-        return None
-    return None
-
-
-def _legacy_medautoscience_shared_entry_reason(
-    *,
-    path: Path,
-    suffix: tuple[str, ...],
-    existing_content: str,
-) -> str | None:
-    _ = path
-    if suffix == ("ops", "medautoscience", "bin", "_shared.sh"):
-        if "python3 -m med_autoscience.cli" in existing_content:
-            return "legacy_python_entry"
-        looks_like_uv_entry = (
-            "run_medautosci() {" in existing_content
-            and 'uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in existing_content
-        )
-        if looks_like_uv_entry and "MED_AUTOSCIENCE_UV_BIN" not in existing_content:
-            return "legacy_uv_entry"
-        looks_like_managed_shared = (
-            "run_medautosci() {" in existing_content
-            and '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"'
-            in existing_content
-        )
-        if looks_like_uv_entry or looks_like_managed_shared:
-            return "legacy_workspace_python_entry"
-        if looks_like_managed_shared and "MED_AUTOSCIENCE_RSCRIPT_BIN" not in existing_content:
-            return "legacy_rscript_entry"
-        if looks_like_managed_shared and "MED_AUTOSCIENCE_NODE_BIN" not in existing_content:
-            return "legacy_node_entry"
-        return None
-    return None
-
-
-def _legacy_watch_runtime_entry_reason(
-    *,
-    path: Path,
-    suffix: tuple[str, ...],
-    existing_content: str,
-) -> str | None:
-    _ = path
-    if suffix == ("ops", "medautoscience", "bin", "watch-runtime"):
-        looks_like_managed_watch = (
-            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in existing_content
-            and "--runtime-root" in existing_content
-        )
-        if looks_like_managed_watch:
-            if "run_medautosci runtime watch" not in existing_content:
-                return "legacy_watch_runtime_entry"
-            if (
-                'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' not in existing_content
-                or '--profile "${PROFILE_PATH}"' not in existing_content
-                or "--ensure-study-runtimes" not in existing_content
-                or "--apply-supervisor-platform-repair" not in existing_content
-                or "--apply" not in existing_content
-                or "--loop" in existing_content
-            ):
-                return "legacy_watch_runtime_entry"
-    return None
-
-
-def _legacy_supervisor_entry_reason(
-    *,
-    path: Path,
-    suffix: tuple[str, ...],
-    existing_content: str,
-) -> str | None:
-    _ = path
-    supervisor_specs = (
-        (
-            ("ops", "medautoscience", "bin", "domain-route-scan"),
-            ("runtime domain-route-scan",),
-            "legacy_scan_domain_routes_entry",
-        ),
-        (
-            ("ops", "medautoscience", "bin", "domain-route-reconcile"),
-            ("runtime domain-route-reconcile", "--mode developer_apply_safe"),
-            "legacy_reconcile_domain_routes_entry",
-        ),
-        (
-            ("ops", "medautoscience", "bin", "domain-action-request-materialize"),
-            ("runtime domain-action-request-materialize", "--mode developer_apply_safe"),
-            "legacy_materialize_domain_action_requests_entry",
-        ),
-        (
-            ("ops", "medautoscience", "bin", "domain-owner-action-dispatch"),
-            ("runtime domain-owner-action-dispatch", "--mode developer_apply_safe"),
-            "legacy_supervisor_execute_dispatch_entry",
-        ),
-    )
-    return _legacy_entry_reason_from_required_tokens(
-        suffix=suffix,
-        existing_content=existing_content,
-        specs=supervisor_specs,
-    )
-
-
-def _legacy_workspace_command_entry_reason(
-    *,
-    path: Path,
-    suffix: tuple[str, ...],
-    existing_content: str,
-) -> str | None:
-    _ = path
-    command_specs = (
-        ("bootstrap", "workspace bootstrap", "run_medautosci bootstrap", "legacy_workspace_bootstrap_entry"),
-        ("show-profile", "doctor profile", "run_medautosci show-profile", "legacy_show_profile_entry"),
-        ("enter-study", "study ensure-runtime", "run_medautosci ensure-study-runtime", "legacy_enter_study_entry"),
-        ("publication-gate", "publication gate", "run_medautosci publication-gate", "legacy_publication_gate_entry"),
-        (
-            "medical-surface",
-            "publication surface",
-            "run_medautosci medical-publication-surface",
-            "legacy_publication_surface_entry",
-        ),
-        (
-            "figure-loop-guard",
-            "publication figure-loop-guard",
-            "run_medautosci figure-loop-guard",
-            "legacy_figure_loop_guard_entry",
-        ),
-        (
-            "resolve-submission-targets",
-            "publication resolve-targets",
-            "run_medautosci resolve-submission-targets",
-            "legacy_resolve_submission_targets_entry",
-        ),
-        (
-            "resolve-journal-shortlist",
-            "publication resolve-journal-shortlist",
-            "run_medautosci resolve-journal-shortlist",
-            "legacy_resolve_journal_shortlist_entry",
-        ),
-        (
-            "init-portfolio-memory",
-            "data init-memory",
-            "run_medautosci init-portfolio-memory",
-            "legacy_init_portfolio_memory_entry",
-        ),
-        (
-            "portfolio-memory-status",
-            "data memory-status",
-            "run_medautosci portfolio-memory-status",
-            "legacy_portfolio_memory_status_entry",
-        ),
-        (
-            "init-workspace-literature",
-            "data init-literature",
-            "run_medautosci init-workspace-literature",
-            "legacy_init_workspace_literature_entry",
-        ),
-        (
-            "workspace-literature-status",
-            "data literature-status",
-            "run_medautosci workspace-literature-status",
-            "legacy_workspace_literature_status_entry",
-        ),
-        (
-            "prepare-external-research",
-            "data prepare-external-research",
-            "run_medautosci prepare-external-research",
-            "legacy_prepare_external_research_entry",
-        ),
-        (
-            "external-research-status",
-            "data external-research-status",
-            "run_medautosci external-research-status",
-            "legacy_external_research_status_entry",
-        ),
-        (
-            "export-submission",
-            "publication export-targets",
-            "run_medautosci export-submission-targets",
-            "legacy_export_submission_targets_entry",
-        ),
-        ("sync-delivery", "study delivery-sync", "run_medautosci sync-study-delivery", "legacy_sync_study_delivery_entry"),
-    )
-    for command_name, required_token, legacy_token, reason in command_specs:
-        command_suffix = ("ops", "medautoscience", "bin", command_name)
-        if suffix == command_suffix and required_token not in existing_content and legacy_token in existing_content:
-            return reason
-    return None
-
-
-def _legacy_entry_reason_from_required_tokens(
-    *,
-    suffix: tuple[str, ...],
-    existing_content: str,
-    specs: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...],
-) -> str | None:
-    for expected_suffix, required_tokens, reason in specs:
-        if suffix == expected_suffix and any(token not in existing_content for token in required_tokens):
-            return reason
-    return None
 
 
 def _is_workspace_profile_path(path: Path) -> bool:
@@ -602,139 +288,6 @@ def _is_workspace_profile_path(path: Path) -> bool:
 
 def _is_medautoscience_config_path(path: Path) -> bool:
     return len(path.parts) >= 3 and path.parts[-3:] == ("ops", "medautoscience", "config.env")
-
-
-def _merge_medautoscience_config_content(*, existing_content: str, workspace_root: Path, profile_relpath: Path) -> str:
-    rendered_content = workspace_entry_rendering_controller.render_medautoscience_config(
-        workspace_root=workspace_root,
-        profile_relpath=profile_relpath,
-    )
-    existing_values = _parse_env_assignments(existing_content)
-    rendered_values = _parse_env_assignments(rendered_content)
-    placeholders_repaired = False
-    merged_values: dict[str, str] = {}
-    for key, rendered_value in rendered_values.items():
-        existing_value = existing_values.get(key)
-        if existing_value is None or _is_placeholder_path(existing_value):
-            merged_values[key] = rendered_value
-            placeholders_repaired = placeholders_repaired or existing_value is not None
-        else:
-            merged_values[key] = existing_value
-    if not placeholders_repaired and set(rendered_values).issubset(existing_values):
-        return existing_content
-    if placeholders_repaired:
-        return _render_medautoscience_config_from_values(
-            workspace_root=workspace_root,
-            profile_relpath=profile_relpath,
-            values=merged_values,
-        )
-    rendered_lines = rendered_content.splitlines()
-    try:
-        node_line_index = next(
-            index for index, line in enumerate(rendered_lines) if line.startswith("MED_AUTOSCIENCE_NODE_BIN=")
-        )
-    except StopIteration:
-        return existing_content
-    comment_index = node_line_index - 1 if node_line_index > 0 and rendered_lines[node_line_index - 1].startswith("#") else node_line_index
-    node_block = "\n".join(rendered_lines[comment_index : node_line_index + 1]).strip()
-    if not node_block:
-        return existing_content
-    base = existing_content.rstrip()
-    separator = "\n\n" if base else ""
-    return f"{base}{separator}{node_block}\n"
-
-
-def _parse_env_assignments(content: str) -> dict[str, str]:
-    values: dict[str, str] = {}
-    for line in content.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, raw_value = stripped.split("=", 1)
-        key = key.strip()
-        if not key.startswith("MED_AUTOSCIENCE_"):
-            continue
-        try:
-            parsed = shlex.split(raw_value, comments=False, posix=True)
-        except ValueError:
-            parsed = []
-        values[key] = parsed[0] if parsed else raw_value.strip().strip("\"'")
-    return values
-
-
-def _is_placeholder_path(value: str) -> bool:
-    text = value.strip().strip("\"'")
-    return not text or text.startswith("/ABS/PATH/TO/")
-
-
-def _render_medautoscience_config_from_values(
-    *,
-    workspace_root: Path,
-    profile_relpath: Path,
-    values: dict[str, str],
-) -> str:
-    rendered_content = workspace_entry_rendering_controller.render_medautoscience_config(
-        workspace_root=workspace_root,
-        profile_relpath=profile_relpath,
-    )
-    output_lines: list[str] = []
-    for line in rendered_content.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            output_lines.append(line)
-            continue
-        key, _ = stripped.split("=", 1)
-        if key in values:
-            output_lines.append(f"{key}={json.dumps(values[key], ensure_ascii=False)}")
-        else:
-            output_lines.append(line)
-    return "\n".join(output_lines).rstrip() + "\n"
-
-
-def _merge_workspace_profile_content(
-    *,
-    existing_content: str,
-    workspace_root: Path,
-    workspace_name: str,
-    default_publication_profile: str,
-    default_citation_style: str,
-    hermes_agent_repo_root: Path | None,
-    hermes_home_root: Path | None,
-) -> str:
-    try:
-        payload = tomllib.loads(existing_content)
-    except tomllib.TOMLDecodeError:
-        return existing_content
-    if not isinstance(payload, dict):
-        return existing_content
-    required_identity_keys = {
-        "name",
-        "workspace_root",
-        "runtime_root",
-        "studies_root",
-        "portfolio_root",
-    }
-    if not required_identity_keys.issubset(payload):
-        return existing_content
-    merge_entries = _render_workspace_profile_entries(
-        workspace_root=workspace_root,
-        workspace_name=workspace_name,
-        default_publication_profile=default_publication_profile,
-        default_citation_style=default_citation_style,
-        hermes_agent_repo_root=hermes_agent_repo_root,
-        hermes_home_root=hermes_home_root,
-        include_hermes_placeholders=False,
-    )
-    missing_lines = [
-        line
-        for key, line in merge_entries
-        if key not in payload
-    ]
-    if not missing_lines:
-        return existing_content
-    base = existing_content.rstrip()
-    separator = "\n\n" if base else ""
-    return f"{base}{separator}{chr(10).join(missing_lines)}\n"
 
 
 def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
@@ -746,7 +299,7 @@ def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
         existing_content = item.path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return "skip"
-    if _legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
+    if legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
         return "upgrade"
     if _is_workspace_profile_path(item.path) and existing_content != item.content:
         return "upgrade"
@@ -1049,7 +602,7 @@ def init_workspace(
                 prepared_files.append(
                     RenderedFile(
                         path=item.path,
-                        content=_merge_workspace_profile_content(
+                        content=merge_workspace_profile_content(
                             existing_content=existing_content,
                             workspace_root=workspace_root,
                             workspace_name=workspace_name,
@@ -1057,6 +610,7 @@ def init_workspace(
                             default_citation_style=default_citation_style,
                             hermes_agent_repo_root=hermes_agent_repo_root,
                             hermes_home_root=hermes_home_root,
+                            github_username=_detect_github_username(),
                         ),
                         executable=item.executable,
                     )
@@ -1071,7 +625,7 @@ def init_workspace(
                 prepared_files.append(
                     RenderedFile(
                         path=item.path,
-                        content=_merge_medautoscience_config_content(
+                        content=merge_medautoscience_config_content(
                             existing_content=existing_content,
                             workspace_root=workspace_root,
                             profile_relpath=_display_path_from_workspace_root(
