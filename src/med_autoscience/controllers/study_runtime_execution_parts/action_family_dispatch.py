@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from importlib import import_module
+import json
 from typing import Any
 
 from med_autoscience.runtime_protocol import quest_state
@@ -105,6 +107,161 @@ def _restore_explicit_user_wakeup_surface(status: StudyRuntimeStatus, pre_resume
     if "explicit_user_wakeup" in status.extras or not isinstance(pre_resume_wakeup, dict):
         return
     status._record_dict_extra("explicit_user_wakeup", pre_resume_wakeup)
+
+
+def _materialize_fresh_domain_transition_controller_decision_if_required(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+) -> dict[str, Any] | None:
+    if status.reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
+        return None
+    domain_transition = status.extras.get("domain_transition")
+    if not isinstance(domain_transition, dict):
+        return None
+    transition_unit = domain_transition.get("next_work_unit")
+    transition_unit_id = str(transition_unit.get("unit_id") or "").strip() if isinstance(transition_unit, dict) else ""
+    transition_action = str(domain_transition.get("controller_action") or "").strip()
+    transition_type = str(domain_transition.get("decision_type") or "").strip()
+    if (
+        transition_type != "ai_reviewer_re_eval"
+        or transition_action != "return_to_ai_reviewer_workflow"
+        or not transition_unit_id
+    ):
+        return None
+    outer_loop = import_module("med_autoscience.controllers.study_outer_loop")
+    status_payload = status.to_dict()
+    tick_request = outer_loop.build_runtime_watch_outer_loop_tick_request(
+        study_root=context.study_root,
+        status_payload=status_payload,
+    )
+    if not isinstance(tick_request, dict):
+        status.extras["controller_decision_currentness"] = {
+            "status": "skipped",
+            "reason": "outer_loop_tick_request_unavailable",
+        }
+        return None
+    if not _tick_request_matches_domain_transition(
+        tick_request=tick_request,
+        transition_action=transition_action,
+        transition_type=transition_type,
+        transition_unit_id=transition_unit_id,
+    ):
+        status.extras["controller_decision_currentness"] = {
+            "status": "skipped",
+            "reason": "outer_loop_tick_request_did_not_match_domain_transition",
+            "transition_unit_id": transition_unit_id,
+            "tick_work_unit_id": _work_unit_id_from_tick_request(tick_request),
+            "tick_controller_actions": _controller_action_types_from_tick_request(tick_request),
+        }
+        return None
+    if _latest_controller_decision_matches_tick_request(
+        study_root=context.study_root,
+        tick_request=tick_request,
+    ):
+        status.extras["controller_decision_currentness"] = {
+            "status": "already_current",
+            "work_unit_id": transition_unit_id,
+            "work_unit_fingerprint": str(tick_request.get("work_unit_fingerprint") or "").strip() or None,
+        }
+        return None
+    materialized = outer_loop.materialize_non_dispatching_outer_loop_decision(
+        profile=context.profile,
+        study_id=context.study_id,
+        study_root=context.study_root,
+        status_payload=status_payload,
+        charter_ref=tick_request["charter_ref"],
+        publication_eval_ref=tick_request["publication_eval_ref"],
+        decision_type=str(tick_request["decision_type"]),
+        route_target=str(tick_request.get("route_target") or "").strip() or None,
+        route_key_question=str(tick_request.get("route_key_question") or "").strip() or None,
+        route_rationale=str(tick_request.get("route_rationale") or "").strip() or None,
+        source_route_key_question=str(tick_request.get("source_route_key_question") or "").strip() or None,
+        work_unit_fingerprint=str(tick_request.get("work_unit_fingerprint") or "").strip() or None,
+        next_work_unit=(
+            dict(tick_request.get("next_work_unit"))
+            if isinstance(tick_request.get("next_work_unit"), dict)
+            else None
+        ),
+        blocking_work_units=[
+            dict(item) for item in tick_request.get("blocking_work_units") or [] if isinstance(item, dict)
+        ],
+        requires_human_confirmation=bool(tick_request.get("requires_human_confirmation")),
+        controller_actions=[
+            dict(item) for item in tick_request.get("controller_actions") or [] if isinstance(item, dict)
+        ],
+        reason=str(tick_request.get("reason") or "").strip()
+        or "fresh domain transition requires current controller authorization before runtime resume",
+        source=context.source,
+    )
+    status.extras["controller_decision_currentness"] = {
+        "status": "materialized",
+        "work_unit_id": transition_unit_id,
+        "work_unit_fingerprint": str(tick_request.get("work_unit_fingerprint") or "").strip() or None,
+        "materialization": dict(materialized) if isinstance(materialized, dict) else {},
+    }
+    return dict(materialized) if isinstance(materialized, dict) else {}
+
+
+def _tick_request_matches_domain_transition(
+    *,
+    tick_request: dict[str, Any],
+    transition_action: str,
+    transition_type: str,
+    transition_unit_id: str,
+) -> bool:
+    tick_unit_id = _work_unit_id_from_tick_request(tick_request)
+    if tick_unit_id != transition_unit_id:
+        return False
+    if transition_action not in _controller_action_types_from_tick_request(tick_request):
+        return False
+    fingerprint = str(tick_request.get("work_unit_fingerprint") or "").strip()
+    return fingerprint == f"domain-transition::{transition_type}::{transition_unit_id}"
+
+
+def _work_unit_id_from_tick_request(tick_request: dict[str, Any]) -> str | None:
+    next_work_unit = tick_request.get("next_work_unit")
+    if not isinstance(next_work_unit, dict):
+        return None
+    text = str(next_work_unit.get("unit_id") or "").strip()
+    return text or None
+
+
+def _controller_action_types_from_tick_request(tick_request: dict[str, Any]) -> list[str]:
+    action_types: list[str] = []
+    for item in tick_request.get("controller_actions") or []:
+        if not isinstance(item, dict):
+            continue
+        action_type = str(item.get("action_type") or "").strip()
+        if action_type:
+            action_types.append(action_type)
+    return sorted(set(action_types))
+
+
+def _latest_controller_decision_matches_tick_request(
+    *,
+    study_root: Any,
+    tick_request: dict[str, Any],
+) -> bool:
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    try:
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError):
+        return False
+    if not isinstance(decision, dict):
+        return False
+    decision_actions = _controller_action_types_from_tick_request(
+        {"controller_actions": decision.get("controller_actions")}
+    )
+    tick_actions = _controller_action_types_from_tick_request(tick_request)
+    decision_unit = decision.get("next_work_unit")
+    decision_unit_id = str(decision_unit.get("unit_id") or "").strip() if isinstance(decision_unit, dict) else ""
+    return (
+        str(decision.get("work_unit_fingerprint") or "").strip()
+        == str(tick_request.get("work_unit_fingerprint") or "").strip()
+        and decision_unit_id == (_work_unit_id_from_tick_request(tick_request) or "")
+        and decision_actions == tick_actions
+    )
 
 
 def _execute_create_runtime_decision(
@@ -275,6 +432,7 @@ def _execute_resume_runtime_decision(
             outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
             _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
             return outcome
+    _materialize_fresh_domain_transition_controller_decision_if_required(status=status, context=context)
     _relay_controller_decision_authorization_if_required(status=status, context=context)
     if "controller_work_unit_evidence_adoption" in status.extras:
         status.set_decision(
@@ -389,6 +547,7 @@ def _execute_relaunch_stopped_runtime_decision(
             outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
             _restore_explicit_user_wakeup_surface(status, pre_relaunch_wakeup)
             return outcome
+    _materialize_fresh_domain_transition_controller_decision_if_required(status=status, context=context)
     _relay_controller_decision_authorization_if_required(status=status, context=context)
     try:
         relaunch_result = router._relaunch_stopped_quest(

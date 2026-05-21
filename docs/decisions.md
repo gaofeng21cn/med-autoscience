@@ -8,6 +8,13 @@
 - 理由：MAS 是标准 OPL domain agent，应该保留医学研究 truth、stage semantics、AI reviewer / quality gate、publication route、artifact authority、owner receipt 和 typed blocker；长期在线调度、唤醒、retry、resume 和 attempt ledger 是 OPL Framework / Temporal 的 generic runtime 能力。
 - 影响：后续 runtime/status/sidecar/product-entry/docs 变更若把 `mas_runtime_core`、Codex App 外围会话、local scheduler、Hermes cron 或 MAS runtime transport 写成默认 generic runtime owner，均视为边界回归。真实 paper-line 进展仍以 MAS owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker 为准。
 
+## 2026-05-21：fresh domain transition 必须在 runtime turn 前物化为 controller decision
+
+- 决策：当 `study_runtime_status` / `last_launch_report` 的当前路线是 `domain_transition_ai_reviewer_re_eval`，且 next work unit 是 `return_to_ai_reviewer_workflow` / `ai_reviewer_medical_prose_quality_review` 时，resume / relaunch preflight 必须先调用 MAS outer-loop 写出 non-dispatching `artifacts/controller_decisions/latest.json`，再启动 provider-backed runtime worker。
+- 决策：如果旧 `controller_decisions/latest.json` 仍指向 `run_gate_clearing_batch` / `publication_gate_recheck`，它不能继续成为新 turn 的 `current_controller_authorization`。worker prompt 的授权真相仍只来自 MAS controller decision；status read-model 只触发 preflight materialization，不直接授权论文质量或 package 写入。
+- 理由：DM003 暴露出 latest reviewer revision 已触发 AI reviewer re-eval read-model，但新 run 仍从 stale controller decision 吃到旧 gate-clearing authorization，导致 runtime 反复跑 gate recheck，论文质量反馈没有进入 AI reviewer workflow。
+- 影响：这是 MAS controller/currentness 修复，不是 OPL provider lifecycle 修复。OPL 仍负责 attempt、queue、retry/dead-letter 和 provider liveness；MAS 只保证医学 owner route 在每个 managed turn 前有当前 controller decision 可供 runtime worker 消费。
+
 ## 2026-05-21：runtime liveness / redrive 仲裁不得继续在 MAS 私有控制面扩写
 
 - 决策：暂停并撤回把 `active_run_id` liveness 过滤、stopped/failed redrive 仲裁、provider resume 选择或 current AI reviewer route-back hydrate 继续写进 `study_outer_loop.py` / `status_and_decision.py` / `domain_transition_arbitration.py` 的修复方向。MAS 只能输出医学 owner route、controller authorization refs、AI reviewer/publication gate verdict refs、owner receipt 和 typed blocker；通用 liveness、attempt、queue、redrive、hydration、retry/dead-letter 与 provider resume 由 OPL provider/runtime manager 承担。
