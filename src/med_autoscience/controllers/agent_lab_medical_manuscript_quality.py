@@ -15,6 +15,9 @@ from .agent_lab_medical_manuscript_quality_parts.quality_boundary import (
     SUITE_RELATIVE_PATH,
     SURFACE_KIND,
 )
+from .agent_lab_medical_manuscript_quality_parts.patch_loop_closeout import (
+    build_refs_only_patch_loop_closeout_bundle,
+)
 from .agent_lab_submission_assurance import build_submission_assurance_surfaces
 from .publication_aftercare import build_publication_aftercare_plan
 
@@ -62,118 +65,129 @@ def build_medical_manuscript_quality_agent_lab_suite(
     task_id = f"agent-lab-task:mas/{study_id}/high-quality-medical-manuscript"
     scorecard_ref = f"quality-scorecard:mas/{study_id}/high-quality-medical-manuscript"
     promotion_gate_ref = f"promotion-gate:mas/{study_id}/high-quality-medical-manuscript"
+    developer_work_order = _developer_patch_work_order(
+        study_id=study_id,
+        evidence_refs=blocker_refs or evidence_refs,
+    )
+    task = {
+        "task_id": task_id,
+        "domain_id": "med-autoscience",
+        "task_family": "high_quality_medical_manuscript_self_evolution",
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "environment": {
+            "environment_kind": "local_workspace",
+            "workspace_locator_ref": f"workspace-locator:mas/{study_id}",
+            "sandbox_policy": "refs_only_no_artifact_mutation",
+            "network_policy": "domain_owner_policy",
+            "resource_limits": {"max_stage_attempts": 4},
+        },
+        "instructions_ref": "instructions:mas/high-quality-medical-manuscript-ai-reviewer",
+        "agent_entry_ref": "domain-agent-entry:med-autoscience",
+        "stage_refs": [
+            "stage:mas/review",
+            "stage:mas/analysis-campaign",
+            "stage:mas/write",
+            "stage:mas/write/pre_draft_prediction_model_reporting",
+            "stage:mas/figure-polish/high_quality_medical_journal_figures",
+            "stage:mas/publication-gate",
+        ],
+        "oracle_refs": [
+            "oracle:mas/ai-reviewer-publication-eval",
+            "oracle:mas/review-ledger",
+            "oracle:mas/evidence-ledger",
+        ],
+        "scorer_refs": [
+            "scorer:mas/ai-reviewer-medical-publication-critique-v1",
+            "scorer:mas/prediction-model-first-draft-quality",
+            scorecard_ref,
+        ],
+        "recovery_probes": [
+            {
+                "probe_ref": f"recovery-probe:mas/{study_id}/review-route-redrive",
+                "probe_kind": "resume_after_interruption",
+                "expected_status": "passed",
+                "observed_status": "passed",
+                "source_refs": [str(task_intake_path) if task_intake_path.exists() else str(publication_eval_path)],
+            }
+        ],
+        "trajectory": {
+            "trajectory_ref": f"trajectory:mas/{study_id}/high-quality-medical-manuscript",
+            "run_ref": f"run:mas/{study_id}/high-quality-medical-manuscript-agent-lab-projection",
+            "agent_executor": "codex_cli",
+            "stage_attempt_refs": ["stage-attempt:mas/ai-reviewer-medical-prose-quality-review"],
+            "tool_call_refs": ["tool-call:mas/publication-eval-read", "tool-call:mas/review-ledger-read"],
+            "artifact_refs": evidence_refs,
+            "receipt_refs": [str(publication_eval_path)] if publication_eval_path.exists() else [],
+            "repair_refs": blocker_refs,
+            "trace_refs": ["trace-ref:agent-lab/mas-high-quality-medical-manuscript"],
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        },
+        "mechanism_evolution_inputs": mechanism_inputs,
+        "scorecard": {
+            "scorecard_ref": scorecard_ref,
+            "domain_owned": True,
+            "opl_scorecard_role": "scorecard_ref_projection_only",
+            "passed": scorecard_passed,
+            "metric_refs": [
+                f"metric-ref:mas/{study_id}/medical_journal_prose_quality:{prose_status}",
+                "metric-ref:mas/high-quality-medical-manuscript/reproducibility-results-tables-figures",
+            ],
+            "evidence_refs": evidence_refs,
+            "review_refs": [str(root / "paper" / "review" / "review_ledger.json")],
+            "quality_gate_refs": ["quality-gate:mas/publication-owner"],
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        },
+        "improvement_candidate": {
+            "candidate_ref": f"improvement-candidate:mas/{study_id}/high-quality-medical-manuscript-rubric-gap",
+            "candidate_kind": "rubric_gap",
+            "target_ref": "rubric-gap-ref:mas/high-quality-medical-manuscript-ai-reviewer",
+            "evidence_refs": blocker_refs or evidence_refs,
+            "developer_patch_work_order": developer_work_order,
+            "target_agent_capability_gap": {
+                "status": "candidate_only",
+                "target_owner": "med-autoscience",
+                "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
+                "cannot_authorize_quality_verdict": True,
+            },
+            "allowed_change_scope": "branch_only",
+            "promotion_gate_ref": promotion_gate_ref,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        },
+        "promotion_gate": {
+            "gate_ref": promotion_gate_ref,
+            "gate_status": "passed" if scorecard_passed else "blocked",
+            "required_refs": [scorecard_ref, "owner-receipt:mas/ai-reviewer-publication-eval"],
+            "regression_suite_refs": [
+                "regression-suite:mas/ai-first-quality-boundary",
+                "regression-suite:mas/paper-authority-clean-migration",
+                "regression-suite:mas/prediction-model-first-draft-quality",
+                "regression-suite:mas/hard-methodology-unit-harmonization-route",
+                "regression-suite:mas/agent-lab-medical-manuscript-self-evolution",
+                "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue",
+            ],
+            "no_forbidden_write_proof_refs": [
+                "no-forbidden-write:mas/agent-lab-medical-manuscript-quality"
+            ],
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        },
+    }
+    task["patch_loop_closeout_bundle"] = build_refs_only_patch_loop_closeout_bundle(
+        root=root,
+        study_id=study_id,
+        suite_id=f"mas-agent-lab-suite:{study_id}:high-quality-medical-manuscript",
+        task_id=task_id,
+        promotion_gate_ref=promotion_gate_ref,
+        developer_work_order=developer_work_order,
+        target_editable_surface_refs=list(SELF_EVOLUTION_TARGET_REFS),
+        controller_read_model_feedback_refs=mechanism_inputs["controller_read_model_feedback_refs"],
+        forbidden_writes=mechanism_inputs["forbidden_writes"],
+    )
     return {
         "suite_id": f"mas-agent-lab-suite:{study_id}:high-quality-medical-manuscript",
         "suite_kind": "agent_lab_external_suite",
         "suite_role": "domain_quality_suite_with_meta_evolution_projection",
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
-        "tasks": [
-            {
-                "task_id": task_id,
-                "domain_id": "med-autoscience",
-                "task_family": "high_quality_medical_manuscript_self_evolution",
-                "authority_boundary": dict(AUTHORITY_BOUNDARY),
-                "environment": {
-                    "environment_kind": "local_workspace",
-                    "workspace_locator_ref": f"workspace-locator:mas/{study_id}",
-                    "sandbox_policy": "refs_only_no_artifact_mutation",
-                    "network_policy": "domain_owner_policy",
-                    "resource_limits": {"max_stage_attempts": 4},
-                },
-                "instructions_ref": "instructions:mas/high-quality-medical-manuscript-ai-reviewer",
-                "agent_entry_ref": "domain-agent-entry:med-autoscience",
-                "stage_refs": [
-                    "stage:mas/review",
-                    "stage:mas/analysis-campaign",
-                    "stage:mas/write",
-                    "stage:mas/write/pre_draft_prediction_model_reporting",
-                    "stage:mas/figure-polish/high_quality_medical_journal_figures",
-                    "stage:mas/publication-gate",
-                ],
-                "oracle_refs": [
-                    "oracle:mas/ai-reviewer-publication-eval",
-                    "oracle:mas/review-ledger",
-                    "oracle:mas/evidence-ledger",
-                ],
-                "scorer_refs": [
-                    "scorer:mas/ai-reviewer-medical-publication-critique-v1",
-                    "scorer:mas/prediction-model-first-draft-quality",
-                    scorecard_ref,
-                ],
-                "recovery_probes": [
-                    {
-                        "probe_ref": f"recovery-probe:mas/{study_id}/review-route-redrive",
-                        "probe_kind": "resume_after_interruption",
-                        "expected_status": "passed",
-                        "observed_status": "passed",
-                        "source_refs": [str(task_intake_path) if task_intake_path.exists() else str(publication_eval_path)],
-                    }
-                ],
-                "trajectory": {
-                    "trajectory_ref": f"trajectory:mas/{study_id}/high-quality-medical-manuscript",
-                    "run_ref": f"run:mas/{study_id}/high-quality-medical-manuscript-agent-lab-projection",
-                    "agent_executor": "codex_cli",
-                    "stage_attempt_refs": ["stage-attempt:mas/ai-reviewer-medical-prose-quality-review"],
-                    "tool_call_refs": ["tool-call:mas/publication-eval-read", "tool-call:mas/review-ledger-read"],
-                    "artifact_refs": evidence_refs,
-                    "receipt_refs": [str(publication_eval_path)] if publication_eval_path.exists() else [],
-                    "repair_refs": blocker_refs,
-                    "trace_refs": ["trace-ref:agent-lab/mas-high-quality-medical-manuscript"],
-                    "authority_boundary": dict(AUTHORITY_BOUNDARY),
-                },
-                "mechanism_evolution_inputs": mechanism_inputs,
-                "scorecard": {
-                    "scorecard_ref": scorecard_ref,
-                    "domain_owned": True,
-                    "opl_scorecard_role": "scorecard_ref_projection_only",
-                    "passed": scorecard_passed,
-                    "metric_refs": [
-                        f"metric-ref:mas/{study_id}/medical_journal_prose_quality:{prose_status}",
-                        "metric-ref:mas/high-quality-medical-manuscript/reproducibility-results-tables-figures",
-                    ],
-                    "evidence_refs": evidence_refs,
-                    "review_refs": [str(root / "paper" / "review" / "review_ledger.json")],
-                    "quality_gate_refs": ["quality-gate:mas/publication-owner"],
-                    "authority_boundary": dict(AUTHORITY_BOUNDARY),
-                },
-                "improvement_candidate": {
-                    "candidate_ref": f"improvement-candidate:mas/{study_id}/high-quality-medical-manuscript-rubric-gap",
-                    "candidate_kind": "rubric_gap",
-                    "target_ref": "rubric-gap-ref:mas/high-quality-medical-manuscript-ai-reviewer",
-                    "evidence_refs": blocker_refs or evidence_refs,
-                    "developer_patch_work_order": _developer_patch_work_order(
-                        study_id=study_id,
-                        evidence_refs=blocker_refs or evidence_refs,
-                    ),
-                    "target_agent_capability_gap": {
-                        "status": "candidate_only",
-                        "target_owner": "med-autoscience",
-                        "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
-                        "cannot_authorize_quality_verdict": True,
-                    },
-                    "allowed_change_scope": "branch_only",
-                    "promotion_gate_ref": promotion_gate_ref,
-                    "authority_boundary": dict(AUTHORITY_BOUNDARY),
-                },
-                "promotion_gate": {
-                    "gate_ref": promotion_gate_ref,
-                    "gate_status": "passed" if scorecard_passed else "blocked",
-                    "required_refs": [scorecard_ref, "owner-receipt:mas/ai-reviewer-publication-eval"],
-                    "regression_suite_refs": [
-                        "regression-suite:mas/ai-first-quality-boundary",
-                        "regression-suite:mas/paper-authority-clean-migration",
-                        "regression-suite:mas/prediction-model-first-draft-quality",
-                        "regression-suite:mas/hard-methodology-unit-harmonization-route",
-                        "regression-suite:mas/agent-lab-medical-manuscript-self-evolution",
-                        "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue",
-                    ],
-                    "no_forbidden_write_proof_refs": [
-                        "no-forbidden-write:mas/agent-lab-medical-manuscript-quality"
-                    ],
-                    "authority_boundary": dict(AUTHORITY_BOUNDARY),
-                },
-            }
-        ],
+        "tasks": [task],
     }
 
 
