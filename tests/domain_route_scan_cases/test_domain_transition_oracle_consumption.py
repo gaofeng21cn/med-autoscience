@@ -8,6 +8,7 @@ from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_
 from med_autoscience.controllers.domain_route_scan_parts import action_projection
 from med_autoscience.controllers.domain_route_scan_parts import domain_transition_actions
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
+from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _queue(status: dict[str, object], progress: dict[str, object] | None = None) -> list[dict[str, object]]:
@@ -192,6 +193,89 @@ def test_domain_transition_routes_unit_harmonized_analysis_work_unit_to_analysis
     assert action["paper_package_mutation_allowed"] is False
     assert action["quality_gate_relaxation_allowed"] is False
     assert action["medical_claim_authoring_allowed"] is False
+
+
+def test_action_queue_honors_runtime_redrive_domain_transition_over_completed_truth() -> None:
+    actions = _queue(
+        {
+            "quest_status": "completed",
+            "study_completion_contract": {"ready": True, "status": "resolved"},
+            "domain_transition": _unit_harmonized_analysis_domain_transition(),
+        }
+    )
+
+    assert [item["action_type"] for item in actions] == ["unit_harmonized_external_validation_rerun"]
+    assert actions[0]["owner"] == "analysis_harmonization_owner"
+    assert actions[0]["reason"] == "unit_harmonized_rerun_required"
+
+
+def test_scan_projects_runtime_redrive_domain_transition_and_owner_action(monkeypatch, tmp_path: Path) -> None:
+    scan = __import__("med_autoscience.controllers.domain_route_scan", fromlist=["domain_route_scan"])
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "completed",
+        "study_completion_contract": {"ready": True, "status": "resolved"},
+        "domain_transition": _unit_harmonized_analysis_domain_transition(study_id=study_id),
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-domain-transition",
+            "source_signature": "truth-source-dm002-domain-transition",
+        },
+    }
+    progress_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_runtime_supervision_gap",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::unit-harmonized-routeback",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "ai_reviewer"},
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["domain_transition"]["decision_type"] == "route_back_same_line"
+    assert study["domain_transition"]["route_target"] == "analysis-campaign"
+    assert study["domain_transition"]["next_work_unit"]["unit_id"] == (
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
+    assert [item["action_type"] for item in study["action_queue"]] == ["unit_harmonized_external_validation_rerun"]
+    assert [item["action_type"] for item in result["action_queue"]] == ["unit_harmonized_external_validation_rerun"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "analysis_harmonization_owner"
+    assert action["reason"] == "unit_harmonized_rerun_required"
+    assert action["handoff_packet"]["next_executable_owner"] == "analysis_harmonization_owner"
+    assert study["blocked_reason"] == "unit_harmonized_rerun_required"
+    assert study["next_owner"] == "analysis_harmonization_owner"
 
 
 def test_apply_runtime_platform_repair_does_not_redrive_terminal_domain_transition(
@@ -472,3 +556,22 @@ def _developer_apply_safe_mode() -> DeveloperSupervisorMode:
         opl_family_user_config={"valid": True},
         authority_gate={"allowed": True},
     )
+
+
+def _unit_harmonized_analysis_domain_transition(study_id: str = "study-001") -> dict[str, object]:
+    return {
+        "study_id": study_id,
+        "decision_type": "route_back_same_line",
+        "route_target": "analysis-campaign",
+        "owner": "analysis-campaign",
+        "controller_action": "ensure_study_runtime",
+        "next_work_unit": {
+            "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+            "lane": "analysis-campaign",
+            "summary": (
+                "Add uncertainty intervals, grouped calibration evidence, and "
+                "reproducibility details to the unit-harmonized external validation."
+            ),
+        },
+        "guard_boundary": {"opl_generic_runner_may_resume": False},
+    }

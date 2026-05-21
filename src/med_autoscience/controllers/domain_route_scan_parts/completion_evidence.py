@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers import study_domain_transition_guard
+
 
 REASON = "study_completion_contract_not_ready"
 OWNER = "completion_evidence"
@@ -35,6 +37,8 @@ def block_state(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[
 
 
 def completed_current_truth(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    if study_domain_transition_guard.runtime_redrive_decision_type(status) is not None:
+        return False
     if _text(status.get("decision")) == "completed":
         return True
     if _text(status.get("quest_status")) != "completed":

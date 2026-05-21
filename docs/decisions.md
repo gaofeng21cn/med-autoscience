@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：domain-route-scan 必须投影当前 runtime-redrive domain transition
+
+- 决策：`domain-route-scan` 的每个 study projection 必须显式带出当前 `study_runtime_status.domain_transition`，用于 supervisor、OPL sidecar、Agent Lab 和人工接力判断当前 owner route。该字段是 read model truth projection，不授权 OPL 或前台写 MAS study truth、publication eval、controller decision、paper、submission package 或 current package。
+- 决策：`completion_evidence.completed_current_truth` 不能吞掉当前 runtime-redrive domain transition。只要 `domain_transition.decision_type` 属于 runtime-redrive 类型，例如 `route_back_same_line`、`ai_reviewer_re_eval`、`publication_gate_blocker` 或 `bundle_stage_finalize`，scan/action projection 必须继续让 domain transition oracle 生成 owner action 或 typed blocker，而不是把旧 completed/completion contract 当成终态。
+- 理由：DM002 暴露出 `study-runtime-status` 已有 `route_back_same_line -> analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration`，但 `domain-route-scan` 的 study 输出看不到 `domain_transition`；在 completed-truth 风险场景中，scan 还可能在 domain transition oracle 前短路，导致 owner action 消失。
+- 影响：该变更只修 MAS read model / supervisor action projection，不放宽 quality gate，不绕过 OPL runtime owner，也不写 runtime-owned `.ds`、`publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal`、`manuscript/current_package` 或 submission readiness verdict。
+
 ## 2026-05-22：analysis-campaign route-back 必须物化为 analysis_harmonization_owner action
 
 - 决策：当当前 `domain_transition` / controller route-back 为 `decision_type=route_back_same_line`、`route_target=analysis-campaign`，且 `next_work_unit.unit_id` 为 `unit_harmonized_validation_uncertainty_and_grouped_calibration` 或 `unit_harmonized_external_validation_rerun` 时，`domain-route-scan` 必须产出 `action_type=unit_harmonized_external_validation_rerun`，owner/request_owner/recommended_owner 固定为 `analysis_harmonization_owner`。

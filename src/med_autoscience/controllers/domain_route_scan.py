@@ -830,6 +830,7 @@ def _study_projection(
         "quest_id": resolved_quest_id,
         "quest_root": _text(status_payload.get("quest_root")) or _text(progress_payload.get("quest_root")),
         "quest_status": _text(status_payload.get("quest_status")),
+        "domain_transition": _mapping(status_payload.get("domain_transition")) or None,
         "current_stage": _text(progress_payload.get("current_stage")),
         "active_run_id": _active_run_id(status_payload, progress_payload),
         "supervision_url": _text(supervision.get("browser_url")),
