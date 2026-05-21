@@ -271,6 +271,7 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
             "src/med_autoscience/runtime_transport/mas_runtime_core_turn_runner.py",
             "src/med_autoscience/runtime_transport/mas_runtime_core_turn_completion.py",
             "src/med_autoscience/runtime_transport/mas_runtime_core_turn_receipts.py",
+            "src/med_autoscience/runtime_transport/mas_runtime_core_turn_messages.py",
         ],
         "current_role": "stage_turn_closeout_and_owner_receipt_adapter",
         "current_disposition": "retain_with_explicit_cleanup_gate",

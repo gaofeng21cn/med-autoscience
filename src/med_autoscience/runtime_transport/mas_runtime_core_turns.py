@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.runtime_transport import mas_runtime_core_turn_monitor as turn_monitor
 from med_autoscience.runtime_transport import mas_runtime_core_turn_blocks as turn_blocks
+from med_autoscience.runtime_transport import mas_runtime_core_turn_messages as turn_messages
 from med_autoscience.runtime_transport import mas_runtime_core_turn_state as turn_state
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     BLOCKED_CLOSEOUT_RUNNER_STATUS,
@@ -46,7 +47,6 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_paths import (
 )
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     idempotency_key as make_idempotency_key,
-    message_id as make_message_id,
     parse_time,
     pid_live,
     runner_unavailable,
@@ -140,11 +140,11 @@ def append_runtime_event(*, quest_root: Path, event: Mapping[str, Any]) -> None:
 
 
 def load_message_queue(*, quest_root: Path) -> dict[str, Any]:
-    return turn_state.load_message_queue(quest_root=quest_root)
+    return turn_messages.load_message_queue(quest_root=quest_root)
 
 
 def write_message_queue(*, quest_root: Path, queue: Mapping[str, Any]) -> None:
-    turn_state.write_message_queue(quest_root=quest_root, queue=queue)
+    turn_messages.write_message_queue(quest_root=quest_root, queue=queue)
 
 
 def submit_user_message(
@@ -158,22 +158,18 @@ def submit_user_message(
     decision_response: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     now = utc_now()
-    queue = load_message_queue(quest_root=quest_root)
-    message_id = make_message_id(quest_id=quest_id, text=text, source=source, recorded_at=now)
-    message = {
-        "message_id": message_id,
-        "content": text,
-        "source": source,
-        "reply_to_interaction_id": reply_to_interaction_id,
-        "decision_response": dict(decision_response) if isinstance(decision_response, Mapping) else None,
-        "recorded_at": now,
-        "status": "pending",
-    }
-    queue["pending"].append(message)
-    write_message_queue(quest_root=quest_root, queue=queue)
+    message, pending_count = turn_messages.queue_user_message(
+        quest_root=quest_root,
+        quest_id=quest_id,
+        content=text,
+        source=source,
+        recorded_at=now,
+        reply_to_interaction_id=reply_to_interaction_id,
+        decision_response=decision_response,
+    )
     persist_state(
         quest_root=quest_root,
-        updates={"pending_user_message_count": len(queue["pending"])},
+        updates={"pending_user_message_count": pending_count},
         source=source,
         event_name="user_message_queued",
     )
@@ -489,39 +485,15 @@ def start_turn(
 
 
 def claim_pending_user_messages(*, quest_root: Path, run_id: str) -> tuple[dict[str, Any], ...]:
-    queue = load_message_queue(quest_root=quest_root)
-    pending = [item for item in queue["pending"] if isinstance(item, dict)]
-    if not pending:
-        write_message_queue(quest_root=quest_root, queue=queue)
-        return ()
-    claimed: list[dict[str, Any]] = []
-    now = utc_now()
-    for item in pending:
-        claimed_item = {**item, "status": "completed", "claimed_by_run_id": run_id, "claimed_at": now}
-        claimed.append(claimed_item)
-    queue["pending"] = []
-    queue["completed"].extend(claimed)
-    write_message_queue(quest_root=quest_root, queue=queue)
-    return tuple(claimed)
+    return turn_messages.claim_pending_user_messages(
+        quest_root=quest_root,
+        run_id=run_id,
+        claimed_at=utc_now(),
+    )
 
 
 def restore_claimed_user_messages(*, quest_root: Path, run_id: str) -> None:
-    queue = load_message_queue(quest_root=quest_root)
-    restored: list[dict[str, Any]] = []
-    remaining_completed: list[dict[str, Any]] = []
-    for item in queue["completed"]:
-        if isinstance(item, dict) and item.get("claimed_by_run_id") == run_id:
-            restored_item = dict(item)
-            restored_item["status"] = "pending"
-            restored_item.pop("claimed_by_run_id", None)
-            restored_item.pop("claimed_at", None)
-            restored.append(restored_item)
-        else:
-            remaining_completed.append(item)
-    if restored:
-        queue["pending"] = restored + [item for item in queue["pending"] if isinstance(item, dict)]
-        queue["completed"] = remaining_completed
-        write_message_queue(quest_root=quest_root, queue=queue)
+    turn_messages.restore_claimed_user_messages(quest_root=quest_root, run_id=run_id)
 
 
 def complete_turn_and_normalize(
