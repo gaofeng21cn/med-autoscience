@@ -481,6 +481,5 @@ def test_study_runtime_status_resumes_running_delivered_package_without_worker_w
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
     assert result["quest_status"] == "running"
-    assert result["decision"] == "resume", result
-    assert result["reason"] == "quest_marked_running_but_no_live_session"
+    _assert_opl_runtime_owner_route_block(result)
     assert result["auto_runtime_parked"]["parked"] is False

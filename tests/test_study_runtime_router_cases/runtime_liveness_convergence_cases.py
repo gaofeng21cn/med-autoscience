@@ -120,8 +120,7 @@ def test_study_runtime_status_projects_active_no_live_stale_tick_as_recovery(
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_marked_running_but_no_live_session"
+    _assert_opl_runtime_owner_route_block(result)
     assert result["runtime_health_epoch"]
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "recover_runtime"
     assert result["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "missing_live_session"

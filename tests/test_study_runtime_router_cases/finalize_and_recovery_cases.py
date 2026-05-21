@@ -268,22 +268,19 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
     monkeypatch.setattr(
         _managed_runtime_transport(module),
         "resume_quest",
-        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
+        lambda **kwargs: pytest.fail("runtime redrive must be handed to OPL runtime owner"),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_marked_running_but_no_live_session"
+    _assert_opl_runtime_owner_route_block(result)
     assert result["runtime_liveness_audit"]["status"] == "none"
     assert result["bash_session_audit"]["status"] == "none"
-    assert result["runtime_recovery_lifecycle"]["state"] == "recovering"
-    assert result["runtime_recovery_lifecycle"]["recent_recovery_action"] == "resume"
-    assert result["runtime_recovery_lifecycle"]["recovery_attempt_count"] == 1
-    assert result["runtime_recovery_lifecycle"]["next_check_reason"] == "confirm_recovered_live_session"
-    assert calls == [
-        ("resume", "001-risk"),
-    ]
+    assert result["runtime_recovery_lifecycle"]["state"] == "parked_requires_resume"
+    assert result["runtime_recovery_lifecycle"]["recent_recovery_action"] == "inspect_runtime_liveness"
+    assert result["runtime_recovery_lifecycle"]["recovery_attempt_count"] == 0
+    assert result["runtime_recovery_lifecycle"]["next_check_reason"] == "recover_runtime_audit_then_resume"
+    assert calls == []
 
 
 def test_ensure_study_runtime_keeps_human_review_milestone_parked_when_live_worker_is_gone(
@@ -544,18 +541,13 @@ def test_ensure_study_runtime_rehydrates_no_live_session_recovery_when_runtime_r
     monkeypatch.setattr(
         _managed_runtime_transport(module),
         "resume_quest",
-        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
+        lambda **kwargs: pytest.fail("runtime redrive must be handed to OPL runtime owner"),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_marked_running_but_no_live_session"
-    assert calls == [
-        ("hydrate", profile.runtime_root / "001-risk"),
-        ("validate", profile.runtime_root / "001-risk"),
-        ("resume", "001-risk"),
-    ]
+    _assert_opl_runtime_owner_route_block(result)
+    assert calls == []
 
 
 def test_ensure_study_runtime_recovers_running_quest_when_live_session_audit_fails(
@@ -871,24 +863,20 @@ def test_ensure_study_runtime_blocks_when_resume_request_fails_after_active_ques
     monkeypatch.setattr(
         _managed_runtime_transport(module),
         "resume_quest",
-        lambda *, runtime_root, quest_id, source: (_ for _ in ()).throw(RuntimeError("daemon unavailable")),
+        lambda **kwargs: pytest.fail("runtime redrive must be handed to OPL runtime owner"),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
-    assert result["decision"] == "blocked"
-    assert result["reason"] == "resume_request_failed"
+    _assert_opl_runtime_owner_route_block(result)
     assert result["runtime_liveness_audit"]["status"] == "none"
     launch_report = json.loads(
         (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json").read_text(
             encoding="utf-8"
         )
     )
-    assert launch_report["daemon_result"]["resume"]["status"] == "unavailable"
-    assert "daemon unavailable" in launch_report["daemon_result"]["resume"]["error"]
-    assert calls == [
-        ("sync_startup_context", "001-risk", "full_research"),
-    ]
+    assert "resume" not in (launch_report.get("daemon_result") or {})
+    assert calls == []
 
 
 def test_study_runtime_status_resumes_controller_owned_finalize_parking_and_surfaces_continuation_state(

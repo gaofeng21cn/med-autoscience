@@ -351,18 +351,20 @@ def test_scan_domain_routes_explicit_runtime_platform_repair_clears_stale_specif
 
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     study = result["studies"][0]
-    assert len(ensure_calls) == 1
-    assert ensure_calls[0]["source"] == "domain_route_scan_platform_repair"
+    apply_result = study["runtime_platform_repair_apply"]
+    _assert_owner_route_required(
+        apply_result=apply_result,
+        runtime_state=runtime_state,
+        ensure_calls=ensure_calls,
+        expected_reason="stale_specificity_terminal_gate_cleared",
+    )
     assert "last_controller_decision_authorization" not in runtime_state
     assert "retry_state" not in runtime_state
     assert "last_stage_fingerprint" not in runtime_state
     assert runtime_state["same_fingerprint_auto_turn_count"] == 0
-    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
-    assert study["runtime_platform_repair_apply"]["stale_specificity_cleared"] is True
-    assert study["runtime_platform_repair_apply"]["resume_result"]["decision"] == "resume"
-    assert study["ai_repair_lifecycle"]["state"] == "applied"
-    assert study["ai_repair_lifecycle"]["dispatch_status"] == "applied"
+    assert apply_result["stale_specificity_cleared"] is True
+    assert study["ai_repair_lifecycle"]["state"] == "owner_route_required"
+    assert study["ai_repair_lifecycle"]["dispatch_status"] == "owner_route_required"
     assert study["paper_package_mutated"] is False
 
 
@@ -515,13 +517,17 @@ def test_scan_domain_routes_runtime_platform_repair_allows_concrete_bundle_stage
 
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     study = result["studies"][0]
-    assert len(ensure_calls) == 1
+    apply_result = study["runtime_platform_repair_apply"]
+    _assert_owner_route_required(
+        apply_result=apply_result,
+        runtime_state=runtime_state,
+        ensure_calls=ensure_calls,
+        expected_reason="stale_specificity_terminal_gate_cleared",
+    )
     assert "last_controller_decision_authorization" not in runtime_state
-    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
-    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "applied"
-    assert study["runtime_platform_repair_apply"]["gate_status"]["ready"] is True
-    assert study["runtime_platform_repair_apply"]["gate_status"]["blockers"] == ["stale_study_delivery_mirror"]
-    assert study["runtime_platform_repair_apply"]["stale_specificity_cleared"] is True
+    assert apply_result["gate_status"]["ready"] is True
+    assert apply_result["gate_status"]["blockers"] == ["stale_study_delivery_mirror"]
+    assert apply_result["stale_specificity_cleared"] is True
     assert study["paper_package_mutated"] is False
 
 def test_scan_domain_routes_suppresses_stale_runtime_recovery_lifecycle_when_worker_is_live(

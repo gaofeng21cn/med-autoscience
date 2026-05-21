@@ -69,14 +69,7 @@ def test_ensure_study_runtime_blocks_when_resume_only_schedules_without_live_run
     monkeypatch.setattr(
         transport,
         "resume_quest",
-        lambda *, runtime_root, quest_id, source: {
-            "ok": True,
-            "status": "active",
-            "scheduled": True,
-            "started": False,
-            "queued": False,
-            "snapshot": {"status": "active", "active_run_id": None},
-        },
+        lambda **kwargs: pytest.fail("runtime redrive must be handed to OPL runtime owner"),
     )
     monkeypatch.setattr(
         module.study_runtime_protocol,
@@ -91,17 +84,8 @@ def test_ensure_study_runtime_blocks_when_resume_only_schedules_without_live_run
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
-    assert result["decision"] == "blocked"
-    assert result["reason"] == "resume_request_failed"
-    assert result["resume_postcondition"] == {
-        "effective": False,
-        "failure_mode": "no_live_run_started",
-        "snapshot_status": "active",
-        "active_run_id": None,
-        "scheduled": True,
-        "started": False,
-        "queued": False,
-    }
+    _assert_opl_runtime_owner_route_block(result)
+    assert "resume_postcondition" not in result
     assert len(seen["persist_calls"]) == 1
     assert seen["persist_calls"][0]["last_action"] == "blocked"
 
@@ -175,33 +159,10 @@ def test_ensure_study_runtime_preserves_resume_execution_gate_block_reason(
     monkeypatch.setattr(
         transport,
         "resume_quest",
-        lambda *, runtime_root, quest_id, source: {
-            "ok": True,
-            "status": "active",
-            "scheduled": False,
-            "started": False,
-            "queued": False,
-            "reason": "execution_gate_skipped",
-            "blocked_reason": "gate_needs_specificity",
-            "terminal_reason": "gate_needs_specificity",
-            "terminal_source": "controller_work_unit_authorization",
-            "snapshot": {"status": "active", "active_run_id": None},
-        },
+        lambda **kwargs: pytest.fail("runtime redrive must be handed to OPL runtime owner"),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
-    assert result["decision"] == "blocked"
-    assert result["reason"] == "resume_request_failed"
-    assert result["resume_postcondition"] == {
-        "effective": False,
-        "failure_mode": "no_live_run_started",
-        "snapshot_status": "active",
-        "active_run_id": None,
-        "scheduled": False,
-        "started": False,
-        "queued": False,
-        "blocked_reason": "gate_needs_specificity",
-        "terminal_reason": "gate_needs_specificity",
-        "terminal_source": "controller_work_unit_authorization",
-    }
+    _assert_opl_runtime_owner_route_block(result)
+    assert "resume_postcondition" not in result

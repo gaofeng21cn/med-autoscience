@@ -69,6 +69,32 @@ def _managed_runtime_transport(module: object):
     return module.managed_runtime_transport
 
 
+def _assert_opl_runtime_owner_route_block(result: dict[str, object]) -> dict[str, object] | None:
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    handoff = result.get("opl_runtime_owner_route_handoff")
+    if isinstance(handoff, dict):
+        assert handoff["queue_owner"] == "one-person-lab"
+        assert handoff["domain_truth_owner"] == "med-autoscience"
+        assert handoff["recommended_task_kind"] == "domain_route/reconcile-apply"
+        boundary = handoff["authority_boundary"]
+        assert boundary["mas_writes_generic_runtime_queue"] is False
+        assert boundary["mas_submits_runtime_chat"] is False
+        assert boundary["mas_resumes_provider_worker"] is False
+    return handoff if isinstance(handoff, dict) else None
+
+
+def _assert_runtime_state_waits_for_opl_owner(quest_root: Path) -> dict[str, object]:
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
+    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
+    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
+    handoff = runtime_state["last_opl_runtime_owner_route_handoff"]
+    assert handoff["queue_owner"] == "one-person-lab"
+    assert handoff["authority_boundary"]["mas_resumes_provider_worker"] is False
+    return runtime_state
+
+
 def _patch_decision_supervisor_tick_now(monkeypatch, decision_module: object, tick_factory) -> None:
     tick_source = importlib.import_module(
         "med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission"
@@ -567,7 +593,6 @@ def _write_native_runtime_event_for_status_test(*, quest_root: Path, quest_id: s
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
-
 
 
 
