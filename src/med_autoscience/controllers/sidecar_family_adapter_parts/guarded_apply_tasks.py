@@ -7,6 +7,10 @@ from typing import Any, Mapping, Sequence
 
 from med_autoscience.profiles import WorkspaceProfile
 
+from med_autoscience.controllers.domain_dispatch_evidence_payload import (
+    build_domain_dispatch_evidence_record_payload,
+)
+
 
 GUARDED_APPLY_OWNER_RECEIPT_CONTRACT = "mas-guarded-apply-owner-receipt.v2"
 PAPER_LINE_GUARDED_APPLY_EVIDENCE_REF = (
@@ -97,6 +101,13 @@ def _provider_hosted_guarded_apply_task(
         },
         *[dict(ref) for ref in owner_source_refs],
     ]
+    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+        task_kind="paper_autonomy/guarded-apply",
+        study_id=target,
+        reason="real_paper_line_owner_receipt_or_stable_typed_blocker_pending",
+        evidence_refs=source_refs,
+        source_fingerprint=source_fingerprint,
+    )
     return {
         "domain_id": "medautoscience",
         "task_kind": "paper_autonomy/guarded-apply",
@@ -119,6 +130,7 @@ def _provider_hosted_guarded_apply_task(
         },
         "dispatch_owner": "med-autoscience",
         "profile_name": profile.name,
+        "domain_dispatch_evidence_record_payload": evidence_record_payload,
         "source_refs": source_refs,
     }
 

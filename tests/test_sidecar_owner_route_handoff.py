@@ -126,6 +126,30 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
         "finalize_and_publication_handoff"
     )
     assert task["payload"]["stage_graph_handoff"] == graph_handoff
+    evidence_payload = task["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
+    assert evidence_payload["task_kind"] == "domain_route/reconcile-apply"
+    assert evidence_payload["study_id"] == study_id
+    assert evidence_payload["body_included"] is False
+    assert evidence_payload["domain_ready_claimed"] is False
+    assert evidence_payload["publication_ready_claimed"] is False
+    assert evidence_payload["artifact_mutation_authorized"] is False
+    assert evidence_payload["record_payload"]["typed_blocker_refs"]
+    assert evidence_payload["record_payload"]["evidence_refs"] == [
+        "studies/002-dm-china-us-mortality-attribution/"
+        "artifacts/supervision/owner_route_handoff/latest.json",
+        "contracts/production_acceptance/mas-production-acceptance.json"
+        "#/paper_line_guarded_apply_evidence",
+    ]
+    assert evidence_payload["record_payload"]["no_regression_refs"]
+    assert evidence_payload["authority_boundary"]["opl_records_refs_only"] is True
+    assert evidence_payload["authority_boundary"]["provider_completion_is_domain_ready"] is False
+    assert {
+        packet["role"] for packet in evidence_payload["body_free_evidence_packets"]
+    } == {"stable_typed_blocker_ref", "no_forbidden_write_proof_ref"}
+    rendered_payload = json.dumps(evidence_payload, ensure_ascii=False)
+    assert "current_package_body" in evidence_payload["forbidden_payload_fields"]
+    assert "do-not-touch" not in rendered_payload
 
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     assert runtime_state["active_run_id"] == "run-opl-owned"

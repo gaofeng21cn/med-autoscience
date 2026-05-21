@@ -5,6 +5,10 @@ from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
 
+from med_autoscience.controllers.domain_dispatch_evidence_payload import (
+    build_domain_dispatch_evidence_record_payload,
+)
+
 
 def owner_route_handoff_task(
     *,
@@ -25,6 +29,24 @@ def owner_route_handoff_task(
     )
     route_transition_contract = _route_transition_contract(handoff=handoff)
     stage_graph_handoff = _stage_graph_handoff()
+    source_refs = [
+        ref
+        for ref in (
+            _source_ref(
+                study_root=study_root,
+                role="owner_route_handoff",
+                relative_path=Path("artifacts/supervision/owner_route_handoff/latest.json"),
+                workspace_root=profile.workspace_root,
+            ),
+        )
+        if ref["exists"]
+    ]
+    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+        task_kind="domain_route/reconcile-apply",
+        study_id=study_id,
+        reason=reason,
+        evidence_refs=source_refs,
+    )
     return {
         "domain_id": "medautoscience",
         "task_kind": "domain_route/reconcile-apply",
@@ -41,18 +63,8 @@ def owner_route_handoff_task(
         "opl_runtime_owner_route_handoff": handoff,
         "route_transition_contract": route_transition_contract,
         "stage_graph_handoff": stage_graph_handoff,
-        "source_refs": [
-            ref
-            for ref in (
-                _source_ref(
-                    study_root=study_root,
-                    role="owner_route_handoff",
-                    relative_path=Path("artifacts/supervision/owner_route_handoff/latest.json"),
-                    workspace_root=profile.workspace_root,
-                ),
-            )
-            if ref["exists"]
-        ],
+        "source_refs": source_refs,
+        "domain_dispatch_evidence_record_payload": evidence_record_payload,
         "payload": {
             "profile": str(profile_ref),
             "study_id": study_id,

@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from .domain_dispatch_evidence_payload import build_domain_dispatch_evidence_record_payload
+
 
 SURFACE_KIND = "mas_publication_aftercare_plan"
 ANALYSIS_QUEUE_TASK_KIND = "publication_aftercare/analysis-queue-progress"
@@ -244,6 +246,7 @@ def _pending_task(
         {"study_id": study_id, "task_kind": task_kind, "refs": entry.get("evidence_delta_refs")}
     )
     dedupe_key = f"mas:{profile_name}:{study_id}:publication-aftercare:{task_kind}:{source_fingerprint}"
+    source_refs = _source_refs_from_entry(entry)
     return {
         "domain_id": "medautoscience",
         "task_kind": task_kind,
@@ -259,7 +262,14 @@ def _pending_task(
             "publication_aftercare_reason": reason,
             "authority_boundary": "mas_owner_route_task_ref_only",
         },
-        "source_refs": _source_refs_from_entry(entry),
+        "source_refs": source_refs,
+        "domain_dispatch_evidence_record_payload": build_domain_dispatch_evidence_record_payload(
+            task_kind=task_kind,
+            study_id=study_id,
+            reason=reason,
+            evidence_refs=source_refs,
+            source_fingerprint=source_fingerprint,
+        ),
         "dispatch_owner": "med-autoscience",
         "profile_name": profile_name,
     }

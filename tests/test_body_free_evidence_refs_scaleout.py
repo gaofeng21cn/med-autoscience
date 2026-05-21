@@ -251,3 +251,46 @@ def test_body_free_evidence_packet_rejects_forbidden_body_fields() -> None:
                 },
             }
         )
+
+
+def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_only() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
+
+    payload = module.build_domain_dispatch_evidence_record_payload(
+        task_kind="domain_route/reconcile-apply",
+        study_id="DM002",
+        reason="quest_waiting_opl_runtime_owner_route",
+        evidence_refs=[
+            "studies/DM002/artifacts/supervision/owner_route_handoff/latest.json",
+            {"ref": "studies/DM002/artifacts/controller_decisions/latest.json"},
+        ],
+        source_fingerprint="abc123",
+    )
+
+    assert payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
+    assert payload["version"] == "mas-domain-dispatch-evidence-record-payload.v1"
+    assert payload["body_included"] is False
+    assert payload["domain_ready_claimed"] is False
+    assert payload["record_payload"]["typed_blocker_refs"]
+    assert payload["record_payload"]["evidence_refs"] == [
+        "studies/DM002/artifacts/supervision/owner_route_handoff/latest.json",
+        "studies/DM002/artifacts/controller_decisions/latest.json",
+        "contracts/production_acceptance/mas-production-acceptance.json"
+        "#/paper_line_guarded_apply_evidence",
+    ]
+    assert payload["record_payload"]["no_regression_refs"]
+    assert "receipt_ref" not in payload["record_payload"]
+    assert payload["ledger_receipt_ref_hint"].startswith(
+        "mas://domain-dispatch-evidence/medautoscience/"
+    )
+    assert {
+        packet["role"] for packet in payload["body_free_evidence_packets"]
+    } == {"stable_typed_blocker_ref", "no_forbidden_write_proof_ref"}
+    for packet in payload["body_free_evidence_packets"]:
+        _assert_body_free_packet(packet, role=packet["role"], owner="MedAutoScience")
+    assert payload["authority_boundary"]["opl_records_refs_only"] is True
+    assert payload["authority_boundary"]["provider_completion_is_domain_ready"] is False
+    rendered = json.dumps(payload, ensure_ascii=False)
+    assert "current_package_body" in payload["forbidden_payload_fields"]
+    assert "study_truth_body" in payload["forbidden_payload_fields"]
+    assert "MEMORY_BODY_SHOULD_NOT_APPEAR" not in rendered

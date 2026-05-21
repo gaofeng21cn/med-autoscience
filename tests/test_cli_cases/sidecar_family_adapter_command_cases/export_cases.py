@@ -487,6 +487,25 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     for task in guarded_apply_tasks:
         study_id = task["payload"]["study_id"]
         dedupe_key = f"mas:nfpitnet:{study_id}:provider-hosted-guarded-apply:opl-temporal"
+        evidence_payload = task.pop("domain_dispatch_evidence_record_payload")
+        assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
+        assert evidence_payload["domain_id"] == "medautoscience"
+        assert evidence_payload["task_kind"] == "paper_autonomy/guarded-apply"
+        assert evidence_payload["study_id"] == study_id
+        assert evidence_payload["body_included"] is False
+        assert evidence_payload["domain_ready_claimed"] is False
+        assert evidence_payload["authority_boundary"]["opl_records_refs_only"] is True
+        assert evidence_payload["authority_boundary"]["opl_writes_mas_truth"] is False
+        assert evidence_payload["record_payload"]["typed_blocker_refs"]
+        assert evidence_payload["record_payload"]["evidence_refs"]
+        assert evidence_payload["record_payload"]["no_regression_refs"]
+        assert "receipt_ref" not in evidence_payload["record_payload"]
+        assert evidence_payload["ledger_receipt_ref_hint"].startswith(
+            "mas://domain-dispatch-evidence/medautoscience/"
+        )
+        assert {
+            packet["role"] for packet in evidence_payload["body_free_evidence_packets"]
+        } == {"stable_typed_blocker_ref", "no_forbidden_write_proof_ref"}
         assert task == {
             "domain_id": "medautoscience",
             "task_kind": "paper_autonomy/guarded-apply",

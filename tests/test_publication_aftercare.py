@@ -269,3 +269,18 @@ def test_publication_aftercare_pending_tasks_are_runtime_owner_only(tmp_path: Pa
     assert all(task["payload"]["authority_boundary"] == "mas_owner_route_task_ref_only" for task in tasks)
     assert all(task["source_fingerprint"] for task in tasks)
     assert all(ref["body_included"] is False for task in tasks for ref in task["source_refs"])
+    for task in tasks:
+        evidence_payload = task["domain_dispatch_evidence_record_payload"]
+        assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
+        assert evidence_payload["domain_id"] == "medautoscience"
+        assert evidence_payload["task_kind"] == task["task_kind"]
+        assert evidence_payload["study_id"] == "DM002"
+        assert evidence_payload["body_included"] is False
+        assert evidence_payload["domain_ready_claimed"] is False
+        assert evidence_payload["publication_ready_claimed"] is False
+        assert evidence_payload["record_payload"]["typed_blocker_refs"]
+        assert evidence_payload["record_payload"]["evidence_refs"]
+        assert evidence_payload["record_payload"]["no_regression_refs"]
+        assert {
+            packet["role"] for packet in evidence_payload["body_free_evidence_packets"]
+        } == {"stable_typed_blocker_ref", "no_forbidden_write_proof_ref"}
