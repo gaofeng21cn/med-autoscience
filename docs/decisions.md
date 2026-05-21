@@ -8,7 +8,7 @@
 
 ## 2026-05-21：domain route-back 在 progress read-model 中优先于交付停驻投影
 
-- 决策：`study_progress` 必须只读透传当前 `domain_transition`，并且当 `interaction_arbitration.classification=domain_transition_runtime_redrive` 时，`auto_runtime_parked` 不得把该状态投影为 submission metadata、package-ready handoff 或 manual-finish parking。
+- 决策：`study_progress` 必须只读透传当前 `domain_transition`，并且当 `domain_transition` 指向当前 route-back owner / work unit 时，即使 `interaction_arbitration` 尚未存在，`auto_runtime_parked` 也不得把该状态投影为 submission metadata、package-ready handoff 或 manual-finish parking。
 - 理由：DM002 暴露出医学 owner 已经给出 `analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration` work unit，但人读进度面仍显示交付停驻，导致维护者看不到下一步应由哪个医学 owner 处理。这里需要修的是 MAS domain read-model 的可见性和优先级，不是让 MAS 接管 OPL 的 liveness、queue、attempt 或 provider resume。
 - 影响：该修复只改变 `study_progress` / Progress Portal / product-facing projection 的只读显示。它不生成 runtime attempt，不写 `.ds/user_message_queue.json`，不调用 generic runtime chat，不写 `paper/`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`manuscript/current_package` 或 submission package，也不声明 OPL queue/provider 已消费 owner-route。
 

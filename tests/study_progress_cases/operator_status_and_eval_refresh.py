@@ -411,7 +411,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
             "runtime_binding_exists": True,
             "study_completion_contract": {},
             "decision": "blocked",
-            "reason": "quest_waiting_opl_runtime_owner_route",
+            "reason": "quest_waiting_for_submission_metadata",
             "publication_supervisor_state": {
                 "supervisor_phase": "publishability_gate_blocked",
                 "phase_owner": "publication_gate",
@@ -439,18 +439,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
                 "owner": "analysis-campaign",
                 "typed_blocker": None,
             },
-            "interaction_arbitration": {
-                "classification": "domain_transition_runtime_redrive",
-                "action": "resume",
-                "reason_code": "quest_waiting_opl_runtime_owner_route",
-                "requires_user_input": False,
-                "valid_blocking": False,
-                "kind": "domain_transition",
-                "domain_transition_decision_type": "route_back_same_line",
-                "domain_transition_route_target": "analysis-campaign",
-                "domain_transition_controller_action": "ensure_study_runtime",
-                "next_work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
-            },
+            "interaction_arbitration": None,
             "continuation_state": {
                 "quest_status": "failed",
                 "active_run_id": None,
@@ -474,7 +463,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
     assert result["auto_runtime_parked"]["parked"] is False
     assert result["parked_state"] is None
     assert result["intervention_lane"]["lane_id"] != "auto_runtime_parked"
-    assert result["interaction_arbitration"]["classification"] == "domain_transition_runtime_redrive"
+    assert result["interaction_arbitration"] is None
     assert result["domain_transition"]["route_target"] == "analysis-campaign"
     assert result["domain_transition"]["next_work_unit"]["unit_id"] == (
         "unit_harmonized_validation_uncertainty_and_grouped_calibration"

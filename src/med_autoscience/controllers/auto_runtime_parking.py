@@ -258,12 +258,15 @@ def _state_from_reason(
     reason: str | None,
     decision: str | None,
     quest_status: str | None,
+    domain_transition: Mapping[str, Any],
     interaction_arbitration: Mapping[str, Any],
     publication_supervisor_state: Mapping[str, Any],
     needs_user_decision: bool,
     manual_finish_contract: Mapping[str, Any],
 ) -> str | None:
     if reason in _NON_PARKED_RUNTIME_REASONS:
+        return None
+    if _active_domain_routeback(domain_transition):
         return None
     interaction_classification = _text(interaction_arbitration.get("classification"))
     if reason in _EXTERNAL_METADATA_REASONS:
@@ -348,6 +351,17 @@ def _state_from_reason(
     return None
 
 
+def _active_domain_routeback(domain_transition: Mapping[str, Any]) -> bool:
+    decision_type = _text(domain_transition.get("decision_type"))
+    if decision_type not in {"route_back_same_line", "publication_gate_blocker", "ai_reviewer_re_eval"}:
+        return False
+    if _text(domain_transition.get("route_target")) is not None:
+        return True
+    if _mapping(domain_transition.get("next_work_unit")):
+        return True
+    return _text(domain_transition.get("controller_action")) is not None
+
+
 def _awaiting_explicit_wakeup(state: str, classification: Mapping[str, Any]) -> bool:
     if state == "external_upstream_pending":
         action_mode = _text(classification.get("action_mode"))
@@ -403,6 +417,7 @@ def build_auto_runtime_parked_projection(
     decision = _text(status_payload.get("decision")) or _text(status_payload.get("runtime_decision"))
     continuation_state = _mapping(status_payload.get("continuation_state"))
     quest_status = _text(status_payload.get("quest_status")) or _text(continuation_state.get("quest_status"))
+    domain_transition = _mapping(status_payload.get("domain_transition"))
     interaction_arbitration = _mapping(status_payload.get("interaction_arbitration"))
     publication_supervisor_state = _mapping(status_payload.get("publication_supervisor_state"))
     manual_finish = _mapping(manual_finish_contract)
@@ -417,6 +432,7 @@ def build_auto_runtime_parked_projection(
             reason=reason,
             decision=decision,
             quest_status=quest_status,
+            domain_transition=domain_transition,
             interaction_arbitration=interaction_arbitration,
             publication_supervisor_state=publication_supervisor_state,
             needs_user_decision=needs_user_decision,
