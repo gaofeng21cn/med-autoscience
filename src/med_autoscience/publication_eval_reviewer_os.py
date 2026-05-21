@@ -60,8 +60,8 @@ def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> d
     for field in ("request_digest", "manuscript_ref", "manuscript_digest"):
         if not _text(medical_prose_review.get(field)):
             return None
-    route_target = _normalized_route_target(medical_prose_review.get("route_target"))
-    if not route_target or route_target == "review":
+    prose_route_target = _normalized_route_target(medical_prose_review.get("route_target"))
+    if prose_route_target == "review":
         return None
     actions = publication_eval_payload.get("recommended_actions")
     if not isinstance(actions, list):
@@ -74,7 +74,9 @@ def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> d
         if _text(action.get("action_type")) not in _ACTION_TYPES_THAT_ROUTE_BACK:
             continue
         action_route_target = _normalized_route_target(action.get("route_target"))
-        if action_route_target == route_target:
+        if not action_route_target or action_route_target == "review":
+            continue
+        if action_route_target == prose_route_target or prose_route_target in {"", "analysis-campaign"}:
             payload = dict(action)
             payload["route_target"] = action_route_target
             return payload

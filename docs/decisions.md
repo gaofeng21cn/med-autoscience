@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：AI reviewer 顶层 recommended action 是 route authority，prose currentness route target 只是覆盖证据
+
+- 决策：当 AI reviewer-owned `publication_eval/latest.json` 的 `reviewer_operating_system.currentness_checks.medical_prose_review` 已证明 prose review 当前，且顶层 `recommended_actions[]` 明确给出 `route_back_same_line` / `bounded_analysis` / `stop_loss` owner action 时，controller/domain-transition 的 route authority 必须来自顶层 action，而不是 `medical_prose_review.route_target`。
+- 决策：`medical_prose_review.route_target` 只用于证明该 prose review 不是普通 clear 状态、并可作为缺失顶层 action 时的 fail-closed 信号；它不得覆盖 AI reviewer 顶层 action 的 `route_target=write`、`next_work_unit` 或 `work_unit_fingerprint`。若顶层 action 缺失或指向 `review`，继续 fail closed，不合成 owner route。
+- 理由：DM002 暴露出 current prose review metadata 仍标注 `route_target=analysis`，但同一 AI reviewer record 的顶层 action 已明确 `route_back_same_line -> write`，要求把 unit-harmonized rerun 吸收进 Abstract、Results、Methods、Table/Figure 和 claim-evidence map。旧 helper 要求 metadata target 与顶层 action target 相同，导致 current eval 被误投成 `ai_reviewer_re_eval`，循环复评而不能交给 write owner。
+- 影响：这是 MAS AI reviewer / controller route authority 修复，不放宽 publication gate，不授权机械 ready verdict，不写 DM002 truth、paper、submission package、current package、`publication_eval/latest.json` 或 `.ds` runtime state；它只让 MAS owner chain 正确把当前 AI reviewer verdict 路由到 paper-write repair。
+
 ## 2026-05-22：analysis harmonization completed result 必须覆盖 AI reviewer route-back 所需证据
 
 - 决策：`analysis_harmonization_owner_result` 不能仅凭 `unit_harmonized_rerun_completed=true` 判定 hard-methodology work unit 已关闭。completed result 必须指向或内联 `unit_harmonized_external_validation_rerun_evidence`，且该 evidence 必须包含 external-validation uncertainty intervals、observed-to-expected interval、Brier interval、calibration intercept/slope with 95% CI、以及 grouped calibration with observed-rate intervals；缺任一项时继续视为 required output pending。
@@ -52,6 +59,14 @@
 - 决策：当 AI reviewer record 被 workflow 或投影层重新写入 `publication_eval/latest.json` 时，currentness 时间必须优先取 `eval_id` 或 reviewer trace id 中的评审逻辑时间；外层 `emitted_at` 只表示写入时间，不能证明 reviewer 消费了后来的 analysis evidence。
 - 理由：DM002 暴露出旧 AI reviewer eval 的 `source_refs` 已包含 `analysis_harmonization/latest.json` 与 unit-harmonized rerun evidence 路径，但 eval 的 `emitted_at` 早于新 analysis owner result，导致 MAS 误判旧评审已覆盖新证据。
 - 影响：这是 MAS AI reviewer owner-chain currentness 修复，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical `paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict；它只让 controller/read-model 在旧 eval 早于新 evidence 时重新排 AI reviewer owner workflow。
+
+## 2026-05-22：stale AI reviewer record 必须投影成 record-production handoff
+
+- 决策：`return_to_ai_reviewer_workflow` 遇到 `ai_reviewer_record_stale_after_unit_harmonized_rerun` 时，executor receipt 必须携带结构化 `ai_reviewer_record_production_request`。该 request 指向 `produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization`、required currentness refs、required input refs、record-only 输出面 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`，以及后续 `domain-action-request-materialize` 和 `domain-owner-action-dispatch`。
+- 决策：该 handoff 仍然 fail-closed，不自动复用 stale record，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper、submission package、current package 或 `.ds` runtime truth。真正医学判断仍由独立 AI reviewer record 产生，再由 MAS owner workflow 消费。
+- 决策：Agent Lab medical manuscript quality suite 必须把 `ai_reviewer_record_production_handoff` 纳入 `opl-meta-agent` developer patch work order 和 editable surface refs，让“旧 record stale 后缺 record-production owner step”成为可回归的 MAS 智能体能力缺口。
+- 理由：DM002 的 analysis rerun 完成后，request lifecycle 正确识别旧 AI reviewer record 已过期，但 dispatcher 只返回三条自然语言 next action，外层容易误诊为 OPL queue/provider 问题或普通不可执行 blocker。结构化 handoff 让前台、OPL Agent Lab 和 meta-agent 能看到真实 MAS owner 缺口，并按 record-only owner surface 推进。
+- 影响：这是 MAS AI reviewer / Agent Lab 自进化 read-model 修复，不放宽 quality gate，不授权机械 ready verdict，也不替 AI reviewer 生成医学结论；它只把当前 blocker 转成可消费、可测试、可回归的 owner handoff。
 
 ## 2026-05-22：workspace profile merge 必须把 root keys 插在 TOML table 之前
 

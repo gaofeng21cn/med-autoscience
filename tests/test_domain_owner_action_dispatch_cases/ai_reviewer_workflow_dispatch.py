@@ -304,6 +304,32 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_record_stale_after_uni
     assert execution["blocked_reason"] == "ai_reviewer_record_stale_after_unit_harmonized_rerun"
     assert execution["stale_record_ref"] == str(stale_record_path)
     assert execution["required_currentness_refs"] == required_currentness_refs
+    production_request = execution["ai_reviewer_record_production_request"]
+    assert production_request["surface"] == "ai_reviewer_record_production_request"
+    assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
+    assert production_request["request_owner"] == "ai_reviewer"
+    assert production_request["required_output_surface"] == (
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    )
+    assert production_request["owner_callable_surface"] == "publication materialize-ai-reviewer-eval-record"
+    assert production_request["stale_record_ref"] == str(stale_record_path)
+    assert production_request["required_currentness_refs"] == required_currentness_refs
+    assert production_request["record_must_consume_refs"] == required_currentness_refs
+    assert production_request["required_input_refs"]["manuscript"] == str(study_root / "paper" / "draft.md")
+    assert production_request["required_input_refs"]["evidence_ledger"] == str(
+        study_root / "paper" / "evidence_ledger.json"
+    )
+    assert production_request["authority_contract"] == {
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "publication_eval_latest_write_allowed": False,
+        "controller_decision_write_allowed": False,
+        "record_only_surface": True,
+    }
+    assert "artifacts/publication_eval/latest.json" in production_request["forbidden_surfaces"]
+    assert "artifacts/controller_decisions/latest.json" in production_request["forbidden_surfaces"]
     assert execution["next_required_actions"] == [
         "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
         "rematerialize_ai_reviewer_request",

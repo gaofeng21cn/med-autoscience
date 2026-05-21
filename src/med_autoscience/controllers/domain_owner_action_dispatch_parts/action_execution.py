@@ -28,6 +28,7 @@ from .action_execution_parts.ai_reviewer_record_validation import (
     ai_reviewer_record_requirements,
     missing_ai_reviewer_record_fields,
 )
+from .action_execution_parts.ai_reviewer_record_production import build_ai_reviewer_record_production_request
 from .action_execution_parts.ai_reviewer_routeback_record import build_current_medical_prose_routeback_record
 from ..ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
 from ..domain_action_request_lifecycle import stable_ai_reviewer_request_path
@@ -707,11 +708,18 @@ def _ai_reviewer_record_for_execution(
     lifecycle = _mapping(request.get("request_lifecycle"))
     lifecycle_blocked_reason = _text(lifecycle.get("blocked_reason"))
     if lifecycle_blocked_reason == "ai_reviewer_record_stale_after_unit_harmonized_rerun":
+        required_refs = _ai_reviewer_required_refs(request)
         return {}, {
             "reason": lifecycle_blocked_reason,
             "payload": {
                 "stale_record_ref": _text(lifecycle.get("stale_record_ref")),
                 "required_currentness_refs": _string_items(lifecycle.get("required_currentness_refs")),
+                "ai_reviewer_record_production_request": build_ai_reviewer_record_production_request(
+                    request=request,
+                    required_refs=required_refs,
+                    stale_record_ref=_text(lifecycle.get("stale_record_ref")),
+                    required_currentness_refs=_string_items(lifecycle.get("required_currentness_refs")),
+                ),
                 "next_required_actions": [
                     "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
                     "rematerialize_ai_reviewer_request",
@@ -770,7 +778,7 @@ def _ai_reviewer_record_for_execution(
         "payload": {
             "owner_record_requirements": ai_reviewer_record_requirements(),
         },
-    }
+}
 
 
 def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, Any]) -> dict[str, Any]:

@@ -406,6 +406,7 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
             "hard_methodology_unit_harmonization_route",
             "domain_route_analysis_harmonization_owner_result_consumption",
             "ai_reviewer_output_readiness_currentness_consumption",
+            "ai_reviewer_record_production_handoff",
             "ai_native_expert_judgment_first_quality_boundary",
             "cross_stage_vulnerability_audit_routing",
             "internal_error_debug_history_paper_story_exclusion",

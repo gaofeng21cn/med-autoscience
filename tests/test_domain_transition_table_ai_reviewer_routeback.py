@@ -111,6 +111,37 @@ def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_wh
     assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
 
 
+def test_current_ai_reviewer_write_action_preempts_stale_prose_review_route_target_when_not_live(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
+    publication_eval["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"][
+        "route_target"
+    ] = "analysis"
+    publication_eval["reviewer_operating_system"]["route_back_decision"] = {
+        "recommended_action": "route_back_same_line",
+        "rationale": "The current AI reviewer action routes same-line paper repair to write.",
+    }
+    _write_json(
+        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
+        publication_eval,
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "write"
+    assert transition["owner"] == "write"
+    assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
+
+
 def test_current_ai_reviewer_analysis_routeback_projects_analysis_campaign_handoff_when_not_live(
     tmp_path: Path,
 ) -> None:

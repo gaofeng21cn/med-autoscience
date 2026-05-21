@@ -32,6 +32,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
     "mechanism-edit-ref:mas/ai-reviewer-output-readiness-currentness-consumption",
     "mechanism-edit-ref:mas/quality-repair-blocked-evidence-dispatch-rejection",
+    "mechanism-edit-ref:mas/ai-reviewer-record-production-handoff",
     "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
     "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection",
     "mechanism-edit-ref:mas/claim-assurance-map-body-free-projection",
