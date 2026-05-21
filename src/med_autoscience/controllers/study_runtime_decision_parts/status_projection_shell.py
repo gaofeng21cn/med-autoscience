@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from med_autoscience.controllers import study_truth_kernel
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import (
     _record_auto_runtime_parked_projection,
     _record_runtime_worker_activity,
@@ -22,6 +21,9 @@ from med_autoscience.controllers.study_runtime_decision_parts.runtime_health_dom
 )
 from med_autoscience.controllers.study_runtime_decision_parts.status_finalization import (
     _refresh_runtime_supervision_from_status_if_needed,
+)
+from med_autoscience.controllers.study_runtime_decision_parts.status_projection_shell_parts.read_model_projection_assembly import (
+    attach_status_read_model_projections,
 )
 from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.runtime_protocol import quest_state
@@ -92,29 +94,15 @@ def finalize_status_projection_shell(
     )
     _record_runtime_worker_activity(status)
     _record_auto_runtime_parked_projection(status)
-    status.extras["study_truth_snapshot"] = study_truth_kernel.derive_truth_snapshot_from_status_payload(
-        study_root=study_root,
+    attach_status_read_model_projections(
+        status=status,
+        profile=profile,
         study_id=study_id,
-        status_payload=status.to_dict(),
+        study_root=study_root,
         recorded_at=router._utc_now(),
+        entry_mode=entry_mode,
+        include_progress_projection=include_progress_projection,
     )
-    from med_autoscience.controllers import study_control_plane_kernel
-
-    status.extras["control_plane_snapshot"] = study_control_plane_kernel.build_control_plane_snapshot(
-        status.to_dict()
-    )
-    if include_progress_projection:
-        from med_autoscience.controllers import study_progress as study_progress_controller
-
-        status.record_progress_projection(
-            study_progress_controller.build_study_progress_projection(
-                profile=profile,
-                study_id=study_id,
-                study_root=study_root,
-                status_payload=status,
-                entry_mode=entry_mode,
-            )
-        )
     return status
 
 
