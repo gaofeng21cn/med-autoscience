@@ -94,7 +94,12 @@ def _mapping(value: object) -> dict[str, Any]:
 
 def _text_sequence(value: object) -> tuple[str, ...]:
     if isinstance(value, (list, tuple, set)):
-        return tuple(sorted({text for item in value if (text := _text(item))}))
+        items: set[str] = set()
+        for item in value:
+            text = _text(item.get("action_type")) if isinstance(item, dict) else _text(item)
+            if text is not None:
+                items.add(text)
+        return tuple(sorted(items))
     text = _text(value)
     return (text,) if text is not None else ()
 

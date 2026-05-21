@@ -7,7 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
+from tests.domain_route_scan_cases.owner_route_test_helpers import (
+    assert_controller_authorization_handoff,
+    assert_owner_route_required,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
 
 
@@ -253,14 +256,19 @@ def test_platform_repair_prefers_methodology_reframe_route_over_stale_gate_speci
     )
 
     assert result is not None
-    assert_owner_route_required(
+    projected_runtime_state = assert_owner_route_required(
         apply_result=result,
         quest_root=quest_root,
         expected_reason="runtime_controller_redrive_required",
     )
     assert result["repair_kind"] == "current_controller_runtime_route_redrive"
-    assert result["current_controller_authorization_written"] is True
-    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert_controller_authorization_handoff(
+        result,
+        expected_decision_id=decision["decision_id"],
+        expected_work_unit_id="provenance_limited_harmonization_audit",
+    )
+    assert projected_runtime_state is not None
+    runtime_state = projected_runtime_state
     assert runtime_state["last_controller_decision_authorization"]["decision_id"] == decision["decision_id"]
     assert runtime_state["last_controller_decision_authorization"]["work_unit_fingerprint"] == (
         "decision::methodology_reframe_route_decision"

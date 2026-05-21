@@ -108,5 +108,7 @@ def test_execute_noop_runtime_decision_ignores_repair_report_older_than_current_
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
     assert "artifact_written" not in event_types
-    assert len(chats) == 1
-    assert "decision-analysis-redrive" in str(chats[0]["text"])
+    assert chats == []
+    payload = status.to_dict()
+    assert payload["controller_decision_authorization_owner_route_ref"]["decision_id"] == "decision-analysis-redrive"
+    assert "owner_handoff" in event_types

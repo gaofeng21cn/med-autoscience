@@ -30,6 +30,7 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
     },
     "tests/test_study_runtime_router.py": {
+        "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_failed_reviewer_revision_explicit_relaunch.py",
         "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_stopped_domain_transition_relaunch.py",
     },
     "tests/test_runtime_watch.py": {
@@ -118,6 +119,9 @@ REPRESENTATIVE_NESTED_CASES = {
     ),
     "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_stopped_domain_transition_relaunch.py": (
         "test_allow_stopped_relaunch_reopens_current_domain_transition_routeback"
+    ),
+    "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_failed_reviewer_revision_explicit_relaunch.py": (
+        "test_explicit_stopped_relaunch_reopens_failed_reviewer_revision_invalid_blocking"
     ),
 }
 

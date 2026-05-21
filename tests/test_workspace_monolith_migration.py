@@ -274,9 +274,9 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert alpha_binding["runtime_home"] == str(workspace_root / "runtime")
     assert alpha_binding["runtime_root"] == str(workspace_root / "runtime" / "quests")
     assert alpha_binding["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
-    assert alpha_binding["runtime_backend_id"] == "mas_runtime_core"
-    assert alpha_binding["runtime_backend"] == "mas_runtime_core"
-    assert alpha_binding["runtime_engine_id"] == "mas-runtime-core"
+    assert alpha_binding["runtime_backend_id"] == "opl_provider_backed_stage_runtime"
+    assert alpha_binding["runtime_backend"] == "opl_provider_backed_stage_runtime"
+    assert alpha_binding["runtime_engine_id"] == "opl-provider-backed-stage-runtime"
     assert alpha_binding["research_backend_id"] == "mas_runtime_core"
     assert alpha_binding["research_backend"] == "mas_runtime_core"
     assert alpha_binding["research_engine_id"] == "mas-runtime-core"

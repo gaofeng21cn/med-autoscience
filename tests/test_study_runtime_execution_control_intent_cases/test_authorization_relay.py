@@ -254,7 +254,7 @@ def test_relayed_controller_authorization_marker_includes_lifecycle_projection(
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            return {"ok": True, "message": {"id": "msg-auth-lifecycle-001"}}
+            raise AssertionError("ordinary controller authorization must be projected to the OPL owner route")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -266,16 +266,12 @@ def test_relayed_controller_authorization_marker_includes_lifecycle_projection(
 
     module._execute_runtime_decision(status=status, context=context)
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    marker = runtime_state["last_controller_decision_authorization"]
+    owner_route_ref = status.to_dict()["controller_decision_authorization_owner_route_ref"]
 
-    assert marker["controller_work_unit_lifecycle"] == {
-        "lifecycle_state": "new",
-        "latest_event_type": None,
-        "delivery_blocked": False,
-        "block_reason": None,
-        "terminal_consumed": False,
-    }
-    assert marker["specificity_targets"][0]["target_kind"] == "claim"
+    assert owner_route_ref["queue_owner"] == "one-person-lab"
+    assert owner_route_ref["authority_boundary"]["mas_submits_runtime_chat"] is False
+    assert owner_route_ref["specificity_targets"][0]["target_kind"] == "claim"
+    assert "last_controller_decision_authorization" not in runtime_state
 
 
 def test_execute_noop_runtime_decision_skips_closed_publication_work_unit_authorization(
@@ -411,12 +407,9 @@ def test_execute_noop_runtime_decision_relay_authorization_for_unsettled_authori
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
-    chats: list[dict[str, object]] = []
-
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            chats.append({"quest_id": quest_id, "text": text, "source": source})
-            return {"ok": True, "message": {"id": "msg-authority-sync-001"}}
+            raise AssertionError("unsettled authority work remains an OPL owner-route projection")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -430,9 +423,11 @@ def test_execute_noop_runtime_decision_relay_authorization_for_unsettled_authori
     payload = status.to_dict()
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert len(chats) == 1
     assert "controller_decision_authorization_closed" not in payload
-    assert payload["controller_decision_authorization_relay"]["message_id"] == "msg-authority-sync-001"
+    owner_route_ref = payload["controller_decision_authorization_owner_route_ref"]
+    assert owner_route_ref["work_unit_id"] == "submission_authority_sync_closure"
+    assert owner_route_ref["queue_owner"] == "one-person-lab"
+    assert owner_route_ref["authority_boundary"]["mas_submits_runtime_chat"] is False
 
 def test_execute_noop_runtime_decision_refreshes_marker_when_specificity_targets_were_missing(
     tmp_path: Path,
@@ -479,12 +474,9 @@ def test_execute_noop_runtime_decision_refreshes_marker_when_specificity_targets
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
-    chats: list[dict[str, object]] = []
-
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            chats.append({"quest_id": quest_id, "text": text, "source": source})
-            return {"ok": True, "message": {"id": "msg-refreshed-targets"}}
+            raise AssertionError("target refresh is exposed through owner-route projection, not runtime chat")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -497,10 +489,9 @@ def test_execute_noop_runtime_decision_refreshes_marker_when_specificity_targets
     module._execute_runtime_decision(status=status, context=context)
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
 
-    assert len(chats) == 1
-    marker = runtime_state["last_controller_decision_authorization"]
-    assert marker["message_id"] == "msg-refreshed-targets"
-    assert marker["specificity_targets"][0]["source_path"].endswith("claim_evidence_map.json")
+    owner_route_ref = status.to_dict()["controller_decision_authorization_owner_route_ref"]
+    assert owner_route_ref["specificity_targets"][0]["source_path"].endswith("claim_evidence_map.json")
+    assert runtime_state["last_controller_decision_authorization"] == stale_marker
 
 def test_execute_noop_runtime_decision_resets_same_fingerprint_count_for_source_signature_change(
     tmp_path: Path,
@@ -536,12 +527,9 @@ def test_execute_noop_runtime_decision_resets_same_fingerprint_count_for_source_
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
-    chats: list[dict[str, object]] = []
-
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            chats.append({"quest_id": quest_id, "text": text, "source": source})
-            return {"ok": True, "message": {"id": "msg-auth-reset-001"}}
+            raise AssertionError("source-signature changes must be projected, not directly relayed")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -555,7 +543,7 @@ def test_execute_noop_runtime_decision_resets_same_fingerprint_count_for_source_
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert len(chats) == 1
-    assert runtime_state["same_fingerprint_auto_turn_count"] == 0
-    assert "control_intent_lifecycle" not in runtime_state
-    assert runtime_state["last_controller_decision_authorization"]["control_intent_key"] == new_context["control_intent_key"]
+    owner_route_ref = status.to_dict()["controller_decision_authorization_owner_route_ref"]
+    assert owner_route_ref["control_intent_key"] == new_context["control_intent_key"]
+    assert runtime_state["same_fingerprint_auto_turn_count"] == 8
+    assert runtime_state["control_intent_lifecycle"]["control_intent_key"] == old_context["control_intent_key"]

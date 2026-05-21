@@ -223,6 +223,8 @@ def test_study_runtime_router_ensure_runtime_uses_router_persistence_binding(mon
     outcome = router.StudyRuntimeExecutionOutcome(binding_last_action="noop")
     seen: dict[str, object] = {}
     status = SimpleNamespace(
+        decision=router.StudyRuntimeDecision.NOOP,
+        reason=router.StudyRuntimeReason.QUEST_ALREADY_RUNNING,
         quest_id="quest-001",
         to_dict=lambda: {"decision": "noop"},
         record_runtime_artifacts=lambda **kwargs: seen.setdefault("recorded_artifacts", kwargs),

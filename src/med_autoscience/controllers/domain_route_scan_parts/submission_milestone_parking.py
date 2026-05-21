@@ -55,6 +55,7 @@ def _submission_milestone_runtime_owner_handoff(
             "reason": "quest_root_missing",
         }
     return platform_repair_owner_route.mark_owner_route_handoff(
+        study_root=profile.studies_root / study_id,
         runtime_state_path=runtime_state_path,
         study_id=study_id,
         quest_id=quest_id,

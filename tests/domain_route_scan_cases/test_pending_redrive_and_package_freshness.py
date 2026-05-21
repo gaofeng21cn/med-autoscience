@@ -4,7 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
+from tests.domain_route_scan_cases.owner_route_test_helpers import (
+    assert_controller_authorization_handoff,
+    assert_owner_route_required,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -244,6 +247,10 @@ def test_scan_domain_routes_blocks_pending_redrive_when_resume_adopts_evidence_w
         quest_root=quest_root,
         expected_reason="runtime_controller_redrive_required",
     )
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(
+        apply_result,
+        expected_decision_id="pending-dpcc-write-redrive",
+        expected_work_unit_id="analysis_claim_evidence_repair",
+    )
     assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "pending-dpcc-write-redrive"
     assert result["studies"][0]["ai_repair_lifecycle"]["state"] == "owner_route_required"

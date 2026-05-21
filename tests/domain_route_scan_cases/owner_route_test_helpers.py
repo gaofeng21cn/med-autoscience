@@ -46,20 +46,13 @@ def assert_owner_route_required(
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     actual_runtime_state = dict(runtime_state)
     assert "last_opl_runtime_owner_route_handoff" not in actual_runtime_state
-    handoff_record_path = (
-        quest_root.parents[2]
-        / "studies"
-        / apply_result["opl_runtime_owner_route_handoff"]["study_id"]
-        / "artifacts"
-        / "supervision"
-        / "owner_route_handoff"
-        / "latest.json"
-    )
+    mark = apply_result["opl_runtime_owner_route_mark"]
+    handoff_record_path = Path(mark["artifact_path"])
     handoff_record = json.loads(handoff_record_path.read_text(encoding="utf-8"))
     assert handoff_record["runtime_state_mutated"] is False
     assert handoff_record["handoff"]["queue_owner"] == "one-person-lab"
     assert handoff_record["handoff"]["authority_boundary"]["mas_resumes_provider_worker"] is False
-    return _projected_owner_runtime_state(actual_runtime_state, apply_result)
+    return project_owner_route_runtime_state(actual_runtime_state, apply_result)
 
 
 def assert_controller_authorization_handoff(
@@ -80,7 +73,7 @@ def assert_controller_authorization_handoff(
     return authorization
 
 
-def _projected_owner_runtime_state(runtime_state: dict[str, Any], apply_result: dict[str, Any]) -> dict[str, Any]:
+def project_owner_route_runtime_state(runtime_state: dict[str, Any], apply_result: dict[str, Any]) -> dict[str, Any]:
     projected = dict(runtime_state)
     for key in (
         "stale_specificity_clear",

@@ -480,6 +480,7 @@ def apply_if_targets_resolved(
     _ = (profile, study_root, source)
     return platform_repair_owner_route.apply_result(
         base=base,
+        study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         runtime_state_path=runtime_state_path,

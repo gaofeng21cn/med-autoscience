@@ -4,7 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
+from tests.domain_route_scan_cases.owner_route_test_helpers import (
+    assert_controller_authorization_handoff,
+    assert_owner_route_required,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -158,7 +161,11 @@ def test_scan_domain_routes_keeps_upstream_quality_repair_owned_by_mas_controlle
         quest_root=quest_root,
         expected_reason="opl_runtime_owner_route_required",
     )
-    assert apply_result["current_controller_authorization_written"] is True
+    assert_controller_authorization_handoff(
+        apply_result,
+        expected_decision_id="current-analysis-claim-evidence-repair",
+        expected_work_unit_id="analysis_claim_evidence_repair",
+    )
     assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
         "current-analysis-claim-evidence-repair"
     )
