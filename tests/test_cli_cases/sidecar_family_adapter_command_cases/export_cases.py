@@ -144,7 +144,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     inventory_by_id = {
         item["module_id"]: item for item in boundary["functional_module_inventory"]
     }
-    assert len(inventory_by_id) == 18
+    assert len(inventory_by_id) == 19
     assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["migration_action"] == (
         "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index"
     )

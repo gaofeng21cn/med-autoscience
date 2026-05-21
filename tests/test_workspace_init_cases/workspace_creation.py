@@ -214,7 +214,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "--ensure-study-runtimes" in watch_runtime_text
     assert "--apply-supervisor-platform-repair" in watch_runtime_text
     assert "--apply" in watch_runtime_text
-    assert "--loop" in watch_runtime_text
+    assert "--loop" not in watch_runtime_text
     assert 'run_medautosci runtime storage-audit --profile "${PROFILE_PATH}" "$@"' in storage_audit_text
     assert 'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" "$@"' in progress_portal_text
     assert 'run_medautosci publication resolve-journal-shortlist "$@"' in resolve_journal_shortlist_text

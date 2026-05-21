@@ -91,6 +91,7 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(tmp_p
     assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
+        "runtime_watch_loop_shell",
     ]
     assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
@@ -122,7 +123,7 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(tmp_p
     assert coverage["opl_harness_pass_is_publication_ready"] is False
     assert coverage["mas_owns_generic_runtime"] is False
     inventory = boundary["functional_module_inventory"]
-    assert len(inventory) == 18
+    assert len(inventory) == 19
     inventory_by_id = {item["module_id"]: item for item in inventory}
     assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["active_caller_status"] == (
         "refs_only_domain_sidecar_adapter_active"

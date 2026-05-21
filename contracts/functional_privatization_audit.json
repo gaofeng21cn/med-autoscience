@@ -483,7 +483,7 @@
       "active_private_generic_residue_count": 0,
       "classification_counts": {
         "declarative_pack_generated_surface": 7,
-        "legacy_cleanup_physical_retired": 2,
+        "legacy_cleanup_physical_retired": 3,
         "minimal_authority_function": 3,
         "refs_only_adapter": 6
       },
@@ -598,7 +598,8 @@
       "legacy_cleanup_items_have_standard_template_refs": false,
       "legacy_cleanup_items_physical_retired": [
         "local_launchd_scheduler_install_path",
-        "workspace_local_watch_service_wrappers"
+        "workspace_local_watch_service_wrappers",
+        "runtime_watch_loop_shell"
       ],
       "legacy_cleanup_items_require_no_active_caller_gate": [],
       "legacy_cleanup_items_tombstoned": [
@@ -1361,13 +1362,43 @@
         "physical_retired": true,
         "retention_reason": "Needed only to detect and clean stale workspace-local service wrappers.",
         "tombstone_required": true
+      },
+      {
+        "active_caller_allowed": false,
+        "active_caller_status": "retired_no_active_caller",
+        "active_callers": [],
+        "classification": "legacy_cleanup_physical_retired",
+        "code_paths": [
+          "src/med_autoscience/controllers/runtime_watch.py",
+          "src/med_autoscience/cli_parts/parser.py",
+          "src/med_autoscience/controllers/workspace_init_parts/shell_rendering.py"
+        ],
+        "migration_action": "remove repo-local runtime watch loop and keep one-shot MAS domain diagnostic tick",
+        "module_id": "runtime_watch_loop_shell",
+        "no_active_caller_gate": {
+          "active_caller_allowed": false,
+          "default_caller_count": 0,
+          "focused_test_refs": [
+            "tests/test_runtime_watch_cases/cli_cases.py",
+            "tests/test_cli_cases/public_entry_commands.py",
+            "tests/test_workspace_init_cases/workspace_creation.py",
+            "tests/test_workspace_init_cases/legacy_entry_upgrades.py"
+          ],
+          "no_compat_alias_allowed": true,
+          "replacement_owner": "one-person-lab",
+          "replacement_surface": "opl_provider_runtime_manager"
+        },
+        "owner": "none_active",
+        "physical_retired": true,
+        "retention_reason": "Generic cadence and long-loop ownership belongs to OPL provider/runtime manager; MAS keeps one-shot runtime health and owner-route diagnostic tick only.",
+        "tombstone_required": true
       }
     ],
     "functional_module_inventory_summary": {
       "active_private_generic_residue_count": 0,
       "classification_counts": {
         "declarative_pack_generated_surface": 7,
-        "legacy_cleanup_physical_retired": 2,
+        "legacy_cleanup_physical_retired": 3,
         "minimal_authority_function": 3,
         "refs_only_adapter": 6
       },
@@ -1387,7 +1418,8 @@
       "legacy_cleanup_items_have_standard_template_refs": false,
       "legacy_cleanup_items_physical_retired": [
         "local_launchd_scheduler_install_path",
-        "workspace_local_watch_service_wrappers"
+        "workspace_local_watch_service_wrappers",
+        "runtime_watch_loop_shell"
       ],
       "legacy_cleanup_items_require_no_active_caller_gate": [],
       "legacy_cleanup_items_tombstoned": [
@@ -1401,7 +1433,7 @@
       "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
       "retire_tombstone_classification_count": 0,
       "retired_legacy_residue_count": 4,
-      "total_count": 18
+      "total_count": 19
     },
     "functional_surface_classification": {
       "declarative_pack_generated_surface": [
@@ -1415,6 +1447,7 @@
       ],
       "legacy_cleanup_physical_retired": [
         "local_launchd_scheduler_install_path",
+        "runtime_watch_loop_shell",
         "workspace_local_watch_service_wrappers"
       ],
       "legacy_cleanup_tombstone_provenance": [
@@ -2814,7 +2847,7 @@
     "active_private_generic_residue_count": 0,
     "classification_counts": {
       "declarative_pack_generated_surface": 7,
-      "legacy_cleanup_physical_retired": 2,
+      "legacy_cleanup_physical_retired": 3,
       "minimal_authority_function": 3,
       "refs_only_adapter": 6
     },
@@ -2929,7 +2962,8 @@
     "legacy_cleanup_items_have_standard_template_refs": false,
     "legacy_cleanup_items_physical_retired": [
       "local_launchd_scheduler_install_path",
-      "workspace_local_watch_service_wrappers"
+      "workspace_local_watch_service_wrappers",
+      "runtime_watch_loop_shell"
     ],
     "legacy_cleanup_items_require_no_active_caller_gate": [],
     "legacy_cleanup_items_tombstoned": [

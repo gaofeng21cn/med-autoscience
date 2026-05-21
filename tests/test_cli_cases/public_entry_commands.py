@@ -685,107 +685,7 @@ from .domain_slo_scheduler_projection_commands import (
 )
 
 
-def test_watch_command_dispatches_runtime_watch_loop(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
-
-    def fake_run_watch_loop(
-        *,
-        runtime_root: Path,
-        apply: bool,
-        profile=None,
-        ensure_study_runtimes: bool = False,
-        apply_supervisor_platform_repair: bool = False,
-        interval_seconds: int,
-        max_ticks: int | None,
-    ) -> dict[str, object]:
-        called["runtime_root"] = runtime_root
-        called["apply"] = apply
-        called["profile"] = profile
-        called["ensure_study_runtimes"] = ensure_study_runtimes
-        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
-        called["interval_seconds"] = interval_seconds
-        called["max_ticks"] = max_ticks
-        return {
-            "tick_count": 1,
-            "interval_seconds": interval_seconds,
-        }
-
-    monkeypatch.setattr(cli.runtime_watch, "run_watch_loop", fake_run_watch_loop)
-
-    exit_code = cli.main(
-        [
-            "runtime",
-            "watch",
-            "--runtime-root",
-            str(tmp_path / "quests"),
-            "--apply",
-            "--loop",
-            "--interval-seconds",
-            "300",
-            "--max-ticks",
-            "1",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["runtime_root"] == tmp_path / "quests"
-    assert called["apply"] is True
-    assert called["profile"] is None
-    assert called["ensure_study_runtimes"] is False
-    assert called["apply_supervisor_platform_repair"] is False
-    assert called["interval_seconds"] == 300
-    assert called["max_ticks"] == 1
-    assert '"tick_count": 1' in captured.out
-def test_watch_command_fails_closed_when_loop_reports_tick_errors(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-
-    def fake_run_watch_loop(
-        *,
-        runtime_root: Path,
-        apply: bool,
-        profile=None,
-        ensure_study_runtimes: bool = False,
-        apply_supervisor_platform_repair: bool = False,
-        interval_seconds: int,
-        max_ticks: int | None,
-    ) -> dict[str, object]:
-        return {
-            "tick_count": 1,
-            "interval_seconds": interval_seconds,
-            "tick_errors": [
-                {
-                    "tick": 1,
-                    "error_type": "ValueError",
-                    "error": "evaluation summary quality_execution_lane must be a mapping",
-                }
-            ],
-            "last_result": None,
-        }
-
-    monkeypatch.setattr(cli.runtime_watch, "run_watch_loop", fake_run_watch_loop)
-
-    exit_code = cli.main(
-        [
-            "runtime",
-            "watch",
-            "--runtime-root",
-            str(tmp_path / "quests"),
-            "--apply",
-            "--loop",
-            "--interval-seconds",
-            "300",
-            "--max-ticks",
-            "1",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 1
-    assert '"tick_errors": [' in captured.out
-    assert 'quality_execution_lane must be a mapping' in captured.out
-def test_watch_command_rejects_loop_for_single_quest() -> None:
+def test_watch_command_rejects_retired_loop_parameter(tmp_path: Path) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
     with pytest.raises(SystemExit):
@@ -793,8 +693,8 @@ def test_watch_command_rejects_loop_for_single_quest() -> None:
             [
                 "runtime",
                 "watch",
-                "--quest-root",
-                "/tmp/q001",
+                "--runtime-root",
+                str(tmp_path / "quests"),
                 "--loop",
             ]
         )

@@ -111,9 +111,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     watch_parser.add_argument("--ensure-study-runtimes", action="store_true")
     watch_parser.add_argument("--apply-supervisor-platform-repair", action="store_true")
     watch_parser.add_argument("--apply", action="store_true")
-    watch_parser.add_argument("--loop", action="store_true")
-    watch_parser.add_argument("--interval-seconds", type=int, default=300)
-    watch_parser.add_argument("--max-ticks", type=int)
 
     runtime_supervision_status_parser = subparsers.add_parser("runtime-supervision-status")
     runtime_supervision_status_parser.add_argument("--profile", required=True)

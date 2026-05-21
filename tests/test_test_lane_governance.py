@@ -345,12 +345,13 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     }
     assert set(classification["legacy_cleanup_physical_retired"]) == {
         "local_launchd_scheduler_install_path",
+        "runtime_watch_loop_shell",
         "workspace_local_watch_service_wrappers",
     }
     assert lane["functional_module_inventory_ref"] == (
         "product_entry_manifest.functional_consumer_boundary.functional_module_inventory"
     )
-    assert lane["functional_module_inventory_expected_count"] == 18
+    assert lane["functional_module_inventory_expected_count"] == 19
     assert lane["functional_module_inventory_required_fields"] == [
         "module_id",
         "classification",
@@ -366,7 +367,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     ]["function_ids"]
     assert runtime_boundary["minimal_authority_function_manifest"] == minimal_authority
     inventory = runtime_boundary["functional_module_inventory"]
-    assert len(inventory) == 18
+    assert len(inventory) == 19
     assert sorted(item["module_id"] for item in inventory) == sorted(
         lane["functional_module_inventory_expected_modules"]
     )
@@ -444,11 +445,15 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "default_caller_count"
     ] == 0
     assert inventory_by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
+    assert inventory_by_id["runtime_watch_loop_shell"]["physical_retired"] is True
+    assert inventory_by_id["runtime_watch_loop_shell"]["no_active_caller_gate"]["replacement_surface"] == (
+        "opl_provider_runtime_manager"
+    )
     assert runtime_boundary["functional_module_inventory_summary"]["classification_counts"] == {
         "declarative_pack_generated_surface": 7,
         "refs_only_adapter": 6,
         "minimal_authority_function": 3,
-        "legacy_cleanup_physical_retired": 2,
+        "legacy_cleanup_physical_retired": 3,
     }
     assert runtime_boundary["functional_module_inventory_summary"]["retired_legacy_residue_count"] == 4
     assert runtime_boundary["functional_module_inventory_summary"]["legacy_cleanup_items_tombstoned"] == [
@@ -484,6 +489,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
+        "runtime_watch_loop_shell",
     ]
     assert followthrough_summary["legacy_cleanup_items_tombstoned"] == [
         "mas_generic_workbench_shell",

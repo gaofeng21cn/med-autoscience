@@ -455,7 +455,7 @@ def _legacy_watch_runtime_entry_reason(
                 or "--ensure-study-runtimes" not in existing_content
                 or "--apply-supervisor-platform-repair" not in existing_content
                 or "--apply" not in existing_content
-                or "--loop" not in existing_content
+                or "--loop" in existing_content
             ):
                 return "legacy_watch_runtime_entry"
     return None

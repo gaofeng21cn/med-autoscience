@@ -151,6 +151,7 @@
       "legacy_local_write_install_proof_allowed": false,
       "legacy_local_install_proof_generated": false,
       "legacy_local_tick_script_generated": false,
+      "mas_repo_local_watch_loop_retired": true,
       "legacy_local_loaded_state_allowed": false,
       "legacy_local_cleanup_status": "tombstone_only",
       "retired_optional_adapter_id": "hermes_gateway_cron_retired_tombstone",
@@ -1042,6 +1043,7 @@
         ],
         "legacy_cleanup_physical_retired": [
           "local_launchd_scheduler_install_path",
+          "runtime_watch_loop_shell",
           "workspace_local_watch_service_wrappers"
         ]
       },
@@ -1056,7 +1058,7 @@
         "active_caller_status",
         "migration_action"
       ],
-      "functional_module_inventory_expected_count": 18,
+      "functional_module_inventory_expected_count": 19,
       "functional_module_inventory_expected_modules": [
         "runtime_lifecycle_sqlite_reference_adapter",
         "paper_work_unit_outbox_index",
@@ -1075,6 +1077,7 @@
         "publication_quality_verdict",
         "artifact_authority",
         "local_launchd_scheduler_install_path",
+        "runtime_watch_loop_shell",
         "workspace_local_watch_service_wrappers"
       ],
       "runtime_lifecycle_sqlite_role": {
@@ -1305,12 +1308,12 @@
         "publication_route_memory_body"
       ],
       "functional_module_inventory_summary": {
-        "total_count": 18,
+        "total_count": 19,
         "classification_counts": {
           "refs_only_adapter": 6,
           "declarative_pack_generated_surface": 7,
           "minimal_authority_function": 3,
-          "legacy_cleanup_physical_retired": 2
+          "legacy_cleanup_physical_retired": 3
         },
         "long_term_opl_owned_replacement_count": 0,
         "retire_tombstone_classification_count": 0,
@@ -1323,7 +1326,8 @@
         "legacy_cleanup_items_require_no_active_caller_gate": [],
         "legacy_cleanup_items_physical_retired": [
           "local_launchd_scheduler_install_path",
-          "workspace_local_watch_service_wrappers"
+          "workspace_local_watch_service_wrappers",
+          "runtime_watch_loop_shell"
         ],
         "legacy_cleanup_items_tombstoned": [
           "mas_generic_workbench_shell",
@@ -1439,12 +1443,13 @@
           "refs_only_adapter": 6,
           "declarative_pack_generated_surface": 7,
           "minimal_authority_function": 3,
-          "legacy_cleanup_physical_retired": 2
+          "legacy_cleanup_physical_retired": 3
         },
         "legacy_cleanup_items_require_no_active_caller_gate": [],
         "legacy_cleanup_items_physical_retired": [
           "local_launchd_scheduler_install_path",
-          "workspace_local_watch_service_wrappers"
+          "workspace_local_watch_service_wrappers",
+          "runtime_watch_loop_shell"
         ],
         "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
         "legacy_cleanup_item_role": "history_tombstone_provenance_only",

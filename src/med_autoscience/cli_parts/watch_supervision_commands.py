@@ -23,8 +23,6 @@ def handle_watch_supervision_command(
             parser.error("--ensure-study-runtimes is only supported with --runtime-root")
         if args.quest_root and args.apply_supervisor_platform_repair:
             parser.error("--apply-supervisor-platform-repair is only supported with --runtime-root")
-        if args.quest_root and args.loop:
-            parser.error("--loop is only supported with --runtime-root")
         if args.ensure_study_runtimes and not args.profile:
             parser.error("--ensure-study-runtimes requires --profile")
         if args.apply_supervisor_platform_repair and not args.ensure_study_runtimes:
@@ -38,27 +36,14 @@ def handle_watch_supervision_command(
             )
         else:
             profile = load_profile(args.profile) if args.profile else None
-            if args.loop:
-                result = runtime_watch.run_watch_loop(
-                    runtime_root=Path(args.runtime_root),
-                    apply=args.apply,
-                    profile=profile,
-                    ensure_study_runtimes=bool(args.ensure_study_runtimes),
-                    apply_supervisor_platform_repair=bool(args.apply_supervisor_platform_repair),
-                    interval_seconds=args.interval_seconds,
-                    max_ticks=args.max_ticks,
-                )
-            else:
-                result = runtime_watch.run_watch_for_runtime(
-                    runtime_root=Path(args.runtime_root),
-                    apply=args.apply,
-                    profile=profile,
-                    ensure_study_runtimes=bool(args.ensure_study_runtimes),
-                    apply_supervisor_platform_repair=bool(args.apply_supervisor_platform_repair),
-                )
+            result = runtime_watch.run_watch_for_runtime(
+                runtime_root=Path(args.runtime_root),
+                apply=args.apply,
+                profile=profile,
+                ensure_study_runtimes=bool(args.ensure_study_runtimes),
+                apply_supervisor_platform_repair=bool(args.apply_supervisor_platform_repair),
+            )
         _print_json(result)
-        if args.loop and isinstance(result, dict) and list(result.get("tick_errors") or []):
-            return 1
         return 0
 
     if args.command == "runtime-supervision-status":

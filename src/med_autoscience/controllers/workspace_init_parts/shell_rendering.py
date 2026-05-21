@@ -137,7 +137,6 @@ def _render_watch_runtime_script(*, workspace_root: Path, runtime_quests_root: P
         '  --ensure-study-runtimes \\\n'
         '  --apply-supervisor-platform-repair \\\n'
         '  --apply \\\n'
-        '  --loop \\\n'
         '  "$@"\n'
     )
 

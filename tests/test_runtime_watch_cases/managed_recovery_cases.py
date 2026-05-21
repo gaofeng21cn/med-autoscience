@@ -126,17 +126,14 @@ def test_watch_runtime_isolates_managed_study_projection_errors(tmp_path: Path, 
 
     monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", fake_outer_loop_request)
 
-    result = module.run_watch_loop(
+    result = module.run_watch_for_runtime(
         runtime_root=profile.runtime_root,
         apply=True,
         profile=profile,
         ensure_study_runtimes=True,
-        interval_seconds=300,
-        max_ticks=1,
     )
 
-    actions = {action["study_id"]: action for action in result["last_result"]["managed_study_actions"]}
-    assert result["tick_errors"] == []
+    actions = {action["study_id"]: action for action in result["managed_study_actions"]}
     assert actions["001-retired"]["decision"] == "blocked"
     assert actions["001-retired"]["reason"] == "study_projection_contract_error"
     assert actions["002-live"]["decision"] == "noop"

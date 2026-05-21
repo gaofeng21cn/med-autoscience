@@ -294,10 +294,11 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     }
     assert set(classification["legacy_cleanup_physical_retired"]) == {
         "local_launchd_scheduler_install_path",
+        "runtime_watch_loop_shell",
         "workspace_local_watch_service_wrappers",
     }
     inventory = boundary["functional_module_inventory"]
-    assert len(inventory) == 18
+    assert len(inventory) == 19
     by_id = {item["module_id"]: item for item in inventory}
     lifecycle_item = by_id["runtime_lifecycle_sqlite_reference_adapter"]
     assert lifecycle_item["code_paths"] == [
@@ -361,7 +362,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "declarative_pack_generated_surface": 7,
         "refs_only_adapter": 6,
         "minimal_authority_function": 3,
-        "legacy_cleanup_physical_retired": 2,
+        "legacy_cleanup_physical_retired": 3,
     }
     assert boundary["functional_module_inventory_summary"]["retired_legacy_residue_count"] == 4
     assert boundary["functional_module_inventory_summary"]["legacy_cleanup_items_tombstoned"] == [
@@ -397,6 +398,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
+        "runtime_watch_loop_shell",
     ]
     assert followthrough_summary["legacy_cleanup_items_tombstoned"] == [
         "mas_generic_workbench_shell",
