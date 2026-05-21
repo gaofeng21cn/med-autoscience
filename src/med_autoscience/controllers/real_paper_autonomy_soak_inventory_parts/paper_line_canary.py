@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
+from ..body_free_evidence_packets import build_body_free_evidence_packet
+
 
 GATE_ID = "real_paper_line_provider_canary"
 TASK_ID = "agent-lab-task:mas/real-paper-line-provider-canary"
@@ -33,6 +35,11 @@ def build_owner_chain_closeout_from_guarded_receipts(
         else ("stable_typed_blocker" if stable_blocker_refs else "missing_owner_chain_result")
     )
     required_shape_satisfied = result_kind in {"owner_receipt", "stable_typed_blocker"}
+    live_evidence_refs = _live_paper_line_evidence_refs(
+        guarded_receipts=guarded_receipts,
+        stable_blocker_refs=stable_blocker_refs,
+    )
+    no_forbidden_write_proof = _no_forbidden_write_proof(forbidden_write_guard)
     return {
         "surface_kind": "mas_real_paper_line_owner_chain_closeout",
         "version": VERSION,
@@ -54,11 +61,14 @@ def build_owner_chain_closeout_from_guarded_receipts(
             "stable_typed_blocker_refs": stable_blocker_refs,
             "body_included": False,
         },
-        "live_paper_line_evidence_refs": _live_paper_line_evidence_refs(
-            guarded_receipts=guarded_receipts,
+        "live_paper_line_evidence_refs": live_evidence_refs,
+        "body_free_evidence_packets": _body_free_owner_chain_packets(
+            owner_receipt_refs=owner_receipt_refs,
             stable_blocker_refs=stable_blocker_refs,
+            live_evidence_refs=live_evidence_refs,
+            no_forbidden_write_proof=no_forbidden_write_proof,
         ),
-        "no_forbidden_write_proof": _no_forbidden_write_proof(forbidden_write_guard),
+        "no_forbidden_write_proof": no_forbidden_write_proof,
         "authority_boundary": _authority_boundary(),
     }
 
@@ -119,6 +129,7 @@ def build_provider_unavailable_canary_closeout(
             "provider_typed_blocker_refs": [provider_blocker_ref] if provider_blocker_ref else [],
             "body_included": False,
         },
+        "body_free_evidence_packets": _provider_unavailable_packets(provider_blocker_ref),
         "provider_attempt": {
             "attempt_id": _text(provider_attempt.get("attempt_id")),
             "attempt_owner": "one-person-lab",
@@ -270,6 +281,69 @@ def _no_forbidden_write_proof(forbidden_write_guard: Mapping[str, Any]) -> dict[
     }
 
 
+def _body_free_owner_chain_packets(
+    *,
+    owner_receipt_refs: Sequence[str],
+    stable_blocker_refs: Sequence[str],
+    live_evidence_refs: Mapping[str, Any],
+    no_forbidden_write_proof: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    packet_specs: list[tuple[str, str]] = []
+    packet_specs.extend(("owner_receipt_ref", ref) for ref in owner_receipt_refs)
+    packet_specs.extend(("stable_typed_blocker_ref", ref) for ref in stable_blocker_refs)
+    packet_specs.extend(
+        ("progress_delta_ref", ref)
+        for ref in _sequence(live_evidence_refs.get("progress_delta_refs"))
+    )
+    packet_specs.extend(
+        ("ai_reviewer_gate_receipt_ref", ref)
+        for ref in _sequence(live_evidence_refs.get("ai_reviewer_gate_receipt_refs"))
+    )
+    packet_specs.extend(
+        ("artifact_movement_ref", ref)
+        for ref in _sequence(live_evidence_refs.get("artifact_movement_refs"))
+    )
+    packet_specs.extend(
+        ("human_gate_or_resume_ref", ref)
+        for ref in _sequence(live_evidence_refs.get("human_gate_or_resume_refs"))
+    )
+    packet_specs.extend(
+        ("stable_typed_blocker_ref", ref)
+        for ref in _sequence(live_evidence_refs.get("stable_typed_blocker_refs"))
+    )
+    proof_ref = _text(no_forbidden_write_proof.get("proof_ref"))
+    if proof_ref:
+        packet_specs.append(("no_forbidden_write_proof_ref", proof_ref))
+
+    packets: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for role, ref in packet_specs:
+        ref_text = _text(ref)
+        if not ref_text or (role, ref_text) in seen:
+            continue
+        seen.add((role, ref_text))
+        packets.append(
+            build_body_free_evidence_packet(
+                ref=ref_text,
+                role=role,
+                owner="MedAutoScience",
+            )
+        )
+    return packets
+
+
+def _provider_unavailable_packets(provider_blocker_ref: str) -> list[dict[str, Any]]:
+    if not provider_blocker_ref:
+        return []
+    return [
+        build_body_free_evidence_packet(
+            ref=provider_blocker_ref,
+            role="provider_typed_blocker_ref",
+            owner="one-person-lab",
+        )
+    ]
+
+
 def _authority_boundary() -> dict[str, Any]:
     return {
         "domain_truth_owner": "med-autoscience",
@@ -286,6 +360,10 @@ def _authority_boundary() -> dict[str, Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _sequence(value: object) -> list[Any]:
+    return list(value) if isinstance(value, Sequence) and not isinstance(value, str | bytes) else []
 
 
 def _text(value: object) -> str:

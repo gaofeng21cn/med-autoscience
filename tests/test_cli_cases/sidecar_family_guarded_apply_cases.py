@@ -86,6 +86,26 @@ def test_sidecar_dispatch_records_provider_hosted_guarded_apply_receipt_without_
     assert canary["selected_opl_ingestable_ref_surface"]["ref"] == (
         "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
     )
+    canary_packets = canary["body_free_evidence_packets"]
+    assert {packet["role"] for packet in canary_packets} == {
+        "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
+    }
+    for packet in canary_packets:
+        assert set(packet) == {
+            "ref",
+            "role",
+            "freshness",
+            "owner",
+            "receipt_id",
+            "no_forbidden_write_proof",
+        }
+        assert packet["owner"] == "MedAutoScience"
+        assert packet["no_forbidden_write_proof"]["write_permitted"] is False
+        assert packet["no_forbidden_write_proof"]["forbidden_writes_performed"] is False
+        assert "artifact_body" not in packet
+        assert "memory_body" not in packet
+        assert "current_package" not in packet
     assert canary["no_forbidden_write_proof"]["provider_or_opl_wrote_domain_truth"] is False
     assert canary["no_forbidden_write_proof"]["provider_or_opl_wrote_current_package"] is False
     assert result["publication_route_memory_final_proof"]["status"] == "final_ref_chain_proven"
