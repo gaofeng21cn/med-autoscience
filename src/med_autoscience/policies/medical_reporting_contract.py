@@ -45,6 +45,7 @@ class MedicalReportingContract:
 SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
     "prediction_model": "TRIPOD",
     "clinical_observation": "STROBE",
+    "primary_care_gap": "STROBE",
     "randomized_trial": "CONSORT",
 }
 SUPPORTED_STUDY_ARCHETYPES = (
@@ -185,7 +186,7 @@ def resolve_medical_reporting_contract(
     recommended_main_text_figures: tuple[DisplayBlueprintItem, ...] = ()
     if (
         study_archetype == "clinical_subtype_reconstruction"
-        and manuscript_family == "clinical_observation"
+        and manuscript_family in {"clinical_observation", "primary_care_gap"}
         and endpoint_type == "descriptive"
         and submission_target_family == "general_medical_journal"
     ):

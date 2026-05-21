@@ -641,6 +641,8 @@ def test_study_runtime_status_routes_completed_story_repair_to_ai_reviewer_reche
     monkeypatch,
     tmp_path: Path,
 ) -> None:
+    repair_work_unit_id = "manuscript_story_repair"
+    repair_work_unit_summary = "Repair the paper story around the current evidence and claim boundary."
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     profile = make_profile(tmp_path)
@@ -736,7 +738,7 @@ def test_study_runtime_status_routes_completed_story_repair_to_ai_reviewer_reche
                         "requires_controller_decision": True,
                         "work_unit_fingerprint": "ai_reviewer_story_clean_external_validation_v3",
                         "next_work_unit": {
-                            "unit_id": "manuscript_story_repair",
+                            "unit_id": repair_work_unit_id,
                             "lane": "write",
                             "summary": "Rewrite as a clean external-validation manuscript.",
                         },
@@ -771,9 +773,9 @@ def test_study_runtime_status_routes_completed_story_repair_to_ai_reviewer_reche
                     "lane": "review",
                     "summary": "Replay the publication gate for the closed controller work unit.",
                     "source_work_unit": {
-                        "unit_id": "manuscript_story_repair",
+                        "unit_id": repair_work_unit_id,
                         "lane": "write",
-                        "summary": "Repair the paper story around the current evidence and claim boundary.",
+                        "summary": repair_work_unit_summary,
                     },
                 },
             },
@@ -789,11 +791,11 @@ def test_study_runtime_status_routes_completed_story_repair_to_ai_reviewer_reche
         "quest_id": "001-risk",
         "status": "owner_handoff",
         "work_unit": {
-            "unit_id": "manuscript_story_repair",
+            "unit_id": repair_work_unit_id,
             "lane": "write",
-            "summary": "Repair the paper story around the current evidence and claim boundary.",
+            "summary": repair_work_unit_summary,
         },
-        "unit_statuses": [{"unit_id": "manuscript_story_repair", "status": "owner_handoff"}],
+        "unit_statuses": [{"unit_id": repair_work_unit_id, "status": "owner_handoff"}],
         "gate_replay_status": "pending_recheck",
         "terminal_consumed": True,
         "next_owner": "publication_gate",

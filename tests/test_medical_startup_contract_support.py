@@ -628,6 +628,54 @@ def test_reporting_contract_supports_clinical_subtype_reconstruction(tmp_path: P
     ]
 
 
+def test_reporting_contract_supports_primary_care_gap_manuscript_family(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    profile = make_profile(
+        tmp_path,
+        preferred_study_archetypes=("clinical_classifier", "clinical_subtype_reconstruction"),
+    )
+    study_root = write_study(
+        profile.studies_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "study_archetype": "clinical_subtype_reconstruction",
+            "endpoint_type": "descriptive",
+            "manuscript_family": "primary_care_gap",
+            "paper_framing_summary": "DPCC primary-care phenotype and recorded treatment-gap atlas.",
+        },
+    )
+
+    result = module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["study_archetype"] == "clinical_subtype_reconstruction"
+    assert result["endpoint_type"] == "descriptive"
+    assert result["manuscript_family"] == "primary_care_gap"
+    assert result["reporting_guideline_family"] == "STROBE"
+    assert result["required_table_shells"] == [
+        "table1_baseline_characteristics",
+        "table2_phenotype_gap_summary",
+        "table3_transition_site_support_summary",
+    ]
+    assert result["figure_shell_requirements"] == [
+        "cohort_flow_figure",
+        "phenotype_gap_structure_figure",
+        "site_held_out_stability_figure",
+        "treatment_gap_alignment_figure",
+    ]
+    structured_contract = result["structured_reporting_contract"]
+    assert structured_contract["clinical_actionability_required"] is True
+    assert "assignment_method" in structured_contract["phenotype_derivation_reporting"]
+    assert "medication_data_source" in structured_contract["treatment_gap_reporting"]
+    assert "missingness" in structured_contract["baseline_characteristics_reporting"]
+    assert "semantic_field_checks" in structured_contract["data_quality_reporting"]
+
+
 def test_survival_reporting_contract_hydration_and_materialization_use_semantic_display_ids(
     tmp_path: Path,
     monkeypatch,

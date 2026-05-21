@@ -24,12 +24,19 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         route_target=route_target,
         work_unit_id=work_unit_id,
     )
+    write_repair_route = _is_write_repair_route(
+        decision_type=decision_type,
+        route_target=route_target,
+        next_work_unit=controller_next_work_unit,
+    )
     if unit_harmonized_analysis_route:
         action_type = "unit_harmonized_external_validation_rerun"
         work_unit_id = "unit_harmonized_external_validation_rerun"
     owner = (
         _owner_for_domain_action(action_type)
         if unit_harmonized_analysis_route
+        else "write"
+        if write_repair_route
         else domain_transition_guard.owner(status) or _owner_for_domain_action(action_type)
     )
     reason = (
@@ -88,6 +95,11 @@ def _owner_for_domain_action(action_type: str) -> str:
 
 
 def _required_output_surface(action_type: str) -> str:
+    if action_type == "run_quality_repair_batch":
+        return (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        )
     if action_type == "unit_harmonized_external_validation_rerun":
         return (
             "unit-harmonized external-validation rerun evidence or "
@@ -110,6 +122,19 @@ def _is_unit_harmonized_analysis_route(
         "unit_harmonized_external_validation_rerun",
         "unit_harmonized_validation_uncertainty_and_grouped_calibration",
     }
+
+
+def _is_write_repair_route(
+    *,
+    decision_type: str | None,
+    route_target: str | None,
+    next_work_unit: Mapping[str, Any],
+) -> bool:
+    if decision_type != "route_back_same_line":
+        return False
+    if route_target == "write":
+        return True
+    return _text(next_work_unit.get("lane")) == "write"
 
 
 def _text(value: object) -> str | None:

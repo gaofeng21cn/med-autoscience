@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-21：DM003 primary-care treatment-gap 稿件修复必须进入 write owner story-delta 回路
+
+- 决策：`primary_care_gap` 是 MAS 支持的 observational manuscript family，报告规范默认解析为 STROBE。该 family 的 descriptive clinical treatment-gap / phenotype 稿件可以使用 clinical subtype reconstruction strong display shell，但不能把 display support、ledger update 或 QA 摘要当成正文完成证据。
+- 决策：AI reviewer route-back 给出的 `medical_prose_write_repair` 与 `manuscript_story_repair` 同属 manuscript-facing story-surface work unit。若 `quality_repair_batch` 对当前 `publication_eval/latest.json` 返回 `manuscript_story_surface_delta_missing -> next_owner=write`，domain route scan / reconcile 必须保留原 work unit，并把 `run_quality_repair_batch` 物化给 write owner。完成证据必须是 canonical `paper/draft.md` 或 `paper/build/review_manuscript.md` delta，或者继续返回 typed blocker。
+- 决策：`run_quality_repair_batch` 是 owner-route 可消费 action；domain owner dispatch 必须能从 persisted request `artifacts/supervision/requests/quality_repair_batch/latest.json` 恢复并执行该 action。旧 OPL owner lifecycle、completed-current-truth 残留或 platform redrive residue 不得吞掉当前 write route。
+- 理由：DM003 暴露出初稿虽然有大样本、明确基层糖尿病管理场景和治疗覆盖缺口价值，但写作层仍像 AI 修复稿，且 phenotype derivation、recorded treatment-gap 术语、BP/data quality、baseline table、正式图表和防御性语言这些医学期刊要件没有被初稿前质量链路稳定吃进去。单纯写 reviewer_revision task intake 不能保证下一版稿件变好；MAS 必须把这类反馈沉淀成 family reporting contract、story-surface delta requirement 和 owner-route regression。
+- 影响：这是 MAS 医学论文智能体 / owner-route / reporting contract 修复，不写 DM003 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。正式质量关闭仍由 write owner 产出正文 delta 后，经 AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-22：AI reviewer 顶层 recommended action 是 route authority，prose currentness route target 只是覆盖证据
 
 - 决策：当 AI reviewer-owned `publication_eval/latest.json` 的 `reviewer_operating_system.currentness_checks.medical_prose_review` 已证明 prose review 当前，且顶层 `recommended_actions[]` 明确给出 `route_back_same_line` / `bounded_analysis` / `stop_loss` owner action 时，controller/domain-transition 的 route authority 必须来自顶层 action，而不是 `medical_prose_review.route_target`。

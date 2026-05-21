@@ -19,6 +19,7 @@ OWNER_REQUEST_RELATIVE_PATHS = {
     "canonical_paper_inputs_rehydrate_required": Path(
         "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
     ),
+    "run_quality_repair_batch": Path("artifacts/supervision/requests/quality_repair_batch/latest.json"),
     "unit_harmonized_external_validation_rerun": Path("artifacts/supervision/requests/analysis_harmonization/latest.json"),
     "recover_transport_model_provenance": Path("artifacts/supervision/requests/source_provenance/latest.json"),
     "methodology_reframe_route_decision": Path("artifacts/supervision/requests/decision/latest.json"),

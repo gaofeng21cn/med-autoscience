@@ -36,7 +36,7 @@ REASON_BY_DECISION_TYPE = {
     "ai_reviewer_re_eval": "domain_transition_ai_reviewer_re_eval",
     "bundle_stage_finalize": "domain_transition_bundle_stage_finalize",
     "publication_gate_blocker": "domain_transition_publication_gate_blocker",
-    "route_back_same_line": "quest_waiting_platform_repair_redrive",
+    "route_back_same_line": "quest_waiting_opl_runtime_owner_route",
 }
 
 

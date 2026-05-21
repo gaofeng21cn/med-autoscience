@@ -31,12 +31,17 @@ def write_owner_action(
             "redrive the write owner through the quality repair batch until the canonical "
             "manuscript surface changes or a typed blocker remains."
         ),
-        "required_output_surface": "paper/draft.md or paper/build/review_manuscript.md",
+        "required_output_surface": (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        "route_target": "write",
         "next_work_unit": work_unit_id,
         "executable_work_unit": work_unit_id,
         "controller_route": controller_route,
         "work_unit_fingerprint": _text(controller_route.get("work_unit_fingerprint")),
         "controller_work_unit_id": work_unit_id,
+        "quality_repair_batch_ref": _text(controller_route.get("quality_repair_batch_path")),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "current_package_write_allowed": False,
