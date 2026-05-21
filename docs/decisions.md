@@ -68,6 +68,7 @@
 ## 2026-05-21：analysis harmonization completed 后必须显式交回 AI reviewer currentness
 
 - 决策：当 `analysis_harmonization_owner` 的 completed result 明确 `next_owner=ai_reviewer`、`next_work_unit=ai_reviewer_medical_prose_quality_review`，且当前 `publication_eval/latest.json` 没有 AI reviewer-owned provenance 覆盖 `analysis_harmonization/latest.json` 与 rerun evidence refs，domain-route-scan 必须排 `return_to_ai_reviewer_workflow`。
+- 决策：上述 completed owner handoff 是当前医学质量 owner route，必须优先于旧的 `quest_waiting_platform_repair_redrive` / `quest_waiting_opl_runtime_owner_route` runtime platform lifecycle。platform redrive 可以继续作为 OPL runtime owner 证据存在，但不得把 `next_owner` 改成 `one-person-lab` 并过滤掉 AI reviewer action。
 - 理由：DM002 暴露出 unit-harmonized external-validation rerun 已完成后，旧 `publication_eval` 仍可能早于 rerun evidence，却被 parked/current-truth 投影吞掉，导致 AI reviewer 不复评新模型与 uncertainty 证据。
 - 影响：该修复只生成 AI reviewer request / owner route，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。若 AI reviewer eval 已显式引用当前 analysis result 与 rerun evidence，则不重复排队。
 

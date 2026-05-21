@@ -60,6 +60,12 @@ def projection_block_state(
     actions: list[dict[str, Any]],
     why_not_applied: str | None,
 ) -> dict[str, Any]:
+    if _has_completed_analysis_harmonization_ai_reviewer_action(actions):
+        return {
+            "blocked_reason": ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON,
+            "next_owner": "ai_reviewer",
+            "external_supervisor_required": False,
+        }
     if study_root is not None and not _current_hard_methodology_handoff_supersedes_consumers(study_root):
         if _has_hard_methodology_handoff_action(actions):
             return {
@@ -231,6 +237,15 @@ def _has_clean_paper_authority_ai_reviewer_action(actions: list[dict[str, Any]])
     return any(
         _text(action.get("action_type")) == "return_to_ai_reviewer_workflow"
         and _text(action.get("reason")) == "paper_authority_clean_migration_required"
+        and _text(action.get("owner")) == "ai_reviewer"
+        for action in actions
+    )
+
+
+def _has_completed_analysis_harmonization_ai_reviewer_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "return_to_ai_reviewer_workflow"
+        and _text(action.get("reason")) == ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON
         and _text(action.get("owner")) == "ai_reviewer"
         for action in actions
     )

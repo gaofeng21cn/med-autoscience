@@ -266,6 +266,156 @@ def test_completed_unit_harmonized_rerun_routes_stale_ai_reviewer_eval_back_to_r
     assert request["blockers"] == ["analysis_harmonization_completed_ai_reviewer_review_required"]
 
 
+def test_completed_unit_harmonized_rerun_ai_reviewer_handoff_supersedes_platform_redrive_lifecycle(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_route_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::pre-completed-harmonization-review",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+            "source_refs": [str(study_root / "paper" / "draft.md")],
+        },
+        "quality_assessment": {
+            "evidence_strength": {
+                "status": "partial",
+                "evidence_refs": [str(study_root / "paper" / "tables" / "table2.md")],
+            }
+        },
+    }
+    evidence_ref = (
+        study_root
+        / "artifacts"
+        / "controller"
+        / "analysis_harmonization"
+        / "unit_harmonized_external_validation_rerun.json"
+    )
+    _write_json(
+        evidence_ref,
+        {
+            "surface": "unit_harmonized_external_validation_rerun_evidence",
+            "schema_version": 1,
+            "status": "completed",
+            "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
+        },
+    )
+    analysis_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+    _write_json(
+        analysis_path,
+        {
+            "surface": "analysis_harmonization_owner_result",
+            "schema_version": 1,
+            "study_id": study_id,
+            "owner": "analysis_harmonization_owner",
+            "work_unit": "unit_harmonized_external_validation_rerun",
+            "status": "completed",
+            "blocked_reason": None,
+            "typed_blocker_owner": None,
+            "typed_blocker": None,
+            "unit_harmonized_rerun_completed": True,
+            "rerun_evidence_ref": str(evidence_ref),
+            "next_owner": "ai_reviewer",
+            "next_work_unit": "ai_reviewer_medical_prose_quality_review",
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "medical_claim_authoring_allowed": False,
+            "publication_eval_written": False,
+            "controller_decision_written": False,
+        },
+    )
+
+    def platform_redrive(**_: object) -> dict[str, object]:
+        return {
+            "action_type": "runtime_platform_repair",
+            "dispatch_status": "owner_route_required",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "repair_kind": "pending_runtime_platform_repair_redrive",
+        }
+
+    monkeypatch.setattr(module.platform_repair, "apply_runtime_platform_repair", platform_redrive)
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "decision": "blocked",
+        "reason": "quest_waiting_platform_repair_redrive",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+        "runtime_health_snapshot": {
+            "canonical_runtime_action": "recover_runtime",
+            "attempt_state": "recovering",
+            "blocking_reasons": [
+                "live_worker_meaningful_artifact_delta_timeout",
+                "no_meaningful_progress",
+                "same_fingerprint_loop",
+            ],
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-completed-rerun-platform-redrive",
+            "source_signature": "truth-source-dm002-completed-rerun-platform-redrive",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_runtime_recovering",
+        "paper_stage": "publishability_gate_blocked",
+        "supervision": {"active_run_id": None, "health_status": "recovering"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "state": "owner_route_required",
+            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            "next_owner": "one-person-lab",
+            "opl_runtime_owner_route_required": True,
+            "external_supervisor_required": False,
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        apply_runtime_platform_repair=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == [
+        "return_to_ai_reviewer_workflow"
+    ]
+    assert study["blocked_reason"] == "analysis_harmonization_completed_ai_reviewer_review_required"
+    assert study["why_not_applied"] == "analysis_harmonization_completed_ai_reviewer_review_required"
+    assert study["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert study["owner_route"]["owner_reason"] == (
+        "analysis_harmonization_completed_ai_reviewer_review_required"
+    )
+
+
 def test_completed_unit_harmonized_rerun_does_not_requeue_current_ai_reviewer_eval(
     monkeypatch,
     tmp_path: Path,
