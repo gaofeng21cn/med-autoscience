@@ -5,7 +5,9 @@ from .shared import *  # noqa: F403,F401
 def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
     task_path = tmp_path / "task.json"
     _write_json(
         task_path,
@@ -38,11 +40,18 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
     assert payload["authority_boundary"]["writes_artifact_gate"] is False
     assert payload["forbidden_write_guard_proof"]["result"] == "accepted_no_forbidden_writes"
     assert payload["forbidden_write_guard_proof"]["can_write_domain_truth"] is False
+    assert Path(workspace_root / payload["receipt_ref"]).is_file()
+    assert not (workspace_root / ".ds" / "user_message_queue.json").exists()
+    assert not (workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests").exists()
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+    assert not (study_root / "manuscript" / "current_package").exists()
+    assert not (study_root / "current_package.zip").exists()
 
 
 def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
@@ -141,7 +150,7 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
@@ -210,7 +219,7 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)

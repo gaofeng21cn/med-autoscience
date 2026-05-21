@@ -5,24 +5,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.profiles import WorkspaceProfile, load_profile
+from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
 
 from . import opl_provider_ready_adapter
-from . import paper_repair_executor
 from . import publication_aftercare
-from . import real_paper_autonomy_soak_inventory
 from . import reviewer_refinement_loop
-from . import domain_owner_action_dispatch
-from . import domain_route_reconcile
 from . import stage_knowledge_plane
 from . import study_domain_transition_table
-from .real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 from .sidecar_family_adapter_parts.authority_boundary import authority_boundary_payload
 from .sidecar_family_adapter_parts.functional_closure import (
     build_sidecar_functional_closure_projection,
 )
-from .sidecar_family_adapter_parts.dispatch_receipts import write_dispatch_receipt
+from .sidecar_family_adapter_parts.dispatch_orchestration import (
+    ALLOWED_TASK_KINDS,
+    dispatch_family_sidecar_task as _dispatch_family_sidecar_task,
+)
 from .sidecar_family_adapter_parts.guarded_apply_tasks import (
     DEFAULT_GUARDED_APPLY_TARGETS,
     provider_hosted_guarded_apply_tasks,
@@ -33,16 +31,6 @@ from .sidecar_family_adapter_parts.substrate_adapter import build_opl_substrate_
 from .domain_slo_scheduler_projection_parts import consumer_migration
 
 
-_FORBIDDEN_PAYLOAD_FLAGS = (
-    "domain_truth_write",
-    "artifact_gate_override",
-    "study_truth_write",
-    "publication_quality_verdict",
-    "current_package_write",
-    "memory_body_write",
-    "publication_route_memory_writeback_accept",
-    "memory_write_router_accept",
-)
 _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("runtime_supervision_truth", Path("artifacts/runtime/runtime_supervision/latest.json"), "runtime_supervision"),
     ("runtime_supervision_truth_legacy_ref", Path("artifacts/runtime_supervision/latest.json"), "runtime_supervision"),
@@ -57,22 +45,6 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
     ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
 )
-_ALLOWED_TASK_KINDS = {
-    "domain_route/recover": "domain_route_recover",
-    "domain_route/reconcile-apply": "domain_route_reconcile_apply",
-    "autonomy/continue": "domain_route_reconcile_apply",
-    "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
-    "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
-    "paper_autonomy/guarded-apply": "paper_autonomy_guarded_apply",
-    publication_aftercare.ANALYSIS_QUEUE_TASK_KIND: "domain_route_reconcile_apply",
-    publication_aftercare.REVIEWER_REFRESH_TASK_KIND: "ai_reviewer_recheck_execute_dispatch",
-    "paper_autonomy/gate-replay": "domain_route_reconcile_apply",
-    "paper_autonomy/route-decision": "domain_route_reconcile_apply",
-    "safe_reconcile/dry-run": "safe_reconcile_dry_run",
-    "study_progress/read": "study_progress_read",
-    "status/read": "status_read",
-    "notification/receipt": "notification_receipt",
-}
 _AUTO_CONTINUATION_BLOCKING_DECISIONS = {"stop_loss", "terminal_stop", "completed"}
 
 
@@ -169,7 +141,7 @@ def export_family_sidecar(
     functional_closure = build_sidecar_functional_closure_projection(
         profile=profile,
         profile_ref=profile_ref,
-        allowed_task_kinds=_ALLOWED_TASK_KINDS,
+        allowed_task_kinds=ALLOWED_TASK_KINDS,
         opl_production_proof=opl_production_proof,
         opl_production_proof_ref=opl_production_proof_ref,
     )
@@ -235,7 +207,7 @@ def export_family_sidecar(
         },
         "dispatch": {
             "entrypoint": "medautosci sidecar dispatch --task <task.json> --format json",
-            "allowed_task_kinds": sorted(_ALLOWED_TASK_KINDS),
+            "allowed_task_kinds": sorted(ALLOWED_TASK_KINDS),
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
@@ -599,396 +571,5 @@ def _aggregate_domain_refs(studies: list[Mapping[str, Any]]) -> list[dict[str, A
     return refs[:50]
 
 
-def _load_task(task_path: Path) -> dict[str, Any]:
-    payload = _read_json_object(task_path)
-    if payload is None:
-        raise ValueError(f"sidecar task must be a JSON object: {task_path}")
-    return payload
-
-
-def _forbidden_write_requested(task: Mapping[str, Any]) -> bool:
-    return bool(_forbidden_requested_writes(task))
-
-
-def _forbidden_requested_writes(task: Mapping[str, Any]) -> list[str]:
-    requested = opl_provider_ready_adapter.requested_writes_from_task(task)
-    forbidden = {
-        *_FORBIDDEN_PAYLOAD_FLAGS,
-        *opl_provider_ready_adapter.FORBIDDEN_AUTHORITY_WRITES,
-    }
-    return [item for item in requested if item in forbidden]
-
-
-def _profile_from_task(task: Mapping[str, Any]) -> tuple[WorkspaceProfile | None, Path | None]:
-    payload = _mapping(task.get("payload"))
-    profile_ref = _text(payload.get("profile") or payload.get("profile_path"))
-    if profile_ref is None:
-        return None, None
-    path = Path(profile_ref).expanduser()
-    return load_profile(path), path
-
-
-def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id: str | None) -> str:
-    profile_part = f" --profile {profile_ref}" if profile_ref is not None else " --profile <profile>"
-    study_part = f" --studies {study_id}" if study_id else ""
-    if action_type == "domain_route_recover":
-        return f"uv run python -m med_autoscience.cli domain-route-scan{profile_part}{study_part}"
-    if action_type == "safe_reconcile_dry_run":
-        return f"uv run python -m med_autoscience.cli domain-route-reconcile{profile_part}{study_part} --mode developer_apply_safe --dry-run"
-    if action_type == "domain_route_reconcile_apply":
-        return f"uv run python -m med_autoscience.cli domain-route-reconcile{profile_part}{study_part} --mode developer_apply_safe --apply"
-    if action_type == "study_progress_read":
-        return f"uv run python -m med_autoscience.cli study-progress{profile_part}{study_part} --format json"
-    return f"uv run python -m med_autoscience.cli product-entry-status{profile_part} --format json"
-
-
-def _execute_reconcile_apply(
-    *,
-    profile: WorkspaceProfile | None,
-    study_id: str | None,
-) -> dict[str, Any] | None:
-    if profile is None:
-        return None
-    return domain_route_reconcile.reconcile_domain_routes(
-        profile=profile,
-        study_ids=(study_id,) if study_id else (),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-
-def _execute_paper_repair(
-    *,
-    profile: WorkspaceProfile | None,
-    study_id: str | None,
-    task: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if profile is None or study_id is None:
-        return None
-    payload = _mapping(task.get("payload"))
-    work_unit = _mapping(payload.get("repair_work_unit"))
-    if not work_unit:
-        return {
-            "surface": "paper_repair_executor",
-            "accepted": False,
-            "execution_status": "blocked",
-            "typed_blocker": "owner_callable_surface_missing",
-            "blocked_reason": "repair_work_unit_missing",
-        }
-    return paper_repair_executor.dispatch_repair_work_unit(
-        study_id=study_id,
-        quest_id=_text(payload.get("quest_id")) or _text(work_unit.get("quest_id")) or f"quest-{study_id}",
-        study_root=profile.studies_root / study_id,
-        repair_work_unit=work_unit,
-        review_finding=_mapping(payload.get("review_finding")),
-        apply=True,
-    )
-
-
-def _execute_ai_reviewer_recheck(
-    *,
-    profile: WorkspaceProfile | None,
-    study_id: str | None,
-) -> dict[str, Any] | None:
-    if profile is None:
-        return None
-    return domain_owner_action_dispatch.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,) if study_id else (),
-        action_types=("return_to_ai_reviewer_workflow",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-
-def _execute_guarded_apply(
-    *,
-    profile_ref: Path | None,
-    study_id: str | None,
-    task_id: str,
-    task: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if profile_ref is None or study_id is None:
-        return None
-    payload = _mapping(task.get("payload"))
-    provider_attempt_id = (
-        _text(payload.get("provider_attempt_id"))
-        or _text(payload.get("attempt_id"))
-        or task_id
-    )
-    idempotency_key = _text(payload.get("idempotency_key")) or f"{task_id}:guarded_apply"
-    target_studies = payload.get("target_studies")
-    targets = (
-        [str(item) for item in target_studies if _text(item)]
-        if isinstance(target_studies, list)
-        else [study_id]
-    )
-    if payload.get("provider_ready") is False:
-        return provider_guarded_apply.build_provider_unavailable_guarded_apply_receipt(
-            schema_version=real_paper_autonomy_soak_inventory.SCHEMA_VERSION,
-            surface=real_paper_autonomy_soak_inventory.PROVIDER_HOSTED_GUARDED_APPLY_RECEIPT_SURFACE,
-            provider_attempt_id=provider_attempt_id,
-            idempotency_key=idempotency_key,
-            target_studies=targets,
-            reason=_text(payload.get("provider_unavailable_reason")) or "provider_ready_false",
-        )
-    return real_paper_autonomy_soak_inventory.build_real_paper_autonomy_provider_hosted_guarded_apply_receipt(
-        profile_path=profile_ref,
-        provider_attempt_id=provider_attempt_id,
-        idempotency_key=idempotency_key,
-        target_studies=targets,
-    )
-
-
-def _base_dispatch_receipt(
-    *,
-    generated_at: str,
-    task_id: str,
-    task_kind: str,
-    task_path: Path,
-    action_type: str,
-    profile_ref: Path | None,
-    study_id: str | None,
-    source_fingerprint: str | None,
-) -> dict[str, Any]:
-    receipt = {
-        "surface_kind": "mas_family_sidecar_dispatch_receipt",
-        "version": "mas-family-sidecar.v1",
-        "accepted": True,
-        "task_id": task_id,
-        "task_kind": task_kind,
-        "generated_at": generated_at,
-        "source_task_ref": str(task_path),
-        "will_start_llm_worker": False,
-        "dispatch": {
-            "action_type": action_type,
-            "study_id": study_id,
-            "recommended_domain_command": _recommended_command(action_type, profile_ref=profile_ref, study_id=study_id),
-            "execution_policy": "guarded_domain_control_receipt_only",
-        },
-        "authority_boundary": authority_boundary_payload(),
-        "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
-            result="accepted_no_forbidden_writes",
-            task_id=task_id,
-            task_kind=task_kind,
-            requested_writes=(),
-        ),
-    }
-    if source_fingerprint is not None:
-        receipt["source_fingerprint"] = source_fingerprint
-    return receipt
-
-
-def _apply_dispatch_action(
-    *,
-    receipt: dict[str, Any],
-    action_type: str,
-    profile: WorkspaceProfile | None,
-    profile_ref: Path | None,
-    study_id: str | None,
-    task: Mapping[str, Any],
-) -> dict[str, Any]:
-    if action_type == "domain_route_reconcile_apply":
-        return _with_reconcile_apply(receipt=receipt, profile=profile, study_id=study_id)
-    if action_type == "paper_repair_executor_dispatch":
-        return _with_paper_repair(receipt=receipt, profile=profile, study_id=study_id, task=task)
-    if action_type == "ai_reviewer_recheck_execute_dispatch":
-        return _with_ai_reviewer_recheck(receipt=receipt, profile=profile, study_id=study_id)
-    if action_type == "paper_autonomy_guarded_apply":
-        return _with_guarded_apply(
-            receipt=receipt,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            task=task,
-        )
-    return receipt
-
-
-def _with_reconcile_apply(
-    *,
-    receipt: dict[str, Any],
-    profile: WorkspaceProfile | None,
-    study_id: str | None,
-) -> dict[str, Any]:
-    result = _execute_reconcile_apply(profile=profile, study_id=study_id)
-    receipt["will_start_llm_worker"] = bool(_mapping(result).get("will_start_llm"))
-    receipt["dispatch"]["execution_policy"] = "mas_owner_reconcile_apply"
-    receipt["dispatch"]["result"] = result
-    return receipt
-
-
-def _with_paper_repair(
-    *,
-    receipt: dict[str, Any],
-    profile: WorkspaceProfile | None,
-    study_id: str | None,
-    task: Mapping[str, Any],
-) -> dict[str, Any]:
-    result = _execute_paper_repair(profile=profile, study_id=study_id, task=task)
-    receipt["will_start_llm_worker"] = False
-    receipt["dispatch"]["execution_policy"] = "mas_owner_paper_repair_execute"
-    receipt["dispatch"]["result"] = result
-    if _mapping(result).get("accepted") is False:
-        receipt["accepted"] = False
-        receipt["reason"] = _text(_mapping(result).get("typed_blocker")) or "paper_repair_executor_blocked"
-    return receipt
-
-
-def _with_ai_reviewer_recheck(
-    *,
-    receipt: dict[str, Any],
-    profile: WorkspaceProfile | None,
-    study_id: str | None,
-) -> dict[str, Any]:
-    result = _execute_ai_reviewer_recheck(profile=profile, study_id=study_id)
-    receipt["will_start_llm_worker"] = bool(_mapping(result).get("executed_count"))
-    receipt["dispatch"]["execution_policy"] = "mas_owner_ai_reviewer_execute_dispatch"
-    receipt["dispatch"]["result"] = result
-    return receipt
-
-
-def _with_guarded_apply(
-    *,
-    receipt: dict[str, Any],
-    profile_ref: Path | None,
-    study_id: str | None,
-    task: Mapping[str, Any],
-) -> dict[str, Any]:
-    result = _execute_guarded_apply(
-        profile_ref=profile_ref,
-        study_id=study_id,
-        task_id=str(receipt.get("task_id") or "unknown_task"),
-        task=task,
-    )
-    receipt["will_start_llm_worker"] = False
-    receipt["dispatch"]["execution_policy"] = "mas_owner_provider_hosted_guarded_apply"
-    receipt["dispatch"]["result"] = result
-    return receipt
-
-
-def _write_dispatch_receipt(
-    *,
-    receipt: dict[str, Any],
-    profile: WorkspaceProfile | None,
-    task_id: str,
-    source_fingerprint: str | None = None,
-) -> dict[str, Any]:
-    return write_dispatch_receipt(
-        receipt=receipt,
-        profile=profile,
-        task_id=task_id,
-        source_fingerprint=source_fingerprint,
-        read_json_object=_read_json_object,
-        write_json=_write_json,
-        workspace_relative=lambda path: _workspace_relative(path, workspace_root=profile.workspace_root)
-        if profile is not None
-        else str(path),
-        text=_text,
-        mapping=_mapping,
-        now_iso=_now_iso,
-        authority_boundary_payload=authority_boundary_payload,
-        forbidden_write_guard_proof=opl_provider_ready_adapter.build_forbidden_write_guard_proof,
-    )
-
-
 def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
-    generated_at = _now_iso()
-    try:
-        task = _load_task(task_path)
-    except ValueError as exc:
-        return _dispatch_error(generated_at=generated_at, reason="invalid_task", detail=str(exc))
-    task_id = _text(task.get("task_id")) or "unknown_task"
-    domain_id = _text(task.get("domain_id")) or "medautoscience"
-    task_kind = _text(task.get("task_kind")) or "unknown"
-    if domain_id != "medautoscience":
-        return _dispatch_error(
-            generated_at=generated_at,
-            task_id=task_id,
-            reason="wrong_domain",
-            detail=f"MAS sidecar cannot dispatch domain {domain_id}",
-        )
-    if _forbidden_write_requested(task):
-        forbidden_requested_writes = _forbidden_requested_writes(task)
-        return _dispatch_error(
-            generated_at=generated_at,
-            task_id=task_id,
-            task_kind=task_kind,
-            reason="domain_truth_or_artifact_gate_write_forbidden",
-            forbidden_domain_truth_write=True,
-            requested_writes=opl_provider_ready_adapter.requested_writes_from_task(task),
-            forbidden_requested_writes=forbidden_requested_writes,
-        )
-    action_type = _ALLOWED_TASK_KINDS.get(task_kind)
-    if action_type is None:
-        return _dispatch_error(
-            generated_at=generated_at,
-            task_id=task_id,
-            task_kind=task_kind,
-            reason="unsupported_task_kind",
-            detail=f"Unsupported MAS sidecar task kind: {task_kind}",
-        )
-    profile, profile_ref = _profile_from_task(task)
-    payload = _mapping(task.get("payload"))
-    study_id = _text(payload.get("study_id"))
-    source_fingerprint = _text(task.get("source_fingerprint"))
-    receipt = _base_dispatch_receipt(
-        generated_at=generated_at,
-        task_id=task_id,
-        task_kind=task_kind,
-        task_path=task_path,
-        action_type=action_type,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        source_fingerprint=source_fingerprint,
-    )
-    receipt = _apply_dispatch_action(
-        receipt=receipt,
-        action_type=action_type,
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        task=task,
-    )
-    return _write_dispatch_receipt(
-        receipt=receipt,
-        profile=profile,
-        task_id=task_id,
-        source_fingerprint=source_fingerprint,
-    )
-
-
-def _dispatch_error(
-    *,
-    generated_at: str,
-    reason: str,
-    task_id: str | None = None,
-    task_kind: str | None = None,
-    detail: str | None = None,
-    forbidden_domain_truth_write: bool = False,
-    requested_writes: list[str] | None = None,
-    forbidden_requested_writes: list[str] | None = None,
-) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "surface_kind": "mas_family_sidecar_dispatch_receipt",
-        "version": "mas-family-sidecar.v1",
-        "accepted": False,
-        "generated_at": generated_at,
-        "reason": reason,
-        "forbidden_domain_truth_write": forbidden_domain_truth_write,
-        "authority_boundary": authority_boundary_payload(),
-        "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
-            result="blocked" if forbidden_domain_truth_write else "not_evaluated",
-            task_id=task_id,
-            task_kind=task_kind,
-            requested_writes=requested_writes or forbidden_requested_writes or (),
-        ),
-    }
-    if forbidden_requested_writes is not None:
-        payload["forbidden_requested_writes"] = forbidden_requested_writes
-    if task_id is not None:
-        payload["task_id"] = task_id
-    if task_kind is not None:
-        payload["task_kind"] = task_kind
-    if detail is not None:
-        payload["detail"] = detail
-    return payload
+    return _dispatch_family_sidecar_task(task_path=task_path)
