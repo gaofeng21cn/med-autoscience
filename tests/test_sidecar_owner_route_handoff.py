@@ -19,6 +19,11 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     handoff_path = study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
     runtime_state_path = profile.runtime_root / study_id / ".ds" / "runtime_state.json"
+    runtime_queue_path = profile.runtime_root / study_id / ".ds" / "user_message_queue.json"
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    controller_decisions_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    current_package_readme = study_root / "manuscript" / "current_package" / "README.md"
+    current_package_zip = study_root / "manuscript" / "current_package.zip"
     _write_json(
         runtime_state_path,
         {
@@ -31,6 +36,13 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
             "continuation_reason": "controller_work_unit_pending",
         },
     )
+    _write_json(runtime_queue_path, {"messages": ["do-not-touch"]})
+    _write_json(publication_eval_path, {"status": "ready", "body": "do-not-touch"})
+    _write_json(controller_decisions_path, {"decision_type": "continue", "body": "do-not-touch"})
+    current_package_readme.parent.mkdir(parents=True, exist_ok=True)
+    current_package_readme.write_text("do-not-touch\n", encoding="utf-8")
+    current_package_zip.parent.mkdir(parents=True, exist_ok=True)
+    current_package_zip.write_bytes(b"do-not-touch")
     _write_json(
         handoff_path,
         {
@@ -81,7 +93,52 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
     assert task["queue_owner"] == "one-person-lab"
     assert task["domain_truth_owner"] == "med-autoscience"
     assert task["opl_runtime_owner_route_handoff"]["authority_boundary"]["mas_resumes_provider_worker"] is False
+    route_contract = task["route_transition_contract"]
+    assert route_contract["route_is_stage"] is False
+    assert route_contract["queue_owner"] == "one-person-lab"
+    assert route_contract["domain_truth_owner"] == "med-autoscience"
+    assert route_contract["runtime_transition_owner"] == "one-person-lab"
+    assert "owner_route_ref" in route_contract["allowed_payload_refs"]
+    assert "runtime_event_refs" in route_contract["allowed_payload_refs"]
+    assert "artifact_body" in route_contract["forbidden_payload_refs"]
+    assert "current_package_mutation" in route_contract["forbidden_writes"]
+    assert ".ds/runtime_state.json" in route_contract["forbidden_writes"]
+    assert "runtime_queue_state" in route_contract["forbidden_writes"]
+    assert route_contract["authority_boundary"]["mas_owner_receipt_required"] is True
+    assert route_contract["authority_boundary"]["opl_writes_mas_truth"] is False
+    assert task["payload"]["route_transition_contract"] == route_contract
+
+    graph_handoff = task["stage_graph_handoff"]
+    assert graph_handoff["route_is_stage"] is False
+    assert graph_handoff["stage_graph_owner"] == "one-person-lab"
+    assert graph_handoff["domain_truth_owner"] == "med-autoscience"
+    journal_hint = graph_handoff["route_stage_graph_hints"]["journal-resolution"]
+    assert journal_hint["stage"] == "finalize_and_publication_handoff"
+    assert journal_hint["route"] == "journal-resolution"
+    assert "journal_requirements_resolution" in journal_hint["stage_graph_nodes"]
+    assert "format_delta_plan" in journal_hint["stage_graph_nodes"]
+    assert "artifact_mutation_authorization" in journal_hint["stage_graph_nodes"]
+    assert "independent_format_review" in journal_hint["stage_graph_nodes"]
+    assert "target_journal_ref" in journal_hint["allowed_handoff_refs"]
+    assert "format_requirement_refs" in journal_hint["allowed_handoff_refs"]
+    assert "artifact_body" in journal_hint["forbidden_handoff_refs"]
+    assert graph_handoff["route_stage_graph_hints"]["finalize"]["stage"] == (
+        "finalize_and_publication_handoff"
+    )
+    assert task["payload"]["stage_graph_handoff"] == graph_handoff
+
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     assert runtime_state["active_run_id"] == "run-opl-owned"
     assert runtime_state["worker_running"] is True
     assert "last_opl_runtime_owner_route_handoff" not in runtime_state
+    assert json.loads(runtime_queue_path.read_text(encoding="utf-8")) == {"messages": ["do-not-touch"]}
+    assert json.loads(publication_eval_path.read_text(encoding="utf-8")) == {
+        "status": "ready",
+        "body": "do-not-touch",
+    }
+    assert json.loads(controller_decisions_path.read_text(encoding="utf-8")) == {
+        "decision_type": "continue",
+        "body": "do-not-touch",
+    }
+    assert current_package_readme.read_text(encoding="utf-8") == "do-not-touch\n"
+    assert current_package_zip.read_bytes() == b"do-not-touch"
