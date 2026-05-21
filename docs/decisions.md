@@ -11,6 +11,7 @@
 ## 2026-05-21：fresh domain transition 必须在 runtime turn 前物化为 controller decision
 
 - 决策：当 `study_runtime_status` / `last_launch_report` 的当前路线是 `domain_transition_ai_reviewer_re_eval`，且 next work unit 是 `return_to_ai_reviewer_workflow` / `ai_reviewer_medical_prose_quality_review` 时，resume / relaunch preflight 必须先调用 MAS outer-loop 写出 non-dispatching `artifacts/controller_decisions/latest.json`，再启动 provider-backed runtime worker。
+- 决策：runtime-core auto-continue 路径也必须执行同一 currentness preflight。`CodexExecTurnRunner.start_turn` 在生成 prompt、同步 `.ds/runtime_state.json:current_controller_authorization` 前，必须先把 current AI reviewer domain transition 物化为当前 controller decision；否则自动续跑会绕过 resume / relaunch preflight，继续消费 stale gate authorization。
 - 决策：如果旧 `controller_decisions/latest.json` 仍指向 `run_gate_clearing_batch` / `publication_gate_recheck`，它不能继续成为新 turn 的 `current_controller_authorization`。worker prompt 的授权真相仍只来自 MAS controller decision；status read-model 只触发 preflight materialization，不直接授权论文质量或 package 写入。
 - 理由：DM003 暴露出 latest reviewer revision 已触发 AI reviewer re-eval read-model，但新 run 仍从 stale controller decision 吃到旧 gate-clearing authorization，导致 runtime 反复跑 gate recheck，论文质量反馈没有进入 AI reviewer workflow。
 - 影响：这是 MAS controller/currentness 修复，不是 OPL provider lifecycle 修复。OPL 仍负责 attempt、queue、retry/dead-letter 和 provider liveness；MAS 只保证医学 owner route 在每个 managed turn 前有当前 controller decision 可供 runtime worker 消费。

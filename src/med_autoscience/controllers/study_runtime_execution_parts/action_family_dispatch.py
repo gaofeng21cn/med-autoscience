@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from importlib import import_module
-import json
 from typing import Any
 
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.controllers import domain_transition_currentness
 
 from ..study_runtime_status import (
     StudyCompletionSyncResult,
@@ -141,7 +141,7 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
             "reason": "outer_loop_tick_request_unavailable",
         }
         return None
-    if not _tick_request_matches_domain_transition(
+    if not domain_transition_currentness.tick_request_matches_ai_reviewer_domain_transition(
         tick_request=tick_request,
         transition_action=transition_action,
         transition_type=transition_type,
@@ -151,11 +151,11 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
             "status": "skipped",
             "reason": "outer_loop_tick_request_did_not_match_domain_transition",
             "transition_unit_id": transition_unit_id,
-            "tick_work_unit_id": _work_unit_id_from_tick_request(tick_request),
-            "tick_controller_actions": _controller_action_types_from_tick_request(tick_request),
+            "tick_work_unit_id": domain_transition_currentness.work_unit_id_from_tick_request(tick_request),
+            "tick_controller_actions": domain_transition_currentness.controller_action_types_from_tick_request(tick_request),
         }
         return None
-    if _latest_controller_decision_matches_tick_request(
+    if domain_transition_currentness.latest_controller_decision_matches_tick_request(
         study_root=context.study_root,
         tick_request=tick_request,
     ):
@@ -201,67 +201,6 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
         "materialization": dict(materialized) if isinstance(materialized, dict) else {},
     }
     return dict(materialized) if isinstance(materialized, dict) else {}
-
-
-def _tick_request_matches_domain_transition(
-    *,
-    tick_request: dict[str, Any],
-    transition_action: str,
-    transition_type: str,
-    transition_unit_id: str,
-) -> bool:
-    tick_unit_id = _work_unit_id_from_tick_request(tick_request)
-    if tick_unit_id != transition_unit_id:
-        return False
-    if transition_action not in _controller_action_types_from_tick_request(tick_request):
-        return False
-    fingerprint = str(tick_request.get("work_unit_fingerprint") or "").strip()
-    return fingerprint == f"domain-transition::{transition_type}::{transition_unit_id}"
-
-
-def _work_unit_id_from_tick_request(tick_request: dict[str, Any]) -> str | None:
-    next_work_unit = tick_request.get("next_work_unit")
-    if not isinstance(next_work_unit, dict):
-        return None
-    text = str(next_work_unit.get("unit_id") or "").strip()
-    return text or None
-
-
-def _controller_action_types_from_tick_request(tick_request: dict[str, Any]) -> list[str]:
-    action_types: list[str] = []
-    for item in tick_request.get("controller_actions") or []:
-        if not isinstance(item, dict):
-            continue
-        action_type = str(item.get("action_type") or "").strip()
-        if action_type:
-            action_types.append(action_type)
-    return sorted(set(action_types))
-
-
-def _latest_controller_decision_matches_tick_request(
-    *,
-    study_root: Any,
-    tick_request: dict[str, Any],
-) -> bool:
-    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
-    try:
-        decision = json.loads(decision_path.read_text(encoding="utf-8"))
-    except (OSError, TypeError, ValueError):
-        return False
-    if not isinstance(decision, dict):
-        return False
-    decision_actions = _controller_action_types_from_tick_request(
-        {"controller_actions": decision.get("controller_actions")}
-    )
-    tick_actions = _controller_action_types_from_tick_request(tick_request)
-    decision_unit = decision.get("next_work_unit")
-    decision_unit_id = str(decision_unit.get("unit_id") or "").strip() if isinstance(decision_unit, dict) else ""
-    return (
-        str(decision.get("work_unit_fingerprint") or "").strip()
-        == str(tick_request.get("work_unit_fingerprint") or "").strip()
-        and decision_unit_id == (_work_unit_id_from_tick_request(tick_request) or "")
-        and decision_actions == tick_actions
-    )
 
 
 def _execute_create_runtime_decision(

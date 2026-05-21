@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import domain_transition_currentness
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import provenance_limited_harmonization_owner_result
 from med_autoscience.controllers.domain_route_scan_parts import platform_current_controller
@@ -141,6 +142,10 @@ def _sync_current_controller_authorization_for_turn(
     quest_id: str,
     run_id: str,
 ) -> dict[str, Any]:
+    currentness = _materialize_fresh_domain_transition_controller_decision_for_turn(
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
     owner_handoff_authorization = _blocked_closeout_owner_handoff_authorization(runtime_state)
     current_authorization = _current_controller_decision_authorization(
         quest_root=quest_root,
@@ -166,6 +171,8 @@ def _sync_current_controller_authorization_for_turn(
         updated["current_controller_authorization"] = authorization
         updated["current_controller_authorization_synced_at"] = _utc_now()
         updated["current_controller_authorization_sync_status"] = "downstream_hard_methodology_authorization"
+        if currentness is not None:
+            updated["current_controller_authorization_currentness"] = currentness
         _write_runtime_state(quest_root=quest_root, runtime_state=updated)
         return updated
     if owner_handoff_authorization and not _owner_handoff_authorization_is_superseded(
@@ -187,6 +194,8 @@ def _sync_current_controller_authorization_for_turn(
         updated["current_controller_authorization"] = authorization
         updated["current_controller_authorization_synced_at"] = _utc_now()
         updated["current_controller_authorization_sync_status"] = "blocked_turn_closeout_owner_handoff"
+        if currentness is not None:
+            updated["current_controller_authorization_currentness"] = currentness
         _write_runtime_state(quest_root=quest_root, runtime_state=updated)
         return updated
     if not current_authorization and owner_handoff_authorization:
@@ -224,8 +233,24 @@ def _sync_current_controller_authorization_for_turn(
     updated["quest_id"] = _text(updated.get("quest_id")) or quest_id
     updated["current_controller_authorization"] = authorization
     updated["current_controller_authorization_synced_at"] = _utc_now()
+    if currentness is not None:
+        updated["current_controller_authorization_currentness"] = currentness
     _write_runtime_state(quest_root=quest_root, runtime_state=updated)
     return updated
+
+
+def _materialize_fresh_domain_transition_controller_decision_for_turn(
+    *,
+    quest_root: Path,
+    quest_id: str,
+) -> dict[str, Any] | None:
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
+    if study_root is None:
+        return None
+    return domain_transition_currentness.materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
+        study_root=study_root,
+        source="mas_runtime_core_turn_authorization",
+    )
 
 
 def _controller_authorization(
