@@ -11,6 +11,7 @@ from med_autoscience.controllers.domain_route_scan_parts import completion_evide
 from med_autoscience.controllers.domain_route_scan_parts import current_truth_owner
 from med_autoscience.controllers.domain_route_scan_parts import evidence_adoption
 from med_autoscience.controllers.domain_route_scan_parts import hard_methodology_currentness
+from med_autoscience.controllers.domain_route_scan_parts import ai_reviewer_actions
 from med_autoscience.controllers.domain_route_scan_parts import parked_truth
 from med_autoscience.controllers.domain_route_scan_parts import runtime_facts
 
@@ -199,7 +200,11 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "artifact_os"
     if blocked_reason == "display_surface_materialization_failed":
         return "artifact_os"
-    if blocked_reason in {"ai_reviewer_assessment_required", "ai_reviewer_assessment_stale_after_reviewer_revision"}:
+    if blocked_reason in {
+        "ai_reviewer_assessment_required",
+        "ai_reviewer_assessment_stale_after_reviewer_revision",
+        ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON,
+    }:
         return "ai_reviewer"
     if blocked_reason == "domain_transition_ai_reviewer_re_eval":
         return "ai_reviewer"

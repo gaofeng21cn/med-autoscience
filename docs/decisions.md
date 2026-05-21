@@ -64,6 +64,12 @@
 - 理由：DM002 暴露的是 current work unit 没有被 OPL 通用 runtime/hydration/dispatch 消费，而不是 MAS 应继续扩写私有 runtime/status state machine。把 stopped redrive 写进 MAS status 会把 OPL 标准智能体边界退回 MAS 私有控制面。
 - 影响：MAS 可以通过 `sidecar export` 暴露 `domain_route/reconcile-apply`、paper autonomy、publication aftercare 等 pending owner-route refs，并通过 `sidecar dispatch` 回到 MAS owner callable 产出 receipt / typed blocker；MAS 不直接写 `.ds/user_message_queue.json`，不调用 generic runtime chat 作为控制器授权投递，不声明 OPL queue 或 provider attempt 已完成。
 
+## 2026-05-21：analysis harmonization completed 后必须显式交回 AI reviewer currentness
+
+- 决策：当 `analysis_harmonization_owner` 的 completed result 明确 `next_owner=ai_reviewer`、`next_work_unit=ai_reviewer_medical_prose_quality_review`，且当前 `publication_eval/latest.json` 没有 AI reviewer-owned provenance 覆盖 `analysis_harmonization/latest.json` 与 rerun evidence refs，domain-route-scan 必须排 `return_to_ai_reviewer_workflow`。
+- 理由：DM002 暴露出 unit-harmonized external-validation rerun 已完成后，旧 `publication_eval` 仍可能早于 rerun evidence，却被 parked/current-truth 投影吞掉，导致 AI reviewer 不复评新模型与 uncertainty 证据。
+- 影响：该修复只生成 AI reviewer request / owner route，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。若 AI reviewer eval 已显式引用当前 analysis result 与 rerun evidence，则不重复排队。
+
 ## 2026-05-20：新 reviewer_revision 必须使旧 AI reviewer eval 失效
 
 - 决策：若 latest task intake 是 `reviewer_revision`，且其 `emitted_at` 晚于当前 `publication_eval/latest.json`，即使当前 eval 的 `assessment_provenance.owner=ai_reviewer`，domain transition candidate 与 domain route scan 也必须把 AI reviewer assessment 标为 stale/missing，并路由到 `return_to_ai_reviewer_workflow`。
