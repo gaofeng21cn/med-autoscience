@@ -309,6 +309,17 @@ def test_default_runtime_backend_contract_makes_external_mds_archive_only() -> N
     assert contract["runtime_engine_id"] == "opl-provider-backed-stage-runtime"
     assert contract["runtime_backend_role"] == "mas_domain_owner_receipt_adapter"
     assert contract["runtime_backend_is_generic_owner"] is False
+    assert contract["default_autonomous_runtime"] == {
+        "enabled_by_default": True,
+        "hosted_runtime_owner": "one-person-lab",
+        "hosted_runtime_provider": "temporal",
+        "runtime_substrate": "opl_provider_backed_stage_runtime",
+        "persistent_online_control_plane": "opl_temporal",
+        "task_start_handoff": "mas_sidecar_or_domain_entry_to_opl_temporal_attempt",
+        "wakeup_retry_resume_owner": "one-person-lab",
+        "codex_app_outer_driver_required": False,
+        "mas_daemon_scheduler_attempt_loop_allowed": False,
+    }
     assert contract["default_runtime_backend_is_opl_provider_owned"] is True
     assert contract["delegated_domain_adapter_id"] == "mas_runtime_core"
     assert contract["delegated_domain_adapter_engine_id"] == "mas-runtime-core"

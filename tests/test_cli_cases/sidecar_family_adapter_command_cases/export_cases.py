@@ -392,6 +392,11 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert payload["provider_ready_adapter"]["provider_topology"]["provider_state"] == (
         "production_residency_proven"
     )
+    assert payload["provider_ready_adapter"]["provider_topology"]["hosted_runtime_policy"] == (
+        "default_enabled_opl_temporal_hosted_autonomy"
+    )
+    assert payload["provider_ready_adapter"]["provider_topology"]["codex_app_outer_driver_required"] is False
+    assert payload["provider_ready_adapter"]["provider_topology"]["mas_daemon_scheduler_attempt_loop_allowed"] is False
     assert availability["status"] == "available"
     assert availability["provider_attempt_available"] is True
     assert availability["proof_ref"] == str(proof_ref)
@@ -401,6 +406,17 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert managed_state["surface_kind"] == "mas_opl_managed_temporal_state_consistency"
     assert managed_state["status"] == "consistent"
     assert managed_state["provider_state"] == "production_residency_proven"
+    assert managed_state["default_autonomous_runtime"] == {
+        "enabled_by_default": True,
+        "hosted_runtime_owner": "one-person-lab",
+        "hosted_runtime_provider": "temporal",
+        "runtime_substrate": "opl_provider_backed_stage_runtime",
+        "persistent_online_control_plane": "opl_temporal",
+        "task_start_handoff": "mas_sidecar_or_domain_entry_to_opl_temporal_attempt",
+        "wakeup_retry_resume_owner": "one-person-lab",
+        "codex_app_outer_driver_required": False,
+        "mas_daemon_scheduler_attempt_loop_allowed": False,
+    }
     assert managed_state["managed_state"] == {
         "address_source": "managed_local_service_state",
         "lifecycle_status": "ready",

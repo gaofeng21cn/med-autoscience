@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from med_autoscience.runtime_backend import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
 from med_autoscience.controllers.opl_functional_closure_surfaces import (
     build_functional_closure_status_projection,
     build_lifecycle_apply_requests_surface,
@@ -169,7 +170,10 @@ def _provider_topology(*, provider_availability: Mapping[str, Any] | None = None
         "target_provider": "temporal",
         "target_provider_owner": "one-person-lab",
         "provider_state": "production_residency_proven" if provider_available else "contract_ready_skeleton",
-        "hosted_runtime_policy": "opl_explicit_opt_in_only",
+        "hosted_runtime_policy": "default_enabled_opl_temporal_hosted_autonomy",
+        "default_autonomous_runtime": dict(DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT),
+        "codex_app_outer_driver_required": False,
+        "mas_daemon_scheduler_attempt_loop_allowed": False,
         "provider_attempt_owner": OPL_OWNER,
         "domain_action_owner": DOMAIN_OWNER,
         "provider_attempt_is_truth": False,

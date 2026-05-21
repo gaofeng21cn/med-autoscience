@@ -60,9 +60,9 @@
 
 - `Med Auto Science` 对外定位为医学研究 `Foundry Agent`：独立 domain agent，负责把专病数据、研究问题、证据和论文工作收在同一条可治理研究线上。
 - MAS 也是 `built on OPL Framework` 的 `OPL-compatible package`。OPL 可以发现 MAS 的 stage descriptor、action metadata、handoff contract、receipt 和 projection；医学研究 owner 仍然是 MAS。
-- MAS 的 direct app skill path 仍是一等入口。直接调用 MAS 与经 OPL 托管 handoff，最终都回到同一套 MAS-owned stage、controller、durable truth、review 和 artifact surface。
+- MAS 的 direct app skill path 仍是一等入口。直接调用 MAS 与经 OPL 托管 handoff，最终都回到同一套 MAS-owned stage、controller、durable truth、review 和 artifact surface；进入托管路径后，任务的持久在线调度、唤醒、retry、resume 默认由 OPL/Temporal 承担，而不是 Codex App 外围持续驱动。
 - MAS 独立持有 medical research truth、quality verdict、runtime-facing owner receipt、artifact authority 和 publication authority；通用运行平台由 OPL Framework 持有，OPL Framework metadata 不替代 MAS owner surface。
-- 这次定位不新增 runtime 机制。Hermes-Agent、MedDeepScientist/MDS 和 MAS local scheduler 仍是显式 optional / provenance / diagnostic surface，不是默认公开目标。
+- 这次定位不新增 MAS-owned daemon、scheduler 或 attempt loop。Hermes-Agent、MedDeepScientist/MDS 和已退役的 MAS local scheduler 只保留为显式 optional / provenance / tombstone surface，不是默认公开目标。
 - 论文质量由 MAS 的 study charter、证据账本、审阅账本、AI reviewer、publication gate 和控制面记录共同约束；状态面板、脚本检查和历史 MDS 覆盖率只提供辅助证据。
 - 临床问题界定、结论采用和最终投稿决策由研究者与课题负责人把关。
 - 期刊投稿和外部系统交互由人工监督完成。
@@ -94,7 +94,7 @@
 - 如果你要接管或初始化一个专病 workspace，下一跳读 [Bootstrap](./bootstrap/README.md)。它说明了 workspace-first 心智模型，以及 `init-workspace -> doctor -> show-profile -> bootstrap` 这条最短接管路径。
 - 在改 runtime、入口表述或 docs 之前，把 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md) 和 [关键决策](./docs/decisions.md) 当成人工可读的 repo-tracked 真相集。
 - 当前正式 operator entry surfaces 是 `CLI`、`MCP`、`product-entry` 和 `controller`。当前执行地图放在 `docs/active/`，产品入口与运行时合同主要放在 `docs/product/` 和 `docs/runtime/`，Agent 可以直接从这些文档切入，不必先通读代码；稳定可调用面继续是本地 CLI、MCP tools、product-entry surface、controller-authorized workspace commands / scripts、durable surface 与 repo-tracked contract。
-- MAS 可以通过 Codex app skill 直接调用，也可以通过 OPL 托管调用。两条路径共同使用 MAS-owned stage、controller、durable truth 和 artifact surface；OPL framework metadata 只作为运行框架层的索引、唤醒、恢复和投影信息。
+- MAS 可以通过 Codex app skill 直接调用，也可以通过 OPL 托管调用。两条路径共同使用 MAS-owned stage、controller、durable truth 和 artifact surface；OPL/Temporal 是默认托管自治 runtime，负责持久调度、唤醒、retry、resume 和投影。
 - 如果外部 agent 需要直接读取 repo-tracked 的 MAS skill surface，用 `medautosci product skill-catalog --profile <profile> --format json`；返回的是单一 MAS app skill、底层 command contracts，以及由现有 runtime/session/progress/artifact surface 投影出的 machine-readable `runtime_continuity` envelope。
 - OPL Full online runtime 集成使用 `medautosci sidecar export --profile <profile> --format json` 和 `medautosci sidecar dispatch --task <task.json> --format json`。本地 CLI/status/manifest 可用于诊断 provider readiness；Temporal 暂不可用时，状态面应明确报告 OPL production required dependency blocker。
 

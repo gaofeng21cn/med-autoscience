@@ -9,6 +9,7 @@ from med_autoscience.controllers.domain_slo_scheduler_projection_parts.generated
     build_generated_default_caller_boundary,
     build_physical_retirement_gate_matrix,
 )
+from med_autoscience.runtime_backend import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
 
 
 TARGET_DOMAIN_ID = "medautoscience"
@@ -643,6 +644,7 @@ def build_managed_temporal_state_consistency_read_model(
         "provider_state": "production_residency_proven" if provider_available else "contract_ready_skeleton",
         "provider_availability_status": availability.get("status"),
         "proof_ref": availability.get("proof_ref"),
+        "default_autonomous_runtime": dict(DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT),
         "managed_state": {
             "address_source": runtime_snapshot.get("address_source"),
             "lifecycle_status": runtime_snapshot.get("lifecycle_status"),
@@ -703,9 +705,9 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         },
         {
             "surface_id": "workspace_local_scheduler",
-            "classification": "standalone_diagnostics_only",
+            "classification": "tombstone_provenance_only",
             "default_caller": False,
-            "retention_reason": "local_diagnostics_not_opl_hosted_runtime",
+            "retention_reason": "history_tombstone_or_explicit_offline_fixture_only",
             "replacement_ref": "/managed_temporal_state_consistency",
             "tombstone_ref": "contracts/runtime/legacy-active-path-tombstones.json",
         },
