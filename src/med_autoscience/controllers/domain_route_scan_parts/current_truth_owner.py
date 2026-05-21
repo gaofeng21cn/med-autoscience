@@ -8,6 +8,9 @@ from typing import Any
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers import provenance_limited_harmonization_owner_result
+from med_autoscience.controllers.story_surface_work_units import (
+    is_story_surface_delta_write_work_unit,
+)
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -169,7 +172,8 @@ def current_story_surface_delta_blocker_route(
     if action is None:
         return None
     next_work_unit = _mapping(action.get("next_work_unit"))
-    if _text(next_work_unit.get("unit_id")) != "manuscript_story_repair":
+    work_unit_id = _text(next_work_unit.get("unit_id"))
+    if not is_story_surface_delta_write_work_unit(work_unit_id):
         return None
     gate_batch = _mapping(batch.get("gate_clearing_batch"))
     return {
@@ -177,7 +181,7 @@ def current_story_surface_delta_blocker_route(
         "decision_id": None,
         "controller_actions": ["run_quality_repair_batch"],
         "route_target": "write",
-        "work_unit_id": "manuscript_story_repair",
+        "work_unit_id": work_unit_id,
         "work_unit_fingerprint": _text(action.get("work_unit_fingerprint"))
         or _text(gate_batch.get("work_unit_fingerprint"))
         or _text(gate_batch.get("source_work_unit_fingerprint")),
@@ -198,7 +202,7 @@ def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]
             continue
         if _text(action.get("route_target")) != "write" and _text(next_work_unit.get("lane")) != "write":
             continue
-        if _text(next_work_unit.get("unit_id")) != "manuscript_story_repair":
+        if not is_story_surface_delta_write_work_unit(_text(next_work_unit.get("unit_id"))):
             continue
         return dict(action)
     return None

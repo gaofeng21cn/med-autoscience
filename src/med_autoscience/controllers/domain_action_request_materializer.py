@@ -36,6 +36,7 @@ SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
         "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
         "canonical_paper_inputs_rehydrate_required",
+        "run_quality_repair_batch",
         "unit_harmonized_external_validation_rerun",
         "recover_transport_model_provenance",
         "methodology_reframe_route_decision",
@@ -60,6 +61,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/consumer/artifact_display_surface_materialization_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
     "studies/<study_id>/artifacts/supervision/consumer/canonical_paper_inputs_rehydrate_required.json",
+    "studies/<study_id>/artifacts/supervision/consumer/run_quality_repair_batch.json",
     "studies/<study_id>/artifacts/supervision/consumer/unit_harmonized_external_validation_rerun.json",
     "studies/<study_id>/artifacts/supervision/consumer/recover_transport_model_provenance.json",
     "studies/<study_id>/artifacts/supervision/consumer/methodology_reframe_route_decision.json",
@@ -243,6 +245,8 @@ def _request_owner_for_action_type(action_type: str) -> str:
         return "ai_reviewer"
     if action_type == "canonical_paper_inputs_rehydrate_required":
         return "write"
+    if action_type == "run_quality_repair_batch":
+        return "write"
     if action_type == "unit_harmonized_external_validation_rerun":
         return "analysis_harmonization_owner"
     if action_type == "recover_transport_model_provenance":
@@ -278,6 +282,11 @@ def _request_output_surface_for_action_type(action_type: str) -> str:
         return "artifacts/publication_eval/latest.json"
     if action_type == "canonical_paper_inputs_rehydrate_required":
         return "paper/medical_manuscript_blueprint_source.json"
+    if action_type == "run_quality_repair_batch":
+        return (
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        )
     if action_type == "unit_harmonized_external_validation_rerun":
         return (
             "unit-harmonized external-validation rerun evidence or "
@@ -312,6 +321,8 @@ def _request_packet_ref_for_action_type(action_type: str) -> str:
         return "artifacts/supervision/requests/ai_reviewer/latest.json"
     if action_type == "canonical_paper_inputs_rehydrate_required":
         return "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
+    if action_type == "run_quality_repair_batch":
+        return "artifacts/supervision/requests/quality_repair_batch/latest.json"
     if action_type == "unit_harmonized_external_validation_rerun":
         return "artifacts/supervision/requests/analysis_harmonization/latest.json"
     if action_type == "recover_transport_model_provenance":

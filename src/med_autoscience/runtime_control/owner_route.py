@@ -13,6 +13,7 @@ ROUTED_ACTION_TYPES = (
     "artifact_display_surface_materialization_required",
     "return_to_ai_reviewer_workflow",
     "canonical_paper_inputs_rehydrate_required",
+    "run_quality_repair_batch",
 )
 ALLOWED_ACTION_TYPES = (
     *ROUTED_ACTION_TYPES,

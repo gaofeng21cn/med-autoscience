@@ -14,6 +14,7 @@ from med_autoscience.runtime_protocol import runtime_lifecycle_store
 
 from . import runtime_dispatch_cost, study_runtime_router
 from .domain_owner_action_dispatch_parts import action_execution
+from .domain_owner_action_dispatch_parts import action_router
 from .domain_owner_action_dispatch_parts import controller_refresh
 from .domain_owner_action_dispatch_parts import managed_runtime_authorization
 from .domain_owner_action_dispatch_parts import managed_runtime_dispatches
@@ -40,6 +41,7 @@ SUPPORTED_ACTION_TYPES = frozenset({
     "artifact_display_surface_materialization_required",
     "return_to_ai_reviewer_workflow",
     "canonical_paper_inputs_rehydrate_required",
+    "run_quality_repair_batch",
     "unit_harmonized_external_validation_rerun",
     "recover_transport_model_provenance",
     "methodology_reframe_route_decision",
@@ -767,49 +769,17 @@ def _execute_owner_dispatch_action(
     dispatch: Mapping[str, Any],
     apply: bool,
 ) -> dict[str, Any]:
-    executors = {
-        "publication_gate_specificity_required": _execute_publication_gate_specificity,
-        "runtime_platform_repair": _execute_runtime_platform_repair,
-        "current_package_freshness_required": action_execution.execute_current_package_freshness,
-        "artifact_display_surface_materialization_required": action_execution.execute_artifact_display_materialization,
-        "return_to_ai_reviewer_workflow": _execute_ai_reviewer_workflow,
-        "canonical_paper_inputs_rehydrate_required": action_execution.execute_canonical_paper_inputs_rehydrate,
-    }
-    if action_type == "unit_harmonized_external_validation_rerun":
-        return action_execution.execute_unit_harmonized_external_validation_rerun(
-            profile=profile,
-            study_id=study_id,
-            apply=apply,
-            dispatch=dispatch,
-        )
-    if action_type == "recover_transport_model_provenance":
-        return action_execution.execute_recover_transport_model_provenance(
-            profile=profile,
-            study_id=study_id,
-            apply=apply,
-            dispatch=dispatch,
-        )
-    if action_type == "methodology_reframe_route_decision":
-        return action_execution.execute_methodology_reframe_route_decision(
-            profile=profile,
-            study_id=study_id,
-            apply=apply,
-            dispatch=dispatch,
-        )
-    if action_type == "provenance_limited_harmonization_audit":
-        return action_execution.execute_provenance_limited_harmonization_audit(
-            profile=profile,
-            study_id=study_id,
-            apply=apply,
-            dispatch=dispatch,
-        )
-    if (executor := executors.get(action_type)) is None:
-        return {
-            "execution_status": "blocked",
-            "blocked_reason": "unsupported_action_type",
-            "owner_callable_surface": None,
-        }
-    return executor(profile=profile, study_id=study_id, apply=apply)
+    return action_router.execute_owner_dispatch_action(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+        apply=apply,
+        execute_publication_gate_specificity=_execute_publication_gate_specificity,
+        execute_runtime_platform_repair=_execute_runtime_platform_repair,
+        execute_ai_reviewer_workflow=_execute_ai_reviewer_workflow,
+        quest_root_resolver=action_execution.quest_root_from_status,
+    )
 
 
 def _dispatch_execution_payload(

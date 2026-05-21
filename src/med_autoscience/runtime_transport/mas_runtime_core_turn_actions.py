@@ -3,21 +3,20 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+)
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
 QUALITY_REPAIR_BATCH_WORK_UNIT_IDS = frozenset(
     {
-        "analysis_claim_evidence_repair",
-        "figure_results_trace_repair",
-        "manuscript_story_repair",
-        "treatment_gap_reporting_repair",
+        *UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
         "submission_minimal_refresh",
         "submission_delivery_sync_closure",
         "display_reporting_contract_repair",
         "controller_owned_publication_repair",
         "local_architecture_overview_repair",
-        "medical_prose_quality_analysis_source_documentation_repair",
     }
 )
 GATE_CLEARING_BATCH_WORK_UNIT_IDS = frozenset(
