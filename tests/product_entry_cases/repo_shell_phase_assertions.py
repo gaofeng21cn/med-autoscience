@@ -335,7 +335,6 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
     assert payload["family_orchestration"]["action_graph"]["human_gates"] == [
         {
             "gate_id": "study_user_decision_gate",
-            "legacy_gate_id": "study_physician_decision_gate",
             "trigger_nodes": ["step:continue_study"],
             "blocking": True,
         },

@@ -36,6 +36,19 @@ def build_workbench_status_active_path_gates(
                 "generated_workbench_default_projected_not_physical_delete_ready"
             ),
             "domain_receipt_parity_status": "pending_domain_projection_receipt_ref_parity",
+            "latest_thinning_evidence": {
+                "status": "product_workbench_legacy_human_gate_alias_removed",
+                "removed_legacy_aliases": [
+                    "needs_physician_decision",
+                    "legacy_needs_physician_decision_field",
+                    "legacy_approval_gate_field",
+                    "study_physician_decision_gate",
+                    "study_needs_physician_decision",
+                ],
+                "retained_field": "needs_user_decision",
+                "scope": "product_entry_workspace_cockpit_workbench_projection_shell",
+                "does_not_claim_physical_delete": True,
+            },
             "active_caller_proof_refs": [
                 "physical_retirement_gate_matrix.retirement_candidates.workbench_shell",
                 "functional_module_inventory.workbench_portal_generic_shell.active_callers",

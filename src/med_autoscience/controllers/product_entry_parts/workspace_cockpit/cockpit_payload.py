@@ -137,10 +137,6 @@ def _study_item(
         progress_payload,
         study_id=study_id,
     )
-    gate_surface = dict(research_runtime_control_projection.get("research_gate_surface") or {})
-    if gate_surface.get("approval_gate_field") == "needs_user_decision":
-        gate_surface.setdefault("legacy_approval_gate_field", "needs_physician_decision")
-        research_runtime_control_projection["research_gate_surface"] = gate_surface
     return {
         "study_id": study_id,
         "truth_epoch": _non_empty_text(progress_payload.get("truth_epoch"))
@@ -251,7 +247,6 @@ def _study_item(
         "runtime_continuity": runtime_continuity,
         "production_blocker_impact": production_blocker_impact,
         "recovery_contract": recovery_contract or None,
-        "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "needs_user_decision": bool(progress_payload.get("needs_user_decision")),
         "monitoring": monitoring,
         "task_intake": task_intake or None,
@@ -455,7 +450,6 @@ def _study_projection_error_item(
             ],
         },
         "needs_user_decision": False,
-        "needs_physician_decision": False,
         "task_intake": {},
         "commands": commands,
         "projection_error": {

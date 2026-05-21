@@ -280,7 +280,7 @@ def build_product_entry_manifest(
         exit_nodes=["step:continue_study", "step:inspect_progress", "step:export_inspection_package"],
         human_gates=[
             {
-                "gate_id": "study_user_decision_gate", "legacy_gate_id": "study_physician_decision_gate",
+                "gate_id": "study_user_decision_gate",
                 "trigger_nodes": ["step:continue_study"],
                 "blocking": True,
             },

@@ -552,8 +552,8 @@ def _primary_study_attention_item(
 
 def _user_decision_attention_item(context: Mapping[str, Any], item: Mapping[str, Any]) -> dict[str, Any] | None:
     lane_id = _non_empty_text(context.get("lane_id"))
-    if lane_id not in {"user_decision_gate", "human_decision_gate"} and not (
-        item.get("needs_user_decision") or item.get("needs_physician_decision")
+    if lane_id not in {"user_decision_gate", "human_decision_gate"} and not item.get(
+        "needs_user_decision"
     ):
         return None
     return _standard_study_attention_item(context, code="study_waiting_user_decision", title_suffix="需要用户判断")

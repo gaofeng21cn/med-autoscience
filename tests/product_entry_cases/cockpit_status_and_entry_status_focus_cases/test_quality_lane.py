@@ -180,5 +180,5 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
     assert payload["attention_queue"][0]["same_line_route_truth"]["route_target"] == "analysis-campaign"
     gate_surface = payload["studies"][0]["research_runtime_control_projection"]["research_gate_surface"]
     assert gate_surface["approval_gate_field"] == "needs_user_decision"
-    assert gate_surface["legacy_approval_gate_field"] == "needs_physician_decision"
+    assert "legacy_approval_gate_field" not in gate_surface
     assert payload["operator_brief"]["current_focus"] == "当前稿面最窄的 claim-evidence 修复动作是什么？"

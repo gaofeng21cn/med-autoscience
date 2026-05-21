@@ -383,9 +383,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     assert len(payload["family_orchestration"]["action_graph"]["edges"]) == 6
     assert payload["family_orchestration"]["resume_contract"]["surface_kind"] == "launch_study"
     assert payload["family_orchestration"]["human_gates"][0]["gate_id"] == "study_user_decision_gate"
-    assert payload["family_orchestration"]["action_graph"]["human_gates"][0]["legacy_gate_id"] == (
-        "study_physician_decision_gate"
-    )
+    assert "legacy_gate_id" not in payload["family_orchestration"]["action_graph"]["human_gates"][0]
     assert payload["product_entry_manifest"]["product_entry_surface"]["shell_key"] == "product_entry_status"
     assert payload["product_entry_manifest"]["manifest_version"] == 2
     assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]

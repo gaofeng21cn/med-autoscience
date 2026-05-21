@@ -45,7 +45,6 @@ def _workspace_supervision_summary(
         "progress_fresh": 0,
         "progress_stale": 0,
         "progress_missing": 0,
-        "needs_physician_decision": 0,
         "needs_user_decision": 0,
         "auto_runtime_parked": 0,
     }
@@ -75,9 +74,8 @@ def _workspace_supervision_summary(
         elif freshness_status == "missing":
             counts["progress_missing"] += 1
 
-        if bool(item.get("needs_user_decision")) or bool(item.get("needs_physician_decision")):
+        if bool(item.get("needs_user_decision")):
             counts["needs_user_decision"] += 1
-            counts["needs_physician_decision"] += 1
 
     summary = (
         f"{counts['total']} 个 study；"
@@ -554,4 +552,3 @@ def _mainline_snapshot() -> dict[str, Any]:
         "single_project_boundary": single_project_boundary,
         "capability_owner_boundary": capability_owner_boundary,
     }
-

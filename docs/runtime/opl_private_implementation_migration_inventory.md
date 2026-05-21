@@ -84,6 +84,12 @@ MAS 的 OPL 标准智能体目标态是：
 | `workbench_sidecar_status_retirement` | Product-entry/workspace cockpit/sidecar/status still provide direct MAS path, OPL handoff input or diagnostic read model. | OPL generated product/status/workbench shell is default/production caller; MAS retains only domain handler target, receipt signer, typed blocker and authority refs. | product-entry manifest/status tests, sidecar export/dispatch tests, App/workbench drilldown evidence. |
 | `legacy_cleanup_physical_retirement` | Local LaunchAgent scheduler and workspace-local watch wrappers are tombstone/provenance only. | No compatibility alias, wrapper or active diagnostic bridge reintroduced; old refs stay history/tombstone only. | legacy tombstone contract, domain SLO scheduler projection tests, stale surface scan. |
 
+## 2026-05-21 product/workbench wrapper alias cleanup
+
+本轮最小真实清理只作用于 product-entry / workspace cockpit / workbench projection shell：移除 `needs_physician_decision`、`legacy_needs_physician_decision_field`、`legacy_approval_gate_field`、`study_physician_decision_gate` 和 `study_needs_physician_decision` 这组旧 human-gate alias 的 product/workbench 输出与 fallback 消费，保留 `needs_user_decision` 作为唯一 product/workbench human-gate 字段。
+
+该清理属于 `workbench_shell_domain_projection_refs` 的 wrapper/facade thinning evidence：它减少 MAS 私有 generic workbench/status 包装面里的兼容别名，但不删除 `product_entry_parts/workspace_cockpit/`、Progress Portal、sidecar adapter 或 status projection，也不改变 `study_runtime_status`、publication verdict、artifact authority、controller decision 或任何真实 workspace artifact。
+
 ## 禁止误写
 
 - 不把 `active_private_generic_residue_count=0`、classification closed、descriptor ready、OPL cleanup ledger ready 或 production acceptance receipt 写成物理源码清零。
