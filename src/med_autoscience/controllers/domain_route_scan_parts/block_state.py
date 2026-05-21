@@ -216,6 +216,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "ai_reviewer"
     if blocked_reason == "canonical_paper_inputs_rehydrate_required":
         return "write"
+    if blocked_reason == "manuscript_story_surface_delta_missing":
+        return "write"
     if blocked_reason == "unit_harmonized_rerun_required":
         return "analysis_harmonization_owner"
     if blocked_reason == "methodology_reframe_required":

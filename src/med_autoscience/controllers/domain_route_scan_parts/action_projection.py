@@ -20,6 +20,7 @@ from med_autoscience.controllers.domain_route_scan_parts import hard_methodology
 from med_autoscience.controllers.domain_route_scan_parts import methodology_reframe_actions
 from med_autoscience.controllers.domain_route_scan_parts import parked_truth
 from med_autoscience.controllers.domain_route_scan_parts import runtime_facts
+from med_autoscience.controllers.domain_route_scan_parts import story_surface_delta_actions
 
 
 def action_queue(
@@ -186,6 +187,21 @@ def action_queue(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=ai_reviewer_freshness_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    story_surface_action = story_surface_delta_actions.write_owner_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if story_surface_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=story_surface_action,
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,
@@ -876,6 +892,7 @@ def blocked_reason_from_scan(
             "current_package_freshness_required",
             "return_to_ai_reviewer_workflow",
             "canonical_paper_inputs_rehydrate_required",
+            "run_quality_repair_batch",
             "unit_harmonized_external_validation_rerun",
             "recover_transport_model_provenance",
             "methodology_reframe_route_decision",

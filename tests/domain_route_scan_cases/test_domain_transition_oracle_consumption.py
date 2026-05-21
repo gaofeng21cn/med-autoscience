@@ -299,6 +299,130 @@ def test_scan_projects_runtime_redrive_domain_transition_and_owner_action(monkey
     assert study["next_owner"] == "analysis_harmonization_owner"
 
 
+def test_scan_story_surface_blocker_overrides_stale_ai_reviewer_lifecycle(monkeypatch, tmp_path: Path) -> None:
+    scan = __import__("med_autoscience.controllers.domain_route_scan", fromlist=["domain_route_scan"])
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    eval_id = f"publication-eval::{study_id}::current-ai-reviewer"
+    batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    batch_path.parent.mkdir(parents=True)
+    batch_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "blocked",
+                "source_eval_id": eval_id,
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "next_owner": "write",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "owner": "write",
+            "controller_action": "ensure_study_runtime",
+            "next_work_unit": {
+                "unit_id": "dm002_same_line_publication_paper_repair",
+                "lane": "write",
+                "summary": "Controller-authorized paper repair and package rebuild from latest evidence.",
+            },
+            "guard_boundary": {"opl_generic_runner_may_resume": False},
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002-story-surface",
+            "source_signature": "truth-source-dm002-story-surface",
+        },
+    }
+    progress_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_runtime_supervision_gap",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "surface": "ai_repair_lifecycle",
+            "schema_version": 1,
+            "state": "blocked",
+            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
+            "next_owner": "ai_reviewer",
+            "authority": "observability_only",
+            "external_supervisor_required": False,
+            "top_action": {
+                "action_type": "controller_repair",
+                "owner": "mas_controller",
+                "repair_kind": "bounded_work_unit_redrive",
+                "auto_apply_allowed": True,
+            },
+        },
+    }
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "ai_reviewer"},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                    "summary": "Repair medical journal prose quality against the current story surface.",
+                },
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["run_quality_repair_batch"]
+    assert [item["action_type"] for item in result["action_queue"]] == ["run_quality_repair_batch"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "write"
+    assert action["reason"] == "manuscript_story_surface_delta_missing"
+    assert action["next_work_unit"] == "medical_prose_write_repair"
+    assert action["controller_route"]["authorization_basis"] == "quality_repair_story_surface_delta_blocker"
+    assert study["owner_route"]["next_owner"] == "write"
+    assert study["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
+    assert study["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert study["next_owner"] == "write"
+
+
 def test_apply_runtime_platform_repair_does_not_redrive_terminal_domain_transition(
     monkeypatch,
     tmp_path: Path,
