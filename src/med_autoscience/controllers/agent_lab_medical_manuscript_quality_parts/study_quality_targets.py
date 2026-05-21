@@ -78,6 +78,7 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
             "reference-and-journal-style",
             "claim-evidence-alignment-without-runtime-language",
             "route-back-for-method-or-data-errors",
+            "medical-prose-write-repair-story-surface-delta",
         ],
         "targets": [
             {
@@ -157,6 +158,15 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
                     "errors to the matching study owner before prose polish or package refresh"
                 ),
                 "route_target": "controller",
+            },
+            {
+                "target_id": "medical_prose_write_repair_requires_story_surface_delta",
+                "requirement": (
+                    "medical_prose_write_repair and manuscript-story repairs must produce a canonical "
+                    "paper/draft.md or paper/build/review_manuscript.md delta; ledger-only repair evidence "
+                    "with manuscript_story_surface_delta_missing remains a typed blocker"
+                ),
+                "route_target": "write",
             },
             *_shared_manuscript_quality_targets(),
         ],

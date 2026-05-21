@@ -219,6 +219,83 @@ def test_sidecar_dispatch_routes_quality_repair_batch_callable_inside_mas_owner(
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        evidence = {
+            "surface": "repair_execution_evidence",
+            "status": "blocked",
+            "progress_delta_candidate": False,
+            "blockers": ["manuscript_story_surface_delta_missing"],
+            "canonical_artifact_delta": {
+                "status": "blocked",
+                "meaningful_artifact_delta": False,
+            },
+            "manuscript_surface_hygiene": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+                "story_surface_delta_required": True,
+                "story_surface_delta_present": False,
+            },
+        }
+        _write_json(evidence_path, evidence)
+        return {
+            "ok": True,
+            "status": "blocked",
+            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+            "repair_execution_evidence": evidence,
+            "repair_execution_evidence_path": str(evidence_path),
+        }
+
+    monkeypatch.setattr(adapter.paper_repair_executor.quality_repair_batch, "run_quality_repair_batch", fake_run_quality_repair_batch)
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "paper-task-quality-batch-blocked",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/repair-recheck",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "repair_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "work_unit_type": "text_repair",
+                    "owner": "quality_repair_batch",
+                    "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                    "source_fingerprint": "sha256:medical-prose-write-repair",
+                    "source_refs": ["artifacts/publication_eval/latest.json"],
+                    "gate_replay_target": "publication_eval/latest.json",
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["accepted"] is False
+    assert payload["reason"] == "manuscript_story_surface_delta_missing"
+    paper_receipt = payload["dispatch"]["result"]
+    assert paper_receipt["accepted"] is False
+    assert paper_receipt["execution_status"] == "blocked"
+    assert paper_receipt["typed_blocker"] == "manuscript_story_surface_delta_missing"
+    assert paper_receipt["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
+
+
 def test_sidecar_dispatch_prefers_runtime_binding_quest_id_for_quality_repair_batch_callable(
     monkeypatch,
     tmp_path: Path,
