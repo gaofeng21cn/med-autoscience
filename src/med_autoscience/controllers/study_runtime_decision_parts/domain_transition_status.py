@@ -72,6 +72,7 @@ def _record_interaction_arbitration_if_required(
         and not _is_controller_owned_finalize_parking(status)
         and stopped_recovery_context is None
         and stopped_redrive_arbitration is None
+        and status.quest_status is not StudyRuntimeQuestStatus.PAUSED
     ):
         return
     if stopped_redrive_arbitration is not None:
@@ -112,9 +113,12 @@ def _domain_transition_runtime_redrive_reason(status: StudyRuntimeStatus) -> Stu
     status.record_interaction_arbitration(arbitration)
     reason_code = str(arbitration.get("reason_code") or "").strip()
     try:
-        return StudyRuntimeReason(reason_code)
+        reason = StudyRuntimeReason(reason_code)
     except ValueError:
-        return StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+        reason = StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+    if reason is StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE:
+        return StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+    return reason
 
 
 def _publication_gate_domain_redrive_reason(status: StudyRuntimeStatus) -> StudyRuntimeReason | None:
@@ -287,6 +291,11 @@ def _apply_domain_transition_redrive_decision(
                 if running_quest
                 else StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME
             ),
+        )
+    elif reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            reason,
         )
     elif execution.get("auto_resume") is True:
         status.set_decision(

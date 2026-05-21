@@ -12,6 +12,27 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _assert_owner_route_required(
+    *,
+    apply_result: dict,
+    ensure_calls: list[dict[str, object]],
+    quest_root: Path,
+    expected_reason: str,
+) -> dict:
+    assert ensure_calls == []
+    assert apply_result["dispatch_status"] == "owner_route_required"
+    assert apply_result["reason"] == expected_reason
+    assert apply_result["queue_owner"] == "one-person-lab"
+    assert apply_result["authority_boundary"]["mas_resumes_provider_worker"] is False
+    assert apply_result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
+    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
+    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    return runtime_state
+
+
 def test_scan_domain_routes_dispatches_external_supervisor_repair_after_repeated_block(
     monkeypatch,
     tmp_path: Path,
@@ -234,16 +255,21 @@ def test_scan_domain_routes_applies_external_supervisor_redrive_when_specificity
         persist_surfaces=False,
     )
 
-    assert len(ensure_calls) == 1
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = _assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="stale_specificity_terminal_targets_resolved",
+    )
     assert apply_result["reason"] == "stale_specificity_terminal_targets_resolved"
     assert apply_result["stale_specificity_cleared"] is True
     assert apply_result["existing_pending_user_message_resume"]["marked"] is True
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
     assert apply_result["gate_status"]["ready"] is False
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-obesity-recovered"
+    assert "blocked_turn_closeout" not in runtime_state
+    assert runtime_state["pending_user_message_count"] == 2
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 
@@ -366,12 +392,17 @@ def test_scan_domain_routes_redrives_half_repaired_pending_queue_with_stale_clos
         persist_surfaces=False,
     )
 
-    assert len(ensure_calls) == 1
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = _assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="stale_blocked_turn_closeout_pending_queue_redrive",
+    )
     assert apply_result["reason"] == "stale_blocked_turn_closeout_pending_queue_redrive"
     assert apply_result["existing_pending_user_message_resume"]["marked"] is True
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
+    assert "blocked_turn_closeout" not in runtime_state
 
 
 def _write_previous_scan(workspace_root: Path, *, study_id: str) -> None:

@@ -13,10 +13,9 @@ from med_autoscience.controllers import study_domain_transition_guard as domain_
 from med_autoscience.controllers.domain_route_scan_parts import platform_repair_closeout_redrive
 from med_autoscience.controllers.domain_route_scan_parts import platform_repair_domain_transition
 from med_autoscience.controllers.domain_route_scan_parts import platform_repair_owner_handoff_redrive
+from med_autoscience.controllers.domain_route_scan_parts import platform_repair_owner_route
 from med_autoscience.controllers.domain_route_scan_parts import platform_repair_pending_redrive
-from med_autoscience.controllers.domain_route_scan_parts import platform_repair_postcondition
 from med_autoscience.controllers.domain_route_scan_parts import runtime_facts
-from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
 from .platform_repair_lifecycle import (
@@ -105,6 +104,35 @@ def _runtime_state_path(quest_root: str | None) -> Path | None:
     return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
 
 
+def _opl_runtime_owner_route_apply_result(
+    *,
+    base: Mapping[str, Any],
+    study_id: str,
+    quest_id: str | None,
+    runtime_state_path: Path,
+    reason: str,
+    repair_kind: str,
+    authorization: Mapping[str, Any] | None = None,
+    authorization_written: bool | None = None,
+    extra: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return platform_repair_owner_route.apply_result(
+        base=base,
+        study_id=study_id,
+        quest_id=quest_id,
+        runtime_state_path=runtime_state_path,
+        reason=reason,
+        repair_kind=repair_kind,
+        authorization=authorization,
+        authorization_written=authorization_written,
+        extra=extra,
+    )
+
+
+def _owner_route_reason_for_repair(repair_kind: str) -> str:
+    return platform_repair_owner_route.owner_route_reason_for_repair(repair_kind)
+
+
 
 
 
@@ -113,72 +141,24 @@ def _apply_abnormal_stopped_runtime_repair(
     profile: WorkspaceProfile,
     study_id: str,
     study_root: Path,
+    runtime_state_path: Path,
+    quest_id: str | None,
     base: Mapping[str, Any],
     repair_kind: str,
     controller_authorization: Mapping[str, Any] | None = None,
     force_fresh_turn: bool = False,
 ) -> dict[str, Any]:
-    allow_stopped_relaunch = repair_kind in {
-        "abnormal_stopped_runtime_relaunch",
-        "failed_non_resumable_relaunch",
-    }
-    try:
-        restart_result = None
-        if force_fresh_turn:
-            restart_result = _force_fresh_runtime_turn(
-                profile=profile,
-                study_id=study_id,
-                study_root=study_root,
-                repair_kind=repair_kind,
-            )
-            if restart_result.get("forced") is not True:
-                return {
-                    **dict(base),
-                    "dispatch_status": "blocked",
-                    "reason": _text(restart_result.get("reason")) or "runtime_redrive_force_restart_failed",
-                    "repair_kind": repair_kind,
-                    "force_fresh_turn": restart_result,
-                }
-        resume_result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            allow_stopped_relaunch=allow_stopped_relaunch,
-            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
-        )
-    except Exception as exc:
-        return {
-            **dict(base),
-            "dispatch_status": "blocked",
-            "reason": "abnormal_stopped_runtime_relaunch_failed",
-            "repair_kind": repair_kind,
-            "error": str(exc),
-        }
-    resume_payload = dict(resume_result) if isinstance(resume_result, Mapping) else {}
-    postcondition_failure = platform_repair_postcondition.runtime_relaunch_postcondition_failure(
-        resume_payload,
-        controller_authorization=controller_authorization,
+    _ = (profile, study_root, force_fresh_turn)
+    return _opl_runtime_owner_route_apply_result(
+        base=base,
+        study_id=study_id,
+        quest_id=quest_id,
+        runtime_state_path=runtime_state_path,
+        reason=_owner_route_reason_for_repair(repair_kind),
+        repair_kind=repair_kind,
+        authorization=controller_authorization,
+        authorization_written=controller_authorization is not None,
     )
-    if postcondition_failure is not None:
-        return {
-            **dict(base),
-            "dispatch_status": "blocked",
-            "reason": _text(postcondition_failure.get("reason")),
-            "repair_kind": repair_kind,
-            "resume_result": resume_payload,
-            "resume_postcondition": postcondition_failure.get("resume_postcondition"),
-            "force_fresh_turn": restart_result,
-        }
-    result = {
-        **dict(base),
-        "dispatch_status": "applied",
-        "reason": "abnormal_stopped_runtime_relaunch_requested",
-        "repair_kind": repair_kind,
-        "resume_result": resume_payload,
-    }
-    if restart_result is not None:
-        result["force_fresh_turn"] = restart_result
-    return result
 
 
 def _force_fresh_runtime_turn(
@@ -188,25 +168,12 @@ def _force_fresh_runtime_turn(
     study_root: Path,
     repair_kind: str,
 ) -> dict[str, Any]:
-    try:
-        pause_result = study_runtime_router.pause_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
-        )
-    except Exception as exc:
-        return {
-            "forced": False,
-            "reason": "runtime_redrive_pause_failed",
-            "repair_kind": repair_kind,
-            "error": str(exc),
-        }
+    _ = (profile, study_id, study_root)
     return {
-        "forced": True,
-        "reason": "live_activity_timeout_force_fresh_turn",
+        "forced": False,
+        "reason": "opl_runtime_owner_route_required",
         "repair_kind": repair_kind,
-        "pause_result": dict(pause_result) if isinstance(pause_result, Mapping) else pause_result,
+        "queue_owner": "one-person-lab",
     }
 
 
@@ -246,14 +213,26 @@ def _apply_current_controller_runtime_redrive(
                     "current_controller_authorization": authorization,
                     "existing_pending_user_message_resume": pending_resume,
                 }
-            apply_result = _apply_abnormal_stopped_runtime_repair(
-                profile=profile,
-                study_id=study_id,
-                study_root=study_root,
+            apply_result = _opl_runtime_owner_route_apply_result(
                 base=base,
+                study_id=study_id,
+                quest_id=quest_id,
+                runtime_state_path=runtime_state_path,
+                reason=_owner_route_reason_for_repair(repair_kind),
                 repair_kind=repair_kind,
-                controller_authorization=None,
-                force_fresh_turn=force_fresh_turn,
+                authorization=None,
+                authorization_written=False,
+                extra={
+                    "existing_pending_user_message_resume": pending_resume,
+                    "force_fresh_turn": _force_fresh_runtime_turn(
+                        profile=profile,
+                        study_id=study_id,
+                        study_root=study_root,
+                        repair_kind=repair_kind,
+                    )
+                    if force_fresh_turn
+                    else None,
+                },
             )
             return {
                 **apply_result,
@@ -268,14 +247,25 @@ def _apply_current_controller_runtime_redrive(
             "repair_kind": repair_kind,
             "current_controller_authorization": authorization,
         }
-    apply_result = _apply_abnormal_stopped_runtime_repair(
-        profile=profile,
-        study_id=study_id,
-        study_root=study_root,
+    apply_result = _opl_runtime_owner_route_apply_result(
         base=base,
+        study_id=study_id,
+        quest_id=quest_id,
+        runtime_state_path=runtime_state_path,
+        reason=_owner_route_reason_for_repair(repair_kind),
         repair_kind=repair_kind,
-        controller_authorization=authorization,
-        force_fresh_turn=force_fresh_turn,
+        authorization=authorization,
+        authorization_written=authorization is not None and authorization.get("written") is True,
+        extra={
+            "force_fresh_turn": _force_fresh_runtime_turn(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                repair_kind=repair_kind,
+            )
+            if force_fresh_turn
+            else None,
+        },
     )
     if authorization is not None:
         return {
@@ -439,48 +429,16 @@ def _apply_pending_runtime_platform_repair_redrive(
             "current_controller_authorization": authorization,
             "current_controller_authorization_written": False,
         }
-    try:
-        resume_result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
-        )
-    except Exception as exc:
-        return {
-            **dict(base),
-            "dispatch_status": "blocked",
-            "reason": "resume_after_platform_repair_failed",
-            "repair_kind": "pending_runtime_platform_repair_redrive",
-            "error": str(exc),
-            "current_controller_authorization": authorization,
-            "current_controller_authorization_written": True,
-        }
-    resume_payload = dict(resume_result) if isinstance(resume_result, Mapping) else {}
-    postcondition_failure = platform_repair_postcondition.runtime_relaunch_postcondition_failure(
-        resume_payload,
-        controller_authorization=authorization,
+    return _opl_runtime_owner_route_apply_result(
+        base=base,
+        study_id=study_id,
+        quest_id=quest_id,
+        runtime_state_path=runtime_state_path,
+        reason=current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON,
+        repair_kind="pending_runtime_platform_repair_redrive",
+        authorization=authorization,
+        authorization_written=True,
     )
-    if postcondition_failure is not None:
-        return {
-            **dict(base),
-            "dispatch_status": "blocked",
-            "reason": _text(postcondition_failure.get("reason")),
-            "repair_kind": "pending_runtime_platform_repair_redrive",
-            "current_controller_authorization": authorization,
-            "current_controller_authorization_written": True,
-            "resume_result": resume_payload,
-            "resume_postcondition": postcondition_failure.get("resume_postcondition"),
-        }
-    return {
-        **dict(base),
-        "dispatch_status": "applied",
-        "reason": "runtime_platform_repair_redrive_pending_authorization",
-        "repair_kind": "pending_runtime_platform_repair_redrive",
-        "current_controller_authorization": authorization,
-        "current_controller_authorization_written": True,
-        "resume_result": resume_payload,
-    }
 
 
 def _apply_controller_work_unit_pending_redrive(
@@ -488,30 +446,19 @@ def _apply_controller_work_unit_pending_redrive(
     profile: WorkspaceProfile,
     study_id: str,
     study_root: Path,
+    runtime_state_path: Path,
+    quest_id: str | None,
     base: Mapping[str, Any],
 ) -> dict[str, Any]:
-    try:
-        resume_result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
-        )
-    except Exception as exc:
-        return {
-            **dict(base),
-            "dispatch_status": "blocked",
-            "reason": "resume_after_controller_work_unit_redrive_failed",
-            "repair_kind": "controller_work_unit_pending_redrive",
-            "error": str(exc),
-        }
-    return {
-        **dict(base),
-        "dispatch_status": "applied",
-        "reason": "controller_work_unit_pending_redrive",
-        "repair_kind": "controller_work_unit_pending_redrive",
-        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
-    }
+    _ = (profile, study_root)
+    return _opl_runtime_owner_route_apply_result(
+        base=base,
+        study_id=study_id,
+        quest_id=quest_id,
+        runtime_state_path=runtime_state_path,
+        reason=current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON,
+        repair_kind="controller_work_unit_pending_redrive",
+    )
 
 
 def _publication_gate_ready_for_specificity_redrive(quest_root: str | None) -> dict[str, Any]:
@@ -751,6 +698,8 @@ def apply_runtime_platform_repair(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
+            runtime_state_path=runtime_path,
+            quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
             base=base,
         )
     if _runtime_platform_repair_redrive_pending(runtime_state):
@@ -797,30 +746,18 @@ def apply_runtime_platform_repair(
                 "existing_pending_user_message_resume": pending_resume,
                 "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
             }
-        try:
-            resume_result = study_runtime_router.ensure_study_runtime(
-                profile=profile,
-                study_id=study_id,
-                study_root=study_root,
-                source=RUNTIME_PLATFORM_REPAIR_SOURCE,
-            )
-        except Exception as exc:
-            return {
-                **base,
-                "dispatch_status": "blocked",
-                "reason": "resume_after_platform_repair_failed",
-                "error": str(exc),
+        return _opl_runtime_owner_route_apply_result(
+            base=base,
+            study_id=study_id,
+            quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+            runtime_state_path=runtime_path,
+            reason="stale_blocked_turn_closeout_pending_queue_redrive",
+            repair_kind="pending_user_message_redrive",
+            extra={
                 "existing_pending_user_message_resume": pending_resume,
                 "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
-            }
-        return {
-            **base,
-            "dispatch_status": "applied",
-            "reason": "stale_blocked_turn_closeout_pending_queue_redrive",
-            "existing_pending_user_message_resume": pending_resume,
-            "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
-            "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
-        }
+            },
+        )
     if runtime_facts.live_activity_timeout_current_controller_redrive_required(status, progress):
         return _apply_live_activity_timeout_current_controller_redrive(
             profile=profile,
@@ -950,42 +887,27 @@ def apply_runtime_platform_repair(
                 "existing_pending_user_message_resume": pending_resume,
                 "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
             }
-    try:
-        resume_result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
-        )
-    except Exception as exc:
-        return {
-            **base,
-            "dispatch_status": "blocked",
-            "reason": "resume_after_platform_repair_failed",
-            "error": str(exc),
+    apply_reason = (
+            "stale_specificity_terminal_targets_resolved"
+            if _text(supersession.get("reason")) == "publication_eval_specificity_targets_complete"
+            else "stale_specificity_terminal_gate_cleared"
+    )
+    return _opl_runtime_owner_route_apply_result(
+        base=base,
+        study_id=study_id,
+        quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+        runtime_state_path=runtime_path,
+        reason=apply_reason,
+        repair_kind="stale_specificity_terminal_gate_redrive",
+        extra={
             "controller_supersession": supersession,
             "gate_status": gate_status,
             "stale_specificity_clear": clear_result,
             "stale_specificity_cleared": True,
             "existing_pending_user_message_resume": pending_resume,
             "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
-        }
-    return {
-        **base,
-        "dispatch_status": "applied",
-        "reason": (
-            "stale_specificity_terminal_targets_resolved"
-            if _text(supersession.get("reason")) == "publication_eval_specificity_targets_complete"
-            else "stale_specificity_terminal_gate_cleared"
-        ),
-        "controller_supersession": supersession,
-        "gate_status": gate_status,
-        "stale_specificity_clear": clear_result,
-        "stale_specificity_cleared": True,
-        "existing_pending_user_message_resume": pending_resume,
-        "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
-        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
-    }
+        },
+    )
 
 
 __all__ = [

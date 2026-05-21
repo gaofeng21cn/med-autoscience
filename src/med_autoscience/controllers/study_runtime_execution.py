@@ -33,7 +33,6 @@ from .study_runtime_status import (
     StudyCompletionSyncResult,
     StudyRuntimeAnalysisBundleResult,
     StudyRuntimeBindingAction,
-    StudyRuntimeContinuationState,
     StudyRuntimeDaemonStep,
     StudyRuntimeDecision,
     StudyRuntimeInteractionArbitration,
@@ -189,6 +188,25 @@ def _enable_explicit_user_wakeup_if_requested(
 ) -> None:
     if (
         status.decision is StudyRuntimeDecision.BLOCKED
+        and status.reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+        and status.quest_status is StudyRuntimeQuestStatus.WAITING_FOR_USER
+    ):
+        wakeup_record = _record_explicit_user_wakeup_projection(status=status, context=context)
+        if wakeup_record is None:
+            _record_opl_runtime_owner_route_handoff_projection(
+                status=status,
+                wakeup_record={
+                    "runtime_state_path": str(context.quest_root / ".ds" / "runtime_state.json"),
+                    "source": context.source,
+                },
+            )
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+        )
+        return
+    if (
+        status.decision is StudyRuntimeDecision.BLOCKED
         and status.reason is StudyRuntimeReason.QUEST_WAITING_FOR_USER
         and status.quest_status is StudyRuntimeQuestStatus.WAITING_FOR_USER
     ):
@@ -208,8 +226,8 @@ def _enable_explicit_user_wakeup_if_requested(
         if wakeup_record is None:
             return
         status.set_decision(
-            StudyRuntimeDecision.RESUME,
-            StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
         )
         return
     if (
@@ -234,8 +252,8 @@ def _enable_explicit_user_wakeup_if_requested(
         if wakeup_record is None:
             return
         status.set_decision(
-            StudyRuntimeDecision.RESUME,
-            StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
         )
         return
     if (
@@ -258,6 +276,10 @@ def _enable_explicit_user_wakeup_if_requested(
         wakeup_record = _record_explicit_user_wakeup_projection(status=status, context=context)
         if wakeup_record is None:
             return
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+        )
         return
     if (
         status.decision is StudyRuntimeDecision.BLOCKED
@@ -283,6 +305,16 @@ def _enable_explicit_user_wakeup_if_requested(
         if wakeup_record is None:
             return
         status._record_dict_extra("explicit_user_wakeup", wakeup_record)
+        if wakeup_record.get("handoff_kind") == "opl_runtime_owner_route":
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+            )
+            _record_opl_runtime_owner_route_handoff_projection(
+                status=status,
+                wakeup_record=wakeup_record,
+            )
+            return
         status.set_decision(
             StudyRuntimeDecision.RELAUNCH_STOPPED,
             StudyRuntimeReason.QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED,
@@ -341,7 +373,7 @@ def _record_explicit_user_wakeup_projection(
     if wakeup_record is None:
         return None
     status._record_dict_extra("explicit_user_wakeup", wakeup_record)
-    _record_platform_repair_decision_redrive_status_projection(
+    _record_opl_runtime_owner_route_handoff_projection(
         status=status,
         wakeup_record=wakeup_record,
     )
@@ -369,7 +401,7 @@ def _explicit_wakeup_can_release_submission_metadata_projection(
     return False
 
 
-def _record_platform_repair_decision_redrive_status_projection(
+def _record_opl_runtime_owner_route_handoff_projection(
     *,
     status: StudyRuntimeStatus,
     wakeup_record: dict[str, Any],
@@ -383,39 +415,41 @@ def _record_platform_repair_decision_redrive_status_projection(
     runtime_state_path = str(wakeup_record.get("runtime_state_path") or "").strip()
     if not runtime_state_path:
         return
-    status.record_continuation_state(
-        StudyRuntimeContinuationState.from_payload(
-            {
-                "quest_status": StudyRuntimeQuestStatus.WAITING_FOR_USER.value,
-                "active_run_id": None,
-                "continuation_policy": "auto",
-                "continuation_anchor": "decision",
-                "continuation_reason": "runtime_platform_repair_redrive",
-                "pending_user_message_count": pending_user_message_count,
-                "runtime_state_path": runtime_state_path,
-            }
-        )
-    )
-    status.extras.pop("blocked_turn_closeout", None)
     status.record_interaction_arbitration(
         StudyRuntimeInteractionArbitration.from_payload(
             {
-                "classification": "platform_repair_decision_redrive",
-                "action": "resume",
-                "reason_code": "runtime_platform_repair_decision_redrive",
+                "classification": "opl_runtime_owner_route_handoff",
+                "action": "block",
+                "reason_code": StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE.value,
                 "requires_user_input": False,
                 "valid_blocking": False,
-                "kind": "runtime_platform_repair",
+                "kind": "opl_runtime_owner_route",
                 "decision_type": None,
                 "source_artifact_path": None,
                 "pending_user_message_count": pending_user_message_count,
                 "controller_stage_note": (
-                    "Explicit user wakeup cleared a stale controller-owned wait state and marked the "
-                    "controller decision lane for managed runtime redrive."
+                    "Explicit user wakeup surfaced a stale controller-owned wait state for the OPL runtime "
+                    "owner; MAS does not enqueue runtime chat or perform provider redrive."
                 ),
             }
         )
     )
+    status.extras["opl_runtime_owner_route_handoff"] = {
+        "surface_kind": "mas_runtime_owner_route_handoff",
+        "domain_truth_owner": "med-autoscience",
+        "queue_owner": "one-person-lab",
+        "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "reason": StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE.value,
+        "runtime_state_path": runtime_state_path,
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
 
 
 def _build_context_create_payload(context: StudyRuntimeExecutionContext) -> dict[str, Any]:

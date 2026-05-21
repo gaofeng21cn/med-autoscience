@@ -37,6 +37,7 @@ def _refresh_runtime_supervision_from_status_if_needed(
     refreshable_runtime_supervision = bool(
         runtime_facts["strict_live"]
         or runtime_reason == "quest_stopped_requires_explicit_rerun"
+        or runtime_reason == "quest_waiting_opl_runtime_owner_route"
         or (
             quest_status in {"running", "active"}
             and runtime_supervision_controller.needs_recovery_projection(

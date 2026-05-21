@@ -95,19 +95,12 @@ def test_waiting_platform_repair_redrive_resumes_after_explicit_user_wakeup(
         + "\n",
     )
     _patch_ready_workspace(monkeypatch, module, study_id=study_id)
-    calls: list[str] = []
-    monkeypatch.setattr(
-        _managed_runtime_transport(module),
-        "update_quest_startup_context",
-        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
-        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
-        raising=False,
-    )
     monkeypatch.setattr(
         module,
         "_resume_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
-        or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-explicit"}},
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("OPL runtime owner route handoff must not call resume_quest")
+        ),
     )
 
     result = module.ensure_study_runtime(
@@ -117,17 +110,19 @@ def test_waiting_platform_repair_redrive_resumes_after_explicit_user_wakeup(
         source="user_explicit_wakeup",
     )
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
-    assert result["quest_status"] == "running"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "waiting_for_user"
     assert result["explicit_user_wakeup"]["status"] == "recorded"
     assert result["explicit_user_wakeup"]["cleared_platform_repair_redrive"] is True
-    assert result["interaction_arbitration"]["classification"] == "platform_repair_decision_redrive"
-    assert calls == ["sync_context", "resume"]
+    assert result["interaction_arbitration"]["classification"] == "opl_runtime_owner_route_handoff"
+    assert result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
     assert runtime_state["last_explicit_user_wakeup"]["cleared_platform_repair_redrive"] is True
+    assert runtime_state["last_explicit_user_wakeup"]["handoff_kind"] == "opl_runtime_owner_route"
+    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
     assert runtime_state["pending_user_message_count"] == 1
-    assert runtime_state["continuation_policy"] == "auto"
-    assert runtime_state["continuation_anchor"] == "decision"
-    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
+    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
+    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"

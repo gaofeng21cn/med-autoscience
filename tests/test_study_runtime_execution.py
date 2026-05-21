@@ -308,7 +308,7 @@ def test_controller_owned_interaction_reply_message_appends_route_context(monkey
     assert "这样推进的理由是" in message
 
 
-def test_execute_noop_runtime_decision_relays_controller_authorization_to_live_runtime(tmp_path: Path) -> None:
+def test_execute_noop_runtime_decision_projects_controller_authorization_for_opl_runtime(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     quest_root = tmp_path / "runtime" / "quest-001"
@@ -325,19 +325,10 @@ def test_execute_noop_runtime_decision_relays_controller_authorization_to_live_r
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
-    chats: list[dict[str, object]] = []
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            chats.append(
-                {
-                    "runtime_root": runtime_root,
-                    "quest_id": quest_id,
-                    "text": text,
-                    "source": source,
-                }
-            )
-            return {"ok": True, "message": {"id": "msg-auth-001"}}
+            raise AssertionError("MAS must not submit controller authorization to the generic runtime backend")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -350,32 +341,25 @@ def test_execute_noop_runtime_decision_relays_controller_authorization_to_live_r
     outcome = module._execute_runtime_decision(status=status, context=context)
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert len(chats) == 1
-    assert chats[0]["quest_id"] == "quest-001"
-    assert chats[0]["source"] == "medautosci-test"
-    assert str(decision_path) in str(chats[0]["text"])
-    assert "publication_eval/latest.json" in str(chats[0]["text"])
-    assert "requires_controller_decision=true" in str(chats[0]["text"])
-    assert "revision checklist mapping each user comment" in str(chats[0]["text"])
-    relay = status.to_dict()["controller_decision_authorization_relay"]
-    assert relay["delivery_mode"] == "managed_runtime_chat"
-    assert relay["message_id"] == "msg-auth-001"
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    marker = runtime_state["last_controller_decision_authorization"]
-    assert marker["decision_id"] == "decision-analysis-001"
-    assert marker["route_target"] == "analysis-campaign"
-    assert marker["route_key_question"] == (
+    owner_route_ref = status.to_dict()["controller_decision_authorization_owner_route_ref"]
+    assert owner_route_ref["surface_kind"] == "mas_controller_decision_owner_route_ref"
+    assert owner_route_ref["queue_owner"] == "one-person-lab"
+    assert owner_route_ref["domain_truth_owner"] == "med-autoscience"
+    assert owner_route_ref["dispatch_surface"] == "medautosci sidecar dispatch"
+    assert owner_route_ref["recommended_task_kind"] == "domain_route/reconcile-apply"
+    assert owner_route_ref["decision_path"] == str(decision_path)
+    assert owner_route_ref["authority_boundary"]["mas_writes_generic_runtime_queue"] is False
+    assert owner_route_ref["authority_boundary"]["mas_submits_runtime_chat"] is False
+    assert owner_route_ref["authority_boundary"]["opl_writes_mas_truth"] is False
+    assert owner_route_ref["route_key_question"] == (
         "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
     )
-    assert marker["control_intent_key"].startswith("control-intent::")
-    assert marker["control_intent_identity"]["business_key"] == marker["control_intent_key"]
-    assert marker["active_run_id"] == "run-live-001"
-    assert marker["delivery_mode"] == "managed_runtime_chat"
-    assert marker["message_id"] == "msg-auth-001"
-    assert marker["source"] == "medautosci-test"
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert "last_controller_decision_authorization" not in runtime_state
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
-def test_execute_noop_runtime_decision_relays_gate_clearing_controller_authorization_to_live_runtime(
+def test_execute_noop_runtime_decision_projects_gate_clearing_controller_authorization_for_opl_runtime(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
@@ -397,19 +381,10 @@ def test_execute_noop_runtime_decision_relays_gate_clearing_controller_authoriza
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
-    chats: list[dict[str, object]] = []
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            chats.append(
-                {
-                    "runtime_root": runtime_root,
-                    "quest_id": quest_id,
-                    "text": text,
-                    "source": source,
-                }
-            )
-            return {"ok": True, "message": {"id": "msg-gate-clear-001"}}
+            raise AssertionError("MAS must not submit gate-clearing authorization to the generic runtime backend")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -422,13 +397,12 @@ def test_execute_noop_runtime_decision_relays_gate_clearing_controller_authoriza
     outcome = module._execute_runtime_decision(status=status, context=context)
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert len(chats) == 1
-    assert str(decision_path) in str(chats[0]["text"])
-    assert "run_gate_clearing_batch" in str(chats[0]["text"])
-    assert "execute the authorized route_key_question" in str(chats[0]["text"])
-    relay = status.to_dict()["controller_decision_authorization_relay"]
-    assert relay["delivery_mode"] == "managed_runtime_chat"
-    assert relay["message_id"] == "msg-gate-clear-001"
+    owner_route_ref = status.to_dict()["controller_decision_authorization_owner_route_ref"]
+    assert owner_route_ref["decision_path"] == str(decision_path)
+    assert owner_route_ref["queue_owner"] == "one-person-lab"
+    assert owner_route_ref["route_key_question"] == (
+        "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+    )
 
 
 def test_execute_noop_runtime_decision_deduplicates_controller_authorization_for_same_run(tmp_path: Path) -> None:
@@ -475,10 +449,10 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_for
     outcome = module._execute_runtime_decision(status=status, context=context)
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert "controller_decision_authorization_relay" not in status.to_dict()
+    assert "controller_decision_authorization_owner_route_ref" not in status.to_dict()
 
 
-def test_execute_noop_runtime_decision_redelivers_controller_authorization_for_new_active_run(
+def test_execute_noop_runtime_decision_does_not_redeliver_controller_authorization_for_new_active_run(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
@@ -509,12 +483,9 @@ def test_execute_noop_runtime_decision_redelivers_controller_authorization_for_n
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
 
-    chats: list[dict[str, object]] = []
-
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            chats.append({"quest_id": quest_id, "text": text, "source": source})
-            return {"ok": True, "message": {"id": "msg-auth-002"}}
+            raise AssertionError("MAS must not redeliver authorization through private runtime chat")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -528,10 +499,9 @@ def test_execute_noop_runtime_decision_redelivers_controller_authorization_for_n
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert len(chats) == 1
-    assert "controller_decision_authorization_relay" in status.to_dict()
-    assert runtime_state["last_controller_decision_authorization"]["active_run_id"] == "run-live-002"
-    assert runtime_state["last_controller_decision_authorization"]["message_id"] == "msg-auth-002"
+    assert "controller_decision_authorization_owner_route_ref" in status.to_dict()
+    assert runtime_state["last_controller_decision_authorization"]["active_run_id"] == "run-live-001"
+    assert runtime_state["last_controller_decision_authorization"]["message_id"] == "msg-auth-001"
 
 
 def test_controller_authorization_identity_ignores_volatile_eval_and_escalation_ids(tmp_path: Path) -> None:
@@ -568,7 +538,7 @@ def test_controller_authorization_identity_ignores_volatile_eval_and_escalation_
     assert first["control_intent_key"] == second["control_intent_key"]
 
 
-def test_execute_noop_runtime_decision_redelivers_ledger_authorization_for_new_active_run(
+def test_execute_noop_runtime_decision_deduplicates_prior_ledger_authorization_for_new_active_run(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
@@ -593,8 +563,8 @@ def test_execute_noop_runtime_decision_redelivers_ledger_authorization_for_new_a
             controller_actions=authorization_context["controller_actions"],
             source_kind="controller_decision_authorization",
         ),
-        event_type="delivered",
-        payload={"active_run_id": "run-live-001", "message_id": "msg-auth-001"},
+        event_type="owner_handoff",
+        payload={"active_run_id": "run-live-001", "handoff_kind": "opl_owner_route_ref"},
         recorded_at="2026-04-25T06:22:00+00:00",
     )
     _write_runtime_state(
@@ -610,12 +580,9 @@ def test_execute_noop_runtime_decision_redelivers_ledger_authorization_for_new_a
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
 
-    chats: list[dict[str, object]] = []
-
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            chats.append({"quest_id": quest_id, "text": text, "source": source})
-            return {"ok": True, "message": {"id": "msg-auth-002"}}
+            raise AssertionError("MAS must not redeliver ledger authorization through private runtime chat")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -626,15 +593,16 @@ def test_execute_noop_runtime_decision_redelivers_ledger_authorization_for_new_a
     )
 
     outcome = module._execute_runtime_decision(status=status, context=context)
-    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert len(chats) == 1
-    assert status.to_dict()["controller_decision_authorization_relay"]["message_id"] == "msg-auth-002"
-    assert runtime_state["last_controller_decision_authorization"]["active_run_id"] == "run-live-002"
+    assert "controller_decision_authorization_owner_route_ref" not in status.to_dict()
+    assert (
+        status.to_dict()["controller_decision_authorization_deduped"]["reason"]
+        == "owner_route_ref_already_projected_for_opl_runtime"
+    )
 
 
-def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_with_dedupe_key(
+def test_execute_noop_runtime_decision_never_falls_back_to_private_user_message_queue(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
@@ -656,7 +624,7 @@ def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_wi
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            raise TimeoutError("simulated controller authorization timeout")
+            raise AssertionError("MAS must not attempt runtime chat before queue fallback")
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -668,13 +636,12 @@ def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_wi
 
     outcome = module._execute_runtime_decision(status=status, context=context)
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    relay = status.to_dict()["controller_decision_authorization_relay"]
+    owner_route_ref = status.to_dict()["controller_decision_authorization_owner_route_ref"]
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert relay["delivery_mode"] == "queued_owner_message_delivery"
-    assert len(queue["pending"]) == 1
-    assert queue["pending"][0]["dedupe_key"].startswith("control-intent::")
+    assert owner_route_ref["queue_owner"] == "one-person-lab"
+    assert owner_route_ref["authority_boundary"]["mas_writes_generic_runtime_queue"] is False
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
 def test_same_fingerprint_threshold_awaits_artifact_delta_for_live_write_stage_ready(

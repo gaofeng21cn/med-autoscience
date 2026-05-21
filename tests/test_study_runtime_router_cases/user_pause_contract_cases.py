@@ -273,18 +273,20 @@ def test_waiting_controller_owner_closeout_resumes_after_explicit_user_wakeup(
         source="user_explicit_wakeup",
     )
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
-    assert result["quest_status"] == "running"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "waiting_for_user"
     assert result["explicit_user_wakeup"]["status"] == "recorded"
-    assert result["interaction_arbitration"]["classification"] == "platform_repair_decision_redrive"
-    assert calls == ["sync_context", "resume"]
+    assert result["interaction_arbitration"]["classification"] == "opl_runtime_owner_route_handoff"
+    assert result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
     assert runtime_state["pending_user_message_count"] == 2
-    assert runtime_state["continuation_policy"] == "auto"
-    assert runtime_state["continuation_anchor"] == "decision"
-    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+    assert runtime_state["last_explicit_user_wakeup"]["handoff_kind"] == "opl_runtime_owner_route"
+    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
+    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
+    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
     assert "blocked_turn_closeout" not in runtime_state
 
 
@@ -313,14 +315,6 @@ def test_waiting_pending_user_message_redrive_resumes_without_explicit_wakeup(
         + "\n",
     )
     _patch_ready_workspace(monkeypatch, module, study_id=study_id)
-    calls: list[str] = []
-    monkeypatch.setattr(
-        _managed_runtime_transport(module),
-        "update_quest_startup_context",
-        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
-        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
-        raising=False,
-    )
     monkeypatch.setattr(
         _managed_runtime_transport(module),
         "get_quest_session",
@@ -340,24 +334,18 @@ def test_waiting_pending_user_message_redrive_resumes_without_explicit_wakeup(
     monkeypatch.setattr(
         module,
         "_resume_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
-        or {
-            "ok": True,
-            "status": "running",
-            "started": True,
-            "scheduled": True,
-            "snapshot": {"status": "running", "active_run_id": "run-pending-redrive"},
-        },
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("pending user-message redrive belongs to OPL runtime owner")
+        ),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_platform_repair")
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_user_message_redrive"
-    assert result["quest_status"] == "running"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "waiting_for_user"
     assert result["interaction_arbitration"]["classification"] == "pending_user_message_redrive"
     assert result["interaction_arbitration"]["action"] == "resume"
-    assert calls == ["sync_context", "resume"]
 
 
 def test_waiting_platform_repair_decision_redrive_resumes_without_pending_messages(
@@ -384,14 +372,6 @@ def test_waiting_platform_repair_decision_redrive_resumes_without_pending_messag
         + "\n",
     )
     _patch_ready_workspace(monkeypatch, module, study_id=study_id)
-    calls: list[str] = []
-    monkeypatch.setattr(
-        _managed_runtime_transport(module),
-        "update_quest_startup_context",
-        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
-        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
-        raising=False,
-    )
     monkeypatch.setattr(
         _managed_runtime_transport(module),
         "get_quest_session",
@@ -411,24 +391,18 @@ def test_waiting_platform_repair_decision_redrive_resumes_without_pending_messag
     monkeypatch.setattr(
         module,
         "_resume_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
-        or {
-            "ok": True,
-            "status": "running",
-            "started": True,
-            "scheduled": True,
-            "snapshot": {"status": "running", "active_run_id": "run-decision-redrive"},
-        },
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("platform decision redrive belongs to OPL runtime owner")
+        ),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_platform_repair")
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
-    assert result["quest_status"] == "running"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "waiting_for_user"
     assert result["interaction_arbitration"]["classification"] == "platform_repair_decision_redrive"
     assert result["interaction_arbitration"]["action"] == "resume"
-    assert calls == ["sync_context", "resume"]
 
 
 def test_waiting_controller_work_unit_pending_resumes_with_current_authorization(
@@ -460,14 +434,6 @@ def test_waiting_controller_work_unit_pending_resumes_with_current_authorization
         + "\n",
     )
     _patch_ready_workspace(monkeypatch, module, study_id=study_id)
-    calls: list[str] = []
-    monkeypatch.setattr(
-        _managed_runtime_transport(module),
-        "update_quest_startup_context",
-        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
-        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
-        raising=False,
-    )
     monkeypatch.setattr(
         _managed_runtime_transport(module),
         "get_quest_session",
@@ -487,24 +453,18 @@ def test_waiting_controller_work_unit_pending_resumes_with_current_authorization
     monkeypatch.setattr(
         module,
         "_resume_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
-        or {
-            "ok": True,
-            "status": "running",
-            "started": True,
-            "scheduled": True,
-            "snapshot": {"status": "running", "active_run_id": "run-controller-work-unit"},
-        },
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("controller work-unit pending redrive belongs to OPL runtime owner")
+        ),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_platform_repair")
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
-    assert result["quest_status"] == "running"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "waiting_for_user"
     assert result["interaction_arbitration"]["classification"] == "controller_work_unit_pending_redrive"
     assert result["interaction_arbitration"]["action"] == "resume"
-    assert calls == ["sync_context", "resume"]
 
 
 def test_waiting_controller_work_unit_pending_without_authorization_stays_blocked(
@@ -708,40 +668,28 @@ def test_relay_repeats_when_existing_authorization_marker_lacks_target_context(
     _patch_ready_workspace(monkeypatch, module, study_id=study_id)
     monkeypatch.setattr(
         _managed_runtime_transport(module),
-        "update_quest_startup_context",
-        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: {
-            "ok": True,
-            "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract},
-        },
-        raising=False,
-    )
-    messages: list[str] = []
-    monkeypatch.setattr(
-        _managed_runtime_transport(module),
         "chat_quest",
-        lambda *, runtime_root, quest_id, text, source: messages.append(text)
-        or {"ok": True, "message": {"id": "msg-target-context"}},
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("controller authorization target context must be handed off as owner_route_ref")
+        ),
         raising=False,
     )
     monkeypatch.setattr(
         module,
         "_resume_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: {
-            "ok": True,
-            "status": "running",
-            "snapshot": {"status": "running", "active_run_id": "run-target-context"},
-        },
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("controller authorization handoff must not call resume_quest")
+        ),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
 
-    assert result["decision"] == "resume"
-    assert messages
-    assert "specificity_targets" in messages[0]
-    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-    marker = runtime_state["last_controller_decision_authorization"]
-    assert marker["specificity_targets"] == authorization_context["specificity_targets"]
-    assert marker["message_id"] == "msg-target-context"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    owner_route_ref = result["controller_decision_authorization_owner_route_ref"]
+    assert owner_route_ref["queue_owner"] == "one-person-lab"
+    assert owner_route_ref["specificity_targets"] == authorization_context["specificity_targets"]
+    assert owner_route_ref["authority_boundary"]["mas_submits_runtime_chat"] is False
 
 
 def test_user_paused_stopped_quest_surfaces_explicit_wakeup_not_generic_rerun(

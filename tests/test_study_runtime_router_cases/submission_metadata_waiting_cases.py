@@ -78,8 +78,8 @@ def test_stopped_submission_metadata_package_resumes_current_controller_work_uni
     )
 
     assert result["quest_status"] == "stopped"
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert result["interaction_arbitration"]["classification"] == "controller_work_unit_pending_redrive"
 
 
@@ -239,8 +239,8 @@ def test_stopped_submission_metadata_package_resumes_current_domain_transition_r
     )
 
     assert result["quest_status"] == "stopped"
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert result["interaction_arbitration"]["classification"] == "domain_transition_runtime_redrive"
 
 

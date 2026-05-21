@@ -6,11 +6,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.domain_route_scan_parts import current_truth_owner
 from med_autoscience.controllers.domain_route_scan_parts.owner_tokens import owner_token
 from med_autoscience.controllers.domain_route_scan_parts import pending_user_messages
 from med_autoscience.controllers.domain_route_scan_parts import platform_current_controller
+from med_autoscience.controllers.domain_route_scan_parts import platform_repair_owner_route
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -555,38 +555,24 @@ def apply_if_targets_resolved(
             "current_controller_authorization": authorization,
             "current_controller_authorization_written": False,
         }
-    try:
-        resume_result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            source=source,
-        )
-    except Exception as exc:
-        return {
-            **dict(base),
-            "dispatch_status": "blocked",
-            "reason": "resume_after_platform_repair_failed",
-            "error": str(exc),
+    _ = (profile, study_root, source)
+    return platform_repair_owner_route.apply_result(
+        base=base,
+        study_id=study_id,
+        quest_id=quest_id,
+        runtime_state_path=runtime_state_path,
+        reason="stale_publication_gate_closeout_targets_resolved",
+        repair_kind="stale_publication_gate_closeout_targets_resolved",
+        authorization=authorization,
+        authorization_written=True,
+        extra={
             "stale_specificity_clear": clear_result,
             "stale_specificity_cleared": True,
             "gate_status": gate_status,
             "existing_pending_user_message_resume": None,
             "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
-        }
-    return {
-        **dict(base),
-        "dispatch_status": "applied",
-        "reason": "stale_publication_gate_closeout_targets_resolved",
-        "stale_specificity_clear": clear_result,
-        "stale_specificity_cleared": True,
-        "gate_status": gate_status,
-        "existing_pending_user_message_resume": None,
-        "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
-        "current_controller_authorization": authorization,
-        "current_controller_authorization_written": True,
-        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
-    }
+        },
+    )
 
 
 def blocked_turn_closeout_clear_result(clear_result: Mapping[str, Any] | None) -> dict[str, Any] | None:

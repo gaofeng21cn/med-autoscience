@@ -12,6 +12,32 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _assert_owner_route_required(
+    *,
+    apply_result: dict,
+    ensure_calls: list[dict[str, object]],
+    quest_root: Path,
+    expected_reason: str,
+) -> dict:
+    assert ensure_calls == []
+    assert apply_result["dispatch_status"] == "owner_route_required"
+    assert apply_result["reason"] == expected_reason
+    assert apply_result["queue_owner"] == "one-person-lab"
+    assert apply_result["domain_truth_owner"] == "med-autoscience"
+    assert apply_result["recommended_task_kind"] == "domain_route/reconcile-apply"
+    assert apply_result["authority_boundary"]["mas_resumes_provider_worker"] is False
+    handoff = apply_result["opl_runtime_owner_route_handoff"]
+    assert handoff["queue_owner"] == "one-person-lab"
+    assert handoff["reason"] == expected_reason
+    assert handoff["authority_boundary"]["mas_submits_runtime_chat"] is False
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
+    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
+    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    return runtime_state
+
+
 def test_scan_domain_routes_redrives_publication_gate_closeout_after_specificity_targets_resolve(
     monkeypatch,
     tmp_path: Path,
@@ -215,17 +241,27 @@ def test_scan_domain_routes_redrives_publication_gate_closeout_after_specificity
         persist_surfaces=False,
     )
 
-    assert len(ensure_calls) == 1
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = _assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="stale_publication_gate_closeout_targets_resolved",
+    )
     assert apply_result["reason"] == "stale_publication_gate_closeout_targets_resolved"
     assert apply_result["current_controller_authorization_written"] is True
     assert apply_result["stale_specificity_cleared"] is True
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
     assert apply_result["existing_pending_user_message_resume"] is None
     assert apply_result["gate_status"]["ready"] is False
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-obesity-recovered"
+    assert "blocked_turn_closeout" not in runtime_state
+    assert "last_liveness_reconcile_reason" not in runtime_state
+    assert runtime_state["pending_user_message_count"] == 0
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-specificity"
+    assert runtime_state["last_runtime_platform_repair"]["clear_reason"] == (
+        "stale_publication_gate_closeout_targets_resolved"
+    )
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 
@@ -414,13 +450,21 @@ def test_scan_domain_routes_redrives_controller_authorized_paper_line_owner_clos
         persist_surfaces=False,
     )
 
-    assert len(ensure_calls) == 1
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = _assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="stale_publication_gate_closeout_targets_resolved",
+    )
     assert apply_result["reason"] == "stale_publication_gate_closeout_targets_resolved"
     assert apply_result["current_controller_authorization_written"] is True
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
+    assert "blocked_turn_closeout" not in runtime_state
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == (
+        "current-specificity-paper-line-owner"
+    )
     assert study["external_supervisor_required"] is False
     assert study["paper_package_mutated"] is False
 
@@ -602,12 +646,20 @@ def test_scan_domain_routes_redrives_mas_controller_closeout_when_specificity_au
         persist_surfaces=False,
     )
 
-    assert len(ensure_calls) == 1
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = _assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="stale_publication_gate_closeout_targets_resolved",
+    )
     assert apply_result["current_controller_authorization_written"] is True
     assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-obesity-redriven"
+    assert "blocked_turn_closeout" not in runtime_state
+    authorization = runtime_state["last_controller_decision_authorization"]
+    assert authorization["decision_id"] == "current-specificity-with-targets"
+    assert authorization["work_unit_id"] == "gate_needs_specificity"
+    assert "non_executable_reason" not in authorization
 
 
 def test_scan_domain_routes_redrives_mas_controller_closeout_when_authorization_was_cleared(
@@ -761,12 +813,16 @@ def test_scan_domain_routes_redrives_mas_controller_closeout_when_authorization_
         persist_surfaces=False,
     )
 
-    assert len(ensure_calls) == 1
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
+    runtime_state = _assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="stale_publication_gate_closeout_targets_resolved",
+    )
     assert apply_result["reason"] == "stale_publication_gate_closeout_targets_resolved"
     assert apply_result["current_controller_authorization_written"] is True
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-obesity-after-closeout"
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-specificity-after-closeout"
 
 
 def test_scan_domain_routes_resumes_pending_platform_redrive_after_stale_specificity_clear(
@@ -914,13 +970,16 @@ def test_scan_domain_routes_resumes_pending_platform_redrive_after_stale_specifi
         persist_surfaces=False,
     )
 
-    assert len(ensure_calls) == 1
     apply_result = result["studies"][0]["runtime_platform_repair_apply"]
-    assert apply_result["dispatch_status"] == "applied"
-    assert apply_result["reason"] == "runtime_platform_repair_redrive_pending_authorization"
+    runtime_state = _assert_owner_route_required(
+        apply_result=apply_result,
+        ensure_calls=ensure_calls,
+        quest_root=quest_root,
+        expected_reason="runtime_controller_redrive_required",
+    )
     assert apply_result["repair_kind"] == "pending_runtime_platform_repair_redrive"
     assert apply_result["current_controller_authorization_written"] is True
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-obesity-after-clear"
+    assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-specificity-after-clear"
 
 
 def _specificity_targets(study_root: Path) -> list[dict[str, str]]:

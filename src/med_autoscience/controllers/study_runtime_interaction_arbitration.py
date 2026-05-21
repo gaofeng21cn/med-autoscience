@@ -356,10 +356,6 @@ def _controller_work_unit_pending_redrive(
         return None
     if not isinstance(controller_authorization, dict):
         return None
-    work_unit_id = _text(controller_authorization.get("work_unit_id"))
-    work_unit_fingerprint = _text(controller_authorization.get("work_unit_fingerprint"))
-    if work_unit_id is None or work_unit_fingerprint is None:
-        return None
     continuation_policy = _text(continuation_state.get("continuation_policy"))
     continuation_anchor = _text(continuation_state.get("continuation_anchor"))
     continuation_reason = _text(continuation_state.get("continuation_reason"))
@@ -382,12 +378,12 @@ def _controller_work_unit_pending_redrive(
         "decision_type": None,
         "source_artifact_path": None,
         "pending_user_message_count": int(pending_count or 0),
-        "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": work_unit_fingerprint,
+        "work_unit_id": _text(controller_authorization.get("work_unit_id")),
+        "work_unit_fingerprint": _text(controller_authorization.get("work_unit_fingerprint")),
         "decision_id": _text(controller_authorization.get("decision_id")),
         "controller_stage_note": (
-            "MAS controller has already authorized a same-line work unit; resume the managed runtime "
-            "so the controller work unit can be consumed instead of parking on waiting_for_user."
+            "MAS controller has already authorized a same-line work unit; hand the route to the OPL "
+            "runtime owner instead of parking on waiting_for_user or resuming a provider worker in MAS."
         ),
     }
 

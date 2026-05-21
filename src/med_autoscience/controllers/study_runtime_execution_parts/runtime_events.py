@@ -401,16 +401,32 @@ def record_explicit_waiting_platform_repair_redrive_wakeup(
     runtime_state["active_run_id"] = None
     runtime_state["worker_running"] = False
     runtime_state["worker_pending"] = False
-    runtime_state["continuation_policy"] = "auto"
-    runtime_state["continuation_anchor"] = "decision"
-    runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
+    runtime_state["continuation_policy"] = "wait_for_opl_runtime_owner"
+    runtime_state["continuation_anchor"] = "opl_runtime_owner_route"
+    runtime_state["continuation_reason"] = "quest_waiting_opl_runtime_owner_route"
     runtime_state["continuation_updated_at"] = recorded_at
+    runtime_state["last_opl_runtime_owner_route_handoff"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "reason": "runtime_platform_repair_redrive",
+        "queue_owner": "one-person-lab",
+        "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
     runtime_state["last_explicit_user_wakeup"] = {
         "source": source,
         "recorded_at": recorded_at,
         "cleared_keys": cleared_keys,
         "cleared_platform_repair_redrive": True,
         "previous_continuation_reason": previous_continuation_reason,
+        "handoff_kind": "opl_runtime_owner_route",
     }
     runtime_state_path.write_text(
         json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -438,10 +454,25 @@ def record_explicit_pending_user_message_redrive_wakeup(
         return None
     previous_continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
     cleared_stale_human_takeover = runtime_state.pop("human_takeover_contract", None) is not None
-    runtime_state["continuation_policy"] = "auto"
-    runtime_state["continuation_anchor"] = "decision"
-    runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
     recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    runtime_state["continuation_policy"] = "wait_for_opl_runtime_owner"
+    runtime_state["continuation_anchor"] = "opl_runtime_owner_route"
+    runtime_state["continuation_reason"] = "quest_waiting_opl_runtime_owner_route"
+    runtime_state["last_opl_runtime_owner_route_handoff"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "reason": "runtime_platform_repair_pending_user_message_redrive",
+        "queue_owner": "one-person-lab",
+        "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
     runtime_state["last_explicit_user_wakeup"] = {
         "source": source,
         "recorded_at": recorded_at,
@@ -449,6 +480,7 @@ def record_explicit_pending_user_message_redrive_wakeup(
         "cleared_pending_user_message_redrive": True,
         "cleared_stale_human_takeover_contract": cleared_stale_human_takeover,
         "previous_continuation_reason": previous_continuation_reason,
+        "handoff_kind": "opl_runtime_owner_route",
     }
     runtime_state_path.write_text(
         json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -624,10 +656,25 @@ def record_explicit_waiting_owner_wakeup(
     recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     runtime_state["active_run_id"] = None
     runtime_state["worker_running"] = False
-    runtime_state["continuation_policy"] = "auto"
-    runtime_state["continuation_anchor"] = "decision"
-    runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
+    runtime_state["continuation_policy"] = "wait_for_opl_runtime_owner"
+    runtime_state["continuation_anchor"] = "opl_runtime_owner_route"
+    runtime_state["continuation_reason"] = "quest_waiting_opl_runtime_owner_route"
     runtime_state["continuation_updated_at"] = recorded_at
+    runtime_state["last_opl_runtime_owner_route_handoff"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "reason": "blocked_turn_closeout_waiting_for_owner",
+        "queue_owner": "one-person-lab",
+        "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "mas_resumes_provider_worker": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+    }
     runtime_state["same_fingerprint_auto_turn_count"] = 0
     last_explicit_user_wakeup = {
         "source": source,
@@ -635,6 +682,7 @@ def record_explicit_waiting_owner_wakeup(
         "cleared_keys": cleared_keys,
         "cleared_wait_owner": next_owner,
         "previous_continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+        "handoff_kind": "opl_runtime_owner_route",
     }
     if owner_handoff_authorization is not None:
         last_explicit_user_wakeup["owner_handoff_authorization"] = owner_handoff_authorization

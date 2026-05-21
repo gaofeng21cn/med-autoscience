@@ -628,8 +628,9 @@ def test_study_runtime_status_keeps_write_route_when_story_surface_delta_is_miss
         include_progress_projection=False,
     )
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["interaction_arbitration"]["classification"] == "domain_transition_runtime_redrive"
     assert result["domain_transition"]["decision_type"] == "route_back_same_line"
     assert result["domain_transition"]["owner"] == "write"
     assert result["domain_transition"]["controller_action"] == "ensure_study_runtime"

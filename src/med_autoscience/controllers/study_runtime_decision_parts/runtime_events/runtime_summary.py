@@ -327,6 +327,8 @@ def _should_refresh_runtime_supervision_from_status(
         target_health_status = "live"
     elif runtime_supervision_controller.needs_recovery_projection(status_payload, strict_live=strict_live):
         target_health_status = "recovering"
+    elif reason == "quest_waiting_opl_runtime_owner_route":
+        target_health_status = "blocked"
     elif runtime_supervision_controller._needs_drop_detection(status_payload, strict_live=strict_live):
         target_health_status = "degraded"
     else:

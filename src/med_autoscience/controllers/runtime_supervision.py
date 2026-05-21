@@ -439,6 +439,16 @@ def materialize_runtime_supervision(
             clinician_update = "系统正在推进托管运行进入可监督的 live 状态。"
         next_action = "wait_for_runtime_recovery_confirmation"
         next_action_summary = "等待下一次巡检确认 worker 已重新上线并恢复 live。"
+    elif runtime_reason == "quest_waiting_opl_runtime_owner_route":
+        health_status = "blocked"
+        last_transition = "opl_runtime_owner_route_handoff"
+        consecutive_failure_count = 0
+        recovery_attempt_count = previous_attempt_count
+        needs_human_intervention = False
+        summary = "MAS 已将通用运行时恢复交给 OPL runtime owner，当前不由 MAS 私有控制面重启 worker。"
+        clinician_update = "研究医学真相仍归 MAS；provider queue、attempt 和恢复投递由 OPL 承接。"
+        next_action = "hydrate_opl_runtime_owner_route"
+        next_action_summary = "通过 OPL family runtime 消费 MAS sidecar export 的 owner-route ref，再回到 MAS sidecar dispatch 产出 owner receipt。"
     elif _needs_drop_detection(status_payload, strict_live=strict_live):
         consecutive_failure_count = previous_failure_count + 1 if previous_health_status in {"degraded", "escalated"} else 1
         health_status = "escalated" if consecutive_failure_count >= 2 else "degraded"

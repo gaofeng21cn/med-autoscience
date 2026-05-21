@@ -270,14 +270,6 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _build_live_task_intake_runtime_message(payload: dict[str, Any]) -> str:
-    return (
-        "MAS managed task update. Prioritize this latest study task over stale background plans.\n\n"
-        f"{render_task_intake_runtime_context(payload)}\n\n"
-        "After absorbing this task, report the concrete next action through artifact.interact(...)."
-    )
-
-
 def _task_intake_delivery_fingerprint(payload: Mapping[str, Any]) -> str:
     canonical_payload = {
         "study_id": _non_empty_text(payload.get("study_id")),
@@ -309,62 +301,6 @@ def _task_intake_control_intent_identity(payload: Mapping[str, Any]) -> control_
         controller_actions=("submit_study_task",),
         source_kind="study_task_intake",
     )
-
-
-def _runtime_message_id(payload: Mapping[str, Any] | None) -> str | None:
-    if not isinstance(payload, Mapping):
-        return None
-    nested_message = payload.get("message")
-    if isinstance(nested_message, Mapping):
-        message_id = _non_empty_text(nested_message.get("id")) or _non_empty_text(nested_message.get("message_id"))
-        if message_id is not None:
-            return message_id
-    return _non_empty_text(payload.get("message_id")) or _non_empty_text(payload.get("id"))
-
-
-def _task_intake_delivery_for_current_run(
-    *,
-    runtime_state: Mapping[str, Any],
-    fingerprint: str,
-    control_intent_key: str,
-) -> Mapping[str, Any] | None:
-    delivery = runtime_state.get("last_task_intake_delivery")
-    if not isinstance(delivery, Mapping):
-        return None
-    delivered_intent_key = _non_empty_text(delivery.get("control_intent_key"))
-    if delivered_intent_key is not None:
-        if delivered_intent_key != control_intent_key:
-            return None
-        return delivery
-    if delivery.get("fingerprint") != fingerprint:
-        return None
-    return delivery
-
-
-def _write_task_intake_delivery_record(
-    *,
-    quest_root: Path,
-    runtime_state: Mapping[str, Any],
-    fingerprint: str,
-    identity: control_intent.ControlIntentIdentity,
-    delivery_mode: str,
-    message_id: str | None,
-    source: str,
-) -> None:
-    runtime_state_path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
-    latest_runtime_state = quest_state.load_runtime_state(quest_root)
-    merged_state = dict(latest_runtime_state or runtime_state)
-    merged_state["last_task_intake_delivery"] = {
-        "fingerprint": fingerprint,
-        "control_intent_key": identity.business_key,
-        "control_intent_identity": identity.to_dict(),
-        "active_run_id": _non_empty_text(merged_state.get("active_run_id")),
-        "delivery_mode": delivery_mode,
-        "message_id": message_id,
-        "source": source,
-    }
-    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
-    runtime_state_path.write_text(json.dumps(merged_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _study_reactivation_command(
@@ -433,7 +369,8 @@ def _enqueue_task_intake_for_live_runtime(
     layout = build_workspace_runtime_layout_for_profile(profile)
     managed_quest_id = _non_empty_text((execution or {}).get("quest_id")) or study_id
     quest_root = layout.quest_root(managed_quest_id)
-    runtime_message = _build_live_task_intake_runtime_message(payload)
+    fingerprint = _task_intake_delivery_fingerprint(payload)
+    intent_identity = _task_intake_control_intent_identity(payload)
     result: dict[str, Any] = {
         "quest_root": str(quest_root),
         "quest_id": managed_quest_id,
@@ -444,6 +381,8 @@ def _enqueue_task_intake_for_live_runtime(
         "delivery_mode": None,
         "runtime_backend_id": None,
         "backend_submit_error": None,
+        "control_intent_key": intent_identity.business_key,
+        "owner_route_ref": None,
         "requires_study_reactivation": False,
         "next_required_action": None,
         "recommended_next_command": None,
@@ -472,94 +411,60 @@ def _enqueue_task_intake_for_live_runtime(
         )
         return result
 
-    runtime_state["quest_id"] = managed_quest_id
-    fingerprint = _task_intake_delivery_fingerprint(payload)
-    intent_identity = _task_intake_control_intent_identity(payload)
-    existing_delivery = _task_intake_delivery_for_current_run(
-        runtime_state=runtime_state,
-        fingerprint=fingerprint,
-        control_intent_key=intent_identity.business_key,
+    latest_intent_event = control_intent.latest_event(
+        study_root=study_root,
+        business_key=intent_identity.business_key,
     )
-    if existing_delivery is not None:
-        result["intervention_enqueued"] = True
-        result["delivery_mode"] = _non_empty_text(existing_delivery.get("delivery_mode"))
-        result["message_id"] = _non_empty_text(existing_delivery.get("message_id"))
-        result["reason"] = "live_runtime_task_context_already_delivered"
+    if isinstance(latest_intent_event, Mapping) and latest_intent_event.get("event_type") == "owner_handoff":
+        latest_payload = latest_intent_event.get("payload")
+        owner_route_ref = (
+            dict(latest_payload.get("owner_route_ref"))
+            if isinstance(latest_payload, Mapping) and isinstance(latest_payload.get("owner_route_ref"), Mapping)
+            else None
+        )
+        result["delivery_mode"] = "opl_owner_route_ref"
+        result["reason"] = "live_runtime_task_context_already_projected_for_opl_runtime"
         result["idempotent_replay"] = True
-        result["control_intent_key"] = intent_identity.business_key
+        result["owner_route_ref"] = owner_route_ref
         return result
 
-    backend = runtime_backend_contract.resolve_managed_runtime_backend(execution)
-    if backend is not None:
-        result["runtime_backend_id"] = backend.BACKEND_ID
-        try:
-            response = backend.chat_quest(
-                runtime_root=layout.runtime_root,
-                quest_id=managed_quest_id,
-                text=runtime_message,
-                source="codex-study-task-intake",
-            )
-        except Exception as exc:
-            result["backend_submit_error"] = str(exc)
-        else:
-            result["intervention_enqueued"] = True
-            result["delivery_mode"] = "managed_runtime_chat"
-            result["message_id"] = _runtime_message_id(response)
-            result["reason"] = "live_runtime_task_context_submitted"
-            result["idempotent_replay"] = False
-            result["control_intent_key"] = intent_identity.business_key
-            _write_task_intake_delivery_record(
-                quest_root=quest_root,
-                runtime_state=runtime_state,
-                fingerprint=fingerprint,
-                identity=intent_identity,
-                delivery_mode="managed_runtime_chat",
-                message_id=result["message_id"],
-                source="codex-study-task-intake",
-            )
-            control_intent.append_event(
-                study_root=study_root,
-                identity=intent_identity,
-                event_type="delivered",
-                payload={
-                    "delivery_mode": "managed_runtime_chat",
-                    "message_id": result["message_id"],
-                    "active_run_id": _non_empty_text(runtime_state.get("active_run_id")),
-                    "source": "codex-study-task-intake",
-                },
-            )
-            return result
-
-    record = user_message.enqueue_user_message(
-        quest_root=quest_root,
-        runtime_state=runtime_state,
-        message=runtime_message,
-        source="codex-study-task-intake",
-        dedupe_key=intent_identity.dedupe_key,
-    )
-    result["intervention_enqueued"] = True
-    result["delivery_mode"] = "queued_owner_message_delivery"
-    result["message_id"] = record.get("message_id")
-    result["reason"] = "live_runtime_task_context_queued_owner_message_delivery"
+    owner_route_ref = {
+        "surface_kind": "mas_study_task_intake_owner_route_ref",
+        "domain_truth_owner": "med-autoscience",
+        "queue_owner": "one-person-lab",
+        "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "authority_boundary": {
+            "mas_writes_generic_runtime_queue": False,
+            "mas_submits_runtime_chat": False,
+            "opl_writes_mas_truth": False,
+            "mas_owner_receipt_required": True,
+        },
+        "profile": str(profile_ref) if profile_ref is not None else None,
+        "study_id": study_id,
+        "quest_id": managed_quest_id,
+        "quest_root": str(quest_root),
+        "task_id": payload.get("task_id"),
+        "task_intent": payload.get("task_intent"),
+        "entry_mode": payload.get("entry_mode"),
+        "fingerprint": fingerprint,
+        "control_intent_key": intent_identity.business_key,
+        "active_run_id": _non_empty_text(runtime_state.get("active_run_id")),
+        "source": "codex-study-task-intake",
+    }
+    result["intervention_enqueued"] = False
+    result["delivery_mode"] = "opl_owner_route_ref"
+    result["reason"] = "live_runtime_task_context_projected_for_opl_runtime"
     result["idempotent_replay"] = False
-    result["control_intent_key"] = intent_identity.business_key
-    _write_task_intake_delivery_record(
-        quest_root=quest_root,
-        runtime_state=runtime_state,
-        fingerprint=fingerprint,
-        identity=intent_identity,
-        delivery_mode="queued_owner_message_delivery",
-        message_id=_non_empty_text(record.get("message_id")),
-        source="codex-study-task-intake",
-    )
+    result["owner_route_ref"] = owner_route_ref
     control_intent.append_event(
         study_root=study_root,
         identity=intent_identity,
-        event_type="delivered",
+        event_type="owner_handoff",
         payload={
-            "delivery_mode": "queued_owner_message_delivery",
-            "message_id": result["message_id"],
-            "active_run_id": _non_empty_text(runtime_state.get("active_run_id")),
+            "handoff_kind": "opl_owner_route_ref",
+            "owner_route_ref": owner_route_ref,
+            "active_run_id": owner_route_ref["active_run_id"],
             "source": "codex-study-task-intake",
         },
     )

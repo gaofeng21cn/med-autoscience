@@ -95,14 +95,6 @@ def test_allow_stopped_relaunch_reopens_current_domain_transition_routeback(
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, study_id),
     )
-    calls: list[str] = []
-    monkeypatch.setattr(
-        module.managed_runtime_transport,
-        "update_quest_startup_context",
-        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
-        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
-        raising=False,
-    )
     monkeypatch.setattr(
         module,
         "_resume_quest",
@@ -113,14 +105,9 @@ def test_allow_stopped_relaunch_reopens_current_domain_transition_routeback(
     monkeypatch.setattr(
         module,
         "_relaunch_stopped_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("relaunch_stopped")
-        or {
-            "ok": True,
-            "status": "running",
-            "started": True,
-            "scheduled": True,
-            "snapshot": {"status": "running", "active_run_id": "run-domain-redrive"},
-        },
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("controller-authorized stopped redrive must be handed to OPL runtime owner")
+        ),
     )
 
     result = module.ensure_study_runtime(
@@ -130,8 +117,7 @@ def test_allow_stopped_relaunch_reopens_current_domain_transition_routeback(
         source="domain_route_scan_platform_repair",
     )
 
-    assert result["decision"] == "relaunch_stopped"
-    assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
-    assert result["quest_status"] == "running"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "stopped"
     assert result["interaction_arbitration"]["classification"] == "domain_transition_runtime_redrive"
-    assert calls == ["sync_context", "relaunch_stopped"]

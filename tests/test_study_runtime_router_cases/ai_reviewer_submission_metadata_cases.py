@@ -391,12 +391,12 @@ def test_waiting_submission_metadata_package_routes_current_ai_reviewer_write_ro
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
-    calls: list[str] = []
     monkeypatch.setattr(
         module,
         "_resume_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
-        or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-write"}},
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("write route-back handoff must not call resume_quest")
+        ),
     )
 
     status = module.study_runtime_status(
@@ -411,16 +411,16 @@ def test_waiting_submission_metadata_package_routes_current_ai_reviewer_write_ro
         source="user_explicit_wakeup",
     )
 
-    assert status["decision"] == "resume"
-    assert status["reason"] == "quest_waiting_platform_repair_redrive"
+    assert status["decision"] == "blocked"
+    assert status["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert status["domain_transition"]["decision_type"] == "route_back_same_line"
     assert status["domain_transition"]["owner"] == "write"
     assert status["domain_transition"]["next_work_unit"]["unit_id"] == "manuscript_story_repair"
     assert status["interaction_arbitration"]["classification"] == "domain_transition_runtime_redrive"
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
-    assert result["quest_status"] == "running"
-    assert calls == ["resume"]
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "waiting_for_user"
+    assert result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
 
 
 def test_user_paused_submission_metadata_package_routes_current_ai_reviewer_transition(
@@ -741,8 +741,8 @@ def test_live_submission_metadata_package_keeps_current_ai_reviewer_write_routeb
 
     assert result["quest_status"] == "running"
     assert result["active_run_id"] == "run-write-routeback-live"
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert result["domain_transition"]["decision_type"] == "route_back_same_line"
     assert result["domain_transition"]["owner"] == "write"
     assert result["domain_transition"]["next_work_unit"]["unit_id"] == "manuscript_story_repair"
@@ -856,8 +856,8 @@ def test_active_submission_metadata_package_redrives_current_ai_reviewer_write_r
 
     assert result["quest_status"] == "active"
     assert result.get("active_run_id") is None
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert result["domain_transition"]["decision_type"] == "route_back_same_line"
     assert result["domain_transition"]["owner"] == "write"
     assert result["domain_transition"]["next_work_unit"]["unit_id"] == "manuscript_story_repair"

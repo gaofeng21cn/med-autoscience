@@ -150,10 +150,9 @@ def test_waiting_owner_closeout_superseded_by_default_executor_execution_redrive
         include_progress_projection=False,
     )
 
-    assert status["decision"] == "resume"
-    assert status["reason"] == "quest_waiting_platform_repair_redrive"
+    assert status["decision"] == "blocked"
+    assert status["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert status["interaction_arbitration"]["classification"] == "platform_repair_decision_redrive"
-    assert status["continuation_state"]["continuation_reason"] == "runtime_platform_repair_redrive"
     assert "blocked_turn_closeout" not in status
     assert status["blocked_turn_closeout_supersession"]["source_surface"] == "default_executor_execution/latest.json"
     assert status["blocked_turn_closeout_supersession"]["superseded_run_id"] == "run-old"
@@ -225,19 +224,20 @@ def test_waiting_controller_colon_owner_closeout_resumes_after_explicit_user_wak
         source="user_explicit_wakeup",
     )
 
-    assert status["decision"] == "resume"
-    assert status["reason"] == "quest_waiting_platform_repair_redrive"
+    assert status["decision"] == "blocked"
+    assert status["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert status["interaction_arbitration"]["classification"] == "blocked_closeout_owner_redrive"
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
-    assert result["quest_status"] == "running"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "waiting_for_user"
     assert result["explicit_user_wakeup"]["status"] == "recorded"
     assert result["explicit_user_wakeup"]["cleared_wait_owner"] == "mas/controller"
-    assert calls == ["sync_context", "resume"]
+    assert result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    assert calls == []
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-    assert runtime_state["continuation_policy"] == "auto"
-    assert runtime_state["continuation_anchor"] == "decision"
-    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
+    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
+    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
     assert "blocked_turn_closeout" not in runtime_state
 
 
@@ -327,5 +327,6 @@ def test_waiting_source_provenance_owner_closeout_records_executable_owner_hando
     assert handoff["owner_callable_surface"] == (
         "source_provenance_owner.recover_transport_model_provenance_or_typed_blocker"
     )
-    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
     assert "blocked_turn_closeout" not in runtime_state

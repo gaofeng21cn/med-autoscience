@@ -74,12 +74,11 @@ def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_pa
     assert payload["task_intake_ref"]["study_id"] == "001-risk"
     assert "figure 质量坏循环" in payload["custom_brief"]
 
-def test_submit_study_task_enqueues_task_context_for_live_runtime(
+def test_submit_study_task_projects_task_context_for_opl_runtime(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-    runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -100,37 +99,6 @@ def test_submit_study_task_enqueues_task_context_for_live_runtime(
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
-    class FakeBackend:
-        BACKEND_ID = "fake"
-        ENGINE_ID = "fake-engine"
-
-        def chat_quest(
-            self,
-            *,
-            runtime_root: Path,
-            quest_id: str,
-            text: str,
-            source: str,
-            reply_to_interaction_id: str | None = None,
-            decision_response: dict[str, object] | None = None,
-        ) -> dict[str, object]:
-            assert runtime_root == profile.managed_runtime_home
-            assert quest_id == "001-risk"
-            assert source == "codex-study-task-intake"
-            assert reply_to_interaction_id is None
-            assert decision_response is None
-            assert "优先清理 publication gate 文面阻塞" in text
-            assert "不要继续泛化分析" in text
-            assert "只使用现有证据" in text
-            return {"ok": True, "message": {"id": "msg-formal-001"}}
-
-    monkeypatch.setattr(runtime_backend, "resolve_managed_runtime_backend", lambda execution: FakeBackend())
-    monkeypatch.setattr(
-        product_entry.user_message,
-        "enqueue_user_message",
-        lambda **kwargs: (_ for _ in ()).throw(AssertionError("formal live submit should not fall back to queue")),
-    )
-
     result = product_entry.submit_study_task(
         profile=profile,
         study_id="001-risk",
@@ -143,10 +111,17 @@ def test_submit_study_task_enqueues_task_context_for_live_runtime(
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     runtime_intervention = result["runtime_intervention"]
 
-    assert runtime_intervention["intervention_enqueued"] is True
+    assert runtime_intervention["intervention_enqueued"] is False
     assert runtime_intervention["quest_status"] == "running"
-    assert runtime_intervention["message_id"] == "msg-formal-001"
-    assert runtime_intervention["reason"] == "live_runtime_task_context_submitted"
+    assert runtime_intervention["message_id"] is None
+    assert runtime_intervention["delivery_mode"] == "opl_owner_route_ref"
+    assert runtime_intervention["reason"] == "live_runtime_task_context_projected_for_opl_runtime"
+    owner_route_ref = runtime_intervention["owner_route_ref"]
+    assert owner_route_ref["queue_owner"] == "one-person-lab"
+    assert owner_route_ref["domain_truth_owner"] == "med-autoscience"
+    assert owner_route_ref["task_intent"] == "优先清理 publication gate 文面阻塞。"
+    assert owner_route_ref["authority_boundary"]["mas_writes_generic_runtime_queue"] is False
+    assert owner_route_ref["authority_boundary"]["mas_submits_runtime_chat"] is False
     assert queue["pending"] == []
     assert runtime_state["pending_user_message_count"] == 0
 
@@ -156,7 +131,6 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
     tmp_path: Path,
 ) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-    runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -177,26 +151,6 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
         + "\n",
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
-    calls: list[str] = []
-
-    class FakeBackend:
-        BACKEND_ID = "fake"
-        ENGINE_ID = "fake-engine"
-
-        def chat_quest(
-            self,
-            *,
-            runtime_root: Path,
-            quest_id: str,
-            text: str,
-            source: str,
-            reply_to_interaction_id: str | None = None,
-            decision_response: dict[str, object] | None = None,
-        ) -> dict[str, object]:
-            calls.append(text)
-            return {"ok": True, "message": {"id": "msg-formal-001"}}
-
-    monkeypatch.setattr(runtime_backend, "resolve_managed_runtime_backend", lambda execution: FakeBackend())
 
     first = product_entry.submit_study_task(
         profile=profile,
@@ -216,12 +170,11 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
     first_intervention = first["runtime_intervention"]
     second_intervention = second["runtime_intervention"]
 
-    assert len(calls) == 1
-    assert first_intervention["delivery_mode"] == "managed_runtime_chat"
-    assert first_intervention["message_id"] == "msg-formal-001"
-    assert second_intervention["delivery_mode"] == "managed_runtime_chat"
-    assert second_intervention["message_id"] == "msg-formal-001"
-    assert second_intervention["reason"] == "live_runtime_task_context_already_delivered"
+    assert first_intervention["delivery_mode"] == "opl_owner_route_ref"
+    assert first_intervention["message_id"] is None
+    assert second_intervention["delivery_mode"] == "opl_owner_route_ref"
+    assert second_intervention["message_id"] is None
+    assert second_intervention["reason"] == "live_runtime_task_context_already_projected_for_opl_runtime"
     assert second_intervention["idempotent_replay"] is True
     assert queue["pending"] == []
     assert runtime_state["pending_user_message_count"] == 0
@@ -232,7 +185,6 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
     tmp_path: Path,
 ) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-    runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -253,26 +205,6 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
         + "\n",
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
-    calls: list[str] = []
-
-    class FakeBackend:
-        BACKEND_ID = "fake"
-        ENGINE_ID = "fake-engine"
-
-        def chat_quest(
-            self,
-            *,
-            runtime_root: Path,
-            quest_id: str,
-            text: str,
-            source: str,
-            reply_to_interaction_id: str | None = None,
-            decision_response: dict[str, object] | None = None,
-        ) -> dict[str, object]:
-            calls.append(text)
-            return {"ok": True, "message": {"id": f"msg-formal-{len(calls):03d}"}}
-
-    monkeypatch.setattr(runtime_backend, "resolve_managed_runtime_backend", lambda execution: FakeBackend())
 
     first = product_entry.submit_study_task(
         profile=profile,
@@ -294,20 +226,18 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
     first_intervention = first["runtime_intervention"]
     second_intervention = second["runtime_intervention"]
 
-    assert len(calls) == 1
-    assert first_intervention["message_id"] == "msg-formal-001"
-    assert second_intervention["message_id"] == "msg-formal-001"
-    assert second_intervention["reason"] == "live_runtime_task_context_already_delivered"
+    assert first_intervention["message_id"] is None
+    assert second_intervention["message_id"] is None
+    assert second_intervention["reason"] == "live_runtime_task_context_already_projected_for_opl_runtime"
     assert second_intervention["idempotent_replay"] is True
     assert queue["pending"] == []
 
 
-def test_submit_study_task_uses_managed_quest_id_for_live_runtime_intervention(
+def test_submit_study_task_uses_managed_quest_id_for_opl_owner_route_ref(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-    runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk", quest_id="001-risk-managed")
     short_quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -329,28 +259,6 @@ def test_submit_study_task_uses_managed_quest_id_for_live_runtime_intervention(
     )
     write_text(managed_quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
-    class FakeBackend:
-        BACKEND_ID = "fake"
-        ENGINE_ID = "fake-engine"
-
-        def chat_quest(
-            self,
-            *,
-            runtime_root: Path,
-            quest_id: str,
-            text: str,
-            source: str,
-            reply_to_interaction_id: str | None = None,
-            decision_response: dict[str, object] | None = None,
-        ) -> dict[str, object]:
-            assert runtime_root == profile.managed_runtime_home
-            assert quest_id == "001-risk-managed"
-            assert source == "codex-study-task-intake"
-            assert "根据审稿意见修订 manuscript" in text
-            return {"ok": True, "message": {"id": "msg-managed-quest"}}
-
-    monkeypatch.setattr(runtime_backend, "resolve_managed_runtime_backend", lambda execution: FakeBackend())
-
     result = product_entry.submit_study_task(
         profile=profile,
         study_id="001-risk",
@@ -361,9 +269,11 @@ def test_submit_study_task_uses_managed_quest_id_for_live_runtime_intervention(
     assert not short_quest_root.exists()
     assert runtime_intervention["quest_id"] == "001-risk-managed"
     assert runtime_intervention["quest_root"] == str(managed_quest_root)
-    assert runtime_intervention["intervention_enqueued"] is True
-    assert runtime_intervention["message_id"] == "msg-managed-quest"
-    assert runtime_intervention["reason"] == "live_runtime_task_context_submitted"
+    assert runtime_intervention["intervention_enqueued"] is False
+    assert runtime_intervention["message_id"] is None
+    assert runtime_intervention["delivery_mode"] == "opl_owner_route_ref"
+    assert runtime_intervention["owner_route_ref"]["quest_id"] == "001-risk-managed"
+    assert runtime_intervention["reason"] == "live_runtime_task_context_projected_for_opl_runtime"
 
 
 def test_submit_study_task_requires_reactivation_for_stopped_reviewer_revision(tmp_path: Path) -> None:
@@ -405,12 +315,11 @@ def test_submit_study_task_requires_reactivation_for_stopped_reviewer_revision(t
     assert runtime_intervention["current_package_edit_policy"]["direct_current_package_edit_allowed"] is False
 
 
-def test_submit_study_task_falls_back_to_durable_queue_when_backend_chat_is_unavailable(
+def test_submit_study_task_does_not_fall_back_to_private_queue_when_backend_chat_is_unavailable(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
-    runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "001-risk"
@@ -431,8 +340,6 @@ def test_submit_study_task_falls_back_to_durable_queue_when_backend_chat_is_unav
     )
     write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
 
-    monkeypatch.setattr(runtime_backend, "resolve_managed_runtime_backend", lambda execution: None)
-
     result = product_entry.submit_study_task(
         profile=profile,
         study_id="001-risk",
@@ -444,10 +351,9 @@ def test_submit_study_task_falls_back_to_durable_queue_when_backend_chat_is_unav
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     runtime_intervention = result["runtime_intervention"]
 
-    assert runtime_intervention["intervention_enqueued"] is True
-    assert runtime_intervention["delivery_mode"] == "queued_owner_message_delivery"
-    assert runtime_intervention["reason"] == "live_runtime_task_context_queued_owner_message_delivery"
-    assert len(queue["pending"]) == 1
-    assert "优先比较不同省份的生物制剂使用意向" in queue["pending"][0]["content"]
-    assert "保留多中心分层分析" in queue["pending"][0]["content"]
-    assert runtime_state["pending_user_message_count"] == 1
+    assert runtime_intervention["intervention_enqueued"] is False
+    assert runtime_intervention["delivery_mode"] == "opl_owner_route_ref"
+    assert runtime_intervention["reason"] == "live_runtime_task_context_projected_for_opl_runtime"
+    assert runtime_intervention["owner_route_ref"]["queue_owner"] == "one-person-lab"
+    assert queue["pending"] == []
+    assert runtime_state["pending_user_message_count"] == 0

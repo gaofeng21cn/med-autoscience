@@ -193,9 +193,8 @@ def test_study_runtime_status_resumes_platform_repair_current_controller_redrive
         entry_mode=None,
     )
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_marked_running_but_no_live_session"
-    assert result["continuation_state"]["continuation_reason"] == "controller_work_unit_pending"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert "controller_work_unit_evidence_adoption" not in result
 
 
@@ -461,8 +460,9 @@ def test_study_runtime_status_hides_stale_authorization_when_newer_hard_methodol
     )
 
     assert result["quest_status"] == "waiting_for_user"
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["interaction_arbitration"]["classification"] == "blocked_closeout_owner_redrive"
     assert result["blocked_turn_closeout"]["blocked_reason"] == "unit_harmonized_rerun_required"
     assert result["blocked_turn_closeout"]["next_owner"] == "analysis_harmonization_owner"
     assert "domain_transition" not in result

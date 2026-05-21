@@ -596,6 +596,7 @@ def _execute_runtime_decision(
         _relay_controller_decision_authorization_if_required(status=status, context=context)
         return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.NOOP)
     if status.decision == StudyRuntimeDecision.BLOCKED:
+        _relay_controller_decision_authorization_if_required(status=status, context=context)
         if adopt_controller_work_unit_evidence_for_current_authorization(status=status, context=context) is not None:
             status.set_decision(
                 StudyRuntimeDecision.NOOP,

@@ -31,7 +31,7 @@ from med_autoscience.doctor import build_doctor_report
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience import runtime_backend as runtime_backend_contract
-from med_autoscience.runtime_protocol import quest_state, user_message
+from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 from med_autoscience.runtime_protocol.runtime_lifecycle_store import (
     build_domain_memory_descriptor,
@@ -41,7 +41,6 @@ from med_autoscience.runtime_protocol.runtime_lifecycle_store import (
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
     render_task_intake_markdown,
-    render_task_intake_runtime_context,
     upsert_startup_brief_task_block,
     write_task_intake,
 )

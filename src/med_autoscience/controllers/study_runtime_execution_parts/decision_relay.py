@@ -8,7 +8,7 @@ from typing import Any
 from med_autoscience.controllers import control_intent
 from med_autoscience.runtime_protocol import quest_state, user_message
 
-from .controller_authorization import _load_controller_decision_route_context
+from .controller_authorization_context import _load_controller_decision_route_context
 from ..study_runtime_status import (
     StudyRuntimeAuditStatus,
     StudyRuntimeDecision,

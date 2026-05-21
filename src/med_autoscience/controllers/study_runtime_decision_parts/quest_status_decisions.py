@@ -52,6 +52,15 @@ from med_autoscience.controllers.study_runtime_types import (
 )
 from med_autoscience.runtime_protocol import quest_state
 
+_OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS = frozenset(
+    {
+        "blocked_closeout_owner_redrive",
+        "controller_work_unit_pending_redrive",
+        "platform_repair_decision_redrive",
+        "pending_user_message_redrive",
+    }
+)
+
 
 def _stopped_runtime_redrive_reason(result: StudyRuntimeStatus) -> StudyRuntimeReason:
     interaction_arbitration = result.extras.get("interaction_arbitration")
@@ -284,15 +293,17 @@ def _apply_live_quest_status_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
         )
-    elif execution.get("auto_resume") is True:
-        result.set_decision(
-            StudyRuntimeDecision.RESUME,
-            domain_redrive_reason or StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
+    elif domain_redrive_reason is not None:
+        _apply_domain_transition_redrive_decision(
+            result,
+            reason=domain_redrive_reason,
+            execution=execution,
+            running_quest=True,
         )
     else:
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
         )
     return finalize_result()
 
@@ -362,6 +373,23 @@ def _apply_resumable_quest_status_decision(
             StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
         )
         return finalize_result()
+    interaction_arbitration = result.extras.get("interaction_arbitration")
+    classification = (
+        str(interaction_arbitration.get("classification") or "").strip()
+        if isinstance(interaction_arbitration, dict)
+        else ""
+    )
+    action = (
+        str(interaction_arbitration.get("action") or "").strip()
+        if isinstance(interaction_arbitration, dict)
+        else ""
+    )
+    if action == "resume" and classification in _OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS:
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+        )
+        return finalize_result()
     if (
         (submission_metadata_only_manual_finish or bundle_only_manual_finish)
         and not task_intake_releases_manual_finish_parking
@@ -418,6 +446,11 @@ def _set_stopped_resume_or_blocked_decision(
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+        )
+    elif resume_reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE:
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            resume_reason,
         )
     elif execution.get("auto_resume") is True:
         result.set_decision(
@@ -482,17 +515,27 @@ def _apply_stopped_or_failed_quest_status_decision(
         )
         return finalize_result()
     if stopped_runtime_redrive:
-        _set_stopped_resume_or_blocked_decision(
-            result=result,
-            execution=execution,
-            resume_reason=_stopped_runtime_redrive_reason(result),
-            blocked_reason=StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
         )
         return finalize_result()
     if (
         isinstance(stopped_recovery_context, dict)
         and str(stopped_recovery_context.get("recovery_mode") or "").strip() == "controller_guard"
     ):
+        interaction_arbitration = result.extras.get("interaction_arbitration")
+        classification = (
+            str(interaction_arbitration.get("classification") or "").strip()
+            if isinstance(interaction_arbitration, dict)
+            else ""
+        )
+        if classification in _OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+            )
+            return finalize_result()
         post_clear_continuation = _publication_gate_allows_post_clear_runtime_continuation(publication_gate_report)
         _set_stopped_resume_or_blocked_decision(
             result=result,
@@ -515,14 +558,12 @@ def _apply_stopped_or_failed_quest_status_decision(
             resume_reason = {
                 "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
                 "domain_transition_runtime_redrive": _domain_transition_runtime_redrive_reason(result)
-                or StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
+                or StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
                 "premature_completion_request": (
                     StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
                 ),
                 "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
-                "controller_work_unit_pending_redrive": (
-                    StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
-                ),
+                "controller_work_unit_pending_redrive": StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
             }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
             blocked_reason = (
                 StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED
@@ -583,31 +624,32 @@ def _apply_waiting_for_user_status_decision(
     if isinstance(interaction_arbitration, dict):
         classification = str(interaction_arbitration.get("classification") or "").strip()
         action = str(interaction_arbitration.get("action") or "").strip()
+        if classification in _OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+            )
+            return finalize_result()
         if action == "resume":
             resume_reason = {
                 "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
                 "domain_transition_runtime_redrive": _domain_transition_runtime_redrive_reason(result)
-                or StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
+                or StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
                 "premature_completion_request": (
                     StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
                 ),
                 "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
                 "pending_user_message_redrive": StudyRuntimeReason.QUEST_WAITING_USER_MESSAGE_REDRIVE,
-                "platform_repair_decision_redrive": (
-                    StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
-                ),
-                "controller_work_unit_pending_redrive": (
-                    StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
-                ),
-                "blocked_closeout_owner_redrive": (
-                    StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
-                ),
                 "domain_transition_publication_blocker": (
                     StudyRuntimeReason.STUDY_COMPLETION_PUBLISHABILITY_GATE_BLOCKED
                 ),
             }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
             result.set_decision(
-                StudyRuntimeDecision.RESUME,
+                (
+                    StudyRuntimeDecision.BLOCKED
+                    if resume_reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
+                    else StudyRuntimeDecision.RESUME
+                ),
                 resume_reason,
             )
             return finalize_result()

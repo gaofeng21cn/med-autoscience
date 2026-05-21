@@ -18,11 +18,11 @@
 - 理由：DM002 暴露出 MAS 已由 provenance-limited owner 消费 clean rebuild authorization 并交棒给 analysis owner，但 read model 仍先读取旧 source terminal blocker，导致 action queue 回退到上一轮 decision owner，阻断 unit-harmonized rerun。这里的 currentness 真相来自 MAS 医学 owner result 的时间顺序和 typed handoff，不是通用队列或控制面状态。
 - 影响：这是 MAS 标准 OPL Agent 的 domain owner-chain currentness 修复，只影响医学 owner route/read-model。它不把 OPL provider、queue、attempt ledger、session lifecycle 或 Agent Lab control plane 回塞进 MAS；也不授权写 `paper/`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`manuscript/current_package`、submission package 或 submission-ready verdict。
 
-## 2026-05-21：stopped controller work-unit redrive 优先于投稿元数据停车
+## 2026-05-21：stopped controller work-unit 不再由 MAS 私有 redrive 仲裁
 
-- 决策：当 `.ds/runtime_state.json` 已进入 `status=stopped`，但仍携带 `continuation_policy=auto`、`continuation_anchor=decision`、`continuation_reason=controller_work_unit_pending` 和当前 `last_controller_decision_authorization` 时，`study_runtime_status` 必须把它仲裁为 `controller_work_unit_pending_redrive` 并返回 `resume / quest_waiting_platform_repair_redrive`。即使当前 workspace 已存在 submission metadata-only package 或 synchronized delivery，MAS 也不能把这条当前 controller work unit 降级为投稿元数据停车。
-- 理由：stopped 运行态并不总是 terminal handoff；若当前 controller authorization 仍指向同线 work unit，MAS owner-chain 需要先完成 redrive 或产出 typed blocker。把它误判成 submission metadata waiting 会让当前论文线停在人工元数据门口，实际 work unit 无法被消费。
-- 影响：这是 MAS domain runtime/status authority 的状态转移修复，不是 OPL generic runtime 迁移，也不授权脚本判断论文质量、更新 `publication_eval/latest.json`、写正文、刷新 `current_package` 或声明 submission-ready。OPL 仍只托管 provider/attempt/queue/read model；MAS 继续持有 controller authorization、owner receipt、typed blocker 和 publication/artifact authority。
+- 决策：撤回“stopped + controller_work_unit_pending 必须由 MAS `study_runtime_status` 返回 `resume / quest_waiting_platform_repair_redrive`”这一方向。MAS 在 stopped / failed / waiting / live 组合状态下只发布当前 controller authorization、domain route、owner receipt、typed blocker 和 OPL 可消费 owner-route refs；通用 liveness 判断、queue hydration、attempt retry、dead-letter、provider resume/relaunch 由 OPL runtime manager 承担。
+- 理由：DM002 暴露的是 current work unit 没有被 OPL 通用 runtime/hydration/dispatch 消费，而不是 MAS 应继续扩写私有 runtime/status state machine。把 stopped redrive 写进 MAS status 会把 OPL 标准智能体边界退回 MAS 私有控制面。
+- 影响：MAS 可以通过 `sidecar export` 暴露 `domain_route/reconcile-apply`、paper autonomy、publication aftercare 等 pending owner-route refs，并通过 `sidecar dispatch` 回到 MAS owner callable 产出 receipt / typed blocker；MAS 不直接写 `.ds/user_message_queue.json`，不调用 generic runtime chat 作为控制器授权投递，不声明 OPL queue 或 provider attempt 已完成。
 
 ## 2026-05-20：新 reviewer_revision 必须使旧 AI reviewer eval 失效
 

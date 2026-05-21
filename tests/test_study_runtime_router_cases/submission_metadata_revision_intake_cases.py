@@ -797,14 +797,15 @@ def test_waiting_submission_metadata_reviewer_revision_with_open_concerns_resume
         source="user_explicit_wakeup",
     )
 
-    assert status["decision"] == "resume"
-    assert status["reason"] == "quest_waiting_platform_repair_redrive"
+    assert status["decision"] == "blocked"
+    assert status["reason"] == "quest_waiting_opl_runtime_owner_route"
     assert status["interaction_arbitration"]["classification"] == "blocked_closeout_owner_redrive"
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_waiting_platform_repair_redrive"
-    assert result["quest_status"] == "running"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["quest_status"] == "waiting_for_user"
     assert result["explicit_user_wakeup"]["status"] == "recorded"
-    assert calls == ["sync_context", "resume"]
+    assert result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    assert calls == []
 
 
 def test_failed_submission_metadata_reviewer_revision_with_controller_owner_relaunches_same_line(
