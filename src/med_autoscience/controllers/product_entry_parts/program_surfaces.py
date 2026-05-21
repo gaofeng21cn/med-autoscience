@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from med_autoscience import stage_skill_surface_projection
 from med_autoscience.controllers import mainline_status
+from med_autoscience.controllers.mainline_status_parts import program_surfaces as mainline_program_surfaces
 
 from . import shared as _shared
 from . import automation_surfaces as _automation_surfaces
@@ -17,14 +18,14 @@ _module_reexport(_shared)
 _module_reexport(_automation_surfaces)
 _module_reexport(_family_lifecycle_surfaces)
 
-_build_backend_deconstruction_lane = mainline_status._build_backend_deconstruction_lane
+_build_backend_deconstruction_lane = mainline_program_surfaces.build_backend_deconstruction_lane
 
 
 def _build_phase5_platform_target() -> dict[str, Any]:
     payload = mainline_status.read_mainline_status()
     source = payload.get("platform_target")
     if not isinstance(source, Mapping):
-        source = mainline_status._platform_target()
+        source = mainline_program_surfaces.build_platform_target()
     source_payload = dict(source)
     source_landing_sequence = [
         dict(item)
@@ -96,7 +97,7 @@ def _build_phase2_user_product_loop(
 ) -> dict[str, Any]:
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
-    lane = mainline_status.build_phase2_user_product_loop_lane(
+    lane = mainline_program_surfaces.build_phase2_user_product_loop_lane(
         entry_status_command=f"{prefix} product-entry-status --profile {profile_arg}",
         workspace_cockpit_command=_json_surface_command(
             f"{prefix} workspace-cockpit --profile {profile_arg}"
@@ -228,7 +229,7 @@ def _build_phase3_clearance_lane(
 def _build_phase4_backend_deconstruction() -> dict[str, Any]:
     build_backend_deconstruction_lane = _controller_override(
         "_build_backend_deconstruction_lane",
-        mainline_status._build_backend_deconstruction_lane,
+        mainline_program_surfaces.build_backend_deconstruction_lane,
     )
     return build_backend_deconstruction_lane(
         summary="Phase 4 只保留 future upstream source intake / historical fixture governance；MDS 不再是 runtime substrate。",
