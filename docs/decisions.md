@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：当前 medical prose review route-back 必须解除 AI reviewer dispatch repeat suppression
+
+- 决策：`return_to_ai_reviewer_workflow` 的 required-output pending 判定不再只依赖监督 scan 中的 `ai_reviewer_assessment.missing=true`。当 `artifacts/supervision/requests/ai_reviewer/latest.json` 携带的 AI reviewer record 尚未写入 `publication_eval/latest.json`，或当前 `artifacts/publication_eval/medical_prose_review.json` 明确 `route_back_recommendation.required=true` 且 route target 为 `write` / `analysis-campaign` / `blueprint`、但 `publication_eval/latest.json` 的 reviewer OS 和 recommended action 还没有消费同一路由时，executor dispatch 与 request materializer 都必须把 required output 视为 pending，不得 repeat suppress。
+- 决策：没有 AI reviewer request record、没有 current medical prose route-back、也没有 scan-level `ai_reviewer_assessment.missing=true` 的普通重复 dispatch 继续按 repeat-suppression 保护，不得因为 `publication_eval/latest.json` 缺失就无证据重跑。
+- 理由：DM003 暴露出当前 AI reviewer prose review 已给出 `revise -> write` 的医学论文质量回退，但旧 `publication_eval/latest.json` 仍停在 clean-migration underdefined 状态；由于 owner-chain 只看 scan-level missing flag，dispatch 被 repeat-suppressed，无法把当前 reviewer 结论 materialize 成新的 publication eval 与 write owner work unit。
+- 影响：这是 MAS AI reviewer owner-chain currentness 修复，不是 OPL queue/provider lifecycle 修复，也不是质量门槛放宽。该路径只让 MAS owner workflow 重新消费当前 AI reviewer output；它不手写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical `paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。
+
 ## 2026-05-21：OPL/Temporal hosted autonomous runtime 是 MAS 默认运行口径
 
 - 决策：MAS hosted path 的默认运行口径固定为 OPL/Temporal hosted autonomous runtime。任务启动后，durable stage attempt、queue、wakeup、retry/dead-letter、resume、worker residency 和 generic lifecycle/projection 由 OPL/Temporal 持有；MAS 不内置或恢复 generic daemon、scheduler、attempt loop、queue hydration、provider retry 或 resume owner。

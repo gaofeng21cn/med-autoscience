@@ -92,6 +92,7 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "source_provenance_owner_recovery" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "source_provenance_terminal_blocker_route_back" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "methodology_reframe_decision_owner_route" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    assert "ai_reviewer_output_readiness_currentness_consumption" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "dm002_quality_targets" not in task["improvement_candidate"]["developer_patch_work_order"]
     assert task["improvement_candidate"]["developer_patch_work_order"]["study_quality_target_family"] == (
         "prediction_model_external_validation"
@@ -148,6 +149,10 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
     assert (
+        "mechanism-edit-ref:mas/ai-reviewer-output-readiness-currentness-consumption"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
+    assert (
         "mechanism-edit-ref:mas/invalid-analysis-history-body-free-projection"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
@@ -155,7 +160,9 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "nhanes-survey-weighting-and-unweighted-framing" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "uncertainty-intervals-and-validation-metrics" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "hard-methodology-unit-harmonization-route" in " ".join(task["promotion_gate"]["regression_suite_refs"])
+    assert "ai-reviewer-output-readiness-currentness" in " ".join(task["promotion_gate"]["regression_suite_refs"])
     assert "analysis-harmonization-owner-routing" in " ".join(mechanism_inputs["target_editable_surface_refs"])
+    assert "ai-reviewer-output-readiness-currentness-consumption" in " ".join(mechanism_inputs["target_editable_surface_refs"])
     assert (
         "domain_route_analysis_harmonization_owner_result_consumption"
         in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]

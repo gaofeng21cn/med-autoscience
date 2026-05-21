@@ -10,6 +10,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
 )
+from med_autoscience.controllers.domain_owner_action_dispatch_parts import output_readiness
 from med_autoscience.controllers.domain_route_scan import SUPERVISION_LATEST_RELATIVE_PATH
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
@@ -144,11 +145,19 @@ def _current_scan_study(scan_payload: Mapping[str, Any], study_id: str) -> dict[
     return None
 
 
-def _required_output_pending(action_type: str, current_study: Mapping[str, Any] | None) -> bool:
-    if action_type != "return_to_ai_reviewer_workflow":
-        return False
-    assessment = _mapping(_mapping(current_study).get("ai_reviewer_assessment"))
-    return assessment.get("missing") is True
+def _required_output_pending(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+    current_study: Mapping[str, Any] | None,
+) -> bool:
+    return output_readiness.required_output_pending(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        current_study=current_study,
+    )
 
 
 def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | None:
@@ -425,7 +434,12 @@ def _default_executor_dispatch(
         dispatch={"prompt_contract": prompt_contract, "owner_route": owner_route, "dispatch_status": dispatch_status},
         current_study=current_study,
         existing_dispatch=_read_json_object(dispatch_path),
-        required_output_pending=_required_output_pending(action_type, current_study),
+        required_output_pending=_required_output_pending(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+            current_study=current_study,
+        ),
     )
     if dispatch_status == "ready" and repeat_guard["repeat_suppressed"]:
         dispatch_status = "repeat_suppressed"

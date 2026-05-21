@@ -14,6 +14,8 @@ from med_autoscience.profiles import WorkspaceProfile
 CURRENT_PACKAGE_FRESHNESS_PROOF_RELATIVE_PATH = Path("artifacts/controller/current_package_freshness/latest.json")
 GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clearing_batch/latest.json")
 PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
+MEDICAL_PROSE_REVIEW_RELATIVE_PATH = Path("artifacts/publication_eval/medical_prose_review.json")
+AI_REVIEWER_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/ai_reviewer/latest.json")
 MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint_source.json")
 ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
 SOURCE_PROVENANCE_RESULT_RELATIVE_PATH = Path("artifacts/controller/source_provenance/latest.json")
@@ -21,6 +23,13 @@ PROVENANCE_LIMITED_HARMONIZATION_RESULT_RELATIVE_PATH = Path(
     "artifacts/controller/provenance_limited_harmonization/latest.json"
 )
 CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions/latest.json")
+_ROUTE_TARGET_ALIASES = {
+    "analysis": "analysis-campaign",
+    "analysis_campaign": "analysis-campaign",
+    "bounded_analysis": "analysis-campaign",
+}
+_AI_REVIEWER_ROUTE_BACK_TARGETS = frozenset({"write", "analysis-campaign", "blueprint"})
+_ROUTE_BACK_ACTION_TYPES = frozenset({"route_back_same_line", "bounded_analysis", "stop_loss"})
 
 
 def required_output_pending(
@@ -44,12 +53,106 @@ def required_output_pending(
         return provenance_limited_harmonization_audit_output_pending(profile=profile, study_id=study_id)
     if action_type != "return_to_ai_reviewer_workflow":
         return False
-    return ai_reviewer_output_pending(current_study)
+    return ai_reviewer_output_pending(
+        current_study,
+        profile=profile,
+        study_id=study_id,
+    )
 
 
-def ai_reviewer_output_pending(current_study: Mapping[str, Any] | None) -> bool:
+def ai_reviewer_output_pending(
+    current_study: Mapping[str, Any] | None,
+    *,
+    profile: WorkspaceProfile | None = None,
+    study_id: str | None = None,
+) -> bool:
     assessment = _mapping(_mapping(current_study).get("ai_reviewer_assessment"))
-    return assessment.get("missing") is True
+    if assessment.get("missing") is True:
+        return True
+    if profile is None or study_id is None:
+        return False
+    return ai_reviewer_study_output_pending(profile=profile, study_id=study_id)
+
+
+def ai_reviewer_study_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
+    study_root = profile.studies_root / study_id
+    latest = _read_json_object(study_root / PUBLICATION_EVAL_RELATIVE_PATH)
+    if _request_record_newer_than_latest(study_root=study_root, latest=latest):
+        return True
+    return _current_medical_prose_route_back_unconsumed(study_root=study_root, latest=latest)
+
+
+def _request_record_newer_than_latest(*, study_root: Path, latest: Mapping[str, Any] | None) -> bool:
+    request = _read_json_object(study_root / AI_REVIEWER_REQUEST_RELATIVE_PATH)
+    record = _mapping(_mapping(request).get("ai_reviewer_record"))
+    request_eval_id = _text(record.get("eval_id"))
+    if request_eval_id is None:
+        return False
+    return _text(_mapping(latest).get("eval_id")) != request_eval_id
+
+
+def _current_medical_prose_route_back_unconsumed(*, study_root: Path, latest: Mapping[str, Any] | None) -> bool:
+    prose = _read_json_object(study_root / MEDICAL_PROSE_REVIEW_RELATIVE_PATH)
+    quality = _mapping(_mapping(prose).get("medical_journal_prose_quality"))
+    route_back = _mapping(quality.get("route_back_recommendation"))
+    if route_back.get("required") is not True:
+        return False
+    route_target = _normalized_route_target(route_back.get("route_target"))
+    if route_target not in _AI_REVIEWER_ROUTE_BACK_TARGETS:
+        return False
+    if latest is None:
+        return True
+    current_provenance = _mapping(_mapping(prose).get("assessment_provenance"))
+    reviewer_os = _mapping(latest.get("reviewer_operating_system"))
+    currentness_checks = _mapping(reviewer_os.get("currentness_checks"))
+    latest_prose = _mapping(currentness_checks.get("medical_prose_review"))
+    if _text(latest_prose.get("status")) != "current":
+        return True
+    if latest_prose.get("route_back_required") is not True:
+        return True
+    if _normalized_route_target(latest_prose.get("route_target")) != route_target:
+        return True
+    for field in ("request_digest", "manuscript_digest"):
+        current_value = _text(current_provenance.get(field))
+        if current_value is not None and _text(latest_prose.get(field)) != current_value:
+            return True
+    current_manuscript_ref = _text(current_provenance.get("manuscript_ref"))
+    if current_manuscript_ref is not None and not _refs_match(
+        left=_text(latest_prose.get("manuscript_ref")),
+        right=current_manuscript_ref,
+    ):
+        return True
+    return not _latest_recommends_same_route_back(latest=latest, route_target=route_target)
+
+
+def _latest_recommends_same_route_back(*, latest: Mapping[str, Any], route_target: str) -> bool:
+    for action in _list(latest.get("recommended_actions")):
+        payload = _mapping(action)
+        if payload.get("requires_controller_decision") is not True:
+            continue
+        if _text(payload.get("action_type")) not in _ROUTE_BACK_ACTION_TYPES:
+            continue
+        if _normalized_route_target(payload.get("route_target")) == route_target:
+            return True
+    return False
+
+
+def _normalized_route_target(value: object) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    return _ROUTE_TARGET_ALIASES.get(text, text)
+
+
+def _refs_match(*, left: str | None, right: str) -> bool:
+    if left is None:
+        return False
+    if left == right:
+        return True
+    try:
+        return Path(left).expanduser().resolve() == Path(right).expanduser().resolve()
+    except OSError:
+        return False
 
 
 def current_package_freshness_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:

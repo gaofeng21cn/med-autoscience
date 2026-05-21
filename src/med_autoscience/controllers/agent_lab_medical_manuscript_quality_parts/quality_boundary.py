@@ -30,6 +30,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/source-provenance-terminal-blocker-route-back",
     "mechanism-edit-ref:mas/methodology-reframe-decision-owner-route",
     "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
+    "mechanism-edit-ref:mas/ai-reviewer-output-readiness-currentness-consumption",
     "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
     "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection",
     "mechanism-edit-ref:mas/claim-assurance-map-body-free-projection",
@@ -48,6 +49,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "quality_contract_ref:prediction_model_first_draft_quality",
     "policy_ref:mas/ai-first-quality-boundary/contracts-floor-not-ceiling",
     "regression-suite:mas/hard-methodology-unit-harmonization-route",
+    "regression-suite:mas/ai-reviewer-output-readiness-currentness",
     "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution",
 ]
 QUALITY_JUDGMENT_BOUNDARY = {
