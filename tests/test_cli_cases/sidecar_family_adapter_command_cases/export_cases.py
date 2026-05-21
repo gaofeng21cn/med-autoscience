@@ -612,6 +612,102 @@ def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path
     ]
 
 
+def test_sidecar_export_projects_controller_route_back_as_pending_task(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "study-decision::dm002::route-back::2026-05-21T17:36:04+00:00",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "emitted_at": "2026-05-21T17:36:04+00:00",
+            "decision_type": "route_back_same_line",
+            "requires_human_confirmation": False,
+            "controller_actions": [
+                {
+                    "action_type": "ensure_study_runtime",
+                    "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                }
+            ],
+            "route_target": "analysis-campaign",
+            "route_key_question": "当前 AI reviewer-backed route-back 应由哪一个同线 owner work unit 继续？",
+            "route_rationale": "The current AI reviewer-backed quality record names a same-line owner route.",
+            "work_unit_fingerprint": (
+                "domain-transition::route_back_same_line::"
+                "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+            ),
+            "next_work_unit": {
+                "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                "lane": "analysis-campaign",
+                "summary": (
+                    "Add uncertainty intervals, grouped calibration evidence, and reproducibility details "
+                    "to the unit-harmonized external validation."
+                ),
+            },
+            "blocking_work_units": [
+                {
+                    "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "lane": "analysis-campaign",
+                    "summary": (
+                        "Missing validation uncertainty and grouped calibration outputs block "
+                        "publication readiness."
+                    ),
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    route_tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_route/reconcile-apply"
+    ]
+    assert len(route_tasks) == 1
+    task = route_tasks[0]
+    assert task["source"] == "mas-controller-decision"
+    assert task["requires_approval"] is False
+    assert task["dedupe_key"].startswith(
+        "mas:nfpitnet:002-dm-china-us-mortality-attribution:controller-decision:"
+    )
+    assert task["source_fingerprint"]
+    assert task["payload"]["profile"] == str(profile_path)
+    assert task["payload"]["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert task["payload"]["continuation_reason"] == "controller_decision_route_back"
+    assert task["payload"]["route_target"] == "analysis-campaign"
+    assert task["payload"]["next_work_unit"]["unit_id"] == (
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
+    assert task["payload"]["work_unit_fingerprint"] == (
+        "domain-transition::route_back_same_line::"
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
+    assert task["payload"]["authority_boundary"] == "mas_owner_reconcile_only"
+    assert task["domain_truth_owner"] == "med-autoscience"
+    assert task["queue_owner"] == "one-person-lab"
+    assert task["reason"] == "controller_decision_route_back"
+    assert task["dispatch_owner"] == "med-autoscience"
+    assert task["profile_name"] == "nfpitnet"
+    assert task["source_refs"] == [
+        {
+            "role": "mas_controller_decision_route_back",
+            "ref": "studies/002-dm-china-us-mortality-attribution/artifacts/controller_decisions/latest.json",
+            "exists": True,
+        }
+    ]
+
+
 def test_sidecar_export_projects_publication_aftercare_analysis_and_reviewer_tasks(
     tmp_path: Path,
     capsys,

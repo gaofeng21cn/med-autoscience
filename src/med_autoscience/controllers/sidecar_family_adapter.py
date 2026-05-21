@@ -14,6 +14,9 @@ from . import reviewer_refinement_loop
 from . import stage_knowledge_plane
 from . import study_domain_transition_table
 from .sidecar_family_adapter_parts.authority_boundary import authority_boundary_payload
+from .sidecar_family_adapter_parts.controller_route_back_tasks import (
+    controller_decision_route_back_task,
+)
 from .sidecar_family_adapter_parts.functional_closure import (
     build_sidecar_functional_closure_projection,
 )
@@ -482,6 +485,14 @@ def _pending_family_tasks(
         )
         if handoff_task is not None:
             tasks.append(handoff_task)
+        controller_task = controller_decision_route_back_task(
+            study=study,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+        )
+        if controller_task is not None:
+            tasks.append(controller_task)
         continuation = _mapping(study.get("autonomy_continuation"))
         if not continuation.get("eligible_for_auto_dispatch"):
             continue

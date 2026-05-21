@@ -21,6 +21,13 @@
 - 理由：DM003 暴露出当前 AI reviewer prose review 已给出 `revise -> write` 的医学论文质量回退，但旧 `publication_eval/latest.json` 仍停在 clean-migration underdefined 状态；由于 owner-chain 只看 scan-level missing flag，dispatch 被 repeat-suppressed，无法把当前 reviewer 结论 materialize 成新的 publication eval 与 write owner work unit。
 - 影响：这是 MAS AI reviewer owner-chain currentness 修复，不是 OPL queue/provider lifecycle 修复，也不是质量门槛放宽。该路径只让 MAS owner workflow 重新消费当前 AI reviewer output；它不手写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical `paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。
 
+## 2026-05-21：当前 controller route-back 必须作为 refs-only sidecar task 暴露给 OPL
+
+- 决策：当 `artifacts/controller_decisions/latest.json` 的当前非终止、非 human-gate 决策为 `decision_type=route_back_same_line`，且带有 `route_target` 与 `next_work_unit.unit_id` 时，`sidecar export` 必须生成 `domain_route/reconcile-apply` pending family task。该 task 的 `source` 为 `mas-controller-decision`，dedupe/source fingerprint 来自 controller decision identity、时间、route target、next work unit 与 work-unit fingerprint。
+- 决策：该 sidecar task 只携带 refs 与 route metadata，包括 controller decision ref、route target、next work unit、blocking work units、work unit fingerprint 和 `authority_boundary=mas_owner_reconcile_only`。OPL 只能据此进行 queue/hydrate/dispatch transport，并通过 `sidecar dispatch` 回到 MAS owner surface；不得把它解释为论文质量 verdict、study truth、publication eval、controller decision 写入或 current package 刷新。
+- 理由：DM002 暴露出 MAS controller 已给出 `analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration` route-back，但 OPL hydrate 面无法消费新的 controller decision，只能看到旧 runtime owner-route 或旧 repair task，导致真实论文线停在 platform redrive。
+- 影响：这是 MAS refs-only adapter / owner-route 暴露修复，不是 MAS 私有 runtime liveness、queue、retry/dead-letter 或 provider resume 修复。该路径不写 `.ds` runtime state、不写 `publication_eval/latest.json`、不写 `controller_decisions/latest.json`、不写 `paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。
+
 ## 2026-05-21：OPL/Temporal hosted autonomous runtime 是 MAS 默认运行口径
 
 - 决策：MAS hosted path 的默认运行口径固定为 OPL/Temporal hosted autonomous runtime。任务启动后，durable stage attempt、queue、wakeup、retry/dead-letter、resume、worker residency 和 generic lifecycle/projection 由 OPL/Temporal 持有；MAS 不内置或恢复 generic daemon、scheduler、attempt loop、queue hydration、provider retry 或 resume owner。
