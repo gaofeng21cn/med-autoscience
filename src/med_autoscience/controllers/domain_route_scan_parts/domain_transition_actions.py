@@ -15,8 +15,26 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         return None
     decision_type = domain_transition_guard.decision_type(status)
     work_unit_id = domain_transition_guard.next_work_unit_id(status)
-    owner = domain_transition_guard.owner(status) or _owner_for_domain_action(action_type)
-    reason = domain_transition_guard.reason(status) or f"domain_transition_{decision_type or 'current'}"
+    transition = domain_transition_guard.transition_from_status(status)
+    route_target = _text(transition.get("route_target"))
+    unit_harmonized_analysis_route = _is_unit_harmonized_analysis_route(
+        decision_type=decision_type,
+        route_target=route_target,
+        work_unit_id=work_unit_id,
+    )
+    if unit_harmonized_analysis_route:
+        action_type = "unit_harmonized_external_validation_rerun"
+        work_unit_id = "unit_harmonized_external_validation_rerun"
+    owner = (
+        _owner_for_domain_action(action_type)
+        if unit_harmonized_analysis_route
+        else domain_transition_guard.owner(status) or _owner_for_domain_action(action_type)
+    )
+    reason = (
+        "unit_harmonized_rerun_required"
+        if unit_harmonized_analysis_route
+        else domain_transition_guard.reason(status) or f"domain_transition_{decision_type or 'current'}"
+    )
     action: dict[str, Any] = {
         "action_type": action_type,
         "authority": "observability_only",
@@ -25,9 +43,11 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         "recommended_owner": owner,
         "reason": reason,
         "summary": "MAS domain transition oracle selected the current owner work unit.",
-        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "required_output_surface": _required_output_surface(action_type),
         "next_work_unit": work_unit_id,
         "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "current_package_write_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
     if decision_type == "bundle_stage_finalize":
@@ -52,11 +72,43 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
 def _owner_for_domain_action(action_type: str) -> str:
     if action_type == "return_to_ai_reviewer_workflow":
         return "ai_reviewer"
+    if action_type == "unit_harmonized_external_validation_rerun":
+        return "analysis_harmonization_owner"
     if action_type == "publication_gate_specificity_required":
         return "publication_gate"
     if action_type == "runtime_platform_repair":
         return "mas_controller"
     return "med-autoscience"
+
+
+def _required_output_surface(action_type: str) -> str:
+    if action_type == "unit_harmonized_external_validation_rerun":
+        return (
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        )
+    return "artifacts/publication_eval/latest.json"
+
+
+def _is_unit_harmonized_analysis_route(
+    *,
+    decision_type: str | None,
+    route_target: str | None,
+    work_unit_id: str | None,
+) -> bool:
+    if decision_type != "route_back_same_line":
+        return False
+    if route_target != "analysis-campaign":
+        return False
+    return work_unit_id in {
+        "unit_harmonized_external_validation_rerun",
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+    }
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 __all__ = ["actions"]

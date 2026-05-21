@@ -6,6 +6,7 @@ from pathlib import Path
 from med_autoscience.controllers.domain_route_scan_parts import platform_repair
 from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
 from med_autoscience.controllers.domain_route_scan_parts import action_projection
+from med_autoscience.controllers.domain_route_scan_parts import domain_transition_actions
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 
 
@@ -153,6 +154,44 @@ def test_action_queue_routes_publication_blocker_through_domain_transition_work_
     assert actions[0]["domain_transition_decision_type"] == "publication_gate_blocker"
     assert actions[0]["next_work_unit"] == "publication_gate_replay"
     assert actions[0]["paper_package_mutation_allowed"] is False
+
+
+def test_domain_transition_routes_unit_harmonized_analysis_work_unit_to_analysis_owner() -> None:
+    actions = domain_transition_actions.actions(
+        {
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "analysis-campaign",
+                "owner": "analysis-campaign",
+                "next_work_unit": {
+                    "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "lane": "analysis-campaign",
+                    "summary": (
+                        "Add uncertainty intervals, grouped calibration evidence, and "
+                        "reproducibility details to the unit-harmonized external validation."
+                    ),
+                },
+                "guard_boundary": {"opl_generic_runner_may_resume": False},
+            }
+        }
+    )
+
+    assert actions is not None
+    assert len(actions) == 1
+    action = actions[0]
+    assert action["action_type"] == "unit_harmonized_external_validation_rerun"
+    assert action["owner"] == "analysis_harmonization_owner"
+    assert action["request_owner"] == "analysis_harmonization_owner"
+    assert action["recommended_owner"] == "analysis_harmonization_owner"
+    assert action["reason"] == "unit_harmonized_rerun_required"
+    assert action["next_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert action["required_output_surface"] == (
+        "unit-harmonized external-validation rerun evidence or "
+        "typed blocker:unit_harmonized_rerun_required"
+    )
+    assert action["paper_package_mutation_allowed"] is False
+    assert action["quality_gate_relaxation_allowed"] is False
+    assert action["medical_claim_authoring_allowed"] is False
 
 
 def test_apply_runtime_platform_repair_does_not_redrive_terminal_domain_transition(

@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：analysis-campaign route-back 必须物化为 analysis_harmonization_owner action
+
+- 决策：当当前 `domain_transition` / controller route-back 为 `decision_type=route_back_same_line`、`route_target=analysis-campaign`，且 `next_work_unit.unit_id` 为 `unit_harmonized_validation_uncertainty_and_grouped_calibration` 或 `unit_harmonized_external_validation_rerun` 时，`domain-route-scan` 必须产出 `action_type=unit_harmonized_external_validation_rerun`，owner/request_owner/recommended_owner 固定为 `analysis_harmonization_owner`。
+- 决策：该路径的 required output 是 unit-harmonized external-validation rerun evidence 或 `unit_harmonized_rerun_required` typed blocker；不得回落到泛型 `run_quality_repair_batch`，也不得把 `analysis-campaign` 这个 lane 名当成可执行 owner callable。
+- 理由：DM002 暴露出 `study-progress` 已能显示 `analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration`，但 `domain-route-scan` action queue 为空，导致 OPL sidecar 只能继续派发旧 paper autonomy / bundle tasks。真正缺口是 route-back 到 owner action 的 materialization，不是 OPL tick、bundle gate 或 paper repair executor。
+- 影响：该变更不放宽 bundle downstream gate，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical `paper/`、`paper/submission_minimal`、`manuscript/current_package` 或 submission readiness verdict；它只让现有 `analysis_harmonization_owner` callable 成为当前 hard-methodology work unit 的执行入口。
+
 ## 2026-05-22：paper repair sidecar 必须使用 runtime binding 的 canonical quest_id
 
 - 决策：`paper_autonomy/repair-recheck` 进入 MAS owner 前，sidecar dispatch 必须优先读取 `studies/<study_id>/runtime_binding.yaml` 中的 canonical `quest_id`，再调用 `paper_repair_executor` / `quality_repair_batch`。OPL typed task payload 只能作为未绑定 study 的输入来源，不能覆盖已绑定 study 的 runtime identity。
