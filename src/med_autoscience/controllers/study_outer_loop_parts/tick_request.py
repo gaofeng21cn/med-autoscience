@@ -289,7 +289,13 @@ def build_runtime_watch_outer_loop_tick_request(
     *,
     study_root: Path,
     status_payload: dict[str, Any],
+    publication_gate_controller_override: Any | None = None,
+    recommended_task_intake_action_fn: Any | None = None,
+    quality_repair_batch_override: Any | None = None,
 ) -> dict[str, Any] | None:
+    gate_controller = publication_gate_controller_override or publication_gate_controller
+    task_intake_action_fn = recommended_task_intake_action_fn or recommended_task_intake_action
+    quality_repair_batch_module = quality_repair_batch_override or quality_repair_batch
     resolved_study_root = Path(study_root).expanduser().resolve()
     status_payload = _hydrate_managed_runtime_refs(status_payload)
     if _parked_submission_milestone_manual_finish(status_payload):
@@ -310,8 +316,8 @@ def build_runtime_watch_outer_loop_tick_request(
     gate_report: dict[str, Any] = {}
     if profile is not None and quest_id:
         quest_root = Path(profile.runtime_root).expanduser().resolve() / quest_id
-        gate_report = publication_gate_controller.build_gate_report(
-            publication_gate_controller.build_gate_state(quest_root)
+        gate_report = gate_controller.build_gate_report(
+            gate_controller.build_gate_state(quest_root)
         )
     closed_publication_gate_recheck_lifecycle = _read_closed_publication_gate_recheck_lifecycle(
         resolved_study_root
@@ -339,7 +345,7 @@ def build_runtime_watch_outer_loop_tick_request(
             if not runtime_is_live
             else None
         )
-        task_intake_action = recommended_task_intake_action(
+        task_intake_action = task_intake_action_fn(
             study_root=resolved_study_root,
             publishability_gate_report=gate_report,
             evaluation_summary=evaluation_summary,
@@ -423,7 +429,7 @@ def build_runtime_watch_outer_loop_tick_request(
                     prefer_startup_freshness_work_unit=startup_freshness_gate,
                 )
             if batch_action is None:
-                batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
+                batch_action = quality_repair_batch_module.build_quality_repair_batch_recommended_action(
                     profile=profile,
                     study_root=resolved_study_root,
                     quest_id=quest_id,

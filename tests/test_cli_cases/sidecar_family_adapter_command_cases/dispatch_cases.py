@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 from .shared import *  # noqa: F403,F401
 
 def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_path: Path, capsys) -> None:
@@ -357,6 +359,98 @@ def test_sidecar_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
     assert paper_receipt["accepted"] is False
     assert paper_receipt["execution_status"] == "blocked"
     assert paper_receipt["typed_blocker"] == "ai_reviewer_request_missing"
+
+
+def test_sidecar_dispatch_replays_paper_repair_when_owner_capability_changes(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    calls: list[dict[str, object]] = []
+
+    def fake_dispatch_domain_owner_actions(**kwargs) -> dict[str, object]:
+        calls.append(kwargs)
+        return {
+            "surface": "default_executor_dispatch_executor",
+            "executed_count": 1,
+            "blocked_count": 0,
+        }
+
+    monkeypatch.setattr(
+        adapter.paper_repair_executor.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        fake_dispatch_domain_owner_actions,
+    )
+    task_path = tmp_path / "task.json"
+    task = {
+        "task_id": "paper-task-ai-reviewer-callable",
+        "domain_id": "medautoscience",
+        "task_kind": "paper_autonomy/repair-recheck",
+        "source_fingerprint": "reviewer-fp",
+        "payload": {
+            "profile": str(profile_path),
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "repair_work_unit": {
+                "unit_id": "unit-ai-reviewer",
+                "work_unit_type": "ai_reviewer_recheck",
+                "owner": "ai_reviewer",
+                "callable_surface": (
+                    "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                ),
+                "source_fingerprint": "sha256:unit-ai-reviewer",
+                "source_refs": ["artifacts/publication_eval/latest.json"],
+                "gate_replay_target": "controller_decisions/latest.json",
+            },
+        },
+    }
+    _write_json(task_path, task)
+
+    stale_receipt_dir = workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts"
+    stale_receipt_dir.mkdir(parents=True, exist_ok=True)
+    stale_key = "paper-task-ai-reviewer-callable:reviewer-fp"
+    stale_receipt_path = stale_receipt_dir / f"{hashlib.sha256(stale_key.encode('utf-8')).hexdigest()[:20]}.json"
+    _write_json(
+        stale_receipt_path,
+        {
+            "surface_kind": "mas_family_sidecar_dispatch_receipt",
+            "version": "mas-family-sidecar.v1",
+            "accepted": False,
+            "task_id": "paper-task-ai-reviewer-callable",
+            "task_kind": "paper_autonomy/repair-recheck",
+            "source_fingerprint": "reviewer-fp",
+            "dispatch": {
+                "action_type": "paper_repair_executor_dispatch",
+                "result": {
+                    "surface": "paper_repair_executor",
+                    "accepted": False,
+                    "execution_status": "blocked",
+                    "typed_blocker": "owner_callable_surface_missing",
+                    "source_fingerprint": "stale-domain-result",
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload.get("idempotent_noop") is None
+    assert payload["accepted"] is True
+    assert payload["dispatch"]["result"]["execution_status"] == "executed"
+    assert payload["dispatch"]["result"]["owner_callable_surface"] == (
+        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    )
+    assert len(calls) == 1
+    assert calls[0]["action_types"] == ("return_to_ai_reviewer_workflow",)
+    assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_sidecar/dispatch_receipts/")
+    assert payload["receipt_ref"] != str(stale_receipt_path.relative_to(workspace_root))
 
 
 def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executor(

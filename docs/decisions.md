@@ -8,6 +8,13 @@
 - 理由：DM003 暴露出医学论文写作质量反馈已经被 AI reviewer 转成 `medical_prose_write_repair`，但旧 controller route context 仍指向 bundle/package work unit，导致 `run_quality_repair_batch` 选择 `bundle_build` 并被 downstream-only gate 拦住。同时 AI reviewer callable blocked/repeat-suppressed 的具体原因被 receipt 丢成泛型 blocker，使前台难以判断是 owner request、repeat suppression 还是 callable surface 缺失。
 - 影响：这是 MAS owner-route / paper repair contract 修复，不是 quality gate 放宽，也不是 OPL queue 或 provider lifecycle 修复。正式质量关闭仍必须由后续 AI reviewer-backed `publication_eval/latest.json`、publication gate replay、owner receipt 和 package freshness proof 共同完成。
 
+## 2026-05-21：sidecar dispatch 幂等 receipt 必须绑定 owner capability fingerprint
+
+- 决策：`sidecar dispatch` 的 dispatch receipt 幂等键必须同时覆盖 task identity、task source fingerprint 与 MAS owner capability fingerprint。owner capability fingerprint 由当前 action type 和 MAS sidecar / paper repair / domain owner dispatch 实现面生成；同一 owner 实现版本继续幂等，owner callable 或 dispatch capability 变化后必须重新执行 MAS owner surface，而不能复用旧 receipt。
+- 决策：该 fingerprint 只控制 MAS sidecar dispatch receipt lifecycle，用于避免旧 `owner_callable_surface_missing`、旧 owner blocker 或旧 dispatch result 在 MAS owner callable 修复后继续 `idempotent_noop` replay。它不得放宽 `control_plane_route_gate`、不得把 downstream-only `bundle_build` 当作当前可执行 upstream repair，也不得写 DM002 study truth 或 delivery surface。
+- 理由：DM002 暴露出 OPL family-runtime 已能用 profile-scoped MAS module dispatch 当前 task，但 MAS sidecar receipt 仍可能复用 owner callable 修复前的旧 blocker，导致 AI reviewer / paper repair owner route 无法重新进入 MAS owner chain。正确修复位置是 MAS sidecar receipt key，不是手工更新 queue、publication eval、controller decision 或 current package。
+- 影响：该变更不写 `.ds` runtime state、`paper/`、`paper/submission_minimal`、`manuscript/current_package`、`artifacts/publication_eval/latest.json` 或 `artifacts/controller_decisions/latest.json`；只让 MAS owner implementation 变更后可以重新产出 fresh owner receipt、typed blocker 或 accepted dispatch result。
+
 ## 2026-05-22：analysis harmonization AI reviewer currentness 必须同时覆盖 ref identity 与 ref version/time
 
 - 决策：`analysis_harmonization_owner` completed result 交回 `ai_reviewer_medical_prose_quality_review` 时，`publication_eval/latest.json` 只有在 AI reviewer-owned provenance 同时覆盖 required currentness refs 的路径身份，并且 eval 时间不早于这些 refs 的结构化时间或文件 mtime 时，才能视为当前。仅在 `source_refs` 中出现相同路径不足以关闭 re-eval。

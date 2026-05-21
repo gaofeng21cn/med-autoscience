@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
+from med_autoscience.controllers import publication_gate as publication_gate_controller
 from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.study_outer_loop_parts.decision_refs import (
     _build_study_decision_charter_ref,
@@ -60,9 +61,22 @@ from med_autoscience.study_decision_record import (
     StudyDecisionType,
 )
 
-from med_autoscience.controllers.study_outer_loop_parts.tick_request import (
-    build_runtime_watch_outer_loop_tick_request,
-)
+from med_autoscience.controllers.study_outer_loop_parts import tick_request as _tick_request
+from med_autoscience.controllers.study_outer_loop_task_intake import recommended_task_intake_action
+
+
+def build_runtime_watch_outer_loop_tick_request(
+    *,
+    study_root: Path,
+    status_payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    return _tick_request.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload=status_payload,
+        publication_gate_controller_override=publication_gate_controller,
+        recommended_task_intake_action_fn=recommended_task_intake_action,
+        quality_repair_batch_override=quality_repair_batch,
+    )
 
 
 def _utc_now() -> str:

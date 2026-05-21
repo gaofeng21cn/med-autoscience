@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -120,6 +121,34 @@ def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id
     if action_type == "study_progress_read":
         return f"uv run python -m med_autoscience.cli study-progress{profile_part}{study_part} --format json"
     return f"uv run python -m med_autoscience.cli product-entry-status{profile_part} --format json"
+
+
+def _file_digest(path: Path) -> str:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    except OSError:
+        return "missing"
+
+
+def _owner_capability_fingerprint(*, action_type: str) -> str:
+    owner_files = [
+        Path(__file__),
+        Path(paper_repair_executor.__file__ or ""),
+        Path(domain_owner_action_dispatch.__file__ or ""),
+    ]
+    payload = {
+        "action_type": action_type,
+        "owner_files": [
+            {
+                "name": path.name,
+                "digest": _file_digest(path),
+            }
+            for path in owner_files
+            if str(path)
+        ],
+    }
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()[:20]
+    return f"mas-sidecar-owner-capability:{digest}"
 
 
 def _execute_reconcile_apply(
@@ -355,12 +384,14 @@ def _write_dispatch_receipt(
     profile: WorkspaceProfile | None,
     task_id: str,
     source_fingerprint: str | None = None,
+    owner_capability_fingerprint: str | None = None,
 ) -> dict[str, Any]:
     return write_dispatch_receipt(
         receipt=receipt,
         profile=profile,
         task_id=task_id,
         source_fingerprint=source_fingerprint,
+        owner_capability_fingerprint=owner_capability_fingerprint,
         read_json_object=_read_json_object,
         write_json=_write_json,
         workspace_relative=lambda path: _workspace_relative(path, workspace_root=profile.workspace_root)
@@ -414,6 +445,7 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
     payload = _mapping(task.get("payload"))
     study_id = _text(payload.get("study_id"))
     source_fingerprint = _text(task.get("source_fingerprint"))
+    owner_capability_fingerprint = _owner_capability_fingerprint(action_type=action_type)
     receipt = _base_dispatch_receipt(
         generated_at=generated_at,
         task_id=task_id,
@@ -437,6 +469,7 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
         profile=profile,
         task_id=task_id,
         source_fingerprint=source_fingerprint,
+        owner_capability_fingerprint=owner_capability_fingerprint,
     )
 
 

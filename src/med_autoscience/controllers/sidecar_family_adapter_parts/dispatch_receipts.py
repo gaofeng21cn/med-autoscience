@@ -23,6 +23,7 @@ def write_dispatch_receipt(
     profile: WorkspaceProfile | None,
     task_id: str,
     source_fingerprint: str | None = None,
+    owner_capability_fingerprint: str | None = None,
     read_json_object: JsonReader,
     write_json: JsonWriter,
     workspace_relative: RelativePath,
@@ -34,7 +35,14 @@ def write_dispatch_receipt(
 ) -> dict[str, Any]:
     if profile is None:
         return receipt
-    path = _receipt_path(profile=profile, task_id=task_id, source_fingerprint=source_fingerprint)
+    if owner_capability_fingerprint:
+        receipt["owner_capability_fingerprint"] = owner_capability_fingerprint
+    path = _receipt_path(
+        profile=profile,
+        task_id=task_id,
+        source_fingerprint=source_fingerprint,
+        owner_capability_fingerprint=owner_capability_fingerprint,
+    )
     if path.exists():
         existing = read_json_object(path)
         if existing is not None:
@@ -59,8 +67,19 @@ def write_dispatch_receipt(
     return receipt
 
 
-def _receipt_path(*, profile: WorkspaceProfile, task_id: str, source_fingerprint: str | None = None) -> Path:
-    receipt_key = task_id if source_fingerprint is None else f"{task_id}:{source_fingerprint}"
+def _receipt_path(
+    *,
+    profile: WorkspaceProfile,
+    task_id: str,
+    source_fingerprint: str | None = None,
+    owner_capability_fingerprint: str | None = None,
+) -> Path:
+    parts = [task_id]
+    if source_fingerprint is not None:
+        parts.append(source_fingerprint)
+    if owner_capability_fingerprint is not None:
+        parts.append(owner_capability_fingerprint)
+    receipt_key = ":".join(parts)
     digest = hashlib.sha256(receipt_key.encode("utf-8")).hexdigest()[:20]
     return profile.workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts" / f"{digest}.json"
 
