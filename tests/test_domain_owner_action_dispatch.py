@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .test_domain_owner_action_dispatch_cases.ai_reviewer_controller_refresh import *  # noqa: F403,F401
+from .test_domain_owner_action_dispatch_cases.ai_reviewer_prose_routeback_record import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.ai_reviewer_record_validation import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.ai_reviewer_routeback_materialization import *  # noqa: F403,F401
 from .test_domain_owner_action_dispatch_cases.ai_reviewer_workflow_dispatch import *  # noqa: F403,F401

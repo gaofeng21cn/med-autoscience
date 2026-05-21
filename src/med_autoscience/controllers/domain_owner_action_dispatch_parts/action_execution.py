@@ -21,6 +21,13 @@ from .. import (
 from .action_execution_parts import methodology_reframe_decision
 from .action_execution_parts import provenance_limited_harmonization
 from .action_execution_parts import source_provenance
+from .action_execution_parts.ai_reviewer_record_validation import (
+    ai_reviewer_owned_record,
+    ai_reviewer_record_blocker,
+    ai_reviewer_record_requirements,
+    missing_ai_reviewer_record_fields,
+)
+from .action_execution_parts.ai_reviewer_routeback_record import build_current_medical_prose_routeback_record
 from ..ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
 from ..domain_action_request_lifecycle import stable_ai_reviewer_request_path
 
@@ -32,18 +39,6 @@ PROVENANCE_LIMITED_HARMONIZATION_REQUEST_RELATIVE_PATH = (
     provenance_limited_harmonization.REQUEST_RELATIVE_PATH
 )
 DECISION_REQUEST_RELATIVE_PATH = methodology_reframe_decision.DECISION_REQUEST_RELATIVE_PATH
-_AI_REVIEWER_REQUIRED_RECORD_FIELDS = (
-    "quality_assessment",
-    "future_facing_limitations_plan",
-)
-_AI_REVIEWER_REQUIRED_REVIEWER_OS_FIELDS = (
-    "input_bundle",
-    "rubric_scores",
-    "decision_matrix",
-    "provenance_checks",
-    "route_back_decision",
-    "future_facing_limitations_plan",
-)
 _MEDICAL_PROSE_REVIEW_CURRENTNESS_ERRORS = frozenset(
     {
         "medical_prose_review_request_digest_missing",
@@ -728,7 +723,18 @@ def _ai_reviewer_record_for_execution(
         return {}, story_leakage_blocker
 
     if request_record:
-        record_blocker = _request_record_blocker(request_record)
+        record_blocker = ai_reviewer_record_blocker(request_record)
+        if record_blocker:
+            return {}, record_blocker
+        return request_record, None
+
+    request_record = build_current_medical_prose_routeback_record(
+        study_root=study_root,
+        request=request,
+        required_refs=_ai_reviewer_required_refs(request),
+    )
+    if request_record:
+        record_blocker = ai_reviewer_record_blocker(request_record)
         if record_blocker:
             return {}, record_blocker
         return request_record, None
@@ -738,22 +744,22 @@ def _ai_reviewer_record_for_execution(
 
     if (
         current_record
-        and _ai_reviewer_owned_record(current_record)
+        and ai_reviewer_owned_record(current_record)
         and not paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root)
     ):
-        missing_fields = _missing_ai_reviewer_record_fields(current_record)
+        missing_fields = missing_ai_reviewer_record_fields(current_record)
         if missing_fields:
             return {}, {
                 "reason": "ai_reviewer_record_incomplete",
                 "payload": {
                     "missing_record_fields": missing_fields,
-                    "owner_record_requirements": _ai_reviewer_record_requirements(),
+                    "owner_record_requirements": ai_reviewer_record_requirements(),
                 },
             }
         return current_record, None
 
     if request_record:
-        record_blocker = _request_record_blocker(request_record)
+        record_blocker = ai_reviewer_record_blocker(request_record)
         if record_blocker:
             return {}, record_blocker
         return request_record, None
@@ -761,29 +767,9 @@ def _ai_reviewer_record_for_execution(
     return {}, {
         "reason": "ai_reviewer_record_missing",
         "payload": {
-            "owner_record_requirements": _ai_reviewer_record_requirements(),
+            "owner_record_requirements": ai_reviewer_record_requirements(),
         },
     }
-
-
-def _request_record_blocker(record: Mapping[str, Any]) -> dict[str, Any] | None:
-    if not _request_record_owner_acceptable(record):
-        return {
-            "reason": "ai_reviewer_record_missing",
-            "payload": {
-                "owner_record_requirements": _ai_reviewer_record_requirements(),
-            },
-        }
-    missing_fields = _missing_ai_reviewer_record_fields(record)
-    if missing_fields:
-        return {
-            "reason": "ai_reviewer_record_incomplete",
-            "payload": {
-                "missing_record_fields": missing_fields,
-                "owner_record_requirements": _ai_reviewer_record_requirements(),
-            },
-        }
-    return None
 
 
 def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, Any]) -> dict[str, Any]:
@@ -905,40 +891,6 @@ def _clean_migration_quality_assessment(
             "summary": "Human review readiness cannot be claimed until new MAS delivery is rebuilt.",
             "evidence_refs": [review_ref],
         },
-    }
-
-
-def _ai_reviewer_owned_record(record: Mapping[str, Any]) -> bool:
-    provenance = _mapping(record.get("assessment_provenance"))
-    return (
-        _text(provenance.get("owner")) == "ai_reviewer"
-        and _text(provenance.get("source_kind")) == "publication_eval_ai_reviewer"
-        and provenance.get("ai_reviewer_required") is False
-    )
-
-
-def _request_record_owner_acceptable(record: Mapping[str, Any]) -> bool:
-    provenance = _mapping(record.get("assessment_provenance"))
-    if not provenance:
-        return True
-    return _ai_reviewer_owned_record(record)
-
-
-def _missing_ai_reviewer_record_fields(record: Mapping[str, Any]) -> list[str]:
-    missing: list[str] = []
-    quality_assessment = record.get("quality_assessment")
-    if not isinstance(quality_assessment, Mapping):
-        missing.append("quality_assessment")
-    future_plan = record.get("future_facing_limitations_plan")
-    if not isinstance(future_plan, list) or not future_plan:
-        missing.append("future_facing_limitations_plan")
-    return missing
-
-
-def _ai_reviewer_record_requirements() -> dict[str, list[str]]:
-    return {
-        "required_record_fields": list(_AI_REVIEWER_REQUIRED_RECORD_FIELDS),
-        "required_reviewer_operating_system_fields": list(_AI_REVIEWER_REQUIRED_REVIEWER_OS_FIELDS),
     }
 
 
