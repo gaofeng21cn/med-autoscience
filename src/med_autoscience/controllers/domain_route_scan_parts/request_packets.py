@@ -106,6 +106,16 @@ def materialize_request_packets(
         packet["may_authorize_quality_gate"] = False
         if handoff_reason:
             packet["blockers"] = [handoff_reason]
+        if handoff_reason == "analysis_harmonization_completed_ai_reviewer_review_required":
+            lifecycle = dict(_mapping(packet.get("request_lifecycle")))
+            lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+            if required_refs := [
+                ref for ref in reviewer_action.get("required_currentness_refs") or [] if _text(ref)
+            ]:
+                lifecycle["required_currentness_refs"] = required_refs
+            if source_ref := _text(reviewer_action.get("source_ref")):
+                lifecycle["source_ref"] = source_ref
+            packet["request_lifecycle"] = lifecycle
         if next_work_unit := _text(reviewer_action.get("next_work_unit")):
             packet["source_workflow_ref"] = {
                 **_mapping(packet.get("source_workflow_ref")),
