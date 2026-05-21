@@ -14,11 +14,18 @@ from med_autoscience.controllers import (
     paper_repair_execution_evidence,
     quality_repair_batch,
 )
+from med_autoscience.controllers.domain_action_request_materializer import (
+    FORBIDDEN_SURFACES,
+    SUPPORTED_MODE,
+)
 from med_autoscience.controllers.domain_action_request_lifecycle import (
     default_ai_reviewer_request_input_refs,
     materialize_ai_reviewer_request,
     stable_ai_reviewer_request_path,
 )
+from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
+from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import repeat_suppression
 
 
 SURFACE = "paper_repair_executor"
@@ -259,6 +266,13 @@ def _dispatch_ai_reviewer_callable(
         action_types=("return_to_ai_reviewer_workflow",),
         mode="developer_apply_safe",
         apply=True,
+        consumer_payload=_ai_reviewer_owner_consumer_payload(
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=study_root,
+            work_unit=work_unit,
+            generated_at=generated_at,
+        ),
     )
     return _owner_callable_result(
         generated_at=generated_at,
@@ -270,6 +284,166 @@ def _dispatch_ai_reviewer_callable(
         owner_callable_surface=AI_REVIEWER_PUBLICATION_EVAL_CALLABLE,
         owner_result=owner_result,
     )
+
+
+def _ai_reviewer_owner_consumer_payload(
+    *,
+    study_id: str,
+    quest_id: str,
+    study_root: Path,
+    work_unit: Mapping[str, Any],
+    generated_at: str,
+) -> dict[str, Any]:
+    action_type = "return_to_ai_reviewer_workflow"
+    owner_route = _ai_reviewer_owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        work_unit=work_unit,
+        action_type=action_type,
+    )
+    request = _write_ai_reviewer_recheck_request(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        work_unit={**dict(work_unit), "owner_route": owner_route},
+        gate_replay_ref=_ai_reviewer_recheck_gate_replay_ref(study_root=study_root),
+        generated_at=generated_at,
+        owner_route=owner_route,
+    )
+    dispatch_path = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches" / f"{action_type}.json"
+    dispatch = _ai_reviewer_default_executor_dispatch(
+        study_id=study_id,
+        quest_id=quest_id,
+        work_unit=work_unit,
+        action_type=action_type,
+        owner_route=owner_route,
+        dispatch_path=dispatch_path,
+        request=request,
+    )
+    _write_json(dispatch_path, dispatch)
+    return {
+        "surface": "paper_repair_inline_consumer_payload",
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "default_executor_dispatches": [dispatch],
+    }
+
+
+def _ai_reviewer_owner_route(
+    *,
+    study_id: str,
+    quest_id: str,
+    work_unit: Mapping[str, Any],
+    action_type: str,
+) -> dict[str, Any]:
+    fingerprint = (
+        _text(work_unit.get("source_fingerprint"))
+        or hashlib.sha256(_work_unit_id(work_unit).encode("utf-8")).hexdigest()
+    )
+    route_epoch = f"paper-repair::{study_id}::{_work_unit_id(work_unit)}"
+    return owner_route_part.ensure_owner_route_v2(
+        {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "truth_epoch": route_epoch,
+            "runtime_health_epoch": None,
+            "work_unit_fingerprint": fingerprint,
+            "failure_signature": action_type,
+            "route_epoch": route_epoch,
+            "source_fingerprint": fingerprint,
+            "current_owner": "paper_repair_executor",
+            "next_owner": "ai_reviewer",
+            "owner_reason": action_type,
+            "active_run_id": None,
+            "allowed_actions": [action_type],
+            "blocked_actions": [
+                "runtime_platform_repair",
+                "publication_gate_specificity_required",
+                "current_package_freshness_required",
+                "artifact_display_surface_materialization_required",
+                "canonical_paper_inputs_rehydrate_required",
+            ],
+            "idempotency_key": f"paper-repair::{study_id}::{action_type}::{fingerprint}",
+            "source_refs": {
+                "paper_repair_work_unit": _work_unit_id(work_unit),
+                "callable_surface": AI_REVIEWER_PUBLICATION_EVAL_CALLABLE,
+            },
+        }
+    )
+
+
+def _ai_reviewer_default_executor_dispatch(
+    *,
+    study_id: str,
+    quest_id: str,
+    work_unit: Mapping[str, Any],
+    action_type: str,
+    owner_route: Mapping[str, Any],
+    dispatch_path: Path,
+    request: Mapping[str, Any],
+) -> dict[str, Any]:
+    repeat_key = repeat_suppression.repeat_key(owner_route)
+    prompt_contract = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "next_executable_owner": "ai_reviewer",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "owner_route": dict(owner_route),
+        "idempotency_key": _text(owner_route.get("idempotency_key")),
+        "prompt_budget": {"max_prompt_tokens": 6000},
+        "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{action_type}.json",
+        "do_not_repeat": True,
+        "repeat_suppression_key": repeat_key,
+        "request_packet_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
+        "source": SURFACE,
+        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "allowed_write_surfaces": ["artifacts/supervision/**"],
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+    return {
+        "surface": "default_executor_dispatch_request",
+        "schema_version": SCHEMA_VERSION,
+        **default_executor_policy(),
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "action_id": f"paper-repair::{study_id}::{action_type}::{_work_unit_id(work_unit)}",
+        "next_executable_owner": "ai_reviewer",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "dispatch_status": "ready",
+        "dispatch_authority": "paper_repair_executor_inline_owner_dispatch",
+        "owner_route": dict(owner_route),
+        "idempotency_key": _text(owner_route.get("idempotency_key")),
+        "repeat_suppression_key": repeat_key,
+        "action_fingerprint": repeat_key,
+        "consumer_mutation_scope": "executor_dispatch_request_only",
+        "prompt_contract": prompt_contract,
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "source_action": {
+            "surface": SURFACE,
+            "work_unit_id": _work_unit_id(work_unit),
+            "work_unit_type": _text(work_unit.get("work_unit_type")),
+            "callable_surface": AI_REVIEWER_PUBLICATION_EVAL_CALLABLE,
+            "request_path": _text(request.get("path")),
+        },
+        "refs": {
+            "dispatch_path": str(dispatch_path),
+            "request_packet_path": _text(request.get("path")),
+        },
+    }
+
+
+def _ai_reviewer_recheck_gate_replay_ref(*, study_root: Path) -> Path:
+    return study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"
 
 
 def _owner_callable_result(
@@ -637,6 +811,7 @@ def _write_ai_reviewer_recheck_request(
     work_unit: Mapping[str, Any],
     gate_replay_ref: Path,
     generated_at: str,
+    owner_route: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     refs = default_ai_reviewer_request_input_refs(study_root=study_root)
     packet = {
@@ -649,6 +824,7 @@ def _write_ai_reviewer_recheck_request(
         "study_id": study_id,
         "quest_id": quest_id,
         "repair_work_unit": dict(work_unit),
+        "owner_route": dict(owner_route or _mapping(work_unit.get("owner_route"))),
         "input_contract": {
             "required_refs": refs,
             "all_required_refs_present": all(_mapping(ref).get("present") is True for ref in refs.values()),

@@ -587,6 +587,11 @@
 
 - 决策：`paper_autonomy/repair-recheck` 进入 MAS sidecar 后，`paper_repair_executor` 必须识别 reviewer refinement work unit 中已声明的 MAS owner callable。`quality_repair_batch.run_quality_repair_batch` 交给 quality-repair batch owner 执行；`ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow` 交给 AI reviewer owner dispatch 执行。只有缺 profile/context 或 callable 真不存在时，才允许返回 typed blocker。
 - 理由：DM003 route-back 暴露出系统性缺口：reviewer refinement 已正确生成 `quality_repair_batch` / `ai_reviewer` callable surface，OPL provider 也已把 task 送达 MAS sidecar，但 executor 仍按旧的 structured patch 局部路径返回 `owner_callable_surface_missing`，导致论文质量修复停在“看见问题但不执行 owner”的状态。
+
+## 2026-05-21：embedded AI reviewer callable 必须自带 owner-dispatch envelope
+
+- 决策：`paper_repair_executor` 收到 `ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow` callable 时，必须先物化 MAS-owned AI reviewer request 与同源 ready default-executor dispatch，再把该 dispatch 作为 inline consumer payload 交给 `domain_owner_action_dispatch`。不得要求上游 OPL queue 预先生成 study-level consumer dispatch，也不得让 dispatcher 凭 action type 跳过 request/owner-route/currentness 校验。
+- 理由：DM003 暴露出 `ai_reviewer_recheck` 已进入 paper repair executor、但 `domain_owner_action_dispatch` 没有可消费 dispatch 时返回 `execution_count=0` 的空执行，随后被误报为 `owner_callable_surface_blocked`。embedded callable 是 MAS owner contract 的一部分，转换点必须提供完整 request/dispatch envelope；失败时应得到执行级 blocker，例如 `ai_reviewer_request_missing`、`ai_reviewer_record_missing` 或 `repeat_suppressed`，而不是空 executions fallback。
 - 影响：repair executor 继续禁止直接写 `manuscript/current_package`、质量放行或投稿授权；它只负责把已声明 owner callable 接到 MAS owner surface，并写 owner receipt / typed blocker。单篇论文反馈必须转化为可回归的 owner-callable dispatch 测试，避免后续再由人工发现“写入 task intake 但不推进修复”的问题。
 
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同

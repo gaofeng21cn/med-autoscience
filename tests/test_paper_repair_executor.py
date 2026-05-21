@@ -247,15 +247,136 @@ def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
         "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
     )
     assert result["owner_result"]["executed_count"] == 1
-    assert calls == [
+    assert len(calls) == 1
+    call = calls[0]
+    assert call["profile"] == profile
+    assert call["study_ids"] == ("006-dpcc",)
+    assert call["action_types"] == ("return_to_ai_reviewer_workflow",)
+    assert call["mode"] == "developer_apply_safe"
+    assert call["apply"] is True
+    consumer_payload = call["consumer_payload"]
+    dispatch = consumer_payload["default_executor_dispatches"][0]
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["action_type"] == "return_to_ai_reviewer_workflow"
+    assert dispatch["next_executable_owner"] == "ai_reviewer"
+    assert dispatch["owner_route"]["next_owner"] == "ai_reviewer"
+    assert "return_to_ai_reviewer_workflow" in dispatch["owner_route"]["allowed_actions"]
+    assert (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").is_file()
+    assert (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    ).is_file()
+    assert not (study_root / "manuscript" / "current_package").exists()
+
+
+def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before_execution(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    workflow = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    profile = make_profile(tmp_path)
+    study_id = "006d-dpcc"
+    quest_id = "quest-006d"
+    study_root = profile.studies_root / study_id
+    manuscript = study_root / "paper" / "draft.md"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("Methods need clearer reporting.\n", encoding="utf-8")
+    _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    _write_json(study_root / "artifacts" / "controller" / "study_charter.json", {"study_id": study_id})
+    _write_json(study_root / "paper" / "medical_manuscript_blueprint.json", {"schema_version": 1})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review.json",
         {
-            "profile": profile,
-            "study_ids": ("006-dpcc",),
-            "action_types": ("return_to_ai_reviewer_workflow",),
-            "mode": "developer_apply_safe",
-            "apply": True,
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "medical_prose_review",
+                "ai_reviewer_required": False,
+                "request_digest": "sha256:test-request",
+                "manuscript_ref": str(manuscript),
+            },
+            "medical_journal_prose_quality": {
+                "status": "partial",
+                "summary": "Methods reporting remains incomplete.",
+                "route_back_recommendation": {
+                    "required": True,
+                    "route_target": "write",
+                    "reason": "Methods reproducibility and treatment-gap definitions need repair.",
+                },
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"eval_id": "stale-eval", "verdict": {"overall_verdict": "mixed"}},
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_run_ai_reviewer_publication_eval_workflow(**kwargs) -> dict[str, object]:
+        calls.append(kwargs)
+        _write_json(
+            study_root / "artifacts" / "publication_eval" / "latest.json",
+            {
+                "eval_id": "publication-eval-current",
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {"status": "partial"},
+                },
+                "future_facing_limitations_plan": [{"limitation": "test"}],
+            },
+        )
+        return {
+            "surface": "ai_reviewer_publication_eval_workflow",
+            "status": "materialized",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "eval_id": "publication-eval-current",
         }
-    ]
+
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setattr(workflow, "run_ai_reviewer_publication_eval_workflow", fake_run_ai_reviewer_publication_eval_workflow)
+
+    result = module.dispatch_repair_work_unit(
+        profile=profile,
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        repair_work_unit={
+            **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-inline"),
+            "owner": "ai_reviewer",
+            "callable_surface": (
+                "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+            ),
+        },
+        apply=True,
+    )
+
+    assert result["accepted"] is True
+    assert result["execution_status"] == "executed"
+    assert result["typed_blocker"] is None
+    assert result["owner_result"]["execution_count"] == 1
+    execution = result["owner_result"]["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["action_type"] == "return_to_ai_reviewer_workflow"
+    assert execution["dispatch_authority"] == "paper_repair_executor_inline_owner_dispatch"
+    assert execution["owner_route_current"] is True
+    assert calls
+    assert calls[0]["manuscript_ref"] == str(manuscript.resolve())
+    request = json.loads(
+        (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert request["owner_route"]["next_owner"] == "ai_reviewer"
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
