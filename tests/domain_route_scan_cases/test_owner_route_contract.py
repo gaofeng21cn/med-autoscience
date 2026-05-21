@@ -143,6 +143,7 @@ def test_scan_domain_routes_projects_single_owner_route_for_current_queue(monkey
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
         "canonical_paper_inputs_rehydrate_required",
+        "run_quality_repair_batch",
     ]
     assert route["idempotency_key"].startswith(
         "owner-route::002-dm-china-us-mortality-attribution::truth-epoch-dm002::ai_reviewer::"
@@ -150,6 +151,38 @@ def test_scan_domain_routes_projects_single_owner_route_for_current_queue(monkey
     assert study["why_not_applied"] == "ai_reviewer_assessment_required"
     assert study["next_owner"] == "ai_reviewer"
     assert study["external_supervisor_required"] is False
+
+
+def test_owner_route_allows_quality_repair_batch_for_write_route() -> None:
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "truth_epoch": "truth-epoch-dm003-medical-prose",
+        "runtime_health_epoch": "runtime-health-dm003-medical-prose",
+        "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+        "failure_signature": "quest_waiting_platform_repair_redrive",
+        "trace_id": "owner-route-trace::dm003::medical-prose",
+        "route_epoch": "truth-epoch-dm003-medical-prose",
+        "source_fingerprint": "truth-source-dm003-medical-prose",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": "quest_waiting_platform_repair_redrive",
+        "active_run_id": None,
+        "allowed_actions": ["run_quality_repair_batch"],
+        "blocked_actions": [],
+        "idempotency_key": "owner-route::dm003::medical-prose",
+    }
+    action = {
+        "action_type": "run_quality_repair_batch",
+        "next_executable_owner": "write",
+        "owner_route": owner_route,
+    }
+
+    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+
+    assert owner_route_module.route_allows_action(action=action, owner_route=owner_route) is True
 
 
 def test_scan_domain_routes_projects_parked_macro_state_as_current_truth_owner_route(

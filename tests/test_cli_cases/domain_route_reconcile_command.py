@@ -348,3 +348,85 @@ def test_domain_route_reconcile_executes_current_consume_payload_without_writing
     assert consumer_latest["default_executor_dispatches"][0]["owner_route"]["work_unit_fingerprint"] != (
         "truth-snapshot::current-ai-reviewer"
     )
+
+
+def test_domain_route_reconcile_dispatches_medical_prose_quality_repair_batch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    reconcile = importlib.import_module("med_autoscience.controllers.domain_route_reconcile")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = profiles.load_profile(profile_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    route.update(
+        {
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+            "source_fingerprint": "truth-source::medical-prose",
+            "idempotency_key": "owner-route::003::medical-prose",
+        }
+    )
+    scan_payload = {
+        "surface": "portable_domain_route_scan",
+        "workspace_root": str(workspace_root),
+        "studies": [
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "owner_route": route,
+                "action_queue": [
+                    {
+                        "study_id": study_id,
+                        "quest_id": study_id,
+                        "action_type": "run_quality_repair_batch",
+                        "owner": "write",
+                        "request_owner": "write",
+                        "recommended_owner": "write",
+                        "next_work_unit": "medical_prose_write_repair",
+                        "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+                        "owner_route": route,
+                    }
+                ],
+            }
+        ],
+        "action_queue": [],
+    }
+    _write_json(workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json", scan_payload)
+
+    monkeypatch.setattr(reconcile.domain_route_scan, "scan_domain_routes", lambda **_: scan_payload)
+    called: dict[str, object] = {}
+
+    def fake_execute_quality_repair_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+        }
+
+    monkeypatch.setattr(
+        reconcile.domain_owner_action_dispatch.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        fake_execute_quality_repair_batch,
+    )
+
+    result = reconcile.reconcile_domain_routes(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    consumer = result["consumed"]
+    assert consumer["default_executor_dispatch_count"] == 1
+    dispatch = consumer["default_executor_dispatches"][0]
+    assert dispatch["action_type"] == "run_quality_repair_batch"
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["next_executable_owner"] == "write"
+    execution = result["executed_dispatch"]["executions"][0]
+    assert execution["action_type"] == "run_quality_repair_batch"
+    assert execution["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert called["study_id"] == study_id
+    assert called["apply"] is True

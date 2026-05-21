@@ -4,7 +4,10 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers.domain_route_scan_parts import platform_repair
-from tests.domain_route_scan_cases.owner_route_test_helpers import assert_owner_route_required
+from tests.domain_route_scan_cases.owner_route_test_helpers import (
+    assert_controller_authorization_handoff,
+    assert_owner_route_required,
+)
 from med_autoscience.controllers.domain_route_scan_parts import action_projection
 from med_autoscience.controllers.domain_route_scan_parts import domain_transition_actions
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
@@ -413,13 +416,13 @@ def test_apply_runtime_platform_repair_uses_current_domain_transition_route_over
     )
 
     assert result is not None
-    runtime_state = assert_owner_route_required(
-        apply_result=result,
-        ensure_calls=ensure_calls,
-        quest_root=quest_root,
+    assert ensure_calls == []
+    authorization = assert_controller_authorization_handoff(
+        result,
+        expected_decision_id="fresh-bundle-stage-decision",
+        expected_work_unit_id="submission_authority_sync_closure",
     )
     assert result["repair_kind"] == "domain_transition_bundle_stage_finalize_redrive"
-    authorization = runtime_state["last_controller_decision_authorization"]
     assert authorization["decision_id"] == "fresh-bundle-stage-decision"
     assert authorization["route_target"] == "finalize"
     assert authorization["work_unit_id"] == "submission_authority_sync_closure"
@@ -526,20 +529,157 @@ def test_apply_runtime_platform_repair_redrives_story_surface_delta_before_gate_
     )
 
     assert result is not None
-    runtime_state = assert_owner_route_required(
-        apply_result=result,
-        ensure_calls=ensure_calls,
-        quest_root=quest_root,
-    )
+    assert ensure_calls == []
     assert result["repair_kind"] == "domain_transition_publication_gate_blocker_story_surface_delta_redrive"
     assert result["domain_transition_controller_route"]["authorization_basis"] == (
         "quality_repair_story_surface_delta_blocker"
     )
-    authorization = runtime_state["last_controller_decision_authorization"]
+    authorization = assert_controller_authorization_handoff(
+        result,
+        expected_work_unit_id="manuscript_story_repair",
+    )
     assert authorization["authorization_basis"] == "quality_repair_story_surface_delta_blocker"
     assert authorization["route_target"] == "write"
     assert authorization["work_unit_id"] == "manuscript_story_repair"
     assert authorization["controller_actions"] == ["run_quality_repair_batch"]
+
+
+def test_apply_runtime_platform_repair_redrives_medical_prose_story_surface_delta(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    quest_root = tmp_path / "runtime" / "quest-dm003"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    eval_id = "publication-eval::dm003::medical-prose-current"
+    runtime_state_path.parent.mkdir(parents=True)
+    runtime_state_path.write_text(
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "quest_id": "quest-dm003",
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "controller_work_unit_pending",
+                "pending_user_message_count": 0,
+                "last_controller_decision_authorization": {
+                    "decision_id": "old-gate-recheck",
+                    "route_target": "publication_gate",
+                    "work_unit_id": "publication_gate_recheck",
+                    "work_unit_fingerprint": "publication-blockers::old",
+                    "controller_actions": ["run_gate_clearing_batch"],
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    batch_path.parent.mkdir(parents=True)
+    batch_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "blocked",
+                "source_eval_id": eval_id,
+                "next_owner": "write",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "repair_execution_evidence": {
+                    "blockers": ["manuscript_story_surface_delta_missing"],
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "route_key_question": "Can the manuscript meet medical journal prose standards?",
+                "route_rationale": "The current manuscript has not absorbed medical prose quality feedback.",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                    "summary": "Repair the manuscript for medical journal prose quality.",
+                },
+            }
+        ],
+    }
+    ensure_calls: list[dict[str, object]] = []
+
+    result = platform_repair.apply_runtime_platform_repair(
+        profile=object(),
+        study_id="dm003",
+        study_root=study_root,
+        status={
+            "quest_id": "quest-dm003",
+            "quest_root": str(quest_root),
+            "quest_status": "waiting_for_user",
+            "domain_transition": {
+                "decision_type": "publication_gate_blocker",
+                "route_target": "publication_gate",
+                "controller_action": "run_gate_clearing_batch",
+                "next_work_unit": {
+                    "unit_id": "publication_gate_recheck",
+                    "lane": "publication_gate",
+                    "source_work_unit": {"unit_id": "medical_prose_write_repair", "lane": "write"},
+                },
+                "typed_blocker": {"blocker_id": "publication_gate_blocked"},
+            },
+        },
+        progress={},
+        publication_eval_payload=publication_eval_payload,
+        developer_mode=_developer_apply_safe_mode(),
+        enabled=True,
+        repair_required=True,
+    )
+
+    assert result is not None
+    assert ensure_calls == []
+    authorization = assert_controller_authorization_handoff(
+        result,
+        expected_work_unit_id="medical_prose_write_repair",
+    )
+    assert authorization["authorization_basis"] == "quality_repair_story_surface_delta_blocker"
+    assert authorization["route_target"] == "write"
+    assert authorization["work_unit_id"] == "medical_prose_write_repair"
+    assert authorization["work_unit_fingerprint"] == "domain-transition::route_back_same_line::medical_prose_write_repair"
+    assert authorization["controller_actions"] == ["run_quality_repair_batch"]
+
+
+def test_domain_transition_routes_medical_prose_write_repair_to_quality_batch() -> None:
+    actions = domain_transition_actions.actions(
+        {
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "write",
+                    "summary": "Repair medical journal prose quality.",
+                },
+                "guard_boundary": {"opl_generic_runner_may_resume": False},
+            }
+        }
+    )
+
+    assert actions is not None
+    assert len(actions) == 1
+    action = actions[0]
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["owner"] == "write"
+    assert action["request_owner"] == "write"
+    assert action["recommended_owner"] == "write"
+    assert action["next_work_unit"] == "medical_prose_write_repair"
+    assert action["required_output_surface"] == "artifacts/publication_eval/latest.json"
 
 
 def _developer_apply_safe_mode() -> DeveloperSupervisorMode:

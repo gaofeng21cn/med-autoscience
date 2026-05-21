@@ -7,16 +7,12 @@ from typing import Any
 
 from med_autoscience.controllers.control_identity import ControlWorkUnitIdentity
 from med_autoscience.controllers import work_unit_ledger
-
-
-_UPSTREAM_REPAIR_UNITS = frozenset(
-    {
-        "analysis_claim_evidence_repair",
-        "manuscript_story_repair",
-        "figure_results_trace_repair",
-        "treatment_gap_reporting_repair",
-    }
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
+
+
+_UPSTREAM_REPAIR_UNITS = UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 _OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _LEDGER_EXECUTED_EVENT_TYPES = frozenset({"closed"})
 _SPECIFICITY_UNIT_ID = "gate_needs_specificity"

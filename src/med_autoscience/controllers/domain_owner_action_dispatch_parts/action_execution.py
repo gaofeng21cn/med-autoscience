@@ -20,6 +20,7 @@ from .. import (
 )
 from .action_execution_parts import methodology_reframe_decision
 from .action_execution_parts import provenance_limited_harmonization
+from .action_execution_parts import quality_repair
 from .action_execution_parts import source_provenance
 from .action_execution_parts.ai_reviewer_record_validation import (
     ai_reviewer_owned_record,

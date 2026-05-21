@@ -6,6 +6,9 @@ from typing import Any
 
 from med_autoscience.runtime_transport import mas_runtime_core_hard_methodology
 from med_autoscience.runtime_transport import mas_runtime_core_turn_actions
+from med_autoscience.controllers.story_surface_work_units import (
+    STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
+)
 
 
 def controller_authorization_prompt_section(*, authorization: Mapping[str, Any], quest_id: str) -> str:
@@ -59,11 +62,14 @@ def claimed_messages_for_prompt(
 
 
 def _manuscript_story_repair_followthrough_prompt_section(authorization: Mapping[str, Any]) -> str:
-    if "manuscript_story_repair" not in set(_controller_work_unit_ids(authorization)):
+    work_unit_ids = set(_controller_work_unit_ids(authorization))
+    story_surface_units = work_unit_ids & STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS
+    if not story_surface_units:
         return ""
+    rendered_units = ", ".join(f"`{unit_id}`" for unit_id in sorted(story_surface_units))
     return (
         "Manuscript story repair follow-through contract:\n"
-        "- This is a MAS write-owner work unit. Invoke the controller command first, then inspect the returned "
+        f"- This is a MAS write-owner story-surface work unit: {rendered_units}. Invoke the controller command first, then inspect the returned "
         "`quality_repair_batch` and `repair_execution_evidence` surfaces.\n"
         "- If the controller command returns status=blocked with "
         "blocked_reason=manuscript_story_surface_delta_missing and next_owner=write, do not treat that as a "
@@ -78,7 +84,7 @@ def _manuscript_story_repair_followthrough_prompt_section(authorization: Mapping
         "blockers, not in the paper narrative.\n"
         "- Close the turn with meaningful_artifact_delta=true only when `artifact_refs` include "
         "`paper/draft.md` and/or `paper/build/review_manuscript.md`. Ledger-only deltas do not close "
-        "`manuscript_story_repair`.\n"
+        "story-surface write repair work units.\n"
         "- If those canonical manuscript surfaces are missing, unwritable, or the evidence needed to revise them is "
         "not available to the MAS write owner, write a blocked closeout with "
         "status=blocked, meaningful_artifact_delta=false, blocked_reason=write_owner_callable_surface_missing, "

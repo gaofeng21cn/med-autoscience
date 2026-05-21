@@ -7,6 +7,9 @@ from typing import Any, Callable
 
 from med_autoscience.controllers.domain_route_scan_parts import current_truth_owner
 from med_autoscience.controllers.domain_route_scan_parts import pending_user_messages
+from med_autoscience.controllers.story_surface_work_units import (
+    is_story_surface_delta_write_work_unit,
+)
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 DOWNSTREAM_PACKAGE_FRESHNESS_WORK_UNIT_IDS = {
@@ -201,7 +204,8 @@ def story_surface_delta_authorization_payload(
     if publication_action is None:
         return None
     next_work_unit = mapping(publication_action.get("next_work_unit"))
-    if text(next_work_unit.get("unit_id")) != "manuscript_story_repair":
+    work_unit_id = text(next_work_unit.get("unit_id"))
+    if not is_story_surface_delta_write_work_unit(work_unit_id):
         return None
     gate_batch = mapping(batch.get("gate_clearing_batch"))
     work_unit_fingerprint = (
@@ -215,7 +219,7 @@ def story_surface_delta_authorization_payload(
         "route_key_question": text(publication_action.get("route_key_question")),
         "route_rationale": text(publication_action.get("route_rationale")) or text(publication_action.get("reason")),
         "source_route_key_question": text(publication_action.get("route_key_question")),
-        "work_unit_id": "manuscript_story_repair",
+        "work_unit_id": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,
         "publication_eval_id": source_eval_id,
         "publication_eval_ref": {
@@ -244,7 +248,7 @@ def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]
             continue
         if text(action.get("route_target")) != "write" and text(next_work_unit.get("lane")) != "write":
             continue
-        if text(next_work_unit.get("unit_id")) != "manuscript_story_repair":
+        if not is_story_surface_delta_write_work_unit(text(next_work_unit.get("unit_id"))):
             continue
         return dict(action)
     return None
