@@ -258,6 +258,7 @@ PHYSICAL_THINNING_EVIDENCE = {
             "group_id": "workbench_residue",
             "module_ids": [
                 "workbench_portal_generic_shell",
+                "sidecar_dispatch_adapter",
                 "mas_generic_workbench_shell",
             ],
             "closure_basis": [
@@ -272,6 +273,10 @@ PHYSICAL_THINNING_EVIDENCE = {
             "physical_delete_gate": "OPL default workbench caller plus no MAS generic workbench default entry",
             "evidence_refs": [
                 "workbench_portal_generic_shell.proof_refs",
+                (
+                    "active_path_residue_cleanup_gates.sidecar_dispatch_adapter."
+                    "deletion_readiness_worklist"
+                ),
                 "retired_legacy_residue_tombstones.mas_generic_workbench_shell",
                 "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain",
             ],

@@ -524,6 +524,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "opl_replacement_parity",
         "mas_owner_receipt_parity",
         "focused_tests_green",
+        "no_forbidden_write_proof",
         "tombstone_refs_landed",
     ]
     candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
@@ -571,6 +572,14 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert candidates["sidecar_adapter"]["gate_results"]["mas_owner_receipt_parity"] == (
         "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
     )
+    assert candidates["sidecar_adapter"]["deletion_readiness_worklist_ref"] == (
+        "functional_consumer_boundary.active_path_residue_cleanup_gates."
+        "sidecar_dispatch_adapter.deletion_readiness_worklist"
+    )
+    assert (
+        "sidecar_dispatch_response.forbidden_write_guard_proof"
+        in candidates["sidecar_adapter"]["no_forbidden_write_proof_refs"]
+    )
     assert candidates["status_projection"]["retained_as"] == "domain_truth_status_projection"
     assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
         "domain_projection_refs_for_opl_workbench"
@@ -580,6 +589,25 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "domain_sidecar_dispatch_adapter"
     )
     assert cleanup_gates["sidecar_dispatch_adapter"]["active_caller_count"] == 1
+    sidecar_worklist = cleanup_gates["sidecar_dispatch_adapter"]["deletion_readiness_worklist"]
+    assert sidecar_worklist["surface_kind"] == "mas_sidecar_dispatch_adapter_deletion_readiness"
+    assert sidecar_worklist["status"] == "blocked_active_domain_sidecar_dispatch_caller_present"
+    assert sidecar_worklist["can_delete"] is False
+    assert sidecar_worklist["active_caller_count"] == 1
+    assert {item["gate"] for item in sidecar_worklist["missing_gate_inputs"]} == {
+        "active_caller_count=0",
+        "opl_replacement_parity_proven",
+        "domain_receipt_parity_proven",
+        "focused_tests_green",
+        "no_forbidden_write_proof",
+        "history_tombstone_refs_recorded",
+    }
+    assert "current_package.zip" in sidecar_worklist["must_not_write"]
+    assert "physical_delete_complete" in sidecar_worklist["must_not_claim"]
+    assert (
+        "tests/test_cli_cases/sidecar_family_adapter_command_cases/dispatch_cases.py"
+        in sidecar_worklist["focused_test_refs"]
+    )
     assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
         "domain_truth_status_projection"
     )

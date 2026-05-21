@@ -287,10 +287,80 @@
           "no_forbidden_write_proof",
           "history_tombstone_refs_recorded"
         ],
+        "deletion_readiness_worklist": {
+          "active_caller_count": 1,
+          "active_caller_proof_refs": [
+            "physical_retirement_gate_matrix.retirement_candidates.sidecar_adapter",
+            "sidecar_export.functional_consumer_boundary.generated_surface_handoff"
+          ],
+          "active_caller_provenance": "sidecar export and dispatch still expose MAS owner-route refs",
+          "allowed_current_role": "domain_sidecar_dispatch_adapter",
+          "can_archive": false,
+          "can_delete": false,
+          "can_tombstone": false,
+          "focused_test_refs": [
+            "tests/test_cli_cases/sidecar_family_adapter_command.py",
+            "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py",
+            "tests/test_cli_cases/sidecar_family_adapter_command_cases/dispatch_cases.py"
+          ],
+          "missing_gate_inputs": [
+            {
+              "gate": "active_caller_count=0",
+              "required_evidence": "no active sidecar export or dispatch domain caller scan",
+              "status": "blocked"
+            },
+            {
+              "gate": "opl_replacement_parity_proven",
+              "required_evidence": "OPL generated sidecar default caller consuming MAS refs",
+              "status": "blocked"
+            },
+            {
+              "gate": "domain_receipt_parity_proven",
+              "required_evidence": "real paper-line owner receipt or stable typed blocker parity",
+              "status": "blocked"
+            },
+            {
+              "gate": "focused_tests_green",
+              "required_evidence": "sidecar export and dispatch focused tests",
+              "status": "required_before_delete"
+            },
+            {
+              "gate": "no_forbidden_write_proof",
+              "required_evidence": "dispatch writes only MAS dispatch receipt refs and no truth/package body",
+              "status": "required_before_delete"
+            },
+            {
+              "gate": "history_tombstone_refs_recorded",
+              "required_evidence": "history/provenance tombstone refs for retired sidecar adapter",
+              "status": "required_before_delete"
+            }
+          ],
+          "must_not_claim": [
+            "domain_ready",
+            "publication_ready",
+            "artifact_mutation_authorized",
+            "physical_delete_complete"
+          ],
+          "must_not_write": [
+            ".ds/user_message_queue.json",
+            "runtime quest root",
+            "artifacts/controller_decisions/latest.json",
+            "artifacts/publication_eval/latest.json",
+            "manuscript/current_package",
+            "current_package.zip"
+          ],
+          "no_forbidden_write_proof_refs": [
+            "tests/test_cli_cases/sidecar_family_adapter_command_cases/dispatch_cases.py::test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth",
+            "sidecar_dispatch_response.forbidden_write_guard_proof"
+          ],
+          "status": "blocked_active_domain_sidecar_dispatch_caller_present",
+          "surface_kind": "mas_sidecar_dispatch_adapter_deletion_readiness"
+        },
         "domain_receipt_parity_status": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
         "focused_test_refs": [
           "tests/test_cli_cases/sidecar_family_adapter_command.py",
-          "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py"
+          "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py",
+          "tests/test_cli_cases/sidecar_family_adapter_command_cases/dispatch_cases.py"
         ],
         "must_not_emit": [
           "generic_scheduler_owner",
@@ -2292,6 +2362,7 @@
         "opl_replacement_parity",
         "mas_owner_receipt_parity",
         "focused_tests_green",
+        "no_forbidden_write_proof",
         "tombstone_refs_landed"
       ],
       "retirement_candidates": [
@@ -2404,6 +2475,7 @@
             "src/med_autoscience/controllers/sidecar_family_adapter.py"
           ],
           "delete_gate_status": "blocked_domain_dispatch_adapter_active",
+          "deletion_readiness_worklist_ref": "functional_consumer_boundary.active_path_residue_cleanup_gates.sidecar_dispatch_adapter.deletion_readiness_worklist",
           "gate_results": {
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
@@ -2416,6 +2488,10 @@
             "full_active_caller_status": "not_proven_retained_domain_or_diagnostic_adapter",
             "physical_delete_allowed": false
           },
+          "no_forbidden_write_proof_refs": [
+            "tests/test_cli_cases/sidecar_family_adapter_command_cases/dispatch_cases.py::test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth",
+            "sidecar_dispatch_response.forbidden_write_guard_proof"
+          ],
           "physical_delete_permitted": false,
           "retained_as": "domain_sidecar_dispatch_adapter",
           "surface_id": "sidecar_adapter"
@@ -2536,6 +2612,7 @@
           "current_role": "mas_domain_projection_refs_for_opl_hosted_workbench",
           "evidence_refs": [
             "workbench_portal_generic_shell.proof_refs",
+            "active_path_residue_cleanup_gates.sidecar_dispatch_adapter.deletion_readiness_worklist",
             "retired_legacy_residue_tombstones.mas_generic_workbench_shell",
             "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain"
           ],
@@ -2543,6 +2620,7 @@
           "group_id": "workbench_residue",
           "module_ids": [
             "workbench_portal_generic_shell",
+            "sidecar_dispatch_adapter",
             "mas_generic_workbench_shell"
           ],
           "physical_delete_gate": "OPL default workbench caller plus no MAS generic workbench default entry",

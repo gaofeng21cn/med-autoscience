@@ -357,6 +357,13 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert cleanup_gates["sidecar_dispatch_adapter"]["current_role"] == (
         "domain_sidecar_dispatch_adapter"
     )
+    sidecar_worklist = cleanup_gates["sidecar_dispatch_adapter"]["deletion_readiness_worklist"]
+    assert sidecar_worklist["can_delete"] is False
+    assert sidecar_worklist["active_caller_count"] == 1
+    assert "no_forbidden_write_proof" in {
+        item["gate"] for item in sidecar_worklist["missing_gate_inputs"]
+    }
+    assert "publication_ready" in sidecar_worklist["must_not_claim"]
     assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
         "domain_truth_status_projection"
     )

@@ -30,6 +30,7 @@ PHYSICAL_DELETE_REQUIRED_GATES = (
     "opl_replacement_parity",
     "mas_owner_receipt_parity",
     "focused_tests_green",
+    "no_forbidden_write_proof",
     "tombstone_refs_landed",
 )
 
@@ -170,8 +171,10 @@ def _retirement_candidate(
     delete_gate_status: str,
     gate_results: dict[str, Any],
     active_domain_or_diagnostic_callers: list[str],
+    deletion_readiness_worklist_ref: str | None = None,
+    no_forbidden_write_proof_refs: list[str] | None = None,
 ) -> dict[str, Any]:
-    return {
+    candidate = {
         "surface_id": surface_id,
         "code_paths": code_paths,
         "active_default_caller_count": 0,
@@ -189,6 +192,11 @@ def _retirement_candidate(
         },
         "gate_results": gate_results,
     }
+    if deletion_readiness_worklist_ref is not None:
+        candidate["deletion_readiness_worklist_ref"] = deletion_readiness_worklist_ref
+    if no_forbidden_write_proof_refs is not None:
+        candidate["no_forbidden_write_proof_refs"] = list(no_forbidden_write_proof_refs)
+    return candidate
 
 
 def build_physical_retirement_gate_matrix(
@@ -282,6 +290,18 @@ def build_physical_retirement_gate_matrix(
                 active_domain_or_diagnostic_callers=[
                     "sidecar export refs-only handoff",
                     "sidecar dispatch guarded owner receipt",
+                ],
+                deletion_readiness_worklist_ref=(
+                    "functional_consumer_boundary.active_path_residue_cleanup_gates."
+                    "sidecar_dispatch_adapter.deletion_readiness_worklist"
+                ),
+                no_forbidden_write_proof_refs=[
+                    (
+                        "tests/test_cli_cases/sidecar_family_adapter_command_cases/"
+                        "dispatch_cases.py::"
+                        "test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth"
+                    ),
+                    "sidecar_dispatch_response.forbidden_write_guard_proof",
                 ],
             ),
             _retirement_candidate(

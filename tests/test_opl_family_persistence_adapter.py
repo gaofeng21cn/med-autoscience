@@ -266,6 +266,13 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "domain_projection_refs_for_opl_workbench"
     )
     assert cleanup_gates["sidecar_dispatch_adapter"]["physical_delete_permitted"] is False
+    sidecar_worklist = cleanup_gates["sidecar_dispatch_adapter"]["deletion_readiness_worklist"]
+    assert sidecar_worklist["status"] == "blocked_active_domain_sidecar_dispatch_caller_present"
+    assert "artifacts/publication_eval/latest.json" in sidecar_worklist["must_not_write"]
+    assert (
+        "sidecar_dispatch_response.forbidden_write_guard_proof"
+        in sidecar_worklist["no_forbidden_write_proof_refs"]
+    )
     assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
         "domain_truth_status_projection"
     )

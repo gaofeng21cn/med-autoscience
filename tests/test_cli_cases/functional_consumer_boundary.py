@@ -207,6 +207,14 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "refs_only_domain_sidecar_adapter_active"
     )
     assert candidates["sidecar_adapter"]["active_default_caller_zero_proven"] is True
+    assert candidates["sidecar_adapter"]["deletion_readiness_worklist_ref"] == (
+        "functional_consumer_boundary.active_path_residue_cleanup_gates."
+        "sidecar_dispatch_adapter.deletion_readiness_worklist"
+    )
+    assert (
+        "sidecar_dispatch_response.forbidden_write_guard_proof"
+        in candidates["sidecar_adapter"]["no_forbidden_write_proof_refs"]
+    )
     assert candidates["workbench_shell"]["retained_as"] == (
         "domain_projection_refs_for_opl_workbench"
     )
@@ -245,6 +253,19 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     sidecar_gate = cleanup_gates["sidecar_dispatch_adapter"]
     assert sidecar_gate["current_role"] == "domain_sidecar_dispatch_adapter"
     assert sidecar_gate["physical_delete_permitted"] is False
+    sidecar_worklist = sidecar_gate["deletion_readiness_worklist"]
+    assert sidecar_worklist["status"] == "blocked_active_domain_sidecar_dispatch_caller_present"
+    assert sidecar_worklist["can_delete"] is False
+    assert {item["gate"] for item in sidecar_worklist["missing_gate_inputs"]} == {
+        "active_caller_count=0",
+        "opl_replacement_parity_proven",
+        "domain_receipt_parity_proven",
+        "focused_tests_green",
+        "no_forbidden_write_proof",
+        "history_tombstone_refs_recorded",
+    }
+    assert "current_package.zip" in sidecar_worklist["must_not_write"]
+    assert "physical_delete_complete" in sidecar_worklist["must_not_claim"]
     status_gate = cleanup_gates["status_projection_domain_truth_refs"]
     assert status_gate["current_role"] == "domain_truth_status_projection"
     assert status_gate["no_active_caller_proven"] is False

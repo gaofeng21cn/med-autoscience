@@ -8,6 +8,11 @@ def build_workbench_status_active_path_gates(
     delete_or_tombstone_after: tuple[str, ...],
     must_not_emit: tuple[str, ...],
 ) -> tuple[dict[str, Any], ...]:
+    sidecar_focused_test_refs = [
+        "tests/test_cli_cases/sidecar_family_adapter_command.py",
+        "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py",
+        "tests/test_cli_cases/sidecar_family_adapter_command_cases/dispatch_cases.py",
+    ]
     common = {
         "current_disposition": "retain_with_explicit_cleanup_gate",
         "no_active_caller_proven": False,
@@ -80,10 +85,80 @@ def build_workbench_status_active_path_gates(
                 "physical_retirement_gate_matrix.retirement_candidates.sidecar_adapter",
                 "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
             ],
-            "focused_test_refs": [
-                "tests/test_cli_cases/sidecar_family_adapter_command.py",
-                "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py",
-            ],
+            "focused_test_refs": sidecar_focused_test_refs,
+            "deletion_readiness_worklist": {
+                "surface_kind": "mas_sidecar_dispatch_adapter_deletion_readiness",
+                "status": "blocked_active_domain_sidecar_dispatch_caller_present",
+                "allowed_current_role": "domain_sidecar_dispatch_adapter",
+                "can_delete": False,
+                "can_archive": False,
+                "can_tombstone": False,
+                "active_caller_count": 1,
+                "active_caller_provenance": "sidecar export and dispatch still expose MAS owner-route refs",
+                "missing_gate_inputs": [
+                    {
+                        "gate": "active_caller_count=0",
+                        "status": "blocked",
+                        "required_evidence": "no active sidecar export or dispatch domain caller scan",
+                    },
+                    {
+                        "gate": "opl_replacement_parity_proven",
+                        "status": "blocked",
+                        "required_evidence": "OPL generated sidecar default caller consuming MAS refs",
+                    },
+                    {
+                        "gate": "domain_receipt_parity_proven",
+                        "status": "blocked",
+                        "required_evidence": (
+                            "real paper-line owner receipt or stable typed blocker parity"
+                        ),
+                    },
+                    {
+                        "gate": "focused_tests_green",
+                        "status": "required_before_delete",
+                        "required_evidence": "sidecar export and dispatch focused tests",
+                    },
+                    {
+                        "gate": "no_forbidden_write_proof",
+                        "status": "required_before_delete",
+                        "required_evidence": (
+                            "dispatch writes only MAS dispatch receipt refs and no truth/package body"
+                        ),
+                    },
+                    {
+                        "gate": "history_tombstone_refs_recorded",
+                        "status": "required_before_delete",
+                        "required_evidence": "history/provenance tombstone refs for retired sidecar adapter",
+                    },
+                ],
+                "active_caller_proof_refs": [
+                    "physical_retirement_gate_matrix.retirement_candidates.sidecar_adapter",
+                    "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
+                ],
+                "focused_test_refs": sidecar_focused_test_refs,
+                "no_forbidden_write_proof_refs": [
+                    (
+                        "tests/test_cli_cases/sidecar_family_adapter_command_cases/"
+                        "dispatch_cases.py::"
+                        "test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth"
+                    ),
+                    "sidecar_dispatch_response.forbidden_write_guard_proof",
+                ],
+                "must_not_write": [
+                    ".ds/user_message_queue.json",
+                    "runtime quest root",
+                    "artifacts/controller_decisions/latest.json",
+                    "artifacts/publication_eval/latest.json",
+                    "manuscript/current_package",
+                    "current_package.zip",
+                ],
+                "must_not_claim": [
+                    "domain_ready",
+                    "publication_ready",
+                    "artifact_mutation_authorized",
+                    "physical_delete_complete",
+                ],
+            },
         },
         {
             **common,
