@@ -219,6 +219,75 @@ def test_sidecar_dispatch_routes_quality_repair_batch_callable_inside_mas_owner(
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_sidecar_dispatch_prefers_runtime_binding_quest_id_for_quality_repair_batch_callable(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_profile(profile_path, workspace_root=workspace_root)
+    (study_root / "runtime_binding.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "runtime_binding.yaml").write_text(
+        "schema_version: 1\n"
+        "study_id: 003-dpcc-primary-care-phenotype-treatment-gap\n"
+        "quest_id: 003-dpcc-primary-care-phenotype-treatment-gap\n",
+        encoding="utf-8",
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        calls.append(kwargs)
+        evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+        evidence = {
+            "surface": "repair_execution_evidence",
+            "progress_delta_candidate": True,
+            "canonical_artifact_delta": {"meaningful_artifact_delta": True},
+        }
+        _write_json(evidence_path, evidence)
+        return {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+            "repair_execution_evidence": evidence,
+            "repair_execution_evidence_path": str(evidence_path),
+        }
+
+    monkeypatch.setattr(adapter.paper_repair_executor.quality_repair_batch, "run_quality_repair_batch", fake_run_quality_repair_batch)
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "paper-task-quality-batch-canonical-quest",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/repair-recheck",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "repair_work_unit": {
+                    "unit_id": "quality_repair_batch",
+                    "work_unit_type": "text_repair",
+                    "owner": "quality_repair_batch",
+                    "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                    "source_fingerprint": "sha256:quality-repair-batch",
+                    "source_refs": ["artifacts/publication_eval/latest.json"],
+                    "gate_replay_target": "publication_eval/latest.json",
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert calls[0]["quest_id"] == "003-dpcc-primary-care-phenotype-treatment-gap"
+
+
 def test_sidecar_dispatch_routes_embedded_ai_reviewer_callable_inside_mas_owner(
     monkeypatch,
     tmp_path: Path,

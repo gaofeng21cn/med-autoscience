@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import yaml
+
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 from .. import domain_owner_action_dispatch
@@ -184,17 +186,50 @@ def _execute_paper_repair(
             "typed_blocker": "owner_callable_surface_missing",
             "blocked_reason": "repair_work_unit_missing",
         }
+    study_root = profile.studies_root / study_id
+    quest_id = _canonical_paper_repair_quest_id(
+        study_root=study_root,
+        payload=payload,
+        work_unit=work_unit,
+        study_id=study_id,
+    )
     return paper_repair_executor.dispatch_repair_work_unit(
         profile=profile,
         study_id=study_id,
-        quest_id=_text(payload.get("quest_id")) or _text(work_unit.get("quest_id")) or f"quest-{study_id}",
-        study_root=profile.studies_root / study_id,
+        quest_id=quest_id,
+        study_root=study_root,
         repair_work_unit=work_unit,
         review_finding=_mapping(payload.get("review_finding")),
         control_plane_route_context=_mapping(payload.get("control_plane_route_context")) or None,
         route_context=_mapping(payload.get("route_context")) or None,
         apply=True,
     )
+
+
+def _canonical_paper_repair_quest_id(
+    *,
+    study_root: Path,
+    payload: Mapping[str, Any],
+    work_unit: Mapping[str, Any],
+    study_id: str,
+) -> str:
+    binding_quest_id = _quest_id_from_runtime_binding(study_root / "runtime_binding.yaml")
+    return (
+        binding_quest_id
+        or _text(payload.get("quest_id"))
+        or _text(work_unit.get("quest_id"))
+        or f"quest-{study_id}"
+    )
+
+
+def _quest_id_from_runtime_binding(path: Path) -> str | None:
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return None
+    if not isinstance(payload, Mapping):
+        return None
+    return _text(payload.get("quest_id"))
 
 
 def _execute_ai_reviewer_recheck(

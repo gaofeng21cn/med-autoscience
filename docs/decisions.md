@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：paper repair sidecar 必须使用 runtime binding 的 canonical quest_id
+
+- 决策：`paper_autonomy/repair-recheck` 进入 MAS owner 前，sidecar dispatch 必须优先读取 `studies/<study_id>/runtime_binding.yaml` 中的 canonical `quest_id`，再调用 `paper_repair_executor` / `quality_repair_batch`。OPL typed task payload 只能作为未绑定 study 的输入来源，不能覆盖已绑定 study 的 runtime identity。
+- 决策：`quest-{study_id}` 只能作为缺少 runtime binding 时的最后构造值，不得在已绑定 MAS study 中成为 paper owner / gate locator 的实际 quest identity。
+- 理由：DM003 暴露出错误的 `quest-003-dpcc-primary-care-phenotype-treatment-gap` 进入 paper repair evidence，导致 `quality_repair_batch` 用不存在的 runtime quest root 调 `publication_gate`，而 canonical `studies/003.../paper` 已完整却被误报为 `blocked_no_paper_root`。这属于 owner identity propagation bug，不是论文 paper surface 缺失。
+- 影响：修复保持 OPL 只做 typed dispatch / transport receipt，不给 OPL 写 MAS truth 的权限；MAS paper owner 仍通过 canonical runtime binding、publication gate、repair receipt 和 AI reviewer verdict 推进。
+
 ## 2026-05-22：medical prose write repair 是上游 paper-write owner，不得继承 stale bundle route
 
 - 决策：AI reviewer 当前 medical prose route-back 生成的 `medical_prose_write_repair` 是 upstream publishability repair work unit，control-plane route gate 必须授权为 `paper_write`。它可以在 `publication_supervisor_state.bundle_tasks_downstream_only` 和 `bundle_build_allowed=false` 时继续由 MAS managed owner 修 canonical paper / evidence / review / display-facing repair surfaces，但不能写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission readiness verdict。
