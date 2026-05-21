@@ -27,10 +27,9 @@ def _assert_owner_route_required(
         assert apply_result["reason"] == expected_reason
     assert apply_result["queue_owner"] == "one-person-lab"
     assert apply_result["authority_boundary"]["mas_resumes_provider_worker"] is False
-    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
-    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    assert "quest_root/.ds/runtime_state.json" not in apply_result["allowed_write_surfaces"]
+    assert "quest_root/.ds/events.jsonl" not in apply_result["allowed_write_surfaces"]
+    assert "last_opl_runtime_owner_route_handoff" not in runtime_state
 
 
 __all__ = [

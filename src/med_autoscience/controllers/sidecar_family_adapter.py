@@ -27,6 +27,7 @@ from .sidecar_family_adapter_parts.guarded_apply_tasks import (
     DEFAULT_GUARDED_APPLY_TARGETS,
     provider_hosted_guarded_apply_tasks,
 )
+from .sidecar_family_adapter_parts.owner_route_handoff_tasks import owner_route_handoff_task
 from .sidecar_family_adapter_parts.owner_source_refs import owner_controller_decision_refs
 from .sidecar_family_adapter_parts.substrate_adapter import build_opl_substrate_adapter_projection
 from .domain_slo_scheduler_projection_parts import consumer_migration
@@ -54,6 +55,7 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("controller_decisions", Path("artifacts/controller_decisions/latest.json"), "controller_decisions"),
     ("publication_eval", Path("artifacts/publication_eval/latest.json"), "publication_eval"),
     ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
+    ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
 )
 _ALLOWED_TASK_KINDS = {
     "domain_route/recover": "domain_route_recover",
@@ -97,7 +99,7 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(dict(payload), ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
@@ -107,18 +109,9 @@ def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
         return str(path)
 
 
-def _authority_boundary_payload() -> dict[str, Any]:
-    return authority_boundary_payload()
-
-
 def _source_ref(*, study_root: Path, role: str, relative_path: Path, workspace_root: Path) -> dict[str, Any]:
     path = study_root / relative_path
-    return {
-        "ref_kind": "repo_path",
-        "role": role,
-        "ref": _workspace_relative(path, workspace_root=workspace_root),
-        "exists": path.exists(),
-    }
+    return {"ref_kind": "repo_path", "role": role, "ref": _workspace_relative(path, workspace_root=workspace_root), "exists": path.exists()}
 
 
 def _study_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
@@ -246,11 +239,11 @@ def export_family_sidecar(
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
-        "authority_boundary": _authority_boundary_payload(),
+        "authority_boundary": authority_boundary_payload(),
         "opl_substrate_adapter": build_opl_substrate_adapter_projection(
             profile=profile,
             studies=studies,
-            authority_boundary_payload=_authority_boundary_payload,
+            authority_boundary_payload=authority_boundary_payload,
             workspace_relative=lambda path: _workspace_relative(path, workspace_root=profile.workspace_root),
             text=_text,
             mapping=_mapping,
@@ -317,7 +310,7 @@ def export_family_sidecar(
                 "scheduler_owner": "one-person-lab",
                 "mas_local_scheduler_role": consumer_migration.LOCAL_TOMBSTONE_PATH_ROLE,
                 "authority": "read_only_projection",
-                "forbidden_authorities": _authority_boundary_payload()["forbidden_authorities"],
+                "forbidden_authorities": authority_boundary_payload()["forbidden_authorities"],
             },
         },
         "pending_family_tasks": pending_tasks,
@@ -411,7 +404,7 @@ def _paper_autonomy_loop_projection(*, study_root: Path) -> dict[str, Any]:
         "source_refs": [
             {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
         ],
-        "authority_boundary": _authority_boundary_payload(),
+        "authority_boundary": authority_boundary_payload(),
     }
 
 
@@ -424,7 +417,7 @@ def _memory_paper_soak_proof_projection(*, study_root: Path, profile: WorkspaceP
             "status": "missing",
             "proof_ref": _workspace_relative(proof_path, workspace_root=profile.workspace_root),
             "receipt_refs": [],
-            "authority_boundary": _authority_boundary_payload(),
+            "authority_boundary": authority_boundary_payload(),
             "read_only_display_policy": {
                 "consumer": "OPL/Aion",
                 "body_included": False,
@@ -445,7 +438,7 @@ def _memory_paper_soak_proof_projection(*, study_root: Path, profile: WorkspaceP
         "router_receipt_ref_count": len(proof.get("mas_router_receipt_refs") or []),
         "writeback_proposal_ref_count": len(proof.get("typed_closeout_writeback_proposals") or []),
         "source_fingerprint": _text(proof.get("source_fingerprint")),
-        "authority_boundary": _mapping(proof.get("authority_boundary")) or _authority_boundary_payload(),
+        "authority_boundary": _mapping(proof.get("authority_boundary")) or authority_boundary_payload(),
         "read_only_display_policy": _mapping(proof.get("read_only_display_policy")),
     }
 
@@ -509,6 +502,14 @@ def _pending_family_tasks(
                 projection=_mapping(study.get("publication_aftercare")),
             )
         )
+        handoff_task = owner_route_handoff_task(
+            study=study,
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+        )
+        if handoff_task is not None:
+            tasks.append(handoff_task)
         continuation = _mapping(study.get("autonomy_continuation"))
         if not continuation.get("eligible_for_auto_dispatch"):
             continue
@@ -765,7 +766,7 @@ def _base_dispatch_receipt(
             "recommended_domain_command": _recommended_command(action_type, profile_ref=profile_ref, study_id=study_id),
             "execution_policy": "guarded_domain_control_receipt_only",
         },
-        "authority_boundary": _authority_boundary_payload(),
+        "authority_boundary": authority_boundary_payload(),
         "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
             result="accepted_no_forbidden_writes",
             task_id=task_id,
@@ -885,7 +886,7 @@ def _write_dispatch_receipt(
         text=_text,
         mapping=_mapping,
         now_iso=_now_iso,
-        authority_boundary_payload=_authority_boundary_payload,
+        authority_boundary_payload=authority_boundary_payload,
         forbidden_write_guard_proof=opl_provider_ready_adapter.build_forbidden_write_guard_proof,
     )
 
@@ -974,7 +975,7 @@ def _dispatch_error(
         "generated_at": generated_at,
         "reason": reason,
         "forbidden_domain_truth_write": forbidden_domain_truth_write,
-        "authority_boundary": _authority_boundary_payload(),
+        "authority_boundary": authority_boundary_payload(),
         "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
             result="blocked" if forbidden_domain_truth_write else "not_evaluated",
             task_id=task_id,

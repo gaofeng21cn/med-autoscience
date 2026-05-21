@@ -28,6 +28,8 @@ def assert_owner_route_required(
     assert apply_result["authority_boundary"]["mas_submits_runtime_chat"] is False
     assert apply_result["authority_boundary"]["mas_resumes_provider_worker"] is False
     assert apply_result["authority_boundary"]["opl_writes_mas_truth"] is False
+    assert "quest_root/.ds/runtime_state.json" not in apply_result["allowed_write_surfaces"]
+    assert "quest_root/.ds/events.jsonl" not in apply_result["allowed_write_surfaces"]
     handoff = apply_result["opl_runtime_owner_route_handoff"]
     assert handoff["queue_owner"] == "one-person-lab"
     assert handoff["domain_truth_owner"] == "med-autoscience"
@@ -42,10 +44,18 @@ def assert_owner_route_required(
     if quest_root is None:
         return None
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
-    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert runtime_state["active_run_id"] is None
-    assert runtime_state["worker_running"] is False
-    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    assert "last_opl_runtime_owner_route_handoff" not in runtime_state
+    handoff_record_path = (
+        quest_root.parents[2]
+        / "studies"
+        / apply_result["opl_runtime_owner_route_handoff"]["study_id"]
+        / "artifacts"
+        / "supervision"
+        / "owner_route_handoff"
+        / "latest.json"
+    )
+    handoff_record = json.loads(handoff_record_path.read_text(encoding="utf-8"))
+    assert handoff_record["runtime_state_mutated"] is False
+    assert handoff_record["handoff"]["queue_owner"] == "one-person-lab"
+    assert handoff_record["handoff"]["authority_boundary"]["mas_resumes_provider_worker"] is False
     return runtime_state

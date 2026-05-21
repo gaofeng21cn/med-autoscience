@@ -116,8 +116,12 @@ def _opl_runtime_owner_route_apply_result(
     authorization_written: bool | None = None,
     extra: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    owner_route_base = {
+        **dict(base),
+        "allowed_write_surfaces": list(SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES),
+    }
     return platform_repair_owner_route.apply_result(
-        base=base,
+        base=owner_route_base,
         study_id=study_id,
         quest_id=quest_id,
         runtime_state_path=runtime_state_path,

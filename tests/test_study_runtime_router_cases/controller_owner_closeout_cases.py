@@ -165,7 +165,7 @@ def test_waiting_controller_colon_owner_closeout_resumes_after_explicit_user_wak
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
-    _, quest_root = _write_managed_study(profile, study_id)
+    study_root, quest_root = _write_managed_study(profile, study_id)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     write_text(
         runtime_state_path,
@@ -235,10 +235,18 @@ def test_waiting_controller_colon_owner_closeout_resumes_after_explicit_user_wak
     assert result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
     assert calls == []
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-    assert runtime_state["continuation_policy"] == "wait_for_opl_runtime_owner"
-    assert runtime_state["continuation_anchor"] == "opl_runtime_owner_route"
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert "last_opl_runtime_owner_route_handoff" not in runtime_state
+    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
+    assert runtime_state["continuation_anchor"] == "turn_closeout"
+    assert runtime_state["continuation_reason"] == "blocked_turn_closeout_waiting_for_owner"
     assert "blocked_turn_closeout" not in runtime_state
+    handoff_record = json.loads(
+        (study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert handoff_record["runtime_state_mutated"] is False
+    assert handoff_record["handoff"]["queue_owner"] == "one-person-lab"
 
 
 def test_waiting_source_provenance_owner_closeout_records_executable_owner_handoff(
@@ -248,7 +256,7 @@ def test_waiting_source_provenance_owner_closeout_records_executable_owner_hando
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    _, quest_root = _write_managed_study(profile, study_id)
+    study_root, quest_root = _write_managed_study(profile, study_id)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     write_text(
         runtime_state_path,
@@ -327,6 +335,17 @@ def test_waiting_source_provenance_owner_closeout_records_executable_owner_hando
     assert handoff["owner_callable_surface"] == (
         "source_provenance_owner.recover_transport_model_provenance_or_typed_blocker"
     )
-    assert runtime_state["continuation_reason"] == "quest_waiting_opl_runtime_owner_route"
-    assert runtime_state["last_opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    assert "last_opl_runtime_owner_route_handoff" not in runtime_state
+    assert runtime_state["continuation_reason"] == "blocked_turn_closeout_waiting_for_owner"
     assert "blocked_turn_closeout" not in runtime_state
+    handoff_record = json.loads(
+        (study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert handoff_record["runtime_state_mutated"] is False
+    assert handoff_record["handoff"]["queue_owner"] == "one-person-lab"
+    assert (
+        handoff_record["handoff"]["owner_handoff_authorization"]["owner_callable_surface"]
+        == "source_provenance_owner.recover_transport_model_provenance_or_typed_blocker"
+    )
