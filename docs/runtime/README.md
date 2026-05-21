@@ -25,6 +25,7 @@ Machine boundary: 本目录是 MAS domain runtime-facing 文档索引。机器�
 - [Runtime boundary](./contracts/runtime_boundary.md)
 - [Agent runtime interface](./contracts/agent_runtime_interface.md)
 - [Runtime handle and durable surface contract](./contracts/runtime_handle_and_durable_surface_contract.md)
+- [MAS Stage / Route / Handoff 标准](./stage_route_handoff_standard.md)：解释 stage、route、handoff、owner route 与 OPL stage graph 的关系；route 不是 MAS 私有小 stage，route 间调度归 OPL runtime manager / transition runner。
 - [Runtime supervision loop](./control/runtime_supervision_loop.md)：MAS domain supervision / read-model / owner receipt 入口；不作为 generic scheduler/platform owner。
 - [Domain SLO scheduler projection contract](./control/domain_slo_scheduler_projection_contract.md)：MAS domain SLO / owner receipt projection 入口；local scheduler active path 已退役为 tombstone/provenance，OPL-hosted production provider 生命周期归 OPL。
 - [Study runtime control surface](./control/study_runtime_control_surface.md)
