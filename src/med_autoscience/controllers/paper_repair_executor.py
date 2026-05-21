@@ -7,7 +7,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import canonical_manuscript_package_loop, paper_repair_execution_evidence
+from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers import (
+    canonical_manuscript_package_loop,
+    domain_owner_action_dispatch,
+    paper_repair_execution_evidence,
+    quality_repair_batch,
+)
 from med_autoscience.controllers.domain_action_request_lifecycle import (
     default_ai_reviewer_request_input_refs,
     materialize_ai_reviewer_request,
@@ -28,18 +34,24 @@ SUPPORTED_AUTO_WORK_UNITS = {
 TYPED_BLOCKER_BY_WORK_UNIT = {
     "display_rebuild": "owner_callable_surface_missing",
     "package_refresh": "owner_callable_surface_missing",
-    "ai_reviewer_recheck": "owner_callable_surface_missing",
 }
 STRUCTURED_PATCH_BLOCKER = "owner_callable_surface_missing"
+QUALITY_REPAIR_BATCH_CALLABLE = "quality_repair_batch.run_quality_repair_batch"
+AI_REVIEWER_PUBLICATION_EVAL_CALLABLE = (
+    "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+)
 
 
 def dispatch_repair_work_unit(
     *,
+    profile: WorkspaceProfile | None = None,
     study_id: str,
     quest_id: str,
     study_root: str | Path,
     repair_work_unit: Mapping[str, Any],
     review_finding: Mapping[str, Any] | None = None,
+    control_plane_route_context: Mapping[str, Any] | None = None,
+    route_context: Mapping[str, Any] | None = None,
     apply: bool = True,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
@@ -59,6 +71,28 @@ def dispatch_repair_work_unit(
             "would_write": _would_write(work_unit_type),
             "authority_boundary": _authority_boundary(),
         }
+
+    callable_surface = _text(work_unit.get("callable_surface"))
+    if callable_surface == QUALITY_REPAIR_BATCH_CALLABLE:
+        return _dispatch_quality_repair_batch_callable(
+            profile=profile,
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=resolved_study_root,
+            work_unit=work_unit,
+            generated_at=generated_at,
+            control_plane_route_context=control_plane_route_context,
+            route_context=route_context,
+        )
+    if callable_surface == AI_REVIEWER_PUBLICATION_EVAL_CALLABLE:
+        return _dispatch_ai_reviewer_callable(
+            profile=profile,
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=resolved_study_root,
+            work_unit=work_unit,
+            generated_at=generated_at,
+        )
 
     preflight_blocker = _preflight_blocker(work_unit=work_unit, work_unit_type=work_unit_type)
     if work_unit_type not in SUPPORTED_AUTO_WORK_UNITS or preflight_blocker is not None:
@@ -156,6 +190,175 @@ def dispatch_repair_work_unit(
         "ai_reviewer_recheck_request_ref": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
         "authority_boundary": _authority_boundary(),
     }
+
+
+def _dispatch_quality_repair_batch_callable(
+    *,
+    profile: WorkspaceProfile | None,
+    study_id: str,
+    quest_id: str,
+    study_root: Path,
+    work_unit: Mapping[str, Any],
+    generated_at: str,
+    control_plane_route_context: Mapping[str, Any] | None,
+    route_context: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if profile is None:
+        return _blocked_result(
+            generated_at=generated_at,
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=study_root,
+            work_unit=work_unit,
+            review_finding=None,
+            typed_blocker="owner_callable_context_missing",
+        )
+    owner_result = quality_repair_batch.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        quest_id=quest_id,
+        source=SURFACE,
+        control_plane_route_context=control_plane_route_context,
+        route_context=route_context,
+    )
+    return _owner_callable_result(
+        generated_at=generated_at,
+        accepted=_owner_result_executed(owner_result),
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        work_unit=work_unit,
+        owner_callable_surface=QUALITY_REPAIR_BATCH_CALLABLE,
+        owner_result=owner_result,
+    )
+
+
+def _dispatch_ai_reviewer_callable(
+    *,
+    profile: WorkspaceProfile | None,
+    study_id: str,
+    quest_id: str,
+    study_root: Path,
+    work_unit: Mapping[str, Any],
+    generated_at: str,
+) -> dict[str, Any]:
+    if profile is None:
+        return _blocked_result(
+            generated_at=generated_at,
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=study_root,
+            work_unit=work_unit,
+            review_finding=None,
+            typed_blocker="owner_callable_context_missing",
+        )
+    owner_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+    return _owner_callable_result(
+        generated_at=generated_at,
+        accepted=_owner_result_executed(owner_result),
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        work_unit=work_unit,
+        owner_callable_surface=AI_REVIEWER_PUBLICATION_EVAL_CALLABLE,
+        owner_result=owner_result,
+    )
+
+
+def _owner_callable_result(
+    *,
+    generated_at: str,
+    accepted: bool,
+    study_id: str,
+    quest_id: str,
+    study_root: Path,
+    work_unit: Mapping[str, Any],
+    owner_callable_surface: str,
+    owner_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    execution_status = "executed" if accepted else "blocked"
+    typed_blocker = None if accepted else _owner_result_blocker(owner_result)
+    changed_refs = _changed_refs_from_owner_result(owner_result)
+    evidence_path = _owner_result_evidence_path(study_root=study_root, owner_result=owner_result)
+    receipt = _owner_receipt(
+        generated_at=generated_at,
+        accepted=accepted,
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        work_unit=work_unit,
+        execution_status=execution_status,
+        typed_blocker=typed_blocker,
+        changed_refs=changed_refs,
+        evidence_path=evidence_path,
+        gate_replay_ref=None,
+        ai_reviewer_request=None,
+    )
+    receipt["owner_callable_surface"] = owner_callable_surface
+    receipt["owner_result_status"] = _text(owner_result.get("status"))
+    receipt_path = _write_owner_receipt(study_root=study_root, receipt=receipt)
+    return {
+        "surface": SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "accepted": accepted,
+        "execution_status": execution_status,
+        "typed_blocker": typed_blocker,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "repair_work_unit": dict(work_unit),
+        "owner_callable_surface": owner_callable_surface,
+        "owner_result": dict(owner_result),
+        "owner_receipt": receipt,
+        "owner_receipt_ref": str(receipt_path),
+        "repair_execution_evidence_ref": str(evidence_path),
+        "canonical_artifact_delta": _mapping(_mapping(owner_result.get("repair_execution_evidence")).get("canonical_artifact_delta")),
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def _owner_result_executed(owner_result: Mapping[str, Any]) -> bool:
+    if owner_result.get("ok") is True:
+        return True
+    if _text(owner_result.get("status")) in {"executed", "skipped_duplicate_eval"}:
+        return True
+    if int(owner_result.get("executed_count") or 0) > 0 and int(owner_result.get("blocked_count") or 0) == 0:
+        return True
+    return False
+
+
+def _owner_result_blocker(owner_result: Mapping[str, Any]) -> str:
+    return (
+        _text(owner_result.get("blocked_reason"))
+        or _text(owner_result.get("reason"))
+        or "owner_callable_surface_blocked"
+    )
+
+
+def _owner_result_evidence_path(*, study_root: Path, owner_result: Mapping[str, Any]) -> Path:
+    evidence_path = _text(owner_result.get("repair_execution_evidence_path"))
+    if evidence_path:
+        return Path(evidence_path).expanduser().resolve()
+    return study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+
+
+def _changed_refs_from_owner_result(owner_result: Mapping[str, Any]) -> list[dict[str, str]]:
+    evidence = _mapping(owner_result.get("repair_execution_evidence"))
+    refs = evidence.get("changed_artifact_refs")
+    if isinstance(refs, list):
+        changed: list[dict[str, str]] = []
+        for ref in refs:
+            path = _text(_mapping(ref).get("path")) or _text(ref)
+            if path:
+                changed.append({"path": path, "artifact_role": _text(_mapping(ref).get("artifact_role")) or "canonical_paper_artifact"})
+        return changed
+    return []
 
 
 def _execute_supported_work_unit(

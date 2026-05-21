@@ -156,11 +156,14 @@ def _execute_paper_repair(
             "blocked_reason": "repair_work_unit_missing",
         }
     return paper_repair_executor.dispatch_repair_work_unit(
+        profile=profile,
         study_id=study_id,
         quest_id=_text(payload.get("quest_id")) or _text(work_unit.get("quest_id")) or f"quest-{study_id}",
         study_root=profile.studies_root / study_id,
         repair_work_unit=work_unit,
         review_finding=_mapping(payload.get("review_finding")),
+        control_plane_route_context=_mapping(payload.get("control_plane_route_context")) or None,
+        route_context=_mapping(payload.get("route_context")) or None,
         apply=True,
     )
 

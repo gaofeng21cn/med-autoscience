@@ -554,6 +554,12 @@
 - 理由：DM002 暴露出 managed runtime 在上一轮已写出 `paper/draft.md` / `paper/build/review_manuscript.md` 的 completed closeout 后，下一轮 active run 先启动，controller 只看当前 active run 会漏掉刚完成的 owner receipt，导致同一 `manuscript_story_repair` 被重复派发。
 - 影响：这是 owner receipt / currentness 消费修复，不放宽 publication gate、AI reviewer 或医学质量判断；旧决策、未投递 run、blocked closeout、无 meaningful manuscript delta 的记录仍不能关闭当前 work unit。
 
+## 2026-05-21：paper autonomy repair-recheck 必须兑现已声明 owner callable
+
+- 决策：`paper_autonomy/repair-recheck` 进入 MAS sidecar 后，`paper_repair_executor` 必须识别 reviewer refinement work unit 中已声明的 MAS owner callable。`quality_repair_batch.run_quality_repair_batch` 交给 quality-repair batch owner 执行；`ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow` 交给 AI reviewer owner dispatch 执行。只有缺 profile/context 或 callable 真不存在时，才允许返回 typed blocker。
+- 理由：DM003 route-back 暴露出系统性缺口：reviewer refinement 已正确生成 `quality_repair_batch` / `ai_reviewer` callable surface，OPL provider 也已把 task 送达 MAS sidecar，但 executor 仍按旧的 structured patch 局部路径返回 `owner_callable_surface_missing`，导致论文质量修复停在“看见问题但不执行 owner”的状态。
+- 影响：repair executor 继续禁止直接写 `manuscript/current_package`、质量放行或投稿授权；它只负责把已声明 owner callable 接到 MAS owner surface，并写 owner receipt / typed blocker。单篇论文反馈必须转化为可回归的 owner-callable dispatch 测试，避免后续再由人工发现“写入 task intake 但不推进修复”的问题。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。
