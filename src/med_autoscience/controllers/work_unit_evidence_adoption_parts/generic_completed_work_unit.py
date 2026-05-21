@@ -9,7 +9,7 @@ RECOMMENDED_NEXT_ROUTE = "return_to_publication_gate_recheck"
 NEXT_OWNER = "publication_gate"
 PUBLICATION_GATE_RECHECK_WORK_UNIT = "publication_gate_recheck"
 CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
-RUNTIME_RELAY_DELIVERY_MODES = frozenset({"managed_runtime_chat", "durable_queue_fallback"})
+RUNTIME_RELAY_DELIVERY_MODES = frozenset({"managed_runtime_chat", "queued_owner_message_delivery"})
 DELIVERED_EVENT_TYPE = "delivered"
 SKIPPED_DUPLICATE_EVENT_TYPE = "skipped_duplicate"
 

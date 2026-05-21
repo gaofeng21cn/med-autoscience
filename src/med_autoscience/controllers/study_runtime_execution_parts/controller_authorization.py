@@ -268,7 +268,7 @@ def _relay_controller_decision_authorization_if_required(
         dedupe_key=dedupe_key,
     )
     updated_runtime_state = quest_state.load_runtime_state(context.quest_root)
-    relay["delivery_mode"] = "durable_queue_fallback"
+    relay["delivery_mode"] = "queued_owner_message_delivery"
     relay["message_id"] = record.get("message_id")
     relay["reply_to_interaction_id"] = record.get("reply_to_interaction_id")
     _mark_controller_decision_authorization_relayed(
@@ -276,7 +276,7 @@ def _relay_controller_decision_authorization_if_required(
         runtime_state=updated_runtime_state,
         authorization_context=authorization_context,
         active_run_id=active_run_id,
-        delivery_mode="durable_queue_fallback",
+        delivery_mode="queued_owner_message_delivery",
         message_id=str(record.get("message_id") or "").strip() or None,
         source=context.source,
     )
@@ -285,7 +285,7 @@ def _relay_controller_decision_authorization_if_required(
         identity=_controller_decision_authorization_identity(authorization_context),
         event_type="delivered",
         payload={
-            "delivery_mode": "durable_queue_fallback",
+            "delivery_mode": "queued_owner_message_delivery",
             "message_id": relay["message_id"],
             "active_run_id": active_run_id,
             "source": context.source,

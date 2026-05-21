@@ -132,8 +132,8 @@ def test_publication_aftercare_plan_projects_aris_analysis_queue_and_reviewer_re
     assert result["reviewer_refresh_entry"]["reviewer_refresh_policy"]["separate_invocation_required"] is True
     assert result["reviewer_refresh_entry"]["recommended_task_kind"] == "publication_aftercare/reviewer-refresh"
     assert result["authority_boundary"]["can_authorize_quality_verdict"] is False
-    assert result["runtime_progression_policy"]["quality_gate_bypass_allowed"] is False
-    assert result["runtime_progression_policy"]["direct_publication_eval_write_allowed"] is False
+    assert result["owner_route_task_policy"]["quality_gate_bypass_allowed"] is False
+    assert result["owner_route_task_policy"]["direct_publication_eval_write_allowed"] is False
     assert "not projected" not in json.dumps(result, ensure_ascii=False)
 
 
@@ -266,6 +266,6 @@ def test_publication_aftercare_pending_tasks_are_runtime_owner_only(tmp_path: Pa
         "publication_aftercare/reviewer-refresh",
     ]
     assert all(task["dispatch_owner"] == "med-autoscience" for task in tasks)
-    assert all(task["payload"]["authority_boundary"] == "mas_owner_runtime_progression_only" for task in tasks)
+    assert all(task["payload"]["authority_boundary"] == "mas_owner_route_task_ref_only" for task in tasks)
     assert all(task["source_fingerprint"] for task in tasks)
     assert all(ref["body_included"] is False for task in tasks for ref in task["source_refs"])

@@ -561,8 +561,8 @@ def test_publication_aftercare_plan_command_exposes_refs_only_runtime_progressio
     assert output["body_included"] is False
     assert output["authority_boundary"]["can_submit_to_venue"] is False
     assert output["authority_boundary"]["can_authorize_quality_verdict"] is False
-    assert output["analysis_queue_entry"]["eligible_for_runtime_dispatch"] is True
-    assert output["reviewer_refresh_entry"]["eligible_for_runtime_dispatch"] is True
+    assert output["analysis_queue_entry"]["eligible_for_owner_route_task_ref"] is True
+    assert output["reviewer_refresh_entry"]["eligible_for_owner_route_task_ref"] is True
     assert {task["task_kind"] for task in pending_tasks} == {
         "publication_aftercare/analysis-queue-progress",
         "publication_aftercare/reviewer-refresh",

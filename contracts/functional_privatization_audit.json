@@ -231,6 +231,19 @@
           "tests/test_progress_portal.py",
           "tests/product_entry_cases/product_entry_supervision_and_boundary_cases.py"
         ],
+        "latest_thinning_evidence": {
+          "does_not_claim_physical_delete": true,
+          "removed_legacy_aliases": [
+            "needs_physician_decision",
+            "legacy_needs_physician_decision_field",
+            "legacy_approval_gate_field",
+            "study_physician_decision_gate",
+            "study_needs_physician_decision"
+          ],
+          "retained_field": "needs_user_decision",
+          "scope": "product_entry_workspace_cockpit_workbench_projection_shell",
+          "status": "product_workbench_legacy_human_gate_alias_removed"
+        },
         "must_not_emit": [
           "generic_scheduler_owner",
           "generic_queue_owner",

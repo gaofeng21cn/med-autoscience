@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-21：runtime liveness / redrive 仲裁不得继续在 MAS 私有控制面扩写
+
+- 决策：暂停并撤回把 `active_run_id` liveness 过滤、stopped/failed redrive 仲裁、provider resume 选择或 current AI reviewer route-back hydrate 继续写进 `study_outer_loop.py` / `status_and_decision.py` / `domain_transition_arbitration.py` 的修复方向。MAS 只能输出医学 owner route、controller authorization refs、AI reviewer/publication gate verdict refs、owner receipt 和 typed blocker；通用 liveness、attempt、queue、redrive、hydration、retry/dead-letter 与 provider resume 由 OPL provider/runtime manager 承担。
+- 理由：DM002 当前症状是 MAS 已有 AI reviewer-backed `route_back_same_line -> analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration`，但 human/status 面仍被 `quest_waiting_platform_repair_redrive`、submission metadata parking 和 external_supervisor route 覆盖。这是 OPL runtime/provider 投影和任务 hydration 缺口，不能继续靠 MAS 私有 runtime/status arbitration 补洞。
+- 影响：本轮不得新增 MAS runtime liveness patch。若需要推进真实论文线，应通过 OPL family runtime queue/attempt hydration 消费 MAS sidecar/domain route refs，再回到 MAS owner surface 产出 domain receipt 或 stable typed blocker；MAS repo 只允许补 domain pack、owner callable、quality gate、receipt schema、refs-only adapter 或边界台账。
+
 ## 2026-05-21：provenance-limited rebuild handoff 必须覆盖旧 methodology decision
 
 - 决策：当 `artifacts/controller/provenance_limited_harmonization/latest.json` 已产出当前 `unit_harmonized_rerun_required` typed handoff，并明确 `next_owner=analysis_harmonization_owner`、`next_work_unit=unit_harmonized_external_validation_rerun`，且该 owner result 晚于它消费的 source provenance、controller decision 与 rebuild task intake 时，domain-route-scan 必须优先排 `analysis_harmonization_owner`，不能再被旧 `source_provenance/latest.json` terminal blocker 拉回 `methodology_reframe_route_decision`。

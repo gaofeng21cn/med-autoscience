@@ -655,5 +655,5 @@ def test_sidecar_export_projects_publication_aftercare_analysis_and_reviewer_tas
         if task["task_kind"].startswith("publication_aftercare/")
     ]
     assert all(task["source"] == "mas-publication-aftercare" for task in aftercare_tasks)
-    assert all(task["payload"]["authority_boundary"] == "mas_owner_runtime_progression_only" for task in aftercare_tasks)
+    assert all(task["payload"]["authority_boundary"] == "mas_owner_route_task_ref_only" for task in aftercare_tasks)
     assert all(ref["body_included"] is False for task in aftercare_tasks for ref in task["source_refs"])

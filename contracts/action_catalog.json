@@ -443,14 +443,16 @@
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
-        "can_dispatch_runtime_owner_task": true,
+        "can_dispatch_runtime_owner_task": false,
+        "can_emit_owner_route_task_refs": true,
         "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_publication_eval": false,
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "MedAutoScience",
         "helper_write_policy": "no_domain_truth_writes",
-        "surface_authority": "refs_only_runtime_progression_control"
+        "runtime_owner_task_dispatch_policy": "forbidden_mas_emits_refs_or_typed_blockers_only",
+        "surface_authority": "publication_aftercare_refs_only_owner_route_control"
       },
       "effect": "read_only",
       "human_gate_ids": [],

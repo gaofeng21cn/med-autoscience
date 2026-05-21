@@ -445,8 +445,8 @@ def test_submit_study_task_falls_back_to_durable_queue_when_backend_chat_is_unav
     runtime_intervention = result["runtime_intervention"]
 
     assert runtime_intervention["intervention_enqueued"] is True
-    assert runtime_intervention["delivery_mode"] == "durable_queue_fallback"
-    assert runtime_intervention["reason"] == "live_runtime_task_context_enqueued_fallback"
+    assert runtime_intervention["delivery_mode"] == "queued_owner_message_delivery"
+    assert runtime_intervention["reason"] == "live_runtime_task_context_queued_owner_message_delivery"
     assert len(queue["pending"]) == 1
     assert "优先比较不同省份的生物制剂使用意向" in queue["pending"][0]["content"]
     assert "保留多中心分层分析" in queue["pending"][0]["content"]

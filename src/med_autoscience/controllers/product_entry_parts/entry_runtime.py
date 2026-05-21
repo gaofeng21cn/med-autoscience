@@ -538,9 +538,9 @@ def _enqueue_task_intake_for_live_runtime(
         dedupe_key=intent_identity.dedupe_key,
     )
     result["intervention_enqueued"] = True
-    result["delivery_mode"] = "durable_queue_fallback"
+    result["delivery_mode"] = "queued_owner_message_delivery"
     result["message_id"] = record.get("message_id")
-    result["reason"] = "live_runtime_task_context_enqueued_fallback"
+    result["reason"] = "live_runtime_task_context_queued_owner_message_delivery"
     result["idempotent_replay"] = False
     result["control_intent_key"] = intent_identity.business_key
     _write_task_intake_delivery_record(
@@ -548,7 +548,7 @@ def _enqueue_task_intake_for_live_runtime(
         runtime_state=runtime_state,
         fingerprint=fingerprint,
         identity=intent_identity,
-        delivery_mode="durable_queue_fallback",
+        delivery_mode="queued_owner_message_delivery",
         message_id=_non_empty_text(record.get("message_id")),
         source="codex-study-task-intake",
     )
@@ -557,7 +557,7 @@ def _enqueue_task_intake_for_live_runtime(
         identity=intent_identity,
         event_type="delivered",
         payload={
-            "delivery_mode": "durable_queue_fallback",
+            "delivery_mode": "queued_owner_message_delivery",
             "message_id": result["message_id"],
             "active_run_id": _non_empty_text(runtime_state.get("active_run_id")),
             "source": "codex-study-task-intake",

@@ -672,7 +672,7 @@ def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_wi
     relay = status.to_dict()["controller_decision_authorization_relay"]
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert relay["delivery_mode"] == "durable_queue_fallback"
+    assert relay["delivery_mode"] == "queued_owner_message_delivery"
     assert len(queue["pending"]) == 1
     assert queue["pending"][0]["dedupe_key"].startswith("control-intent::")
 

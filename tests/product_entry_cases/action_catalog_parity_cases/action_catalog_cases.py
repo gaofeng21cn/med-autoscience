@@ -192,7 +192,11 @@ def test_mas_action_catalog_exposes_publication_aftercare_plan_as_refs_only_surf
     assert aftercare["authority_boundary"]["can_write_publication_eval"] is False
     assert aftercare["authority_boundary"]["can_write_controller_decisions"] is False
     assert aftercare["authority_boundary"]["can_write_current_package"] is False
-    assert aftercare["authority_boundary"]["can_dispatch_runtime_owner_task"] is True
+    assert aftercare["authority_boundary"]["can_dispatch_runtime_owner_task"] is False
+    assert aftercare["authority_boundary"]["can_emit_owner_route_task_refs"] is True
+    assert aftercare["authority_boundary"]["runtime_owner_task_dispatch_policy"] == (
+        "forbidden_mas_emits_refs_or_typed_blockers_only"
+    )
     assert "publication_eval" in aftercare["summary"]
     assert "current_package" in aftercare["summary"]
     assert manifest["family_action_catalog"]["actions"] == catalog["actions"]

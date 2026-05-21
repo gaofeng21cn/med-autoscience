@@ -21,7 +21,7 @@ FORBIDDEN_WRITES = (
 )
 AUTHORITY_BOUNDARY = {
     "surface_owner": "med-autoscience",
-    "surface_role": "publication_aftercare_refs_only_runtime_progression_control",
+    "surface_role": "publication_aftercare_refs_only_owner_route_control",
     "can_submit_to_venue": False,
     "can_push_shared_resource": False,
     "can_modify_current_package": False,
@@ -31,7 +31,8 @@ AUTHORITY_BOUNDARY = {
     "can_authorize_quality_verdict": False,
     "can_store_overleaf_token": False,
     "can_bypass_quality_gate": False,
-    "can_start_runtime_owner_progression": True,
+    "can_start_runtime_owner_progression": False,
+    "can_emit_owner_route_task_refs": True,
     "allowed_outputs": ["plan", "refs", "task_template", "blockers"],
     "forbidden_writes": list(FORBIDDEN_WRITES),
 }
@@ -52,9 +53,10 @@ RESUBMISSION_HARD_LEDGER = {
     "target_whitelist_required": True,
     "body_included": False,
 }
-RUNTIME_PROGRESS_POLICY = {
+OWNER_ROUTE_TASK_POLICY = {
     "progression_owner": "med-autoscience-runtime-owner-chain",
     "dispatch_boundary": "sidecar_or_cli_receipt_only",
+    "dispatch_authority": "forbidden_mas_emits_refs_or_typed_blockers_only",
     "requires_owner_route_or_supervisor_dispatch": True,
     "requires_owner_receipt_or_typed_blocker": True,
     "quality_gate_bypass_allowed": False,
@@ -182,7 +184,7 @@ def build_publication_aftercare_plan(
         "overleaf_sync_plan": overleaf_sync_plan,
         "analysis_queue_entry": analysis_queue_entry,
         "reviewer_refresh_entry": reviewer_refresh_entry,
-        "runtime_progression_policy": dict(RUNTIME_PROGRESS_POLICY),
+        "owner_route_task_policy": dict(OWNER_ROUTE_TASK_POLICY),
         "can_push_submission": False,
         "can_authorize_submission_action": False,
         "forbidden_writes": list(FORBIDDEN_WRITES),
@@ -201,7 +203,7 @@ def build_publication_aftercare_pending_tasks(
     tasks: list[dict[str, Any]] = []
     analysis = _mapping(projection.get("analysis_queue_entry"))
     reviewer = _mapping(projection.get("reviewer_refresh_entry"))
-    if analysis.get("eligible_for_runtime_dispatch") is True:
+    if analysis.get("eligible_for_owner_route_task_ref") is True:
         tasks.append(
             _pending_task(
                 profile_name=profile_name,
@@ -209,11 +211,11 @@ def build_publication_aftercare_pending_tasks(
                 study_id=study_id,
                 task_kind=ANALYSIS_QUEUE_TASK_KIND,
                 priority=45,
-                reason="analysis_queue_runtime_progression",
+                reason="analysis_queue_owner_route_ref",
                 entry=analysis,
             )
         )
-    if reviewer.get("eligible_for_runtime_dispatch") is True:
+    if reviewer.get("eligible_for_owner_route_task_ref") is True:
         tasks.append(
             _pending_task(
                 profile_name=profile_name,
@@ -221,7 +223,7 @@ def build_publication_aftercare_pending_tasks(
                 study_id=study_id,
                 task_kind=REVIEWER_REFRESH_TASK_KIND,
                 priority=44,
-                reason="reviewer_refresh_runtime_progression",
+                reason="reviewer_refresh_owner_route_ref",
                 entry=reviewer,
             )
         )
@@ -255,7 +257,7 @@ def _pending_task(
             "study_id": study_id,
             "idempotency_key": dedupe_key,
             "publication_aftercare_reason": reason,
-            "authority_boundary": "mas_owner_runtime_progression_only",
+            "authority_boundary": "mas_owner_route_task_ref_only",
         },
         "source_refs": _source_refs_from_entry(entry),
         "dispatch_owner": "med-autoscience",
@@ -702,7 +704,7 @@ def _analysis_queue_entry(*, root: Path, quest_root: Path | None, study_id: str)
         "surface_kind": "mas_publication_aftercare_analysis_queue_entry",
         "entry_kind": "aris_research_pipeline_auto_review_experiment_queue_refs",
         "status": "ready" if not blockers else "blocked",
-        "eligible_for_runtime_dispatch": not blockers,
+        "eligible_for_owner_route_task_ref": not blockers,
         "recommended_task_kind": ANALYSIS_QUEUE_TASK_KIND if not blockers else None,
         "recommended_domain_owner": "med-autoscience",
         "source_fingerprint": source_fingerprint,
@@ -711,7 +713,7 @@ def _analysis_queue_entry(*, root: Path, quest_root: Path | None, study_id: str)
         "experiment_queue_refs": experiment_queue_refs,
         "evidence_delta_refs": evidence_delta_refs,
         "body_included": False,
-        "runtime_progression_policy": dict(RUNTIME_PROGRESS_POLICY),
+        "owner_route_task_policy": dict(OWNER_ROUTE_TASK_POLICY),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "blockers": blockers,
     }
@@ -781,9 +783,9 @@ def _reviewer_refresh_entry(*, root: Path, quest_root: Path | None, study_id: st
     )
     return {
         "surface_kind": "mas_publication_aftercare_reviewer_refresh_entry",
-        "entry_kind": "ai_reviewer_refresh_runtime_owner_dispatch",
+        "entry_kind": "ai_reviewer_refresh_owner_route_refs",
         "status": "ready" if not blockers else "blocked",
-        "eligible_for_runtime_dispatch": not blockers,
+        "eligible_for_owner_route_task_ref": not blockers,
         "recommended_task_kind": REVIEWER_REFRESH_TASK_KIND if not blockers else None,
         "recommended_domain_owner": "med-autoscience",
         "source_fingerprint": source_fingerprint,
@@ -792,7 +794,7 @@ def _reviewer_refresh_entry(*, root: Path, quest_root: Path | None, study_id: st
         "evidence_delta_refs": evidence_delta_refs,
         "body_included": False,
         "reviewer_refresh_policy": dict(REVIEWER_REFRESH_POLICY),
-        "runtime_progression_policy": dict(RUNTIME_PROGRESS_POLICY),
+        "owner_route_task_policy": dict(OWNER_ROUTE_TASK_POLICY),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "blockers": blockers,
     }
