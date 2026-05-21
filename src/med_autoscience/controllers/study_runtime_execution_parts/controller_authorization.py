@@ -12,6 +12,7 @@ from .controller_authorization_context import (
     _controller_decision_authorizes_runtime,
     _load_controller_decision_authorization_context,
 )
+from .controller_authorization_messages import _controller_decision_authorization_message
 from .controller_authorization_receipts import (
     _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS,
     _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS,
@@ -22,6 +23,7 @@ from .controller_authorization_receipts import (
     _controller_decision_authorization_already_relayed,
     _controller_decision_authorization_lifecycle,
     _runtime_state_awaits_artifact_delta_or_gate_replay,
+    relay_controller_decision_authorization_to_runtime,
 )
 from .work_unit_evidence_adoption import (
     adopt_controller_work_unit_evidence_if_present,
@@ -151,10 +153,18 @@ def _relay_controller_decision_authorization_if_required(
     if _runtime_state_awaits_artifact_delta_or_gate_replay(
         runtime_state=runtime_state,
         authorization_context=authorization_context,
-    ) and not _controller_decision_authorization_allowed_while_waiting(
-        status=status,
-        authorization_context=authorization_context,
     ):
+        if _controller_decision_authorization_allowed_while_waiting(
+            status=status,
+            authorization_context=authorization_context,
+        ):
+            return relay_controller_decision_authorization_to_runtime(
+                status=status,
+                context=context,
+                runtime_state=runtime_state,
+                authorization_context=authorization_context,
+                active_run_id=active_run_id,
+            )
         control_intent.append_skipped_duplicate_if_needed(
             study_root=context.study_root,
             identity=identity,

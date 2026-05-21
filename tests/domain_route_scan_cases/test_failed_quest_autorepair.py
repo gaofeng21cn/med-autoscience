@@ -177,6 +177,7 @@ def test_scan_domain_routes_routes_failed_non_resumable_quest_to_platform_repair
         "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
         "canonical_paper_inputs_rehydrate_required",
+        "run_quality_repair_batch",
     ]
     assert study["recovery_intent"]["current_action"] == "safe_reconcile_ready"
     assert study["recovery_intent"]["reason"] == "failed_quest_runtime_relaunch_required"

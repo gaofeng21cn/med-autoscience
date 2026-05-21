@@ -297,8 +297,8 @@ def test_study_runtime_status_does_not_resume_paused_delivered_package_from_stal
     assert result["quest_status"] == "paused"
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_user_paused_requires_explicit_wakeup"
-    assert result["auto_runtime_parked"]["parked"] is True
-    assert result["auto_runtime_parked"]["awaiting_explicit_wakeup"] is True
+    assert result["auto_runtime_parked"]["parked"] is False
+    assert result["auto_runtime_parked"]["awaiting_explicit_wakeup"] is False
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "await_explicit_resume"
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] != "external_supervisor_required"
 
@@ -530,7 +530,7 @@ def test_runtime_platform_repair_redrive_does_not_reopen_reviewer_revision_packa
     assert result["quest_status"] == "active"
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
-    assert result["auto_runtime_parked"]["parked"] is True
+    assert result["auto_runtime_parked"]["parked"] is False
 
 
 def test_paused_runtime_platform_repair_redrive_does_not_resume_reviewer_revision_package(
@@ -632,7 +632,7 @@ def test_paused_runtime_platform_repair_redrive_does_not_resume_reviewer_revisio
     assert result["quest_status"] == "paused"
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
-    assert result["auto_runtime_parked"]["parked"] is True
+    assert result["auto_runtime_parked"]["parked"] is False
 
 
 def test_waiting_submission_metadata_reviewer_revision_with_open_concerns_resumes_after_explicit_wakeup(

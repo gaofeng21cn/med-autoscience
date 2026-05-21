@@ -114,15 +114,15 @@ def arbitrate_waiting_for_user(
         pending_redrive = _pending_user_message_redrive(continuation_state)
         if pending_redrive is not None:
             return pending_redrive
-        platform_repair_redrive = _platform_repair_decision_redrive(continuation_state)
-        if platform_repair_redrive is not None:
-            return platform_repair_redrive
         controller_work_unit_redrive = _controller_work_unit_pending_redrive(
             continuation_state,
             controller_authorization,
         )
         if controller_work_unit_redrive is not None:
             return controller_work_unit_redrive
+        platform_repair_redrive = _platform_repair_decision_redrive(continuation_state)
+        if platform_repair_redrive is not None:
+            return platform_repair_redrive
         blocked_closeout_wait = _blocked_closeout_owner_wait(blocked_closeout)
         if blocked_closeout_wait is not None:
             return blocked_closeout_wait
@@ -326,7 +326,7 @@ def _platform_repair_decision_redrive(continuation_state: dict[str, Any] | None)
         return None
     if continuation_anchor != "decision":
         return None
-    if continuation_reason != "controller_work_unit_pending":
+    if continuation_reason != "runtime_platform_repair_redrive":
         return None
     pending_count = continuation_state.get("pending_user_message_count")
     if isinstance(pending_count, int) and pending_count > 0:

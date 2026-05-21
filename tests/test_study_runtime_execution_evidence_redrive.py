@@ -108,7 +108,7 @@ def test_execute_resume_runtime_decision_stops_after_work_unit_evidence_adoption
     assert "resume_postcondition" not in status.to_dict()
 
 
-def test_execute_resume_runtime_decision_redrives_platform_repair_instead_of_stopping_after_adoption(
+def test_execute_resume_runtime_decision_adopts_evidence_and_keeps_owner_handoff(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -232,15 +232,11 @@ def test_execute_resume_runtime_decision_redrives_platform_repair_instead_of_sto
 
     outcome = module._execute_runtime_decision(status=status, context=context)
 
-    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.RESUME
-    assert resume_calls == [
-        {
-            "runtime_root": str(tmp_path / "runtime"),
-            "quest_id": "quest-003",
-            "source": "domain_route_scan_platform_repair",
-        }
-    ]
-    assert status.decision is module.StudyRuntimeDecision.RESUME
-    assert status.quest_status is module.StudyRuntimeQuestStatus.RUNNING
-    assert status.to_dict()["resume_postcondition"]["active_run_id"] == "run-003-redrive"
-    assert "controller_work_unit_evidence_adoption" not in status.to_dict()
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert resume_calls == []
+    assert status.decision is module.StudyRuntimeDecision.NOOP
+    assert status.reason is module.StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED
+    payload = status.to_dict()
+    assert payload["controller_work_unit_evidence_adoption"]["active_run_id"] == "run-003-old"
+    assert payload["controller_work_unit_next_route"]["owner"] == "write/ai_reviewer"
+    assert "resume_postcondition" not in payload

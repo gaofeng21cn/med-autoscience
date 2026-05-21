@@ -121,7 +121,7 @@ def test_codex_exec_runner_syncs_current_controller_decision_for_quality_repair_
     assert "manuscript_story_surface_delta_missing" in prompt
     assert "paper/draft.md" in prompt
     assert "paper/build/review_manuscript.md" in prompt
-    assert "Ledger-only deltas do not close `manuscript_story_repair`" in prompt
+    assert "Ledger-only deltas do not close story-surface write repair work units." in prompt
     assert "status=blocked, meaningful_artifact_delta=false, blocked_reason=write_owner_callable_surface_missing" in prompt
     assert authorization["decision_id"] == "quality-repair-decision"
     assert authorization["active_run_id"] == "run-quality-repair"

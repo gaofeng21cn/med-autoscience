@@ -352,16 +352,16 @@ def test_scan_domain_routes_explicit_runtime_platform_repair_clears_stale_specif
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    _assert_owner_route_required(
+    owner_runtime_state = _assert_owner_route_required(
         apply_result=apply_result,
         runtime_state=runtime_state,
         ensure_calls=ensure_calls,
         expected_reason="stale_specificity_terminal_gate_cleared",
     )
-    assert "last_controller_decision_authorization" not in runtime_state
-    assert "retry_state" not in runtime_state
-    assert "last_stage_fingerprint" not in runtime_state
-    assert runtime_state["same_fingerprint_auto_turn_count"] == 0
+    assert "last_controller_decision_authorization" not in owner_runtime_state
+    assert "retry_state" not in owner_runtime_state
+    assert "last_stage_fingerprint" not in owner_runtime_state
+    assert owner_runtime_state["same_fingerprint_auto_turn_count"] == 0
     assert apply_result["stale_specificity_cleared"] is True
     assert study["ai_repair_lifecycle"]["state"] == "owner_route_required"
     assert study["ai_repair_lifecycle"]["dispatch_status"] == "owner_route_required"
@@ -518,13 +518,13 @@ def test_scan_domain_routes_runtime_platform_repair_allows_concrete_bundle_stage
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
-    _assert_owner_route_required(
+    owner_runtime_state = _assert_owner_route_required(
         apply_result=apply_result,
         runtime_state=runtime_state,
         ensure_calls=ensure_calls,
         expected_reason="stale_specificity_terminal_gate_cleared",
     )
-    assert "last_controller_decision_authorization" not in runtime_state
+    assert "last_controller_decision_authorization" not in owner_runtime_state
     assert apply_result["gate_status"]["ready"] is True
     assert apply_result["gate_status"]["blockers"] == ["stale_study_delivery_mirror"]
     assert apply_result["stale_specificity_cleared"] is True

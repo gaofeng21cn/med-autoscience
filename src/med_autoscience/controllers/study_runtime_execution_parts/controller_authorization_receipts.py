@@ -337,6 +337,61 @@ def _controller_decision_authorization_allowed_while_waiting(
     return False
 
 
+def relay_controller_decision_authorization_to_runtime(
+    *,
+    status: StudyRuntimeStatus,
+    context: Any,
+    runtime_state: dict[str, Any],
+    authorization_context: dict[str, Any],
+    active_run_id: str | None,
+) -> dict[str, Any]:
+    action_summary = ", ".join(
+        str(action).strip()
+        for action in authorization_context.get("controller_actions") or ()
+        if str(action).strip()
+    )
+    work_unit_id = _text(authorization_context.get("work_unit_id"))
+    route_target = _text(authorization_context.get("route_target"))
+    route_key_question = _text(authorization_context.get("route_key_question"))
+    route_rationale = _text(authorization_context.get("route_rationale"))
+    text = (
+        "MAS controller 已授权当前 runtime 继续执行 controller decision。"
+        f" 动作：{action_summary or 'ensure_study_runtime'}。"
+        f" 路由：{route_target or 'controller'}。"
+        f" work unit：{work_unit_id or route_key_question or 'current_controller_decision'}。"
+    )
+    if route_key_question:
+        text += f" 关键问题：{route_key_question}。"
+    if route_rationale:
+        text += f" 理由：{route_rationale}。"
+    message_result = context.runtime_backend.chat_quest(
+        runtime_root=context.runtime_root,
+        quest_id=status.quest_id,
+        text=text,
+        source=context.source,
+    )
+    message_id = _runtime_message_id(message_result)
+    _mark_controller_decision_authorization_relayed(
+        quest_root=context.quest_root,
+        runtime_state=runtime_state,
+        authorization_context=authorization_context,
+        active_run_id=active_run_id,
+        delivery_mode="runtime_chat",
+        message_id=message_id,
+        source=context.source,
+    )
+    relay = {
+        "message_id": message_id,
+        "content": text,
+        "source": context.source,
+        "delivery_mode": "runtime_chat",
+        "control_intent_key": authorization_context.get("control_intent_key"),
+        "controller_actions": list(authorization_context.get("controller_actions") or []),
+    }
+    status.extras["controller_decision_authorization_relay"] = relay
+    return relay
+
+
 def _quality_repair_authorization_has_current_work_unit(
     *,
     status: StudyRuntimeStatus,

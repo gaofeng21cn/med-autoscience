@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -89,6 +90,7 @@ def authority_boundary() -> dict[str, bool]:
 
 def mark_owner_route_handoff(
     *,
+    study_root: Path | None = None,
     runtime_state_path: Path,
     study_id: str,
     quest_id: str | None,
@@ -107,7 +109,7 @@ def mark_owner_route_handoff(
     )
     if extra:
         handoff.update(dict(extra))
-    return {
+    mark = {
         "marked": True,
         "path": str(runtime_state_path),
         "handoff": handoff,
@@ -115,11 +117,63 @@ def mark_owner_route_handoff(
         "artifact_owner": "med-autoscience",
         "artifact_surface": "artifacts/supervision/owner_route_handoff/latest.json",
     }
+    if study_root is not None:
+        mark["artifact_path"] = str(
+            write_owner_route_handoff_record(
+                study_root=study_root,
+                study_id=study_id,
+                quest_id=quest_id,
+                handoff=handoff,
+                source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+            )
+        )
+    return mark
+
+
+def write_owner_route_handoff_record(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_id: str | None,
+    handoff: Mapping[str, Any],
+    source: str,
+) -> Path:
+    handoff_payload = dict(handoff)
+    boundary = mapping(handoff_payload.get("authority_boundary")) or authority_boundary()
+    record = {
+        "surface_kind": "mas_runtime_owner_route_handoff_record",
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "recorded_at": text(handoff_payload.get("recorded_at")) or utc_now(),
+        "source": source,
+        "handoff": handoff_payload,
+        "queue_owner": "one-person-lab",
+        "domain_truth_owner": "med-autoscience",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "runtime_state_mutated": False,
+        "authority_boundary": boundary,
+    }
+    path = _handoff_record_path(study_root=study_root, study_id=study_id, handoff=handoff_payload)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
+def _handoff_record_path(*, study_root: Path, study_id: str, handoff: Mapping[str, Any]) -> Path:
+    runtime_state_path = text(handoff.get("runtime_state_path"))
+    if runtime_state_path is not None:
+        runtime_path = Path(runtime_state_path).expanduser().resolve()
+        for parent in runtime_path.parents:
+            if parent.name == "runtime":
+                return parent.parent / "studies" / study_id / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
+    return Path(study_root).expanduser().resolve() / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json"
 
 
 def apply_result(
     *,
     base: Mapping[str, Any],
+    study_root: Path | None = None,
     study_id: str,
     quest_id: str | None,
     runtime_state_path: Path,
@@ -131,6 +185,7 @@ def apply_result(
 ) -> dict[str, Any]:
     extra_payload = mapping(extra)
     handoff_mark = mark_owner_route_handoff(
+        study_root=study_root,
         runtime_state_path=runtime_state_path,
         study_id=study_id,
         quest_id=quest_id,
@@ -167,4 +222,5 @@ __all__ = [
     "mark_owner_route_handoff",
     "owner_route_handoff",
     "owner_route_reason_for_repair",
+    "write_owner_route_handoff_record",
 ]

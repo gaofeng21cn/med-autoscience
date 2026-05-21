@@ -105,6 +105,7 @@ def _runtime_state_path(quest_root: str | None) -> Path | None:
 def _opl_runtime_owner_route_apply_result(
     *,
     base: Mapping[str, Any],
+    study_root: Path,
     study_id: str,
     quest_id: str | None,
     runtime_state_path: Path,
@@ -120,6 +121,7 @@ def _opl_runtime_owner_route_apply_result(
     }
     return platform_repair_owner_route.apply_result(
         base=owner_route_base,
+        study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         runtime_state_path=runtime_state_path,
@@ -153,6 +155,7 @@ def _apply_abnormal_stopped_runtime_repair(
     _ = (profile, study_root, force_fresh_turn)
     return _opl_runtime_owner_route_apply_result(
         base=base,
+        study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         runtime_state_path=runtime_state_path,
@@ -222,6 +225,7 @@ def _apply_current_controller_runtime_redrive(
                 }
             apply_result = _opl_runtime_owner_route_apply_result(
                 base=base,
+                study_root=study_root,
                 study_id=study_id,
                 quest_id=quest_id,
                 runtime_state_path=runtime_state_path,
@@ -256,6 +260,7 @@ def _apply_current_controller_runtime_redrive(
         }
     apply_result = _opl_runtime_owner_route_apply_result(
         base=base,
+        study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         runtime_state_path=runtime_state_path,
@@ -429,6 +434,7 @@ def _apply_pending_runtime_platform_repair_redrive(
         }
     return _opl_runtime_owner_route_apply_result(
         base=base,
+        study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         runtime_state_path=runtime_state_path,
@@ -451,6 +457,7 @@ def _apply_controller_work_unit_pending_redrive(
     _ = (profile, study_root)
     return _opl_runtime_owner_route_apply_result(
         base=base,
+        study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         runtime_state_path=runtime_state_path,
@@ -818,6 +825,7 @@ def apply_runtime_platform_repair(
             }
         return _opl_runtime_owner_route_apply_result(
             base=base,
+            study_root=study_root,
             study_id=study_id,
             quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
             runtime_state_path=runtime_path,
@@ -965,6 +973,7 @@ def apply_runtime_platform_repair(
     )
     return _opl_runtime_owner_route_apply_result(
         base=base,
+        study_root=study_root,
         study_id=study_id,
         quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
         runtime_state_path=runtime_path,
