@@ -515,10 +515,11 @@ MAS direct/local legacy diagnostic 外部 scheduler 应调用 MAS-owned supervis
 
 在 `developer_apply_safe` 且本机用户级 authority gate 允许的前提下，supervisor scan 可以执行的动作只有：
 
-- 通过 runtime backend `stop_quest` 或 already-stopped 结果确认 runtime 资源已释放
+- 对尚未 stopped 的 quest 写 OPL runtime-owner stop handoff，交由 OPL provider/queue 执行 runtime action
+- 对已经 stopped 的 quest 记录 already-stopped parked lifecycle
 - 写 `artifacts/autonomy/repair_lifecycle/latest.json`
-- 标记 `authority = controller_stop`
-- 标记 `state = parked`
+- 标记 `authority = observability_only` / `controller_stop`
+- 标记 `state = owner_route_required` / `parked`
 - 明确 `paper_package_mutation_allowed = false`
 - 明确 `manual_study_patch_allowed = false`
 - 明确 `quality_gate_relaxation_allowed = false`

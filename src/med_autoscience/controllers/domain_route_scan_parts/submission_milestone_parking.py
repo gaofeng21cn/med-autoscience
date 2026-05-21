@@ -6,11 +6,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_outer_loop, study_runtime_router
-from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _load_yaml_dict
+from med_autoscience.controllers import study_outer_loop
+from med_autoscience.controllers.domain_route_scan_parts import platform_repair_owner_route
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
 SUBMISSION_MILESTONE_PARK_SOURCE = "domain_route_scan_submission_milestone_park"
@@ -34,35 +33,41 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _stop_submission_milestone_runtime(
+def _runtime_state_path(status: Mapping[str, Any]) -> Path | None:
+    quest_root = _text(status.get("quest_root"))
+    if quest_root is None:
+        return None
+    return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+
+
+def _submission_milestone_runtime_owner_handoff(
     *,
     profile: WorkspaceProfile,
     study_id: str,
-    study_root: Path,
     quest_id: str,
+    status: Mapping[str, Any],
+    controller_decision: Mapping[str, Any],
 ) -> dict[str, Any]:
-    study_payload = _load_yaml_dict(study_root / "study.yaml")
-    execution = _execution_payload(study_payload, profile=profile)
-    runtime_context = study_runtime_protocol.resolve_study_runtime_context(
-        profile=profile,
-        study_root=study_root,
+    runtime_state_path = _runtime_state_path(status)
+    if runtime_state_path is None:
+        return {
+            "marked": False,
+            "reason": "quest_root_missing",
+        }
+    return platform_repair_owner_route.mark_owner_route_handoff(
+        runtime_state_path=runtime_state_path,
         study_id=study_id,
         quest_id=quest_id,
+        reason="submission_milestone_runtime_stop_required",
+        repair_kind="submission_milestone_runtime_owner_stop",
+        authorization=_mapping(controller_decision),
+        extra={
+            "requested_runtime_action": "stop",
+            "source": SUBMISSION_MILESTONE_PARK_SOURCE,
+            "runtime_root_ref": str(profile.runtime_root),
+            "submission_milestone_parking": True,
+        },
     )
-    backend = (
-        study_runtime_router._managed_runtime_backend_for_execution(
-            execution,
-            profile=profile,
-            runtime_root=runtime_context.runtime_root,
-        )
-        or study_runtime_router._default_managed_runtime_backend()
-    )
-    result = backend.stop_quest(
-        runtime_root=runtime_context.runtime_root,
-        quest_id=quest_id,
-        source=SUBMISSION_MILESTONE_PARK_SOURCE,
-    )
-    return dict(result) if isinstance(result, Mapping) else {"result": result}
 
 
 def _write_submission_milestone_repair_lifecycle(
@@ -71,38 +76,46 @@ def _write_submission_milestone_repair_lifecycle(
     study_id: str,
     quest_id: str,
     controller_decision: Mapping[str, Any],
-    stop_result: Mapping[str, Any],
+    stop_result: Mapping[str, Any] | None = None,
+    owner_route_handoff: Mapping[str, Any] | None = None,
+    state: str = "parked",
+    dispatch_status: str = "applied",
+    reason: str = "submission_milestone_parked",
 ) -> dict[str, Any]:
     payload = {
         "surface": "ai_repair_lifecycle",
         "schema_version": 1,
         "study_id": study_id,
         "quest_id": quest_id,
-        "state": "parked",
-        "authority": "controller_stop",
-        "blocked_reason": None,
-        "next_owner": None,
+        "state": state,
+        "authority": "observability_only" if dispatch_status == "owner_route_required" else "controller_stop",
+        "blocked_reason": None if dispatch_status == "applied" else reason,
+        "next_owner": None if dispatch_status == "applied" else "one-person-lab",
         "external_supervisor_required": False,
         "auto_apply_allowed": False,
-        "applied_at": _utc_now(),
+        "applied_at": _utc_now() if dispatch_status == "applied" else None,
         "last_apply_attempt_at": _utc_now(),
         "quality_gate_relaxation_allowed": False,
         "paper_package_mutation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
+        "opl_runtime_owner_route_required": dispatch_status == "owner_route_required",
         "last_apply_attempt": {
             "state": "applied",
-            "dispatch_status": "applied",
-            "reason": "submission_milestone_parked",
+            "dispatch_status": dispatch_status,
+            "reason": reason,
             "source": SUBMISSION_MILESTONE_PARK_SOURCE,
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
         },
         "refs": {
             "controller_decision_ref": _mapping(controller_decision.get("study_decision_ref")),
-            "stop_result": dict(stop_result),
         },
     }
+    if stop_result is not None:
+        payload["refs"]["stop_result"] = dict(stop_result)
+    if owner_route_handoff is not None:
+        payload["refs"]["runtime_owner_handoff"] = dict(owner_route_handoff)
     _write_json(study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json", payload)
     return payload
 
@@ -245,32 +258,38 @@ def refresh_submission_milestone_parking(
             "reason": "submission_milestone_stop_requires_quest_id",
             "controller_decision": dict(controller_decision),
         }
-    try:
-        stop_result = _stop_submission_milestone_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            quest_id=quest_id,
-        )
-    except Exception as exc:
+    owner_route = _submission_milestone_runtime_owner_handoff(
+        profile=profile,
+        study_id=study_id,
+        quest_id=quest_id,
+        status=status,
+        controller_decision=controller_decision,
+    )
+    if owner_route.get("marked") is not True:
         return {
             "dispatch_status": "blocked",
-            "reason": "submission_milestone_stop_failed",
-            "error": str(exc),
+            "reason": _text(owner_route.get("reason")) or "submission_milestone_runtime_owner_handoff_failed",
             "controller_decision": dict(controller_decision),
+            "runtime_owner_handoff": owner_route,
         }
     lifecycle = _write_submission_milestone_repair_lifecycle(
         study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         controller_decision=controller_decision,
-        stop_result=stop_result,
+        owner_route_handoff=_mapping(owner_route.get("handoff")),
+        state="owner_route_required",
+        dispatch_status="owner_route_required",
+        reason="submission_milestone_runtime_stop_required",
     )
     return {
-        "dispatch_status": "applied",
-        "reason": "submission_milestone_parked",
+        "dispatch_status": "owner_route_required",
+        "reason": "submission_milestone_runtime_stop_required",
         "controller_decision": dict(controller_decision),
-        "stop_result": stop_result,
+        "queue_owner": "one-person-lab",
+        "domain_truth_owner": "med-autoscience",
+        "recommended_task_kind": "domain_route/reconcile-apply",
+        "runtime_owner_handoff": owner_route.get("handoff"),
         "repair_lifecycle": lifecycle,
         "paper_package_mutation_allowed": False,
         "manual_study_patch_allowed": False,

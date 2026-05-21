@@ -260,12 +260,12 @@ Progress Portal 默认仍是只读静态快照。只有本机 loopback 服务显
 - allowlist：`inspect`、`reconcile-dry-run`、`pause`、`resume`、`stop`。
 - 静态 `file://` 页面和未启用 `--enable-actions` 的 `--serve` 页面不得执行 action；它们只能显示命令文本、deep link、artifact link 或 disabled 状态。
 - `inspect` 与 `reconcile-dry-run` 只写 dry-run receipt，不执行 runtime mutation。
-- `pause`、`resume`、`stop` 在 `--enable-actions` 下调用默认 MAS managed runtime backend 的 `pause_quest`、`resume_quest`、`stop_quest`，必须带 `study_id` 或 `quest_id`，并写 `artifacts/runtime/progress_portal/action_receipts/<idempotency_key>.json`。
-- idempotency：同一 key 已有 receipt 时直接返回旧 receipt，不重复调用 backend。
-- audit：receipt 记录 `action`、`study_id`、`quest_id`、`mode`、`apply_status`、`runtime_control_operation`、runtime result/error、`audit_ref` 和 forbidden writes。
+- `pause`、`resume`、`stop` 在 `--enable-actions` 下只写 `runtime_owner_route_request` receipt，必须带 `study_id` 或 `quest_id`，并把 runtime action handoff 给 `queue_owner=one-person-lab`；Portal 不直接调用 MAS backend 的 `pause_quest`、`resume_quest`、`stop_quest`。
+- idempotency：同一 key 已有 receipt 时直接返回旧 receipt，不重复创建 runtime owner handoff。
+- audit：receipt 记录 `action`、`study_id`、`quest_id`、`mode`、`apply_status`、`runtime_control_operation=opl_runtime_owner_route`、runtime owner handoff、`audit_ref` 和 forbidden writes。
 - fail-closed：未启用 `--enable-actions` 返回 disabled；action 不在 allowlist、idempotency key 非法或缺 `quest_id/study_id` 时拒绝。
 
-该 endpoint 不是旧 MDS daemon/UI control 的恢复。它只把最小安全控制面接到 MAS runtime owner，继续禁止写 paper/package、publication gate、controller decisions、study truth 和 runtime SQLite authority。Terminal attach/input/resize/detach 继续走 `mas_terminal_attach_gate` 和 `mas_terminal_attach_owner`；不能复用这个 action endpoint 或 `chat_quest` 伪装实现。
+该 endpoint 不是旧 MDS daemon/UI control 的恢复。它只把 action intent 写成 MAS receipt 与 OPL runtime-owner handoff，继续禁止写 paper/package、publication gate、controller decisions、study truth、provider runtime state 和 runtime SQLite authority。Terminal attach/input/resize/detach 继续走 `mas_terminal_attach_gate` 和 `mas_terminal_attach_owner`；不能复用这个 action endpoint 或 `chat_quest` 伪装实现。
 
 ## Portal / Console Soak Evidence
 

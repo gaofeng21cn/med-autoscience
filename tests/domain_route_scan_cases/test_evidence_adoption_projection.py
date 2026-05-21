@@ -338,11 +338,10 @@ def test_scan_domain_routes_preserves_owner_handoff_when_platform_redrive_adopts
             "dispatch_status": "blocked",
             "reason": "runtime_relaunch_no_live_run_started",
             "repair_kind": "pending_runtime_platform_repair_redrive",
-            "resume_result": {
+            "domain_owner_result": {
                 "decision": "noop",
                 "reason": "controller_work_unit_evidence_adopted",
                 "quest_status": "waiting_for_user",
-                "active_run_id": None,
                 "controller_work_unit_next_route": {
                     "recommended_next_route": "handoff_to_next_owner",
                     "owner": "write/ai_reviewer",

@@ -1,10 +1,19 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.domain_route_scan_parts import evidence_adoption
-from med_autoscience.controllers.domain_route_scan_parts import runtime_facts
+
+
+DOMAIN_PROJECTION_KEYS = (
+    "controller_work_unit_evidence_adoption",
+    "controller_decision_authorization_deduped",
+    "controller_work_unit_next_route",
+    "owner_receipt",
+    "typed_blocker",
+    "runtime_owner_handoff",
+)
 
 
 def merge_runtime_fact(
@@ -15,65 +24,19 @@ def merge_runtime_fact(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     if not applied(apply_result):
         return dict(status), dict(progress)
-    resume_result = _mapping(_mapping(apply_result).get("resume_result"))
-    active_run_id = runtime_facts.active_run_id(resume_result, progress)
-    runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
-    runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
-    worker_running = runtime_audit.get("worker_running") is True or runtime_liveness.get("worker_running") is True
+    owner_result = _owner_projection_result(apply_result)
     merged_status = dict(status)
-    if text := _text(resume_result.get("quest_status")):
+    if text := _text(owner_result.get("quest_status")):
         merged_status["quest_status"] = text
-    if text := _text(resume_result.get("decision")):
+    if text := _text(owner_result.get("decision")):
         merged_status["decision"] = text
-    if text := _text(resume_result.get("reason")):
+    if text := _text(owner_result.get("reason")):
         merged_status["reason"] = text
-    for key in (
-        "controller_work_unit_evidence_adoption",
-        "controller_decision_authorization_deduped",
-        "controller_work_unit_next_route",
-    ):
-        value = resume_result.get(key)
+    for key in DOMAIN_PROJECTION_KEYS:
+        value = owner_result.get(key)
         if isinstance(value, Mapping):
             merged_status[key] = dict(value)
-    if active_run_id is not None:
-        merged_status["active_run_id"] = active_run_id
-        merged_status["runtime_liveness_audit"] = {
-            **_mapping(merged_status.get("runtime_liveness_audit")),
-            "active_run_id": active_run_id,
-            "runtime_audit": {
-                **_mapping(_mapping(merged_status.get("runtime_liveness_audit")).get("runtime_audit")),
-                "active_run_id": active_run_id,
-                "worker_running": worker_running,
-            },
-        }
-        runtime_health = _mapping(merged_status.get("runtime_health_snapshot"))
-        runtime_health.update(
-            {
-                "active_run_id": active_run_id,
-                "observed_quest_state": {
-                    "quest_status": _text(merged_status.get("quest_status")),
-                    "decision": _text(merged_status.get("decision")),
-                    "reason": _text(merged_status.get("reason")),
-                },
-                "canonical_runtime_action": "continue_supervising_runtime",
-                "attempt_state": "recovering",
-                "retry_budget_remaining": _runtime_repair_retry_budget(runtime_health),
-                "blocking_reasons": [
-                    reason
-                    for reason in _string_items(runtime_health.get("blocking_reasons"))
-                    if reason != "runtime_recovery_retry_budget_exhausted"
-                ],
-            }
-        )
-        merged_status["runtime_health_snapshot"] = runtime_health
-    merged_progress = dict(progress)
-    if active_run_id is not None:
-        merged_progress["supervision"] = {
-            **_mapping(merged_progress.get("supervision")),
-            "active_run_id": active_run_id,
-            "health_status": "recovering",
-        }
-    return merged_status, merged_progress
+    return merged_status, dict(progress)
 
 
 def merge_evidence_adoption_projection(
@@ -84,19 +47,19 @@ def merge_evidence_adoption_projection(
 ) -> tuple[dict[str, Any], dict[str, Any], bool]:
     if apply_result is None:
         return dict(status), dict(progress), False
-    resume_result = _mapping(_mapping(apply_result).get("resume_result"))
-    if _text(resume_result.get("reason")) != evidence_adoption.ADOPTED_REASON:
+    owner_result = _owner_projection_result(apply_result)
+    if _text(owner_result.get("reason")) != evidence_adoption.ADOPTED_REASON:
         return dict(status), dict(progress), False
-    next_route = _mapping(resume_result.get("controller_work_unit_next_route"))
+    next_route = _mapping(owner_result.get("controller_work_unit_next_route"))
     if next_route.get("runtime_relaunch_required") is not False:
         return dict(status), dict(progress), False
-    adoption = _mapping(resume_result.get("controller_work_unit_evidence_adoption"))
+    adoption = _mapping(owner_result.get("controller_work_unit_evidence_adoption"))
     if not adoption:
         return dict(status), dict(progress), False
     merged_status = dict(status)
-    for key in ("quest_status", "decision", "reason", "active_run_id"):
-        if key in resume_result:
-            merged_status[key] = resume_result.get(key)
+    for key in ("quest_status", "decision", "reason"):
+        if key in owner_result:
+            merged_status[key] = owner_result.get(key)
     merged_status["controller_work_unit_next_route"] = next_route
     merged_status["controller_work_unit_evidence_adoption"] = adoption
     return merged_status, dict(progress), True
@@ -110,20 +73,13 @@ def owner_route_required(value: Mapping[str, Any] | None) -> bool:
     return value is not None and _text(value.get("dispatch_status")) == "owner_route_required"
 
 
-def _runtime_repair_retry_budget(runtime_health: Mapping[str, Any]) -> int:
-    remaining = runtime_health.get("retry_budget_remaining")
-    if isinstance(remaining, int) and remaining > 0:
-        return remaining
-    return 3
-
-
-def _string_items(value: object) -> list[str]:
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if not isinstance(value, Iterable) or isinstance(value, Mapping | bytes):
-        return []
-    return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
+def _owner_projection_result(value: Mapping[str, Any] | None) -> dict[str, Any]:
+    payload = _mapping(value)
+    for key in ("domain_owner_result", "owner_result", "dispatch_result"):
+        nested = _mapping(payload.get(key))
+        if nested:
+            return nested
+    return payload
 
 
 def _mapping(value: object) -> dict[str, Any]:

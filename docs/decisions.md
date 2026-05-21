@@ -12,6 +12,13 @@
 - 理由：`.ds/runtime_state.json` 是 generic runtime/provider 状态面；即使 MAS 不再直接 relaunch/resume，只要继续清 `active_run_id` 或写 continuation state，就仍在替 OPL 维护 runtime liveness/control-plane。正确边界是 MAS 发布 owner-route refs，OPL queue/attempt/provider 消费这些 refs。
 - 影响：owner-route apply result 的 `allowed_write_surfaces` 收窄到 `artifacts/supervision/**` 与 autonomy repair lifecycle/action refs；OPL 通过 sidecar task hydration 读取 handoff artifact。该路径不写论文、publication eval、controller decisions、submission package、current package，也不声明 OPL 已完成 dispatch。
 
+## 2026-05-21：Progress Portal 与 submission milestone runtime action 只产出 OPL owner-route
+
+- 决策：Progress Portal `--enable-actions` 下的 `pause` / `resume` / `stop` 不再调用 MAS managed runtime backend，也不返回 `runtime_control_apply`。它只写 `mas_progress_portal_action_receipt`，`mode=runtime_owner_route_request`、`apply_status=owner_route_required`，并给出 `queue_owner=one-person-lab` 的 runtime owner handoff。
+- 决策：`domain_route_scan_submission_milestone_park` 在刷新 MAS controller-owned parked decision 后，不再直接调用 `stop_quest`。如果 quest 尚未 stopped，它写 `owner_route_required` lifecycle 与 runtime stop handoff；只有已经 stopped 的状态才可记录 `already_stopped` parked lifecycle。
+- 理由：pause/resume/stop、attempt lifecycle、queue hydration、retry/dead-letter 和 provider liveness 都是 OPL runtime owner 职责。MAS 只能决定医学/交付语义上的 submission milestone parking，并发布 OPL 可消费 handoff。
+- 影响：这两条路径都不写 `.ds/user_message_queue.json`、不调用 generic runtime chat、不改 provider runtime state、不写 `paper/`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`manuscript/current_package` 或 submission package。OPL 消费 handoff 后仍必须回到 MAS owner chain 产出 owner receipt、progress delta、human gate、stop-loss 或 stable typed blocker。
+
 ## 2026-05-21：controller refresh 只能产出 OPL runtime-owner handoff
 
 - 决策：`refresh_controller_decisions_for_current_publication_eval` 在物化 current controller decision 后，不再调用 `ensure_study_runtime`、不 pause/resume live worker、不写 `last_controller_decision_authorization` 到 `.ds/runtime_state.json`，也不向 `.ds/events.jsonl` 追加 runtime event。它只能返回 refs-only `runtime_owner_handoff`，其中包括 current work unit、fingerprint、proposed runtime-state delta、`queue_owner=one-person-lab` 与 authority boundary。

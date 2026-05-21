@@ -267,7 +267,7 @@ def test_sidecar_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)

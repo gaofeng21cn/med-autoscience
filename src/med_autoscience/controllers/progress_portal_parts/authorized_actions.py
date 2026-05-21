@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience import runtime_backend as runtime_backend_contract
 
 
 ALLOWED_ACTIONS = frozenset({"inspect", "reconcile-dry-run", "pause", "resume", "stop"})
@@ -38,7 +37,6 @@ def write_action_receipt(
     idempotency_key: str,
     requested_at: str | None = None,
     apply: bool = False,
-    runtime_backend: Any | None = None,
 ) -> dict[str, Any]:
     normalized_action = _normalize_action(action)
     normalized_key = _normalize_idempotency_key(idempotency_key)
@@ -50,7 +48,7 @@ def write_action_receipt(
     requested_quest_id = _text(quest_id) or _text(study_id)
     dry_run = normalized_action in DRY_RUN_ACTIONS
     should_apply = bool(apply) and not dry_run
-    mode = "dry_run" if dry_run else ("runtime_control_apply" if should_apply else "action_request")
+    mode = "dry_run" if dry_run else ("runtime_owner_route_request" if should_apply else "action_request")
     receipt = {
         "schema_version": 1,
         "surface_kind": "mas_progress_portal_action_receipt",
@@ -62,9 +60,9 @@ def write_action_receipt(
         "mode": mode,
         "dry_run": dry_run,
         "apply": should_apply,
-        "apply_status": "not_applicable" if dry_run or not should_apply else "pending",
+        "apply_status": "not_applicable" if dry_run or not should_apply else "owner_route_required",
         "controller_owned": True,
-        "status": "accepted_for_controller_dispatch" if not should_apply else "accepted_for_runtime_control_apply",
+        "status": "accepted_for_controller_dispatch" if not should_apply else "accepted_for_opl_runtime_owner_route",
         "audit_ref": _workspace_relative(receipt_path, profile.workspace_root),
         "forbidden_writes": list(FORBIDDEN_WRITES),
     }
@@ -72,74 +70,47 @@ def write_action_receipt(
         if requested_quest_id is None:
             raise PortalActionError(status_code=400, reason="missing_quest_id")
         receipt.update(
-            _apply_runtime_control(
+            _runtime_owner_route_request(
                 profile=profile,
                 action=normalized_action,
                 quest_id=requested_quest_id,
-                backend=runtime_backend or default_runtime_backend(),
             )
         )
     receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return receipt
 
 
-def default_runtime_backend() -> Any:
-    return runtime_backend_contract.get_managed_runtime_backend(runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
-
-
-def _apply_runtime_control(
+def _runtime_owner_route_request(
     *,
     profile: WorkspaceProfile,
     action: str,
     quest_id: str,
-    backend: Any,
 ) -> dict[str, Any]:
-    operation_name = _runtime_control_operation(action)
-    source = f"progress_portal:{action}"
-    try:
-        if operation_name == "pause_quest":
-            result = backend.pause_quest(runtime_root=profile.runtime_root, quest_id=quest_id, source=source)
-        elif operation_name == "resume_quest":
-            result = backend.resume_quest(runtime_root=profile.runtime_root, quest_id=quest_id, source=source)
-        elif operation_name == "stop_quest":
-            result = backend.stop_quest(runtime_root=profile.runtime_root, quest_id=quest_id, source=source, daemon_url=None)
-        else:
-            raise PortalActionError(status_code=400, reason="action_not_runtime_control")
-    except PortalActionError:
-        raise
-    except Exception as exc:  # pragma: no cover - exercised by endpoint integration tests with real backend failures.
-        return {
-            "apply_status": "failed",
-            "runtime_control_operation": operation_name,
-            "runtime_control_error": f"{type(exc).__name__}: {exc}",
-        }
+    if action not in {"pause", "resume", "stop"}:
+        raise PortalActionError(status_code=400, reason="action_not_runtime_control")
+    handoff_ref = f"progress_portal_runtime_owner_route:{quest_id}:{action}"
     return {
-        "apply_status": "applied",
-        "runtime_control_operation": operation_name,
-        "runtime_control_result": _jsonable(result),
+        "apply_status": "owner_route_required",
+        "runtime_owner": "one-person-lab",
+        "runtime_control_operation": "opl_runtime_owner_route",
+        "requested_runtime_action": action,
+        "runtime_owner_handoff": {
+            "surface_kind": "mas_progress_portal_runtime_owner_route_handoff",
+            "handoff_ref": handoff_ref,
+            "queue_owner": "one-person-lab",
+            "domain_truth_owner": "med-autoscience",
+            "recommended_task_kind": "domain_route/reconcile-apply",
+            "runtime_action": action,
+            "quest_id": quest_id,
+            "runtime_root_ref": _workspace_relative(profile.runtime_root, profile.workspace_root),
+            "authority_boundary": {
+                "mas_writes_generic_runtime_queue": False,
+                "mas_submits_runtime_chat": False,
+                "mas_resumes_provider_worker": False,
+                "opl_writes_mas_truth": False,
+            },
+        },
     }
-
-
-def _runtime_control_operation(action: str) -> str:
-    if action == "pause":
-        return "pause_quest"
-    if action == "resume":
-        return "resume_quest"
-    if action == "stop":
-        return "stop_quest"
-    raise PortalActionError(status_code=400, reason="action_not_runtime_control")
-
-
-def _jsonable(value: object) -> object:
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, dict):
-        return {str(key): _jsonable(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_jsonable(item) for item in value]
-    if isinstance(value, tuple):
-        return [_jsonable(item) for item in value]
-    return value
 
 
 def _normalize_action(action: str) -> str:

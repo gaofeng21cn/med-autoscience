@@ -586,9 +586,10 @@ def _study_projection(
         publication_eval_payload=publication_eval_payload,
     ):
         lifecycle = {}
-    submission_milestone_parked = (
-        _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) == "applied"
-    )
+    submission_milestone_parked = _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) in {
+        "applied",
+        "owner_route_required",
+    }
     if submission_milestone_parked:
         lifecycle = _mapping(_mapping(submission_milestone_parked_refresh).get("repair_lifecycle"))
     runtime_platform_repair_apply, platform_lifecycle = _apply_runtime_platform_repair_projection(

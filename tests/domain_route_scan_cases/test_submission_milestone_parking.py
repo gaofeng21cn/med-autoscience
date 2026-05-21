@@ -166,30 +166,10 @@ def test_scan_domain_routes_parks_submission_milestone_instead_of_platform_repai
         },
     )
 
-    class FakeBackend:
-        BACKEND_ID = "hermes"
+    def fail_if_called(**_: object) -> object:
+        raise AssertionError("submission milestone parking must route runtime stop to OPL owner")
 
-        def stop_quest(self, *, runtime_root: Path | None = None, quest_id: str, source: str, **_: object) -> dict[str, object]:
-            assert runtime_root == profile.managed_runtime_home
-            runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-            runtime_state.update(
-                {
-                    "status": "stopped",
-                    "stop_reason": f"controller_stop:{source}",
-                    "active_run_id": None,
-                    "worker_running": False,
-                    "continuation_policy": "wait_for_user_or_resume",
-                    "continuation_reason": "submission_milestone_parked",
-                }
-            )
-            _write_json(runtime_state_path, runtime_state)
-            return {"ok": True, "status": "stopped", "quest_id": quest_id, "source": source}
-
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "_managed_runtime_backend_for_execution",
-        lambda *_args, **_kwargs: FakeBackend(),
-    )
+    monkeypatch.setattr(module.study_runtime_router, "_managed_runtime_backend_for_execution", fail_if_called)
 
     def fake_runtime_status(**_: object) -> dict[str, object]:
         runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
@@ -248,18 +228,21 @@ def test_scan_domain_routes_parks_submission_milestone_instead_of_platform_repai
     lifecycle = json.loads(
         (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").read_text(encoding="utf-8")
     )
-    assert study["submission_milestone_parked_refresh"]["dispatch_status"] == "applied"
-    assert study["submission_milestone_parked_refresh"]["reason"] == "submission_milestone_parked"
+    assert study["submission_milestone_parked_refresh"]["dispatch_status"] == "owner_route_required"
+    assert study["submission_milestone_parked_refresh"]["reason"] == "submission_milestone_runtime_stop_required"
     assert study["submission_milestone_parked_refresh"]["controller_decision"]["status"] == "refreshed"
-    assert study["submission_milestone_parked_refresh"]["stop_result"]["status"] == "stopped"
-    assert study["ai_repair_lifecycle"]["state"] == "parked"
+    assert study["submission_milestone_parked_refresh"]["queue_owner"] == "one-person-lab"
+    assert study["submission_milestone_parked_refresh"]["runtime_owner_handoff"]["requested_runtime_action"] == "stop"
+    assert study["ai_repair_lifecycle"]["state"] == "owner_route_required"
     assert study["ai_repair_lifecycle"]["external_supervisor_required"] is False
-    assert lifecycle["state"] == "parked"
+    assert study["ai_repair_lifecycle"]["opl_runtime_owner_route_required"] is True
+    assert lifecycle["state"] == "owner_route_required"
     assert lifecycle["external_supervisor_required"] is False
-    assert lifecycle["blocked_reason"] is None
+    assert lifecycle["blocked_reason"] == "submission_milestone_runtime_stop_required"
     assert study["action_queue"] == []
     assert study["why_not_applied"] is None
-    assert study["blocked_reason"] is None
+    assert study["blocked_reason"] == "submission_milestone_runtime_stop_required"
+    assert study["next_owner"] == "one-person-lab"
     assert study["external_supervisor_required"] is False
     assert controller_decision["controller_actions"] == [
         {
@@ -268,6 +251,6 @@ def test_scan_domain_routes_parks_submission_milestone_instead_of_platform_repai
         }
     ]
     assert "Submission-package milestone remains parked" in controller_decision["reason"]
-    assert runtime_state["status"] == "stopped"
-    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
+    assert runtime_state["status"] == "active"
+    assert runtime_state["continuation_policy"] == "auto"
     assert study["paper_package_mutated"] is False
