@@ -474,6 +474,8 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/runtime_watch_parts/control_plane_gate.py",
             "src/med_autoscience/controllers/runtime_watch_parts/managed_wakeup.py",
             "src/med_autoscience/controllers/study_progress_parts/projection.py",
+            "src/med_autoscience/controllers/study_progress_parts/projection_quality_surfaces.py",
+            "src/med_autoscience/controllers/study_progress_parts/projection_runtime_surfaces.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_cli.py",
             "src/med_autoscience/runtime_protocol/paper_artifacts.py",

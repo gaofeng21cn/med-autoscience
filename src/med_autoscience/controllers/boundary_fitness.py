@@ -27,7 +27,6 @@ DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/progress_portal.py": 1207,
     "tests/product_entry_cases/product_entry_preflight_and_task_submission.py": 1180,
     "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_workflow_dispatch.py": 1110,
-    "src/med_autoscience/controllers/study_progress_parts/projection.py": 1155,
     "src/med_autoscience/controllers/time_to_event_direct_migration.py": 1094,
     "tests/study_progress_cases/markdown_and_followthrough_projection.py": 1075,
     "tests/test_runtime_watch_cases/supervisor_and_progress_cases.py": 1066,

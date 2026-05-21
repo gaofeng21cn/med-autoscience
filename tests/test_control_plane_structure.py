@@ -13,6 +13,7 @@ CONTROL_PLANE_MODULES = (
     "src/med_autoscience/controllers/runtime_watch_recovery_policy.py",
     "src/med_autoscience/controllers/study_outer_loop_parts/runtime_refs.py",
     "src/med_autoscience/controllers/study_progress_parts/projection.py",
+    "src/med_autoscience/controllers/study_progress_parts/projection_runtime_surfaces.py",
     "src/med_autoscience/controllers/study_progress_parts/runtime_efficiency.py",
     "src/med_autoscience/controllers/study_progress_parts/runtime_liveness_projection.py",
 )
