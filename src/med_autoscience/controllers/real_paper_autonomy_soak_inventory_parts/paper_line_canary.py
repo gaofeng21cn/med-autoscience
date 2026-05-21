@@ -54,6 +54,10 @@ def build_owner_chain_closeout_from_guarded_receipts(
             "stable_typed_blocker_refs": stable_blocker_refs,
             "body_included": False,
         },
+        "live_paper_line_evidence_refs": _live_paper_line_evidence_refs(
+            guarded_receipts=guarded_receipts,
+            stable_blocker_refs=stable_blocker_refs,
+        ),
         "no_forbidden_write_proof": _no_forbidden_write_proof(forbidden_write_guard),
         "authority_boundary": _authority_boundary(),
     }
@@ -139,6 +143,97 @@ def _owner_receipt_refs(guarded_receipts: Sequence[Mapping[str, Any]]) -> list[s
         if _text(receipt.get("apply_result")) != "typed_blocker"
         for ref in receipt.get("mas_owner_apply_receipt_refs", [])
     )
+
+
+def _live_paper_line_evidence_refs(
+    *,
+    guarded_receipts: Sequence[Mapping[str, Any]],
+    stable_blocker_refs: Sequence[str],
+) -> dict[str, Any]:
+    receipt = next((item for item in guarded_receipts if _text(item.get("study_id"))), {})
+    return {
+        "surface_kind": "mas_live_paper_line_owner_chain_evidence_refs",
+        "paper_line_id": _text(receipt.get("study_id")),
+        "owner": "MedAutoScience",
+        "body_included": False,
+        "progress_delta_refs": _refs_for_observed_flag(
+            guarded_receipts,
+            flag="evidence_progress_observed",
+            fallback_suffix="artifacts/controller/repair_execution_evidence/latest.json",
+        ),
+        "ai_reviewer_gate_receipt_refs": _refs_for_apply_result(
+            guarded_receipts,
+            "ai_reviewer_re_eval",
+        ),
+        "artifact_movement_refs": _artifact_movement_refs(guarded_receipts),
+        "human_gate_or_resume_refs": _refs_for_observed_flag(
+            guarded_receipts,
+            flag="human_gate_observed",
+            fallback_suffix="artifacts/controller_decisions/latest.json",
+        ),
+        "stable_typed_blocker_refs": _refs_for_observed_flag(
+            guarded_receipts,
+            flag="stable_blocker_observed",
+            fallback_suffix="artifacts/controller_decisions/latest.json",
+        )
+        or list(stable_blocker_refs),
+        "no_forbidden_write_proof_ref": (
+            "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+        ),
+        "readiness_claims": {
+            "claims_paper_closure": False,
+            "claims_publication_ready": False,
+            "claims_artifact_mutation_authorized": False,
+            "claims_current_package_updated": False,
+        },
+    }
+
+
+def _refs_for_observed_flag(
+    guarded_receipts: Sequence[Mapping[str, Any]],
+    *,
+    flag: str,
+    fallback_suffix: str,
+) -> list[str]:
+    return _dedupe_text(
+        ref
+        for receipt in guarded_receipts
+        if _mapping(receipt.get("mas_owner_apply_evidence")).get(flag) is True
+        for ref in _matching_refs(receipt, fallback_suffix)
+    )
+
+
+def _refs_for_apply_result(
+    guarded_receipts: Sequence[Mapping[str, Any]],
+    apply_result: str,
+) -> list[str]:
+    return _dedupe_text(
+        ref
+        for receipt in guarded_receipts
+        if _text(receipt.get("apply_result")) == apply_result
+        for ref in receipt.get("mas_owner_apply_receipt_refs", [])
+    )
+
+
+def _artifact_movement_refs(guarded_receipts: Sequence[Mapping[str, Any]]) -> list[str]:
+    return _dedupe_text(
+        ref
+        for receipt in guarded_receipts
+        if _text(receipt.get("apply_result")) == "artifact_delta"
+        for ref in receipt.get("mas_owner_apply_receipt_refs", [])
+        if "repair_execution_receipts/latest.json" in ref
+    )
+
+
+def _matching_refs(receipt: Mapping[str, Any], suffix: str) -> list[str]:
+    refs = [ref for ref in receipt.get("mas_owner_apply_receipt_refs", []) if suffix in _text(ref)]
+    if refs:
+        return refs
+    return [
+        ref
+        for ref in receipt.get("mas_owner_apply_receipt_refs", [])
+        if _text(ref)
+    ]
 
 
 def _stable_mas_typed_blockers(guarded_receipts: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:

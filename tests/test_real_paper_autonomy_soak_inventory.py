@@ -550,6 +550,28 @@ def test_real_paper_autonomy_guarded_apply_proof_accepts_existing_mas_owner_prog
     assert payload["paper_line_provider_canary_closeout"]["required_return_shape_satisfied"] is True
     assert payload["paper_line_provider_canary_closeout"]["owner_chain_result"]["result_kind"] == "owner_receipt"
     assert payload["paper_line_provider_canary_closeout"]["owner_chain_result"]["owner_receipt_refs"]
+    live_evidence = payload["paper_line_provider_canary_closeout"]["live_paper_line_evidence_refs"]
+    assert live_evidence["surface_kind"] == "mas_live_paper_line_owner_chain_evidence_refs"
+    assert live_evidence["paper_line_id"] == "002-dm-china-us-mortality-attribution"
+    assert live_evidence["body_included"] is False
+    assert live_evidence["progress_delta_refs"] == [
+        str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json")
+    ]
+    assert live_evidence["artifact_movement_refs"] == [
+        str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json")
+    ]
+    assert live_evidence["ai_reviewer_gate_receipt_refs"] == []
+    assert live_evidence["human_gate_or_resume_refs"] == []
+    assert live_evidence["stable_typed_blocker_refs"] == []
+    assert live_evidence["no_forbidden_write_proof_ref"] == (
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+    )
+    assert live_evidence["readiness_claims"] == {
+        "claims_paper_closure": False,
+        "claims_publication_ready": False,
+        "claims_artifact_mutation_authorized": False,
+        "claims_current_package_updated": False,
+    }
     receipt = payload["guarded_apply_receipts"][0]
     assert receipt["apply_result"] == "artifact_delta"
     assert receipt["workspace_mutation"]["allowed_by_mas_owner_gate"] is True
@@ -623,6 +645,13 @@ def test_real_paper_autonomy_guarded_apply_proof_accepts_mas_owner_route_receipt
         assert receipt["workspace_mutation"]["provider_attempt_wrote_workspace"] is False
         assert receipt["mas_owner_apply_receipt_refs"] == [str(dm002 / expected_ref_suffix)]
         assert expected_ref_suffix in json.dumps(receipt["source_refs"], ensure_ascii=False)
+        live_evidence = payload["paper_line_provider_canary_closeout"]["live_paper_line_evidence_refs"]
+        assert live_evidence["paper_line_id"] == "002-dm-china-us-mortality-attribution"
+        assert live_evidence["body_included"] is False
+        if expected_result == "human_gate":
+            assert live_evidence["human_gate_or_resume_refs"] == [str(dm002 / expected_ref_suffix)]
+        if expected_result == "stable_blocker":
+            assert live_evidence["stable_typed_blocker_refs"] == [str(dm002 / expected_ref_suffix)]
 
 
 def test_real_paper_autonomy_guarded_apply_proof_keeps_ai_reviewer_eval_read_only(

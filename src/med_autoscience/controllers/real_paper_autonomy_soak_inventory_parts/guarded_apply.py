@@ -123,6 +123,7 @@ def _guarded_apply_receipt(packet: Mapping[str, Any]) -> dict[str, Any]:
         "apply_result": verdict,
         "domain_ready_verdict": verdict,
         "mas_owner_apply_receipt_refs": owner_refs,
+        "mas_owner_apply_evidence": dict(_mapping(packet.get("mas_owner_apply_evidence"))),
         "typed_blocker": None,
         "workspace_mutation": _workspace_mutation_summary(
             allowed=_verdict_observes_workspace_mutation(verdict),
