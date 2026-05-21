@@ -258,6 +258,55 @@ def test_manuscript_story_repair_requires_manuscript_surface_delta(tmp_path: Pat
     assert hygiene["story_surface_delta_present"] is False
 
 
+def test_medical_prose_write_repair_requires_manuscript_surface_delta(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
+    study_root = tmp_path / "studies" / "003-dpcc"
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text("Current primary-care treatment-gap manuscript story.\n", encoding="utf-8")
+    claim_map = _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
+    evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    gate_replay = _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-003"})
+    ai_request = _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {"request_id": "ai-reviewer-recheck::003"},
+    )
+
+    evidence = module.build_repair_execution_evidence(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        study_root=study_root,
+        repair_work_unit={
+            "unit_id": "medical_prose_write_repair",
+            "owner": "quality_repair_batch",
+            "gate_replay_target": "publication_gate",
+        },
+        review_finding={"finding_id": "medical-prose", "severity": "must_fix"},
+        source_refs=[str(gate_replay)],
+        changed_artifact_refs=[
+            {"path": str(claim_map), "artifact_role": "claim_evidence_map"},
+            {"path": str(evidence_ledger), "artifact_role": "evidence_ledger"},
+            {"path": str(review_ledger), "artifact_role": "review_ledger"},
+        ],
+        revision_log_ref=str(review_ledger),
+        evidence_ledger_ref=str(evidence_ledger),
+        review_ledger_ref=str(review_ledger),
+        gate_replay_refs=[str(gate_replay)],
+        ai_reviewer_recheck_request_ref=str(ai_request),
+    )
+
+    assert evidence["status"] == "blocked"
+    assert evidence["progress_delta_candidate"] is False
+    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
+    assert evidence["canonical_artifact_delta"]["status"] == "blocked"
+    assert "manuscript_story_surface_delta_missing" in evidence["blockers"]
+    hygiene = evidence["manuscript_surface_hygiene"]
+    assert hygiene["required"] is True
+    assert hygiene["story_surface_delta_required"] is True
+    assert hygiene["story_surface_delta_present"] is False
+
+
 def test_quality_repair_batch_consumes_manuscript_story_surface_currentness_delta(
     monkeypatch,
     tmp_path: Path,

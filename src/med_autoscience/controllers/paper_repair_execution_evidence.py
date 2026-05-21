@@ -40,12 +40,18 @@ _AUTHORITY_CLAIM_BLOCKERS = {
 _MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset(
     {
         "manuscript_story_repair",
+        "medical_prose_write_repair",
         "analysis_claim_evidence_repair",
         "figure_results_trace_repair",
         "medical_prose_quality_analysis_source_documentation_repair",
     }
 )
-_MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS = frozenset({"manuscript_story_repair"})
+_MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS = frozenset(
+    {
+        "manuscript_story_repair",
+        "medical_prose_write_repair",
+    }
+)
 _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
     Path("paper/draft.md"),
     Path("paper/build/review_manuscript.md"),
@@ -332,7 +338,6 @@ def _changed_refs_from_unit_results(unit_results: object) -> list[object]:
         for container in (result, payload):
             for key in (
                 "changed_artifact_refs",
-                "canonical_artifact_refs",
                 "artifact_refs",
                 "output_artifact_refs",
                 "output_refs",

@@ -13,6 +13,10 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
 
 
 _REVIEW_LEDGER_RELATIVE_PATH = Path("review") / "review_ledger.json"
+_MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
+    Path("draft.md"),
+    Path("build") / "review_manuscript.md",
+)
 
 
 def _text(value: object) -> str | None:
@@ -272,6 +276,7 @@ def run_upstream_paper_repair_unit(
     canonical_refs = [
         str(path.resolve())
         for path in (
+            *(paper_root / relative_path for relative_path in _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS),
             paper_root / "claim_evidence_map.json",
             paper_root / "evidence_ledger.json",
             paper_root / _REVIEW_LEDGER_RELATIVE_PATH,

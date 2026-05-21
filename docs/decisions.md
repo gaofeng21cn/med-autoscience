@@ -117,6 +117,13 @@
 - 理由：旧 audit surface 已无 active caller，只是在 current manifest 上重复呈现 tombstone/provenance 结论，继续保留会让 product/sidecar 面看起来仍有 legacy cleanup entrypoint。清理后，测试改为断言旧 audit 字段不存在，并继续检查 tombstone proof 与 retired residue machine surface。
 - 影响：这只删除已无 current caller 的 audit 程序面，不删除仍有 active domain / diagnostic caller 的 `runtime_transport/`、turn runner、worker lease、`runtime_lifecycle_store.py`、workbench shell、sidecar dispatch adapter 或 status projection。后者仍按 active caller proof、OPL parity、MAS receipt parity、focused tests、no-forbidden-write proof 和 tombstone/provenance refs 的删除门推进。
 
+## 2026-05-22：medical prose write repair 必须前移到 canonical 稿面 delta
+
+- 决策：`medical_prose_write_repair` 是 upstream paper-write work unit，完成证据必须包含 canonical manuscript-facing delta，即 `paper/draft.md` 或 `paper/build/review_manuscript.md`。`quality_repair_batch_upstream` 不能为该 work unit 生成正文 repair note，也不能把已有稿面列入 `canonical_artifact_refs` 后让 `repair_execution_evidence` 当成本轮 changed ref；在缺少 write-owner 稿面 delta 时必须返回 `manuscript_story_surface_delta_missing -> next_owner=write`。
+- 决策：ledger-only delta 对 `medical_prose_write_repair` 不再足够。即使 `claim_evidence_map`、`evidence_ledger`、`review_ledger` 和 AI reviewer request 已更新，若没有 `paper/draft.md` 或 `paper/build/review_manuscript.md` delta，`paper_repair_execution_evidence` 必须返回 `manuscript_story_surface_delta_missing`，不得声明 `progress_delta_candidate`。
+- 理由：DM003 暴露出 medical prose route-back 被 MAS upstream repair 处理时只更新 ledger/request，用户看到的高质量医学初稿稿面没有前移。该规则把 prose/write repair 的 owner surface 与 `manuscript_story_repair` 对齐，防止 quality repair batch 用内部 ledger 变化替代正文修订。
+- 影响：这是 canonical paper owner surface currentness 修复，不是医学质量 ready verdict。AI reviewer、publication gate 和后续 delivery owner 仍负责正式质量判断、publishability 与 submission-facing package；controller repair 只保证 write repair 不再 ledger-only 完成，也不把 MAS/controller/AI reviewer 内部运行态措辞写入论文正文。
+
 ## 2026-05-21：provenance-limited rebuild handoff 必须覆盖旧 methodology decision
 
 - 决策：当 `artifacts/controller/provenance_limited_harmonization/latest.json` 已产出当前 `unit_harmonized_rerun_required` typed handoff，并明确 `next_owner=analysis_harmonization_owner`、`next_work_unit=unit_harmonized_external_validation_rerun`，且该 owner result 晚于它消费的 source provenance、controller decision 与 rebuild task intake 时，domain-route-scan 必须优先排 `analysis_harmonization_owner`，不能再被旧 `source_provenance/latest.json` terminal blocker 拉回 `methodology_reframe_route_decision`。
