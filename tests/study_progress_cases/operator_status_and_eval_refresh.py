@@ -500,6 +500,121 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 
 
+def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery_stage(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / study_id
+    _write_publication_eval(study_root, quest_root)
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "schema_version": 1,
+            "recorded_at": "2026-05-20T22:16:03+00:00",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "health_status": "recovering",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "active_run_id": "stale-run-before-current-routeback",
+            "summary": (
+                "live worker 已超过 meaningful artifact delta 活动窗口；监管心跳新鲜只能证明监控新鲜，"
+                "不能证明论文正常推进。"
+            ),
+            "next_action_summary": "等待 runtime supervision 的 health_status 回到 live，再确认研究继续推进。",
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": study_id,
+                "auto_resume": True,
+            },
+            "quest_id": study_id,
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "failed",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": (
+                    "AI reviewer route-back requires harmonized validation uncertainty and grouped calibration."
+                ),
+            },
+            "domain_transition": {
+                "study_id": study_id,
+                "decision_type": "route_back_same_line",
+                "route_target": "analysis-campaign",
+                "next_work_unit": {
+                    "unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
+                    "lane": "analysis-campaign",
+                    "summary": (
+                        "Add uncertainty intervals, grouped calibration evidence, and reproducibility "
+                        "details to the unit-harmonized external validation."
+                    ),
+                },
+                "controller_action": "ensure_study_runtime",
+                "owner": "analysis-campaign",
+                "typed_blocker": None,
+            },
+            "interaction_arbitration": None,
+            "continuation_state": {
+                "quest_status": "failed",
+                "active_run_id": None,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "runtime_platform_repair_redrive",
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id=study_id)
+
+    assert result["current_stage"] == "managed_runtime_recovering"
+    assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
+    assert result["operator_status_card"]["latest_truth_source"] == "publication_eval"
+    assert "health_status 回到 live" not in result["operator_status_card"]["next_confirmation_signal"]
+    assert "unit_harmonized_validation_uncertainty_and_grouped_calibration" in (
+        result["operator_status_card"]["next_confirmation_signal"]
+    )
+
+
 def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_progress(
     monkeypatch,
     tmp_path: Path,
