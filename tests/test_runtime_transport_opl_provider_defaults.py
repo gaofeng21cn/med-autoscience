@@ -4,11 +4,12 @@ import importlib
 from pathlib import Path
 
 
-def test_runtime_transport_package_defaults_to_opl_provider_backed_stage_runtime(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport")
+def test_runtime_backend_registry_defaults_to_opl_provider_backed_stage_runtime(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_backend")
+    backend = module.get_managed_runtime_backend(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
     runtime_root = tmp_path / "workspace" / "runtime"
 
-    result = module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    result = backend.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
 
     assert result["source"] == "mas_runtime_core"
     assert result["runtime_backend_id"] == "opl_provider_backed_stage_runtime"
@@ -18,3 +19,11 @@ def test_runtime_transport_package_defaults_to_opl_provider_backed_stage_runtime
     assert result["generic_runtime_owner"] == "one-person-lab"
     assert result["domain_adapter_owner"] == "med-autoscience"
     assert result["snapshot"]["runtime_backend_id"] == "mas_runtime_core"
+
+
+def test_runtime_transport_package_does_not_export_generic_runtime_callables() -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport")
+
+    assert module.__all__ == []
+    for name in ("create_quest", "resume_quest", "schedule_turn"):
+        assert not hasattr(module, name)

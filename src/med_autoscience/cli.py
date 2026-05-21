@@ -931,17 +931,6 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "study-runtime-status":
-        profile = load_profile(args.profile)
-        result = study_runtime_router.study_runtime_status(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
     parser.error(f"unsupported command: {args.command}")
     return 2
 
