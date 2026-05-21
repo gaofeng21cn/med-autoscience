@@ -12,6 +12,35 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _required_coverage() -> dict[str, object]:
+    return {
+        "uncertainty": {
+            "method": "nonparametric_bootstrap_fixed_model_external_validation",
+            "replicates": 200,
+            "metrics_95ci": {
+                "c_index": {"estimate": 0.72, "lower": 0.61, "upper": 0.82},
+                "observed_expected_ratio": {"estimate": 0.98, "lower": 0.74, "upper": 1.28},
+                "brier_5y": {"estimate": 0.06, "lower": 0.04, "upper": 0.09},
+            },
+        },
+        "calibration": {
+            "calibration_intercept": {"estimate": -0.12, "ci_95": {"lower": -0.35, "upper": 0.04}},
+            "calibration_slope": {"estimate": 0.88, "ci_95": {"lower": 0.66, "upper": 1.08}},
+        },
+        "grouped_calibration": {
+            "groups": [
+                {
+                    "group": 1,
+                    "n": 100,
+                    "mean_predicted_5y_risk": 0.02,
+                    "observed_5y_rate": 0.01,
+                    "observed_5y_rate_ci_95": {"lower": 0.0, "upper": 0.03},
+                }
+            ]
+        },
+    }
+
+
 def test_scan_consumes_completed_unit_harmonized_rerun_without_requeue(
     monkeypatch,
     tmp_path: Path,
@@ -60,6 +89,7 @@ def test_scan_consumes_completed_unit_harmonized_rerun_without_requeue(
             "surface": "unit_harmonized_external_validation_rerun_evidence",
             "schema_version": 1,
             "status": "completed",
+            **_required_coverage(),
             "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
         },
     )
@@ -173,6 +203,7 @@ def test_completed_unit_harmonized_rerun_routes_stale_ai_reviewer_eval_back_to_r
             "surface": "unit_harmonized_external_validation_rerun_evidence",
             "schema_version": 1,
             "status": "completed",
+            **_required_coverage(),
             "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
         },
     )
@@ -308,6 +339,7 @@ def test_completed_unit_harmonized_rerun_ai_reviewer_handoff_supersedes_platform
             "surface": "unit_harmonized_external_validation_rerun_evidence",
             "schema_version": 1,
             "status": "completed",
+            **_required_coverage(),
             "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
         },
     )
@@ -440,6 +472,7 @@ def test_completed_unit_harmonized_rerun_does_not_requeue_current_ai_reviewer_ev
             "surface": "unit_harmonized_external_validation_rerun_evidence",
             "schema_version": 1,
             "status": "completed",
+            **_required_coverage(),
             "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
         },
     )
@@ -607,6 +640,7 @@ def test_completed_unit_harmonized_rerun_clears_prior_provenance_limited_rerun_b
             "surface": "unit_harmonized_external_validation_rerun_evidence",
             "schema_version": 1,
             "status": "completed",
+            **_required_coverage(),
             "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
         },
     )
@@ -761,6 +795,7 @@ def test_completed_unit_harmonized_rerun_supersedes_old_source_provenance_blocke
             "surface": "unit_harmonized_external_validation_rerun_evidence",
             "schema_version": 1,
             "status": "completed",
+            **_required_coverage(),
             "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
         },
     )

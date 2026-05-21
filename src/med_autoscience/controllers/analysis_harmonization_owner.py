@@ -229,6 +229,7 @@ def _completed_owner_result(
         "clean_reproducible_model_rebuild_authorized": True,
         "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
         "rerun_evidence_ref": str(evidence_path),
+        "rerun_evidence": evidence_payload,
         "analysis_lane_status": "unit_harmonized_rerun_materialized",
         "recommended_next_route": "return_to_publication_quality_review",
         "next_owner": "ai_reviewer",

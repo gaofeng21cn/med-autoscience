@@ -13,6 +13,35 @@ from tests.domain_owner_action_dispatch_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
 
 
+def _required_coverage() -> dict[str, object]:
+    return {
+        "uncertainty": {
+            "method": "nonparametric_bootstrap_fixed_model",
+            "replicates": 200,
+            "metrics_95ci": {
+                "c_index": {"lower": 0.61, "upper": 0.82},
+                "observed_expected_ratio": {"lower": 0.74, "upper": 1.28},
+                "brier_5y": {"lower": 0.04, "upper": 0.09},
+            },
+        },
+        "calibration": {
+            "calibration_intercept": {"estimate": -0.12, "ci_95": {"lower": -0.35, "upper": 0.04}},
+            "calibration_slope": {"estimate": 0.88, "ci_95": {"lower": 0.66, "upper": 1.08}},
+        },
+        "grouped_calibration": {
+            "groups": [
+                {
+                    "group": 1,
+                    "n": 100,
+                    "mean_predicted_5y_risk": 0.02,
+                    "observed_5y_rate": 0.01,
+                    "observed_5y_rate_ci_95": {"lower": 0.0, "upper": 0.03},
+                }
+            ]
+        },
+    }
+
+
 def _write_transport_inputs(study_root: Path) -> None:
     transport_root = study_root / "analysis" / "clean_room_execution" / "20_transportability"
     rows = "\n".join(
@@ -73,9 +102,50 @@ def _fake_rerun_evidence(*, study_root: Path, **_: object) -> dict[str, object]:
                 "raw_scale_nhanes": {"c_index": 0.56, "mean_predicted_5y_risk": 0.001},
                 "unit_harmonized_nhanes": {"c_index": 0.73, "mean_predicted_5y_risk": 0.023},
             },
+            **_required_coverage(),
             "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
         },
     }
+
+
+def test_completed_result_without_uncertainty_and_grouped_calibration_is_not_satisfied(
+    tmp_path: Path,
+) -> None:
+    result_module = importlib.import_module("med_autoscience.controllers.analysis_harmonization_owner_result")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    evidence_path = (
+        study_root
+        / "artifacts"
+        / "controller"
+        / "analysis_harmonization"
+        / "unit_harmonized_external_validation_rerun.json"
+    )
+    _write_json(
+        evidence_path,
+        {
+            "surface": "unit_harmonized_external_validation_rerun_evidence",
+            "schema_version": 1,
+            "status": "completed",
+            "comparison": {
+                "unit_harmonized_nhanes": {"c_index": 0.73, "mean_predicted_5y_risk": 0.023},
+            },
+            "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
+        },
+    )
+    owner_result = {
+        "surface": "analysis_harmonization_owner_result",
+        "schema_version": 1,
+        "study_id": study_id,
+        "owner": "analysis_harmonization_owner",
+        "work_unit": "unit_harmonized_external_validation_rerun",
+        "status": "completed",
+        "unit_harmonized_rerun_completed": True,
+        "rerun_evidence_ref": str(evidence_path),
+    }
+
+    assert result_module.result_satisfies_required_output(owner_result) is False
 
 
 def test_model_provenance_blocker_surfaces_source_owner_handoff(
@@ -157,6 +227,8 @@ def test_clean_rebuild_authorization_materializes_unit_harmonized_rerun_evidence
     assert owner_result["analysis_lane_status"] == "unit_harmonized_rerun_materialized"
     assert owner_result["clean_reproducible_model_rebuild_authorized"] is True
     assert owner_result["old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion"] is True
+    assert owner_result["rerun_evidence"]["uncertainty"]["metrics_95ci"]["c_index"]["lower"] == 0.61
+    assert owner_result["rerun_evidence"]["grouped_calibration"]["groups"][0]["observed_5y_rate_ci_95"]["upper"] == 0.03
     assert owner_result["publication_eval_written"] is False
     assert owner_result["controller_decision_written"] is False
     assert owner_result["paper_package_mutation_allowed"] is False
@@ -164,6 +236,9 @@ def test_clean_rebuild_authorization_materializes_unit_harmonized_rerun_evidence
     evidence = json.loads(evidence_ref.read_text(encoding="utf-8"))
     assert evidence["surface"] == "unit_harmonized_external_validation_rerun_evidence"
     assert evidence["comparison"]["unit_harmonized_nhanes"]["c_index"] == 0.73
+    assert evidence["uncertainty"]["metrics_95ci"]["observed_expected_ratio"]["upper"] == 1.28
+    assert evidence["calibration"]["calibration_slope"]["ci_95"]["lower"] == 0.66
+    assert evidence["grouped_calibration"]["groups"][0]["mean_predicted_5y_risk"] == 0.02
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
@@ -242,6 +317,7 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
     assert execution["execution_status"] == "executed"
     assert owner_result["status"] == "completed"
     assert owner_result["unit_harmonized_rerun_completed"] is True
+    assert owner_result["rerun_evidence"]["calibration"]["calibration_intercept"]["ci_95"]["upper"] == 0.04
     assert Path(owner_result["rerun_evidence_ref"]).is_file()
     assert owner_result["request_kind"] == "unit_harmonized_external_validation_rerun"
     assert owner_result["publication_eval_written"] is False

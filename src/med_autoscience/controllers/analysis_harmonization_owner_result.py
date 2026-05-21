@@ -36,7 +36,7 @@ def result_satisfies_required_output(payload: Mapping[str, Any] | None) -> bool:
     if not _matches_analysis_harmonization_result(result):
         return False
     if result.get("unit_harmonized_rerun_completed") is True:
-        return True
+        return _completed_result_has_required_evidence(result)
     return result_is_accepted_typed_blocker(result)
 
 
@@ -112,6 +112,58 @@ def blocking_owner_route(payload: Mapping[str, Any] | None) -> dict[str, Any]:
 
 def output_pending_for_result(payload: Mapping[str, Any] | None) -> bool:
     return not result_satisfies_required_output(payload)
+
+
+def _completed_result_has_required_evidence(payload: Mapping[str, Any]) -> bool:
+    evidence = _mapping(payload.get("rerun_evidence"))
+    evidence_ref = _text(payload.get("rerun_evidence_ref"))
+    if not evidence and evidence_ref:
+        evidence = _read_json_object(Path(evidence_ref).expanduser().resolve()) or {}
+    if _text(evidence.get("surface")) != "unit_harmonized_external_validation_rerun_evidence":
+        return False
+    if _text(evidence.get("status")) != "completed":
+        return False
+    return (
+        _has_uncertainty(evidence)
+        and _has_calibration(evidence)
+        and _has_grouped_calibration(evidence)
+    )
+
+
+def _has_uncertainty(evidence: Mapping[str, Any]) -> bool:
+    uncertainty = _mapping(evidence.get("uncertainty"))
+    intervals = _mapping(uncertainty.get("metrics_95ci"))
+    required_metrics = ("c_index", "observed_expected_ratio", "brier_5y")
+    return all(_has_interval(_mapping(intervals.get(metric))) for metric in required_metrics)
+
+
+def _has_calibration(evidence: Mapping[str, Any]) -> bool:
+    calibration = _mapping(evidence.get("calibration"))
+    return _has_interval(_mapping(_mapping(calibration.get("calibration_intercept")).get("ci_95"))) and _has_interval(
+        _mapping(_mapping(calibration.get("calibration_slope")).get("ci_95"))
+    )
+
+
+def _has_grouped_calibration(evidence: Mapping[str, Any]) -> bool:
+    grouped = _mapping(evidence.get("grouped_calibration"))
+    groups = grouped.get("groups")
+    if not isinstance(groups, list) or not groups:
+        return False
+    for group in groups:
+        item = _mapping(group)
+        if item.get("n") is None:
+            return False
+        if item.get("mean_predicted_5y_risk") is None:
+            return False
+        if item.get("observed_5y_rate") is None:
+            return False
+        if not _has_interval(_mapping(item.get("observed_5y_rate_ci_95"))):
+            return False
+    return True
+
+
+def _has_interval(interval: Mapping[str, Any]) -> bool:
+    return interval.get("lower") is not None and interval.get("upper") is not None
 
 
 def _matches_analysis_harmonization_result(payload: Mapping[str, Any]) -> bool:

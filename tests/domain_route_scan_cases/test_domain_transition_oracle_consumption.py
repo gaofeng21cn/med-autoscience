@@ -27,6 +27,16 @@ def _queue(status: dict[str, object], progress: dict[str, object] | None = None)
     )
 
 
+def _write_repair_lifecycle(*, study_root: Path, study_id: str, quest_id: str, apply_result: dict[str, object]) -> None:
+    platform_repair.write_runtime_platform_repair_lifecycle(
+        study_root=study_root,
+        supervision_latest_relative_path=Path("artifacts/supervision/domain_route_scan/latest.json"),
+        study_id=study_id,
+        quest_id=quest_id,
+        apply_result=apply_result,
+    )
+
+
 def test_action_queue_does_not_redrive_after_delivered_package_domain_transition() -> None:
     actions = _queue(
         {
@@ -186,6 +196,11 @@ def test_domain_transition_routes_unit_harmonized_analysis_work_unit_to_analysis
     assert action["recommended_owner"] == "analysis_harmonization_owner"
     assert action["reason"] == "unit_harmonized_rerun_required"
     assert action["next_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert action["executable_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert action["controller_work_unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    assert action["controller_next_work_unit"]["unit_id"] == (
+        "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+    )
     assert action["required_output_surface"] == (
         "unit-harmonized external-validation rerun evidence or "
         "typed blocker:unit_harmonized_rerun_required"
@@ -273,6 +288,10 @@ def test_scan_projects_runtime_redrive_domain_transition_and_owner_action(monkey
     action = study["action_queue"][0]
     assert action["owner"] == "analysis_harmonization_owner"
     assert action["reason"] == "unit_harmonized_rerun_required"
+    assert action["controller_work_unit_id"] == (
+        study["domain_transition"]["next_work_unit"]["unit_id"]
+    )
+    assert action["executable_work_unit"] == "unit_harmonized_external_validation_rerun"
     assert action["handoff_packet"]["next_executable_owner"] == "analysis_harmonization_owner"
     assert study["blocked_reason"] == "unit_harmonized_rerun_required"
     assert study["next_owner"] == "analysis_harmonization_owner"
@@ -332,8 +351,9 @@ def test_apply_runtime_platform_repair_uses_current_domain_transition_route_over
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    study_root = tmp_path / "study"
-    quest_root = tmp_path / "runtime" / "quest-002"
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "study-002", quest_id="quest-002")
+    quest_root = profile.runtime_root / "quest-002"
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     current_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     runtime_state_path.parent.mkdir(parents=True)
@@ -413,6 +433,12 @@ def test_apply_runtime_platform_repair_uses_current_domain_transition_route_over
     )
 
     assert result is not None
+    _write_repair_lifecycle(
+        study_root=study_root,
+        study_id="study-002",
+        quest_id="quest-002",
+        apply_result=result,
+    )
     runtime_state = assert_owner_route_required(
         apply_result=result,
         ensure_calls=ensure_calls,
@@ -432,8 +458,9 @@ def test_apply_runtime_platform_repair_redrives_story_surface_delta_before_gate_
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    study_root = tmp_path / "study"
-    quest_root = tmp_path / "runtime" / "quest-dm002"
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "dm002", quest_id="quest-dm002")
+    quest_root = profile.runtime_root / "quest-dm002"
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     eval_id = "publication-eval::dm002::current"
     runtime_state_path.parent.mkdir(parents=True)
@@ -526,6 +553,12 @@ def test_apply_runtime_platform_repair_redrives_story_surface_delta_before_gate_
     )
 
     assert result is not None
+    _write_repair_lifecycle(
+        study_root=study_root,
+        study_id="dm002",
+        quest_id="quest-dm002",
+        apply_result=result,
+    )
     runtime_state = assert_owner_route_required(
         apply_result=result,
         ensure_calls=ensure_calls,

@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-22：analysis harmonization completed result 必须覆盖 AI reviewer route-back 所需证据
+
+- 决策：`analysis_harmonization_owner_result` 不能仅凭 `unit_harmonized_rerun_completed=true` 判定 hard-methodology work unit 已关闭。completed result 必须指向或内联 `unit_harmonized_external_validation_rerun_evidence`，且该 evidence 必须包含 external-validation uncertainty intervals、observed-to-expected interval、Brier interval、calibration intercept/slope with 95% CI、以及 grouped calibration with observed-rate intervals；缺任一项时继续视为 required output pending。
+- 决策：`analysis_harmonization_owner` 生成 unit-harmonized rerun evidence 时，必须把上述覆盖作为 owner output 的正式内容，并把 completed owner result 内联当前 evidence。若证据无法产出，应返回 typed blocker，而不是用 completed flag 关闭 route-back。
+- 决策：`domain-route-scan` 可以把 controller work unit `unit_harmonized_validation_uncertainty_and_grouped_calibration` 映射到可执行 callable `unit_harmonized_external_validation_rerun`，但 action projection 必须同时保留 `controller_next_work_unit`、`controller_work_unit_id` 和 `executable_work_unit`，避免 OPL、Agent Lab、前台 supervisor 或后续 owner 把 controller 原始路线与可执行别名混淆。
+- 理由：DM002 暴露出 analysis owner 的 rerun evidence 缺少 AI reviewer 明确要求的 uncertainty / calibration / grouped calibration 覆盖，但旧 completed-result gate 仍把它视为 satisfied，导致系统重复窄 rerun 后再被 AI reviewer route back。正确边界是 MAS owner-result quality contract，不是手工更新论文、publication eval、controller decision 或 OPL queue。
+- 影响：这是 MAS 医学论文智能体 / owner-result / quality-suite 修复。它不写 DM002 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal`、`manuscript/current_package` 或 submission readiness verdict；后续论文质量仍由 MAS owner chain 重新执行并由 AI reviewer-backed publication eval 判定。
+
 ## 2026-05-22：domain-route-scan 必须投影当前 runtime-redrive domain transition
 
 - 决策：`domain-route-scan` 的每个 study projection 必须显式带出当前 `study_runtime_status.domain_transition`，用于 supervisor、OPL sidecar、Agent Lab 和人工接力判断当前 owner route。该字段是 read model truth projection，不授权 OPL 或前台写 MAS study truth、publication eval、controller decision、paper、submission package 或 current package。

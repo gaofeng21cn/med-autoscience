@@ -17,6 +17,8 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
     work_unit_id = domain_transition_guard.next_work_unit_id(status)
     transition = domain_transition_guard.transition_from_status(status)
     route_target = _text(transition.get("route_target"))
+    controller_next_work_unit = _mapping(transition.get("next_work_unit"))
+    controller_work_unit_id = work_unit_id
     unit_harmonized_analysis_route = _is_unit_harmonized_analysis_route(
         decision_type=decision_type,
         route_target=route_target,
@@ -50,6 +52,10 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         "current_package_write_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+    if unit_harmonized_analysis_route:
+        action["controller_next_work_unit"] = controller_next_work_unit
+        action["controller_work_unit_id"] = controller_work_unit_id
+        action["executable_work_unit"] = "unit_harmonized_external_validation_rerun"
     if decision_type == "bundle_stage_finalize":
         action["authority"] = "observability_only"
         action["owner"] = "mas_controller"
@@ -109,6 +115,10 @@ def _is_unit_harmonized_analysis_route(
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 __all__ = ["actions"]
