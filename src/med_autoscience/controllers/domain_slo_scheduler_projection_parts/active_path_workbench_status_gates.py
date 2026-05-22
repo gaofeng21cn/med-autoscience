@@ -72,6 +72,7 @@ def build_workbench_status_active_path_gates(
                 "src/med_autoscience/controllers/sidecar_family_adapter.py",
                 "src/med_autoscience/controllers/sidecar_family_adapter_parts/",
                 "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+                "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py",
                 "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py",
             ],
             "current_role": "domain_sidecar_dispatch_adapter",
@@ -95,6 +96,10 @@ def build_workbench_status_active_path_gates(
                     (
                         "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
                         "export_projection.py"
+                    ),
+                    (
+                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "export_study_projection.py"
                     ),
                     (
                         "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
