@@ -36,6 +36,7 @@ def project_transition(
         study_id=study_id,
         lifecycle=lifecycle,
         lifecycle_ref=lifecycle_ref,
+        publication_eval=publication_eval,
         source_refs=source_refs,
         completion_receipt_consumption=completion_receipt_consumption,
     )

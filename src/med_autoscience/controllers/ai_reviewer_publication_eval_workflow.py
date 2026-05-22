@@ -233,6 +233,15 @@ def _record_routes_back_before_delivery(record_payload: Mapping[str, Any]) -> bo
     return False
 
 
+def _record_route_target(record_payload: Mapping[str, Any]) -> str | None:
+    for action in _list(record_payload.get("recommended_actions")):
+        if not isinstance(action, Mapping):
+            continue
+        if route_target := _text(action.get("route_target")):
+            return route_target
+    return None
+
+
 def _future_facing_limitations_plan(record_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     raw_plan = record_payload.get("future_facing_limitations_plan")
     if not isinstance(raw_plan, list) or not raw_plan:
@@ -274,11 +283,19 @@ def _future_facing_limitations_plan(record_payload: Mapping[str, Any]) -> list[d
 def _medical_prose_review_currentness(
     *,
     study_root: Path,
+    record_payload: Mapping[str, Any],
     ref_bundle: Mapping[str, str],
+    workflow_currentness_mode: str | None = None,
 ) -> dict[str, Any]:
     if paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
         return _clean_migration_medical_prose_review_request_currentness(
             study_root=study_root,
+            ref_bundle=ref_bundle,
+        )
+    if _record_embeds_ai_reviewer_output(workflow_currentness_mode):
+        return _record_bound_medical_prose_review_currentness(
+            study_root=study_root,
+            record_payload=record_payload,
             ref_bundle=ref_bundle,
         )
     prose_ref = _text(ref_bundle.get("medical_prose_review"))
@@ -340,6 +357,40 @@ def _medical_prose_review_currentness(
         "overall_style_verdict": _text(quality.get("overall_style_verdict")),
         "route_back_required": route_back.get("required") is True,
         "route_target": _text(route_back.get("route_target")),
+    }
+
+
+def _record_embeds_ai_reviewer_output(workflow_currentness_mode: str | None) -> bool:
+    return workflow_currentness_mode == "request_bound_ai_reviewer_record"
+
+
+def _record_bound_medical_prose_review_currentness(
+    *,
+    study_root: Path,
+    record_payload: Mapping[str, Any],
+    ref_bundle: Mapping[str, str],
+) -> dict[str, Any]:
+    prose_ref = _text(ref_bundle.get("medical_prose_review"))
+    if not prose_ref:
+        raise ValueError("AI reviewer publication eval workflow missing medical_prose_review")
+    prose_path = _resolve_ref(study_root=study_root, ref=prose_ref)
+    prose_payload = _read_json(prose_path)
+    quality = _mapping(prose_payload.get("medical_journal_prose_quality"))
+    route_back = _mapping(quality.get("route_back_recommendation"))
+    provenance = _mapping(prose_payload.get("assessment_provenance"))
+    return {
+        "status": "current",
+        "ref": str(prose_path),
+        "request_ref": _text(provenance.get("request_ref")),
+        "request_digest": _text(provenance.get("request_digest")),
+        "manuscript_ref": _text(provenance.get("manuscript_ref")) or _text(ref_bundle.get("manuscript")),
+        "manuscript_digest": _text(provenance.get("manuscript_digest")),
+        "prose_status": _text(quality.get("status")),
+        "overall_style_verdict": _text(quality.get("overall_style_verdict")),
+        "route_back_required": route_back.get("required") is True
+        or _record_routes_back_before_delivery(record_payload),
+        "route_target": _text(route_back.get("route_target")) or _record_route_target(record_payload),
+        "authority_source_signature": "ai_reviewer_request_record",
     }
 
 
@@ -436,6 +487,7 @@ def _currentness_checks(
     study_root: Path,
     record_payload: Mapping[str, Any],
     ref_bundle: Mapping[str, str],
+    workflow_currentness_mode: str | None = None,
 ) -> dict[str, Any]:
     eval_id = _text(record_payload.get("eval_id"))
     if not eval_id:
@@ -443,7 +495,9 @@ def _currentness_checks(
     return {
         "medical_prose_review": _medical_prose_review_currentness(
             study_root=study_root,
+            record_payload=record_payload,
             ref_bundle=ref_bundle,
+            workflow_currentness_mode=workflow_currentness_mode,
         ),
         "current_package_freshness": _current_package_freshness(
             study_root=study_root,
@@ -466,6 +520,7 @@ def build_ai_reviewer_publication_eval_workflow_trace(
     charter_ref: str | Path,
     record: PublicationEvalRecord | Mapping[str, Any],
     additional_refs: Mapping[str, Any] | None = None,
+    workflow_currentness_mode: str | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     record_payload = _record_payload(record)
@@ -496,6 +551,7 @@ def build_ai_reviewer_publication_eval_workflow_trace(
             study_root=resolved_study_root,
             record_payload=record_payload,
             ref_bundle=ref_bundle,
+            workflow_currentness_mode=workflow_currentness_mode,
         ),
         "future_facing_limitations_plan": _future_facing_limitations_plan(record_payload),
         "provenance_checks": {
@@ -546,6 +602,7 @@ def run_ai_reviewer_publication_eval_workflow(
     charter_ref: str | Path,
     record: PublicationEvalRecord | Mapping[str, Any],
     additional_refs: Mapping[str, Any] | None = None,
+    workflow_currentness_mode: str | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     trace = build_ai_reviewer_publication_eval_workflow_trace(
@@ -556,6 +613,7 @@ def run_ai_reviewer_publication_eval_workflow(
         charter_ref=charter_ref,
         record=record,
         additional_refs=additional_refs,
+        workflow_currentness_mode=workflow_currentness_mode,
     )
     materialized = materialize_ai_reviewer_publication_eval_latest(
         study_root=resolved_study_root,

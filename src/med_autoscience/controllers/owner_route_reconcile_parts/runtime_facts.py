@@ -12,8 +12,23 @@ from med_autoscience.controllers.owner_route_reconcile_parts.owner_tokens import
 from med_autoscience.controllers.owner_route_reconcile_parts import pending_user_messages
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
 
+_RUNTIME_REDRIVE_DOMAIN_TRANSITIONS = frozenset(
+    {
+        "ai_reviewer_re_eval",
+        "bundle_stage_finalize",
+        "publication_gate_blocker",
+        "route_back_same_line",
+    }
+)
+
 
 def active_run_id(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str | None:
+    if live_status_run_id := _live_status_active_run_id(status):
+        return live_status_run_id
+    if _runtime_redrive_route(status) is not None:
+        return None
+    if _text(status.get("quest_status")) == "waiting_for_user" and not worker_running(status):
+        return None
     supervision = _mapping(progress.get("supervision"))
     runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
     for value in (
@@ -367,6 +382,33 @@ def _progress_activity_timeout(progress: Mapping[str, Any]) -> dict[str, Any]:
         "active_run_id": _text(activity_timeout.get("active_run_id")),
         "breach_types": set(_string_items(activity_timeout.get("breach_types"))),
     }
+
+
+def _runtime_redrive_route(status: Mapping[str, Any]) -> dict[str, Any] | None:
+    transition = _mapping(status.get("domain_transition"))
+    if _text(transition.get("decision_type")) in _RUNTIME_REDRIVE_DOMAIN_TRANSITIONS:
+        return transition
+    return None
+
+
+def _live_status_active_run_id(status: Mapping[str, Any]) -> str | None:
+    if _text(status.get("quest_status")) in {"paused", "stopped", "completed", "waiting_for_user"}:
+        return None
+    runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
+    liveness = _mapping(status.get("runtime_liveness_audit"))
+    if runtime_audit.get("worker_running") is False or liveness.get("worker_running") is False:
+        return None
+    if _text(status.get("runtime_liveness_status")) in {"none", "not_live", "stale", "parked"}:
+        return None
+    health = _mapping(status.get("runtime_health_snapshot"))
+    worker_liveness = _mapping(health.get("worker_liveness_state"))
+    if _text(worker_liveness.get("state")) in {"not_live", "parked", "stale"}:
+        return None
+    return (
+        _text(status.get("active_run_id"))
+        or _text(liveness.get("active_run_id"))
+        or _text(runtime_audit.get("active_run_id"))
+    )
 
 
 def _mapping(value: object) -> dict[str, Any]:

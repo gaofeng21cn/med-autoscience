@@ -7,6 +7,7 @@ from typing import Any, Iterable
 UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS = frozenset(
     {
         "analysis_claim_evidence_repair",
+        "dm002_same_line_publication_paper_repair",
         "figure_results_trace_repair",
         "manuscript_story_repair",
         "medical_prose_write_repair",
@@ -35,6 +36,14 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         }
     ),
     "medical_prose_write_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "sync_publication_shell_surface",
+            "materialize_display_surface",
+        }
+    ),
+    "dm002_same_line_publication_paper_repair": frozenset(
         {
             "repair_paper_live_paths",
             "workspace_display_repair_script",

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import json
+
 from med_autoscience.controllers.domain_action_requests import (
     build_ai_reviewer_publication_eval_request,
 )
 from med_autoscience.controllers.domain_action_request_lifecycle import (
     materialize_ai_reviewer_request,
     project_ai_reviewer_request_lifecycle,
+    read_ai_reviewer_request,
 )
 
 
@@ -68,3 +71,74 @@ def test_ai_reviewer_request_lifecycle_keeps_new_request_pending_until_eval_cons
     assert consumed is not None
     assert consumed["state"] == "assessment_written"
     assert consumed["assessment_written"] is True
+
+
+def test_ai_reviewer_request_materialization_rejects_record_stale_after_current_manuscript(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    response_root = study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses"
+    stale_record_path = response_root / "20260521T213722Z_publication_eval_record.json"
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_path.parent.mkdir(parents=True)
+    manuscript_path.write_text(
+        "# Draft\n\n## Abstract\n\nCurrent numeric abstract with 95% CIs.\n",
+        encoding="utf-8",
+    )
+    quality_assessment = {
+        dimension: {
+            "status": "blocked" if dimension == "medical_journal_prose_quality" else "ready",
+            "summary": f"{dimension} reviewer assessment.",
+        }
+        for dimension in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "medical_journal_prose_quality",
+            "human_review_readiness",
+        )
+    }
+    stale_record = {
+        "eval_id": "publication-eval::002-risk::quest-002::2026-05-21T21:37:22+00:00",
+        "study_id": "002-risk",
+        "quest_id": "quest-002",
+        "emitted_at": "2026-05-21T21:37:22+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [str(manuscript_path)],
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": quality_assessment,
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "The old reviewer record predates the current manuscript.",
+                "impact_on_claim": "The prose verdict cannot authorize current manuscript quality.",
+                "required_future_analysis_data_or_design": "Re-run AI reviewer against the current manuscript.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+    }
+    stale_record_path.parent.mkdir(parents=True)
+    stale_record_path.write_text(json.dumps(stale_record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="002-risk",
+        quest_id="quest-002",
+        source_surface="runtime_supervisor_scan",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+        },
+    )
+
+    materialized = materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    persisted = read_ai_reviewer_request(study_root=study_root)
+
+    assert "ai_reviewer_record" not in materialized
+    assert "publication_eval_record_ref" not in materialized
+    assert persisted is not None
+    assert "ai_reviewer_record" not in persisted
+    assert persisted["request_lifecycle"]["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert persisted["request_lifecycle"]["stale_record_ref"] == str(stale_record_path.resolve())
+    assert persisted["request_lifecycle"]["required_currentness_refs"] == [str(manuscript_path.resolve())]

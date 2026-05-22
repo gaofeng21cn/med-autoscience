@@ -1,5 +1,17 @@
 # 关键决策记录
 
+## 2026-05-22：AI reviewer request currentness 不能只靠 stable latest path 消费
+
+- 决策：当 `artifacts/supervision/requests/ai_reviewer/latest.json` 携带 `source_fingerprint` 时，AI reviewer-owned `publication_eval/latest.json` 不能仅因 `assessment_provenance.source_refs` 包含同一个 stable `latest.json` 路径就视为已消费该 request。消费证据必须显式携带同一 request fingerprint，或由 publication eval 逻辑时间不早于 request 时间证明。
+- 理由：DM002 暴露出 `quality_repair_batch` 覆写 stable AI reviewer request 后，旧 publication eval 仍引用同一路径，导致 request lifecycle 被误判为 `assessment_written`，owner route 不再派发 `return_to_ai_reviewer_workflow`。根因是 MAS currentness 判定把 stable path identity 当成了 content/version identity。
+- 影响：这是 MAS request lifecycle / owner-route read-model 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍由当前 AI reviewer-backed publication eval、owner receipt 与 publication gate 判定。
+
+## 2026-05-22：当前 runtime-redrive route-back 优先于旧 progress active run 和 terminal package handoff
+
+- 决策：当 `domain_transition.decision_type` 属于 `route_back_same_line`、`ai_reviewer_re_eval`、`publication_gate_blocker` 或 `bundle_stage_finalize`，且 status/liveness/truth 没有可靠 live worker 时，`study_macro_state`、`study-progress.user_visible_projection` 和 `owner-route-reconcile` 必须把当前 transition 投影为 owner repair 队列，不得从旧 `progress.supervision.active_run_id` 误判 live，也不得让旧 terminal delivery/package handoff 覆盖当前 route-back。
+- 理由：DM002 暴露出 AI reviewer 已给出当前 write route-back 后，read model 仍可能同时显示 stale active run 或“当前包已经可直接交给用户审阅”，导致用户可见状态和 owner-route 与当前 publication_eval/quality route 不一致。根因是 MAS currentness/read-model precedence，而不是 OPL provider 或单篇稿件内容。
+- 影响：这是 MAS study-progress / owner-route read-model 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍由当前 write owner delta、AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-22：AI reviewer domain transition 是 turn/resume/refresh currentness 的权威 fallback
 
 - 决策：当 `progress_projection/status_payload.domain_transition` 明确为 `ai_reviewer_re_eval`、`controller_action=return_to_ai_reviewer_workflow`，且 `next_work_unit.unit_id=ai_reviewer_medical_prose_quality_review` 时，MAS 的 runtime turn prompt、resume/relaunch 前 controller-decision currentness、以及 AI reviewer workflow 后的 controller refresh 都必须把该 domain transition 作为权威 fallback。若 generic outer-loop tick request 因旧 `publication_eval`、`quality_repair_batch` 或 stale write route 返回 `medical_prose_write_repair` / `run_quality_repair_batch`，不得让旧 tick 覆盖当前 AI reviewer re-eval。
@@ -11,6 +23,7 @@
 
 - 决策：`ai_reviewer_request_lifecycle` 只能在 AI reviewer-owned `publication_eval/latest.json` 明确消费当前 `artifacts/supervision/requests/ai_reviewer/latest.json` 后进入 `assessment_written`。消费证据必须是 eval/provenance/source refs 包含该 request ref，或 eval 时间戳不早于 request 时间戳；缺 currentness evidence 时保持 request pending。
 - 决策：owner-route reconcile 在 progress 尚未投影 `ai_reviewer_request_lifecycle` 时，必须直接从 stable AI reviewer request file 投影 lifecycle；pending request 要优先于旧 `route_back_same_line/write` story route，但仍排在 methodology/source-provenance/analysis-harmonization 等硬 blocker 之后。
+- 决策：若 pending AI reviewer request 的 blocker 是 `ai_reviewer_record_stale_after_current_manuscript`，owner-route 必须把 `next_owner` 固定为 `ai_reviewer`，并保留 `stale_record_ref` 与 `required_currentness_refs` 进入 action packet；不得让旧 write/story residue 因 owner-route guard 把该 action 过滤为空。
 - 理由：DM002 暴露出 `quality_repair_batch` 已物化新的 AI reviewer recheck request，但 stale AI reviewer eval 与旧 write route 继续抢占，导致系统重复派 `run_quality_repair_batch` 而没有回到 `return_to_ai_reviewer_workflow`。根因是 MAS request currentness 和 action priority，不是 OPL queue/provider lifecycle。
 - 影响：这是 MAS owner-route/read-model currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍由当前 AI reviewer-backed publication eval、write owner delta 与 publication gate 判定。
 
@@ -205,6 +218,14 @@
 - 决策：Agent Lab medical manuscript quality suite 必须把 `ai_reviewer_record_production_handoff` 纳入 `opl-meta-agent` developer patch work order 和 editable surface refs，让“旧 record stale 后缺 record-production owner step”成为可回归的 MAS 智能体能力缺口。
 - 理由：DM002 的 analysis rerun 完成后，request lifecycle 正确识别旧 AI reviewer record 已过期，但 dispatcher 只返回三条自然语言 next action，外层容易误诊为 OPL queue/provider 问题或普通不可执行 blocker。结构化 handoff 让前台、OPL Agent Lab 和 meta-agent 能看到真实 MAS owner 缺口，并按 record-only owner surface 推进。
 - 影响：这是 MAS AI reviewer / Agent Lab 自进化 read-model 修复，不放宽 quality gate，不授权机械 ready verdict，也不替 AI reviewer 生成医学结论；它只把当前 blocker 转成可消费、可测试、可回归的 owner handoff。
+
+## 2026-05-22：AI reviewer record 必须绑定当前 manuscript 版本
+
+- 决策：`domain_action_request_lifecycle` 接受 request-bound `ai_reviewer_record` 前，若该 record 的 provenance 或 dimension evidence refs 指向当前 canonical manuscript（例如 `paper/draft.md` 或 `paper/build/review_manuscript.md`），record 的逻辑评审时间必须不早于该 manuscript 的当前结构化时间或文件 mtime；否则 fail closed 为 `ai_reviewer_record_stale_after_current_manuscript`。
+- 决策：`return_to_ai_reviewer_workflow` 遇到 `ai_reviewer_record_stale_after_current_manuscript` 时，必须返回结构化 `ai_reviewer_record_production_request`，其 `request_kind=produce_ai_reviewer_publication_eval_record_against_current_manuscript`，并要求下一轮 record 消费当前 manuscript ref。它不得把旧 record 重新包装进 `publication_eval/latest.json`。
+- 决策：Agent Lab medical manuscript quality suite 必须暴露 `ai_reviewer_record_current_manuscript_binding` quality target、mechanism edit ref 和 regression suite ref，让“旧 AI reviewer record 复用在新稿件上”成为可回归的 MAS 智能体能力缺口。
+- 理由：DM002 暴露出 2026-05-22 21:10 刷新的 Abstract 已包含核心 95% CI，但 `return_to_ai_reviewer_workflow` 在 21:12 仍把 2026-05-21 旧 request-bound AI reviewer record 中的 “Abstract lacks 95% CIs” 原样物化为最新 `publication_eval/latest.json`。这是 reviewer record currentness 漏洞，不是论文 surface 缺 CI。
+- 影响：这是 MAS AI reviewer currentness / self-evolution 修复，不写 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`；正式质量判断仍由新的 AI reviewer record 和 MAS owner workflow 生成。
 
 ## 2026-05-22：workspace profile merge 必须把 root keys 插在 TOML table 之前
 
@@ -799,6 +820,16 @@
 - 决策：`paper_repair_executor` 收到 `ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow` callable 时，必须先物化 MAS-owned AI reviewer request 与同源 ready default-executor dispatch，再把该 dispatch 作为 inline consumer payload 交给 `domain_owner_action_dispatch`。不得要求上游 OPL queue 预先生成 study-level consumer dispatch，也不得让 dispatcher 凭 action type 跳过 request/owner-route/currentness 校验。
 - 理由：DM003 暴露出 `ai_reviewer_recheck` 已进入 paper repair executor、但 `domain_owner_action_dispatch` 没有可消费 dispatch 时返回 `execution_count=0` 的空执行，随后被误报为 `owner_callable_surface_blocked`。embedded callable 是 MAS owner contract 的一部分，转换点必须提供完整 request/dispatch envelope；失败时应得到执行级 blocker，例如 `ai_reviewer_request_missing`、`ai_reviewer_record_missing` 或 `repeat_suppressed`，而不是空 executions fallback。
 - 影响：repair executor 继续禁止直接写 `manuscript/current_package`、质量放行或投稿授权；它只负责把已声明 owner callable 接到 MAS owner surface，并写 owner receipt / typed blocker。单篇论文反馈必须转化为可回归的 owner-callable dispatch 测试，避免后续再由人工发现“写入 task intake 但不推进修复”的问题。
+
+## 2026-05-22：DM002 显式写作修复 work unit 与 Agent Lab 质量目标
+
+- 决策：`dm002_same_line_publication_paper_repair` 是 DM002 当前 AI reviewer route-back 的 manuscript story-surface work unit。`quality_repair_batch`、`gate_clearing_batch`、control-plane route gate、upstream paper repair materializer 与 `repair_execution_evidence` 必须把它当作 upstream paper-write repair，而不是折叠为 generic `analysis_claim_evidence_repair`；完成证据必须包含 `paper/draft.md` 或 `paper/build/review_manuscript.md` canonical story-surface delta。
+- 理由：DM002 暴露出 generic gate-clearing 可以更新 ledger/display surfaces，却不重写当前医学稿件，随后 AI reviewer 仍判定 Abstract、Methods、Results、calibration/grouped calibration 与内部语言没有吸收当前修改意见。显式 write work unit 必须保留 owner 语义和 manuscript delta requirement。
+- 影响：DM002 的 deterministic writer 只消费 MAS-owned analysis harmonization evidence 与 paper tables/figures，生成 clean external-validation manuscript story；不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal` 或 `manuscript/current_package`，也不授权 quality/submission readiness。
+
+- 决策：Agent Lab / opl-meta-agent 可消费的 `prediction_model_external_validation` quality target refs 必须显式包含 methods reproducibility、numeric abstract/results with uncertainty、uncertainty metrics、calibration/grouped calibration intervals、NHANES unweighted framing、claim-evidence/display alignment without runtime language、internal-language scrub。该 contract 只指导 MAS repo patch 与 regression，不是 publication quality verdict。
+- 理由：本轮 DM002 反馈不能只沉淀为单篇 writer fix；它应成为 MAS quality suite 的 repeatable regression，使后续类似 prediction-model external-validation 稿件在写作前或 reviewer route-back 后暴露同类缺口。
+- 影响：`contracts/agent_lab_handoff.json` 与 `agent_lab_medical_manuscript_quality` family targets 必须保持这些 refs；OPL/Agent Lab 只能消费 refs、发出 developer work order 或 typed blocker，不能直接写 study truth 或宣布论文 ready。
 
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 

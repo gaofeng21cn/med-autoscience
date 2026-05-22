@@ -304,7 +304,7 @@ def _materialize_fresh_domain_transition_controller_decision_for_turn(
     study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
     if study_root is None:
         return None
-    return domain_transition_currentness.materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
+    return domain_transition_currentness.materialize_fresh_domain_transition_controller_decision_if_required(
         study_root=study_root,
         source="mas_runtime_core_turn_authorization",
     )

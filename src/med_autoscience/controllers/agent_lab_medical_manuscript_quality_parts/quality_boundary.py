@@ -33,6 +33,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/ai-reviewer-output-readiness-currentness-consumption",
     "mechanism-edit-ref:mas/quality-repair-blocked-evidence-dispatch-rejection",
     "mechanism-edit-ref:mas/ai-reviewer-record-production-handoff",
+    "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding",
     "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
     "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection",
     "mechanism-edit-ref:mas/claim-assurance-map-body-free-projection",
@@ -52,6 +53,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "policy_ref:mas/ai-first-quality-boundary/contracts-floor-not-ceiling",
     "regression-suite:mas/hard-methodology-unit-harmonization-route",
     "regression-suite:mas/ai-reviewer-output-readiness-currentness",
+    "regression-suite:mas/ai-reviewer-record-current-manuscript-binding",
     "regression-suite:mas/medical-prose-write-repair-story-surface-delta",
     "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution",
 ]

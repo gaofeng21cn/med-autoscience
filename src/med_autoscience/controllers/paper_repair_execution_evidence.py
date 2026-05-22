@@ -39,6 +39,7 @@ _AUTHORITY_CLAIM_BLOCKERS = {
 }
 _MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset(
     {
+        "dm002_same_line_publication_paper_repair",
         "manuscript_story_repair",
         "medical_prose_write_repair",
         "analysis_claim_evidence_repair",
@@ -48,6 +49,7 @@ _MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset(
 )
 _MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS = frozenset(
     {
+        "dm002_same_line_publication_paper_repair",
         "manuscript_story_repair",
         "medical_prose_write_repair",
     }
@@ -374,7 +376,7 @@ def _authority_claim_blockers(authority_claims: Mapping[str, Any] | None) -> lis
 
 
 def _repair_work_unit(gate_clearing_result: Mapping[str, Any]) -> dict[str, Any]:
-    for key in ("selected_publication_work_unit", "current_publication_work_unit", "explicit_publication_work_unit"):
+    for key in ("explicit_publication_work_unit", "selected_publication_work_unit", "current_publication_work_unit"):
         payload = gate_clearing_result.get(key)
         if isinstance(payload, Mapping) and payload:
             return dict(payload)

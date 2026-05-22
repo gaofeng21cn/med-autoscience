@@ -55,8 +55,14 @@ def _resolve_publication_eval_ref(
         study_root=study_root,
         ref=normalized_ref.artifact_path,
     )
-    publication_eval_payload = read_publication_eval_latest(study_root=study_root, ref=publication_eval_path)
-    eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
+    try:
+        publication_eval_payload = read_publication_eval_latest(study_root=study_root, ref=publication_eval_path)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        eval_id = normalized_ref.eval_id
+        if not eval_id:
+            raise
+    else:
+        eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
     return StudyDecisionPublicationEvalRef(eval_id=eval_id, artifact_path=str(publication_eval_path))
 
 
@@ -83,7 +89,10 @@ def _read_latest_publication_eval_payload(*, study_root: Path) -> tuple[Path, di
 
 
 def _read_publication_eval_payload(*, study_root: Path, ref: str | Path) -> dict[str, Any]:
-    return read_publication_eval_latest(study_root=study_root, ref=ref)
+    try:
+        return read_publication_eval_latest(study_root=study_root, ref=ref)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return {}
 
 
 def _build_study_decision_charter_ref(*, study_root: Path, missing_message: str) -> StudyDecisionCharterRef:

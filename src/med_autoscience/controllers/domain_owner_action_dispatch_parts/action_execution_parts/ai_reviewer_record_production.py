@@ -15,6 +15,7 @@ def build_ai_reviewer_record_production_request(
     required_refs: Mapping[str, str | None],
     stale_record_ref: str | None,
     required_currentness_refs: list[str],
+    request_kind: str = "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
 ) -> dict[str, Any]:
     study_id = _text(request.get("study_id"))
     quest_id = _text(request.get("quest_id")) or study_id
@@ -22,7 +23,7 @@ def build_ai_reviewer_record_production_request(
     return {
         "surface": "ai_reviewer_record_production_request",
         "schema_version": 1,
-        "request_kind": "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+        "request_kind": request_kind,
         "request_owner": "ai_reviewer",
         "study_id": study_id,
         "quest_id": quest_id,

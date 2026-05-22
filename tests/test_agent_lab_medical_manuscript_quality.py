@@ -15,6 +15,37 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def test_agent_lab_handoff_contract_exposes_prediction_model_quality_target_refs() -> None:
+    contract_path = Path(__file__).resolve().parents[1] / "contracts" / "agent_lab_handoff.json"
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    mappings = contract["meta_agent_work_order_contract"]["external_suite_improvement_policy"][
+        "medical_manuscript_quality"
+    ]["change_ref_mappings"]
+    prediction_mapping = next(
+        mapping
+        for mapping in mappings
+        if mapping["study_quality_target_family"] == "prediction_model_external_validation"
+    )
+
+    assert {
+        "hdl_harmonization_and_sensitivity",
+        "model_reproducibility_and_baseline_survival",
+        "visible_baseline_and_performance_tables",
+        "methods_reproducibility_complete_case_external_validation",
+        "numeric_abstract_results_with_uncertainty",
+        "uncertainty_intervals_and_validation_metrics",
+        "nhanes_weighting_or_unweighted_framing",
+        "calibration_risk_collapse_figure_quality",
+        "grouped_calibration_with_observed_rate_intervals",
+        "claim_evidence_display_alignment_without_runtime_language",
+        "ai_reviewer_record_current_manuscript_binding",
+    }.issubset(set(prediction_mapping["quality_target_refs"]))
+    assert (
+        "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
+        in prediction_mapping["target_surface_refs"]
+    )
+
+
 def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scorecard(
     tmp_path: Path,
 ) -> None:
@@ -94,6 +125,7 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "methodology_reframe_decision_owner_route" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "ai_reviewer_output_readiness_currentness_consumption" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "ai_reviewer_record_production_handoff" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    assert "ai_reviewer_record_current_manuscript_binding" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "dm002_quality_targets" not in task["improvement_candidate"]["developer_patch_work_order"]
     assert task["improvement_candidate"]["developer_patch_work_order"]["study_quality_target_family"] == (
         "prediction_model_external_validation"
@@ -103,8 +135,13 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         for target in task["improvement_candidate"]["developer_patch_work_order"]["study_quality_targets"]
     }
     assert "hdl_harmonization_and_sensitivity" in dm002_target_ids
+    assert "methods_reproducibility_complete_case_external_validation" in dm002_target_ids
+    assert "numeric_abstract_results_with_uncertainty" in dm002_target_ids
     assert "nhanes_weighting_or_unweighted_framing" in dm002_target_ids
     assert "calibration_risk_collapse_figure_quality" in dm002_target_ids
+    assert "grouped_calibration_with_observed_rate_intervals" in dm002_target_ids
+    assert "claim_evidence_display_alignment_without_runtime_language" in dm002_target_ids
+    assert "ai_reviewer_record_current_manuscript_binding" in dm002_target_ids
     assert (
         "ai_native_expert_judgment_first_quality_boundary"
         in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
@@ -158,17 +195,28 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
     assert (
+        "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
+    assert (
         "mechanism-edit-ref:mas/invalid-analysis-history-body-free-projection"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
     assert "hdl-harmonization-and-sensitivity" in " ".join(task["improvement_candidate"]["evidence_refs"])
+    assert "methods-reproducibility-complete-case-external-validation" in " ".join(task["improvement_candidate"]["evidence_refs"])
+    assert "numeric-abstract-results-with-uncertainty" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "nhanes-survey-weighting-and-unweighted-framing" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "uncertainty-intervals-and-validation-metrics" in " ".join(task["improvement_candidate"]["evidence_refs"])
+    assert "grouped-calibration-with-observed-rate-intervals" in " ".join(task["improvement_candidate"]["evidence_refs"])
+    assert "claim-evidence-display-alignment-without-runtime-language" in " ".join(
+        task["improvement_candidate"]["evidence_refs"]
+    )
     assert "hard-methodology-unit-harmonization-route" in " ".join(task["promotion_gate"]["regression_suite_refs"])
     assert "ai-reviewer-output-readiness-currentness" in " ".join(task["promotion_gate"]["regression_suite_refs"])
     assert "analysis-harmonization-owner-routing" in " ".join(mechanism_inputs["target_editable_surface_refs"])
     assert "ai-reviewer-output-readiness-currentness-consumption" in " ".join(mechanism_inputs["target_editable_surface_refs"])
     assert "ai-reviewer-record-production-handoff" in " ".join(mechanism_inputs["target_editable_surface_refs"])
+    assert "ai-reviewer-record-current-manuscript-binding" in " ".join(mechanism_inputs["target_editable_surface_refs"])
     assert (
         "domain_route_analysis_harmonization_owner_result_consumption"
         in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]

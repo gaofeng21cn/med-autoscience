@@ -37,6 +37,10 @@ AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB = (
     "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
 )
 ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
+AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN = (
+    "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+)
+AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT = "ai_reviewer_record_stale_after_current_manuscript"
 AI_REVIEWER_REQUIRED_QUALITY_DIMENSIONS = (
     "clinical_significance",
     "evidence_strength",
@@ -252,6 +256,16 @@ def _analysis_harmonization_currentness_refs(*, study_root: Path) -> list[str]:
     return refs
 
 
+def _current_manuscript_ref(*, study_root: Path, record: Mapping[str, Any]) -> str | None:
+    source_refs = _record_source_refs(study_root=study_root, record=record)
+    for relative_path in AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES:
+        candidate = (study_root / relative_path).resolve()
+        candidate_ref = str(candidate)
+        if candidate.exists() and candidate_ref in source_refs:
+            return candidate_ref
+    return None
+
+
 def _record_source_refs(*, study_root: Path, record: Mapping[str, Any]) -> set[str]:
     refs: set[str] = set()
     provenance = _mapping(record.get("assessment_provenance"))
@@ -274,15 +288,42 @@ def _record_source_refs(*, study_root: Path, record: Mapping[str, Any]) -> set[s
     return refs
 
 
+def _record_source_fingerprints(record: Mapping[str, Any]) -> set[str]:
+    fingerprints: set[str] = set()
+
+    def add(value: object) -> None:
+        text = _text(value)
+        if text:
+            fingerprints.add(text)
+
+    provenance = _mapping(record.get("assessment_provenance"))
+    reviewer_trace = _mapping(record.get("reviewer_operating_system"))
+    input_bundle = _mapping(reviewer_trace.get("input_bundle"))
+    for source in (record, provenance, reviewer_trace, input_bundle):
+        add(source.get("source_fingerprint"))
+        add(source.get("request_source_fingerprint"))
+        for item in _string_items(source.get("source_fingerprints")):
+            add(item)
+        for item in _string_items(source.get("request_source_fingerprints")):
+            add(item)
+        for item in _string_items(source.get("source_refs")):
+            if item.startswith("sha256:"):
+                add(item)
+    return fingerprints
+
+
 def _record_missing_currentness_refs(
     *,
     study_root: Path,
     record: Mapping[str, Any],
 ) -> list[str]:
     required_refs = _analysis_harmonization_currentness_refs(study_root=study_root)
+    source_refs = _record_source_refs(study_root=study_root, record=record)
+    current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
+    if current_manuscript_ref:
+        required_refs = [*required_refs, current_manuscript_ref]
     if not required_refs:
         return []
-    source_refs = _record_source_refs(study_root=study_root, record=record)
     record_timestamp = _reviewer_assessment_timestamp(record)
     missing_or_stale: list[str] = []
     for ref in required_refs:
@@ -295,6 +336,18 @@ def _record_missing_currentness_refs(
         ):
             missing_or_stale.append(ref)
     return missing_or_stale
+
+
+def _record_currentness_blocked_reason(
+    *,
+    study_root: Path,
+    record: Mapping[str, Any],
+    missing_currentness_refs: list[str],
+) -> str:
+    current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
+    if current_manuscript_ref and current_manuscript_ref in set(missing_currentness_refs):
+        return AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+    return AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN
 
 
 def _ref_timestamp(path: Path) -> datetime | None:
@@ -384,9 +437,10 @@ def _block_ai_reviewer_record_missing_currentness(
     payload: dict[str, Any],
     record_ref: str | None,
     missing_currentness_refs: list[str],
+    blocked_reason: str = AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 ) -> dict[str, Any]:
     lifecycle = dict(_mapping(payload.get("request_lifecycle")))
-    lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+    lifecycle["blocked_reason"] = blocked_reason
     if record_ref:
         lifecycle["stale_record_ref"] = record_ref
     lifecycle["required_currentness_refs"] = missing_currentness_refs
@@ -441,6 +495,11 @@ def _validate_ai_reviewer_record_for_packet(
             payload=payload,
             record_ref=record_ref,
             missing_currentness_refs=missing_currentness_refs,
+            blocked_reason=_record_currentness_blocked_reason(
+                study_root=study_root,
+                record=record,
+                missing_currentness_refs=missing_currentness_refs,
+            ),
         )
     leakage = ai_reviewer_record_story_provenance_leakage(record)
     if leakage is not None:
@@ -576,8 +635,13 @@ def _publication_eval_consumes_ai_reviewer_request(
     publication_eval = _mapping(publication_eval_payload)
     request_ref = str(request_path.resolve())
     source_refs = set(_record_source_refs(study_root=study_root, record=publication_eval))
-    if request_ref in source_refs:
+    request_fingerprint = _text(request_packet.get("source_fingerprint"))
+    source_fingerprints = _record_source_fingerprints(publication_eval)
+    if request_fingerprint and request_fingerprint in source_fingerprints:
         return True
+    if request_ref in source_refs:
+        if request_fingerprint is None:
+            return True
     request_timestamp = _payload_timestamp(request_packet)
     if request_timestamp is None:
         try:
@@ -588,6 +652,8 @@ def _publication_eval_consumes_ai_reviewer_request(
     if request_timestamp is not None and eval_timestamp is not None:
         return eval_timestamp >= request_timestamp
     if request_timestamp is not None and eval_timestamp is None:
+        return False
+    if request_fingerprint is not None:
         return False
     return True
 
@@ -697,6 +763,12 @@ def project_ai_reviewer_request_lifecycle(
         "required_output": dict(_mapping(packet.get("required_output") or packet.get("requested_artifact"))),
         "blockers": input_blockers or list(packet.get("blockers") if isinstance(packet.get("blockers"), list) else []),
         "assessment_written": output_written,
+        "blocked_reason": _text(_mapping(packet.get("request_lifecycle")).get("blocked_reason")),
+        "stale_record_ref": _text(_mapping(packet.get("request_lifecycle")).get("stale_record_ref")),
+        "required_currentness_refs": _string_items(
+            _mapping(packet.get("request_lifecycle")).get("required_currentness_refs")
+        ),
+        "source_ref": _text(_mapping(packet.get("request_lifecycle")).get("source_ref")),
         "can_authorize_quality": False,
         "can_authorize_finalize": False,
         "can_authorize_submission": False,

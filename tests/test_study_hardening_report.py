@@ -138,10 +138,10 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
     assert report["regression_manifest"]["cases"] == [replay_case]
     assert report["regression_manifest"]["required_truth_surfaces"] == [
         "controller_decisions/latest.json",
-        "publication_eval/latest.json",
         "domain_health_diagnostic",
-        "study_charter",
         "progress_projection",
+        "publication_eval/latest.json",
+        "study_charter",
     ]
     assert report["regression_manifest"]["gate_relaxation_allowed"] is False
     assert report["regression_manifest"]["edits_paper_body"] is False

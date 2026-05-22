@@ -29,8 +29,8 @@ from .action_execution_parts.ai_reviewer_record_validation import (
     ai_reviewer_record_requirements,
     missing_ai_reviewer_record_fields,
 )
-from .action_execution_parts.ai_reviewer_record_production import build_ai_reviewer_record_production_request
 from .action_execution_parts.ai_reviewer_routeback_record import build_current_medical_prose_routeback_record
+from .action_execution_parts.ai_reviewer_stale_record_handoff import stale_ai_reviewer_record_handoff
 from ..ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
 from ..domain_action_request_lifecycle import stable_ai_reviewer_request_path
 
@@ -479,6 +479,12 @@ def execute_ai_reviewer_workflow(
             "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
             "request_path": str(request_path),
         }
+    additional_refs = {
+        surface: ref
+        for surface, ref in {**required_refs, **_ai_reviewer_optional_refs(request)}.items()
+        if surface not in {"manuscript", "evidence_ledger", "review_ledger", "study_charter"}
+        and ref is not None
+    }
     try:
         owner_result = ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow(
             study_root=study_root,
@@ -487,12 +493,8 @@ def execute_ai_reviewer_workflow(
             review_ref=required_refs["review_ledger"],
             charter_ref=required_refs["study_charter"],
             record=record,
-            additional_refs={
-                surface: ref
-                for surface, ref in {**required_refs, **_ai_reviewer_optional_refs(request)}.items()
-                if surface not in {"manuscript", "evidence_ledger", "review_ledger", "study_charter"}
-                and ref is not None
-            },
+            additional_refs=additional_refs,
+            workflow_currentness_mode="request_bound_ai_reviewer_record",
         )
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
         clean_migration_blocker = _paper_authority_clean_migration_blocker(
@@ -750,27 +752,13 @@ def _ai_reviewer_record_for_execution(
     current_record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
     request_record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
     lifecycle = _mapping(request.get("request_lifecycle"))
-    lifecycle_blocked_reason = _text(lifecycle.get("blocked_reason"))
-    if lifecycle_blocked_reason == "ai_reviewer_record_stale_after_unit_harmonized_rerun":
-        required_refs = _ai_reviewer_required_refs(request)
-        return {}, {
-            "reason": lifecycle_blocked_reason,
-            "payload": {
-                "stale_record_ref": _text(lifecycle.get("stale_record_ref")),
-                "required_currentness_refs": _string_items(lifecycle.get("required_currentness_refs")),
-                "ai_reviewer_record_production_request": build_ai_reviewer_record_production_request(
-                    request=request,
-                    required_refs=required_refs,
-                    stale_record_ref=_text(lifecycle.get("stale_record_ref")),
-                    required_currentness_refs=_string_items(lifecycle.get("required_currentness_refs")),
-                ),
-                "next_required_actions": [
-                    "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
-                    "rematerialize_ai_reviewer_request",
-                    "return_to_ai_reviewer_workflow",
-                ],
-            },
-        }
+    stale_record_handoff = stale_ai_reviewer_record_handoff(
+        request=request,
+        required_refs=_ai_reviewer_required_refs(request),
+        lifecycle=lifecycle,
+    )
+    if stale_record_handoff is not None:
+        return {}, stale_record_handoff
     story_leakage_blocker = ai_reviewer_record_story_provenance_leakage_dispatch_blocker(lifecycle)
     if story_leakage_blocker is not None:
         return {}, story_leakage_blocker
@@ -822,7 +810,7 @@ def _ai_reviewer_record_for_execution(
         "payload": {
             "owner_record_requirements": ai_reviewer_record_requirements(),
         },
-}
+    }
 
 
 def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, Any]) -> dict[str, Any]:

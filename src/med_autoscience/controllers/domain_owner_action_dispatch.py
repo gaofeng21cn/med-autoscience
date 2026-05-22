@@ -446,15 +446,25 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
             "blocked_reason": "outer_loop_tick_request_failed",
             "error": str(exc),
         }
-    fallback_tick_request = domain_transition_currentness.status_domain_transition_ai_reviewer_tick_request(
+    fallback_tick_request = domain_transition_currentness.status_domain_transition_tick_request(
         study_root=study_root,
         status_payload=status_payload,
     )
-    if isinstance(fallback_tick_request, dict) and not domain_transition_currentness.tick_request_matches_ai_reviewer_domain_transition(
+    fallback_transition = (
+        (status_payload.get("domain_transition") or {})
+        if isinstance(status_payload.get("domain_transition"), Mapping)
+        else {}
+    )
+    fallback_transition_unit = (
+        (fallback_transition.get("next_work_unit") or {})
+        if isinstance(fallback_transition.get("next_work_unit"), Mapping)
+        else {}
+    )
+    if isinstance(fallback_tick_request, dict) and not domain_transition_currentness.tick_request_matches_domain_transition(
         tick_request=tick_request if isinstance(tick_request, Mapping) else {},
-        transition_action="return_to_ai_reviewer_workflow",
-        transition_type="ai_reviewer_re_eval",
-        transition_unit_id=domain_transition_currentness.work_unit_id_from_tick_request(fallback_tick_request) or "",
+        transition_action=str(fallback_transition.get("controller_action") or "").strip(),
+        transition_type=str(fallback_transition.get("decision_type") or "").strip(),
+        transition_unit_id=str(fallback_transition_unit.get("unit_id") or "").strip(),
     ):
         tick_request = fallback_tick_request
     if tick_request is None:

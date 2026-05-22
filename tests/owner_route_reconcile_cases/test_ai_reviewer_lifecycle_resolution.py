@@ -455,6 +455,62 @@ def test_scan_domain_routes_reads_stable_ai_reviewer_request_before_old_write_ro
     assert study["blocked_reason"] == "ai_reviewer_assessment_required"
 
 
+def test_ai_reviewer_request_lifecycle_keeps_new_fingerprint_pending_when_old_eval_refs_latest_path(
+    tmp_path: Path,
+) -> None:
+    request_builder = importlib.import_module("med_autoscience.controllers.domain_action_requests")
+    request_lifecycle = importlib.import_module("med_autoscience.controllers.domain_action_request_lifecycle")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    request_path = (
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    )
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::002::002::2026-05-21T21:37:22+00:00::ai-reviewer",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "source_refs": [str(request_path)],
+        },
+        "recommended_actions": [],
+    }
+    packet = request_builder.build_ai_reviewer_publication_eval_request(
+        study_id=study_id,
+        quest_id=study_id,
+        source_surface="quality_repair_batch",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "review_required"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+            "blockers": [],
+        },
+        input_refs={
+            "manuscript": {"relative_path": "paper/draft.md"},
+            "evidence_ledger": {"relative_path": "paper/evidence_ledger.json"},
+            "review_ledger": {"relative_path": "paper/review/review_ledger.json"},
+            "study_charter": {"relative_path": "artifacts/controller/study_charter.json"},
+            "medical_manuscript_blueprint": {"relative_path": "paper/medical_manuscript_blueprint.json"},
+            "claim_evidence_map": {"relative_path": "paper/claim_evidence_map.json"},
+            "medical_prose_review": {"relative_path": "artifacts/publication_eval/medical_prose_review.json"},
+            "publication_gate_projection": {"relative_path": "artifacts/publication_eval/latest.json"},
+        },
+        lifecycle_state="requested",
+    )
+    packet["source_fingerprint"] = "sha256:new-ai-reviewer-request"
+    request_lifecycle.materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+
+    projected = request_lifecycle.project_ai_reviewer_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload=publication_eval,
+    )
+
+    assert projected["state"] == "requested"
+    assert projected["assessment_written"] is False
+
+
 def test_scan_domain_routes_suppresses_projection_only_external_supervisor_after_live_worker_observed(
     monkeypatch,
     tmp_path: Path,

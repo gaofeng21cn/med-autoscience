@@ -386,6 +386,255 @@ def test_execute_resume_runtime_decision_materializes_status_domain_transition_w
     assert status.quest_status is module.StudyRuntimeQuestStatus.RUNNING
 
 
+def test_execute_blocked_owner_route_materializes_current_write_routeback_when_outer_tick_is_stale(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    write_text(quest_root / "quest.yaml", f"quest_id: {study_id}\nstudy_id: {study_id}\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "quest_id": study_id,
+                "active_run_id": None,
+                "pending_user_message_count": 0,
+                "last_controller_decision_authorization": {
+                    "decision_id": "stale-publication-gate-recheck",
+                    "controller_actions": ["run_gate_clearing_batch"],
+                    "route_target": "review",
+                    "work_unit_id": "publication_gate_recheck",
+                    "work_unit_fingerprint": "publication-gate-recheck::stale",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    charter_ref = {
+        "charter_id": f"charter::{study_id}::v1",
+        "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+    }
+    write_text(
+        study_root / "artifacts" / "controller" / "study_charter.json",
+        json.dumps({"charter_id": charter_ref["charter_id"]}, ensure_ascii=False, indent=2) + "\n",
+    )
+    publication_eval_ref = {
+        "eval_id": "publication-eval::003::current-write-route",
+        "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+    }
+    write_text(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": publication_eval_ref["eval_id"],
+                "study_id": study_id,
+                "quest_id": study_id,
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    runtime_escalation_ref = {
+        "record_id": "runtime-escalation::003::current-write-route",
+        "artifact_path": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
+        "summary_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
+    }
+    write_text(
+        Path(runtime_escalation_ref["artifact_path"]),
+        json.dumps(
+            {
+                "schema_version": 1,
+                "record_id": runtime_escalation_ref["record_id"],
+                "study_id": study_id,
+                "quest_id": study_id,
+                "emitted_at": "2026-05-21T16:28:06+00:00",
+                "trigger": {"trigger_id": "quest_waiting_opl_runtime_owner_route", "source": "progress_projection"},
+                "scope": "quest",
+                "severity": "study",
+                "reason": "quest_waiting_opl_runtime_owner_route",
+                "recommended_actions": ["run_quality_repair_batch"],
+                "evidence_refs": [publication_eval_ref["artifact_path"]],
+                "runtime_context_refs": {},
+                "summary_ref": runtime_escalation_ref["summary_ref"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    write_text(
+        controller_decision_path,
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_id": "stale-publication-gate-recheck",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "emitted_at": "2026-05-20T16:24:17+00:00",
+                "decision_type": "route_back_same_line",
+                "charter_ref": charter_ref,
+                "runtime_escalation_ref": runtime_escalation_ref,
+                "publication_eval_ref": publication_eval_ref,
+                "requires_human_confirmation": False,
+                "controller_actions": [
+                    {"action_type": "run_gate_clearing_batch", "payload_ref": str(controller_decision_path)}
+                ],
+                "reason": "Stale gate recheck must not authorize the next runtime turn.",
+                "route_target": "review",
+                "route_key_question": "Recheck publication gate.",
+                "route_rationale": "Old gate lifecycle route.",
+                "work_unit_fingerprint": "publication-gate-recheck::stale",
+                "next_work_unit": {
+                    "unit_id": "publication_gate_recheck",
+                    "lane": "review",
+                    "summary": "Replay stale publication gate.",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    fresh_next_work_unit = {
+        "unit_id": "medical_prose_write_repair",
+        "lane": "write",
+        "summary": "Revise the manuscript to medical journal prose standards.",
+    }
+    stale_tick_request = {
+        "study_root": study_root,
+        "charter_ref": charter_ref,
+        "publication_eval_ref": publication_eval_ref,
+        "decision_type": "route_back_same_line",
+        "route_target": "review",
+        "route_key_question": "Recheck publication gate.",
+        "route_rationale": "Old gate lifecycle route.",
+        "source_route_key_question": None,
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {"action_type": "run_gate_clearing_batch", "payload_ref": str(controller_decision_path)}
+        ],
+        "reason": "Old gate lifecycle route.",
+        "work_unit_fingerprint": "publication-gate-recheck::stale",
+        "next_work_unit": {
+            "unit_id": "publication_gate_recheck",
+            "lane": "review",
+            "summary": "Replay stale publication gate.",
+        },
+        "blocking_work_units": [{"unit_id": "publication_gate_recheck", "lane": "review"}],
+    }
+    materialized_calls: list[dict[str, object]] = []
+
+    def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:
+        materialized_calls.append(dict(kwargs))
+        write_text(
+            controller_decision_path,
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "decision_id": "fresh-domain-transition-write-routeback",
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "emitted_at": "2026-05-21T16:28:06+00:00",
+                    "decision_type": kwargs["decision_type"],
+                    "charter_ref": kwargs["charter_ref"],
+                    "runtime_escalation_ref": runtime_escalation_ref,
+                    "publication_eval_ref": kwargs["publication_eval_ref"],
+                    "requires_human_confirmation": False,
+                    "controller_actions": kwargs["controller_actions"],
+                    "reason": kwargs["reason"],
+                    "route_target": kwargs["route_target"],
+                    "route_key_question": kwargs["route_key_question"],
+                    "route_rationale": kwargs["route_rationale"],
+                    "work_unit_fingerprint": kwargs["work_unit_fingerprint"],
+                    "next_work_unit": kwargs["next_work_unit"],
+                    "blocking_work_units": kwargs["blocking_work_units"],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+        )
+        return {
+            "dispatch_status": "recorded_non_dispatching",
+            "study_decision_ref": {"artifact_path": str(controller_decision_path)},
+        }
+
+    status = module.ProgressProjectionStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": study_id, "auto_resume": True},
+            "quest_id": study_id,
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "waiting_for_user",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "next_work_unit": fresh_next_work_unit,
+                "controller_action": "ensure_study_runtime",
+                "owner": "write",
+            },
+            "runtime_escalation_ref": runtime_escalation_ref,
+        }
+    )
+    context = module._build_execution_context(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        source="test",
+    )
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: stale_tick_request)
+    monkeypatch.setattr(
+        outer_loop,
+        "materialize_non_dispatching_outer_loop_decision",
+        fake_materialize_non_dispatching_outer_loop_decision,
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+    decision = json.loads(controller_decision_path.read_text(encoding="utf-8"))
+
+    assert materialized_calls
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.BLOCKED
+    assert status.to_dict()["controller_decision_currentness"]["status"] == "materialized"
+    assert status.to_dict()["controller_decision_currentness"]["currentness_basis"] == "status_domain_transition"
+    assert status.to_dict()["controller_decision_authorization_owner_route_ref"]["work_unit_id"] == "medical_prose_write_repair"
+    assert decision["decision_id"] == "fresh-domain-transition-write-routeback"
+    assert decision["controller_actions"][0]["action_type"] == "run_quality_repair_batch"
+    assert decision["route_target"] == "write"
+    assert decision["work_unit_fingerprint"] == "domain-transition::route_back_same_line::medical_prose_write_repair"
+    assert decision["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
+
+
 @pytest.mark.parametrize(
     ("resume_reason",),
     [
