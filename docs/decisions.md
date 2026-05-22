@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：quality repair upstream work unit 不得在 gate result 缺 selected unit 时丢失
+
+- 决策：`quality_repair_batch` 已经通过 explicit `controller_route_context` 授权 upstream publishability repair work unit 时，`run_upstream_paper_repair_unit()` 的 work unit 选择必须先消费 `gate_clearing_result` 的 selected/current/explicit work unit；若 gate result 没有给出 selected upstream unit，则回退到当前 resolved route context 的 upstream work unit。
+- 决策：这条回退只适用于 `UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS`，例如 `medical_prose_write_repair`。它不授权 bundle、delivery、submission package、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 `current_package` 写入。
+- 理由：DM003 暴露出 `medical_prose_write_repair` 已由 AI reviewer / controller route 明确授权，但 gate-clearing batch 结果没有携带 `selected_publication_work_unit` 时，quality repair core 会把 upstream unit 解析为 `None`，随后只生成 `writer_worker_handoff`，没有 canonical `paper/draft.md` 或 `paper/build/review_manuscript.md` story-surface delta。`handoff_ready` 只能表示 writer dispatch ready，不能替代稿件增量。
+- 影响：该修复确保 owner route 已明确的 medical prose write repair 能在 MAS owner path 内物化 canonical manuscript story surface 或继续返回 typed blocker；论文是否达到 high-quality medical draft 仍由 AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-22：medical prose review request stale 时必须重建当前 request 而非复用旧评审
 
 - 决策：`return_to_ai_reviewer_workflow` 遇到 `medical_prose_review_request_digest_mismatch`、`medical_prose_review_live_manuscript_digest_mismatch` 等 prose currentness blocker 时，`domain-owner-action-dispatch` 必须先通过 MAS-owned `materialize_medical_prose_review_request()` 物化当前稿件 digest 对应的 `artifacts/publication_eval/medical_prose_review_request.json`，并在 owner result 中记录 `medical_prose_review_request_rehydrated`、`rehydrated_request_ref` 与 rehydrate receipt。

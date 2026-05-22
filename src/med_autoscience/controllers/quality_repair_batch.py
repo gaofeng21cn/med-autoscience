@@ -887,15 +887,20 @@ def run_quality_repair_batch(
         source=source,
         control_plane_route_context=resolved_route_context,
     )
+    upstream_work_unit_id = repair_execution_gate.selected_work_unit_id_from_gate_result(
+        gate_clearing_result,
+        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+    )
+    if upstream_work_unit_id is None:
+        route_work_unit_id = _route_context_work_unit_id(resolved_route_context)
+        if route_work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+            upstream_work_unit_id = route_work_unit_id
     upstream_unit_result = quality_repair_batch_upstream.run_upstream_paper_repair_unit(
         study_id=study_id,
         quest_id=quest_id,
         study_root=resolved_study_root,
         gate_report=gate_report,
-        work_unit_id=repair_execution_gate.selected_work_unit_id_from_gate_result(
-            gate_clearing_result,
-            upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
-        ),
+        work_unit_id=upstream_work_unit_id,
         source_eval_id=current_eval_id,
     )
     gate_clearing_result = repair_execution_gate.merge_upstream_unit_result(
