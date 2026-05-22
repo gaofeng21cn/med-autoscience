@@ -5,6 +5,8 @@ import importlib
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.test_quality_repair_batch_cases.upstream_paper_owner_surface import (
     _paper_write_supervisor_route_context,
@@ -710,9 +712,24 @@ def test_medical_prose_write_repair_uses_explicit_route_context_when_gate_result
     assert "recorded treatment-review gap" in story_text
 
 
-def test_dm002_same_line_publication_paper_repair_updates_external_validation_manuscript(
+@pytest.mark.parametrize(
+    ("work_unit_id", "work_unit_fingerprint"),
+    [
+        (
+            "dm002_same_line_publication_paper_repair",
+            "dm002_same_line_publication_paper_repair_20260521",
+        ),
+        (
+            "dm002_current_publication_hardening_after_ai_reviewer_eval",
+            "dm002_current_ai_reviewer_publication_hardening_live_draft_f93aae_20260522T203041Z",
+        ),
+    ],
+)
+def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
     monkeypatch: Any,
     tmp_path: Path,
+    work_unit_id: str,
+    work_unit_fingerprint: str,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
     profile = make_profile(tmp_path)
@@ -840,9 +857,9 @@ def test_dm002_same_line_publication_paper_repair_updates_external_validation_ma
             "action_type": "route_back_same_line",
             "route_target": "write",
             "route_key_question": "Repair current external-validation manuscript findings.",
-            "work_unit_fingerprint": "dm002_same_line_publication_paper_repair_20260521",
+            "work_unit_fingerprint": work_unit_fingerprint,
             "next_work_unit": {
-                "unit_id": "dm002_same_line_publication_paper_repair",
+                "unit_id": work_unit_id,
                 "lane": "write",
                 "summary": "Repair DM002 as a clean external-validation paper.",
             },
@@ -877,7 +894,7 @@ def test_dm002_same_line_publication_paper_repair_updates_external_validation_ma
             "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
             "selected_publication_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
             "explicit_publication_work_unit": {
-                "unit_id": "dm002_same_line_publication_paper_repair",
+                "unit_id": work_unit_id,
                 "lane": "write",
             },
             "gate_replay": {
@@ -892,10 +909,10 @@ def test_dm002_same_line_publication_paper_repair_updates_external_validation_ma
         "controller_route_context": {
             "control_surface": "quality_repair_batch",
             "controller_action_type": "run_quality_repair_batch",
-            "work_unit_id": "dm002_same_line_publication_paper_repair",
+            "work_unit_id": work_unit_id,
             "requires_human_confirmation": False,
             "source_eval_id": publication_eval_payload["eval_id"],
-            "work_unit_fingerprint": "dm002_same_line_publication_paper_repair_20260521",
+            "work_unit_fingerprint": work_unit_fingerprint,
         },
     }
 
@@ -912,7 +929,7 @@ def test_dm002_same_line_publication_paper_repair_updates_external_validation_ma
     assert result["status"] == "executed"
     assert "writer_worker_handoff" not in result
     evidence = result["repair_execution_evidence"]
-    assert evidence["repair_work_unit"]["unit_id"] == "dm002_same_line_publication_paper_repair"
+    assert evidence["repair_work_unit"]["unit_id"] == work_unit_id
     assert evidence["status"] == "progress_delta_candidate"
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_required"] is True
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is True

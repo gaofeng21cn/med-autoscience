@@ -939,6 +939,7 @@
 ## 2026-05-23：DM002 publication hardening write route 必须以稿件 story-surface delta 收口
 
 - 决策：`dm002_current_publication_hardening_after_ai_reviewer_eval` 属于 MAS write-owner story-surface work unit；`quality_repair_batch` / `paper_repair_execution_evidence` 必须要求 `paper/draft.md` 或 `paper/build/review_manuscript.md` 产生 canonical manuscript story-surface delta。只改 `claim_evidence_map`、`evidence_ledger`、`review_ledger`、display surface 或 controller evidence，不能关闭该 write route。
+- 决策：`dm002_current_publication_hardening_after_ai_reviewer_eval` 必须同时注册在 upstream publishability repair work-unit set 与 story-surface delta write-unit set。若只注册后者，`quality_repair_batch` 会把显式 DM002 hardening route 退回 generic `analysis_claim_evidence_repair`，从而只更新 ledger/display 并继续产生 `manuscript_story_surface_delta_missing` residue。
 - 决策：`default_executor_execution/latest.json` 对 `run_quality_repair_batch` 的 receipt consumption 必须匹配 owner route 的 required output。只有正文 story-surface delta、显式 `manuscript_story_surface_delta_missing` typed blocker，或 write-owner handoff 才能消费当前 route；ledger-only `ok/progress_delta_candidate` 不能把 `owner_route` 清空。
 - 理由：DM002 暴露出 `run_quality_repair_batch` 已改 claim/evidence/review ledgers，但没有更新正式稿件正文；旧 receipt consumer 把该 progress delta 当成同一路由完成，导致 `study-runtime-status` 仍 blocked 而 `owner-route-reconcile` action queue 为空。
 - 影响：后续医学论文硬化路线必须把“是否像高质量医学论文”的核心反馈落到 manuscript-native story surface 和 AI reviewer recheck，而不是让 evidence ledger delta、controller receipt 或 package/display materialization 伪装成正文质量完成。

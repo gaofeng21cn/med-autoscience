@@ -171,6 +171,115 @@ def test_dm002_publication_hardening_work_unit_requires_story_surface_delta(tmp_
     assert evidence["ai_reviewer_recheck_request_ref"] == str(ai_request.resolve())
 
 
+def test_dm002_publication_hardening_consumes_writer_story_delta_since_previous_blocker(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
+    study_root = tmp_path / "studies" / "002-dm"
+    draft = study_root / "paper" / "draft.md"
+    review_manuscript = study_root / "paper" / "build" / "review_manuscript.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    review_manuscript.parent.mkdir(parents=True, exist_ok=True)
+    old_text = "# External validation draft\n\nOlder reviewer-blocked story surface.\n"
+    draft.write_text(old_text, encoding="utf-8")
+    review_manuscript.write_text(old_text, encoding="utf-8")
+    old_refs = [
+        {
+            "path": str(path.resolve()),
+            "artifact_role": "canonical_manuscript_story_surface",
+            "fingerprint": {
+                "size": len(path.read_bytes()),
+                "content_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            },
+        }
+        for path in (draft, review_manuscript)
+    ]
+    current_text = "\n\n".join(
+        [
+            "# External validation of a China-derived diabetes mortality score in NHANES",
+            "## Abstract",
+            "A fixed China-derived mortality score was externally validated in NHANES adults with diagnosed diabetes.",
+            "## Introduction",
+            "External validation tests transportability before absolute-risk use.",
+            "## Methods",
+            "The model was transported without refitting or recalibration.",
+            "## Results",
+            "The score retained risk ordering but underestimated observed 5-year mortality.",
+            "## Discussion",
+            "The findings support recalibration and independent evaluation before use.",
+            "## Limitations",
+            "The NHANES analysis used complete cases and unweighted validation estimates.",
+            "## Conclusion",
+            "The fixed score should not be used for absolute-risk decisions without recalibration.",
+        ]
+    ) + "\n"
+    draft.write_text(current_text, encoding="utf-8")
+    review_manuscript.write_text(current_text, encoding="utf-8")
+    claim_map = _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
+    evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    gate_replay = _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-002"})
+    ai_request = _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {"request_id": "ai-reviewer-recheck::002"},
+    )
+
+    evidence = module.build_repair_execution_evidence(
+        study_id="002-dm",
+        quest_id="quest-002",
+        study_root=study_root,
+        repair_work_unit={
+            "unit_id": "dm002_current_publication_hardening_after_ai_reviewer_eval",
+            "owner": "quality_repair_batch",
+            "gate_replay_target": "publication_gate",
+        },
+        review_finding={"source_eval_id": "eval-002", "finding_id": "medical-prose", "severity": "must_fix"},
+        source_refs=[str(gate_replay)],
+        changed_artifact_refs=[
+            {"path": str(claim_map), "artifact_role": "claim_evidence_map"},
+            {"path": str(evidence_ledger), "artifact_role": "evidence_ledger"},
+            {"path": str(review_ledger), "artifact_role": "review_ledger"},
+        ],
+        revision_log_ref=str(review_ledger),
+        evidence_ledger_ref=str(evidence_ledger),
+        review_ledger_ref=str(review_ledger),
+        gate_replay_refs=[str(gate_replay)],
+        ai_reviewer_recheck_request_ref=str(ai_request),
+        previous_quality_repair_batch={
+            "source_eval_id": "eval-002",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+                "manuscript_surface_hygiene": {
+                    "surface_refs": old_refs,
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                },
+            },
+        },
+    )
+
+    assert evidence["status"] == "progress_delta_candidate"
+    assert evidence["progress_delta_candidate"] is True
+    assert "manuscript_story_surface_delta_missing" not in evidence["blockers"]
+    story_refs = evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"]
+    assert {Path(ref["path"]).relative_to(study_root).as_posix() for ref in story_refs} == {
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+    }
+    assert {ref["reason"] for ref in story_refs} == {"surface_changed_since_previous_blocked_batch"}
+
+
+def test_dm002_publication_hardening_work_unit_is_registered_as_upstream_repair() -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_work_units")
+
+    assert (
+        "dm002_current_publication_hardening_after_ai_reviewer_eval"
+        in module.UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+    )
+
+
 def test_medical_prose_currentness_delta_requires_synchronized_journal_story_surfaces(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
     study_root = tmp_path / "studies" / "003-dpcc"

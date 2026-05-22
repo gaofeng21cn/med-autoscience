@@ -14,6 +14,7 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_
 
 MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID = "medical_prose_write_repair"
 DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID = "dm002_same_line_publication_paper_repair"
+DM002_CURRENT_PUBLICATION_HARDENING_WORK_UNIT_ID = "dm002_current_publication_hardening_after_ai_reviewer_eval"
 MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
     Path("draft.md"),
     Path("build") / "review_manuscript.md",
@@ -63,7 +64,10 @@ def materialize_medical_prose_story_surfaces(
         return []
     if work_unit_id == MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
         manuscript = _medical_prose_manuscript_from_canonical_surfaces(paper_root=paper_root)
-    elif work_unit_id == DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID:
+    elif work_unit_id in {
+        DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID,
+        DM002_CURRENT_PUBLICATION_HARDENING_WORK_UNIT_ID,
+    }:
         manuscript = _dm002_external_validation_manuscript_from_canonical_surfaces(paper_root=paper_root)
     else:
         return []
