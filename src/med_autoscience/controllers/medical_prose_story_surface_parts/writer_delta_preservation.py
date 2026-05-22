@@ -41,7 +41,7 @@ def current_writer_story_delta_is_preservable(
 ) -> bool:
     if work_unit_id != medical_prose_write_repair_work_unit_id:
         return False
-    if not _previous_batch_blocks_same_story_surface_delta(
+    if not _previous_batch_can_anchor_writer_story_delta(
         previous_quality_repair_batch,
         source_eval_id=source_eval_id,
     ):
@@ -77,7 +77,7 @@ def current_writer_story_delta_is_preservable(
     return len(set(story_texts)) == 1 and _current_writer_story_delta_is_journal_routable(story_texts[0])
 
 
-def _previous_batch_blocks_same_story_surface_delta(
+def _previous_batch_can_anchor_writer_story_delta(
     previous_quality_repair_batch: Mapping[str, Any] | None,
     *,
     source_eval_id: str | None,
@@ -91,7 +91,10 @@ def _previous_batch_blocks_same_story_surface_delta(
         return True
     evidence = _mapping(payload.get("repair_execution_evidence"))
     if _text(evidence.get("status")) != "blocked":
-        return False
+        hygiene = _mapping(evidence.get("manuscript_surface_hygiene"))
+        return _text(evidence.get("status")) == "progress_delta_candidate" and hygiene.get(
+            "story_surface_delta_present"
+        ) is True
     return "manuscript_story_surface_delta_missing" in {
         _text(blocker) for blocker in evidence.get("blockers") or ()
     }

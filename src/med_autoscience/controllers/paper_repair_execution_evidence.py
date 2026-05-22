@@ -564,7 +564,7 @@ def _story_surface_currentness_delta_refs(
         or is_story_surface_delta_write_work_unit(work_unit_id)
     ):
         return []
-    if not _previous_batch_blocks_same_story_surface_delta(
+    if not _previous_batch_can_anchor_story_surface_delta(
         previous_quality_repair_batch,
         source_eval_id=source_eval_id,
     ):
@@ -626,7 +626,7 @@ def _story_surface_currentness_delta_refs(
     return refs
 
 
-def _previous_batch_blocks_same_story_surface_delta(
+def _previous_batch_can_anchor_story_surface_delta(
     previous_quality_repair_batch: Mapping[str, Any] | None,
     *,
     source_eval_id: str | None,
@@ -640,7 +640,10 @@ def _previous_batch_blocks_same_story_surface_delta(
         return True
     evidence = _mapping(payload.get("repair_execution_evidence"))
     if _text(evidence.get("status")) != "blocked":
-        return False
+        hygiene = _mapping(evidence.get("manuscript_surface_hygiene"))
+        return _text(evidence.get("status")) == "progress_delta_candidate" and hygiene.get(
+            "story_surface_delta_present"
+        ) is True
     blockers = {_text(blocker) for blocker in evidence.get("blockers") or ()}
     return "manuscript_story_surface_delta_missing" in blockers
 
