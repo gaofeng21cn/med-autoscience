@@ -9,7 +9,7 @@
 
 如果只想快速看当前真实起点与下一棒，可同时看：
 
-- [Real-Study Relaunch Verification](../../references/verification/real_study_relaunch_verification.md)
+- [Real-Study Relaunch Verification](./real_study_relaunch_verification.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
 - [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
 - [External Runtime Dependency Gate](../../policies/runtime-governance/external_runtime_dependency_gate.md)
@@ -53,7 +53,7 @@
   已完成并 absorbed 到 main
   - anchor-study relaunch
   - real-study relaunch and verify
-  - 当前 repo-tracked verification note：`../../references/verification/real_study_relaunch_verification.md`
+  - 当前 repo-tracked verification note：`./real_study_relaunch_verification.md`
   - 最新锚点：`001-dm-cvd-mortality-risk`
   - 已验证 managed entry / runtime watch / publication gate / study delivery sync；remaining blocker 已被收敛到 external workspace-side publication surface
 

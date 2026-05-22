@@ -46,7 +46,7 @@ active 文档不得继续追加历史增量长清单。若需要记录 proof、r
 - `docs/active/`：仍需要执行顺序、owner gate、当前差距或当前 owner plan 的文档。
 - `docs/runtime/`：runtime contract、control surface、projection、display、active design；它说明已经或正在变成 runtime/API/contract 的技术面。
 - `docs/delivery/`：manuscript、package、submission/export 和 medical-display delivery 支撑。
-- `docs/references/`：支撑参考、parity、integration、MDS 学习、verification ledger、mainline assessment。
+- `docs/references/`：支撑参考、parity、integration、MDS 学习和 mainline assessment；dated verification ledger 归 `docs/history/program/`。
 - `docs/policies/`：稳定内部规则和长期 workflow/governance policy。
 - `docs/history/program/`：旧 full record、closeout、activation package、dated recurring intake snapshot、process archive 和 superseded plan。
 

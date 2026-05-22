@@ -1,5 +1,10 @@
 # Plan Mode 完成性台账
 
+Owner: `MedAutoScience`
+Purpose: `historical_plan_completion_ledger`
+State: `history_provenance`
+Machine boundary: 本文是历史人工 closeout 台账，不是 current execution queue、quality gate、submission gate、runtime truth 或机器合同。当前状态、差距和执行顺序回到 `docs/status.md`、`docs/active/current-development-lines.md`、`docs/active/mas-ideal-state-gap-plan.md` 和 machine-readable contracts。
+
 本台账用于记录 Plan Mode 产生的实施计划是否真正完成。closeout 时必须逐项填写，不允许把“已规划”写成“已完成”。
 
 ## 必填字段

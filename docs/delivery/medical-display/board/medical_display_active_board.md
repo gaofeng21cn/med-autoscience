@@ -1,5 +1,10 @@
 # Medical Display Active Board
 
+Owner: `MedAutoScience`
+Purpose: `medical_display_active_round_board`
+State: `active_delivery_board`
+Machine boundary: 人读 board。模板真相、schema、renderer behavior、layout QC、artifact delivery、inventory counts 和 owner receipts 继续归对应 contracts、catalogs、runtime/controller surfaces、generated artifacts 和真实 workspace evidence。
+
 ## 文档定位
 
 这个文件是 medical display 主线当前唯一的 tracked active execution surface。
@@ -15,6 +20,8 @@
 这个文件取代了过去把项目本地 `.omx/`、`.codex/` 状态当作执行面的做法。
 
 `docs/history/omx/` 下的材料只保留为历史审计面，不再参与当前路由。
+
+本文件只保留当前唯一 owner round、phase、next baton、预期写集和最低退出条件。已 absorb round、旧 owner worktree 便签、完整命令流水、exemplar intake 细节和 capability ledger 进入 `docs/history/capabilities/medical-display/` 或 `docs/delivery/medical-display/provenance/`。
 
 ## 当前主线状态
 

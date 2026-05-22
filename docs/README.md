@@ -38,14 +38,14 @@ MAS repo source 只保存 locator、index、schema、receipt ref、restore/reten
 | [source](./source/README.md) | study workspace、source readiness、source truth consumption 与 external research intake。 |
 | [policies](./policies/README.md) | 稳定内部规则和长期运行边界。 |
 | [specs](./specs/README.md) | 当前仍有效的技术规格索引；旧 spec 需标清 active/history。 |
-| [references](./references/README.md) | 支撑参考、定位、集成说明、parity 材料和验证记录。 |
+| [references](./references/README.md) | 支撑参考、定位、集成说明和 parity 材料；dated verification ledger 归 history。 |
 | [history](./history/README.md) | dated snapshot、provenance、退役 board、归档计划和过程稿。 |
 
 这张表采用 OPL-family canonical docs taxonomy。旧 `program/` 与
 `capabilities/` 目录已物理退役；program-baton 内容进入 `active/`，
 medical-display 能力族进入 `delivery/medical-display/`。
 
-当前生命周期校准：`outer_loop_wakeup_and_decision_loop.md` 已从 active runtime/control 归档到 [history/runtime](./history/runtime/README.md)，只作 provenance。当前 control 语义从 [Study runtime control surface](./runtime/control/study_runtime_control_surface.md)、[Study runtime orchestration](./runtime/control/study_runtime_orchestration.md) 和 [Runtime event and outer-loop input contract](./runtime/contracts/runtime_event_and_outer_loop_input_contract.md) 读取。MAS local scheduler / LaunchAgent / legacy tick 已物理退役，只按 tombstone/provenance refs 理解，不写成 MAS 理想 runtime 常态。本轮 docs 生命周期治理 closeout 见 [Docs lifecycle governance closeout 2026-05-20](./history/program/docs_lifecycle_governance_closeout_2026_05_20.md)。
+当前生命周期校准：`outer_loop_wakeup_and_decision_loop.md` 已从 active runtime/control 归档到 [history/runtime](./history/runtime/README.md)，只作 provenance。当前 control 语义从 [Study runtime control surface](./runtime/control/study_runtime_control_surface.md)、[Study runtime orchestration](./runtime/control/study_runtime_orchestration.md) 和 [Runtime event and outer-loop input contract](./runtime/contracts/runtime_event_and_outer_loop_input_contract.md) 读取。MAS local scheduler / LaunchAgent / legacy tick 已物理退役，只按 tombstone/provenance refs 理解，不写成 MAS 理想 runtime 常态。`Plan Completion Ledger`、real-study verification note 和 docs lifecycle audit 这类 dated proof 已归 [history/program](./history/program/README.md)，不再由 `references` 承载。本轮 docs 生命周期治理 closeout 见 [Docs lifecycle governance closeout 2026-05-20](./history/program/docs_lifecycle_governance_closeout_2026_05_20.md)。
 
 ## 阅读规则
 

@@ -27,6 +27,8 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 
 历史 exemplar 和退役 brief 只保留 provenance；除非真实 MAS 论文需求通过 active board 重开，否则不作为当前 backlog。
 
+`board/medical_display_active_board.md` 只维护当前唯一 active round 与下一轮 reroute 边界。已吸收 round 的 owner note、完整命令流水、exemplar intake 细节和历史 capability ledger 进入 history/provenance，不继续堆在 board 中。
+
 ## Memory 边界
 
 医学展示有两层复用内容：

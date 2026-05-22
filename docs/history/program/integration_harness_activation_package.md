@@ -26,7 +26,7 @@
 
 - tranche start baseline commit：`f5e909b0f6db64489f63aa70f6e1bfe38ec362a6`
 - absorbed closeout commit：`70dc19fe4001b6eddda14e9b7a00e79a30d79ab1`
-- real-study verification note：[`../../references/verification/real_study_relaunch_verification.md`](../../references/verification/real_study_relaunch_verification.md)
+- real-study verification note：[`./real_study_relaunch_verification.md`](./real_study_relaunch_verification.md)
 
 因此，这份文档当前承担的是“已完成 activation package 的 repo-tracked closeout truth”，而不是“尚未 absorb 的 active tranche 说明”。
 
