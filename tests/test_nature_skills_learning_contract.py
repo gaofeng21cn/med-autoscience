@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from med_autoscience.stage_quality_contract import (
     JOURNAL_FAMILY_QUALITY_PACK_IDS,
+    STRONG_PROMOTION_EVIDENCE_KINDS,
     build_stage_quality_pack_contract,
 )
 
@@ -16,6 +17,7 @@ def test_nature_skills_learning_packs_are_not_authority_surfaces() -> None:
         forbidden = {item["authority_id"]: item for item in pack["forbidden_authority"]}
 
         assert clean_room["source_project"] == "nature-skills"
+        assert clean_room["status_signal_consumed_as"] == "upstream_readme_status_only_not_mas_authority"
         assert clean_room["vendor_dependency"] is False
         assert clean_room["runtime_dependency"] is False
         assert clean_room["default_skill_source"] is False
@@ -121,3 +123,36 @@ def test_journal_family_quality_pack_consumption_is_descriptor_only() -> None:
             assert field["field_id"]
             assert field["role"]
             assert field["required"] is True
+
+
+def test_nature_skills_status_pattern_becomes_contract_maturity_not_vendor_authority() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+    strong_evidence_kinds = set(STRONG_PROMOTION_EVIDENCE_KINDS)
+
+    for pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS:
+        pack = packs[pack_id]
+        promotion = pack["promotion_evidence"]
+
+        assert pack["maturity_status"] in {"beta_contract", "stable_contract"}
+        assert promotion["maturity_model"] == "mas_contract_maturity_not_vendor_skill_status"
+        assert promotion["upstream_status_signal"] == "draft_beta_stable_skill_status_pattern_learned"
+        assert promotion["stable_requires_strong_evidence"] is True
+        assert set(promotion["strong_evidence_kinds"]) == strong_evidence_kinds
+        assert promotion["may_authorize_publication_readiness"] is False
+        assert promotion["may_authorize_quality_verdict"] is False
+
+        evidence = promotion["evidence"]
+        assert evidence
+        assert all(item["evidence_kind"] not in {"docs_only", "ordinary_tests"} for item in evidence)
+        strong_evidence = [
+            item
+            for item in evidence
+            if item["strength"] == "strong" and item["evidence_kind"] in strong_evidence_kinds
+        ]
+
+        if pack["maturity_status"] == "stable_contract":
+            assert promotion["stable_strong_evidence_satisfied"] is True
+            assert strong_evidence
+        else:
+            assert promotion["stable_strong_evidence_satisfied"] is False
