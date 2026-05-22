@@ -10,6 +10,9 @@ from .manifest_rendering import (
     render_product_entry_status_markdown,
     render_skill_catalog_markdown,
 )
+from .manifest_shell_surfaces import (
+    _build_manifest_shell_surfaces,
+)
 
 def _module_reexport(module) -> None:
     names = getattr(module, "__all__", None) or vars(module).keys()
@@ -30,16 +33,6 @@ from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_contract
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
-
-
-def _inspection_package_operator_authority() -> dict[str, Any]:
-    return {
-        "authority": "human_inspection_only",
-        "can_write_current_package": False,
-        "can_write_submission_minimal": False,
-        "can_authorize_publication_quality": False,
-        "can_authorize_submission_readiness": False,
-    }
 
 
 def _build_product_positioning() -> dict[str, Any]:
@@ -146,178 +139,20 @@ def build_product_entry_manifest(
     profile_arg = _profile_arg(profile_ref)
     prefix = _command_prefix(profile_ref)
     workspace_root = str(profile.workspace_root)
-    progress_projection_command = _json_surface_command(
-        f"{prefix} study progress-projection --profile {profile_arg} --study-id <study_id>"
-    )
     action_catalog = _build_mas_action_catalog(profile_ref=profile_ref)
-
-    product_entry_shell = _build_shared_product_entry_shell_catalog(
-        _product_entry_shell_from_action_catalog(action_catalog)
+    manifest_shell_surfaces = _build_manifest_shell_surfaces(
+        prefix=prefix,
+        profile_arg=profile_arg,
+        action_catalog=action_catalog,
+        mainline_payload=mainline_payload,
+        mainline_snapshot=mainline_snapshot,
+        build_family_product_entry_orchestration=build_family_product_entry_orchestration,
     )
-    shared_handoff = _build_shared_handoff(
-        direct_entry_builder_command=(
-            f"{prefix} build-product-entry --profile {profile_arg} "
-            "--study-id <study_id> --entry-mode direct"
-        ),
-        opl_handoff_builder_command=(
-            f"{prefix} build-product-entry --profile {profile_arg} "
-            "--study-id <study_id> --entry-mode opl-handoff"
-        ),
-    )
-    operator_loop_actions = _build_shared_operator_loop_action_catalog({
-        "open_loop": {
-            "command": product_entry_shell["workspace_cockpit"]["command"],
-            "surface_kind": "workspace_cockpit",
-            "summary": "先进入当前 workspace 级用户 inbox。",
-            "requires": [],
-        },
-        "submit_task": {
-            "command": product_entry_shell["submit_study_task"]["command"],
-            "surface_kind": "study_task_intake",
-            "summary": "先把新的研究任务写成 durable study task intake。",
-            "requires": ["study_id", "task_intent"],
-        },
-        "continue_study": {
-            "command": product_entry_shell["launch_study"]["command"],
-            "surface_kind": "launch_study",
-            "summary": "创建或恢复某个 study runtime，并回到当前研究主线。",
-            "requires": ["study_id"],
-        },
-        "inspect_progress": {
-            "command": product_entry_shell["study_progress"]["command"],
-            "surface_kind": "study_progress",
-            "summary": "读取某个 study 的当前阶段、阻塞和监督 freshness。",
-            "requires": ["study_id"],
-        },
-        "export_inspection_package": {
-            "command": product_entry_shell["export_inspection_package"]["command"],
-            "surface_kind": "publication_inspection_package_export",
-            "summary": product_entry_shell["export_inspection_package"]["purpose"],
-            "requires": ["study_id"],
-            **_inspection_package_operator_authority(),
-        },
-    })
-    family_orchestration = build_family_product_entry_orchestration(
-        graph_id="mas_workspace_product_entry_study_runtime_graph",
-        target_domain_id=TARGET_DOMAIN_ID,
-        graph_kind="study_runtime_orchestration",
-        graph_version="2026-04-13",
-        nodes=[
-            {
-                "node_id": "step:open_product_entry",
-                "node_kind": "operator_step",
-                "title": "Open research product entry",
-                "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
-            },
-            {
-                "node_id": "step:submit_task",
-                "node_kind": "operator_step",
-                "title": "Write durable study task",
-                "surface_kind": "study_task_intake",
-                "produces_checkpoint": True,
-            },
-            {
-                "node_id": "step:continue_study",
-                "node_kind": "operator_step",
-                "title": "Continue or relaunch a study",
-                "surface_kind": "launch_study",
-                "produces_checkpoint": True,
-            },
-            {
-                "node_id": "step:inspect_progress",
-                "node_kind": "operator_step",
-                "title": "Inspect current study progress",
-                "surface_kind": "study_progress",
-                "produces_checkpoint": True,
-            },
-            {
-                "node_id": "step:export_inspection_package",
-                "node_kind": "operator_step",
-                "title": "Export human inspection package",
-                "surface_kind": "publication_inspection_package_export",
-                "produces_checkpoint": False,
-            },
-        ],
-        edges=[
-            {
-                "from": "step:open_product_entry",
-                "to": "step:submit_task",
-                "on": "new_task",
-            },
-            {
-                "from": "step:open_product_entry",
-                "to": "step:continue_study",
-                "on": "resume_study",
-            },
-            {
-                "from": "step:open_product_entry",
-                "to": "step:inspect_progress",
-                "on": "inspect_status",
-            },
-            {
-                "from": "step:submit_task",
-                "to": "step:continue_study",
-                "on": "task_written",
-            },
-            {
-                "from": "step:continue_study",
-                "to": "step:inspect_progress",
-                "on": "progress_refresh",
-            },
-            {
-                "from": "step:inspect_progress",
-                "to": "step:export_inspection_package",
-                "on": "human_style_review_requested",
-            },
-        ],
-        entry_nodes=["step:open_product_entry"],
-        exit_nodes=["step:continue_study", "step:inspect_progress", "step:export_inspection_package"],
-        human_gates=[
-            {
-                "gate_id": "study_user_decision_gate",
-                "trigger_nodes": ["step:continue_study"],
-                "blocking": True,
-            },
-            {
-                "gate_id": "publication_release_gate",
-                "trigger_nodes": ["step:inspect_progress"],
-                "blocking": True,
-            },
-        ],
-        checkpoint_nodes=[
-            "step:submit_task",
-            "step:continue_study",
-            "step:inspect_progress",
-        ],
-        human_gate_previews=[
-            {
-                "gate_id": "study_user_decision_gate",
-                "title": "Study user decision gate",
-            },
-            {
-                "gate_id": "publication_release_gate",
-                "title": "Publication release gate",
-            },
-        ],
-        resume_surface_kind="launch_study",
-        session_locator_field="study_id",
-        checkpoint_locator_field="controller_decision_path",
-        action_graph_ref={
-            "ref_kind": "json_pointer",
-            "ref": "/family_orchestration/action_graph",
-            "label": "mas family action graph",
-        },
-        event_envelope_surface={
-            "ref_kind": "workspace_locator",
-            "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
-            "label": "domain health diagnostic event companion",
-        },
-        checkpoint_lineage_surface={
-            "ref_kind": "workspace_locator",
-            "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
-            "label": "controller checkpoint lineage companion",
-        },
-    )
+    product_entry_shell = manifest_shell_surfaces["product_entry_shell"]
+    shared_handoff = manifest_shell_surfaces["shared_handoff"]
+    operator_loop_actions = manifest_shell_surfaces["operator_loop_actions"]
+    family_orchestration = manifest_shell_surfaces["family_orchestration"]
+    progress_projection_command = manifest_shell_surfaces["progress_projection_command"]
     product_entry_guardrails = _build_product_entry_guardrails(
         profile=profile,
         profile_ref=profile_ref,
@@ -333,106 +168,10 @@ def build_product_entry_manifest(
     phase4_backend_deconstruction = _build_phase4_backend_deconstruction()
     source_provenance = _build_source_provenance_refs_surface()
     phase5_platform_target = _build_phase5_platform_target()
-    product_entry_quickstart = _build_shared_product_entry_quickstart(
-        summary=(
-            "先从 product entry status 进入当前 research product entry，"
-            "需要新任务时先写 durable study task intake，再继续某个 study 或读取进度。"
-        ),
-        recommended_step_id="open_product_entry",
-        steps=[
-            {
-                "step_id": "open_product_entry",
-                "title": "打开 MAS 入口状态",
-                "command": product_entry_shell["product_entry_status"]["command"],
-                "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
-                "summary": product_entry_shell["product_entry_status"]["purpose"],
-                "requires": [],
-            },
-            {
-                "step_id": "submit_task",
-                "title": "给 study 下 durable 任务",
-                "command": product_entry_shell["submit_study_task"]["command"],
-                "surface_kind": "study_task_intake",
-                "summary": operator_loop_actions["submit_task"]["summary"],
-                "requires": list(operator_loop_actions["submit_task"]["requires"]),
-            },
-            {
-                "step_id": "continue_study",
-                "title": "启动或续跑 study",
-                "command": product_entry_shell["launch_study"]["command"],
-                "surface_kind": "launch_study",
-                "summary": operator_loop_actions["continue_study"]["summary"],
-                "requires": list(operator_loop_actions["continue_study"]["requires"]),
-            },
-            {
-                "step_id": "inspect_progress",
-                "title": "持续看研究进度",
-                "command": product_entry_shell["study_progress"]["command"],
-                "surface_kind": "study_progress",
-                "summary": operator_loop_actions["inspect_progress"]["summary"],
-                "requires": list(operator_loop_actions["inspect_progress"]["requires"]),
-            },
-            {
-                "step_id": "export_inspection_package",
-                "title": "导出人工检查包",
-                "command": product_entry_shell["export_inspection_package"]["command"],
-                "surface_kind": "publication_inspection_package_export",
-                "summary": operator_loop_actions["export_inspection_package"]["summary"],
-                "requires": list(operator_loop_actions["export_inspection_package"]["requires"]),
-            },
-        ],
-        resume_contract=dict(family_orchestration["resume_contract"]),
-        human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
-    )
-    product_entry_quickstart["steps"][-1].update(_inspection_package_operator_authority())
-    product_entry_start = _build_product_entry_start(
-        product_entry_shell=product_entry_shell,
-        operator_loop_actions=operator_loop_actions,
-        family_orchestration=family_orchestration,
-    )
-    product_entry_status_command = product_entry_shell["product_entry_status"]["command"]
-    product_entry_overview = {
-        "surface_kind": "product_entry_overview",
-        "summary": (
-            mainline_snapshot.get("current_stage_summary")
-            or mainline_snapshot.get("current_program_phase_summary")
-        ),
-        "product_entry_command": product_entry_status_command,
-        "entry_status_command": product_entry_status_command,
-        "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
-        "operator_loop_command": product_entry_shell["workspace_cockpit"]["command"],
-        "progress_surface": {
-            "surface_kind": "study_progress",
-            "command": product_entry_shell["study_progress"]["command"],
-            "step_id": "inspect_progress",
-        },
-        "resume_surface": _build_shared_product_entry_resume_surface(
-            command=product_entry_shell["launch_study"]["command"],
-            resume_contract=family_orchestration["resume_contract"],
-        ),
-        "recommended_step_id": product_entry_quickstart["recommended_step_id"],
-        "next_focus": list(mainline_snapshot.get("next_focus") or []),
-        "remaining_gaps_count": len(list(mainline_payload.get("remaining_gaps") or [])),
-        "human_gate_ids": list(product_entry_quickstart["human_gate_ids"]),
-    }
-    product_entry_readiness = _build_shared_product_entry_readiness(
-        verdict="runtime_ready_not_standalone_product",
-        usable_now=True,
-        good_to_use_now=False,
-        fully_automatic=False,
-        summary=(
-            "当前可以作为 research entry_status / CLI 主线使用，并通过稳定的 runtime 回路持续推进研究；"
-            "但还不是成熟的独立医学产品入口。"
-        ),
-        recommended_start_surface=PRODUCT_ENTRY_STATUS_KIND,
-        recommended_start_command=product_entry_shell["product_entry_status"]["command"],
-        recommended_loop_surface="workspace_cockpit",
-        recommended_loop_command=product_entry_shell["workspace_cockpit"]["command"],
-        blocking_gaps=[
-            "独立医学产品入口 / hosted product entry 仍未 landed。",
-            "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
-        ],
-    )
+    product_entry_quickstart = manifest_shell_surfaces["product_entry_quickstart"]
+    product_entry_start = manifest_shell_surfaces["product_entry_start"]
+    product_entry_overview = manifest_shell_surfaces["product_entry_overview"]
+    product_entry_readiness = manifest_shell_surfaces["product_entry_readiness"]
     managed_runtime_contract = _build_managed_runtime_contract(
         domain_owner=TARGET_DOMAIN_ID,
         executor_owner=CONTROLLED_BACKEND_EXECUTOR_OWNER,
@@ -449,16 +188,8 @@ def build_product_entry_manifest(
         "runtime_root": str(profile.runtime_root),
         "hermes_home_root": str(profile.hermes_home_root),
     }
-    product_entry_surface = _build_shared_product_entry_shell_linked_surface(
-        shell_key="product_entry_status",
-        shell_surface=product_entry_shell["product_entry_status"],
-        summary=product_entry_shell["product_entry_status"]["purpose"],
-    )
-    operator_loop_surface = _build_shared_product_entry_shell_linked_surface(
-        shell_key="workspace_cockpit",
-        shell_surface=product_entry_shell["workspace_cockpit"],
-        summary=product_entry_shell["workspace_cockpit"]["purpose"],
-    )
+    product_entry_surface = manifest_shell_surfaces["product_entry_surface"]
+    operator_loop_surface = manifest_shell_surfaces["operator_loop_surface"]
     repo_mainline = {
         "program_id": mainline_snapshot.get("program_id"),
         "current_stage_id": mainline_snapshot.get("current_stage_id"),
@@ -471,12 +202,7 @@ def build_product_entry_manifest(
     }
     single_project_boundary = dict(mainline_snapshot.get("single_project_boundary") or {})
     capability_owner_boundary = dict(mainline_snapshot.get("capability_owner_boundary") or {})
-    product_entry_status = {
-        "summary": mainline_snapshot.get("current_stage_summary")
-        or mainline_snapshot.get("current_program_phase_summary"),
-        "next_focus": list(mainline_snapshot.get("next_focus") or []),
-        "remaining_gaps_count": len(list(mainline_payload.get("remaining_gaps") or [])),
-    }
+    product_entry_status = manifest_shell_surfaces["product_entry_status"]
     runtime_inventory = _build_runtime_inventory_surface(
         profile=profile,
         runtime=runtime,
