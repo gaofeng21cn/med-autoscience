@@ -370,26 +370,20 @@ def _record_bound_medical_prose_review_currentness(
     record_payload: Mapping[str, Any],
     ref_bundle: Mapping[str, str],
 ) -> dict[str, Any]:
-    prose_ref = _text(ref_bundle.get("medical_prose_review"))
-    if not prose_ref:
-        raise ValueError("AI reviewer publication eval workflow missing medical_prose_review")
-    prose_path = _resolve_ref(study_root=study_root, ref=prose_ref)
-    prose_payload = _read_json(prose_path)
-    quality = _mapping(prose_payload.get("medical_journal_prose_quality"))
-    route_back = _mapping(quality.get("route_back_recommendation"))
-    provenance = _mapping(prose_payload.get("assessment_provenance"))
+    currentness = _medical_prose_review_currentness(
+        study_root=study_root,
+        record_payload=record_payload,
+        ref_bundle=ref_bundle,
+        workflow_currentness_mode=None,
+    )
+    route_back_required = currentness.get("route_back_required") is True or _record_routes_back_before_delivery(
+        record_payload
+    )
+    route_target = _text(currentness.get("route_target")) or _record_route_target(record_payload)
     return {
-        "status": "current",
-        "ref": str(prose_path),
-        "request_ref": _text(provenance.get("request_ref")),
-        "request_digest": _text(provenance.get("request_digest")),
-        "manuscript_ref": _text(provenance.get("manuscript_ref")) or _text(ref_bundle.get("manuscript")),
-        "manuscript_digest": _text(provenance.get("manuscript_digest")),
-        "prose_status": _text(quality.get("status")),
-        "overall_style_verdict": _text(quality.get("overall_style_verdict")),
-        "route_back_required": route_back.get("required") is True
-        or _record_routes_back_before_delivery(record_payload),
-        "route_target": _text(route_back.get("route_target")) or _record_route_target(record_payload),
+        **currentness,
+        "route_back_required": route_back_required,
+        "route_target": route_target,
         "authority_source_signature": "ai_reviewer_request_record",
     }
 

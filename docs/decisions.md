@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：request-bound AI reviewer 复评必须绑定 live manuscript digest 与 stale-request currentness proof
+
+- 决策：`request_bound_ai_reviewer_record` workflow 不得把既有 `medical_prose_review` record 直接标为 current；必须复用标准 medical prose currentness 校验，确认 request digest、manuscript ref、manuscript digest 与当前 live manuscript SHA-256 一致后，才允许物化 AI reviewer-backed `publication_eval/latest.json`。
+- 决策：当 stable AI reviewer request 因 `ai_reviewer_record_stale_after_current_manuscript` 或 `ai_reviewer_record_stale_after_unit_harmonized_rerun` 被阻断时，lifecycle 只能由新的 AI reviewer-owned publication eval 关闭；该 eval 必须在 `reviewer_operating_system.currentness_checks` 中覆盖每个 `required_currentness_refs`，并且 ref 指向的 live file digest 与 currentness proof 一致。story-provenance leakage blocker 继续不可由 eval 自动消费。
+- 理由：DM002 暴露出 stale medical prose review 可在 request-bound workflow 中绕过 live manuscript digest 校验，同时 lifecycle 对 stale-record blocker 一律不消费，导致系统既可能写出陈旧 AI reviewer eval，也可能在后续 owner-route 中空转。根因是 MAS AI reviewer currentness/read-model 合同缺口，不是 OPL queue/provider lifecycle，也不是单篇论文可手工修补的问题。
+- 影响：这是 MAS AI reviewer workflow 与 request lifecycle read-model 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。DM002 论文质量仍必须由更新后的 MAS owner/controller/runtime 正式推进，并以 AI reviewer-backed publication eval、write owner delta 与 publication gate 判定。
+
 ## 2026-05-22：AI reviewer record-production prompt 必须使用真实 request materializer CLI contract
 
 - 决策：runtime turn prompt 中 `produce_ai_reviewer_publication_eval_record_against_current_*` 的后续 materializer 命令必须调用 `domain-action-request-materialize --mode developer_apply_safe --apply`，不得在该 subcommand 上生成已不受支持的 `--action-types return_to_ai_reviewer_workflow` 参数。action-specific dispatch 继续由随后的 `domain-owner-action-dispatch --action-types return_to_ai_reviewer_workflow --mode developer_apply_safe --apply --managed-runtime-worker` 承接。

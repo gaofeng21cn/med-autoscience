@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 from med_autoscience.controllers.domain_action_requests import (
@@ -10,6 +11,10 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     project_ai_reviewer_request_lifecycle,
     read_ai_reviewer_request,
 )
+
+
+def _sha256_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def test_ai_reviewer_request_lifecycle_keeps_new_request_pending_until_eval_consumes_it(tmp_path) -> None:
@@ -246,3 +251,217 @@ def test_stale_record_lifecycle_stays_requested_despite_old_publication_eval_tim
     assert lifecycle["assessment_written"] is False
     assert lifecycle["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
     assert lifecycle["required_currentness_refs"] == [str(manuscript_path.resolve())]
+
+
+def test_stale_record_lifecycle_closes_when_ai_reviewer_eval_covers_current_manuscript(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    manuscript_path = study_root / "paper" / "draft.md"
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    manuscript_text = "# Draft\n\nCurrent manuscript after the old AI reviewer record.\n"
+    manuscript_path.parent.mkdir(parents=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    request_path.parent.mkdir(parents=True)
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface": "domain_action_request",
+                "created_at": "2026-05-21T20:00:00+00:00",
+                "request_kind": "return_to_ai_reviewer_workflow",
+                "request_owner": "ai_reviewer",
+                "request_lifecycle": {
+                    "state": "requested",
+                    "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                    "required_currentness_refs": [str(manuscript_path.resolve())],
+                },
+                "input_contract": {
+                    "required_refs": {
+                        "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+                        "evidence_ledger": {
+                            "path": str(study_root / "paper" / "evidence_ledger.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "review_ledger": {
+                            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "study_charter": {
+                            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "medical_manuscript_blueprint": {
+                            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "claim_evidence_map": {
+                            "path": str(study_root / "paper" / "claim_evidence_map.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "medical_prose_review": {
+                            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "publication_gate_projection": {
+                            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                    }
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    current_publication_eval = {
+        "eval_id": "publication-eval::002-risk::quest-002::2026-05-22T15:39:23+00:00::ai-reviewer",
+        "emitted_at": "2026-05-22T15:39:23+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": {
+            "clinical_significance": {},
+            "evidence_strength": {},
+            "novelty_positioning": {},
+            "medical_journal_prose_quality": {},
+            "human_review_readiness": {},
+        },
+        "future_facing_limitations_plan": [{"limitation": "current"}],
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": _sha256_text(manuscript_text),
+                    "request_digest": "sha256:" + "a" * 64,
+                }
+            }
+        },
+    }
+
+    lifecycle = project_ai_reviewer_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload=current_publication_eval,
+    )
+
+    assert lifecycle is not None
+    assert lifecycle["state"] == "assessment_written"
+    assert lifecycle["assessment_written"] is True
+
+
+def test_stale_record_lifecycle_stays_requested_when_currentness_digest_mismatches_live_manuscript(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    manuscript_path = study_root / "paper" / "draft.md"
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    manuscript_text = "# Draft\n\nCurrent manuscript after the old AI reviewer record.\n"
+    manuscript_path.parent.mkdir(parents=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    request_path.parent.mkdir(parents=True)
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface": "domain_action_request",
+                "created_at": "2026-05-21T20:00:00+00:00",
+                "request_kind": "return_to_ai_reviewer_workflow",
+                "request_owner": "ai_reviewer",
+                "request_lifecycle": {
+                    "state": "requested",
+                    "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                    "required_currentness_refs": [str(manuscript_path.resolve())],
+                },
+                "input_contract": {
+                    "required_refs": {
+                        "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+                        "evidence_ledger": {
+                            "path": str(study_root / "paper" / "evidence_ledger.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "review_ledger": {
+                            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "study_charter": {
+                            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "medical_manuscript_blueprint": {
+                            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "claim_evidence_map": {
+                            "path": str(study_root / "paper" / "claim_evidence_map.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "medical_prose_review": {
+                            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                        "publication_gate_projection": {
+                            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                            "present": True,
+                            "valid": True,
+                        },
+                    }
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    stale_publication_eval = {
+        "eval_id": "publication-eval::002-risk::quest-002::2026-05-22T15:39:23+00:00::ai-reviewer",
+        "emitted_at": "2026-05-22T15:39:23+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": {
+            "clinical_significance": {},
+            "evidence_strength": {},
+            "novelty_positioning": {},
+            "medical_journal_prose_quality": {},
+            "human_review_readiness": {},
+        },
+        "future_facing_limitations_plan": [{"limitation": "current"}],
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": "sha256:" + "0" * 64,
+                    "request_digest": "sha256:" + "a" * 64,
+                }
+            }
+        },
+    }
+
+    lifecycle = project_ai_reviewer_request_lifecycle(
+        study_root=study_root,
+        publication_eval_payload=stale_publication_eval,
+    )
+
+    assert lifecycle is not None
+    assert lifecycle["state"] == "requested"
+    assert lifecycle["assessment_written"] is False
