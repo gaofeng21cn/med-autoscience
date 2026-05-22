@@ -381,6 +381,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "code_paths": [
             "src/med_autoscience/controllers/progress_portal.py", "src/med_autoscience/controllers/progress_portal_parts/",
             "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
+            "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
+            "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
         ],
         "active_callers": ["progress portal CLI", "workspace cockpit", "product-entry manifest"],
         "active_caller_status": "opl_generated_workbench_surface_consumes_mas_domain_projection_refs",
@@ -389,6 +391,21 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "opl_expected_primitives": ["opl_generic_workbench", "opl_operator_attention_queue", "opl_route_decision_drilldown_shell"],
         "retained_domain_authority": ["study_progress_projection", "safe_action_refs"],
         "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
+        "latest_thinning_evidence": {
+            "status": "product_status_workbench_projection_assembly_split",
+            "extracted_paths": [
+                "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
+                "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
+            ],
+            "retained_entry_shells": [
+                "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
+                "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
+                "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py",
+            ],
+            "does_not_claim_physical_delete": True,
+            "does_not_claim_opl_default_caller": True,
+            "does_not_touch_publication_or_package_authority": True,
+        },
         "proof_refs": ["product_entry_manifest.functional_consumer_boundary.generated_surface_handoff", "sidecar_export.functional_consumer_boundary.generated_surface_handoff"],
     },
     {

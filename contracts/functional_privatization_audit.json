@@ -215,7 +215,9 @@
         "current_paths": [
           "src/med_autoscience/controllers/progress_portal.py",
           "src/med_autoscience/controllers/progress_portal_parts/",
-          "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
+          "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
+          "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
+          "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py"
         ],
         "current_role": "domain_projection_refs_for_opl_workbench",
         "delete_or_tombstone_after": [
@@ -233,17 +235,22 @@
           "tests/product_entry_cases/product_entry_supervision_and_boundary_cases.py"
         ],
         "latest_thinning_evidence": {
+          "does_not_claim_opl_default_caller": true,
           "does_not_claim_physical_delete": true,
-          "removed_legacy_aliases": [
-            "needs_physician_decision",
-            "legacy_needs_physician_decision_field",
-            "legacy_approval_gate_field",
-            "study_physician_decision_gate",
-            "study_needs_physician_decision"
+          "does_not_touch_publication_or_package_authority": true,
+          "extracted_paths": [
+            "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
+            "src/med_autoscience/controllers/product_entry_parts/attention_projection.py"
+          ],
+          "prior_thinning_status": "product_workbench_legacy_human_gate_alias_removed",
+          "retained_entry_shells": [
+            "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
+            "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
+            "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py"
           ],
           "retained_field": "needs_user_decision",
           "scope": "product_entry_workspace_cockpit_workbench_projection_shell",
-          "status": "product_workbench_legacy_human_gate_alias_removed"
+          "status": "product_status_workbench_projection_assembly_split"
         },
         "must_not_emit": [
           "generic_scheduler_owner",
@@ -1085,8 +1092,25 @@
         "code_paths": [
           "src/med_autoscience/controllers/progress_portal.py",
           "src/med_autoscience/controllers/progress_portal_parts/",
-          "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
+          "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
+          "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
+          "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py"
         ],
+        "latest_thinning_evidence": {
+          "does_not_claim_opl_default_caller": true,
+          "does_not_claim_physical_delete": true,
+          "does_not_touch_publication_or_package_authority": true,
+          "extracted_paths": [
+            "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
+            "src/med_autoscience/controllers/product_entry_parts/attention_projection.py"
+          ],
+          "retained_entry_shells": [
+            "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
+            "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
+            "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py"
+          ],
+          "status": "product_status_workbench_projection_assembly_split"
+        },
         "migration_action": "declare_workbench_projection_inputs_for_opl_app_generated_shell",
         "module_id": "workbench_portal_generic_shell",
         "opl_expected_primitives": [

@@ -6,6 +6,7 @@ import json
 from med_autoscience.controllers import autonomy_operating_system_program, control_intent
 from . import shared as _shared
 from . import program_surfaces as _program_surfaces
+from . import program_runtime_surfaces as _program_runtime_surfaces
 from . import workspace_surfaces as _workspace_surfaces
 from . import manifest_surfaces as _manifest_surfaces
 from med_autoscience.study_task_intake import task_intake_overrides_auto_manual_finish
@@ -19,6 +20,7 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_program_surfaces)
+_module_reexport(_program_runtime_surfaces)
 _module_reexport(_workspace_surfaces)
 _module_reexport(_manifest_surfaces)
 

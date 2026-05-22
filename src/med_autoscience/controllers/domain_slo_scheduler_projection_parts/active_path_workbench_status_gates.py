@@ -33,6 +33,8 @@ def build_workbench_status_active_path_gates(
                 "src/med_autoscience/controllers/progress_portal.py",
                 "src/med_autoscience/controllers/progress_portal_parts/",
                 "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
+                "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
+                "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
             ],
             "current_role": "domain_projection_refs_for_opl_workbench",
             "active_caller_status": "active_product_workbench_domain_projection_caller_present",
@@ -42,17 +44,22 @@ def build_workbench_status_active_path_gates(
             ),
             "domain_receipt_parity_status": "pending_domain_projection_receipt_ref_parity",
             "latest_thinning_evidence": {
-                "status": "product_workbench_legacy_human_gate_alias_removed",
-                "removed_legacy_aliases": [
-                    "needs_physician_decision",
-                    "legacy_needs_physician_decision_field",
-                    "legacy_approval_gate_field",
-                    "study_physician_decision_gate",
-                    "study_needs_physician_decision",
+                "status": "product_status_workbench_projection_assembly_split",
+                "prior_thinning_status": "product_workbench_legacy_human_gate_alias_removed",
+                "extracted_paths": [
+                    "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
+                    "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
+                ],
+                "retained_entry_shells": [
+                    "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
+                    "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
+                    "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py",
                 ],
                 "retained_field": "needs_user_decision",
                 "scope": "product_entry_workspace_cockpit_workbench_projection_shell",
                 "does_not_claim_physical_delete": True,
+                "does_not_claim_opl_default_caller": True,
+                "does_not_touch_publication_or_package_authority": True,
             },
             "active_caller_proof_refs": [
                 "physical_retirement_gate_matrix.retirement_candidates.workbench_shell",
