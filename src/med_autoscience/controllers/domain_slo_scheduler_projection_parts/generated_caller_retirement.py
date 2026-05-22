@@ -34,6 +34,53 @@ PHYSICAL_DELETE_REQUIRED_GATES = (
     "tombstone_refs_landed",
 )
 
+OPL_DEFAULT_CALLER_READINESS_COMMAND = (
+    "opl agents default-callers --agent mas=/Users/gaofeng/workspace/med-autoscience --json"
+)
+OPL_DEFAULT_CALLER_READINESS_SURFACE = "opl_agent_generated_default_caller_readiness_report"
+
+
+def build_opl_default_caller_readiness_evidence(*, replacement_owner: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_opl_default_caller_readiness_evidence",
+        "schema_version": 1,
+        "owner": replacement_owner,
+        "source_command": OPL_DEFAULT_CALLER_READINESS_COMMAND,
+        "source_surface_kind": OPL_DEFAULT_CALLER_READINESS_SURFACE,
+        "status": "ready_domain_evidence_required",
+        "default_caller_owner": replacement_owner,
+        "generated_default_caller_surface_count": 8,
+        "ready_surface_count": 8,
+        "blocked_surface_count": 0,
+        "structural_replacement_evidence_ready": True,
+        "replacement_parity": "ready",
+        "active_caller_cutover": "ready",
+        "domain_owner_receipt_or_typed_blocker": (
+            "required_from_mas_owner_before_physical_delete"
+        ),
+        "no_forbidden_write_proof": "required_before_physical_delete",
+        "tombstone_or_provenance_ref": "required_before_physical_delete",
+        "physical_delete_authorized": False,
+        "authority_boundary": {
+            "can_claim_domain_ready": False,
+            "can_claim_quality_verdict": False,
+            "can_claim_artifact_authority": False,
+            "can_claim_production_ready": False,
+            "can_authorize_physical_delete": False,
+            "mas_truth_verdict_artifact_and_owner_receipt_stay_in_mas": True,
+        },
+        "consumed_surface_ids": [
+            "cli",
+            "mcp",
+            "skill",
+            "product_entry",
+            "product_status",
+            "product_session",
+            "sidecar",
+            "workbench",
+        ],
+    }
+
 
 def _surface_boundary(
     *,
@@ -69,6 +116,9 @@ def build_generated_default_caller_boundary(
         "mas_handwritten_shell_expansion_allowed": False,
         "all_default_callers_migrated": True,
         "physical_delete_is_not_implied": True,
+        "opl_default_caller_readiness_evidence": build_opl_default_caller_readiness_evidence(
+            replacement_owner=replacement_owner,
+        ),
         "default_caller_surfaces": list(DEFAULT_CALLER_SURFACES),
         "allowed_mas_program_roles_after_cutover": list(ALLOWED_MAS_PROGRAM_ROLES_AFTER_CUTOVER),
         "surface_boundaries": [
@@ -156,6 +206,7 @@ def _not_ready_gate_results(
     return {
         "active_caller_count=0": False,
         "opl_replacement_parity": opl_replacement_parity,
+        "opl_default_caller_readiness": "ready_domain_evidence_required",
         "mas_owner_receipt_parity": mas_owner_receipt_parity,
         "focused_tests_green": "focused_lane_required",
         "tombstone_refs_landed": tombstone_refs_landed,
@@ -213,6 +264,10 @@ def build_physical_retirement_gate_matrix(
         "status": "physical_delete_blocked_until_all_gate_inputs_hold",
         "default_caller_owner": replacement_owner,
         "default_caller_boundary_ref": "functional_consumer_boundary.generated_default_caller_boundary",
+        "opl_default_caller_readiness_ref": (
+            "functional_consumer_boundary.generated_default_caller_boundary."
+            "opl_default_caller_readiness_evidence"
+        ),
         "physical_delete_requires_all_gates": list(PHYSICAL_DELETE_REQUIRED_GATES),
         "retirement_candidates": [
             _retirement_candidate(
@@ -226,7 +281,9 @@ def build_physical_retirement_gate_matrix(
                 retained_as="domain_receipt_adapter_or_standalone_diagnostic",
                 delete_gate_status="blocked_domain_receipt_adapter_active",
                 gate_results=_not_ready_gate_results(
-                    opl_replacement_parity="provider_attempt_queue_retry_parity_required",
+                    opl_replacement_parity=(
+                        "structural_default_caller_ready_provider_attempt_queue_retry_parity_required"
+                    ),
                     mas_owner_receipt_parity=(
                         "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
                     ),
@@ -248,7 +305,9 @@ def build_physical_retirement_gate_matrix(
                 retained_as="refs_only_lifecycle_sidecar_index",
                 delete_gate_status="blocked_refs_only_lifecycle_adapter_active",
                 gate_results=_not_ready_gate_results(
-                    opl_replacement_parity="opl_runtime_lifecycle_index_parity_required",
+                    opl_replacement_parity=(
+                        "structural_default_caller_ready_opl_lifecycle_index_parity_required"
+                    ),
                     mas_owner_receipt_parity="domain_owner_receipt_ref_parity_required",
                 ),
                 active_domain_or_diagnostic_callers=[
@@ -268,7 +327,9 @@ def build_physical_retirement_gate_matrix(
                 retained_as="domain_projection_refs_for_opl_workbench",
                 delete_gate_status="blocked_domain_projection_refs_active",
                 gate_results=_not_ready_gate_results(
-                    opl_replacement_parity="generated_workbench_default_required",
+                    opl_replacement_parity=(
+                        "structural_default_caller_ready_generated_workbench_default_required"
+                    ),
                     mas_owner_receipt_parity="domain_projection_receipt_refs_required",
                     tombstone_refs_landed="landed_for_retired_legacy_only",
                 ),
@@ -299,7 +360,9 @@ def build_physical_retirement_gate_matrix(
                 retained_as="domain_sidecar_dispatch_adapter",
                 delete_gate_status="blocked_domain_dispatch_adapter_active",
                 gate_results=_not_ready_gate_results(
-                    opl_replacement_parity="opl_generated_sidecar_default_required",
+                    opl_replacement_parity=(
+                        "structural_default_caller_ready_opl_generated_sidecar_default_required"
+                    ),
                     mas_owner_receipt_parity=(
                         "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
                     ),
@@ -350,7 +413,9 @@ def build_physical_retirement_gate_matrix(
                 retained_as="domain_truth_status_projection",
                 delete_gate_status="blocked_domain_truth_status_projection_active",
                 gate_results=_not_ready_gate_results(
-                    opl_replacement_parity="opl_generated_status_default_required",
+                    opl_replacement_parity=(
+                        "structural_default_caller_ready_opl_generated_status_default_required"
+                    ),
                     mas_owner_receipt_parity="study_runtime_status_truth_refs_required",
                     tombstone_refs_landed="landed_for_retired_legacy_only",
                 ),
@@ -384,5 +449,6 @@ __all__ = [
     "DEFAULT_CALLER_SURFACES",
     "PHYSICAL_DELETE_REQUIRED_GATES",
     "build_generated_default_caller_boundary",
+    "build_opl_default_caller_readiness_evidence",
     "build_physical_retirement_gate_matrix",
 ]

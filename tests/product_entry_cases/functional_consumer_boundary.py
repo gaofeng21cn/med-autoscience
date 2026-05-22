@@ -101,6 +101,17 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert generated_default["mas_handwritten_shell_expansion_allowed"] is False
     assert generated_default["all_default_callers_migrated"] is True
     assert generated_default["physical_delete_is_not_implied"] is True
+    readiness = generated_default["opl_default_caller_readiness_evidence"]
+    assert readiness["surface_kind"] == "mas_opl_default_caller_readiness_evidence"
+    assert readiness["source_surface_kind"] == "opl_agent_generated_default_caller_readiness_report"
+    assert readiness["status"] == "ready_domain_evidence_required"
+    assert readiness["structural_replacement_evidence_ready"] is True
+    assert readiness["replacement_parity"] == "ready"
+    assert readiness["active_caller_cutover"] == "ready"
+    assert readiness["physical_delete_authorized"] is False
+    assert readiness["authority_boundary"]["can_claim_domain_ready"] is False
+    assert readiness["authority_boundary"]["can_claim_quality_verdict"] is False
+    assert readiness["authority_boundary"]["can_authorize_physical_delete"] is False
     assert generated_default["default_caller_surfaces"] == [
         "cli",
         "mcp",
@@ -519,6 +530,10 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert retirement_matrix["default_caller_boundary_ref"] == (
         "functional_consumer_boundary.generated_default_caller_boundary"
     )
+    assert retirement_matrix["opl_default_caller_readiness_ref"] == (
+        "functional_consumer_boundary.generated_default_caller_boundary."
+        "opl_default_caller_readiness_evidence"
+    )
     assert retirement_matrix["physical_delete_requires_all_gates"] == [
         "active_caller_count=0",
         "opl_replacement_parity",
@@ -554,6 +569,9 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         )
         assert candidate["no_active_caller_proof"]["physical_delete_allowed"] is False
         assert candidate["gate_results"]["active_caller_count=0"] is False
+        assert candidate["gate_results"]["opl_default_caller_readiness"] == (
+            "ready_domain_evidence_required"
+        )
         assert candidate["gate_results"]["focused_tests_green"] == "focused_lane_required"
         assert candidate["gate_results"]["tombstone_refs_landed"] in {
             "required_before_delete",
@@ -567,7 +585,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "refs_only_lifecycle_sidecar_index"
     )
     assert candidates["workbench_shell"]["gate_results"]["opl_replacement_parity"] == (
-        "generated_workbench_default_required"
+        "structural_default_caller_ready_generated_workbench_default_required"
     )
     assert candidates["sidecar_adapter"]["gate_results"]["mas_owner_receipt_parity"] == (
         "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"

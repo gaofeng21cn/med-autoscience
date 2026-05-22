@@ -1725,7 +1725,44 @@
           "target_role": "opl_generated_harness_consumer_over_mas_pack"
         }
       ],
-      "surface_kind": "mas_generated_default_caller_boundary"
+      "surface_kind": "mas_generated_default_caller_boundary",
+      "opl_default_caller_readiness_evidence": {
+        "surface_kind": "mas_opl_default_caller_readiness_evidence",
+        "schema_version": 1,
+        "owner": "one-person-lab",
+        "source_command": "opl agents default-callers --agent mas=/Users/gaofeng/workspace/med-autoscience --json",
+        "source_surface_kind": "opl_agent_generated_default_caller_readiness_report",
+        "status": "ready_domain_evidence_required",
+        "default_caller_owner": "one-person-lab",
+        "generated_default_caller_surface_count": 8,
+        "ready_surface_count": 8,
+        "blocked_surface_count": 0,
+        "structural_replacement_evidence_ready": true,
+        "replacement_parity": "ready",
+        "active_caller_cutover": "ready",
+        "domain_owner_receipt_or_typed_blocker": "required_from_mas_owner_before_physical_delete",
+        "no_forbidden_write_proof": "required_before_physical_delete",
+        "tombstone_or_provenance_ref": "required_before_physical_delete",
+        "physical_delete_authorized": false,
+        "authority_boundary": {
+          "can_claim_domain_ready": false,
+          "can_claim_quality_verdict": false,
+          "can_claim_artifact_authority": false,
+          "can_claim_production_ready": false,
+          "can_authorize_physical_delete": false,
+          "mas_truth_verdict_artifact_and_owner_receipt_stay_in_mas": true
+        },
+        "consumed_surface_ids": [
+          "cli",
+          "mcp",
+          "skill",
+          "product_entry",
+          "product_status",
+          "product_session",
+          "sidecar",
+          "workbench"
+        ]
+      }
     },
     "generated_surface_handoff": {
       "current_mas_role": "handwritten_migration_bridge",
@@ -2435,8 +2472,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
-            "opl_replacement_parity": "provider_attempt_queue_retry_parity_required",
-            "tombstone_refs_landed": "required_before_delete"
+            "opl_replacement_parity": "structural_default_caller_ready_provider_attempt_queue_retry_parity_required",
+            "tombstone_refs_landed": "required_before_delete",
+            "opl_default_caller_readiness": "ready_domain_evidence_required"
           },
           "no_active_caller_proof": {
             "default_callers": [],
@@ -2467,8 +2505,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "domain_owner_receipt_ref_parity_required",
-            "opl_replacement_parity": "opl_runtime_lifecycle_index_parity_required",
-            "tombstone_refs_landed": "required_before_delete"
+            "opl_replacement_parity": "structural_default_caller_ready_opl_lifecycle_index_parity_required",
+            "tombstone_refs_landed": "required_before_delete",
+            "opl_default_caller_readiness": "ready_domain_evidence_required"
           },
           "no_active_caller_proof": {
             "default_callers": [],
@@ -2499,8 +2538,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "domain_projection_receipt_refs_required",
-            "opl_replacement_parity": "generated_workbench_default_required",
-            "tombstone_refs_landed": "landed_for_retired_legacy_only"
+            "opl_replacement_parity": "structural_default_caller_ready_generated_workbench_default_required",
+            "tombstone_refs_landed": "landed_for_retired_legacy_only",
+            "opl_default_caller_readiness": "ready_domain_evidence_required"
           },
           "no_active_caller_proof": {
             "default_callers": [],
@@ -2532,8 +2572,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
-            "opl_replacement_parity": "opl_generated_sidecar_default_required",
-            "tombstone_refs_landed": "required_before_delete"
+            "opl_replacement_parity": "structural_default_caller_ready_opl_generated_sidecar_default_required",
+            "tombstone_refs_landed": "required_before_delete",
+            "opl_default_caller_readiness": "ready_domain_evidence_required"
           },
           "latest_thinning_evidence": {
             "does_not_claim_physical_delete": true,
@@ -2576,8 +2617,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "study_runtime_status_truth_refs_required",
-            "opl_replacement_parity": "opl_generated_status_default_required",
-            "tombstone_refs_landed": "landed_for_retired_legacy_only"
+            "opl_replacement_parity": "structural_default_caller_ready_opl_generated_status_default_required",
+            "tombstone_refs_landed": "landed_for_retired_legacy_only",
+            "opl_default_caller_readiness": "ready_domain_evidence_required"
           },
           "no_active_caller_proof": {
             "default_callers": [],
@@ -2591,7 +2633,8 @@
       ],
       "schema_version": 1,
       "status": "physical_delete_blocked_until_all_gate_inputs_hold",
-      "surface_kind": "mas_generated_caller_retirement_gate_matrix"
+      "surface_kind": "mas_generated_caller_retirement_gate_matrix",
+      "opl_default_caller_readiness_ref": "functional_consumer_boundary.generated_default_caller_boundary.opl_default_caller_readiness_evidence"
     },
     "physical_thinning_evidence": {
       "active_path_residue_cleanup_gates_ref": "functional_consumer_boundary.active_path_residue_cleanup_gates",
