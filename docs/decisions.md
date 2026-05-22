@@ -8,6 +8,13 @@
 - 理由：DM003 暴露出 owner-route reconcile 正确投影 `return_to_ai_reviewer_workflow`，materializer 也物化了 dispatch，但 dispatcher 只看 study-level `owner_route`，忽略 `action_queue[*].owner_route`，导致合法 AI reviewer workflow 被 `current_owner_route_missing` 阻断。同期 DM002 覆盖了相反形态：consumer inline 可能旧、persisted 文件可能新；DM003 又覆盖了 persisted 文件旧、consumer inline 新。共同根因是 dispatcher 按存储位置判断 currentness，而不是按当前 scan/owner-route 证据判断。
 - 影响：这是 MAS owner dispatch read-model/currentness 修复，不写任何 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只保证当前 owner-authorized action 能进入对应 owner callable；论文质量仍由 owner output、AI reviewer-backed publication eval 和 publication gate 判定。
 
+## 2026-05-22：AI reviewer stage-knowledge 缺 study reference context 时必须走 startup hydration 重建
+
+- 决策：`ensure-study-runtime` 在 `quest_waiting_opl_runtime_owner_route` blocked 状态下，若当前 AI reviewer request 的 `stage_knowledge_packet` 指向 `artifacts/stage_knowledge/review/latest.json` 且 `missing_reasons` 包含 `missing_ref:study_reference_context`，必须触发受控 startup hydration refresh，物化 `studies/<study_id>/artifacts/reference_context/latest.json`，再让后续 request materializer / AI reviewer workflow 重新生成 review stage knowledge。
+- 决策：该规则只覆盖 AI reviewer review-stage knowledge 的 study reference context 缺口；缺其他 refs、非 review stage、非 owner-route blocked 状态或普通 OPL/provider/queue 阻塞不触发 hydration 刷新。
+- 理由：DM002 暴露出旧 study 在引入 stage-knowledge contract 前已存在 quest 和 publication surfaces，但缺 study-owned reference context；`return_to_ai_reviewer_workflow` 因此生成 requested AI reviewer packet 后自标记 input contract missing，而 runtime blocked 分支不再运行 startup hydration，形成 owner-route 死锁。根因是 MAS 旧线重入 hydration/currentness 缺口，不是 OPL queue/provider lifecycle，也不是单篇 study 可手工 patch 的论文内容问题。
+- 影响：这是 MAS runtime/stage-knowledge owner path 修复。它只通过 startup hydration owner 重建 study reference context 与 quest hydration refs，不写 canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`；论文质量仍由 AI reviewer-backed publication eval、write owner delta 与 publication gate 判定。
+
 ## 2026-05-22：owner-route 必须清理已由当前 AI reviewer eval 关闭的 stale-record lifecycle
 
 - 决策：`owner-route-reconcile` 遇到旧 `ai_repair_lifecycle.blocked_reason=ai_reviewer_record_stale_after_current_manuscript` 或 `ai_reviewer_record_stale_after_unit_harmonized_rerun` 时，若当前 `publication_eval/latest.json` 已投影为 present 的 AI reviewer-owned assessment，必须把该旧 lifecycle 和 `why_not_applied` 一并清空，不得继续保留 `next_owner=ai_reviewer`、`allowed_actions=[]` 的死锁 read-model。

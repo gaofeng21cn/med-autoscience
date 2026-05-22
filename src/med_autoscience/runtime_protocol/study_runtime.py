@@ -453,14 +453,60 @@ def should_refresh_startup_hydration_while_blocked(status: dict[str, Any]) -> bo
     if status.get("decision") != "blocked" or not bool(status.get("quest_exists")):
         return False
     quest_status = str(status.get("quest_status") or "").strip()
-    if quest_status not in {"created", "idle", "paused"}:
-        return False
-    return str(status.get("reason") or "").strip() in {
+    reason = str(status.get("reason") or "").strip()
+    if quest_status in {"created", "idle", "paused"} and reason in {
         "startup_boundary_not_ready_for_resume",
         "runtime_reentry_not_ready_for_resume",
         "quest_paused_but_auto_resume_disabled",
         "quest_initialized_but_auto_resume_disabled",
+    }:
+        return True
+    if reason != "quest_waiting_opl_runtime_owner_route" or quest_status not in {"active", "running", "paused"}:
+        return False
+    return _ai_reviewer_stage_knowledge_requires_reference_context_refresh(status)
+
+
+def _ai_reviewer_stage_knowledge_requires_reference_context_refresh(status: dict[str, Any]) -> bool:
+    request = _mapping(status.get("ai_reviewer_request")) or _read_ai_reviewer_request_from_status(status)
+    if not request:
+        return False
+    input_contract = _mapping(request.get("input_contract"))
+    if input_contract.get("all_required_refs_present") is True:
+        return False
+    missing_or_invalid = _text_set(input_contract.get("missing_or_invalid_refs"))
+    if "stage_knowledge_packet" not in missing_or_invalid:
+        return False
+    stage_ref = _mapping(_mapping(input_contract.get("required_refs")).get("stage_knowledge_packet"))
+    ref = str(stage_ref.get("relative_path") or stage_ref.get("ref") or "").strip()
+    if ref and ref != "artifacts/stage_knowledge/review/latest.json":
+        return False
+    missing_reasons = {
+        *_text_set(stage_ref.get("missing_reasons")),
+        *_text_set(request.get("stage_knowledge_missing_reasons")),
     }
+    return "missing_ref:study_reference_context" in missing_reasons
+
+
+def _read_ai_reviewer_request_from_status(status: dict[str, Any]) -> dict[str, Any]:
+    study_root = str(status.get("study_root") or "").strip()
+    if not study_root:
+        return {}
+    path = Path(study_root).expanduser() / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, dict) else {}
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _text_set(value: object) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    return {text for item in value if (text := str(item or "").strip())}
 
 
 def write_startup_payload(

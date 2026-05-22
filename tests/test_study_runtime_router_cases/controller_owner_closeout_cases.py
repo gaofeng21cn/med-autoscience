@@ -249,6 +249,102 @@ def test_waiting_controller_colon_owner_closeout_resumes_after_explicit_user_wak
     assert handoff_record["handoff"]["queue_owner"] == "one-person-lab"
 
 
+def test_owner_route_ai_reviewer_reference_context_gap_refreshes_startup_hydration(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        quest_id=study_id,
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="External validation framing is fixed.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["Diabetes Research and Clinical Practice"],
+        minimum_sci_ready_evidence_package=["external_validation"],
+    )
+    quest_root = profile.runtime_root / study_id
+    write_text(quest_root / "quest.yaml", f"quest_id: {study_id}\nstudy_id: {study_id}\n")
+    write_text(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        json.dumps(
+            {
+                "input_contract": {
+                    "all_required_refs_present": False,
+                    "missing_or_invalid_refs": ["stage_knowledge_packet"],
+                    "required_refs": {
+                        "stage_knowledge_packet": {
+                            "relative_path": "artifacts/stage_knowledge/review/latest.json",
+                            "status": "missing",
+                            "missing_reasons": ["missing_ref:study_reference_context"],
+                        }
+                    },
+                },
+                "stage_knowledge_status": "missing",
+                "stage_knowledge_missing_reasons": ["missing_ref:study_reference_context"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    status = module.ProgressProjectionStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": study_id, "auto_resume": False},
+            "quest_id": study_id,
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "active",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+        }
+    )
+    context = module._build_execution_context(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        source="medautosci-test",
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: {
+            "ok": True,
+            "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract},
+        },
+        raising=False,
+    )
+
+    outcome = module._execute_blocked_refresh_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action == module.StudyRuntimeBindingAction.BLOCKED
+    assert status.extras["startup_hydration"]["status"] == "hydrated"
+    assert status.extras["startup_hydration_validation"]["status"] == "clear"
+    reference_context_path = study_root / "artifacts" / "reference_context" / "latest.json"
+    assert reference_context_path.is_file()
+    reference_context = json.loads(reference_context_path.read_text(encoding="utf-8"))
+    assert reference_context["record_count"] >= 1
+
+
 def test_waiting_source_provenance_owner_closeout_records_executable_owner_handoff(
     monkeypatch,
     tmp_path: Path,

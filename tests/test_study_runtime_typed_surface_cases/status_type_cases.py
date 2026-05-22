@@ -749,6 +749,38 @@ def test_progress_projection_detects_blocked_hydration_refresh_candidate() -> No
     status.set_decision("blocked", "workspace_contract_not_ready")
 
     assert status.should_refresh_startup_hydration_while_blocked() is False
+
+
+def test_progress_projection_detects_owner_route_ai_reviewer_reference_context_hydration_gap() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.ProgressProjectionStatus.from_payload(
+        make_status_payload(
+            execution={"quest_id": "quest-001", "auto_resume": False},
+            quest_status="active",
+            decision="blocked",
+            reason="quest_waiting_opl_runtime_owner_route",
+            ai_reviewer_request={
+                "input_contract": {
+                    "all_required_refs_present": False,
+                    "missing_or_invalid_refs": ["stage_knowledge_packet"],
+                    "required_refs": {
+                        "stage_knowledge_packet": {
+                            "surface": "stage_knowledge_packet",
+                            "relative_path": "artifacts/stage_knowledge/review/latest.json",
+                            "status": "missing",
+                            "missing_reasons": ["missing_ref:study_reference_context"],
+                        }
+                    },
+                },
+                "stage_knowledge_status": "missing",
+                "stage_knowledge_missing_reasons": ["missing_ref:study_reference_context"],
+            },
+        )
+    )
+
+    assert status.should_refresh_startup_hydration_while_blocked() is True
+
+
 def test_study_runtime_execution_outcome_rejects_unknown_binding_action() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
 
