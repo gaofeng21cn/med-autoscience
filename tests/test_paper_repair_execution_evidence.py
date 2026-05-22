@@ -393,8 +393,8 @@ def test_quality_repair_batch_consumes_manuscript_story_surface_currentness_delt
     assert draft.resolve() in changed_paths
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is True
     story_refs = evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"]
-    assert story_refs[0]["reason"] == "surface_newer_than_source_eval"
-    assert story_refs[0]["baseline_ref"] == str(source_eval.resolve())
+    assert story_refs[0]["reason"] == "surface_changed_since_previous_blocked_batch"
+    assert story_refs[0]["previous_surface_ref"] == str(draft.resolve())
     assert story_refs[0]["fingerprint"]["content_sha256"]
     assert evidence["evidence_ledger_ref"] == str(evidence_ledger.resolve())
     assert evidence["review_ledger_ref"] == str(review_ledger.resolve())
@@ -472,6 +472,91 @@ def test_quality_repair_batch_does_not_infer_story_delta_from_stale_manuscript_s
     assert result["writer_worker_handoff"]["next_executable_owner"] == "write"
     evidence = result["repair_execution_evidence"]
     assert evidence["progress_delta_candidate"] is False
+    assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False
+    assert evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"] == []
+
+
+def test_quality_repair_batch_does_not_infer_story_delta_from_unchanged_newer_surface(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    quality_module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_gap",
+    )
+    _write_blocked_publication_eval(study_root, quest_id="quest-003")
+    _write_quality_summary(study_root)
+    source_eval = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _set_mtime(source_eval, 1_700_000_000)
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text("Current DPCC manuscript story already newer than a stale eval.\n", encoding="utf-8")
+    _set_mtime(draft, 1_700_000_300)
+    claim_map = _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
+    evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {"request_id": "ai-reviewer-recheck::003"},
+    )
+    gate_result = {
+        "ok": True,
+        "status": "executed",
+        "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+        "selected_publication_work_unit": {
+            "unit_id": "medical_prose_write_repair",
+            "owner": "quality_repair_batch",
+            "gate_replay_target": "publication_gate",
+        },
+        "gate_replay": {
+            "status": "blocked",
+            "report_json": str(source_eval),
+        },
+        "unit_results": [
+            {
+                "unit_id": "medical_prose_write_repair",
+                "status": "updated",
+                "result": {
+                    "changed_artifact_refs": [
+                        {"path": str(claim_map), "artifact_role": "claim_evidence_map"},
+                        {"path": str(evidence_ledger), "artifact_role": "evidence_ledger"},
+                        {"path": str(review_ledger), "artifact_role": "review_ledger"},
+                    ],
+                },
+            }
+        ],
+    }
+    monkeypatch.setattr(quality_module.gate_clearing_batch, "run_gate_clearing_batch", lambda **_: gate_result)
+
+    first_result = quality_module.run_quality_repair_batch(
+        profile=profile,
+        study_id="003-dpcc",
+        study_root=study_root,
+        quest_id="quest-003",
+        source="test-source",
+    )
+    assert first_result["status"] == "handoff_ready"
+    assert first_result["next_owner"] == "write"
+
+    second_result = quality_module.run_quality_repair_batch(
+        profile=profile,
+        study_id="003-dpcc",
+        study_root=study_root,
+        quest_id="quest-003",
+        source="test-source",
+    )
+
+    assert second_result["status"] == "handoff_ready"
+    evidence = second_result["repair_execution_evidence"]
+    assert evidence["status"] == "blocked"
+    assert evidence["progress_delta_candidate"] is False
+    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
+    assert "manuscript_story_surface_delta_missing" in evidence["blockers"]
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"] == []
 

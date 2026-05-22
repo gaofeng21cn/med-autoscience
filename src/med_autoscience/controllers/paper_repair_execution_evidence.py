@@ -452,6 +452,7 @@ def _manuscript_surface_hygiene(
             "required": False,
             "status": "not_applicable",
             "surfaces": [],
+            "surface_refs": [],
             "hits": [],
             "blockers": [],
             "story_surface_delta_required": False,
@@ -473,6 +474,7 @@ def _manuscript_surface_hygiene(
         "required": True,
         "status": "blocked" if blockers else "clear",
         "surfaces": [str(path.resolve()) for path in surfaces],
+        "surface_refs": _manuscript_story_surface_refs(surfaces),
         "hits": hits,
         "blockers": blockers,
         "story_surface_delta_required": story_surface_delta_required,
@@ -488,6 +490,22 @@ def _existing_manuscript_story_surfaces(*, study_root: Path) -> list[Path]:
         if path.exists() and path.is_file():
             surfaces.append(path)
     return surfaces
+
+
+def _manuscript_story_surface_refs(surfaces: Iterable[Path]) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    for surface in surfaces:
+        fingerprint = _path_fingerprint(surface)
+        if fingerprint is None:
+            continue
+        refs.append(
+            {
+                "path": str(surface.resolve()),
+                "artifact_role": "canonical_manuscript_story_surface",
+                "fingerprint": fingerprint,
+            }
+        )
+    return refs
 
 
 def _story_surface_delta_refs(
@@ -520,6 +538,7 @@ def _story_surface_currentness_delta_refs(
     source_eval_id: str | None,
     previous_quality_repair_batch: Mapping[str, Any] | None,
 ) -> list[dict[str, Any]]:
+    del source_refs
     if work_unit_id not in _MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS:
         return []
     if not _previous_batch_blocks_same_story_surface_delta(
@@ -529,17 +548,17 @@ def _story_surface_currentness_delta_refs(
         return []
     if _story_surface_delta_refs(study_root=study_root, changed_artifact_refs=changed_artifact_refs):
         return []
-    baseline_ref = _previous_batch_source_eval_ref(
+    previous_surface_refs = _previous_batch_story_surface_refs(
         previous_quality_repair_batch,
         source_eval_id=source_eval_id,
-    ) or _first_existing_file_ref(source_refs)
-    if baseline_ref is None:
+    )
+    if not previous_surface_refs:
         return []
-    baseline_path = Path(baseline_ref).expanduser().resolve()
-    try:
-        baseline_mtime_ns = baseline_path.stat().st_mtime_ns
-    except OSError:
-        return []
+    previous_by_path = {
+        _text(ref.get("path")): ref
+        for ref in previous_surface_refs
+        if isinstance(ref, Mapping) and _text(ref.get("path")) is not None
+    }
     refs: list[dict[str, Any]] = []
     seen = {
         _text(ref.get("path"))
@@ -547,26 +566,27 @@ def _story_surface_currentness_delta_refs(
         if isinstance(ref, Mapping)
     }
     for surface in _existing_manuscript_story_surfaces(study_root=study_root):
-        try:
-            surface_mtime_ns = surface.stat().st_mtime_ns
-        except OSError:
-            continue
-        if surface_mtime_ns <= baseline_mtime_ns:
-            continue
         resolved = str(surface.resolve())
         if resolved in seen:
             continue
         fingerprint = _path_fingerprint(surface)
         if fingerprint is None:
             continue
+        previous_ref = previous_by_path.get(resolved)
+        previous_fingerprint = _mapping(previous_ref.get("fingerprint")) if previous_ref else {}
+        if previous_ref is not None and previous_fingerprint == fingerprint:
+            continue
         refs.append(
             {
                 "path": resolved,
                 "artifact_role": "canonical_manuscript_story_surface",
-                "reason": "surface_newer_than_source_eval",
-                "baseline_ref": str(baseline_path),
-                "surface_mtime_ns": surface_mtime_ns,
-                "baseline_mtime_ns": baseline_mtime_ns,
+                "reason": (
+                    "surface_changed_since_previous_blocked_batch"
+                    if previous_ref is not None
+                    else "surface_added_since_previous_blocked_batch"
+                ),
+                **({"previous_surface_ref": resolved} if previous_ref is not None else {}),
+                **({"previous_fingerprint": previous_fingerprint} if previous_fingerprint else {}),
                 "fingerprint": fingerprint,
             }
         )
@@ -592,33 +612,20 @@ def _previous_batch_blocks_same_story_surface_delta(
     return "manuscript_story_surface_delta_missing" in blockers
 
 
-def _previous_batch_source_eval_ref(
+def _previous_batch_story_surface_refs(
     previous_quality_repair_batch: Mapping[str, Any] | None,
     *,
     source_eval_id: str | None,
-) -> str | None:
+) -> list[Mapping[str, Any]]:
     payload = _mapping(previous_quality_repair_batch)
     if not payload or _text(payload.get("source_eval_id")) != source_eval_id:
-        return None
-    ref = _text(payload.get("source_eval_artifact_path"))
-    if ref is None:
-        return None
-    path = Path(ref).expanduser()
-    if not path.exists() or not path.is_file():
-        return None
-    return str(path.resolve())
-
-
-def _first_existing_file_ref(refs: Iterable[str]) -> str | None:
-    for ref in refs:
-        text = _text(ref)
-        if text is None:
-            continue
-        path = Path(text).expanduser()
-        if not path.exists() or not path.is_file():
-            continue
-        return str(path.resolve())
-    return None
+        return []
+    evidence = _mapping(payload.get("repair_execution_evidence"))
+    hygiene = _mapping(evidence.get("manuscript_surface_hygiene"))
+    refs = hygiene.get("surface_refs")
+    if not isinstance(refs, list):
+        return []
+    return [ref for ref in refs if isinstance(ref, Mapping)]
 
 
 def _manuscript_surface_residue_hits(surfaces: Iterable[Path]) -> list[dict[str, Any]]:
