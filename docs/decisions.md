@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：default-executor handoff export 必须携带 owner-currentness refs
+
+- 决策：`domain_owner/default-executor-dispatch` pending family task 不得只凭 `dispatch_status=ready` 暴露给 OPL。导出的 task 必须 refs-only 携带 `default_executor_dispatch_request`、`default_executor_prompt_contract`、`mas_default_executor_owner_receipt_contract`、`owner_route_currentness_basis`，并投影 dispatch refs / owner-route refs 中可验证的 currentness basis，例如 `source_eval_path`、`repair_execution_evidence_path`、`truth_epoch`、`runtime_health_epoch`、`work_unit_fingerprint`、`work_unit_id` 和 blocker reason。
+- 决策：缺 `prompt_contract.owner_route` / top-level `owner_route` 或缺 `refs.dispatch_path` 的 bare ready dispatch 不生成 pending family task。OPL 只能排队带当前 owner-route basis 的 writer handoff；不能把裸 dispatch、旧 projection 或缺 currentness 的 request 当作可执行 writer attempt。
+- 理由：DM002/DM003 共同暴露出“handoff 看起来 ready，但未必绑定当前稿件、当前 reviewer/request、正确 owner 和可追踪 attempt”的顶层缺口。default-executor export 是 MAS -> OPL 的跨层入口，必须达到 guarded-apply 同级别的 owner-receipt / currentness refs 强度。
+- 影响：该变更只收紧 MAS sidecar export 的 refs-only contract；不内联医学内容，不启动 Codex，不写 OPL queue，不写 canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package` 或 submission package。
+
 ## 2026-05-22：quality repair upstream work unit 不得在 gate result 缺 selected unit 时丢失
 
 - 决策：`quality_repair_batch` 已经通过 explicit `controller_route_context` 授权 upstream publishability repair work unit 时，`run_upstream_paper_repair_unit()` 的 work unit 选择必须先消费 `gate_clearing_result` 的 selected/current/explicit work unit；若 gate result 没有给出 selected upstream unit，则回退到当前 resolved route context 的 upstream work unit。

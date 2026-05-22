@@ -312,6 +312,22 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
             "executor_kind": "codex_cli_default",
             "consumer_mutation_scope": "executor_dispatch_request_only",
             "prompt_contract": {
+                "owner_route": {
+                    "surface": "domain_route_owner_route",
+                    "study_id": study_root.name,
+                    "quest_id": study_root.name,
+                    "truth_epoch": "publication-eval::002::current",
+                    "runtime_health_epoch": "runtime-health-event-002",
+                    "work_unit_fingerprint": "medical-prose-routeback::write::fp",
+                    "source_fingerprint": "truth-snapshot::002",
+                    "current_owner": "quality_repair_batch",
+                    "next_owner": "write",
+                    "source_refs": {
+                        "source_eval_id": "publication-eval::002::current",
+                        "work_unit_id": "medical_prose_write_repair",
+                        "blocked_reason": "manuscript_story_surface_delta_missing",
+                    },
+                },
                 "allowed_write_surfaces": [
                     "paper/draft.md",
                     "paper/build/review_manuscript.md",
@@ -335,6 +351,9 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
             "refs": {
                 "dispatch_path": str(dispatch_path),
                 "source_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                "repair_execution_evidence_path": str(
+                    study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+                ),
             },
         },
     )
@@ -374,26 +393,102 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
         ),
         "authority_boundary": "mas_default_executor_dispatch_request_only",
     }
-    assert task["source_refs"] == [
+    source_refs = task["source_refs"]
+    source_refs_by_role = {ref["role"]: ref for ref in source_refs}
+    assert source_refs_by_role["default_executor_dispatch_request"] == {
+        "role": "default_executor_dispatch_request",
+        "ref": (
+            "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+            "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+        ),
+        "exists": True,
+        "body_included": False,
+    }
+    assert source_refs_by_role["default_executor_prompt_contract"] == {
+        "role": "default_executor_prompt_contract",
+        "ref": (
+            "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+            "consumer/default_executor_dispatches/run_quality_repair_batch.json#prompt_contract"
+        ),
+        "exists": True,
+        "body_included": False,
+    }
+    assert source_refs_by_role["mas_default_executor_owner_receipt_contract"] == {
+        "role": "mas_default_executor_owner_receipt_contract",
+        "ref": "mas-default-executor-owner-receipt.v1",
+        "exists": True,
+        "body_included": False,
+    }
+    assert source_refs_by_role["owner_route_currentness_basis"] == {
+        "role": "owner_route_currentness_basis",
+        "ref": (
+            "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+            "consumer/default_executor_dispatches/run_quality_repair_batch.json#owner_route"
+        ),
+        "exists": True,
+        "body_included": False,
+    }
+    source_ref_roles = {ref["role"] for ref in source_refs}
+    assert {
+        "default_executor_dispatch_path",
+        "source_publication_eval_currentness",
+        "repair_execution_evidence_currentness",
+        "owner_route_truth_epoch",
+        "owner_route_work_unit_fingerprint",
+        "owner_route_source_eval_id",
+        "owner_route_runtime_health_epoch",
+        "owner_route_work_unit_id",
+        "owner_route_blocked_reason",
+    } <= source_ref_roles
+
+
+def test_sidecar_export_skips_bare_default_executor_dispatch_without_owner_currentness(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        dispatch_path,
         {
-            "role": "default_executor_dispatch_request",
-            "ref": (
-                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
-            ),
-            "exists": True,
-            "body_included": False,
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "quest_id": study_root.name,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "next_executable_owner": "write",
+            "executor_kind": "codex_cli_default",
+            "prompt_contract": {
+                "allowed_write_surfaces": ["paper/draft.md"],
+                "forbidden_surfaces": ["artifacts/publication_eval/latest.json"],
+            },
+            "refs": {
+                "source_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            },
         },
-        {
-            "role": "default_executor_prompt_contract",
-            "ref": (
-                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
-                "consumer/default_executor_dispatches/run_quality_repair_batch.json#prompt_contract"
-            ),
-            "exists": True,
-            "body_included": False,
-        },
-    ]
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ] == []
 
 
 def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path: Path, capsys) -> None:

@@ -13,6 +13,7 @@ DISPATCH_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_d
 REQUIRED_SURFACE = "default_executor_dispatch_request"
 REQUIRED_EXECUTOR_KIND = "codex_cli_default"
 REQUIRED_NEXT_OWNER = "write"
+OWNER_RECEIPT_CONTRACT = "mas-default-executor-owner-receipt.v1"
 
 
 def default_executor_dispatch_tasks(
@@ -35,6 +36,12 @@ def default_executor_dispatch_tasks(
         dispatch_authority = _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch"
         dispatch_ref = _workspace_relative(dispatch_path, workspace_root=profile.workspace_root)
         prompt_contract_ref = f"{dispatch_ref}#prompt_contract"
+        source_refs = _source_refs(
+            dispatch=dispatch,
+            dispatch_ref=dispatch_ref,
+            prompt_contract_ref=prompt_contract_ref,
+            workspace_root=profile.workspace_root,
+        )
         quest_id = _text(dispatch.get("quest_id")) or study_id
         next_owner = _text(dispatch.get("next_executable_owner")) or REQUIRED_NEXT_OWNER
         executor_kind = _text(dispatch.get("executor_kind")) or REQUIRED_EXECUTOR_KIND
@@ -62,20 +69,7 @@ def default_executor_dispatch_tasks(
                     "dispatch_ref": dispatch_ref,
                     "authority_boundary": "mas_default_executor_dispatch_request_only",
                 },
-                "source_refs": [
-                    {
-                        "role": "default_executor_dispatch_request",
-                        "ref": dispatch_ref,
-                        "exists": True,
-                        "body_included": False,
-                    },
-                    {
-                        "role": "default_executor_prompt_contract",
-                        "ref": prompt_contract_ref,
-                        "exists": True,
-                        "body_included": False,
-                    },
-                ],
+                "source_refs": source_refs,
                 "dispatch_owner": "one-person-lab",
                 "domain_truth_owner": "med-autoscience",
                 "queue_owner": "one-person-lab",
@@ -88,12 +82,139 @@ def default_executor_dispatch_tasks(
 def _dispatch_ready_for_opl_attempt(dispatch: Mapping[str, Any] | None) -> bool:
     if dispatch is None:
         return False
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    refs = _mapping(dispatch.get("refs"))
     return (
         _text(dispatch.get("surface")) == REQUIRED_SURFACE
         and _text(dispatch.get("dispatch_status")) == "ready"
         and _text(dispatch.get("executor_kind")) == REQUIRED_EXECUTOR_KIND
         and _text(dispatch.get("next_executable_owner")) == REQUIRED_NEXT_OWNER
+        and bool(owner_route)
+        and _text(refs.get("dispatch_path")) is not None
     )
+
+
+def _source_refs(
+    *,
+    dispatch: Mapping[str, Any],
+    dispatch_ref: str,
+    prompt_contract_ref: str,
+    workspace_root: Path,
+) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = [
+        {
+            "role": "default_executor_dispatch_request",
+            "ref": dispatch_ref,
+            "exists": True,
+            "body_included": False,
+        },
+        {
+            "role": "default_executor_prompt_contract",
+            "ref": prompt_contract_ref,
+            "exists": True,
+            "body_included": False,
+        },
+        {
+            "role": "mas_default_executor_owner_receipt_contract",
+            "ref": OWNER_RECEIPT_CONTRACT,
+            "exists": True,
+            "body_included": False,
+        },
+        {
+            "role": "owner_route_currentness_basis",
+            "ref": f"{dispatch_ref}#owner_route",
+            "exists": True,
+            "body_included": False,
+        },
+    ]
+    refs.extend(
+        _project_dispatch_refs(
+            refs=_mapping(dispatch.get("refs")),
+            workspace_root=workspace_root,
+        )
+    )
+    refs.extend(
+        _project_owner_route_refs(
+            owner_route=_mapping(dispatch.get("owner_route"))
+            or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route")),
+            workspace_root=workspace_root,
+        )
+    )
+    return refs
+
+
+def _project_dispatch_refs(*, refs: Mapping[str, Any], workspace_root: Path) -> list[dict[str, Any]]:
+    role_by_key = {
+        "dispatch_path": "default_executor_dispatch_path",
+        "source_eval_path": "source_publication_eval_currentness",
+        "source_summary_path": "quality_repair_source_summary",
+        "repair_execution_evidence_path": "repair_execution_evidence_currentness",
+        "scan_latest": "runtime_supervision_scan_currentness",
+    }
+    projected: list[dict[str, Any]] = []
+    for key, role in role_by_key.items():
+        ref = _ref_text(refs.get(key), workspace_root=workspace_root)
+        if ref is None:
+            continue
+        projected.append(
+            {
+                "role": role,
+                "ref": ref,
+                "exists": True,
+                "body_included": False,
+            }
+        )
+    return projected
+
+
+def _project_owner_route_refs(
+    *,
+    owner_route: Mapping[str, Any],
+    workspace_root: Path,
+) -> list[dict[str, Any]]:
+    route_role_by_key = {
+        "truth_epoch": "owner_route_truth_epoch",
+        "runtime_health_epoch": "owner_route_runtime_health_epoch",
+        "route_epoch": "owner_route_route_epoch",
+        "work_unit_fingerprint": "owner_route_work_unit_fingerprint",
+        "source_fingerprint": "owner_route_source_fingerprint",
+    }
+    source_refs = _mapping(owner_route.get("source_refs"))
+    source_role_by_key = {
+        "source_eval_id": "owner_route_source_eval_id",
+        "publication_eval_path": "owner_route_publication_eval_path",
+        "runtime_health_epoch": "owner_route_runtime_health_epoch",
+        "study_truth_epoch": "owner_route_study_truth_epoch",
+        "work_unit_id": "owner_route_work_unit_id",
+        "blocked_reason": "owner_route_blocked_reason",
+    }
+    projected: list[dict[str, Any]] = []
+    for key, role in route_role_by_key.items():
+        ref = _ref_text(owner_route.get(key), workspace_root=workspace_root)
+        if ref is None:
+            continue
+        projected.append(
+            {
+                "role": role,
+                "ref": ref,
+                "exists": True,
+                "body_included": False,
+            }
+        )
+    for key, role in source_role_by_key.items():
+        ref = _ref_text(source_refs.get(key), workspace_root=workspace_root)
+        if ref is None:
+            continue
+        projected.append(
+            {
+                "role": role,
+                "ref": ref,
+                "exists": True,
+                "body_included": False,
+            }
+        )
+    return projected
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:
@@ -109,6 +230,16 @@ def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
         return str(path.relative_to(workspace_root))
     except ValueError:
         return str(path)
+
+
+def _ref_text(value: object, *, workspace_root: Path) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    path = Path(text)
+    if path.is_absolute():
+        return _workspace_relative(path, workspace_root=workspace_root)
+    return text
 
 
 def _source_fingerprint(*, dispatch: Mapping[str, Any], dispatch_path: Path) -> str:
