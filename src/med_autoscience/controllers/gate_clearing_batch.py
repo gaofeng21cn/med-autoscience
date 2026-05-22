@@ -29,6 +29,7 @@ from med_autoscience.controllers import gate_clearing_batch_authority_redrive
 from med_autoscience.controllers import publication_shell_sync
 from med_autoscience.controllers.gate_clearing_batch_parts import display_refresh
 from med_autoscience.controllers.gate_clearing_batch_parts import batch_context
+from med_autoscience.controllers.gate_clearing_batch_parts import closed_batch
 from med_autoscience.controllers.gate_clearing_batch_parts import execution_helpers
 from med_autoscience.controllers.gate_clearing_batch_parts import io_utils
 from med_autoscience.controllers.gate_clearing_batch_parts import path_selection
@@ -249,22 +250,20 @@ def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
 
 
 def _gate_replay_report_payload(gate_replay: dict[str, Any]) -> dict[str, Any]:
-    report_path_text = _non_empty_text(gate_replay.get("report_json")) or _non_empty_text(
-        gate_replay.get("latest_gate_path")
+    return closed_batch.gate_replay_report_payload(
+        gate_replay=gate_replay,
+        read_json=_read_json,
+        non_empty_text=_non_empty_text,
     )
-    if report_path_text is None:
-        return gate_replay
-    report_payload = _read_json(Path(report_path_text).expanduser())
-    if not report_payload:
-        return gate_replay
-    return {**gate_replay, **report_payload}
 
 
 def _freshness_gate_report_payload(*, gate_report: dict[str, Any], gate_replay: dict[str, Any]) -> dict[str, Any]:
-    replay_report = _gate_replay_report_payload(gate_replay)
-    if gate_clearing_batch_submission.study_delivery_status(replay_report) == "current":
-        return replay_report
-    return gate_report
+    return closed_batch.freshness_gate_report_payload(
+        gate_report=gate_report,
+        gate_replay=gate_replay,
+        read_json=_read_json,
+        non_empty_text=_non_empty_text,
+    )
 
 
 def _closed_batch_current_freshness_proof(
@@ -273,29 +272,19 @@ def _closed_batch_current_freshness_proof(
     study_root: Path,
     source_eval_id: str,
 ) -> dict[str, Any] | None:
-    if isinstance(latest_batch.get("current_package_freshness_proof"), dict):
-        return dict(latest_batch["current_package_freshness_proof"])
-    gate_replay = latest_batch.get("gate_replay")
-    if not isinstance(gate_replay, dict):
-        return None
-    return gate_clearing_batch_package_freshness.write_current_package_freshness_proof(
+    return closed_batch.closed_batch_current_freshness_proof(
+        latest_batch=latest_batch,
         study_root=study_root,
         source_eval_id=source_eval_id,
-        gate_report=_gate_replay_report_payload(gate_replay),
-        unit_results=[],
-        clock=_clock_snapshot,
+        read_json=_read_json,
+        non_empty_text=_non_empty_text,
+        clock_snapshot=_clock_snapshot,
         schema_version=SCHEMA_VERSION,
     )
 
 
 def _base_publication_work_unit(value: object) -> dict[str, Any] | None:
-    if not isinstance(value, dict):
-        return None
-    return {
-        key: item
-        for key, item in value.items()
-        if key not in {"lifecycle", "lifecycle_status", "retry", "status"}
-    }
+    return closed_batch.base_publication_work_unit(value)
 
 
 def _closed_batch_lifecycle_record(
@@ -306,41 +295,13 @@ def _closed_batch_lifecycle_record(
     source_eval_id: str,
     gate_report: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    selected_work_unit = _base_publication_work_unit(latest_batch.get("selected_publication_work_unit"))
-    if selected_work_unit is None:
-        existing_lifecycle = latest_batch.get("publication_work_unit_lifecycle")
-        if isinstance(existing_lifecycle, dict):
-            selected_work_unit = _base_publication_work_unit(existing_lifecycle.get("work_unit"))
-    unit_results = [
-        dict(item)
-        for item in (latest_batch.get("unit_results") or [])
-        if isinstance(item, dict)
-    ]
-    gate_replay = dict(latest_batch.get("gate_replay") or {})
-    if _current_gate_settles_authority_sync(latest_batch=latest_batch, gate_report=gate_report):
-        unit_results = [
-            {
-                **item,
-                "status": "settled_by_current_gate"
-                if _non_empty_text(item.get("status")) == "skipped_authority_not_settled"
-                else item.get("status"),
-            }
-            for item in unit_results
-        ]
-        gate_replay = {
-            **gate_replay,
-            "status": "clear",
-            "allow_write": True,
-        }
-    if selected_work_unit is None or not unit_results:
-        return None
-    return publication_work_unit_lifecycle.build_lifecycle_record(
-        source_eval_id=source_eval_id,
+    return closed_batch.closed_batch_lifecycle_record(
+        latest_batch=latest_batch,
         study_id=study_id,
         quest_id=quest_id,
-        selected_work_unit=selected_work_unit,
-        unit_results=unit_results,
-        gate_replay=gate_replay,
+        source_eval_id=source_eval_id,
+        gate_report=gate_report,
+        non_empty_text=_non_empty_text,
     )
 
 
@@ -353,34 +314,21 @@ def _normalize_closed_batch_lifecycle_surface(
     source_eval_id: str,
     gate_report: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any] | None, bool]:
-    lifecycle_record = _closed_batch_lifecycle_record(
+    return closed_batch.normalize_closed_batch_lifecycle_surface(
         latest_batch=latest_batch,
+        study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
         source_eval_id=source_eval_id,
         gate_report=gate_report,
+        read_json=_read_json,
+        write_json=_write_json,
+        non_empty_text=_non_empty_text,
     )
-    if lifecycle_record is None:
-        return None, False
-    lifecycle_path = publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(
-        study_root=study_root
-    )
-    current_record = _read_json(lifecycle_path)
-    current_status = _non_empty_text(current_record.get("status"))
-    current_source_eval_id = _non_empty_text(current_record.get("source_eval_id"))
-    normalized_status = _non_empty_text(lifecycle_record.get("status"))
-    if (
-        current_source_eval_id == source_eval_id
-        and current_status == normalized_status
-        and ("retry" in current_record) == ("retry" in lifecycle_record)
-    ):
-        return dict(current_record), False
-    _write_json(lifecycle_path, lifecycle_record)
-    return lifecycle_record, True
 
 
 def _latest_batch_closed_for_eval(latest_batch: dict[str, Any], current_eval_id: str | None) -> bool:
-    return gate_clearing_batch_currentness.batch_closed_for_source_eval(latest_batch, source_eval_id=current_eval_id)
+    return closed_batch.latest_batch_closed_for_eval(latest_batch, current_eval_id)
 
 
 def _latest_batch_closed_for_current_gate(
@@ -388,11 +336,7 @@ def _latest_batch_closed_for_current_gate(
     current_eval_id: str | None,
     gate_report: dict[str, Any],
 ) -> bool:
-    return gate_clearing_batch_currentness.batch_closed_for_source_eval(
-        latest_batch,
-        source_eval_id=current_eval_id,
-        gate_report=gate_report,
-    )
+    return closed_batch.latest_batch_closed_for_current_gate(latest_batch, current_eval_id, gate_report)
 
 
 def _current_gate_settles_authority_sync(
@@ -400,15 +344,10 @@ def _current_gate_settles_authority_sync(
     latest_batch: dict[str, Any],
     gate_report: dict[str, Any] | None,
 ) -> bool:
-    if not isinstance(gate_report, dict):
-        return False
-    return gate_clearing_batch_currentness.batch_closed_for_source_eval(
-        latest_batch,
-        source_eval_id=_non_empty_text(latest_batch.get("source_eval_id")),
+    return closed_batch.current_gate_settles_authority_sync(
+        latest_batch=latest_batch,
         gate_report=gate_report,
-    ) and not gate_clearing_batch_currentness.batch_closed_for_source_eval(
-        latest_batch,
-        source_eval_id=_non_empty_text(latest_batch.get("source_eval_id")),
+        non_empty_text=_non_empty_text,
     )
 
 
