@@ -28,7 +28,7 @@ repo-level 论文自治 loop 已具备 callable surface、owner receipt 和 focu
 | provider-hosted paper apply | `live_apply_pending` | OPL provider transport + MAS sidecar / owner chain |
 |真实 paper closure | `evidence_gated_live_soak` | live MAS study truth surfaces |
 
-当前可以声明的是：MAS 有 provider-guarded apply receipt surface、DM002 route-memory consumed / writeback ref chain、三篇 paper line 的 guarded proof surface、OPL production proof ingestion 和 no-forbidden-write boundary。不能声明 OPL provider proof、queue completion、repo tests 或 provider attempt completion 等于 paper closure、submission readiness 或 publication-ready。
+当前可以声明的是：MAS 有 provider-guarded apply receipt surface、route-memory consumed / writeback ref chain、多条真实 paper line 的 guarded proof surface、OPL production proof ingestion 和 no-forbidden-write boundary。不能声明 OPL provider proof、queue completion、repo tests 或 provider attempt completion 等于 paper closure、submission readiness 或 publication-ready。
 
 ## 验收合同
 
@@ -47,7 +47,7 @@ Worker liveness、queue item、status refresh、provider completion、只读 pro
 | gate | class | 当前状态 | 可接受证据 |
 | --- | --- | --- | --- |
 | `live_paper_owner_chain` | `production_evidence_gate` | `planned; guarded surfaces landed` | MAS truth surface 中的 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 typed blocker。 |
-| `provider_hosted_guarded_apply` | `production_evidence_gate` | `surface_landed; live soak pending` | OPL attempt id + MAS sidecar dispatch receipt + MAS owner receipt + no-forbidden-write proof；provider completion alone 不计入。 |
+| `provider_hosted_guarded_apply` | `production_evidence_gate` | `surface_landed; live soak pending` | OPL attempt ref + MAS sidecar dispatch receipt + MAS owner receipt + no-forbidden-write proof；provider completion alone 不计入。 |
 | `human_gate_resume` | `production_evidence_gate` | `owner_boundary_landed` | MAS controller/runtime 记录 gate reason、resume/refusal、next owner 和 blocker；OPL signal 只是 transport。 |
 | `publication_route_memory_writeback` | `functional_follow_through_gate` | `implemented; scaleout pending` | Stage closeout proposal、MAS router accepted/rejected/blocked receipt、body-free refs、operator grouping 与 stale/deprecated review summary。 |
 | `stage_review_index_instance` | `functional_follow_through_gate` | `locator proof landed; live instances pending` | live attempt 产出 review page/index refs、freshness、claim impact、next owner 或 blocker；review/index 不授权 publication readiness。 |
