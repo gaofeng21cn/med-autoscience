@@ -184,6 +184,30 @@ def test_journal_family_quality_packs_are_projection_only_clean_room_absorptions
         "metadata_only_review_required",
         "reference_manager_export_note",
     ]
+    assert [source["tier"] for source in citation_pack["literature_search_source_pack"]["source_tiers"]] == [
+        "T1",
+        "T2",
+        "T3",
+    ]
+    assert citation_pack["literature_search_source_pack"]["multi_source_search_required"] is True
+    assert citation_pack["literature_search_source_pack"]["mesh_strategy_required_for_biomedical_claims"] is True
+    assert citation_pack["journal_policy_currentness_pack"]["official_policy_refs_required"] is True
+    assert citation_pack["journal_policy_currentness_pack"]["missing_or_stale_policy_ref_behavior"] == (
+        "blocker_or_reference_only"
+    )
+    assert citation_pack["citation_verification_pack"]["verification_output_fields"] == [
+        "claim_segment_id",
+        "citation_ref",
+        "identifier_refs",
+        "source_tier",
+        "metadata_match_state",
+        "support_grade",
+        "evidence_basis",
+        "checked_at",
+        "expires_or_stale_after",
+        "blocker_ref_if_unverified",
+    ]
+    assert "metadata_only_candidate" in citation_pack["citation_verification_pack"]["allowed_statuses"]
 
     figure_pack = packs["figure_evidence_contract_pack"]
     assert figure_pack["journal_family_patterns"] == [
@@ -219,3 +243,38 @@ def test_journal_family_quality_packs_are_projection_only_clean_room_absorptions
     ]
     assert "analysis-campaign" in reporting_pack["applies_to"]["stages"]
     assert "journal-resolution" in reporting_pack["applies_to"]["stages"]
+
+
+def test_journal_policy_and_citation_currentness_cannot_authorize_quality_without_current_refs() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+
+    citation_pack = packs["citation_integrity_pack"]
+    policy_pack = citation_pack["journal_policy_currentness_pack"]
+    verification_pack = citation_pack["citation_verification_pack"]
+    search_pack = citation_pack["literature_search_source_pack"]
+
+    assert policy_pack["forbidden_outputs_without_current_official_refs"] == [
+        "publication_readiness",
+        "quality_verdict",
+        "submission_readiness",
+    ]
+    assert policy_pack["missing_or_stale_policy_ref_behavior"] == "blocker_or_reference_only"
+    assert policy_pack["may_authorize_quality_verdict"] is False
+    assert policy_pack["may_authorize_publication_readiness"] is False
+
+    assert verification_pack["unverified_or_missing_behavior"] == "typed_blocker_or_reference_only"
+    assert verification_pack["metadata_only_candidate_behavior"] == (
+        "cannot_support_claim_without_abstract_or_publisher_check"
+    )
+    assert verification_pack["may_authorize_quality_verdict"] is False
+    assert verification_pack["may_authorize_publication_readiness"] is False
+
+    assert search_pack["insufficient_source_behavior"] == "typed_blocker_or_reference_only"
+    assert all(source["may_authorize_quality_verdict"] is False for source in search_pack["source_tiers"])
+    assert citation_pack["forbidden_authority"]
+    assert {item["authority_id"] for item in citation_pack["forbidden_authority"]} >= {
+        "publication_readiness_authority",
+        "quality_verdict_authority",
+        "mas_truth_write_authority",
+    }
