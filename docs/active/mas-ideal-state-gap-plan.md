@@ -13,6 +13,7 @@ Date: `2026-05-22`
 - 差距按目标态判断，不按当前 MAS 代码是否仍可运行判断。通用 runtime、runner、queue、session、SQLite lifecycle、workspace/source intake、memory/artifact transport、workbench、observability、CLI/MCP/Skill/product-entry/sidecar/status wrapper 必须进入 OPL 上收、generated surface 替换、refs-only 收薄或退役分类。
 - `minimal authority` 只表示 MAS 持有医学 stage 质控、publication quality、artifact mutation authorization、publication-route memory accept/reject、source readiness、owner receipt 和 typed blocker 等领域裁决边界；它不表示 MAS 应继续维护通用运行平台。
 - 过时模块、接口、测试、fixture、CLI alias、wrapper、facade 和 docs 入口不做兼容保留。MDS/DeepScientist、local scheduler、LaunchAgent、supervisor 默认面、旧 runtime_transport / SQLite lifecycle generic owner 读法等，一旦 active caller 已迁出且 OPL parity / MAS receipt parity / no-active-caller proof 成立，直接删除、archive 或 tombstone；测试同步改成禁止复活旧面，而不是维护旧调用路径。
+- 本轮最新 source scan 确认：`runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease、`runtime_lifecycle_store.py`、`product_entry_parts/workspace_cockpit/`、`sidecar_family_adapter*` 和若干 managed / legacy / compatibility tests 仍在 active source 中可见。它们当前只能按 `retained_adapter_with_delete_gate`、`diagnostic_or_regression_oracle_with_no_default_caller` 或 `history_tombstone_provenance_only` 读取；文件边界继续收薄只是降低迁移风险，不是长期保留理由。下一轮计划必须优先关闭 active caller 和 replacement parity，满足门槛后直接删除或 tombstone 这些旧壳。
 
 ## 当前定位
 
@@ -42,6 +43,8 @@ OPL 必须持有：
 AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invocation、独立 context/task record 和独立 receipt。同一 agent 的自审、同一上下文内的执行后复核、或把 executor summary 改名为 reviewer output，不能关闭 MAS quality gate。
 
 ## 当前功能/结构状态
+
+当前功能/结构状态不再把 “runtime transport / SQLite / sidecar / workspace cockpit 还能被 direct path 使用”解释为 MAS 合理长期结构。它们的唯一当前价值是承接过渡 caller、输出 MAS owner receipt / typed blocker / refs-only diagnostic，或保留必要 tombstone / no-resurrection proof。若后续发现它们继续扩写 generic queue、attempt ledger、scheduler、session store、workbench 或 lifecycle owner 语义，应重开 physical morphology gap 并优先清理，而不是继续拆 helper。
 
 2026-05-18 fresh OPL stage proof 发现过一个结构 blocker：OPL proof bundle 已把 `runtime_guard_required=true` 的 stage 当作 runtime-event obligation；真实 MAS manifest 当时只有 AI/effect-boundary stage 有 machine-readable `runtime_event_refs`。该项属于 MAS `family_stage_control_plane` 结构/功能 gap，不是测试证据尾巴。
 
@@ -73,6 +76,10 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 2026-05-22 本轮已把该 refs packet 推进到一次真实 OPL ledger consumption：DM-CVD guarded-apply canary 产出 3 条 MAS owner receipt refs、1 条 stable typed blocker 和 no-forbidden-write proof ref，随后 OPL `domain_dispatch:medautoscience:sat_d7e796a0dca5a1bc5b954474:record|verify` 完成 refs-only receipt record / verify。post-check 中对应 attempt 已被 OPL App/operator drilldown 读成 `dispatch_evidence_receipt_status=verified`。该 tranche 只关闭一条 `paper_autonomy/guarded-apply` workorder 的 owner-chain payload 可记录/可验证证据；真实多 paper-line owner receipt、artifact/memory/human-gate receipt、monitor freshness 和 long-soak 仍未关闭。
 
 同日追加的 publication-aftercare tranche 消费了 MAS sidecar export 对 `001-lineage-pfs` reviewer refresh 返回的 domain-owned typed blocker payload：OPL `domain_dispatch:medautoscience:sat_9ae0f4daae22db1d42397e3b:record|verify` 记录并验证 `mas-domain-dispatch-typed-blocker:medautoscience:publication_aftercare-reviewer-refresh:001-lineage-pfs:reviewer_refresh_owner_route_ref:owner-receipt-or-live-paper-line-closeout-pending`、7 条 aftercare evidence refs 和 no-forbidden-write/no-regression ref，生成 `opl://external-evidence/medautoscience/domain_dispatch:medautoscience:sat_9ae0f4daae22db1d42397e3b`。post-check 中 family worklist open 81→80、closed refs-only 34→35，MAS reviewer-refresh workorder 8→7。该 tranche 只关闭一条 `publication_aftercare/reviewer-refresh` owner-chain pending/stable blocker ledger item，不执行 reviewer refresh，不写 `publication_eval/latest.json`、paper、package 或 `current_package`，也不授权 publication-ready、artifact mutation、memory writeback、domain-ready、production-ready 或 long-soak。
+
+同日后续 Obesity guarded-apply tranche 按 OPL identity guard 提交匹配 payload：目标 attempt `sat_67b0aa4ff4787aa8e35a7f3b` 绑定 `paper_autonomy/guarded-apply`、`study_id=Obesity`、`source_fingerprint=5e889ab22ead5374`；MAS guarded-apply proof 返回 stable typed blocker `mas_owner_apply_receipt_missing:obesity`、Obesity evidence refs 和 no-forbidden-write ref。OPL `domain_dispatch:medautoscience:sat_67b0aa4ff4787aa8e35a7f3b:record|verify` 已验证为 `opl://external-evidence/medautoscience/domain_dispatch:medautoscience:sat_67b0aa4ff4787aa8e35a7f3b`，family worklist open 85→84、closed refs-only 35→36。该 tranche 只关闭一条 Obesity owner-chain stable blocker refs-only ledger item，不执行 workspace mutation、不写 `publication_eval/latest.json`、paper、package 或 `current_package`，也不授权 publication-ready、artifact mutation、memory writeback、domain-ready、production-ready 或 long-soak。
+
+同日后续 DM003 guarded-apply tranche 继续按 OPL identity guard 提交匹配 payload：目标 attempt `sat_025e3a63d22d0b651800da60` 绑定 `paper_autonomy/guarded-apply`、`study_id=DM003`、`source_fingerprint=0638984119cf89a0`、`profile_name=dm-cvd-mortality-risk`；MAS guarded-apply proof 返回 `003-dpcc-primary-care-phenotype-treatment-gap` 的 owner receipt refs、gate replay refs、owner-chain ref、controller / publication eval / controller decision evidence refs 和 no-forbidden-write ref。OPL record dry-run 的 `identity_binding.status=matched` 后，`domain_dispatch:medautoscience:sat_025e3a63d22d0b651800da60:record|verify` 已验证为 `opl://external-evidence/medautoscience/domain_dispatch:medautoscience:sat_025e3a63d22d0b651800da60`；App full drilldown 已显示该 attempt `dispatch_evidence_receipt_status=verified`、`domain_ready_claimed=false`。fresh worklist 当前为 open 84、closed refs-only 37。该 tranche 只关闭一条 DM003 owner receipt refs-only ledger item，不执行 workspace mutation、不写 `publication_eval/latest.json`、paper、package 或 `current_package`，也不授权 publication-ready、artifact mutation、memory writeback、domain-ready、production-ready、App user path 或 long-soak。
 
 2026-05-21 MAS hard-methodology callable routing 已补齐：AI reviewer / controller 可能把 HDL/unit harmonization 问题表达为 `unit_harmonized_validation_uncertainty_and_grouped_calibration`，managed worker authorization 现在将其映射为 `analysis_harmonization_owner`，并通过 `domain-owner-action-dispatch --action-types unit_harmonized_external_validation_rerun --managed-runtime-worker` 调用 `analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`。该 callable 只能产出 unit-harmonized rerun evidence 或 MAS-owned typed blocker，并把 hard-methodology route 留在 MAS 医学方法学 authority boundary；OPL 仍只提供 provider、queue、attempt、generic transition runner、projection 和 App/workbench shell。该修复不写 paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 submission readiness，也不把 MAS owner callable 扩张成通用 runtime/control-plane owner。
 
@@ -164,6 +171,16 @@ OPL proof bundle / admission 只有在所有 runtime-guard stage 返回 `admissi
 
 这组差距的关闭门槛是：active caller proof、OPL generated/provider parity、MAS domain receipt parity、focused tests、no-forbidden-write proof 和 provenance/tombstone refs 同时成立。未满足前写成 retained adapter / diagnostic with deletion gate；满足后直接物理删除、archive 或 tombstone，不保留 compatibility alias。
 
+当前直接退役优先级：
+
+| surface | 当前实际状态 | 下一步动作 |
+| --- | --- | --- |
+| `runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease | active domain / diagnostic caller 仍存在；默认 backend owner 已归 OPL。 | 先迁出 direct/diagnostic caller 到 OPL provider 或 MAS authority target；parity 成立后删除旧 runtime callable facade、compat tests 和无必要 helper。 |
+| `runtime_lifecycle_store.py` 与 SQLite sidecar parts | refs-only lifecycle sidecar index，仍有 active caller。 | OPL lifecycle index / artifact locator parity 与 MAS receipt parity 成立后 archive/tombstone；不保留 MAS generic persistence engine。 |
+| `product_entry_parts/workspace_cockpit/`、status/progress/workbench projections | direct MAS path / OPL handoff 输入仍可见。 | OPL generated product/status/workbench 成为 default caller 后，只保留 MAS truth refs；删除旧 cockpit/workbench shell 和只保护旧字段的测试。 |
+| `sidecar_family_adapter*` | active dispatch/export owner-route adapter，当前 `active_caller_count=1`。 | OPL generated sidecar default caller parity、真实 owner receipt 或 stable typed blocker parity 成立后，保留 domain action handlers，删除旧 export/dispatch wrapper。 |
+| managed / legacy / compatibility tests | 部分仍验证旧 runtime/managed/legacy 行为。 | 改为 no-resurrection、fail-closed、current contract 或 tombstone tests；删除只维护旧调用路径的兼容测试。 |
+
 ## 当前测试/证据差距
 
 MAS production acceptance receipt 已把 conformance 不能声明 live/domain-ready 的尾部证据收口到 MAS-owned contract。以下是后续真实 paper-line / workspace scaleout 验证范围，不能替代真实 paper closure、publication-ready 或 artifact mutation authorization，也不再作为结构标准化缺口计数：
@@ -198,7 +215,7 @@ MAS production acceptance receipt 已把 conformance 不能声明 live/domain-re
 2. 同步推进 `workbench_sidecar_status_retirement`，把 production/default caller 迁到 OPL generated product/status/workbench shell；MAS 侧保留 direct skill target、domain handler、receipt signer、typed blocker 和 diagnostic。
 3. 用 `real_paper_line_canary` 验证 OPL attempt -> MAS sidecar -> MAS owner chain。canary 必须返回 owner receipt、progress delta、gate replay、route decision、human gate、stop-loss 或 stable typed blocker，不能只返回 provider completion。
 4. canary 通过或稳定 typed-block 后，再扩展 `memory_artifact_human_gate_long_soak`。这一步只关闭测试/证据 tail，不回写成结构 closure，也不替 AI reviewer / publication gate / artifact authority 宣布 ready。
-5. 每个物理删除动作都必须带 no-active-caller、replacement parity、domain receipt parity、focused tests、no-forbidden-write proof 和 provenance/tombstone refs；满足即删除、archive 或 tombstone，不新增兼容 alias。
+5. 每个物理删除动作都必须带 no-active-caller、replacement parity、domain receipt parity、focused tests、no-forbidden-write proof 和 provenance/tombstone refs；满足即删除、archive 或 tombstone，不新增兼容 alias。删除旧面时同步删除或改写只保护旧路径的兼容测试，当前测试只锁定 machine-readable contract、CLI/API 行为、generated manifest、owner receipt、typed blocker、fail-closed 或 tombstone semantics。
 
 ## 当前不能写成
 
