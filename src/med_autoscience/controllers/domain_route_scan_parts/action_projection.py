@@ -140,8 +140,6 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    if completion_evidence.completed_current_truth(status, progress):
-        return []
     analysis_handoff_action = analysis_harmonization_ai_review.completed_ai_reviewer_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -157,6 +155,23 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    story_surface_action = story_surface_delta_actions.write_owner_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if story_surface_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=story_surface_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    if completion_evidence.completed_current_truth(status, progress):
+        return []
     if parked_truth.current_truth(
         status,
         progress,
@@ -187,21 +202,6 @@ def action_queue(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=ai_reviewer_freshness_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    story_surface_action = story_surface_delta_actions.write_owner_action(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if story_surface_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=story_surface_action,
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,

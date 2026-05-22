@@ -164,7 +164,7 @@ def current_story_surface_delta_blocker_route(
     source_eval_id = _text(batch.get("source_eval_id"))
     if source_eval_id is None or source_eval_id != _text(publication_eval_payload.get("eval_id")):
         return None
-    if _text(batch.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
+    if not _story_surface_delta_blocker_present(batch):
         return None
     if _text(batch.get("next_owner")) != "write":
         return None
@@ -202,6 +202,23 @@ def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]
             continue
         return dict(action)
     return None
+
+
+def _story_surface_delta_blocker_present(batch: Mapping[str, Any]) -> bool:
+    if _text(batch.get("blocked_reason")) == "manuscript_story_surface_delta_missing":
+        return True
+    evidence = _mapping(batch.get("repair_execution_evidence"))
+    if _text(evidence.get("status")) != "blocked":
+        return False
+    blockers = _string_set(evidence.get("blockers"))
+    if "manuscript_story_surface_delta_missing" in blockers:
+        return True
+    artifact_delta = _mapping(evidence.get("canonical_artifact_delta"))
+    return (
+        _text(artifact_delta.get("status")) == "blocked"
+        and artifact_delta.get("meaningful_artifact_delta") is False
+        and "forbidden_manuscript_terms_present" in blockers
+    )
 
 
 def methodology_reframe_runtime_route_allowed(
@@ -460,6 +477,15 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _string_set(value: object) -> set[str]:
+    if isinstance(value, str):
+        item = value.strip()
+        return {item} if item else set()
+    if not isinstance(value, list | tuple | set):
+        return set()
+    return {text for item in value if (text := _text(item)) is not None}
 
 
 def _text(value: object) -> str | None:
