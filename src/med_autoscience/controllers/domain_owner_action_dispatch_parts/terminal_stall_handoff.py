@@ -52,10 +52,21 @@ def owner_handoff_allowed(
     if action_type == "run_quality_repair_batch":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        if _text(owner_route.get("next_owner")) != "write":
+            return False
+        if not owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route):
+            return False
+        if _text(owner_route.get("failure_signature")) == "manuscript_story_surface_delta_missing":
+            return True
+        next_work_unit = _mapping(
+            _mapping(dispatch.get("source_action")).get("next_work_unit")
+            or dispatch.get("next_work_unit")
+            or _mapping(dispatch.get("prompt_contract")).get("next_work_unit")
+            or _mapping(_mapping(current_study).get("domain_transition")).get("next_work_unit")
+        )
         return (
-            _text(owner_route.get("next_owner")) == "write"
-            and _text(owner_route.get("failure_signature")) == "manuscript_story_surface_delta_missing"
-            and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
+            _text(owner_route.get("failure_signature")) == "quest_waiting_opl_runtime_owner_route"
+            and _text(next_work_unit.get("unit_id")) == "medical_prose_write_repair"
         )
     if action_type == "runtime_platform_repair":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
