@@ -7,6 +7,10 @@ from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
 
+from med_autoscience.controllers.domain_dispatch_evidence_payload import (
+    build_domain_dispatch_evidence_record_payload,
+)
+
 
 TASK_KIND = "domain_owner/default-executor-dispatch"
 DISPATCH_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_dispatches")
@@ -46,6 +50,13 @@ def default_executor_dispatch_tasks(
         next_owner = _text(dispatch.get("next_executable_owner")) or REQUIRED_NEXT_OWNER
         executor_kind = _text(dispatch.get("executor_kind")) or REQUIRED_EXECUTOR_KIND
         source_fingerprint = _source_fingerprint(dispatch=dispatch, dispatch_path=dispatch_path)
+        evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+            task_kind=TASK_KIND,
+            study_id=study_id,
+            reason="default_executor_owner_receipt_or_typed_closeout_pending",
+            evidence_refs=source_refs,
+            source_fingerprint=source_fingerprint,
+        )
         tasks.append(
             {
                 "domain_id": "medautoscience",
@@ -74,6 +85,7 @@ def default_executor_dispatch_tasks(
                 "domain_truth_owner": "med-autoscience",
                 "queue_owner": "one-person-lab",
                 "profile_name": profile.name,
+                "domain_dispatch_evidence_record_payload": evidence_record_payload,
             }
         )
     return tasks
