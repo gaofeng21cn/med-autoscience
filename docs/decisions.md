@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-22：AI reviewer request currentness 不能只靠 stable latest path 消费
+
+- 决策：当 `artifacts/supervision/requests/ai_reviewer/latest.json` 携带 `source_fingerprint` 时，AI reviewer-owned `publication_eval/latest.json` 不能仅因 `assessment_provenance.source_refs` 包含同一个 stable `latest.json` 路径就视为已消费该 request。消费证据必须显式携带同一 request fingerprint，或由 publication eval 逻辑时间不早于 request 时间证明。
+- 理由：DM002 暴露出 `quality_repair_batch` 覆写 stable AI reviewer request 后，旧 publication eval 仍引用同一路径，导致 request lifecycle 被误判为 `assessment_written`，owner route 不再派发 `return_to_ai_reviewer_workflow`。根因是 MAS currentness 判定把 stable path identity 当成了 content/version identity。
+- 影响：这是 MAS request lifecycle / owner-route read-model 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍由当前 AI reviewer-backed publication eval、owner receipt 与 publication gate 判定。
+
 ## 2026-05-22：当前 runtime-redrive route-back 优先于旧 progress active run 和 terminal package handoff
 
 - 决策：当 `domain_transition.decision_type` 属于 `route_back_same_line`、`ai_reviewer_re_eval`、`publication_gate_blocker` 或 `bundle_stage_finalize`，且 status/liveness/truth 没有可靠 live worker 时，`study_macro_state`、`study-progress.user_visible_projection` 和 `owner-route-reconcile` 必须把当前 transition 投影为 owner repair 队列，不得从旧 `progress.supervision.active_run_id` 误判 live，也不得让旧 terminal delivery/package handoff 覆盖当前 route-back。

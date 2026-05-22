@@ -274,6 +274,30 @@ def _record_source_refs(*, study_root: Path, record: Mapping[str, Any]) -> set[s
     return refs
 
 
+def _record_source_fingerprints(record: Mapping[str, Any]) -> set[str]:
+    fingerprints: set[str] = set()
+
+    def add(value: object) -> None:
+        text = _text(value)
+        if text:
+            fingerprints.add(text)
+
+    provenance = _mapping(record.get("assessment_provenance"))
+    reviewer_trace = _mapping(record.get("reviewer_operating_system"))
+    input_bundle = _mapping(reviewer_trace.get("input_bundle"))
+    for source in (record, provenance, reviewer_trace, input_bundle):
+        add(source.get("source_fingerprint"))
+        add(source.get("request_source_fingerprint"))
+        for item in _string_items(source.get("source_fingerprints")):
+            add(item)
+        for item in _string_items(source.get("request_source_fingerprints")):
+            add(item)
+        for item in _string_items(source.get("source_refs")):
+            if item.startswith("sha256:"):
+                add(item)
+    return fingerprints
+
+
 def _record_missing_currentness_refs(
     *,
     study_root: Path,
@@ -576,8 +600,13 @@ def _publication_eval_consumes_ai_reviewer_request(
     publication_eval = _mapping(publication_eval_payload)
     request_ref = str(request_path.resolve())
     source_refs = set(_record_source_refs(study_root=study_root, record=publication_eval))
-    if request_ref in source_refs:
+    request_fingerprint = _text(request_packet.get("source_fingerprint"))
+    source_fingerprints = _record_source_fingerprints(publication_eval)
+    if request_fingerprint and request_fingerprint in source_fingerprints:
         return True
+    if request_ref in source_refs:
+        if request_fingerprint is None:
+            return True
     request_timestamp = _payload_timestamp(request_packet)
     if request_timestamp is None:
         try:
@@ -588,6 +617,8 @@ def _publication_eval_consumes_ai_reviewer_request(
     if request_timestamp is not None and eval_timestamp is not None:
         return eval_timestamp >= request_timestamp
     if request_timestamp is not None and eval_timestamp is None:
+        return False
+    if request_fingerprint is not None:
         return False
     return True
 
