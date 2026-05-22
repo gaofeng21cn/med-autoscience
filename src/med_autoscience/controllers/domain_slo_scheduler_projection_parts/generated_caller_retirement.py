@@ -321,6 +321,8 @@ def build_physical_retirement_gate_matrix(
                 code_paths=[
                     "src/med_autoscience/controllers/progress_portal.py",
                     "src/med_autoscience/controllers/progress_portal_parts/",
+                    "src/med_autoscience/controllers/portal_console_soak.py",
+                    "src/med_autoscience/controllers/portal_console_soak_parts/",
                     "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
                 ],
                 active_caller_status="domain_projection_refs_active",

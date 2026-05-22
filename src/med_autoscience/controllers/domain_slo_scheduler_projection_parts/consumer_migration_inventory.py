@@ -380,6 +380,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/controllers/progress_portal.py", "src/med_autoscience/controllers/progress_portal_parts/",
+            "src/med_autoscience/controllers/portal_console_soak.py",
+            "src/med_autoscience/controllers/portal_console_soak_parts/",
             "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
             "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
@@ -397,6 +399,19 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                 "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
                 "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             ],
+            "latest_portal_console_soak_split": {
+                "status": "portal_console_soak_read_model_evidence_split",
+                "scope": "portal_console_soak_read_model_evidence_shell",
+                "extracted_paths": [
+                    "src/med_autoscience/controllers/portal_console_soak_parts/artifact_surfaces.py",
+                    "src/med_autoscience/controllers/portal_console_soak_parts/evidence.py",
+                    "src/med_autoscience/controllers/portal_console_soak_parts/shared.py",
+                ],
+                "retained_entry_shell": "src/med_autoscience/controllers/portal_console_soak.py",
+                "does_not_claim_physical_delete": True,
+                "does_not_claim_opl_default_caller": True,
+                "does_not_touch_publication_or_package_authority": True,
+            },
             "retained_entry_shells": [
                 "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
                 "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
