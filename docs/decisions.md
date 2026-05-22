@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：显式 owner dispatch 必须用当前 persisted dispatch 覆盖旧 consumer inline payload
+
+- 决策：`domain-owner-action-dispatch --action-types <action>` 读取到同一 `refs.dispatch_path` 的 consumer inline dispatch 与 study-level persisted dispatch 时，若 persisted dispatch 仍为 `dispatch_status=ready` 且匹配当前 owner request / owner route，必须用 persisted dispatch 覆盖 consumer inline payload。
+- 决策：该覆盖只发生在同一路径、同 action、同 owner request 校验通过的 dispatch 上；不放宽 owner-route currentness、paper-progress stall guard、forbidden surfaces、developer_apply_safe 或 repeat suppression。
+- 理由：DM002 暴露出 `quality_repair_batch` 已生成下一层 writer handoff 并刷新 study-level `default_executor_dispatches/run_quality_repair_batch.json`，但 workspace consumer 仍保留上一层 inline dispatch。显式执行时旧 inline payload 的 `paper_progress_stall.action_fingerprint` 抢占了当前 persisted dispatch，导致合法 write owner handoff 被 `paper_progress_stall_fingerprint_stale` 阻断。
+- 影响：这是 MAS owner dispatch currentness 修复。它不直接写 canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`；只保证 MAS owner chain 能消费当前 writer handoff，并继续由 writer delta、AI reviewer-backed publication eval 与 publication gate 判定论文质量。
+
 ## 2026-05-22：default-executor handoff export 必须携带 owner-currentness refs
 
 - 决策：`domain_owner/default-executor-dispatch` pending family task 不得只凭 `dispatch_status=ready` 暴露给 OPL。导出的 task 必须 refs-only 携带 `default_executor_dispatch_request`、`default_executor_prompt_contract`、`mas_default_executor_owner_receipt_contract`、`owner_route_currentness_basis`，并投影 dispatch refs / owner-route refs 中可验证的 currentness basis，例如 `source_eval_path`、`repair_execution_evidence_path`、`truth_epoch`、`runtime_health_epoch`、`work_unit_fingerprint`、`work_unit_id` 和 blocker reason。

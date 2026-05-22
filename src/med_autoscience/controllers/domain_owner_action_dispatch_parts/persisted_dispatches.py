@@ -95,6 +95,10 @@ def selected_dispatches(
         (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         for payload in selected
     }
+    selected_by_key = {
+        (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type"))): index
+        for index, payload in enumerate(selected)
+    }
     for payload in explicit_action_dispatches(
         profile=profile,
         study_id=study_id,
@@ -103,9 +107,12 @@ def selected_dispatches(
         dispatch_relative_root=dispatch_relative_root,
     ):
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
-        if key not in selected_keys:
+        if key in selected_by_key:
+            selected[selected_by_key[key]] = payload
+        elif key not in selected_keys:
             selected.append(payload)
             selected_keys.add(key)
+            selected_by_key[key] = len(selected) - 1
     return selected
 
 
