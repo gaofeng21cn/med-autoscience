@@ -224,6 +224,19 @@ def normalized_result(
     return normalized
 
 
+def artifact_refs(report_payload: dict[str, Any]) -> list[object]:
+    return _ref_list(report_payload.get("artifact_refs"))
+
+
+def source_refs(report_payload: dict[str, Any]) -> list[object]:
+    refs = _ref_list(report_payload.get("source_refs"))
+    for key in ("source_ref", "source_path", "evidence_ref", "review_ref"):
+        value = report_payload.get(key)
+        if value:
+            refs.append(value)
+    return refs
+
+
 def owner_handoff_payload(*, report_path: Path, source: str) -> dict[str, Any]:
     return {
         "reason": "completed_work_unit_evidence_adopted",
@@ -412,6 +425,20 @@ def _artifact_ref_count(value: object) -> int:
     if not isinstance(value, list):
         return 0
     return sum(1 for item in value if isinstance(item, dict) or _text(item) is not None)
+
+
+def _ref_list(value: object) -> list[object]:
+    if not isinstance(value, list):
+        return []
+    refs: list[object] = []
+    for item in value:
+        if isinstance(item, dict):
+            refs.append(dict(item))
+            continue
+        text = _text(item)
+        if text is not None:
+            refs.append(text)
+    return refs
 
 
 def _artifact_refs_match_expected_work_unit(

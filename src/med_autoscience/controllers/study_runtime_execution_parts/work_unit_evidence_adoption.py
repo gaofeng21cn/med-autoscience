@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import control_intent
+from med_autoscience.controllers import control_intent, paper_repair_execution_evidence
 from med_autoscience.controllers.work_unit_evidence_adoption_parts import (
     analysis_repair_adoption,
     completed_lifecycle,
@@ -170,6 +170,11 @@ def record_controller_work_unit_evidence_adoption(
     }
     if next_work_unit is not None:
         status.extras["controller_work_unit_next_route"]["next_work_unit"] = next_work_unit
+    _rebuild_repair_execution_evidence_for_completed_work_unit(
+        study_root=study_root,
+        authorization_context=authorization_context,
+        evidence_adoption=evidence_adoption,
+    )
     completed_lifecycle.mark_owner_handoff_if_completed(
         study_root=study_root,
         authorization_context=authorization_context,
@@ -184,6 +189,122 @@ def record_controller_work_unit_evidence_adoption(
             evidence_adoption=evidence_adoption,
             lifecycle=lifecycle,
         )
+
+
+def _rebuild_repair_execution_evidence_for_completed_work_unit(
+    *,
+    study_root: Path,
+    authorization_context: dict[str, Any],
+    evidence_adoption: dict[str, Any],
+) -> None:
+    if not generic_completed_work_unit.is_completed_adoption_payload(evidence_adoption):
+        return
+    changed_artifact_refs = _completed_work_unit_changed_artifact_refs(evidence_adoption)
+    if not changed_artifact_refs:
+        return
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    evidence = paper_repair_execution_evidence.build_repair_execution_evidence(
+        study_id=str(authorization_context.get("study_id") or ""),
+        quest_id=str(authorization_context.get("quest_id") or ""),
+        study_root=resolved_study_root,
+        repair_work_unit=_completed_work_unit_repair_work_unit(authorization_context),
+        review_finding=_completed_work_unit_review_finding(authorization_context),
+        source_refs=_completed_work_unit_source_refs(evidence_adoption),
+        changed_artifact_refs=changed_artifact_refs,
+        revision_log_ref=_existing_ref(resolved_study_root / "paper" / "review" / "review_ledger.json")
+        or _existing_ref(resolved_study_root / "paper" / "review_ledger.json"),
+        evidence_ledger_ref=_existing_ref(resolved_study_root / "paper" / "evidence_ledger.json"),
+        review_ledger_ref=_existing_ref(resolved_study_root / "paper" / "review" / "review_ledger.json")
+        or _existing_ref(resolved_study_root / "paper" / "review_ledger.json"),
+        gate_replay_target="publication_gate",
+        gate_replay_refs=_completed_work_unit_gate_replay_refs(
+            study_root=resolved_study_root,
+            authorization_context=authorization_context,
+        ),
+        ai_reviewer_recheck_request_ref=_existing_ref(
+            resolved_study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+        ),
+    )
+    evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
+        study_root=resolved_study_root,
+        evidence=evidence,
+    )
+    evidence_adoption["repair_execution_evidence_path"] = str(evidence_path)
+    evidence_adoption["repair_execution_evidence_status"] = evidence.get("status")
+
+
+def _completed_work_unit_changed_artifact_refs(evidence_adoption: dict[str, Any]) -> list[object]:
+    refs = evidence_adoption.get("artifact_refs")
+    return list(refs) if isinstance(refs, list) else []
+
+
+def _completed_work_unit_source_refs(evidence_adoption: dict[str, Any]) -> list[object]:
+    refs = evidence_adoption.get("source_refs")
+    source_refs = list(refs) if isinstance(refs, list) else []
+    report_ref = _text(evidence_adoption.get("report_ref"))
+    if report_ref is not None:
+        source_refs.append(report_ref)
+    return source_refs
+
+
+def _completed_work_unit_gate_replay_refs(
+    *,
+    study_root: Path,
+    authorization_context: dict[str, Any],
+) -> list[object]:
+    refs: list[object] = []
+    for key in ("publication_eval_path", "decision_path"):
+        ref = _existing_context_ref(study_root=study_root, value=authorization_context.get(key))
+        if ref is not None and ref not in refs:
+            refs.append(ref)
+    return refs
+
+
+def _completed_work_unit_repair_work_unit(authorization_context: dict[str, Any]) -> dict[str, Any]:
+    next_work_unit = authorization_context.get("next_work_unit")
+    repair_work_unit = dict(next_work_unit) if isinstance(next_work_unit, dict) else {}
+    work_unit_id = _text(authorization_context.get("work_unit_id"))
+    if work_unit_id is not None:
+        repair_work_unit["unit_id"] = work_unit_id
+    if _text(repair_work_unit.get("gate_replay_target")) is None:
+        repair_work_unit["gate_replay_target"] = "publication_gate"
+    for key in ("work_unit_fingerprint", "route_target", "route_key_question", "source_route_key_question"):
+        value = _text(authorization_context.get(key))
+        if value is not None:
+            repair_work_unit[key] = value
+    return repair_work_unit or {"unit_id": "repair_work_unit", "gate_replay_target": "publication_gate"}
+
+
+def _completed_work_unit_review_finding(authorization_context: dict[str, Any]) -> dict[str, Any]:
+    finding: dict[str, Any] = {}
+    for source_key, target_key in (
+        ("publication_eval_id", "source_eval_id"),
+        ("decision_id", "controller_decision_id"),
+        ("work_unit_fingerprint", "work_unit_fingerprint"),
+    ):
+        value = _text(authorization_context.get(source_key))
+        if value is not None:
+            finding[target_key] = value
+    for key in ("route_target", "route_key_question", "source_route_key_question"):
+        value = _text(authorization_context.get(key))
+        if value is not None:
+            finding[key] = value
+    return finding
+
+
+def _existing_ref(path: Path) -> str | None:
+    resolved = Path(path).expanduser().resolve()
+    return str(resolved) if resolved.exists() else None
+
+
+def _existing_context_ref(*, study_root: Path, value: object) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if not path.is_absolute():
+        path = Path(study_root).expanduser().resolve() / path
+    return _existing_ref(path)
 
 
 def _has_prior_delivery_or_duplicate(
@@ -306,6 +427,12 @@ def _adopt_generic_completed_work_unit(
             payload["artifact_kind"] = artifact_kind
         if report_status := _text(report_payload.get("status")):
             payload["status"] = report_status
+        artifact_refs = generic_completed_work_unit.artifact_refs(report_payload)
+        if artifact_refs:
+            payload["artifact_refs"] = artifact_refs
+        source_refs = generic_completed_work_unit.source_refs(report_payload)
+        if source_refs:
+            payload["source_refs"] = source_refs
         control_intent.append_event(
             study_root=study_root,
             identity=identity,

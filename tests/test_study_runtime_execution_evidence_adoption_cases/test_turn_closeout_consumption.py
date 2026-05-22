@@ -92,6 +92,111 @@ def test_execute_noop_runtime_decision_adopts_active_run_completed_turn_closeout
     assert marker["active_run_id"] == "run-story"
 
 
+def test_completed_story_repair_closeout_rebuilds_repair_execution_evidence(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    evidence_module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    _write_story_repair_authorization(study_root)
+    _write_publication_eval_work_unit_authority(study_root)
+    draft = study_root / "paper" / "draft.md"
+    review_manuscript = study_root / "paper" / "build" / "review_manuscript.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    review_manuscript.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text("Current clean manuscript story.\n", encoding="utf-8")
+    review_manuscript.write_text("Current clean review manuscript story.\n", encoding="utf-8")
+    evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    ai_request = _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {"request_id": "ai-reviewer-recheck::001-risk"},
+    )
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={
+            "delivery_mode": "managed_runtime_chat",
+            "message_id": "msg-story-repair",
+            "active_run_id": "run-story",
+            "source": "medautosci-test",
+        },
+        recorded_at="2026-05-20T02:39:00+00:00",
+    )
+    closeout_path = _write_turn_closeout(
+        quest_root=quest_root,
+        run_id="run-story",
+        artifact_refs=[
+            "paper/draft.md",
+            "paper/build/review_manuscript.md",
+        ],
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-story",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("completed story closeout must be adopted instead of relayed")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+    evidence_path = evidence_module.stable_repair_execution_evidence_path(study_root=study_root)
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert adoption["report_ref"] == str(closeout_path)
+    assert adoption["repair_execution_evidence_status"] == "progress_delta_candidate"
+    assert evidence["repair_work_unit"]["unit_id"] == "manuscript_story_repair"
+    assert evidence["status"] == "progress_delta_candidate"
+    assert evidence["progress_delta_candidate"] is True
+    assert evidence["blockers"] == []
+    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is True
+    assert evidence["evidence_ledger_update_done"] is True
+    assert evidence["evidence_ledger_ref"] == str(evidence_ledger.resolve())
+    assert evidence["review_ledger_update_done"] is True
+    assert evidence["review_ledger_ref"] == str(review_ledger.resolve())
+    assert evidence["gate_replay_done"] is True
+    gate_replay_refs = {Path(ref).resolve() for ref in evidence["gate_replay_refs"]}
+    assert (study_root / "artifacts" / "publication_eval" / "latest.json").resolve() in gate_replay_refs
+    assert (study_root / "artifacts" / "controller_decisions" / "latest.json").resolve() in gate_replay_refs
+    assert evidence["ai_reviewer_recheck_done"] is True
+    assert evidence["ai_reviewer_recheck_request_ref"] == str(ai_request.resolve())
+    changed_paths = {Path(ref["path"]).resolve() for ref in evidence["changed_artifact_refs"]}
+    assert changed_paths == {draft.resolve(), review_manuscript.resolve()}
+    story_paths = {
+        Path(ref["path"]).resolve()
+        for ref in evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"]
+    }
+    assert story_paths == {draft.resolve(), review_manuscript.resolve()}
+
+
 def test_execute_noop_runtime_decision_ignores_non_active_turn_closeout(
     tmp_path: Path,
 ) -> None:
@@ -691,6 +796,12 @@ def test_existing_completed_adoption_before_decision_refreshes_publication_work_
     assert marker_lifecycle["lifecycle_state"] == "owner_handoff"
     assert marker_lifecycle["latest_event_type"] == "owner_handoff"
     assert marker_lifecycle["terminal_consumed"] is True
+
+
+def _write_json(path: Path, payload: object) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 def _write_story_repair_authorization(

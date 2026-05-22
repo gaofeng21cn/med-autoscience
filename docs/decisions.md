@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：completed writer closeout adoption 必须重建 repair execution evidence
+
+- 决策：MAS 采纳 completed writer / work-unit closeout 时，必须把 closeout `artifact_refs` 作为 `repair_execution_evidence.changed_artifact_refs` 重建证据，并保留 closeout `source_refs` / `report_ref`。对 manuscript story/write repair，`paper/draft.md` 或 `paper/build/review_manuscript.md` 的 canonical story-surface delta 仍是必需完成证据。
+- 决策：重建后的 evidence 只有在 evidence ledger、review ledger、publication gate replay 输入 ref 与 AI reviewer recheck request ref 都存在时，才允许成为 `progress_delta_candidate`；缺任一 owner ref 时继续 fail closed 为 pending/blocker。
+- 理由：DM002/DM003 暴露出 Codex writer closeout 可以包含 canonical paper delta，但 MAS 只记录了 adoption/handoff，未把 delta 转成当前 `repair_execution_evidence`，导致后续 owner route/quality suite 仍把 write repair 当作未闭合。修复位置是 MAS owner evidence adoption，不是手工改 study truth，也不是放宽 publication gate。
+- 影响：这是 MAS owner path / medical manuscript quality regression 修复，不写 DM002/DM003 canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。正式质量结论仍由 AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-22：Agent Lab 医学稿件质量 suite 必须投影 OPL 可消费的质量地板与 owner route refs
 
 - 决策：`agent-lab-medical-manuscript-quality-suite` 生成的 refs-only suite 必须显式投影 `quality_floor_refs`、`owner_route_refs` 与 `failure_delta_refs`。这些 refs 至少覆盖 MAS 高质量医学稿件质量地板、当前 study 的 AI reviewer authority、write owner、publication gate，以及当前 prose/reviewer-feedback route-back 的 failure/evidence delta。
