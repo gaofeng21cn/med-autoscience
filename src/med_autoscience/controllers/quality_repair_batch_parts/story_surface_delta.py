@@ -9,6 +9,7 @@ from med_autoscience.controllers.story_surface_work_units import (
     STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
     is_story_surface_delta_write_work_unit,
 )
+from med_autoscience.publication_eval_reviewer_os import current_ai_reviewer_route_back_action
 
 
 BLOCKED_REASON = "manuscript_story_surface_delta_missing"
@@ -71,6 +72,11 @@ def ai_reviewer_recheck_supersedes_lifecycle(
     if not _repair_evidence_matches_completed_story_delta(
         repair_evidence,
         source_eval_id=source_eval_id,
+    ):
+        return False
+    if _current_ai_reviewer_eval_consumed_recheck_request(
+        publication_eval=publication_eval,
+        repair_evidence=repair_evidence,
     ):
         return False
     recheck_ref = _non_empty_text(repair_evidence.get("ai_reviewer_recheck_request_ref"))
@@ -144,6 +150,23 @@ def _repair_evidence_matches_completed_story_delta(
         and bool(hygiene.get("story_surface_delta_refs"))
         and BLOCKED_REASON not in _string_set(hygiene.get("blockers"))
     )
+
+
+def _current_ai_reviewer_eval_consumed_recheck_request(
+    *,
+    publication_eval: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> bool:
+    if current_ai_reviewer_route_back_action(publication_eval) is None:
+        return False
+    recheck_ref = _non_empty_text(repair_evidence.get("ai_reviewer_recheck_request_ref"))
+    if recheck_ref is None:
+        return False
+    provenance = publication_eval.get("assessment_provenance")
+    if not isinstance(provenance, Mapping):
+        return False
+    source_refs = _string_set(provenance.get("source_refs"))
+    return recheck_ref in source_refs
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:

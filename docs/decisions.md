@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-22：已消费 recheck request 的 AI reviewer route-back 优先于旧 story recheck
+
+- 决策：`story_surface_recheck_transition` 只能在 completed story-surface delta 尚未被当前 AI reviewer eval 消费时投影 `return_to_ai_reviewer_workflow`。若 AI reviewer-owned `publication_eval/latest.json` 已有当前 `route_back_same_line` / `bounded_analysis` / `stop_loss` action，且 `assessment_provenance.source_refs` 明确包含 `repair_execution_evidence.ai_reviewer_recheck_request_ref`，domain transition 必须尊重当前 AI reviewer route-back owner。
+- 理由：DM002 暴露出 canonical story repair 已触发 AI reviewer recheck，AI reviewer 随后给出新的 blocked/write route-back，但旧 `repair_execution_evidence.ai_reviewer_recheck_done=true` 仍让 story recheck transition 抢占，导致系统重复投 `ai_reviewer_re_eval` 而不能进入当前 write repair。
+- 影响：这是 MAS read-model/currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍由当前 AI reviewer-backed route-back、write owner delta 与 publication gate 判定。
+
 ## 2026-05-22：medical overlay 必须物化 stage skill 引用的 companion block
 
 - 决策：`install_medical_overlay` / `reapply_medical_overlay` / `materialize_runtime_medical_overlay` 在写入 stage `SKILL.md` 时，必须同步物化该 skill 依赖的显式 companion template，例如 `medical-research-stage-packet.block.md`。companion 依赖由 MAS overlay installer 中的显式 registry 持有，不通过扫描 Markdown 链接隐式推断。

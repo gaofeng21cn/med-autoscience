@@ -323,3 +323,91 @@ def test_current_ai_reviewer_routeback_controller_route_accepts_domain_transitio
     assert route is not None
     assert route["route_target"] == "analysis-campaign"
     assert route["work_unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+
+
+def test_current_ai_reviewer_write_routeback_preempts_consumed_story_recheck_request(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "study"
+    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
+    publication_eval["eval_id"] = "publication-eval::dm002::current-ai-reviewer-write-repair"
+    publication_eval["recommended_actions"] = [
+        {
+            "action_id": "dm002-current-ai-reviewer-write-repair",
+            "action_type": "route_back_same_line",
+            "requires_controller_decision": True,
+            "route_target": "write",
+            "work_unit_fingerprint": "dm002_same_line_publication_paper_repair_20260521",
+            "next_work_unit": {
+                "unit_id": "dm002_same_line_publication_paper_repair",
+                "lane": "write",
+                "summary": "Repair current AI reviewer paper-surface findings.",
+            },
+        }
+    ]
+    _write_json(
+        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
+        publication_eval,
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": publication_eval["eval_id"],
+            "status": "blocked",
+            "work_unit": {"unit_id": "manuscript_story_repair"},
+            "unit_statuses": [
+                {"unit_id": "repair_paper_live_paths", "status": "current"},
+                {"unit_id": "materialize_display_surface", "status": "materialized"},
+            ],
+            "gate_replay_status": "blocked",
+        },
+    )
+    ai_reviewer_request_path = (
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    )
+    _write_json(ai_reviewer_request_path, {"request_id": "ai-reviewer-recheck::dm002"})
+    publication_eval["assessment_provenance"]["source_refs"] = [str(ai_reviewer_request_path)]
+    _write_json(
+        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
+        publication_eval,
+    )
+    _write_json(
+        study_root / study_domain_transition_table.REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH,
+        {
+            "schema_version": 1,
+            "status": "progress_delta_candidate",
+            "review_finding": {"source_eval_id": publication_eval["eval_id"]},
+            "repair_work_unit": {"unit_id": "manuscript_story_repair"},
+            "ai_reviewer_recheck_required": True,
+            "ai_reviewer_recheck_done": True,
+            "ai_reviewer_recheck_request_ref": str(ai_reviewer_request_path),
+            "manuscript_surface_hygiene": {
+                "status": "clear",
+                "blockers": [],
+                "story_surface_delta_required": True,
+                "story_surface_delta_present": True,
+                "story_surface_delta_refs": [
+                    {
+                        "path": str(study_root / "paper" / "draft.md"),
+                        "artifact_role": "canonical_manuscript_story_surface",
+                    }
+                ],
+            },
+            "blockers": [],
+        },
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "route_back_same_line"
+    assert transition["route_target"] == "write"
+    assert transition["owner"] == "write"
+    assert transition["controller_action"] == "ensure_study_runtime"
+    assert transition["next_work_unit"]["unit_id"] == "dm002_same_line_publication_paper_repair"
