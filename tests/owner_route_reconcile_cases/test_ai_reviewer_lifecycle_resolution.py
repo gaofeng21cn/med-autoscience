@@ -333,6 +333,128 @@ def test_scan_domain_routes_routes_requested_ai_reviewer_recheck_even_when_old_e
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
 
 
+def test_scan_domain_routes_reads_stable_ai_reviewer_request_before_old_write_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    request_builder = importlib.import_module("med_autoscience.controllers.domain_action_requests")
+    request_lifecycle = importlib.import_module("med_autoscience.controllers.domain_action_request_lifecycle")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::002::002::2026-05-22T05:00:04+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "source_refs": [],
+        },
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "next_work_unit": {
+                    "unit_id": "dm002_same_line_publication_paper_repair",
+                    "lane": "write",
+                    "summary": "Absorb fresh repair evidence into the manuscript.",
+                },
+            }
+        ],
+    }
+    _write_json(publication_eval_path, publication_eval)
+    _write_json(study_root / "paper" / "draft.md", {"body": "Current manuscript."})
+    packet = request_builder.build_ai_reviewer_publication_eval_request(
+        study_id=study_id,
+        quest_id=study_id,
+        source_surface="quality_repair_batch",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "review_required"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+            "blockers": [],
+        },
+        input_refs={
+            "manuscript": {"relative_path": "paper/draft.md"},
+            "evidence_ledger": {"relative_path": "paper/evidence_ledger.json"},
+            "review_ledger": {"relative_path": "paper/review/review_ledger.json"},
+            "study_charter": {"relative_path": "artifacts/controller/study_charter.json"},
+            "medical_manuscript_blueprint": {"relative_path": "paper/medical_manuscript_blueprint.json"},
+            "claim_evidence_map": {"relative_path": "paper/claim_evidence_map.json"},
+            "medical_prose_review": {"relative_path": "artifacts/publication_eval/medical_prose_review.json"},
+            "publication_gate_projection": {"relative_path": "artifacts/publication_eval/latest.json"},
+        },
+        lifecycle_state="requested",
+    )
+    request_lifecycle.materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "quest_root": str(profile.runtime_root / study_id),
+            "quest_status": "waiting_for_user",
+            "active_run_id": None,
+            "publication_eval": publication_eval,
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "ensure_study_runtime",
+                "next_work_unit": {
+                    "unit_id": "dm002_same_line_publication_paper_repair",
+                    "lane": "write",
+                    "summary": "Absorb fresh repair evidence into the manuscript.",
+                },
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "continue_supervising_runtime",
+                "attempt_state": "idle",
+                "retry_budget_remaining": 2,
+            },
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-dm002",
+                "source_signature": "truth-source-dm002",
+                "canonical_next_action": "resume_same_study_line",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "current_stage": "managed_runtime_supervision_gap",
+            "paper_stage": "publishability_gate_blocked",
+            "refs": {"publication_eval_path": str(publication_eval_path)},
+            "supervision": {"active_run_id": None, "health_status": "parked"},
+            "quality_review_loop": {"closure_state": "review_required"},
+        },
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["ai_reviewer_assessment"]["missing"] is True
+    assert study["ai_reviewer_assessment"]["request_state"] == "requested"
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
+
+
 def test_scan_domain_routes_suppresses_projection_only_external_supervisor_after_live_worker_observed(
     monkeypatch,
     tmp_path: Path,

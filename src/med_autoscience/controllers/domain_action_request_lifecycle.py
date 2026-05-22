@@ -564,6 +564,34 @@ def _publication_eval_ai_reviewer_owned(publication_eval_payload: Mapping[str, A
     )
 
 
+def _publication_eval_consumes_ai_reviewer_request(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any] | None,
+    request_packet: Mapping[str, Any],
+    request_path: Path,
+) -> bool:
+    if not _publication_eval_ai_reviewer_owned(publication_eval_payload):
+        return False
+    publication_eval = _mapping(publication_eval_payload)
+    request_ref = str(request_path.resolve())
+    source_refs = set(_record_source_refs(study_root=study_root, record=publication_eval))
+    if request_ref in source_refs:
+        return True
+    request_timestamp = _payload_timestamp(request_packet)
+    if request_timestamp is None:
+        try:
+            request_timestamp = datetime.fromtimestamp(request_path.stat().st_mtime, tz=timezone.utc)
+        except OSError:
+            request_timestamp = None
+    eval_timestamp = _reviewer_assessment_timestamp(publication_eval)
+    if request_timestamp is not None and eval_timestamp is not None:
+        return eval_timestamp >= request_timestamp
+    if request_timestamp is not None and eval_timestamp is None:
+        return False
+    return True
+
+
 def _input_contract(packet: Mapping[str, Any]) -> Mapping[str, Any]:
     return _mapping(packet.get("input_contract"))
 
@@ -637,7 +665,13 @@ def project_ai_reviewer_request_lifecycle(
     if requested_state not in AI_REVIEWER_REQUEST_STATES:
         requested_state = "requested"
     input_blockers = _input_blockers(packet, study_root=resolved_study_root)
-    output_written = _publication_eval_ai_reviewer_owned(publication_eval_payload)
+    request_path = stable_ai_reviewer_request_path(study_root=resolved_study_root)
+    output_written = _publication_eval_consumes_ai_reviewer_request(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        request_packet=packet,
+        request_path=request_path,
+    )
 
     if output_written:
         state = "assessment_written"
@@ -667,6 +701,6 @@ def project_ai_reviewer_request_lifecycle(
         "can_authorize_finalize": False,
         "can_authorize_submission": False,
         "refs": {
-            "request_path": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
+            "request_path": str(request_path),
         },
     }

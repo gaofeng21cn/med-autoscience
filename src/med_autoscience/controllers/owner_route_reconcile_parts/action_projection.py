@@ -155,6 +155,19 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    if ai_reviewer_assessment.get("missing") is True:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=ai_reviewer_actions.ai_reviewer_required_action(
+                    reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
+                ),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     story_surface_action = story_surface_delta_actions.write_owner_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -272,12 +285,6 @@ def action_queue(
             if _text(action.get("action_type")) not in {"runtime_platform_repair", artifact_freshness.ACTION_TYPE}
         ]
         actions.insert(0, artifact_action)
-    if ai_reviewer_assessment.get("missing") is True:
-        actions.append(
-            ai_reviewer_actions.ai_reviewer_required_action(
-                reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
-            )
-        )
     return [
         decorate_action(
             study_id=study_id,

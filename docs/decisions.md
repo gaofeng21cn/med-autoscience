@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：pending AI reviewer request 必须优先于旧 story/write route
+
+- 决策：`ai_reviewer_request_lifecycle` 只能在 AI reviewer-owned `publication_eval/latest.json` 明确消费当前 `artifacts/supervision/requests/ai_reviewer/latest.json` 后进入 `assessment_written`。消费证据必须是 eval/provenance/source refs 包含该 request ref，或 eval 时间戳不早于 request 时间戳；缺 currentness evidence 时保持 request pending。
+- 决策：owner-route reconcile 在 progress 尚未投影 `ai_reviewer_request_lifecycle` 时，必须直接从 stable AI reviewer request file 投影 lifecycle；pending request 要优先于旧 `route_back_same_line/write` story route，但仍排在 methodology/source-provenance/analysis-harmonization 等硬 blocker 之后。
+- 理由：DM002 暴露出 `quality_repair_batch` 已物化新的 AI reviewer recheck request，但 stale AI reviewer eval 与旧 write route 继续抢占，导致系统重复派 `run_quality_repair_batch` 而没有回到 `return_to_ai_reviewer_workflow`。根因是 MAS request currentness 和 action priority，不是 OPL queue/provider lifecycle。
+- 影响：这是 MAS owner-route/read-model currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍由当前 AI reviewer-backed publication eval、write owner delta 与 publication gate 判定。
+
 ## 2026-05-22：AI reviewer redrive controller decision 必须优先于旧 story-delta repair residue
 
 - 决策：managed runtime turn prompt 在读取当前 `controller_decisions/latest.json` 时，若该 decision 是 runtime-authorizing 的 `return_to_ai_reviewer_workflow`，且 work unit 为 `ai_reviewer_recheck` / `ai_reviewer_medical_prose_quality_review` 或 fingerprint 以 `domain-transition::ai_reviewer_re_eval::` 开头，必须优先采用该 controller decision。旧 `quality_repair_batch/latest.json` 中仍与同一 `publication_eval/latest.json` 对齐的 `manuscript_story_surface_delta_missing` residue 不得抢占这类 fresh AI reviewer redrive。

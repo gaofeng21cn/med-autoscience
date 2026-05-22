@@ -363,6 +363,9 @@ def test_ai_reviewer_request_lifecycle_projects_blocked_and_assessment_written(t
                 "owner": "ai_reviewer",
                 "source_kind": "publication_eval_ai_reviewer",
                 "ai_reviewer_required": False,
+                "source_refs": [
+                    str(study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json")
+                ],
             }
         },
     )

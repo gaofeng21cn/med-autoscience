@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.study_task_intake import read_latest_task_intake, task_intake_is_reviewer_revision
 
 
@@ -17,6 +18,13 @@ def assessment(
     study_root: Path | None = None,
 ) -> dict[str, Any]:
     request_lifecycle = _mapping(progress.get("ai_reviewer_request_lifecycle"))
+    if not request_lifecycle and study_root is not None:
+        request_lifecycle = _mapping(
+            domain_action_request_lifecycle.project_ai_reviewer_request_lifecycle(
+                study_root=study_root,
+                publication_eval_payload=publication_eval,
+            )
+        )
     request_state = _text(request_lifecycle.get("state"))
     provenance = _mapping(publication_eval.get("assessment_provenance"))
     owner = _text(provenance.get("owner"))
