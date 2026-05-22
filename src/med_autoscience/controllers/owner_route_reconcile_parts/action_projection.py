@@ -155,6 +155,21 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    record_production_action = _ai_reviewer_record_production_transition_action(
+        status=status,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+    )
+    if record_production_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=record_production_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     if _explicit_ai_reviewer_record_current_manuscript_request_pending(ai_reviewer_assessment):
         return [
             decorate_action(
@@ -348,6 +363,50 @@ def _owner_handoff_action(status: Mapping[str, Any]) -> dict[str, Any] | None:
         "paper_package_mutation_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+
+
+def _ai_reviewer_record_production_transition_action(
+    *,
+    status: Mapping[str, Any],
+    ai_reviewer_assessment: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    transition = _mapping(status.get("domain_transition"))
+    if _text(transition.get("decision_type")) != "ai_reviewer_re_eval":
+        return None
+    next_work_unit = _mapping(transition.get("next_work_unit"))
+    work_unit_id = _text(next_work_unit.get("unit_id"))
+    reason = _record_production_reason_for_work_unit(work_unit_id)
+    if reason is None:
+        return None
+    action = ai_reviewer_actions.ai_reviewer_required_action(reason=reason)
+    action["summary"] = (
+        "Produce a current AI reviewer publication-eval record before refreshing "
+        "publication_eval/latest.json."
+    )
+    action["required_output_surface"] = "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    action["next_work_unit"] = work_unit_id
+    action["executable_work_unit"] = work_unit_id
+    action["controller_work_unit_id"] = work_unit_id
+    action["domain_transition_decision_type"] = "ai_reviewer_re_eval"
+    action["controller_next_work_unit"] = next_work_unit
+    action["publication_eval_latest_write_allowed"] = False
+    action["controller_decision_write_allowed"] = False
+    action["record_only_surface"] = True
+    if required_refs := _string_items(ai_reviewer_assessment.get("required_currentness_refs")):
+        action["required_currentness_refs"] = required_refs
+    if stale_record_ref := _text(ai_reviewer_assessment.get("stale_record_ref")):
+        action["stale_record_ref"] = stale_record_ref
+    if source_ref := _text(ai_reviewer_assessment.get("source_ref")):
+        action["source_ref"] = source_ref
+    return action
+
+
+def _record_production_reason_for_work_unit(work_unit_id: str | None) -> str | None:
+    if work_unit_id == "produce_ai_reviewer_publication_eval_record_against_current_manuscript":
+        return ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
+    if work_unit_id == "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization":
+        return ai_reviewer_actions.RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON
+    return None
 
 
 def _explicit_ai_reviewer_request_pending(ai_reviewer_assessment: Mapping[str, Any]) -> bool:

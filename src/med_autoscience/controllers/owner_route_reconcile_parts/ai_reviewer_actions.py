@@ -7,6 +7,7 @@ from typing import Any
 STALE_AFTER_REVIEWER_REVISION_REASON = "ai_reviewer_assessment_stale_after_reviewer_revision"
 ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON = "analysis_harmonization_completed_ai_reviewer_review_required"
 RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON = "ai_reviewer_record_stale_after_current_manuscript"
+RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
 
 
 def ai_reviewer_required_action(*, reason: str) -> dict[str, Any]:
@@ -38,6 +39,7 @@ def _text(value: object) -> str | None:
 __all__ = [
     "ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON",
     "RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON",
+    "RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON",
     "STALE_AFTER_REVIEWER_REVISION_REASON",
     "ai_reviewer_required_action",
     "stale_reviewer_revision_required",

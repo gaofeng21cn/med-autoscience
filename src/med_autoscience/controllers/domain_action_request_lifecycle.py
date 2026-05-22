@@ -632,6 +632,8 @@ def _publication_eval_consumes_ai_reviewer_request(
 ) -> bool:
     if not _publication_eval_ai_reviewer_owned(publication_eval_payload):
         return False
+    if _request_packet_has_record_currentness_blocker(request_packet):
+        return False
     publication_eval = _mapping(publication_eval_payload)
     request_ref = str(request_path.resolve())
     source_refs = set(_record_source_refs(study_root=study_root, record=publication_eval))
@@ -656,6 +658,15 @@ def _publication_eval_consumes_ai_reviewer_request(
     if request_fingerprint is not None:
         return False
     return True
+
+
+def _request_packet_has_record_currentness_blocker(request_packet: Mapping[str, Any]) -> bool:
+    blocked_reason = _text(_mapping(request_packet.get("request_lifecycle")).get("blocked_reason"))
+    return blocked_reason in {
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+        AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON,
+    }
 
 
 def _input_contract(packet: Mapping[str, Any]) -> Mapping[str, Any]:
