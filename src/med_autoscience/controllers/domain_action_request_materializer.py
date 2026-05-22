@@ -18,6 +18,7 @@ from med_autoscience.controllers.owner_route_reconcile import SUPERVISION_LATEST
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
@@ -408,6 +409,9 @@ def _default_executor_dispatch(
         "next_executable_owner": next_executable_owner,
         "required_output_surface": required_output_surface,
         "owner_route": owner_route or None,
+        "owner_reason_contract": _mapping(owner_route.get("owner_reason_contract")) or None,
+        "owner_route_attempt_protocol": _mapping(owner_route.get("owner_route_attempt_protocol")) or None,
+        "owner_route_currentness_basis": _mapping(_mapping(owner_route.get("source_refs")).get("owner_route_currentness_basis")) or None,
         "idempotency_key": idempotency_key,
         "prompt_budget": {"max_prompt_tokens": 6000},
         "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{action_type}.json",
@@ -463,6 +467,18 @@ def _default_executor_dispatch(
     if dispatch_status == "ready" and repeat_guard["repeat_suppressed"]:
         dispatch_status = "repeat_suppressed"
         blocked_reason = repeat_suppression.REPEAT_SUPPRESSED_REASON
+    dispatch_shell = {
+        "action_type": action_type,
+        "next_executable_owner": next_executable_owner,
+        "owner_route": owner_route or None,
+        "prompt_contract": prompt_contract,
+        "required_closeout_packet": typed_closeout_contract,
+        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
+        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+    }
+    owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
+        dispatch=dispatch_shell
+    )
     return {
         "surface": "default_executor_dispatch_request",
         "schema_version": SCHEMA_VERSION,
@@ -485,6 +501,7 @@ def _default_executor_dispatch(
         "repeat_suppression": repeat_guard,
         "consumer_mutation_scope": "executor_dispatch_request_only",
         "required_closeout_packet": typed_closeout_contract,
+        "owner_route_attempt_envelope": owner_route_attempt_envelope,
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
         "default_executor_policy": executor_policy,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),

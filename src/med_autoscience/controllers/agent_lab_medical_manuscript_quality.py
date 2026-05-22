@@ -188,6 +188,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
                 "regression-suite:mas/hard-methodology-unit-harmonization-route",
                 "regression-suite:mas/ai-reviewer-output-readiness-currentness",
                 "regression-suite:mas/medical-prose-write-repair-story-surface-delta",
+                "regression-suite:mas/owner-route-attempt-protocol",
                 "regression-suite:mas/agent-lab-medical-manuscript-self-evolution",
                 "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue",
             ],

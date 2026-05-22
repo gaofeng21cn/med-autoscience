@@ -10,6 +10,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
+from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
 TASK_KIND = "domain_owner/default-executor-dispatch"
@@ -39,6 +40,14 @@ def default_executor_dispatch_tasks(
             continue
         dispatch_authority = _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch"
         dispatch_ref = _workspace_relative(dispatch_path, workspace_root=profile.workspace_root)
+        owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
+            dispatch=dispatch
+        )
+        if owner_route_attempt_envelope.get("dispatchable") is not True:
+            continue
+        protocol_payload_fields = owner_route_attempt_protocol.payload_fields_for_default_executor_dispatch(
+            dispatch=dispatch
+        )
         prompt_contract_ref = f"{dispatch_ref}#prompt_contract"
         source_refs = _source_refs(
             dispatch=dispatch,
@@ -75,13 +84,15 @@ def default_executor_dispatch_tasks(
                     "study_id": study_id,
                     "quest_id": quest_id,
                     "action_type": action_type,
+                    **protocol_payload_fields,
                     "dispatch_authority": dispatch_authority,
-                    "next_executable_owner": next_owner,
                     "executor_kind": executor_kind,
                     "dispatch_ref": dispatch_ref,
                     "authority_boundary": "mas_default_executor_dispatch_request_only",
+                    "next_executable_owner": next_owner,
                 },
                 "source_refs": source_refs,
+                "owner_route_attempt_envelope": owner_route_attempt_envelope,
                 "dispatch_owner": "one-person-lab",
                 "domain_truth_owner": "med-autoscience",
                 "queue_owner": "one-person-lab",
@@ -98,14 +109,17 @@ def _dispatch_ready_for_opl_attempt(dispatch: Mapping[str, Any] | None) -> bool:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
     refs = _mapping(dispatch.get("refs"))
-    return (
+    if not (
         _text(dispatch.get("surface")) == REQUIRED_SURFACE
         and _text(dispatch.get("dispatch_status")) == "ready"
         and _text(dispatch.get("executor_kind")) == REQUIRED_EXECUTOR_KIND
         and _text(dispatch.get("next_executable_owner")) == REQUIRED_NEXT_OWNER
         and bool(owner_route)
         and _text(refs.get("dispatch_path")) is not None
-    )
+    ):
+        return False
+    envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
+    return envelope.get("dispatchable") is True
 
 
 def _source_refs(

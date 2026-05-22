@@ -5,6 +5,8 @@ import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.runtime_control import owner_route_attempt_protocol
+
 
 ROUTED_ACTION_TYPES = (
     "runtime_platform_repair",
@@ -60,6 +62,14 @@ def build_owner_route(
         owner=owner,
         owner_reason=owner_reason,
     )
+    work_unit_fingerprint = _work_unit_fingerprint(
+        status=status,
+        progress=progress,
+        actions=normalized_actions,
+        source_fingerprint=source_fingerprint,
+    )
+    source_eval_id = _source_eval_id(status=status, progress=progress, actions=normalized_actions)
+    work_unit_id = _work_unit_id(status=status, progress=progress, actions=normalized_actions)
     current_owner = _current_owner(status=status, progress=progress, active_run_id=active_run_id)
     route = {
         "surface": "domain_route_owner_route",
@@ -68,12 +78,7 @@ def build_owner_route(
         "quest_id": quest_id,
         "truth_epoch": route_epoch,
         "runtime_health_epoch": _runtime_health_epoch(status, progress),
-        "work_unit_fingerprint": _work_unit_fingerprint(
-            status=status,
-            progress=progress,
-            actions=normalized_actions,
-            source_fingerprint=source_fingerprint,
-        ),
+        "work_unit_fingerprint": work_unit_fingerprint,
         "failure_signature": owner_reason,
         "trace_id": _trace_id(
             study_id=study_id,
@@ -94,6 +99,10 @@ def build_owner_route(
         "source_refs": {
             "study_truth_epoch": _text(truth.get("truth_epoch")),
             "runtime_health_epoch": _runtime_health_epoch(status, progress),
+            "source_eval_id": source_eval_id,
+            "work_unit_id": work_unit_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "blocked_reason": owner_reason,
             "publication_eval_path": _text(_mapping(progress.get("refs")).get("publication_eval_path")),
             "quest_root": _text(status.get("quest_root")) or _text(progress.get("quest_root")),
             "study_macro_state": _macro_state_source_ref(status, progress),
@@ -107,7 +116,7 @@ def build_owner_route(
         owner_reason=owner_reason,
         allowed_actions=allowed_actions,
     )
-    return route
+    return owner_route_attempt_protocol.decorate_owner_route(route)
 
 
 def decorate_actions(*, actions: Iterable[Mapping[str, Any]], owner_route: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -154,7 +163,7 @@ def ensure_owner_route_v2(route: Mapping[str, Any]) -> dict[str, Any]:
             "source_fingerprint": source_fingerprint,
         }
     )
-    return payload
+    return owner_route_attempt_protocol.decorate_owner_route(payload)
 
 
 def route_and_decorate_actions(
@@ -385,6 +394,56 @@ def _work_unit_fingerprint(
         if text := _text(next_work_unit.get("fingerprint")):
             return text
     return source_fingerprint
+
+
+def _source_eval_id(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    actions: list[Mapping[str, Any]],
+) -> str | None:
+    for action in actions:
+        if text := _text(action.get("source_eval_id")):
+            return text
+        controller_route = _mapping(action.get("controller_route"))
+        if text := _text(controller_route.get("source_eval_id")) or _text(controller_route.get("publication_eval_id")):
+            return text
+    publication_eval = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
+    return _text(publication_eval.get("eval_id")) or _text(publication_eval.get("source_eval_id"))
+
+
+def _work_unit_id(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    actions: list[Mapping[str, Any]],
+) -> str | None:
+    for action in actions:
+        if text := _text(action.get("work_unit_id")):
+            return text
+        if text := _work_unit_text(action.get("next_work_unit")):
+            return text
+        if text := _text(action.get("executable_work_unit")) or _text(action.get("controller_work_unit_id")):
+            return text
+        controller_route = _mapping(action.get("controller_route"))
+        if text := _text(controller_route.get("work_unit_id")) or _work_unit_text(controller_route.get("next_work_unit")):
+            return text
+    transition = _mapping(status.get("domain_transition")) or _mapping(progress.get("domain_transition"))
+    if text := _work_unit_text(transition.get("next_work_unit")):
+        return text
+    publication_eval = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
+    for action in publication_eval.get("recommended_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        if text := _text(action.get("work_unit_id")) or _work_unit_text(action.get("next_work_unit")):
+            return text
+    return None
+
+
+def _work_unit_text(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
+    return _text(value)
 
 
 def _trace_id(

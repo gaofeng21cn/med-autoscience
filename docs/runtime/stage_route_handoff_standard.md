@@ -15,6 +15,7 @@ Date: `2026-05-21`
 - `route` 是 MAS 医学 owner-chain 的 domain transition recommendation，表示下一步 owner、route-back、human gate、typed blocker 或 owner action。
 - `handoff` 是 MAS 给 OPL 的 body-free refs-only 交接包，用来让 OPL hydrate queue、创建 stage attempt、执行 retry/dead-letter、唤醒 provider 或生成 operator workorder。
 - 机器入口是 sidecar owner-route pending task 上的 `route_transition_contract` 与 `stage_graph_handoff`：前者给 OPL 读 allowed / forbidden refs 与 owner 边界，后者给 OPL 读 `journal-resolution` / `finalize` 这类 route 的 stage graph hints。
+- `domain_owner/default-executor-dispatch` 的机器入口是 `Owner-Route Attempt Protocol` envelope。MAS 必须在 envelope 中给出当前 `domain_owner`、`action_type`、`work_unit_id`、currentness basis、allowed / forbidden write surfaces、typed closeout requirement 和 completion boundary；OPL 只能用它 hydrate queue/attempt/provider transport。
 
 MAS repo 内不再扩展私有 queue、scheduler、checkpoint、resume、retry/dead-letter、worker liveness arbiter、route graph runner 或 generic state-machine runtime。OPL 当前若承载能力不足，应补 OPL stage graph / transition runner / runtime manager / App read model，而不是在 MAS 回补私有 runtime。
 
@@ -26,6 +27,7 @@ MAS repo 内不再扩展私有 queue、scheduler、checkpoint、resume、retry/d
 | `route` | MAS declares domain semantics; OPL transports | 给出 next owner、route-back reason、allowed action、guard refs、typed blocker、owner receipt expectation。 | 把 route 当小 stage、直接调度下一 route、写 runtime liveness/redrive truth。 |
 | `domain_transition` | MAS domain truth | 用 domain transition table / study state matrix 表达医学状态和 guard。 | 作为 generic state-machine runner 或 publication-ready verdict。 |
 | `owner_route_handoff` | MAS produces refs; OPL consumes | 写 body-free handoff artifact，暴露给 sidecar export 和 OPL queue hydrate。 | 写 `.ds/runtime_state.json` 的 generic owner-route latch，清 active run，改 worker running，直接 resume/stop/pause runtime。 |
+| `owner_route_attempt_protocol` | MAS declares domain execution envelope; OPL transports | 声明 registered reason、priority lattice、currentness basis、allowed/forbidden surfaces、typed closeout packet 和 provider/domain completion boundary。 | 把 provider completion 当作 MAS owner receipt，或让 OPL 判断医学质量、publication ready、package freshness、study truth。 |
 | `authority_function` | MAS | 执行医学方法学、AI reviewer verdict、artifact mutation authorization、memory accept/reject、owner receipt signing。 | 承担 OPL queue、provider lifecycle、App/workbench generic shell。 |
 | `child_graph` | OPL | MAS 只声明子任务语义、guard、receipt refs。 | MAS 不实现 child graph scheduler。 |
 
@@ -95,6 +97,9 @@ route 之间的调度由 OPL 负责：
 
 - `domain_route_ref`
 - `owner_route_ref`
+- `owner_route_attempt_envelope`
+- `owner_reason_contract`
+- `owner_route_currentness_basis`
 - `task_kind`
 - `dedupe_key`
 - `source_scope_refs`
@@ -106,6 +111,8 @@ route 之间的调度由 OPL 负责：
 - `human_gate_schema_ref`
 - `authority_boundary`
 - `no_forbidden_write_ref`
+- `required_closeout_packet`
+- `completion_boundary`
 
 禁止输出：
 
@@ -117,6 +124,16 @@ route 之间的调度由 OPL 负责：
 - memory body
 - `current_package` mutation
 - runtime queue state、retry state、dead-letter state、worker liveness truth
+
+## Owner-Route Attempt Protocol
+
+MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v1`：
+
+1. `owner_reason_contract` 必须来自 MAS registry。未注册 reason 不能生成 ready dispatch。
+2. `priority_lattice` 固定为 hard methodology/source blocker、pending AI reviewer request、AI reviewer currentness、write route-back、package freshness、delivery/human handoff。
+3. `owner_route_currentness_basis` 至少绑定 work unit fingerprint、truth epoch、runtime health epoch、owner reason 和 source fingerprint；有 current publication eval 时同步带 `source_eval_id`。
+4. envelope 必须声明 `allowed_write_surfaces`、`forbidden_surfaces`、`required_closeout_packet` 和 `completion_boundary.provider_completion_is_domain_ready=false`。
+5. OPL 只记录 attempt started/completed/blocked/failed、typed closeout refs、stdout/session/provider timing；MAS 消费 closeout refs 后再决定 owner receipt、AI reviewer eval、publication gate、package freshness或 typed blocker。
 
 ## 并行落地 Lane
 

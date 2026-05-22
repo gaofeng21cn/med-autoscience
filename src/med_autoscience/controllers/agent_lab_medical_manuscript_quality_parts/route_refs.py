@@ -12,6 +12,9 @@ def owner_route_refs(*, study_id: str) -> list[str]:
     return [
         f"owner-route:mas/{study_id}/write",
         f"owner-route:mas/{study_id}/publication-gate",
+        f"owner-route-attempt-protocol:mas/{study_id}/v1",
+        f"owner-reason-registry:mas/{study_id}",
+        f"owner-route-currentness-basis:mas/{study_id}",
     ]
 
 

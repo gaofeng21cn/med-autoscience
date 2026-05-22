@@ -401,7 +401,11 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_opl_consumable_rout
     assert task["improvement_candidate"]["owner_route_refs"] == [
         "owner-route:mas/003-dpcc-primary-care-phenotype-treatment-gap/write",
         "owner-route:mas/003-dpcc-primary-care-phenotype-treatment-gap/publication-gate",
+        "owner-route-attempt-protocol:mas/003-dpcc-primary-care-phenotype-treatment-gap/v1",
+        "owner-reason-registry:mas/003-dpcc-primary-care-phenotype-treatment-gap",
+        "owner-route-currentness-basis:mas/003-dpcc-primary-care-phenotype-treatment-gap",
     ]
+    assert "regression-suite:mas/owner-route-attempt-protocol" in task["promotion_gate"]["regression_suite_refs"]
     assert any(
         ref.startswith("failure-delta:mas/003-dpcc-primary-care-phenotype-treatment-gap/")
         for ref in task["promotion_gate"]["failure_delta_refs"]

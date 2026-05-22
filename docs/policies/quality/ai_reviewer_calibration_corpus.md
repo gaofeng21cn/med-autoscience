@@ -51,6 +51,12 @@ AI reviewer 的 clear verdict 还必须包含 IMRAD 关键段落的 section-leve
 
 质量闭合不等于交付投影已刷新。bundle-stage 或 human-facing package 需要继续绑定 `current_package_freshness` proof；该 proof 的 `source_eval_id` 必须匹配当前 AI reviewer publication eval。旧 package freshness、旧 zip、旧 DOCX 或旧 `manuscript/current_package` 不能因为新的 `publication_eval` ready 标签而被视为最新论文。
 
+## Owner-Route Regression Contract
+
+DM002/DM003 暴露的 stale reviewer record、pending reviewer request、medical prose write route-back、unit harmonization rerun、package freshness 和 typed closeout 问题必须进入 owner-route protocol regression。每个质量 blocker 需要在 MAS registry 中声明 owner、allowed action、required output、forbidden surfaces 和 regression refs；未注册 reason 不得生成 ready dispatch。
+
+Agent Lab / opl-meta-agent 可以消费这些 refs 生成 developer work order，但不能消费 study truth body、AI reviewer verdict body、paper body 或 package body，也不能把 suite pass 写成 publication-ready。回归 suite 的成功标准是 owner route、request lifecycle、dispatch blocker、typed closeout contract 和 no-forbidden-write proof 正确投影；医学质量闭合仍必须由当前 AI reviewer-backed `publication_eval/latest.json`、publication gate、owner receipt 或 typed blocker 决定。
+
 ## Drift Audit
 
 `ai_first_drift_audit` 必须检查 calibration corpus 与 pre-draft materialization contract 的代码 surface。验收点包括：六类历史返工模式仍在 corpus 中，prompt-only calibration 被禁止，AI reviewer provenance 字段仍是结构化要求，pre-draft readiness 缺 provenance 时 fail-closed，mechanical supporting inputs 只能提供 evidence-only。

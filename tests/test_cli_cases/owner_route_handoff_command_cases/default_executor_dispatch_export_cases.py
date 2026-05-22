@@ -8,6 +8,7 @@ def _write_default_executor_dispatch(
     dispatch_path: Path,
     study_root: Path,
     include_owner_route: bool,
+    owner_reason: str = "manuscript_story_surface_delta_missing",
 ) -> None:
     prompt_contract: dict[str, object] = {
         "allowed_write_surfaces": ["paper/draft.md"],
@@ -32,8 +33,10 @@ def _write_default_executor_dispatch(
                     "source_refs": {
                         "source_eval_id": "publication-eval::002::current",
                         "work_unit_id": "medical_prose_write_repair",
-                        "blocked_reason": "manuscript_story_surface_delta_missing",
+                        "blocked_reason": owner_reason,
                     },
+                    "owner_reason": owner_reason,
+                    "allowed_actions": ["run_quality_repair_batch"],
                 },
                 "allowed_write_surfaces": [
                     "paper/draft.md",
@@ -130,12 +133,64 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
         "study_id": "002-dm-china-us-mortality-attribution",
         "quest_id": "002-dm-china-us-mortality-attribution",
         "action_type": "run_quality_repair_batch",
+        "work_unit_id": "medical_prose_write_repair",
+        "source_eval_id": "publication-eval::002::current",
+        "source_fingerprint": "truth-snapshot::002",
         "dispatch_authority": "quality_repair_batch_writer_handoff",
+        "domain_owner": "write",
         "next_executable_owner": "write",
         "executor_kind": "codex_cli_default",
         "dispatch_ref": dispatch_ref,
         "authority_boundary": "mas_default_executor_dispatch_request_only",
+        "owner_route_currentness_basis": {
+            "source_eval_id": "publication-eval::002::current",
+            "work_unit_id": "medical_prose_write_repair",
+            "work_unit_fingerprint": "medical-prose-routeback::write::fp",
+            "truth_epoch": "publication-eval::002::current",
+            "runtime_health_epoch": "runtime-health-event-002",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+        },
+        "allowed_write_surfaces": [
+            "paper/draft.md",
+            "paper/build/review_manuscript.md",
+            "paper/claim_evidence_map.json",
+            "paper/evidence_ledger.json",
+            "paper/review/**",
+        ],
+        "forbidden_surfaces": [
+            "manuscript/**",
+            "current_package/**",
+            "paper/current_package/**",
+            "manuscript/current_package/**",
+            "artifacts/publication_eval/latest.json",
+            "artifacts/controller_decisions/latest.json",
+        ],
+        "required_closeout_packet": {
+            "typed_closeout_required_for_completion": True,
+            "free_text_closeout_accepted": False,
+            "accepted_surface_kinds": [
+                "stage_attempt_closeout_packet",
+                "stage_memory_closeout_packet",
+                "domain_stage_closeout_packet",
+            ],
+            "required_ref_field": "closeout_refs",
+            "minimum_closeout_refs": 1,
+        },
+        "completion_boundary": {
+            "provider_completion": "typed_closeout_packet_observed",
+            "domain_ready_verdict": "read_from_mas_publication_or_gate_surface",
+            "provider_completion_is_domain_ready": False,
+        },
     }
+    envelope = task["owner_route_attempt_envelope"]
+    assert envelope["version"] == "mas-owner-route-attempt-protocol.v1"
+    assert envelope["domain_owner"] == "write"
+    assert envelope["action_type"] == "run_quality_repair_batch"
+    assert envelope["work_unit_id"] == "medical_prose_write_repair"
+    assert envelope["source_eval_id"] == "publication-eval::002::current"
+    assert envelope["owner_reason_contract"]["reason"] == "manuscript_story_surface_delta_missing"
+    assert envelope["owner_reason_contract"]["registered"] is True
+    assert envelope["dispatchable"] is True
     source_refs_by_role = {ref["role"]: ref for ref in task["source_refs"]}
     assert source_refs_by_role["default_executor_dispatch_request"]["ref"] == dispatch_ref
     assert source_refs_by_role["default_executor_dispatch_request"]["body_included"] is False
@@ -237,6 +292,41 @@ def test_sidecar_export_skips_bare_default_executor_dispatch_without_owner_curre
         dispatch_path=dispatch_path,
         study_root=study_root,
         include_owner_route=False,
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ] == []
+
+
+def test_sidecar_export_skips_default_executor_dispatch_with_unregistered_owner_reason(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_default_executor_dispatch(
+        dispatch_path=dispatch_path,
+        study_root=study_root,
+        include_owner_route=True,
+        owner_reason="unregistered_local_reason",
     )
 
     exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
