@@ -40,7 +40,7 @@
 - `src/med_autoscience/controllers/study_runtime_router.py`
 - `src/med_autoscience/controllers/study_runtime_types.py`
 - `src/med_autoscience/controllers/runtime_storage_maintenance.py`
-- `src/med_autoscience/controllers/sidecar_family_adapter.py`
+- `src/med_autoscience/controllers/owner_route_handoff.py`
 - `src/med_autoscience/controllers/delivery_inspector.py`
 - `src/med_autoscience/controllers/submission_inspection_export.py`
 - `src/med_autoscience/controllers/paper_authority_migration.py`
@@ -61,7 +61,7 @@
 - upgrade-check 的专用测试模块
 - `tests/test_study_runtime_router.py`
 - `tests/test_runtime_storage_maintenance.py`
-- `tests/test_cli_cases/sidecar_family_adapter_command.py`
+- `tests/test_cli_cases/owner_route_handoff_command.py`
 - `tests/test_delivery_inspector.py`
 - `tests/test_delivery_visibility.py`
 - `tests/test_inspection_package_contract.py`

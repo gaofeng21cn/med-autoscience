@@ -64,7 +64,7 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
             "contracts/runtime/lifecycle_adapters": [
                 "mas_opl_lifecycle_inventory",
                 "workspace_runtime_artifact_root_locator",
-                "runtime_lifecycle_sqlite sidecar ref",
+                "lifecycle_refs_sqlite refs index",
             ],
         },
     }
@@ -197,7 +197,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             surface_class="runtime_sidecar",
             default_for_new_surfaces=False,
             repo_paths=[
-                "src/med_autoscience/controllers/sidecar_family_adapter.py",
+                "src/med_autoscience/controllers/owner_route_handoff.py",
                 "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
             ],
             mapping_explanation=(

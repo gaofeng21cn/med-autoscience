@@ -53,7 +53,7 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
 
 def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
@@ -152,7 +152,7 @@ def test_sidecar_dispatch_routes_quality_repair_batch_callable_inside_mas_owner(
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"
@@ -225,7 +225,7 @@ def test_sidecar_dispatch_accepts_quality_repair_writer_handoff_without_dead_let
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -320,7 +320,7 @@ def test_sidecar_dispatch_prefers_runtime_binding_quest_id_for_quality_repair_ba
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -389,7 +389,7 @@ def test_sidecar_dispatch_routes_embedded_ai_reviewer_callable_inside_mas_owner(
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"
@@ -462,7 +462,7 @@ def test_sidecar_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
@@ -531,7 +531,7 @@ def test_sidecar_dispatch_replays_paper_repair_when_owner_capability_changes(
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
@@ -623,7 +623,7 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
@@ -692,7 +692,7 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter_parts.dispatch_orchestration")
+    adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)

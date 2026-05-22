@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from . import runtime_lifecycle_store
+from . import lifecycle_refs_adapter
 
 
 def _dump_json(path: Path, payload: Any) -> None:
@@ -32,7 +32,7 @@ def load_watch_state(quest_root: Path) -> dict[str, Any]:
 
 def save_watch_state(quest_root: Path, payload: Mapping[str, Any]) -> None:
     _dump_json(_state_dir(quest_root) / "state.json", dict(payload))
-    runtime_lifecycle_store.record_watch_state(quest_root=quest_root, payload=dict(payload))
+    lifecycle_refs_adapter.record_watch_state(quest_root=quest_root, payload=dict(payload))
 
 
 def write_timestamped_report(
@@ -52,7 +52,7 @@ def write_timestamped_report(
     md_path.write_text(markdown, encoding="utf-8")
     _dump_json(base / "latest.json", dict(report))
     (base / "latest.md").write_text(markdown, encoding="utf-8")
-    runtime_lifecycle_store.record_runtime_report(
+    lifecycle_refs_adapter.record_runtime_report(
         quest_root=quest_root,
         report_group=report_group,
         timestamp=timestamp,

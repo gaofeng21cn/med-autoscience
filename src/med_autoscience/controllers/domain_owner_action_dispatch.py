@@ -10,7 +10,7 @@ from med_autoscience.developer_supervisor_mode import resolve_developer_supervis
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import runtime_lifecycle_store
+from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
 from . import runtime_dispatch_cost, study_runtime_router
 from .domain_owner_action_dispatch_parts import action_execution
@@ -922,11 +922,11 @@ def dispatch_domain_owner_actions(
             written_files.append(str(history_path))
             for execution in study_executions:
                 quest_root = profile.runtime_root / (_text(execution.get("quest_id")) or study_id)
-                execution["runtime_lifecycle_index"] = runtime_lifecycle_store.record_dispatch_receipt(
+                execution["runtime_lifecycle_index"] = lifecycle_refs_adapter.record_dispatch_receipt(
                     quest_root=quest_root,
                     receipt=execution,
                     receipt_path=latest_path,
-                    db_path=runtime_lifecycle_store.workspace_lifecycle_store_path(profile.workspace_root),
+                    db_path=lifecycle_refs_adapter.workspace_lifecycle_store_path(profile.workspace_root),
                 )
             _write_json(latest_path, study_payload)
     payload = {

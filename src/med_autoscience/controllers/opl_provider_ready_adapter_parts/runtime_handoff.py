@@ -99,8 +99,8 @@ _CODE_PATH_ROLES = [
         "allowed_mas_role": "guarded_apply_or_typed_blocker",
     },
     {
-        "path": "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
-        "current_role": "refs_only_sqlite_sidecar_index",
+        "path": "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
+        "current_role": "refs_only_lifecycle_refs_sqlite_index",
         "long_term_owner": OPL_OWNER,
         "allowed_mas_role": "owner_receipt_and_locator_ref_index",
     },

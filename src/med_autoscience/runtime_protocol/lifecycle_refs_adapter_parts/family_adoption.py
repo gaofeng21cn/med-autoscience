@@ -21,7 +21,7 @@ from .agent_pack_refs import (
     stage_policy_ref,
     stage_prompt_ref,
 )
-from .family_adoption_sidecar_payload import empty_payload, payload_from_sidecar
+from .family_adoption_ref_payload import empty_payload, payload_from_lifecycle_refs
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
 ADOPTION_SURFACE_KIND = "mas_opl_family_persistence_lifecycle_owner_route_adoption"
@@ -770,7 +770,7 @@ def build_opl_family_adoption_surface(
     if resolved_db_path.exists():
         with connect(resolved_db_path) as conn:
             ensure_schema(conn)
-            payload = payload_from_sidecar(conn, inspection=inspection)
+            payload = payload_from_lifecycle_refs(conn, inspection=inspection)
     return {
         "surface_kind": ADOPTION_SURFACE_KIND,
         "schema_version": 1,
@@ -778,8 +778,8 @@ def build_opl_family_adoption_surface(
         "refs": {
             "source_contract": SOURCE_CONTRACT_REF,
             "runtime_lifecycle_contract": RUNTIME_LIFECYCLE_CONTRACT_REF,
-            "sqlite_sidecar": {
-                "surface_kind": "runtime_lifecycle_sqlite_index",
+            "sqlite_refs_index": {
+                "surface_kind": "lifecycle_refs_sqlite_index",
                 "workspace_relative_path": "artifacts/runtime/runtime_lifecycle.sqlite",
                 "db_path": str(resolved_db_path),
                 "status": inspection.get("status") or "missing",
@@ -810,8 +810,8 @@ def build_product_entry_adoption_projection(
         "refs": {
             "source_contract": SOURCE_CONTRACT_REF,
             "runtime_lifecycle_contract": RUNTIME_LIFECYCLE_CONTRACT_REF,
-            "sqlite_sidecar": {
-                "surface_kind": "runtime_lifecycle_sqlite_index",
+            "sqlite_refs_index": {
+                "surface_kind": "lifecycle_refs_sqlite_index",
                 "workspace_relative_path": "artifacts/runtime/runtime_lifecycle.sqlite",
                 "db_path": str(resolved_db_path),
             },
@@ -825,7 +825,7 @@ def build_product_entry_adoption_projection(
         "payload": {
             "persistence": {
                 "maps_to_opl_contract": "opl_family_persistence_contract.v1",
-                "sqlite_sidecar_ref": "/refs/sqlite_sidecar",
+                "sqlite_refs_index_ref": "/refs/sqlite_refs_index",
                 "source_tables": list(OPL_FAMILY_ADAPTER_SOURCE_TABLES),
             },
             "lifecycle": {

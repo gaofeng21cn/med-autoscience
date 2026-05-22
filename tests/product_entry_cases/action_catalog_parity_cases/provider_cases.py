@@ -394,7 +394,7 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     ]
     assert tombstone["no_regression_evidence_refs"] == [
         "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py::test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers",
-        "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py::test_sidecar_family_export_exposes_managed_temporal_state_consistency",
+        "tests/test_cli_cases/owner_route_handoff_command_cases/export_cases.py::test_owner_route_handoff_export_exposes_managed_temporal_state_consistency",
     ]
     assert tombstone["tombstone_refs"] == tombstone["physical_tombstone_refs"]
     assert tombstone["history_refs"] == [

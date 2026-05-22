@@ -38,7 +38,7 @@ def _build_family_persistence_policy_surface(
     artifact_inventory: Mapping[str, Any],
 ) -> dict[str, Any]:
     refs = dict(adoption.get("refs") or {})
-    sqlite_sidecar = dict(refs.get("sqlite_sidecar") or {})
+    sqlite_refs_index = dict(refs.get("sqlite_refs_index") or {})
     authority_surfaces = [
         _persistence_surface(
             surface_id="study_runtime_status",
@@ -76,16 +76,16 @@ def _build_family_persistence_policy_surface(
             ref=_ref("studies/<study_id>/paper/submission_minimal/current_package", ref_kind="workspace_locator"),
         ),
     ]
-    sidecar_indexes: list[dict[str, Any]] = []
-    sqlite_ref = _non_empty_text(sqlite_sidecar.get("workspace_relative_path"))
+    lifecycle_ref_indexes: list[dict[str, Any]] = []
+    sqlite_ref = _non_empty_text(sqlite_refs_index.get("workspace_relative_path"))
     if sqlite_ref is not None:
-        sidecar_indexes.append(
+        lifecycle_ref_indexes.append(
             _persistence_surface(
-                surface_id="runtime_lifecycle_sqlite",
-                surface_role="domain_sidecar_reference_adapter",
-                storage_role="refs_only_sidecar_index",
+                surface_id="lifecycle_refs_sqlite",
+                surface_role="domain_lifecycle_refs_adapter",
+                storage_role="refs_only_lifecycle_ref_index",
                 owner="one-person-lab",
-                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="runtime lifecycle SQLite refs-only sidecar"),
+                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="runtime lifecycle SQLite refs index"),
                 rebuild_from_refs=[
                     _ref("/opl_family_persistence_lifecycle_owner_route_adoption/payload", label="adoption payload"),
                 ],
@@ -97,11 +97,11 @@ def _build_family_persistence_policy_surface(
         "target_domain_id": TARGET_DOMAIN_ID,
         "policy_id": "mas_opl_family_persistence_policy",
         "summary": (
-            "MAS exposes runtime lifecycle sidecar refs to OPL as a domain reference adapter; MAS-owned files "
+            "MAS exposes lifecycle refs to OPL as a domain reference adapter; MAS-owned files "
             "remain the authority for study runtime, controller, publication, AI reviewer, and paper package truth."
         ),
         "authority_surfaces": authority_surfaces,
-        "sidecar_indexes": sidecar_indexes,
+        "lifecycle_ref_indexes": lifecycle_ref_indexes,
         "projection_caches": [
             _persistence_surface(
                 surface_id="product_entry_progress_projection",
@@ -133,8 +133,8 @@ def _build_family_lifecycle_ledger_surface(
     session_continuity: Mapping[str, Any],
 ) -> dict[str, Any]:
     refs = dict(adoption.get("refs") or {})
-    sqlite_sidecar = dict(refs.get("sqlite_sidecar") or {})
-    sqlite_ref = _non_empty_text(sqlite_sidecar.get("workspace_relative_path")) or "artifacts/runtime/runtime_lifecycle.sqlite"
+    sqlite_refs_index = dict(refs.get("sqlite_refs_index") or {})
+    sqlite_ref = _non_empty_text(sqlite_refs_index.get("workspace_relative_path")) or "artifacts/runtime/runtime_lifecycle.sqlite"
     return {
         "surface_kind": "family_lifecycle_ledger",
         "version": "family-lifecycle-ledger.v1",
@@ -148,15 +148,15 @@ def _build_family_lifecycle_ledger_surface(
         ),
         "actions": [
             {
-                "action_id": "verify_runtime_lifecycle_sidecar_projection",
+                "action_id": "verify_runtime_lifecycle_ref_projection",
                 "action_kind": "verify_projection",
                 "target_ref": _ref(sqlite_ref, ref_kind="workspace_locator"),
                 "authority_owner": "one-person-lab",
                 "safety_gate": "refs_only_no_domain_truth_write",
                 "result": "projected",
                 "manifest_ref": _ref(
-                    "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_sidecar",
-                    label="SQLite sidecar manifest ref",
+                    "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_refs_index",
+                    label="SQLite refs index manifest ref",
                 ),
                 "sha256": "0" * 64,
                 "restore_ref": _ref(

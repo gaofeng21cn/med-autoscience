@@ -16,7 +16,7 @@ from med_autoscience.developer_supervisor_mode import resolve_developer_supervis
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import runtime_lifecycle_store
+from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
 
 SCHEMA_VERSION = 1
@@ -803,11 +803,11 @@ def materialize_domain_action_requests(
             _write_json(dispatch_path, dispatch)
             dispatch["dispatch_id"] = f"dispatch::{_text(dispatch.get('study_id'))}::{_text(dispatch.get('action_type'))}"
             quest_root = profile.runtime_root / (_text(dispatch.get("quest_id")) or _text(dispatch.get("study_id")) or "")
-            dispatch["runtime_lifecycle_index"] = runtime_lifecycle_store.record_dispatch_receipt(
+            dispatch["runtime_lifecycle_index"] = lifecycle_refs_adapter.record_dispatch_receipt(
                 quest_root=quest_root,
                 receipt=dispatch,
                 receipt_path=dispatch_path,
-                db_path=runtime_lifecycle_store.workspace_lifecycle_store_path(profile.workspace_root),
+                db_path=lifecycle_refs_adapter.workspace_lifecycle_store_path(profile.workspace_root),
             )
             _write_json(dispatch_path, dispatch)
             written_files.append(str(dispatch_path))

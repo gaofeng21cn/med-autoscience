@@ -120,16 +120,16 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         "must_not_emit": list(_ACTIVE_PATH_MUST_NOT_EMIT),
     },
     {
-        "residue_id": "sqlite_lifecycle_sidecar_index",
-        "residue_class": "sqlite_sidecar",
+        "residue_id": "lifecycle_refs_sqlite_index",
+        "residue_class": "sqlite_refs_index",
         "current_paths": [
-            "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
-            "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/",
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
             "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
         ],
         "current_role": "refs_only_domain_receipt_locator_and_lifecycle_ref_index",
         "current_disposition": "retain_with_explicit_cleanup_gate",
-        "active_caller_status": "active_domain_sidecar_ref_caller_present",
+        "active_caller_status": "active_domain_lifecycle_ref_caller_present",
         "active_caller_count": 3,
         "no_active_caller_proven": False,
         "opl_replacement_parity_status": "lifecycle_index_projected_not_physical_delete_ready",
@@ -140,11 +140,11 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         "tombstone_permitted": False,
         "delete_or_tombstone_after": list(_ACTIVE_PATH_DELETE_OR_TOMBSTONE_AFTER),
         "active_caller_proof_refs": [
-            "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter",
-            "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
+            "refs_only_adapter_retirement_gates.lifecycle_refs_adapter",
+            "lifecycle_refs_adapter_role.refs_only_index_not_generic_persistence_engine",
         ],
         "focused_test_refs": [
-            "tests/test_runtime_lifecycle_store.py",
+            "tests/test_lifecycle_refs_adapter.py",
             "tests/test_runtime_lifecycle_read_model.py",
             "tests/test_runtime_lifecycle_contract.py",
         ],
@@ -258,7 +258,7 @@ PHYSICAL_THINNING_EVIDENCE = {
             "group_id": "workbench_residue",
             "module_ids": [
                 "workbench_portal_generic_shell",
-                "sidecar_dispatch_adapter",
+                "owner_route_handoff_adapter",
                 "mas_generic_workbench_shell",
             ],
             "closure_basis": [
@@ -274,7 +274,7 @@ PHYSICAL_THINNING_EVIDENCE = {
             "evidence_refs": [
                 "workbench_portal_generic_shell.proof_refs",
                 (
-                    "active_path_residue_cleanup_gates.sidecar_dispatch_adapter."
+                    "active_path_residue_cleanup_gates.owner_route_handoff_adapter."
                     "deletion_readiness_worklist"
                 ),
                 "retired_legacy_residue_tombstones.mas_generic_workbench_shell",
@@ -282,9 +282,9 @@ PHYSICAL_THINNING_EVIDENCE = {
             ],
         },
         {
-            "group_id": "sqlite_lifecycle_residue",
+            "group_id": "lifecycle_refs_residue",
             "module_ids": [
-                "runtime_lifecycle_sqlite_reference_adapter",
+                "lifecycle_refs_adapter",
             ],
             "closure_basis": [
                 "refs_only_adapter",
@@ -297,9 +297,9 @@ PHYSICAL_THINNING_EVIDENCE = {
             "tombstone_or_parity_refs_required": True,
             "physical_delete_gate": "active_caller_count=0 plus OPL lifecycle index parity plus domain owner receipt ref parity",
             "evidence_refs": [
-                "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
-                "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter",
-                "functional_module_inventory.runtime_lifecycle_sqlite_reference_adapter.retirement_gate",
+                "lifecycle_refs_adapter_role.refs_only_index_not_generic_persistence_engine",
+                "refs_only_adapter_retirement_gates.lifecycle_refs_adapter",
+                "functional_module_inventory.lifecycle_refs_adapter.retirement_gate",
             ],
         },
     ],

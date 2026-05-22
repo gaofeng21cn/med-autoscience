@@ -420,7 +420,7 @@
         "tests/test_test_lane_governance.py",
         "tests/test_domain_slo_scheduler_projection.py",
         "tests/test_product_entry.py",
-        "tests/test_cli_cases/sidecar_family_adapter_command.py"
+        "tests/test_cli_cases/owner_route_handoff_command.py"
       ],
       "docs": [
         "docs/active/mas-ideal-state-gap-plan.md",
@@ -570,10 +570,10 @@
           {
             "surface_id": "sidecar",
             "current_paths": [
-              "src/med_autoscience/controllers/sidecar_family_adapter.py",
-              "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
-              "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py",
-              "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
+              "src/med_autoscience/controllers/owner_route_handoff.py",
+              "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py",
+              "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py",
+              "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
             ],
             "current_role": "migration_bridge_export_dispatch_adapter",
             "target_role": "opl_generated_sidecar_handoff_surface"
@@ -1016,7 +1016,7 @@
           "generic_transition_runner"
         ],
         "refs_only_adapter": [
-          "runtime_lifecycle_sqlite_reference_adapter",
+          "lifecycle_refs_adapter",
           "paper_work_unit_outbox_index",
           "runtime_storage_maintenance",
           "publication_route_memory_locator_transport_shell",
@@ -1063,7 +1063,7 @@
       ],
       "functional_module_inventory_expected_count": 19,
       "functional_module_inventory_expected_modules": [
-        "runtime_lifecycle_sqlite_reference_adapter",
+        "lifecycle_refs_adapter",
         "paper_work_unit_outbox_index",
         "runtime_storage_maintenance",
         "workspace_source_intake_shell",
@@ -1083,9 +1083,9 @@
         "runtime_watch_loop_shell",
         "workspace_local_watch_service_wrappers"
       ],
-      "runtime_lifecycle_sqlite_role": {
+      "lifecycle_refs_adapter_role": {
         "classification": "refs_only_adapter",
-        "current_mas_role": "domain_sidecar_index_reference_adapter",
+        "current_mas_role": "domain_lifecycle_ref_index_adapter",
         "authority": "refs_only_index_not_generic_persistence_engine",
         "owner": "one-person-lab",
         "mas_may_index_domain_receipts": true,
@@ -1110,7 +1110,7 @@
             "opl_queue_attempt_retry_dead_letter",
             "opl_generic_transition_runner"
           ],
-          "mas_allowed_role_until_replacement": "domain_sidecar_reference_adapter_refs_only"
+          "mas_allowed_role_until_replacement": "domain_lifecycle_refs_adapter_refs_only"
         }
       },
       "no_active_caller_proof": {
@@ -1397,7 +1397,7 @@
             "closure_status": "closed",
             "closure_proof_refs": [
               "functional_module_inventory.refs_only_adapter",
-              "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
+              "lifecycle_refs_adapter_role.refs_only_index_not_generic_persistence_engine",
               "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain"
             ],
             "functional_structure_gap": false
@@ -1435,7 +1435,7 @@
             "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
             "closure_status": "closed",
             "closure_proof_refs": [
-              "runtime_lifecycle_sqlite_role.mas_consumes_opl_lifecycle_index_refs=true",
+              "lifecycle_refs_adapter_role.mas_consumes_opl_lifecycle_index_refs=true",
               "artifact_lifecycle_storage_audit_shell.proof_refs",
               "OPL family-runtime-lifecycle-index read model"
             ],
@@ -1526,11 +1526,11 @@
       },
       "functional_module_inventory": [
         {
-          "module_id": "runtime_lifecycle_sqlite_reference_adapter",
+          "module_id": "lifecycle_refs_adapter",
           "owner": "med-autoscience",
           "classification": "refs_only_adapter",
           "code_paths": [
-            "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
             "src/med_autoscience/runtime_protocol/study_runtime.py",
             "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py"
           ],
@@ -1539,9 +1539,9 @@
             "runtime lifecycle CLI",
             "sidecar/product-entry lifecycle projections"
           ],
-          "active_caller_status": "refs_only_domain_sidecar_adapter_active",
+          "active_caller_status": "refs_only_domain_owner_route_handoff_adapter_active",
           "migration_action": "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index",
-          "retention_reason": "MAS can index paper-line owner receipts and locators as a domain sidecar reference adapter; generic persistence, lifecycle indexing, restore/retention, and receipt ledger ownership stay in OPL.",
+          "retention_reason": "MAS can index paper-line owner receipts and locators as a domain lifecycle reference adapter; generic persistence, lifecycle indexing, restore/retention, and receipt ledger ownership stay in OPL.",
           "opl_expected_primitives": [
             "opl_runtime_lifecycle_index_contract",
             "opl_provider_attempt_receipt_ledger",
@@ -2130,7 +2130,7 @@
       "paths": [
         "tests/test_test_lane_governance.py",
         "tests/product_entry_cases/action_catalog_parity.py",
-        "tests/test_cli_cases/sidecar_family_adapter_command.py",
+        "tests/test_cli_cases/owner_route_handoff_command.py",
         "tests/test_cli_cases/sidecar_functional_closure_command.py",
         "tests/test_codex_plugin.py",
         "tests/test_codex_plugin_scaffold.py",

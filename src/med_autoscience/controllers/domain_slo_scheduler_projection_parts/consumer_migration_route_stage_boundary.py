@@ -13,14 +13,14 @@ def build_route_stage_residue_boundary(
     active_path_gates = list(active_path_residue_cleanup_gates)
     module_inventory = list(functional_module_inventory)
     sqlite_gate = _active_path_gate_by_id(
-        "sqlite_lifecycle_sidecar_index",
+        "lifecycle_refs_sqlite_index",
         active_path_gates,
     )
     status_gate = _active_path_gate_by_id(
         "status_projection_domain_truth_refs",
         active_path_gates,
     )
-    sidecar_gate = _active_path_gate_by_id("sidecar_dispatch_adapter", active_path_gates)
+    sidecar_gate = _active_path_gate_by_id("owner_route_handoff_adapter", active_path_gates)
     runtime_watch_loop = _module_by_id("runtime_watch_loop_shell", module_inventory)
     return {
         "surface_kind": "mas_route_stage_residue_boundary",
@@ -50,10 +50,10 @@ def build_route_stage_residue_boundary(
             "mas_owned_generic_route_scheduler",
             "mas_owned_generic_stage_attempt_graph",
             "legacy_surface_names_current_active",
-            "sqlite_lifecycle_sidecar_deleted",
+            "sqlite_lifecycle_ref_deleted",
             "status_projection_deleted",
-            "sidecar_dispatch_adapter_deleted",
-            "status_and_decision_migrated_to_opl",
+            "owner_route_handoff_adapter_deleted",
+            "domain_status_authority_migrated_to_opl",
         ],
     }
 
@@ -115,7 +115,7 @@ def _residual_surfaces(
             "physical_retired": True,
             "physical_delete_permitted": False,
             "migration_state": "legacy_name_retired_authority_and_projection_split_active",
-            "gate_ref": "docs/runtime/opl_private_implementation_migration_inventory.md#status_and_decision",
+            "gate_ref": "docs/runtime/opl_private_implementation_migration_inventory.md#domain_status_authority",
         },
         {
             "surface_id": "owner_receipt_lifecycle_ref_index",
@@ -128,9 +128,9 @@ def _residual_surfaces(
             "physical_delete_permitted": sqlite_gate["physical_delete_permitted"],
             "active_caller_count": sqlite_gate["active_caller_count"],
             "delete_or_tombstone_after": list(sqlite_gate["delete_or_tombstone_after"]),
-            "gate_ref": "active_path_residue_cleanup_gates.sqlite_lifecycle_sidecar_index",
+            "gate_ref": "active_path_residue_cleanup_gates.lifecycle_refs_sqlite_index",
             "refs_only_gate": _refs_only_adapter_gate_by_id(
-                "runtime_lifecycle_sqlite_reference_adapter",
+                "lifecycle_refs_adapter",
                 module_inventory,
             ),
         },
@@ -145,7 +145,7 @@ def _residual_surfaces(
             "physical_delete_permitted": sidecar_gate["physical_delete_permitted"],
             "active_caller_count": sidecar_gate["active_caller_count"],
             "delete_or_tombstone_after": list(sidecar_gate["delete_or_tombstone_after"]),
-            "gate_ref": "active_path_residue_cleanup_gates.sidecar_dispatch_adapter",
+            "gate_ref": "active_path_residue_cleanup_gates.owner_route_handoff_adapter",
         },
     ]
 

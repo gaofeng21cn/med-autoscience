@@ -73,7 +73,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     generated_surfaces = {
         item["surface_id"]: item for item in generated_default["surface_boundaries"]
     }
-    assert generated_surfaces["sidecar"]["mas_retained_role"] == "domain_sidecar_dispatch_adapter"
+    assert generated_surfaces["sidecar"]["mas_retained_role"] == "domain_owner_route_handoff_adapter"
     assert generated_surfaces["sidecar"]["parity_ref"] == "sidecar_descriptor_parity"
     assert generated_surfaces["workbench"]["default_caller_owner"] == "one-person-lab"
     assert all(item["mas_generic_owner_allowed"] is False for item in generated_surfaces.values())
@@ -105,12 +105,12 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     inventory = boundary["functional_module_inventory"]
     assert len(inventory) == 19
     inventory_by_id = {item["module_id"]: item for item in inventory}
-    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["code_paths"] == [
-        "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+    assert inventory_by_id["lifecycle_refs_adapter"]["code_paths"] == [
+        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
         "src/med_autoscience/runtime_protocol/study_runtime.py",
         "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
     ]
-    assert set(inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["forbidden_mas_roles"]) == {
+    assert set(inventory_by_id["lifecycle_refs_adapter"]["forbidden_mas_roles"]) == {
         "generic_persistence_engine",
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",
@@ -176,7 +176,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "runner_residue",
         "supervisor_residue",
         "workbench_residue",
-        "sqlite_lifecycle_residue",
+        "lifecycle_refs_residue",
     }
     assert all(group["physical_delete_permitted"] is False for group in thinning_groups.values())
     assert all(group["generic_owner_claim_allowed"] is False for group in thinning_groups.values())
@@ -187,33 +187,33 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert "retired_legacy_residue_tombstones.scheduler_legacy_residue_without_active_caller" in thinning_groups[
         "supervisor_residue"
     ]["evidence_refs"]
-    assert "refs_only_adapter_retirement_gates.runtime_lifecycle_sqlite_reference_adapter" in thinning_groups[
-        "sqlite_lifecycle_residue"
+    assert "refs_only_adapter_retirement_gates.lifecycle_refs_adapter" in thinning_groups[
+        "lifecycle_refs_residue"
     ]["evidence_refs"]
     retirement_matrix = boundary["physical_retirement_gate_matrix"]
     candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
     assert set(candidates) == {
         "runtime_transport",
-        "runtime_lifecycle_sqlite",
+        "lifecycle_refs_sqlite",
         "workbench_shell",
-        "sidecar_adapter",
+        "owner_route_handoff",
         "status_projection",
     }
     assert retirement_matrix["no_active_caller_summary"]["active_default_caller_count"] == 0
     assert retirement_matrix["no_active_caller_summary"]["full_active_caller_zero_proven"] is False
     assert retirement_matrix["no_active_caller_summary"]["physical_delete_ready_count"] == 0
     assert candidates["runtime_transport"]["physical_delete_permitted"] is False
-    assert candidates["runtime_lifecycle_sqlite"]["active_caller_status"] == (
-        "refs_only_domain_sidecar_adapter_active"
+    assert candidates["lifecycle_refs_sqlite"]["active_caller_status"] == (
+        "refs_only_domain_owner_route_handoff_adapter_active"
     )
-    assert candidates["sidecar_adapter"]["active_default_caller_zero_proven"] is True
-    assert candidates["sidecar_adapter"]["deletion_readiness_worklist_ref"] == (
+    assert candidates["owner_route_handoff"]["active_default_caller_zero_proven"] is True
+    assert candidates["owner_route_handoff"]["deletion_readiness_worklist_ref"] == (
         "functional_consumer_boundary.active_path_residue_cleanup_gates."
-        "sidecar_dispatch_adapter.deletion_readiness_worklist"
+        "owner_route_handoff_adapter.deletion_readiness_worklist"
     )
     assert (
-        "sidecar_dispatch_response.forbidden_write_guard_proof"
-        in candidates["sidecar_adapter"]["no_forbidden_write_proof_refs"]
+        "owner_route_handoff_response.forbidden_write_guard_proof"
+        in candidates["owner_route_handoff"]["no_forbidden_write_proof_refs"]
     )
     assert candidates["workbench_shell"]["retained_as"] == (
         "domain_projection_refs_for_opl_workbench"
@@ -228,9 +228,9 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "runtime_transport_core_bridge",
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
-        "sqlite_lifecycle_sidecar_index",
+        "lifecycle_refs_sqlite_index",
         "workbench_shell_domain_projection_refs",
-        "sidecar_dispatch_adapter",
+        "owner_route_handoff_adapter",
         "status_projection_domain_truth_refs",
         "legacy_supervisor_scheduler_tombstone",
     }
@@ -244,17 +244,17 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert retained_gate["no_alias_facade_compat_wrapper_allowed"] is True
     assert "active_caller_count=0" in retained_gate["delete_or_tombstone_after"]
     assert "paper_closure_verdict" in retained_gate["must_not_emit"]
-    sqlite_gate = cleanup_gates["sqlite_lifecycle_sidecar_index"]
-    assert "tests/test_runtime_lifecycle_store.py" in sqlite_gate["focused_test_refs"]
+    sqlite_gate = cleanup_gates["lifecycle_refs_sqlite_index"]
+    assert "tests/test_lifecycle_refs_adapter.py" in sqlite_gate["focused_test_refs"]
     workbench_gate = cleanup_gates["workbench_shell_domain_projection_refs"]
     assert workbench_gate["current_role"] == "domain_projection_refs_for_opl_workbench"
     assert workbench_gate["active_caller_count"] > 0
     assert workbench_gate["physical_delete_permitted"] is False
-    sidecar_gate = cleanup_gates["sidecar_dispatch_adapter"]
-    assert sidecar_gate["current_role"] == "domain_sidecar_dispatch_adapter"
+    sidecar_gate = cleanup_gates["owner_route_handoff_adapter"]
+    assert sidecar_gate["current_role"] == "domain_owner_route_handoff_adapter"
     assert sidecar_gate["physical_delete_permitted"] is False
     sidecar_worklist = sidecar_gate["deletion_readiness_worklist"]
-    assert sidecar_worklist["status"] == "blocked_active_domain_sidecar_dispatch_caller_present"
+    assert sidecar_worklist["status"] == "blocked_active_domain_owner_route_handoff_caller_present"
     assert sidecar_worklist["can_delete"] is False
     assert {item["gate"] for item in sidecar_worklist["missing_gate_inputs"]} == {
         "active_caller_count=0",

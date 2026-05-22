@@ -20,9 +20,9 @@ def build_opl_lifecycle_inventory_surface() -> dict[str, Any]:
                 mas_exports_refs_only=True,
             ),
             _inventory_item(
-                "runtime_lifecycle_sidecar_index",
+                "lifecycle_refs_sqlite_index",
                 (
-                    "MAS domain sidecar/reference adapter over lifecycle refs; OPL owns the generic "
+                    "MAS domain lifecycle refs adapter over lifecycle refs; OPL owns the generic "
                     "persistence/lifecycle replacement contract."
                 ),
                 "lift_to_opl_framework",

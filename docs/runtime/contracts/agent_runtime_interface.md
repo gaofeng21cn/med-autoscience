@@ -504,7 +504,7 @@ Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析
   - `study_runtime_router`、`workspace_contracts`、`workspace_init` 等 controller / scaffold 代码应统一经由这层派生路径，而不是散落硬编码 legacy `ops/med-deepscientist/...`
 - `med_autoscience.runtime_protocol.topology`
   - 负责 `paper_root`、`worktree_root`、`quest_root`、`study_root` 之间的关系解析
-  - 新 workspace 显式承认的受管布局是 `runtime/quests/<quest_id>` 普通目录、study-local paper/manuscript authority 与 runtime lifecycle SQLite sidecar；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper` 只作为 historical fixture / archive import reference
+  - 新 workspace 显式承认的受管布局是 `runtime/quests/<quest_id>` 普通目录、study-local paper/manuscript authority 与 runtime lifecycle SQLite refs index；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper` 只作为 historical fixture / archive import reference
   - `study_delivery_sync` 这类 controller 应调用 `resolve_paper_root_context()`，而不是自己拼 `.ds/worktrees/...` 或依赖 `parents[4]` 这类脆弱层级
 - `med_autoscience.runtime_protocol.quest_state`
   - 负责 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl` 与最近 stdout 行的统一读取

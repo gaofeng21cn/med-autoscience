@@ -33,7 +33,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
-from med_autoscience.runtime_protocol.runtime_lifecycle_store import (
+from med_autoscience.runtime_protocol.lifecycle_refs_adapter import (
     build_domain_memory_descriptor,
     build_family_stage_control_plane,
     build_product_entry_adoption_projection,

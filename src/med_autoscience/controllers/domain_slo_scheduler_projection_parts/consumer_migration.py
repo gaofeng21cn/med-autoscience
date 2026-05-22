@@ -728,12 +728,12 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             dict(item) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
         ],
         "refs_only_adapter_retirement_gates": refs_only_adapter_retirement_gates,
-        "runtime_lifecycle_sqlite_role": {
+        "lifecycle_refs_adapter_role": {
             "classification": "refs_only_adapter",
-            "current_mas_role": "domain_sidecar_index_reference_adapter",
+            "current_mas_role": "domain_lifecycle_ref_index_adapter",
             "authority": "refs_only_index_not_generic_persistence_engine",
             "owner": REPLACEMENT_OWNER,
-            "provenance_role": "runtime_lifecycle_sqlite_migration_provenance",
+            "provenance_role": "lifecycle_refs_sqlite_migration_provenance",
             "body_policy": "refs_receipts_blockers_only",
             "mas_may_index_domain_receipts": True,
             "mas_may_claim_generic_persistence_engine": False,

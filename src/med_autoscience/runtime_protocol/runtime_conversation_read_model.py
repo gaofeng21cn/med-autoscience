@@ -112,7 +112,7 @@ def _authority() -> dict[str, Any]:
             "publication_eval/latest.json",
             "controller_decisions/latest.json",
             "runtime_lifecycle.sqlite",
-            "runtime_lifecycle sidecar indexes",
+            "runtime_lifecycle refs indexes",
         ],
     }
 

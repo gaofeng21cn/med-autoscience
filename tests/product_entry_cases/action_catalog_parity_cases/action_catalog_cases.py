@@ -256,7 +256,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     retirement_proof = boundary["legacy_local_scheduler_physical_retirement_proof"]
     assert retirement_proof["install_allowed"] is False
     assert retirement_proof["cleanup_status"] == "tombstone_only"
-    assert boundary["runtime_lifecycle_sqlite_role"]["mas_may_claim_generic_persistence_engine"] is False
+    assert boundary["lifecycle_refs_adapter_role"]["mas_may_claim_generic_persistence_engine"] is False
     assert boundary["mas_does_not_own"] == [
         "generic_scheduler",
         "generic_daemon",

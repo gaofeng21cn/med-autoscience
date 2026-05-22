@@ -323,7 +323,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "generic_transition_runner",
     ]
     assert classification["refs_only_adapter"] == [
-        "runtime_lifecycle_sqlite_reference_adapter",
+        "lifecycle_refs_adapter",
         "paper_work_unit_outbox_index",
         "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell",
@@ -372,12 +372,12 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         lane["functional_module_inventory_expected_modules"]
     )
     inventory_by_id = {item["module_id"]: item for item in inventory}
-    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["code_paths"] == [
-        "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+    assert inventory_by_id["lifecycle_refs_adapter"]["code_paths"] == [
+        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
         "src/med_autoscience/runtime_protocol/study_runtime.py",
         "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
     ]
-    assert set(inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["forbidden_mas_roles"]) == {
+    assert set(inventory_by_id["lifecycle_refs_adapter"]["forbidden_mas_roles"]) == {
         "generic_persistence_engine",
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",
@@ -572,7 +572,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     )
     assert residue_by_id["owner_receipt_lifecycle_ref_index"]["active_caller_count"] == 3
     assert residue_by_id["owner_receipt_lifecycle_ref_index"]["refs_only_gate"] == (
-        refs_only_retirement_gates["runtime_lifecycle_sqlite_reference_adapter"]
+        refs_only_retirement_gates["lifecycle_refs_adapter"]
     )
     assert residue_by_id["owner_route_dispatch_receipt"]["active_caller_count"] == 1
     for item in residue_by_id.values():
@@ -608,9 +608,9 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         assert item["default_entry_allowed"] is False
         assert item["retirement_gate"] == "no_active_caller_proven_move_to_tombstone"
         assert "paper_closure_verdict" in item["must_not_emit"]
-    lifecycle_role = lane["runtime_lifecycle_sqlite_role"]
+    lifecycle_role = lane["lifecycle_refs_adapter_role"]
     assert lifecycle_role["classification"] == "refs_only_adapter"
-    assert lifecycle_role["current_mas_role"] == "domain_sidecar_index_reference_adapter"
+    assert lifecycle_role["current_mas_role"] == "domain_lifecycle_ref_index_adapter"
     assert lifecycle_role["authority"] == "refs_only_index_not_generic_persistence_engine"
     assert lifecycle_role["owner"] == "one-person-lab"
     assert lifecycle_role["mas_may_claim_generic_persistence_engine"] is False

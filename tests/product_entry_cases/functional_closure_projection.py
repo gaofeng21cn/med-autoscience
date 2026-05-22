@@ -68,11 +68,11 @@ def test_product_entry_manifest_projects_current_development_lines_closure(
         "test_readiness_owner_blocker_projection_unblocks_guarded_apply_as_stable_blocker"
     ) in paper_line["evidence_refs"]
     assert (
-        "tests/test_cli_cases/sidecar_family_guarded_apply_cases.py::"
+        "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::"
         "test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present"
     ) in paper_line["evidence_refs"]
     assert (
-        "tests/test_cli_cases/sidecar_family_guarded_apply_cases.py::"
+        "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::"
         "test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker"
     ) in paper_line["evidence_refs"]
     assert by_line["legacy_residue_retirement"]["status"] == (

@@ -12,19 +12,19 @@ from .runtime_lifecycle_contract import (
     SCHEMA_VERSION,
     SURFACE_KIND,
 )
-from .runtime_lifecycle_store_parts import (
+from .lifecycle_refs_adapter_parts import (
     family_adoption,
     lineage_indexes,
     report_payloads,
-    sidecar_indexes,
-    sqlite_sidecar,
+    lifecycle_ref_indexes,
+    sqlite_refs_index,
 )
 
-_connect = sqlite_sidecar.connect
-_ensure_schema = sqlite_sidecar.ensure_schema
-_index_result = sqlite_sidecar.index_result
-_record_report_index_row = sqlite_sidecar.record_report_index_row
-_resolve_db_path = sqlite_sidecar.resolve_db_path
+_connect = sqlite_refs_index.connect
+_ensure_schema = sqlite_refs_index.ensure_schema
+_index_result = sqlite_refs_index.index_result
+_record_report_index_row = sqlite_refs_index.record_report_index_row
+_resolve_db_path = sqlite_refs_index.resolve_db_path
 
 
 def quest_lifecycle_store_path(quest_root: Path) -> Path:
@@ -485,7 +485,7 @@ def record_study_macro_state_snapshot(
     snapshot_path: Path,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    return sidecar_indexes.record_study_macro_state_snapshot(
+    return lifecycle_ref_indexes.record_study_macro_state_snapshot(
         connect=_connect,
         ensure_schema=_ensure_schema,
         resolve_db_path=_resolve_db_path,
@@ -505,7 +505,7 @@ def record_owner_route_receipt(
     receipt_path: Path,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    return sidecar_indexes.record_owner_route_receipt(
+    return lifecycle_ref_indexes.record_owner_route_receipt(
         connect=_connect,
         ensure_schema=_ensure_schema,
         resolve_db_path=_resolve_db_path,
@@ -525,7 +525,7 @@ def record_dispatch_receipt(
     receipt_path: Path,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    return sidecar_indexes.record_dispatch_receipt(
+    return lifecycle_ref_indexes.record_dispatch_receipt(
         connect=_connect,
         ensure_schema=_ensure_schema,
         resolve_db_path=_resolve_db_path,
@@ -539,7 +539,7 @@ def record_dispatch_receipt(
 
 
 def record_turn_receipt(*, quest_root: Path, receipt: Mapping[str, Any], receipt_path: Path, db_path: Path | None = None) -> dict[str, Any]:
-    return sidecar_indexes.record_turn_receipt(
+    return lifecycle_ref_indexes.record_turn_receipt(
         connect=_connect, ensure_schema=_ensure_schema, resolve_db_path=_resolve_db_path,
         quest_lifecycle_store_path=quest_lifecycle_store_path, index_result=_index_result,
         quest_root=quest_root, receipt=receipt, receipt_path=receipt_path, db_path=db_path,
@@ -554,7 +554,7 @@ def record_paper_work_unit_receipt(
     receipt_path: Path,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    return sidecar_indexes.record_paper_work_unit_receipt(
+    return lifecycle_ref_indexes.record_paper_work_unit_receipt(
         connect=_connect,
         ensure_schema=_ensure_schema,
         resolve_db_path=_resolve_db_path,
@@ -576,7 +576,7 @@ def record_surface_ref(
     ref_path: Path,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    return sidecar_indexes.record_surface_ref(
+    return lifecycle_ref_indexes.record_surface_ref(
         connect=_connect,
         ensure_schema=_ensure_schema,
         resolve_db_path=_resolve_db_path,
@@ -627,7 +627,7 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
 
 
 def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
-    return sqlite_sidecar.inspect_store(db_path)
+    return sqlite_refs_index.inspect_store(db_path)
 
 
 def read_lifecycle_records(db_path: Path, table: str) -> list[dict[str, Any]]:

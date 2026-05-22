@@ -8,7 +8,7 @@ from typing import Any
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
 
-def payload_from_sidecar(conn: sqlite3.Connection, *, inspection: Mapping[str, Any]) -> dict[str, Any]:
+def payload_from_lifecycle_refs(conn: sqlite3.Connection, *, inspection: Mapping[str, Any]) -> dict[str, Any]:
     owner_route = _latest_owner_route(conn)
     return {
         "persistence": {
@@ -201,4 +201,4 @@ def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
-__all__ = ["empty_payload", "payload_from_sidecar"]
+__all__ = ["empty_payload", "payload_from_lifecycle_refs"]

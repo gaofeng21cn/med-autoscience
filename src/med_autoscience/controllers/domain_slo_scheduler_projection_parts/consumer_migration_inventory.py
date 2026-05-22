@@ -13,7 +13,7 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
         "generic_queue_attempt_retry_dead_letter", "generic_transition_runner",
     ],
     "refs_only_adapter": [
-        "runtime_lifecycle_sqlite_reference_adapter", "paper_work_unit_outbox_index", "runtime_storage_maintenance",
+        "lifecycle_refs_adapter", "paper_work_unit_outbox_index", "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell", "artifact_lifecycle_storage_audit_shell",
         "terminal_attach_transport",
     ],
@@ -45,7 +45,7 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
     ],
 }
 REFS_ONLY_ADAPTER_RETIREMENT_GATE_BY_MODULE = {
-    "runtime_lifecycle_sqlite_reference_adapter": {
+    "lifecycle_refs_adapter": {
         "active_caller_proof": [
             "study_runtime records runtime events and owner-receipt refs",
             "runtime lifecycle CLI reads lifecycle refs",
@@ -247,11 +247,11 @@ def _module_with_retirement_gate(item: dict[str, object]) -> dict[str, object]:
 
 _FUNCTIONAL_MODULE_INVENTORY = (
     {
-        "module_id": "runtime_lifecycle_sqlite_reference_adapter",
+        "module_id": "lifecycle_refs_adapter",
         "owner": "med-autoscience",
         "classification": "refs_only_adapter",
         "code_paths": [
-            "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
             "src/med_autoscience/runtime_protocol/study_runtime.py",
             "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
         ],
@@ -260,11 +260,11 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "runtime lifecycle CLI",
             "sidecar/product-entry lifecycle projections",
         ],
-        "active_caller_status": "refs_only_domain_sidecar_adapter_active",
+        "active_caller_status": "refs_only_domain_owner_route_handoff_adapter_active",
         "authority_boundary": "refs_only_sqlite_lifecycle_index_not_generic_runtime_owner",
         "provenance_boundary": {
             "surface_role": "domain_receipt_locator_and_lifecycle_ref_index",
-            "history_role": "runtime_lifecycle_sqlite_migration_provenance",
+            "history_role": "lifecycle_refs_sqlite_migration_provenance",
             "body_policy": "refs_receipts_blockers_only",
             "may_emit": ["owner_receipt_ref", "study_runtime_status_ref", "lifecycle_locator_ref"],
             "must_not_emit": ["generic_runtime_verdict", "generic_restore_verdict", "paper_closure_verdict"],
@@ -272,7 +272,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         },
         "migration_action": "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index",
         "retention_reason": (
-            "MAS can index paper-line owner receipts and locators as a domain sidecar reference adapter; "
+            "MAS can index paper-line owner receipts and locators as a domain lifecycle reference adapter; "
             "generic persistence, lifecycle indexing, restore/retention, and receipt ledger ownership stay in OPL."
         ),
         "opl_expected_primitives": [

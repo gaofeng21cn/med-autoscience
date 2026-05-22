@@ -33,7 +33,7 @@
 - `owner_route` 是 `scan -> consume -> execute-dispatch -> rescan` 的唯一执行票据。request handoff、default executor dispatch 和执行端都必须校验 `route_epoch/source_fingerprint/next_owner/allowed_actions/idempotency_key`，旧 dispatch 文件不能绕过 workspace-level consumer latest。
 - Runtime health append 只有在显式 `source_signature` 相同的情况下幂等返回 existing event；没有 source signature 的 recover/launch attempt 仍代表新的真实尝试并消耗 retry budget。
 - 文件生命周期治理不得从 cleanup plan 反向推断 study truth；终局止损文件生命周期 plan 只能由 materialized macro state 授权，物理 apply 仍要求 manifest、sha256、restore index 与 restore proof。
-- SQLite lifecycle store 只做 sidecar index、read model、receipt 和幂等检索，不替代 paper/manuscript/package、publication eval、controller decision、user intervention memory、restore metadata 或 dataset manifest。
+- lifecycle refs SQLite store 只做 refs index、read model、receipt 和幂等检索，不替代 paper/manuscript/package、publication eval、controller decision、user intervention memory、restore metadata 或 dataset manifest。
 - 开发 checkout 只保存 repo source、docs、schema/contract、locator/index、receipt ref、restore/retention policy 与 authority-function descriptor。真实 workspace state、runtime artifact、receipt instance、paper/package/export artifact、临时 build/cache/venv/pycache/pytest cache/install sync 副产物必须写入受控 study workspace/runtime artifact root 或用户级 runtime state。
 - `runtime/authority_functions/` 的语义只限最小 MAS authority function anchor；它不得变成 runtime artifact root、generic lifecycle engine、session store、scheduler、runner、queue、workbench 或 memory body store。
 - OPL 上收通用 workspace/file lifecycle primitive 后，MAS 私有 scheduler/runner/session/workbench 残留只能作为迁移输入、refs-only adapter、diagnostic 或 tombstone；不得继续定义长期结构。

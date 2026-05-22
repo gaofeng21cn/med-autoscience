@@ -7,7 +7,7 @@ import subprocess
 
 
 def test_runtime_lifecycle_migration_ledger_is_contract_valid_and_writes_pointer(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
     contract = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_contract")
     workspace_root = tmp_path / "workspace"
@@ -620,7 +620,7 @@ def test_runtime_lifecycle_ledger_allows_legacy_import_retirement_only_after_ver
     assert cutover["quest_git_active_path_retired"] is True
     assert cutover["unresolved_active_git_paths"] == []
     assert cutover["legacy_import_retirement"]["allowed"] is True
-    assert ledger["next_required_action"] == "Run storage-audit dry-run to create the runtime lifecycle SQLite sidecar."
+    assert ledger["next_required_action"] == "Run storage-audit dry-run to create the runtime lifecycle SQLite refs index."
 
 
 def test_legacy_import_retirement_validation_requires_restore_import_diagnostic() -> None:

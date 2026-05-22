@@ -103,7 +103,7 @@ def build_generated_default_caller_boundary(
             _surface_boundary(
                 surface_id="sidecar",
                 target_role="opl_generated_sidecar_handoff_surface",
-                mas_retained_role="domain_sidecar_dispatch_adapter",
+                mas_retained_role="domain_owner_route_handoff_adapter",
                 parity_ref="sidecar_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
@@ -238,14 +238,14 @@ def build_physical_retirement_gate_matrix(
                 ],
             ),
             _retirement_candidate(
-                surface_id="runtime_lifecycle_sqlite",
+                surface_id="lifecycle_refs_sqlite",
                 code_paths=[
-                    "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+                    "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
                     "src/med_autoscience/runtime_protocol/study_runtime.py",
                     "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
                 ],
-                active_caller_status="refs_only_domain_sidecar_adapter_active",
-                retained_as="refs_only_lifecycle_sidecar_index",
+                active_caller_status="refs_only_domain_owner_route_handoff_adapter_active",
+                retained_as="refs_only_lifecycle_ref_index",
                 delete_gate_status="blocked_refs_only_lifecycle_adapter_active",
                 gate_results=_not_ready_gate_results(
                     opl_replacement_parity="opl_runtime_lifecycle_index_parity_required",
@@ -279,24 +279,24 @@ def build_physical_retirement_gate_matrix(
                 ],
             ),
             _retirement_candidate(
-                surface_id="sidecar_adapter",
+                surface_id="owner_route_handoff",
                 code_paths=[
-                    "src/med_autoscience/controllers/sidecar_family_adapter.py",
+                    "src/med_autoscience/controllers/owner_route_handoff.py",
                     (
-                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "src/med_autoscience/controllers/owner_route_handoff_parts/"
                         "export_projection.py"
                     ),
                     (
-                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "src/med_autoscience/controllers/owner_route_handoff_parts/"
                         "export_study_projection.py"
                     ),
                     (
-                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "src/med_autoscience/controllers/owner_route_handoff_parts/"
                         "dispatch_orchestration.py"
                     ),
                 ],
-                active_caller_status="domain_sidecar_dispatch_adapter_active",
-                retained_as="domain_sidecar_dispatch_adapter",
+                active_caller_status="domain_owner_route_handoff_adapter_active",
+                retained_as="domain_owner_route_handoff_adapter",
                 delete_gate_status="blocked_domain_dispatch_adapter_active",
                 gate_results=_not_ready_gate_results(
                     opl_replacement_parity="opl_generated_sidecar_default_required",
@@ -310,30 +310,30 @@ def build_physical_retirement_gate_matrix(
                 ],
                 deletion_readiness_worklist_ref=(
                     "functional_consumer_boundary.active_path_residue_cleanup_gates."
-                    "sidecar_dispatch_adapter.deletion_readiness_worklist"
+                    "owner_route_handoff_adapter.deletion_readiness_worklist"
                 ),
                 no_forbidden_write_proof_refs=[
                     (
-                        "tests/test_cli_cases/sidecar_family_adapter_command_cases/"
+                        "tests/test_cli_cases/owner_route_handoff_command_cases/"
                         "dispatch_cases.py::"
                         "test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth"
                     ),
-                    "sidecar_dispatch_response.forbidden_write_guard_proof",
+                    "owner_route_handoff_response.forbidden_write_guard_proof",
                 ],
                 latest_thinning_evidence={
                     "status": "sidecar_export_projection_split_to_parts_facade_retained",
-                    "facade_path": "src/med_autoscience/controllers/sidecar_family_adapter.py",
+                    "facade_path": "src/med_autoscience/controllers/owner_route_handoff.py",
                     "extracted_paths": [
                         (
-                            "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                            "src/med_autoscience/controllers/owner_route_handoff_parts/"
                             "export_projection.py"
                         ),
                         (
-                            "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                            "src/med_autoscience/controllers/owner_route_handoff_parts/"
                             "export_study_projection.py"
                         ),
                         (
-                            "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                            "src/med_autoscience/controllers/owner_route_handoff_parts/"
                             "dispatch_orchestration.py"
                         ),
                     ],
@@ -370,8 +370,8 @@ def build_physical_retirement_gate_matrix(
         "forbidden_claims": [
             "physical_delete_already_completed",
             "runtime_transport_active_caller_count_zero",
-            "sqlite_lifecycle_active_caller_count_zero",
-            "sidecar_dispatch_adapter_deleted",
+            "lifecycle_refs_active_caller_count_zero",
+            "owner_route_handoff_adapter_deleted",
             "status_projection_deleted",
             "workbench_shell_deleted",
             "paper_closure_authorized_by_retirement_gate",

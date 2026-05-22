@@ -8,7 +8,7 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
-SIDECAR_INDEX_TABLE_NAMES = (
+LIFECYCLE_REF_INDEX_TABLE_NAMES = (
     "study_macro_state_snapshots",
     "owner_route_receipts",
     "dispatch_receipts",
@@ -18,7 +18,7 @@ SIDECAR_INDEX_TABLE_NAMES = (
 )
 
 
-def ensure_sidecar_index_schema(conn: sqlite3.Connection) -> None:
+def ensure_lifecycle_ref_index_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS study_macro_state_snapshots(
@@ -500,8 +500,8 @@ def _require_text(label: str, value: object) -> str:
 
 
 __all__ = [
-    "SIDECAR_INDEX_TABLE_NAMES",
-    "ensure_sidecar_index_schema",
+    "LIFECYCLE_REF_INDEX_TABLE_NAMES",
+    "ensure_lifecycle_ref_index_schema",
     "record_dispatch_receipt",
     "record_owner_route_receipt",
     "record_paper_work_unit_receipt",

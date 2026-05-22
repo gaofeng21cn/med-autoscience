@@ -5,13 +5,13 @@ import subprocess
 
 
 def assert_db_not_tracked(db_path: Path) -> None:
-    tracked_paths = tracked_sqlite_sidecars(db_path)
+    tracked_paths = tracked_sqlite_refs_indexs(db_path)
     if tracked_paths:
         tracked = ", ".join(tracked_paths)
-        raise RuntimeError(f"runtime lifecycle SQLite sidecar must not be tracked by Git: {tracked}")
+        raise RuntimeError(f"runtime lifecycle SQLite refs index must not be tracked by Git: {tracked}")
 
 
-def tracked_sqlite_sidecars(db_path: Path) -> tuple[str, ...]:
+def tracked_sqlite_refs_indexs(db_path: Path) -> tuple[str, ...]:
     resolved_db_path = Path(db_path).expanduser().resolve()
     git_root = git_root_for_path(resolved_db_path.parent)
     if git_root is None:
@@ -51,4 +51,4 @@ def git_root_for_path(path: Path) -> Path | None:
     return Path(root).resolve() if root else None
 
 
-__all__ = ["assert_db_not_tracked", "git_root_for_path", "tracked_sqlite_sidecars"]
+__all__ = ["assert_db_not_tracked", "git_root_for_path", "tracked_sqlite_refs_indexs"]

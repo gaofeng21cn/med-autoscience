@@ -29,7 +29,7 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.dataset_reten
     superseded_release_index as _superseded_release_index,
 )
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import runtime_lifecycle_store
+from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.study_runtime import resolve_study_runtime_paths
 
@@ -751,7 +751,7 @@ def audit_workspace_storage(
     report["latest_report_path"] = str(latest_path)
     _write_json(report_path, report)
     _write_json(latest_path, report)
-    report["runtime_lifecycle_index"] = runtime_lifecycle_store.record_workspace_storage_audit(
+    report["runtime_lifecycle_index"] = lifecycle_refs_adapter.record_workspace_storage_audit(
         workspace_root=workspace_root,
         report=report,
         report_path=report_path,
@@ -774,10 +774,10 @@ def _record_workspace_archive_ref(
     archive_ref = compaction.get("archive_ref")
     if not isinstance(archive_ref, Mapping):
         return {}
-    return runtime_lifecycle_store.record_archive_ref(
+    return lifecycle_refs_adapter.record_archive_ref(
         quest_root=quest_root,
         archive_ref=archive_ref,
-        db_path=runtime_lifecycle_store.workspace_lifecycle_store_path(workspace_root),
+        db_path=lifecycle_refs_adapter.workspace_lifecycle_store_path(workspace_root),
     )
 
 
@@ -868,7 +868,7 @@ def maintain_runtime_storage(
             result["restore_proof_compaction"] = compaction_result
             archive_ref = compaction_result.get("archive_ref")
             if isinstance(archive_ref, Mapping):
-                result["runtime_lifecycle_archive_index"] = runtime_lifecycle_store.record_archive_ref(
+                result["runtime_lifecycle_archive_index"] = lifecycle_refs_adapter.record_archive_ref(
                     quest_root=resolved_quest_root,
                     archive_ref=archive_ref,
                 )

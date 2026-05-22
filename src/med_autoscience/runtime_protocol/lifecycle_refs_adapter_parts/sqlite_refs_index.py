@@ -6,7 +6,7 @@ import sqlite3
 from typing import Any
 
 from ..runtime_lifecycle_contract import SCHEMA_VERSION, SURFACE_KIND
-from . import git_tracking, lineage_indexes, sidecar_indexes
+from . import git_tracking, lineage_indexes, lifecycle_ref_indexes
 
 
 def connect(db_path: Path) -> sqlite3.Connection:
@@ -141,7 +141,7 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
-    sidecar_indexes.ensure_sidecar_index_schema(conn)
+    lifecycle_ref_indexes.ensure_lifecycle_ref_index_schema(conn)
     conn.execute(
         "INSERT OR REPLACE INTO lifecycle_metadata(key, value) VALUES ('schema_version', ?)",
         (str(SCHEMA_VERSION),),
@@ -173,7 +173,7 @@ def inspect_store(db_path: Path) -> dict[str, Any]:
                 *lineage_indexes.LINEAGE_INDEX_TABLE_NAMES,
                 "runtime_events",
                 "archive_refs",
-                *sidecar_indexes.SIDECAR_INDEX_TABLE_NAMES,
+                *lifecycle_ref_indexes.LIFECYCLE_REF_INDEX_TABLE_NAMES,
                 "report_index",
             )
         }

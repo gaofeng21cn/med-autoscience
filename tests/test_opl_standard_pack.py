@@ -9,10 +9,10 @@ import pytest
 
 from med_autoscience.action_catalog import build_mas_action_catalog
 from med_autoscience.opl_standard_pack import build_standard_pack
-from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.agent_pack_refs import (
+from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.agent_pack_refs import (
     AGENT_PROMPT_REFS,
 )
-from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.family_adoption import (
+from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.family_adoption import (
     build_family_stage_control_plane,
 )
 
@@ -297,7 +297,7 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     ]
     audit = generated["functional_privatization_audit"]
     functional_boundary = audit["functional_consumer_boundary"]
-    runtime_role = functional_boundary["runtime_lifecycle_sqlite_role"]
+    runtime_role = functional_boundary["lifecycle_refs_adapter_role"]
     assert runtime_role["classification"] == "refs_only_adapter"
     assert runtime_role["authority"] == "refs_only_index_not_generic_persistence_engine"
     assert runtime_role["body_policy"] == "refs_receipts_blockers_only"
@@ -310,7 +310,7 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         for item in functional_boundary["functional_module_inventory"]
     }
     private_runtime_refs_only_modules = {
-        "runtime_lifecycle_sqlite_reference_adapter": {
+        "lifecycle_refs_adapter": {
             "boundary": "refs_only_sqlite_lifecycle_index_not_generic_runtime_owner",
             "must_not_emit": "generic_runtime_verdict",
         },
@@ -354,23 +354,23 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert cleanup_gates["workbench_shell_domain_projection_refs"][
         "physical_delete_permitted"
     ] is False
-    assert cleanup_gates["sidecar_dispatch_adapter"]["current_role"] == (
-        "domain_sidecar_dispatch_adapter"
+    assert cleanup_gates["owner_route_handoff_adapter"]["current_role"] == (
+        "domain_owner_route_handoff_adapter"
     )
-    sidecar_worklist = cleanup_gates["sidecar_dispatch_adapter"]["deletion_readiness_worklist"]
+    sidecar_worklist = cleanup_gates["owner_route_handoff_adapter"]["deletion_readiness_worklist"]
     assert sidecar_worklist["can_delete"] is False
     assert sidecar_worklist["active_caller_count"] == 1
-    sidecar_paths = cleanup_gates["sidecar_dispatch_adapter"]["current_paths"]
-    assert "src/med_autoscience/controllers/sidecar_family_adapter.py" in sidecar_paths
+    sidecar_paths = cleanup_gates["owner_route_handoff_adapter"]["current_paths"]
+    assert "src/med_autoscience/controllers/owner_route_handoff.py" in sidecar_paths
     assert (
-        "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py"
+        "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py"
         in sidecar_paths
     )
     assert (
-        "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py"
+        "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py"
         in sidecar_paths
     )
-    sidecar_thinning = cleanup_gates["sidecar_dispatch_adapter"]["latest_thinning_evidence"]
+    sidecar_thinning = cleanup_gates["owner_route_handoff_adapter"]["latest_thinning_evidence"]
     assert sidecar_thinning["status"] == (
         "sidecar_export_projection_split_to_parts_facade_retained"
     )

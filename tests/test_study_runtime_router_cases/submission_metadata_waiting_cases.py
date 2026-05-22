@@ -90,7 +90,7 @@ def test_stopped_submission_metadata_package_resumes_current_domain_transition_r
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision_status_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.status_and_decision"
+        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
     )
 
     profile = make_profile(tmp_path)

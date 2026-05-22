@@ -696,8 +696,8 @@ def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tm
     assert mcp_surface["mas_generic_owner_allowed"] is False
     retirement_matrix = boundary["physical_retirement_gate_matrix"]
     candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
-    assert candidates["sidecar_adapter"]["active_default_caller_count"] == 0
-    assert candidates["sidecar_adapter"]["physical_delete_permitted"] is False
+    assert candidates["owner_route_handoff"]["active_default_caller_count"] == 0
+    assert candidates["owner_route_handoff"]["physical_delete_permitted"] is False
     assert candidates["status_projection"]["retained_as"] == "domain_truth_status_projection"
     assert manifest["runtime_transport_handoff_projection"]["generated_default_caller_boundary"] == (
         generated_default

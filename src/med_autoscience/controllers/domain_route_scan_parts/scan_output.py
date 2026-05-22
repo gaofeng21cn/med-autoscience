@@ -69,7 +69,7 @@ def persist_scan_domain_routes_payload(
     history_path: Path,
     generated_at: str,
     resolved_study_ids: tuple[str, ...],
-    runtime_lifecycle_store: Any,
+    lifecycle_refs_adapter: Any,
     study_root_for_id: Callable[[str], Path],
     write_json: Callable[[Path, Mapping[str, Any]], None],
     append_json_line: Callable[[Path, Mapping[str, Any]], None],
@@ -83,7 +83,7 @@ def persist_scan_domain_routes_payload(
             continue
         try:
             study_root = Path(text(study.get("study_root")) or study_root_for_id(text(study.get("study_id")) or ""))
-            study["owner_route_lifecycle_index"] = runtime_lifecycle_store.record_owner_route_receipt(
+            study["owner_route_lifecycle_index"] = lifecycle_refs_adapter.record_owner_route_receipt(
                 study_root=study_root,
                 receipt=owner_route,
                 receipt_path=latest_path,

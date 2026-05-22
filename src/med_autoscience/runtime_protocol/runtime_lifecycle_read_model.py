@@ -8,7 +8,7 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
-from . import runtime_lifecycle_store
+from . import lifecycle_refs_adapter
 
 
 SURFACE_KIND = "runtime_lifecycle_read_model"
@@ -41,7 +41,7 @@ def build_lifecycle_inventory(
     if not resolved_db_path.exists():
         return {
             "surface_kind": SURFACE_KIND,
-            "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+            "schema_version": lifecycle_refs_adapter.SCHEMA_VERSION,
             "mode": "inventory",
             "scope": scope,
             "db_path": str(resolved_db_path),
@@ -49,7 +49,7 @@ def build_lifecycle_inventory(
             "read_only": True,
             "legacy_restore_import_used": False,
             "available_surfaces": [],
-            "missing_reason": "runtime_lifecycle_sqlite_missing",
+            "missing_reason": "lifecycle_refs_sqlite_missing",
         }
 
     with _connect_readonly(resolved_db_path) as conn:
@@ -75,7 +75,7 @@ def build_lifecycle_inventory(
 
     return {
         "surface_kind": SURFACE_KIND,
-        "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+        "schema_version": lifecycle_refs_adapter.SCHEMA_VERSION,
         "mode": "inventory",
         "scope": scope,
         "db_path": str(resolved_db_path),
@@ -104,7 +104,7 @@ def read_lifecycle_projection(
             surface=normalized_surface,
             db_path=resolved_db_path,
             status="missing",
-            missing_reason="runtime_lifecycle_sqlite_missing",
+            missing_reason="lifecycle_refs_sqlite_missing",
         )
         return _maybe_legacy_restore_import_diagnostic(
             projection=projection,
@@ -192,7 +192,7 @@ def export_lifecycle_projection(
     )
     export_payload = {
         "surface_kind": EXPORT_SURFACE_KIND,
-        "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+        "schema_version": lifecycle_refs_adapter.SCHEMA_VERSION,
         "surface": projection["surface"],
         "export_format": normalized_format,
         "exported_at": exported_at,
@@ -330,7 +330,7 @@ def _read_sqlite_legacy_import_projection(
             surface=surface,
             db_path=db_path,
             status="capability_gap",
-            missing_reason="runtime_lifecycle_sqlite_table_missing",
+            missing_reason="lifecycle_refs_sqlite_table_missing",
             missing_tables=missing_tables,
         )
 
@@ -355,7 +355,7 @@ def _read_sqlite_legacy_import_projection(
         surface=surface,
         db_path=db_path,
         status="missing",
-        missing_reason="runtime_lifecycle_sqlite_row_missing",
+        missing_reason="lifecycle_refs_sqlite_row_missing",
     )
 
 
@@ -374,7 +374,7 @@ def _read_sqlite_only_projection(
             surface=surface,
             db_path=db_path,
             status="capability_gap",
-            missing_reason="runtime_lifecycle_sqlite_table_missing",
+            missing_reason="lifecycle_refs_sqlite_table_missing",
             missing_tables=missing_tables,
         )
 
@@ -530,7 +530,7 @@ def _projection(
 ) -> dict[str, Any]:
     result = {
         "surface_kind": SURFACE_KIND,
-        "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+        "schema_version": lifecycle_refs_adapter.SCHEMA_VERSION,
         "surface": surface,
         "status": status,
         "read_only": True,
@@ -620,7 +620,7 @@ def _render_markdown_export(*, projection: Mapping[str, Any], exported_at: str) 
         "",
         f"- surface: `{projection.get('surface')}`",
         f"- exported_at: `{exported_at}`",
-        f"- schema_version: `{runtime_lifecycle_store.SCHEMA_VERSION}`",
+        f"- schema_version: `{lifecycle_refs_adapter.SCHEMA_VERSION}`",
         f"- legacy_restore_import_used: `{bool(projection.get('legacy_restore_import_used'))}`",
         f"- source_query: `{projection.get('source_query')}`",
         f"- payload_sha256: `{projection.get('payload_sha256')}`",
@@ -642,9 +642,9 @@ def _resolve_lifecycle_db_path(
     if db_path is not None:
         return Path(db_path).expanduser().resolve()
     if quest_root is not None:
-        return runtime_lifecycle_store.quest_lifecycle_store_path(Path(quest_root))
+        return lifecycle_refs_adapter.quest_lifecycle_store_path(Path(quest_root))
     if workspace_root is not None:
-        return runtime_lifecycle_store.workspace_lifecycle_store_path(Path(workspace_root))
+        return lifecycle_refs_adapter.workspace_lifecycle_store_path(Path(workspace_root))
     raise ValueError("Specify one of quest_root, workspace_root, or db_path")
 
 

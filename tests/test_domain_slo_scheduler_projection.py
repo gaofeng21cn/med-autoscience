@@ -125,10 +125,10 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(tmp_p
     inventory = boundary["functional_module_inventory"]
     assert len(inventory) == 19
     inventory_by_id = {item["module_id"]: item for item in inventory}
-    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["active_caller_status"] == (
-        "refs_only_domain_sidecar_adapter_active"
+    assert inventory_by_id["lifecycle_refs_adapter"]["active_caller_status"] == (
+        "refs_only_domain_owner_route_handoff_adapter_active"
     )
-    assert set(inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["forbidden_mas_roles"]) == {
+    assert set(inventory_by_id["lifecycle_refs_adapter"]["forbidden_mas_roles"]) == {
         "generic_persistence_engine",
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",

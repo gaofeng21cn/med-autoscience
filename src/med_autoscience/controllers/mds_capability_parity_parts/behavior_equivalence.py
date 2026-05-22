@@ -254,7 +254,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "title": "GitOps state management",
         "equivalence_class": "not_equivalent_retired",
         "mds_behavior": {"root_git": True, "quest_git": True, "diff_log_reader": True},
-        "mas_behavior": {"root_git": False, "quest_git": False, "runtime_lifecycle_sqlite": True},
+        "mas_behavior": {"root_git": False, "quest_git": False, "lifecycle_refs_sqlite": True},
         "behavior_difference": "MAS intentionally retired workspace root Git and quest Git as runtime lifecycle owners.",
         "default_user_impact": "Existing papers use SQLite/restore-proof lifecycle, not MDS GitOps behavior.",
         "mas_contract": "runtime_lifecycle.sqlite, restore index and migration ledger own runtime history/proof.",
@@ -356,7 +356,7 @@ RUNTIME_CONTINUITY_COMPLETION = {
         "read_only": True,
         "source_priority": [
             "study_runtime_status/runtime_liveness_audit",
-            "runtime_lifecycle_store",
+            "lifecycle_refs_adapter",
             "owner_route/dispatch_receipts",
             "historical_fixture_ref",
         ],

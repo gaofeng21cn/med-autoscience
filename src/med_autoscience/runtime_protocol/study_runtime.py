@@ -20,7 +20,7 @@ from med_autoscience.runtime_escalation_record import (
 )
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
-from . import runtime_lifecycle_store
+from . import lifecycle_refs_adapter
 from .layout import build_workspace_runtime_layout_for_profile
 from .workspace_literature_status import workspace_literature_status
 from .study_runtime_models import (
@@ -246,7 +246,7 @@ def write_runtime_event_record(
     payload = persisted_record.to_dict()
     _write_json(path, payload)
     _write_json(path.parent / "latest.json", payload)
-    runtime_lifecycle_store.record_runtime_event(
+    lifecycle_refs_adapter.record_runtime_event(
         quest_root=quest_root,
         event=payload,
         artifact_path=path,

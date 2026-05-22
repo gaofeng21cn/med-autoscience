@@ -644,7 +644,7 @@ def _git_tracking_check(workspace_root: Path) -> dict[str, Any]:
             "status_line_count": 0,
             "is_dirty": False,
             "sidecar_gitignore_ok": False,
-            "sqlite_sidecars": [],
+            "sqlite_refs_indexs": [],
         }
     status_output = _git_output(["status", "--porcelain=v1"], cwd=workspace_root) or ""
     status_lines = [line for line in status_output.splitlines() if line.strip()]
@@ -663,7 +663,7 @@ def _git_tracking_check(workspace_root: Path) -> dict[str, Any]:
         "is_dirty": bool(status_lines),
         "sqlite_gitignore_patterns": list(SQLITE_GITIGNORE_PATTERNS),
         "sidecar_gitignore_ok": all(check["ignored"] for check in checks),
-        "sqlite_sidecars": checks,
+        "sqlite_refs_indexs": checks,
     }
 
 
@@ -760,11 +760,11 @@ def _default_next_required_action(
         return str(git_lifecycle_cutover.get("next_required_action"))
     reasons = {str(item.get("reason")) for item in skipped_items}
     if "db_gitignore_missing" in reasons:
-        return "Backfill workspace .gitignore SQLite sidecar patterns, then rerun dry-run ledger before apply."
+        return "Backfill workspace .gitignore SQLite refs index patterns, then rerun dry-run ledger before apply."
     if "dirty_workspace" in reasons:
         return "Resolve or explicitly classify existing workspace changes before apply."
     if inventory.get("status") != "ready":
-        return "Run storage-audit dry-run to create the runtime lifecycle SQLite sidecar."
+        return "Run storage-audit dry-run to create the runtime lifecycle SQLite refs index."
     return "Generate rollback plan and restore proof before any apply action."
 
 

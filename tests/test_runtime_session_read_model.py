@@ -168,7 +168,7 @@ def test_runtime_session_projection_reads_latest_lifecycle_event_when_status_is_
     )
 
     session = projection["runtime_session"]
-    assert session["source_priority"] == "runtime_lifecycle_store"
+    assert session["source_priority"] == "lifecycle_refs_adapter"
     assert session["study_id"] == "001-risk"
     assert session["quest_id"] == "quest-001"
     assert session["active_run_id"] == "run-live"
@@ -181,7 +181,7 @@ def test_runtime_session_projection_reads_latest_lifecycle_event_when_status_is_
     assert session["freshness_state"] == "measured"
     assert session["freshness_age_seconds"] == 120
     assert {ref["source"] for ref in session["evidence_refs"]} == {
-        "runtime_lifecycle_store",
+        "lifecycle_refs_adapter",
         "runtime_event_artifact",
         "runtime_event_latest",
         "runtime_event_summary",
@@ -229,7 +229,7 @@ def test_runtime_session_projection_falls_back_to_owner_route_receipts_without_c
             "source": "dispatch_receipts",
             "path": str((quest_root / "artifacts" / "runtime" / "dispatch" / "dispatch-001.json").resolve()),
         },
-        {"source": "runtime_lifecycle_store", "path": str(db_path.resolve())},
+        {"source": "lifecycle_refs_adapter", "path": str(db_path.resolve())},
     ]
 
 

@@ -224,7 +224,7 @@ def _workspace_runtime_artifact_root_locator(*, profile: WorkspaceProfile) -> di
             "controller_decisions": "studies/<study_id>/artifacts/controller_decisions/latest.json",
             "stage_knowledge_packet": "studies/<study_id>/artifacts/stage_knowledge/<stage>/latest.json",
             "dispatch_receipts": "artifacts/runtime/opl_family_sidecar/dispatch_receipts",
-            "runtime_lifecycle_sqlite": "artifacts/runtime/runtime_lifecycle.sqlite",
+            "lifecycle_refs_sqlite": "artifacts/runtime/runtime_lifecycle.sqlite",
         },
     }
 

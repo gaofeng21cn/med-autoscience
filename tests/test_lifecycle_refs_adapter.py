@@ -35,7 +35,7 @@ def _expected_table_counts(**overrides: int) -> dict[str, int]:
 
 def test_report_store_indexes_watch_state_and_reports_without_changing_file_surfaces(tmp_path: Path) -> None:
     report_store = importlib.import_module("med_autoscience.runtime_protocol.report_store")
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     state = {"schema_version": 1, "updated_at": "2026-05-05T00:00:00+00:00", "controllers": {"gate": {}}}
     report = {
@@ -108,7 +108,7 @@ def test_report_store_indexes_watch_state_and_reports_without_changing_file_surf
 
 
 def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     runtime_storage = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = importlib.import_module("tests.study_runtime_test_helpers").make_profile(tmp_path)
 
@@ -116,7 +116,7 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
 
     db_path = lifecycle_store.workspace_lifecycle_store_path(profile.workspace_root)
     assert result["runtime_lifecycle_index"] == {
-        "surface_kind": "runtime_lifecycle_sqlite_index",
+        "surface_kind": "lifecycle_refs_sqlite_index",
         "schema_version": 1,
         "status": "indexed",
         "scope": "workspace",
@@ -156,7 +156,7 @@ def test_workspace_storage_audit_indexes_summary_in_workspace_lifecycle_store(tm
 
 
 def test_workspace_storage_audit_indexes_compact_payload_for_large_reports(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     workspace_root = tmp_path / "workspace"
     report_path = workspace_root / "storage_audit" / "20260505T000000Z.json"
     latest_path = workspace_root / "storage_audit" / "latest.json"
@@ -215,8 +215,8 @@ def test_workspace_storage_audit_indexes_compact_payload_for_large_reports(tmp_p
     assert "huge_debug_blob" not in payload_json
 
 
-def test_lifecycle_store_fails_closed_when_sqlite_sidecar_is_git_tracked(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+def test_lifecycle_store_fails_closed_when_sqlite_refs_index_is_git_tracked(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     repo_root = tmp_path / "workspace"
     repo_root.mkdir()
     subprocess.run(["git", "init"], cwd=repo_root, check=True, text=True, capture_output=True)
@@ -232,14 +232,14 @@ def test_lifecycle_store_fails_closed_when_sqlite_sidecar_is_git_tracked(tmp_pat
             db_path=db_path,
         )
     except RuntimeError as exc:
-        assert "runtime lifecycle SQLite sidecar must not be tracked by Git" in str(exc)
+        assert "runtime lifecycle SQLite refs index must not be tracked by Git" in str(exc)
         assert "artifacts/runtime/runtime_lifecycle.sqlite" in str(exc)
     else:
-        raise AssertionError("tracked lifecycle DB sidecar must fail closed")
+        raise AssertionError("tracked lifecycle DB refs index must fail closed")
 
 
-def test_lifecycle_store_allows_ignored_untracked_sqlite_sidecar(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+def test_lifecycle_store_allows_ignored_untracked_sqlite_refs_index(tmp_path: Path) -> None:
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     repo_root = tmp_path / "workspace"
     repo_root.mkdir()
     subprocess.run(["git", "init"], cwd=repo_root, check=True, text=True, capture_output=True)
@@ -269,7 +269,7 @@ def test_lifecycle_store_allows_ignored_untracked_sqlite_sidecar(tmp_path: Path)
 def test_runtime_event_record_indexes_event_without_replacing_latest_authority(tmp_path: Path) -> None:
     record_module = importlib.import_module("med_autoscience.runtime_event_record")
     protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     launch_report_path = tmp_path / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
     record = record_module.RuntimeEventRecord(
@@ -346,7 +346,7 @@ def test_runtime_event_record_indexes_event_without_replacing_latest_authority(t
 
 
 def test_lifecycle_store_records_archive_refs_without_replacing_restore_authority(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     archive_path = quest_root / ".ds" / "cold_archive" / "restore-proof" / "quest-001.tar.gz"
     manifest_path = archive_path.with_suffix(".manifest.json")
@@ -397,7 +397,7 @@ def test_lifecycle_store_records_archive_refs_without_replacing_restore_authorit
 
 
 def test_lifecycle_store_records_q1_lineage_snapshot_allocation_indexes(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     workspace_root = tmp_path / "workspace"
     db_path = lifecycle_store.workspace_lifecycle_store_path(workspace_root)
     node = {
@@ -570,7 +570,7 @@ def test_lifecycle_store_records_q1_lineage_snapshot_allocation_indexes(tmp_path
 
 
 def test_lifecycle_store_rejects_publication_study_artifact_authority_in_q1_indexes(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     workspace_root = tmp_path / "workspace"
 
     try:
@@ -595,7 +595,7 @@ def test_lifecycle_store_rejects_publication_study_artifact_authority_in_q1_inde
 def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replacing_authority_files(
     tmp_path: Path,
 ) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     study_root = tmp_path / "studies" / "001-risk"
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     db_path = tmp_path / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
@@ -829,7 +829,7 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
 
 
 def test_surface_ref_relative_target_paths_are_resolved_against_object_root(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     study_root = tmp_path / "studies" / "001-risk"
     db_path = tmp_path / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
     ref_path = study_root / "artifacts" / "runtime" / "surface_refs" / "publication_eval.json"
@@ -919,7 +919,7 @@ def test_lifecycle_read_model_missing_sqlite_does_not_default_to_legacy_restore_
     inventory = read_model.build_lifecycle_inventory(quest_root=quest_root)
 
     assert projection["status"] == "missing"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_missing"
     assert projection["payload"] == {}
     assert projection["legacy_restore_import_used"] is False
     assert projection["source_paths"] == []
@@ -940,7 +940,7 @@ def test_lifecycle_read_model_missing_sqlite_does_not_default_to_legacy_restore_
 
 
 def test_lifecycle_inventory_lists_workspace_storage_audit_from_sqlite(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_store")
+    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     runtime_storage = importlib.import_module("med_autoscience.controllers.runtime_storage_maintenance")
     profile = importlib.import_module("tests.study_runtime_test_helpers").make_profile(tmp_path)

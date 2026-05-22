@@ -879,9 +879,9 @@ def _turn_receipt(
     latest_path = quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json"
     write_json(latest_path, payload)
     try:
-        from med_autoscience.runtime_protocol import runtime_lifecycle_store
+        from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
-        payload["runtime_lifecycle_index"] = runtime_lifecycle_store.record_turn_receipt(
+        payload["runtime_lifecycle_index"] = lifecycle_refs_adapter.record_turn_receipt(
             quest_root=quest_root,
             receipt=payload,
             receipt_path=latest_path,

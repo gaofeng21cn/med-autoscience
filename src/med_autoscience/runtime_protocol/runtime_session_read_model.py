@@ -7,7 +7,7 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
-from . import runtime_lifecycle_store
+from . import lifecycle_refs_adapter
 
 
 SURFACE_KIND = "runtime_session_read_model"
@@ -42,7 +42,7 @@ def build_runtime_session_read_model(
     )
     return {
         "surface_kind": SURFACE_KIND,
-        "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+        "schema_version": lifecycle_refs_adapter.SCHEMA_VERSION,
         "read_only": True,
         "authority": "projection_only",
         "runtime_session": session,
@@ -89,7 +89,7 @@ def _resolve_source(
         return historical_source
 
     resolved_db_path = _resolve_lifecycle_db_path(quest_root=quest_root, db_path=db_path)
-    evidence_refs = [{"source": "runtime_lifecycle_store", "path": str(resolved_db_path)}] if resolved_db_path else []
+    evidence_refs = [{"source": "lifecycle_refs_adapter", "path": str(resolved_db_path)}] if resolved_db_path else []
     return {
         "source_priority": "none",
         "payload": {},
@@ -166,13 +166,13 @@ def _runtime_lifecycle_event_source(*, quest_root: Path | None, db_path: Path | 
     payload.setdefault("emitted_at", _text(row["emitted_at"]))
     payload["last_event_cursor"] = _text(row["cursor"])
     evidence_refs = [
-        {"source": "runtime_lifecycle_store", "path": str(resolved_db_path)},
+        {"source": "lifecycle_refs_adapter", "path": str(resolved_db_path)},
         {"source": "runtime_event_artifact", "path": _text(row["artifact_path"])},
         {"source": "runtime_event_latest", "path": _text(row["latest_path"])},
         {"source": "runtime_event_summary", "path": _text(row["summary_ref"])},
     ]
     return {
-        "source_priority": "runtime_lifecycle_store",
+        "source_priority": "lifecycle_refs_adapter",
         "payload": payload,
         "evidence_refs": [ref for ref in evidence_refs if ref.get("path")],
     }
@@ -233,7 +233,7 @@ def _owner_route_receipt_source(
         evidence_refs.append({"source": "owner_route_receipts", "path": _text(owner_row["source_path"])})
     if dispatch_row is not None and _text(dispatch_row["source_path"]):
         evidence_refs.append({"source": "dispatch_receipts", "path": _text(dispatch_row["source_path"])})
-    evidence_refs.append({"source": "runtime_lifecycle_store", "path": str(resolved_db_path)})
+    evidence_refs.append({"source": "lifecycle_refs_adapter", "path": str(resolved_db_path)})
     return {
         "source_priority": "owner_route_receipts",
         "payload": payload,
@@ -486,7 +486,7 @@ def _last_seen_at(
         payload.get("updated_at"),
         payload.get("recorded_at"),
         event_payload.get("last_seen_at"),
-        event_payload.get("emitted_at") if source_priority == "runtime_lifecycle_store" else None,
+        event_payload.get("emitted_at") if source_priority == "lifecycle_refs_adapter" else None,
     )
 
 
@@ -556,7 +556,7 @@ def _resolve_lifecycle_db_path(*, quest_root: Path | None, db_path: Path | None)
     if db_path is not None:
         return Path(db_path).expanduser().resolve()
     if quest_root is not None:
-        return runtime_lifecycle_store.quest_lifecycle_store_path(Path(quest_root))
+        return lifecycle_refs_adapter.quest_lifecycle_store_path(Path(quest_root))
     return None
 
 

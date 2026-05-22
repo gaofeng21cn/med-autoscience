@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .sidecar_family_adapter_command_cases.shared import _write_json
+from .owner_route_handoff_command_cases.shared import _write_json
 from .shared import *  # noqa: F403,F401
 from tests.transition_descriptor_assertions import (  # noqa: E402
     assert_family_transition_descriptor_shape,

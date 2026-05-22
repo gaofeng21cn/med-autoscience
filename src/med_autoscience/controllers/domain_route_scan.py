@@ -37,7 +37,7 @@ from med_autoscience.controllers.domain_route_scan_parts import domain_route_con
 from med_autoscience.controllers.domain_route_scan_parts import workspace_daemon
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import runtime_lifecycle_store
+from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
     resolve_developer_supervisor_mode,
@@ -978,7 +978,7 @@ def scan_domain_routes(
             history_path=history_path,
             generated_at=generated_at,
             resolved_study_ids=resolved_study_ids,
-            runtime_lifecycle_store=runtime_lifecycle_store,
+            lifecycle_refs_adapter=lifecycle_refs_adapter,
             study_root_for_id=lambda value: _study_root(profile, value),
             write_json=_write_json,
             append_json_line=_append_json_line,

@@ -75,7 +75,7 @@ def _workspace_root_refs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
             "sidecar_dispatch_receipt_root",
             profile.workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts",
         ),
-        _ref("runtime_lifecycle_sqlite", profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"),
+        _ref("lifecycle_refs_sqlite", profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"),
     ]
 
 

@@ -31,7 +31,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "closure_status": "closed",
         "closure_proof_refs": [
             "functional_module_inventory.refs_only_adapter",
-            "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
+            "lifecycle_refs_adapter_role.refs_only_index_not_generic_persistence_engine",
             "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain",
         ],
         "functional_structure_gap": False,
@@ -69,7 +69,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
         "closure_status": "closed",
         "closure_proof_refs": [
-            "runtime_lifecycle_sqlite_role.mas_consumes_opl_lifecycle_index_refs=true",
+            "lifecycle_refs_adapter_role.mas_consumes_opl_lifecycle_index_refs=true",
             "artifact_lifecycle_storage_audit_shell.proof_refs",
             "OPL family-runtime-lifecycle-index read model",
         ],
@@ -123,7 +123,7 @@ OPL_REPLACEMENT_EXPECTATION_AUDIT = {
         "opl_queue_attempt_retry_dead_letter",
         "opl_generic_transition_runner",
     ],
-    "mas_allowed_role_until_replacement": "domain_sidecar_reference_adapter_refs_only",
+    "mas_allowed_role_until_replacement": "domain_lifecycle_refs_adapter_refs_only",
 }
 
 

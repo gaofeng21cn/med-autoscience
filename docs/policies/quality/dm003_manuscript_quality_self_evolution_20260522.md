@@ -57,7 +57,7 @@ This is a MAS write-owner quality requirement. It does not transfer DM003 to dat
 
 ## Regression Receipt
 
-- `tests/test_cli_cases/sidecar_family_adapter_command.py::test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
+- `tests/test_cli_cases/owner_route_handoff_command.py::test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
 - `tests/test_agent_lab_medical_manuscript_quality.py::test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets`
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_updates_canonical_story_surface`
 - `tests/test_paper_repair_executor.py::test_paper_repair_executor_executes_text_repair_on_canonical_sources`

@@ -87,7 +87,7 @@ def test_lifecycle_read_model_sqlite_only_surfaces_report_missing_without_legacy
     projection = read_model.read_lifecycle_projection(surface="lineage_route", quest_root=quest_root)
 
     assert projection["status"] == "missing"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["source_paths"] == []
     assert projection["payload"] == {}
@@ -102,7 +102,7 @@ def test_lifecycle_read_model_sqlite_only_surfaces_report_capability_gap_for_mis
     projection = read_model.read_lifecycle_projection(surface="lineage_route", db_path=db_path)
 
     assert projection["status"] == "capability_gap"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_table_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_table_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {"missing_tables": ["lineage_edges"]}
 
@@ -121,7 +121,7 @@ def test_lifecycle_read_model_legacy_surfaces_use_no_legacy_restore_import_by_de
     )
 
     assert projection["status"] == "missing"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["source_paths"] == []
     assert projection["payload"] == {}
@@ -158,7 +158,7 @@ def test_lifecycle_read_model_legacy_surfaces_report_capability_gap_for_missing_
     projection = read_model.read_lifecycle_projection(surface="runtime_report", db_path=db_path)
 
     assert projection["status"] == "capability_gap"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_table_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_table_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {"missing_tables": ["runtime_reports"]}
 
@@ -193,7 +193,7 @@ def test_lifecycle_read_model_legacy_surfaces_report_missing_for_missing_row(tmp
     )
 
     assert projection["status"] == "missing"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_row_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_row_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {}
 

@@ -462,7 +462,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
-            "src/med_autoscience/controllers/sidecar_family_adapter.py",
+            "src/med_autoscience/controllers/owner_route_handoff.py",
             "src/med_autoscience/controllers/control_plane_migration_audit.py",
             "src/med_autoscience/controllers/control_plane_state.py",
             "src/med_autoscience/cli.py",
@@ -484,7 +484,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "tests/test_artifact_lifecycle_operations_report.py",
             "tests/test_control_plane_migration_audit.py",
             "tests/test_cli_cases/public_entry_commands.py",
-            "tests/test_cli_cases/sidecar_family_adapter_command.py",
+            "tests/test_cli_cases/owner_route_handoff_command.py",
             "tests/test_mcp_server.py",
             "tests/control_plane_fixtures.py",
         ]

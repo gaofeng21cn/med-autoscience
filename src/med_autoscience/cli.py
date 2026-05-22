@@ -114,7 +114,7 @@ publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate")
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
-sidecar_family_adapter = _LazyModuleProxy(lambda: _load_controller("sidecar_family_adapter"))
+owner_route_handoff = _LazyModuleProxy(lambda: _load_controller("owner_route_handoff"))
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
 publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
 real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("real_paper_autonomy_soak_inventory"))
@@ -574,7 +574,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "sidecar-export":
         profile = load_profile(args.profile)
-        result = sidecar_family_adapter.export_family_sidecar(
+        result = owner_route_handoff.export_family_sidecar(
             profile=profile,
             profile_ref=Path(args.profile),
             opl_production_proof_ref=args.opl_production_proof,
@@ -583,7 +583,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "sidecar-dispatch":
-        result = sidecar_family_adapter.dispatch_family_sidecar_task(task_path=Path(args.task))
+        result = owner_route_handoff.dispatch_family_sidecar_task(task_path=Path(args.task))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if bool(result.get("accepted")) else 1
 
