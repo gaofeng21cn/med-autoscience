@@ -389,13 +389,20 @@
 ## 2026-05-22：medical prose writer materializer 产出 canonical 正文 delta
 
 - 决策：`medical_prose_write_repair` 在 canonical paper inputs 足够时，不再停留在 ledger-only repair 或 writer handoff；MAS writer-owner materializer 必须从 `paper/` 下的 methods/cohort/display/treatment-gap/transition/table/evidence surfaces 生成 `paper/draft.md`，并同步 `paper/build/review_manuscript.md`。
-- 决策：该 materializer 必须覆盖 observational phenotype treatment-gap family 的核心质量目标：phenotype derivation transparency、recorded treatment-review gap terminology、BP/data-quality assessment、baseline characteristics table、numeric abstract/results、restrained discussion 和无运行态正文语言。它不得读取或复制 `manuscript/current_package`、delivery mirror、旧 runtime archive、inspection package 或其他非 canonical authority surface。
+- 决策：该 materializer 必须覆盖 observational phenotype treatment-gap family 的核心质量目标：phenotype derivation transparency、recorded medication-coverage 或 potential treatment-review gap terminology、BP/data-quality assessment、baseline characteristics table、numeric abstract/results、restrained discussion 和无运行态正文语言。它不得读取或复制 `manuscript/current_package`、delivery mirror、旧 runtime archive、inspection package 或其他非 canonical authority surface。
 - 决策：若同一 `source_eval_id` 的上一轮 `quality_repair_batch` 已因 `manuscript_story_surface_delta_missing` 阻塞，且当前 `paper/draft.md` 与 `paper/build/review_manuscript.md` 相对上一轮 blocker 记录的 story-surface fingerprint 已同步变化、无内部运行态术语、并具备 journal manuscript 基本结构，`medical_prose_write_repair` 必须保留该 writer-owned story delta，不得用 generator 模板覆盖更成熟正文。
 - 决策：story-surface 完成证据必须在 mutation 后 live-read 当前 canonical files。`repair_execution_evidence.manuscript_surface_hygiene.story_surface_delta_refs` 和 `canonical_artifact_delta.artifact_refs` 记录的 fingerprint 必须来自当前 `paper/draft.md` / `paper/build/review_manuscript.md`，不能复用 pre-write、fixture、旧 template 或上轮 blocked fingerprint。对 `medical_prose_write_repair` 的 currentness-delta adoption，完成证据还必须复用同一套 writer-story guard：同一 `source_eval_id`、上一轮 story-delta blocker、两份 story surface 同步变化且内容一致、无运行态术语、具备 journal manuscript 基本结构；单边更新、内容不一致或非 journal 正文不得补成 `story_surface_delta_present`。
 - 决策：DM003 observational phenotype treatment-gap writer materializer 的 Methods 必须显式覆盖 study design/cohort、variable definition and measurement、phenotype derivation and assignment、model/grouping framework、recorded treatment-review gap definitions、data quality assessment、validation framework 与 statistical analysis；Results 以临床估计和 denominator 为句子主语，display 只作证据引用。
 - 决策：`paper_repair_executor` 的普通 text/claim repair 默认目标改为 `paper/draft.md`；只有旧 workspace 缺 `draft.md` 且存在 `paper/manuscript.md` 时，才保留 legacy manuscript 作为迁移期输入。`draft.md` 和 `build/review_manuscript.md` 的 artifact role 是 `canonical_manuscript_story_surface`，旧 `paper/manuscript.md` 不再是新路线的主 story surface。
 - 理由：DM003 暴露出 MAS 工作流可以识别写作质量问题，却没有把反馈实际落成用户可见的正文变化。单靠 revision intake、ledger、AI reviewer request 或 handoff 不能保证初稿质量前移；write owner 必须能在当前 owner-chain 内把 canonical evidence 转成 journal-facing manuscript surface。
 - 影响：这是 MAS manuscript autonomy 能力修复，不是单篇论文手工修稿，也不是质量放行。AI reviewer recheck 和 publication gate 仍负责判断 `medical_journal_prose_quality`、publishability 和 submission-facing readiness；package/current_package 仍需后续 owner 授权刷新。
+
+## 2026-05-23：writer-owned medication-coverage 正文 delta 不得被旧模板覆盖
+
+- 决策：`medical_prose_write_repair` 的 writer-delta preservation guard 以医学论文基本章节、phenotype derivation、data-quality、statistical-analysis 和 medication-gap 领域概念为准；可接受 `recorded medication-coverage gap(s)`、`recorded treatment-review gap(s)` 或 `potential treatment-review gap(s)`。guard 不得把旧模板中的单一 treatment-review 术语作为保留 writer 正文的必要条件。
+- 决策：当当前 `paper/draft.md` 与 `paper/build/review_manuscript.md` 对同一上一轮 `manuscript_story_surface_delta_missing` blocker 同步变化、内容一致、无运行态术语且满足上述 journal-route 概念检查时，quality-repair batch 必须保留该 writer-owned story delta，并用当前文件指纹产出 story-surface delta evidence。
+- 理由：DM003 用户反馈要求把治疗缺口降风险为 recorded medication-coverage gap。旧 preservation guard 仍绑定 `recorded treatment-review gap`，导致更成熟的 writer 修订被旧 materializer 文案覆盖，形成“看似执行成功、实际稿件回滚”的系统性质量回归。
+- 影响：这是 MAS writer owner / quality repair currentness 能力修复，不改变 AI reviewer 和 publication gate authority；它只阻止旧模板覆盖更高质量的 canonical story surface，不授权写 `current_package`、submission package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。
 
 ## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
 

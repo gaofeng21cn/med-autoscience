@@ -114,7 +114,7 @@ def _previous_batch_story_surface_refs(
 
 
 def _current_writer_story_delta_is_journal_routable(text: str) -> bool:
-    required_phrases = (
+    required_sections = (
         "## Abstract",
         "## Introduction",
         "## Methods",
@@ -122,12 +122,24 @@ def _current_writer_story_delta_is_journal_routable(text: str) -> bool:
         "## Discussion",
         "## Limitations",
         "## Conclusion",
+    )
+    required_domain_phrases = (
         "Phenotype derivation",
-        "recorded treatment-review gap",
         "Data quality",
         "Statistical analysis",
     )
-    return all(phrase in text for phrase in required_phrases)
+    gap_terminology_phrases = (
+        "recorded medication-coverage gap",
+        "recorded medication coverage gap",
+        "recorded treatment-review gap",
+        "potential treatment-review gap",
+    )
+    lowered = text.lower()
+    return (
+        all(phrase.lower() in lowered for phrase in required_sections)
+        and all(phrase.lower() in lowered for phrase in required_domain_phrases)
+        and any(phrase.lower() in lowered for phrase in gap_terminology_phrases)
+    )
 
 
 def _path_fingerprint(path: Path) -> dict[str, Any] | None:
