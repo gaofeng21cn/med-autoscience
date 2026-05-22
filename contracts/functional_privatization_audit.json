@@ -1,4 +1,5 @@
 {
+  "audit_id": "mas.privatized_functional_module_audit.v1",
   "authority_boundary": {
     "domain_can_claim_generic_runtime_owner": false,
     "domain_repo_can_own_generated_surface": false,
@@ -6,6 +7,17 @@
     "opl_can_write_domain_truth": false,
     "opl_can_write_memory_body": false
   },
+  "claims_generic_runtime_removed_from_mas": false,
+  "claims_opl_replacement_exists": false,
+  "claims_production_long_run_soak_complete": false,
+  "classification_buckets": [
+    "declarative_pack_generated_surface",
+    "refs_only_adapter",
+    "minimal_authority_function",
+    "legacy_cleanup_tombstone_provenance",
+    "legacy_cleanup_physical_retired"
+  ],
+  "classification_policy": "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof",
   "domain_id": "med-autoscience",
   "functional_consumer_boundary": {
     "active_path_residue_cleanup_gates": [
@@ -1118,6 +1130,55 @@
           "product-entry manifest"
         ],
         "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
+        "bridge_exit_gate": {
+          "bridge_owner": "med-autoscience",
+          "current_status": "bridge_until_explicit_owner_receipt_authorizes_physical_delete",
+          "current_surface_refs": [
+            "product_status",
+            "status_read_model",
+            "workbench",
+            "workbench_drilldown",
+            "portal",
+            "cockpit"
+          ],
+          "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
+          "domain_repo_physical_delete_authorized": false,
+          "gate_id": "mas.default_caller_deletion.workbench_portal_generic_shell.bridge_exit.v1",
+          "mas_can_own_generated_default_caller": false,
+          "mas_can_write_generic_runtime": false,
+          "no_forbidden_write_evidence_refs": [
+            "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary"
+          ],
+          "no_forbidden_write_refs": [
+            "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary"
+          ],
+          "opl_can_declare_publication_quality_or_export_verdict": false,
+          "opl_can_issue_mas_owner_receipt": false,
+          "opl_can_write_study_truth": false,
+          "physical_delete_authorized_by_refs": false,
+          "provenance_refs": [
+            "product_status",
+            "status_read_model",
+            "workbench",
+            "workbench_drilldown",
+            "portal",
+            "cockpit"
+          ],
+          "replacement_owner": "one-person-lab",
+          "required_before_retire": [
+            "domain_authority_refs_preserved",
+            "no_forbidden_write_proof_recorded",
+            "explicit_owner_receipt_authorizes_physical_delete"
+          ],
+          "retained_mas_authority": [
+            "study_progress_projection",
+            "safe_action_refs"
+          ],
+          "surface_kind": "mas_default_caller_deletion_bridge_exit_gate",
+          "typed_blocker_refs": [
+            "typed-blocker:mas/default-caller-deletion/workbench_portal_generic_shell/physical-delete-requires-explicit-owner-receipt"
+          ]
+        },
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/controllers/progress_portal.py",
@@ -1127,6 +1188,14 @@
           "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
           "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
           "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py"
+        ],
+        "current_surface_refs": [
+          "product_status",
+          "status_read_model",
+          "workbench",
+          "workbench_drilldown",
+          "portal",
+          "cockpit"
         ],
         "latest_thinning_evidence": {
           "does_not_claim_opl_default_caller": true,
@@ -1272,12 +1341,61 @@
           "sidecar dispatch"
         ],
         "authority_boundary": "opl_scans_and_dispatches_generic_loop_mas_guards_domain_route_and_receipt",
+        "bridge_exit_gate": {
+          "bridge_owner": "med-autoscience",
+          "current_status": "bridge_until_explicit_owner_receipt_authorizes_physical_delete",
+          "current_surface_refs": [
+            "sidecar",
+            "sidecar_export_dispatch",
+            "sidecar_dispatch"
+          ],
+          "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
+          "domain_repo_physical_delete_authorized": false,
+          "gate_id": "mas.default_caller_deletion.owner_route_reconcile_materialize_dispatch_shell.bridge_exit.v1",
+          "mas_can_own_generated_default_caller": false,
+          "mas_can_write_generic_runtime": false,
+          "no_forbidden_write_evidence_refs": [
+            "no-forbidden-write:mas/default-caller-deletion/owner_route_reconcile_materialize_dispatch_shell/refs-only-boundary"
+          ],
+          "no_forbidden_write_refs": [
+            "no-forbidden-write:mas/default-caller-deletion/owner_route_reconcile_materialize_dispatch_shell/refs-only-boundary"
+          ],
+          "opl_can_declare_publication_quality_or_export_verdict": false,
+          "opl_can_issue_mas_owner_receipt": false,
+          "opl_can_write_study_truth": false,
+          "physical_delete_authorized_by_refs": false,
+          "provenance_refs": [
+            "sidecar",
+            "sidecar_export_dispatch",
+            "sidecar_dispatch"
+          ],
+          "replacement_owner": "one-person-lab",
+          "required_before_retire": [
+            "domain_authority_refs_preserved",
+            "no_forbidden_write_proof_recorded",
+            "explicit_owner_receipt_authorizes_physical_delete"
+          ],
+          "retained_mas_authority": [
+            "owner_route",
+            "publication_gate",
+            "safe_action_refs"
+          ],
+          "surface_kind": "mas_default_caller_deletion_bridge_exit_gate",
+          "typed_blocker_refs": [
+            "typed-blocker:mas/default-caller-deletion/owner_route_reconcile_materialize_dispatch_shell/physical-delete-requires-explicit-owner-receipt"
+          ]
+        },
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/controllers/owner_route_reconcile.py",
           "src/med_autoscience/controllers/domain_action_request_materializer.py",
           "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
           "src/med_autoscience/controllers/domain_route_reconcile.py"
+        ],
+        "current_surface_refs": [
+          "sidecar",
+          "sidecar_export_dispatch",
+          "sidecar_dispatch"
         ],
         "migration_action": "declare_domain_route_policy_and_consume_opl_runtime_manager_loop",
         "module_id": "owner_route_reconcile_materialize_dispatch_shell",
@@ -1308,12 +1426,69 @@
           "product-entry manifest"
         ],
         "authority_boundary": "opl_generates_wrapper_and_skill_metadata_mas_executes_domain_authority_handlers",
+        "bridge_exit_gate": {
+          "bridge_owner": "med-autoscience",
+          "current_status": "bridge_until_explicit_owner_receipt_authorizes_physical_delete",
+          "current_surface_refs": [
+            "cli",
+            "mcp",
+            "skill",
+            "product_entry",
+            "product_entry_manifest",
+            "product_session"
+          ],
+          "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
+          "domain_repo_physical_delete_authorized": false,
+          "gate_id": "mas.default_caller_deletion.generic_cli_mcp_product_wrappers.bridge_exit.v1",
+          "mas_can_own_generated_default_caller": false,
+          "mas_can_write_generic_runtime": false,
+          "no_forbidden_write_evidence_refs": [
+            "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary"
+          ],
+          "no_forbidden_write_refs": [
+            "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary"
+          ],
+          "opl_can_declare_publication_quality_or_export_verdict": false,
+          "opl_can_issue_mas_owner_receipt": false,
+          "opl_can_write_study_truth": false,
+          "physical_delete_authorized_by_refs": false,
+          "provenance_refs": [
+            "cli",
+            "mcp",
+            "skill",
+            "product_entry",
+            "product_entry_manifest",
+            "product_session"
+          ],
+          "replacement_owner": "one-person-lab",
+          "required_before_retire": [
+            "domain_authority_refs_preserved",
+            "no_forbidden_write_proof_recorded",
+            "explicit_owner_receipt_authorizes_physical_delete"
+          ],
+          "retained_mas_authority": [
+            "domain_action_handler",
+            "owner_receipt"
+          ],
+          "surface_kind": "mas_default_caller_deletion_bridge_exit_gate",
+          "typed_blocker_refs": [
+            "typed-blocker:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/physical-delete-requires-explicit-owner-receipt"
+          ]
+        },
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/cli.py",
           "src/med_autoscience/mcp_server.py",
           "src/med_autoscience/controllers/product_entry.py",
           "plugins/mas/skills/mas/SKILL.md"
+        ],
+        "current_surface_refs": [
+          "cli",
+          "mcp",
+          "skill",
+          "product_entry",
+          "product_entry_manifest",
+          "product_session"
         ],
         "migration_action": "derive_wrapper_metadata_from_declarative_pack_and_opl_generated_surfaces",
         "module_id": "generic_cli_mcp_product_wrappers",
@@ -3423,7 +3598,29 @@
     "status": "functional_structure_closed_evidence_gates_remaining",
     "surface_kind": "mas_functional_followthrough_gap_summary"
   },
+  "opl_unified_audit_read_model": true,
+  "owner": "med-autoscience",
+  "privatized_functional_module_audit": {
+    "audit_id": "mas.privatized_functional_module_audit.v1",
+    "claims_generic_runtime_removed_from_mas": false,
+    "claims_opl_replacement_exists": false,
+    "claims_production_long_run_soak_complete": false,
+    "classification_buckets": [
+      "declarative_pack_generated_surface",
+      "refs_only_adapter",
+      "minimal_authority_function",
+      "legacy_cleanup_tombstone_provenance",
+      "legacy_cleanup_physical_retired"
+    ],
+    "classification_policy": "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof",
+    "opl_unified_audit_read_model": true,
+    "owner": "med-autoscience",
+    "state": "manifest_projected_for_opl_unified_audit",
+    "surface_kind": "mas_privatized_functional_module_audit",
+    "target_domain_id": "med-autoscience"
+  },
   "schema_version": 1,
+  "state": "manifest_projected_for_opl_unified_audit",
   "surface_kind": "functional_privatization_audit",
   "target_domain_id": "med-autoscience"
 }

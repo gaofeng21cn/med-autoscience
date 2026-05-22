@@ -434,6 +434,52 @@ def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:
     }
 
 
+def test_opl_default_callers_have_mas_deletion_evidence_without_authorizing_delete() -> None:
+    opl_bin = Path(os.environ.get("OPL_BIN", "/Users/gaofeng/workspace/one-person-lab/bin/opl"))
+    if not opl_bin.exists():
+        pytest.skip(f"OPL binary missing: {opl_bin}")
+    opl_root = opl_bin.parents[1]
+
+    result = subprocess.run(
+        [
+            str(opl_bin),
+            "agents",
+            "default-callers",
+            "--agent",
+            f"mas={REPO_ROOT}",
+            "--json",
+        ],
+        cwd=opl_root,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    readiness = json.loads(result.stdout)["agent_default_caller_readiness"]
+    assert readiness["status"] == "ready_domain_evidence_required"
+    assert readiness["summary"]["generated_default_caller_surface_count"] == 8
+    assert readiness["summary"]["missing_domain_owner_receipt_or_typed_blocker_count"] == 0
+    assert readiness["summary"]["missing_no_forbidden_write_proof_count"] == 0
+    assert readiness["summary"]["missing_tombstone_or_provenance_ref_count"] == 0
+    assert readiness["migration_gate_policy"]["physical_delete_authorized_by_this_report"] is False
+    assert readiness["authority_boundary"]["report_can_authorize_domain_repo_physical_delete"] is False
+
+    report = readiness["reports"][0]
+    assert report["deletion_gate"]["physical_delete_authorized"] is False
+    by_surface = {gate["surface_id"]: gate for gate in report["surface_gates"]}
+    assert by_surface["product_status"]["active_caller_module_id"] == "workbench_portal_generic_shell"
+    assert by_surface["sidecar"]["active_caller_module_id"] == (
+        "owner_route_reconcile_materialize_dispatch_shell"
+    )
+    for gate in report["surface_gates"]:
+        worklist = gate["deletion_evidence_worklist"]
+        assert worklist["domain_owner_receipt_or_typed_blocker"]["status"] == "observed"
+        assert worklist["no_forbidden_write_proof"]["status"] == "observed"
+        assert worklist["tombstone_or_provenance_ref"]["status"] == "observed"
+        assert worklist["physical_delete_authorized"] is False
+
+
 def test_opl_standard_scaffold_validates_mas_pack() -> None:
     opl_bin = Path(os.environ.get("OPL_BIN", "/Users/gaofeng/workspace/one-person-lab/bin/opl"))
     if not opl_bin.exists():

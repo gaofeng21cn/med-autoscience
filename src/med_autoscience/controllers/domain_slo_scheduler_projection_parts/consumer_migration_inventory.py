@@ -44,6 +44,11 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
         "workspace_local_watch_service_wrappers",
     ],
 }
+DEFAULT_CALLER_DELETION_BRIDGE_MODULE_IDS = {
+    "generic_cli_mcp_product_wrappers",
+    "owner_route_reconcile_materialize_dispatch_shell",
+    "workbench_portal_generic_shell",
+}
 REFS_ONLY_ADAPTER_RETIREMENT_GATE_BY_MODULE = {
     "lifecycle_refs_adapter": {
         "active_caller_proof": [
@@ -233,15 +238,67 @@ def _refs_only_retirement_gate(module_id: str, active_caller_status: str) -> dic
     }
 
 
+def _default_caller_deletion_bridge_exit_gate(
+    item: dict[str, object],
+) -> dict[str, object]:
+    module_id = str(item["module_id"])
+    classification = str(item["classification"])
+    retained_authority = list(item.get("retained_domain_authority", []))
+    current_surface_refs = list(item.get("current_surface_refs", []))
+    is_authority = classification == "minimal_authority_function"
+    return {
+        "surface_kind": "mas_default_caller_deletion_bridge_exit_gate",
+        "gate_id": f"mas.default_caller_deletion.{module_id}.bridge_exit.v1",
+        "bridge_owner": "med-autoscience",
+        "replacement_owner": "one-person-lab",
+        "current_status": (
+            "retained_mas_authority"
+            if is_authority
+            else "bridge_until_explicit_owner_receipt_authorizes_physical_delete"
+        ),
+        "required_before_retire": [] if is_authority else [
+            "domain_authority_refs_preserved",
+            "no_forbidden_write_proof_recorded",
+            "explicit_owner_receipt_authorizes_physical_delete",
+        ],
+        "current_surface_refs": current_surface_refs,
+        "retained_mas_authority": retained_authority,
+        "default_caller_deletion_evidence_scope": (
+            "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization"
+        ),
+        "typed_blocker_refs": [
+            (
+                "typed-blocker:mas/default-caller-deletion/"
+                f"{module_id}/physical-delete-requires-explicit-owner-receipt"
+            )
+        ],
+        "no_forbidden_write_refs": [
+            f"no-forbidden-write:mas/default-caller-deletion/{module_id}/refs-only-boundary"
+        ],
+        "no_forbidden_write_evidence_refs": [
+            f"no-forbidden-write:mas/default-caller-deletion/{module_id}/refs-only-boundary"
+        ],
+        "provenance_refs": current_surface_refs,
+        "domain_repo_physical_delete_authorized": False,
+        "physical_delete_authorized_by_refs": False,
+        "mas_can_write_generic_runtime": False,
+        "mas_can_own_generated_default_caller": False,
+        "opl_can_write_study_truth": False,
+        "opl_can_declare_publication_quality_or_export_verdict": False,
+        "opl_can_issue_mas_owner_receipt": False,
+    }
+
+
 def _module_with_retirement_gate(item: dict[str, object]) -> dict[str, object]:
     module_id = str(item["module_id"])
-    if item["classification"] != "refs_only_adapter":
-        return item
     result = dict(item)
-    result["retirement_gate"] = _refs_only_retirement_gate(
-        module_id,
-        str(item["active_caller_status"]),
-    )
+    if item["classification"] == "refs_only_adapter":
+        result["retirement_gate"] = _refs_only_retirement_gate(
+            module_id,
+            str(item["active_caller_status"]),
+        )
+    if module_id in DEFAULT_CALLER_DELETION_BRIDGE_MODULE_IDS:
+        result["bridge_exit_gate"] = _default_caller_deletion_bridge_exit_gate(result)
     return result
 
 
@@ -405,6 +462,14 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "active_caller_status": "opl_generated_workbench_surface_consumes_mas_domain_projection_refs",
         "migration_action": "declare_workbench_projection_inputs_for_opl_app_generated_shell",
         "retention_reason": "MAS retains per-study route map, quality/source refs, blockers, and safe action receipt projection.",
+        "current_surface_refs": [
+            "product_status",
+            "status_read_model",
+            "workbench",
+            "workbench_drilldown",
+            "portal",
+            "cockpit",
+        ],
         "opl_expected_primitives": ["opl_generic_workbench", "opl_operator_attention_queue", "opl_route_decision_drilldown_shell"],
         "retained_domain_authority": ["study_progress_projection", "safe_action_refs"],
         "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
@@ -498,6 +563,11 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "active_caller_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
         "migration_action": "declare_domain_route_policy_and_consume_opl_runtime_manager_loop",
         "retention_reason": "MAS must keep owner-route facts, publication gate blockers, safe action refs, and no-forbidden-write evidence.",
+        "current_surface_refs": [
+            "sidecar",
+            "sidecar_export_dispatch",
+            "sidecar_dispatch",
+        ],
         "opl_expected_primitives": ["opl_generic_runner", "opl_attempt_retry_dead_letter", "opl_repair_projection", "opl_provider_runtime_manager"],
         "retained_domain_authority": ["owner_route", "publication_gate", "safe_action_refs"],
         "authority_boundary": "opl_scans_and_dispatches_generic_loop_mas_guards_domain_route_and_receipt",
@@ -517,6 +587,14 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "active_caller_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",
         "migration_action": "derive_wrapper_metadata_from_declarative_pack_and_opl_generated_surfaces",
         "retention_reason": "MAS keeps domain command handlers, direct domain entry, and owner receipts; OPL owns CLI/MCP/Skill/product/status descriptor projection and routing shell.",
+        "current_surface_refs": [
+            "cli",
+            "mcp",
+            "skill",
+            "product_entry",
+            "product_entry_manifest",
+            "product_session",
+        ],
         "opl_expected_primitives": [
             "opl_action_catalog_projection",
             "opl_product_entry_shell",

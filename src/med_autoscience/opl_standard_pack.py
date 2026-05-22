@@ -583,7 +583,45 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
         "schema_version": 1,
         "domain_id": TARGET_DOMAIN_ID,
         "target_domain_id": TARGET_DOMAIN_ID,
+        "audit_id": "mas.privatized_functional_module_audit.v1",
+        "owner": TARGET_DOMAIN_ID,
+        "state": "manifest_projected_for_opl_unified_audit",
+        "classification_policy": (
+            "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof"
+        ),
+        "opl_unified_audit_read_model": True,
+        "claims_generic_runtime_removed_from_mas": False,
+        "claims_opl_replacement_exists": False,
+        "claims_production_long_run_soak_complete": False,
+        "classification_buckets": [
+            "declarative_pack_generated_surface",
+            "refs_only_adapter",
+            "minimal_authority_function",
+            "legacy_cleanup_tombstone_provenance",
+            "legacy_cleanup_physical_retired",
+        ],
         "functional_consumer_boundary": dict(functional_boundary),
+        "privatized_functional_module_audit": {
+            "surface_kind": "mas_privatized_functional_module_audit",
+            "audit_id": "mas.privatized_functional_module_audit.v1",
+            "target_domain_id": TARGET_DOMAIN_ID,
+            "owner": TARGET_DOMAIN_ID,
+            "state": "manifest_projected_for_opl_unified_audit",
+            "classification_policy": (
+                "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof"
+            ),
+            "opl_unified_audit_read_model": True,
+            "claims_generic_runtime_removed_from_mas": False,
+            "claims_opl_replacement_exists": False,
+            "claims_production_long_run_soak_complete": False,
+            "classification_buckets": [
+                "declarative_pack_generated_surface",
+                "refs_only_adapter",
+                "minimal_authority_function",
+                "legacy_cleanup_tombstone_provenance",
+                "legacy_cleanup_physical_retired",
+            ],
+        },
         "functional_followthrough_gap_summary": dict(functional_boundary["functional_followthrough_gap_summary"]),
         "authority_boundary": {
             "opl_can_write_domain_truth": False,
