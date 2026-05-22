@@ -43,7 +43,7 @@ def test_execute_noop_runtime_decision_defers_long_authorization_while_awaiting_
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -95,7 +95,7 @@ def test_execute_noop_runtime_decision_allows_gate_replay_while_awaiting_artifac
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
     status.record_publication_supervisor_state(
         {
             "supervisor_phase": "publishability_gate_blocked",
@@ -158,7 +158,7 @@ def test_execute_noop_runtime_decision_allows_quality_repair_while_awaiting_arti
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
     chats: list[dict[str, object]] = []
 
     class FakeBackend:
@@ -211,7 +211,7 @@ def test_execute_noop_runtime_decision_defers_quality_repair_without_current_wor
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -250,7 +250,7 @@ def test_relayed_controller_authorization_marker_includes_lifecycle_projection(
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -329,7 +329,7 @@ def test_execute_noop_runtime_decision_skips_closed_publication_work_unit_author
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -406,7 +406,7 @@ def test_execute_noop_runtime_decision_relay_authorization_for_unsettled_authori
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
             raise AssertionError("unsettled authority work remains an OPL owner-route projection")
@@ -473,7 +473,7 @@ def test_execute_noop_runtime_decision_refreshes_marker_when_specificity_targets
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
             raise AssertionError("target refresh is exposed through owner-route projection, not runtime chat")
@@ -526,7 +526,7 @@ def test_execute_noop_runtime_decision_resets_same_fingerprint_count_for_source_
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
             raise AssertionError("source-signature changes must be projected, not directly relayed")

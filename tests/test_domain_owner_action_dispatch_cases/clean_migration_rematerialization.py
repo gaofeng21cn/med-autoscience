@@ -720,7 +720,7 @@ def test_clean_canonical_rehydrate_runs_when_terminal_stall_marks_missing_source
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {

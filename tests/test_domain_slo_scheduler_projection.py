@@ -91,7 +91,7 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(tmp_p
     assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
     ]
     assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
@@ -125,15 +125,15 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(tmp_p
     inventory = boundary["functional_module_inventory"]
     assert len(inventory) == 19
     inventory_by_id = {item["module_id"]: item for item in inventory}
-    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["active_caller_status"] == (
-        "refs_only_domain_sidecar_adapter_active"
+    assert inventory_by_id["lifecycle_refs_adapter"]["active_caller_status"] == (
+        "refs_only_domain_owner_route_handoff_adapter_active"
     )
-    assert set(inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["forbidden_mas_roles"]) == {
+    assert set(inventory_by_id["lifecycle_refs_adapter"]["forbidden_mas_roles"]) == {
         "generic_persistence_engine",
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",
     }
-    assert inventory_by_id["domain_route_scan_materialize_dispatch_shell"]["migration_action"] == (
+    assert inventory_by_id["owner_route_reconcile_materialize_dispatch_shell"]["migration_action"] == (
         "declare_domain_route_policy_and_consume_opl_runtime_manager_loop"
     )
     assert inventory_by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False

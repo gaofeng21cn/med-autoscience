@@ -31,7 +31,7 @@ from .study_runtime_execution_parts.execution_types import (
     StudyRuntimeExecutionContext,
     StudyRuntimeExecutionOutcome,
 )
-from .study_runtime_status import (
+from .progress_projection import (
     StudyCompletionSyncResult,
     StudyRuntimeAnalysisBundleResult,
     StudyRuntimeBindingAction,
@@ -42,7 +42,7 @@ from .study_runtime_status import (
     StudyRuntimePartialQuestRecoveryResult,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
     _LIVE_QUEST_STATUSES,
 )
 from .study_runtime_transport import _get_quest_session
@@ -72,13 +72,13 @@ def _router_module():
     return import_module("med_autoscience.controllers.study_runtime_router")
 
 
-def _should_run_startup_hydration_for_resume(*, status: StudyRuntimeStatus) -> bool:
+def _should_run_startup_hydration_for_resume(*, status: ProgressProjectionStatus) -> bool:
     return _action_family_dispatch._should_run_startup_hydration_for_resume(status=status)
 
 
 def _execute_relaunch_stopped_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     return _action_family_dispatch._execute_relaunch_stopped_runtime_decision(
@@ -127,7 +127,7 @@ def _build_execution_context(
 
 def _enable_explicit_stopped_relaunch_if_requested(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
 ) -> None:
     explicit_rerun_request = (
         status.decision is StudyRuntimeDecision.BLOCKED
@@ -171,7 +171,7 @@ def _enable_explicit_stopped_relaunch_if_requested(
 
 def _refresh_runtime_read_models_after_runtime_decision_override(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> None:
     status.extras["runtime_health_snapshot"] = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
@@ -185,7 +185,7 @@ def _refresh_runtime_read_models_after_runtime_decision_override(
     status.extras["control_plane_snapshot"] = study_control_plane_kernel.build_control_plane_snapshot(status.to_dict())
 
 
-def _is_controller_authorized_stopped_redrive(status: StudyRuntimeStatus) -> bool:
+def _is_controller_authorized_stopped_redrive(status: ProgressProjectionStatus) -> bool:
     if (
         status.decision is not StudyRuntimeDecision.RESUME
         or status.reason is not StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
@@ -206,7 +206,7 @@ def _is_controller_authorized_stopped_redrive(status: StudyRuntimeStatus) -> boo
 
 def _enable_explicit_user_wakeup_if_requested(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> None:
     if (
@@ -386,7 +386,7 @@ def _enable_explicit_user_wakeup_if_requested(
 
 def _record_explicit_user_wakeup_projection(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> dict[str, Any] | None:
     wakeup_record = _runtime_events.record_explicit_user_wakeup(
@@ -404,7 +404,7 @@ def _record_explicit_user_wakeup_projection(
 
 
 def _explicit_wakeup_can_release_submission_metadata_projection(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
 ) -> bool:
     interaction_arbitration = status.extras.get("interaction_arbitration")
     if isinstance(interaction_arbitration, dict):
@@ -426,7 +426,7 @@ def _explicit_wakeup_can_release_submission_metadata_projection(
 
 def _record_opl_runtime_owner_route_handoff_projection(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     wakeup_record: dict[str, Any],
 ) -> None:
     previous_continuation = status.extras.get("continuation_state")
@@ -541,7 +541,7 @@ def _build_context_create_payload(context: StudyRuntimeExecutionContext) -> dict
 
 def _run_runtime_preflight(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> None:
     router = _router_module()
@@ -643,7 +643,7 @@ def _run_runtime_preflight(
 
 def _resume_postcondition_payload(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     resume_result: dict[str, Any],
 ) -> dict[str, Any]:
     return _action_family_dispatch._resume_postcondition_payload(status=status, resume_result=resume_result)
@@ -651,7 +651,7 @@ def _resume_postcondition_payload(
 
 def _apply_resume_postcondition(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     outcome: StudyRuntimeExecutionOutcome,
 ) -> bool:
     return _action_family_dispatch._apply_resume_postcondition(status=status, outcome=outcome)
@@ -659,7 +659,7 @@ def _apply_resume_postcondition(
 
 def _execute_create_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     return _action_family_dispatch._execute_create_runtime_decision(
@@ -671,7 +671,7 @@ def _execute_create_runtime_decision(
 
 def _execute_resume_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     return _action_family_dispatch._execute_resume_runtime_decision(
@@ -683,7 +683,7 @@ def _execute_resume_runtime_decision(
 
 def _execute_blocked_refresh_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     return _action_family_dispatch._execute_blocked_refresh_runtime_decision(
@@ -695,7 +695,7 @@ def _execute_blocked_refresh_runtime_decision(
 
 def _execute_pause_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     return _action_family_dispatch._execute_pause_runtime_decision(
@@ -707,7 +707,7 @@ def _execute_pause_runtime_decision(
 
 def _execute_completion_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     return _action_family_dispatch._execute_completion_runtime_decision(
@@ -719,7 +719,7 @@ def _execute_completion_runtime_decision(
 
 def _execute_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     return _action_family_dispatch._execute_runtime_decision(
@@ -731,7 +731,7 @@ def _execute_runtime_decision(
 
 def _record_autonomous_runtime_notice_if_required(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     runtime_root: Path,
     launch_report_path: Path,
     binding_last_action: StudyRuntimeBindingAction | None = None,
@@ -747,13 +747,13 @@ def _record_autonomous_runtime_notice_if_required(
     )
 
 
-def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
+def _runtime_event_status_snapshot(status: ProgressProjectionStatus) -> dict[str, object]:
     return _receipt_materialization._runtime_event_status_snapshot(status)
 
 
 def _record_transition_runtime_event(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     outcome: StudyRuntimeExecutionOutcome,
 ) -> None:
@@ -768,7 +768,7 @@ def _record_transition_runtime_event(
 
 def _maybe_emit_runtime_escalation_record(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> None:
     _receipt_materialization._maybe_emit_runtime_escalation_record(
@@ -780,7 +780,7 @@ def _maybe_emit_runtime_escalation_record(
 
 def _persist_runtime_artifacts(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     outcome: StudyRuntimeExecutionOutcome,
     force: bool,

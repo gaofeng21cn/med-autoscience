@@ -34,7 +34,7 @@ def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeyp
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",

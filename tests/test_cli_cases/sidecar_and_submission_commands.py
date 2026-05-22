@@ -451,7 +451,7 @@ def test_materialize_ai_medical_prose_review_command_uses_validator_surface(
             "artifact_path": str(tmp_path / "studies" / "002-dm" / "artifacts" / "publication_eval" / "medical_prose_review.json"),
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
     monkeypatch.setattr(cli, "materialize_ai_medical_prose_review_from_response", fake_materialize)
 
     exit_code = cli.main(

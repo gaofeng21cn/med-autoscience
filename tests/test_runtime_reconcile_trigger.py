@@ -371,7 +371,7 @@ def test_study_progress_includes_safe_reconcile_trigger(monkeypatch, tmp_path) -
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             **_base_status(study_root=str(study_root), quest_root=str(quest_root)),
             "schema_version": 1,

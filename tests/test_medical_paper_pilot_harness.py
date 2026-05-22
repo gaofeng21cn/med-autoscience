@@ -145,7 +145,7 @@ def test_pilot_harness_proves_three_archetype_research_loop_read_only(tmp_path: 
         assert all(field["status"] == "ready" for field in study["fields"])
         assert all(field["durable_refs"] for field in study["fields"])
     assert not (roots[0] / "artifacts" / "medical_paper" / "medical_paper_pilot_harness.json").exists()
-    assert not (roots[0] / "study_runtime_status.json").exists()
+    assert not (roots[0] / "progress_projection.json").exists()
 
 
 def test_pilot_harness_blocks_missing_ai_reviewer_and_keeps_scientific_next_action(
@@ -195,6 +195,6 @@ def test_pilot_harness_materializer_writes_only_its_read_model(tmp_path: Path) -
     assert persisted["surface"] == "medical_paper_pilot_harness"
     assert persisted["read_only_contract"]["writes_runtime_owned_surfaces"] is False
     assert persisted["read_only_contract"]["writable_surfaces"] == ["medical_paper_pilot_harness"]
-    assert not (roots[0] / "study_runtime_status.json").exists()
-    assert not (roots[0] / "runtime_watch.json").exists()
+    assert not (roots[0] / "progress_projection.json").exists()
+    assert not (roots[0] / "domain_health_diagnostic.json").exists()
     assert not (roots[0] / "controller_decisions" / "latest.json").exists()

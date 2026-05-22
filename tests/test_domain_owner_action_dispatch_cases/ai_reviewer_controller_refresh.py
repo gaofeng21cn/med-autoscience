@@ -74,10 +74,10 @@ def test_refresh_controller_decisions_for_current_publication_eval_materializes_
     }
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(
         outer_loop,
-        "build_runtime_watch_outer_loop_tick_request",
+        "build_domain_health_diagnostic_outer_loop_tick_request",
         lambda **kwargs: (calls.setdefault("tick_request_kwargs", kwargs), tick_request)[1],
     )
 
@@ -222,8 +222,8 @@ def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
         _write_json(
@@ -397,8 +397,8 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
         _write_json(
@@ -548,8 +548,8 @@ def test_refresh_controller_decision_preserves_live_worker_state(
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
         _write_json(
@@ -624,8 +624,8 @@ def test_refresh_controller_decisions_for_current_publication_eval_dry_run_does_
         "reason": "AI reviewer current eval blocks on claim-evidence consistency.",
     }
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
     monkeypatch.setattr(
         outer_loop,
         "materialize_non_dispatching_outer_loop_decision",
@@ -790,10 +790,10 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
         "run_ai_reviewer_publication_eval_workflow",
         fake_run_ai_reviewer_publication_eval_workflow,
     )
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(
         outer_loop,
-        "build_runtime_watch_outer_loop_tick_request",
+        "build_domain_health_diagnostic_outer_loop_tick_request",
         lambda **kwargs: (refresh_called.setdefault("tick_request_kwargs", kwargs), tick_request)[1],
     )
 

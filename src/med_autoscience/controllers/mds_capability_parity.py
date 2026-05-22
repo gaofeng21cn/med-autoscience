@@ -102,12 +102,12 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "classification": "mas_owned",
         "mds_authority_role": "backend",
         "mas_target_owner": "Runtime OS",
-        "mas_owner_surface": "Runtime OS study_runtime_status/runtime_watch replay consumer",
+        "mas_owner_surface": "Runtime OS progress_projection/domain_health_diagnostic replay consumer",
         "oracle_fixture_ref": "fixtures/mds_oracle/runtime_execution.json",
         "required_parity_proof": "runtime execution replay and recovery regression suite",
         "parity_proof": {
             "proof_kind": "execution_replay",
-            "mas_contract": "study_runtime_status/runtime_watch own runtime decisions and recovery visibility",
+            "mas_contract": "progress_projection/domain_health_diagnostic own runtime decisions and recovery visibility",
             "mds_oracle": "MDS quest execution traces can be replayed only as backend behavior fixtures",
             "acceptance": "MAS recovery decisions match or intentionally supersede replayed MDS behavior",
         },
@@ -116,7 +116,7 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "publication_ready_authority_allowed": False,
         "parity_status": "oracle_fixture_defined",
         "provenance_ref": PROVENANCE_REF,
-        "rollback_surface": "study_runtime_status/runtime_watch retain the MAS runtime owner decision log",
+        "rollback_surface": "progress_projection/domain_health_diagnostic retain the MAS runtime owner decision log",
         "old_mds_authority_surface_status": "marked_oracle",
     },
     {
@@ -245,7 +245,7 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
         "mas_target_owner": "Runtime OS",
         "mds_final_role": "external_source_archive_only",
         "cutover_contract": "MAS Runtime OS owns turn lifecycle scheduling, completion normalization, and stale-run recovery; external MDS daemon is not a default dependency.",
-        "owner_boundary": "Runtime Turn Lifecycle Kernel owns per-turn continuation; study_runtime_status/runtime_watch consume MAS-owned runtime truth and act as supervisor/reconcile surfaces.",
+        "owner_boundary": "Runtime Turn Lifecycle Kernel owns per-turn continuation; progress_projection/domain_health_diagnostic consume MAS-owned runtime truth and act as supervisor/reconcile surfaces.",
         "parity_proof": {
             "proof_kind": "turn_lifecycle_kernel",
             "mas_contract": "mas_runtime_core exposes schedule_turn, complete_turn_and_normalize, inspect_turn_lifecycle, and user-message-triggered scheduling.",
@@ -271,7 +271,7 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
         "mas_target_owner": "Runtime OS",
         "mds_final_role": "external_source_archive_only",
         "cutover_contract": "MAS-owned runner lifecycle exposes worker state, run receipts, leases, idempotency keys, and per-quest serialization without requiring MDS worker processes.",
-        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces; runtime_watch may redrive recovery through schedule_turn but does not become the turn owner.",
+        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces; domain_health_diagnostic may redrive recovery through schedule_turn but does not become the turn owner.",
         "parity_proof": {
             "proof_kind": "worker_runner_receipts",
             "mas_contract": "MasTurnRunner records started/queued/finished receipts, worker leases, claimed user messages, and run ids.",

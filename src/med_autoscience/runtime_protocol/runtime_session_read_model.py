@@ -7,7 +7,7 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
-from . import runtime_lifecycle_store
+from . import lifecycle_refs_adapter
 
 
 SURFACE_KIND = "runtime_session_read_model"
@@ -15,8 +15,8 @@ SURFACE_KIND = "runtime_session_read_model"
 
 def build_runtime_session_read_model(
     *,
-    study_runtime_status: Mapping[str, Any] | None = None,
-    study_runtime_status_path: Path | None = None,
+    progress_projection: Mapping[str, Any] | None = None,
+    progress_projection_path: Path | None = None,
     study_root: Path | None = None,
     quest_root: Path | None = None,
     db_path: Path | None = None,
@@ -27,8 +27,8 @@ def build_runtime_session_read_model(
 ) -> dict[str, Any]:
     generated = _text(generated_at) or _utc_now()
     source = _resolve_source(
-        study_runtime_status=study_runtime_status,
-        study_runtime_status_path=study_runtime_status_path,
+        progress_projection=progress_projection,
+        progress_projection_path=progress_projection_path,
         study_root=study_root,
         quest_root=quest_root,
         db_path=db_path,
@@ -42,7 +42,7 @@ def build_runtime_session_read_model(
     )
     return {
         "surface_kind": SURFACE_KIND,
-        "schema_version": runtime_lifecycle_store.SCHEMA_VERSION,
+        "schema_version": lifecycle_refs_adapter.SCHEMA_VERSION,
         "read_only": True,
         "authority": "projection_only",
         "runtime_session": session,
@@ -58,17 +58,17 @@ def build_run_session_projection(**kwargs: Any) -> dict[str, Any]:
 
 def _resolve_source(
     *,
-    study_runtime_status: Mapping[str, Any] | None,
-    study_runtime_status_path: Path | None,
+    progress_projection: Mapping[str, Any] | None,
+    progress_projection_path: Path | None,
     study_root: Path | None,
     quest_root: Path | None,
     db_path: Path | None,
     historical_fixture: Mapping[str, Any] | None,
     historical_fixture_path: Path | None,
 ) -> dict[str, Any]:
-    status_source = _study_runtime_status_source(
-        study_runtime_status=study_runtime_status,
-        study_runtime_status_path=study_runtime_status_path,
+    status_source = _progress_projection_source(
+        progress_projection=progress_projection,
+        progress_projection_path=progress_projection_path,
     )
     if status_source is not None:
         return status_source
@@ -89,7 +89,7 @@ def _resolve_source(
         return historical_source
 
     resolved_db_path = _resolve_lifecycle_db_path(quest_root=quest_root, db_path=db_path)
-    evidence_refs = [{"source": "runtime_lifecycle_store", "path": str(resolved_db_path)}] if resolved_db_path else []
+    evidence_refs = [{"source": "lifecycle_refs_adapter", "path": str(resolved_db_path)}] if resolved_db_path else []
     return {
         "source_priority": "none",
         "payload": {},
@@ -97,32 +97,30 @@ def _resolve_source(
     }
 
 
-def _study_runtime_status_source(
+def _progress_projection_source(
     *,
-    study_runtime_status: Mapping[str, Any] | None,
-    study_runtime_status_path: Path | None,
+    progress_projection: Mapping[str, Any] | None,
+    progress_projection_path: Path | None,
 ) -> dict[str, Any] | None:
-    if study_runtime_status is not None:
-        payload = dict(study_runtime_status)
+    if progress_projection is not None:
+        payload = dict(progress_projection)
         if payload:
             return {
-                "source_priority": "study_runtime_status",
+                "source_priority": "progress_projection",
                 "payload": payload,
-                "evidence_refs": [{"source": "study_runtime_status"}],
+                "evidence_refs": [{"source": "progress_projection"}],
             }
-    if study_runtime_status_path is None:
-        return None
-    path = Path(study_runtime_status_path).expanduser().resolve()
-    if not path.exists():
-        return None
-    payload = _read_json_mapping(path)
-    if not payload:
-        return None
-    return {
-        "source_priority": "study_runtime_status",
-        "payload": payload,
-        "evidence_refs": [{"source": "study_runtime_status", "path": str(path)}],
-    }
+    if progress_projection_path is not None:
+        path = Path(progress_projection_path).expanduser().resolve()
+        if path.exists():
+            payload = _read_json_mapping(path)
+            if payload:
+                return {
+                    "source_priority": "progress_projection",
+                "payload": payload,
+                "evidence_refs": [{"source": "progress_projection", "path": str(path)}],
+            }
+    return None
 
 
 def _runtime_lifecycle_event_source(*, quest_root: Path | None, db_path: Path | None) -> dict[str, Any] | None:
@@ -166,13 +164,13 @@ def _runtime_lifecycle_event_source(*, quest_root: Path | None, db_path: Path | 
     payload.setdefault("emitted_at", _text(row["emitted_at"]))
     payload["last_event_cursor"] = _text(row["cursor"])
     evidence_refs = [
-        {"source": "runtime_lifecycle_store", "path": str(resolved_db_path)},
+        {"source": "lifecycle_refs_adapter", "path": str(resolved_db_path)},
         {"source": "runtime_event_artifact", "path": _text(row["artifact_path"])},
         {"source": "runtime_event_latest", "path": _text(row["latest_path"])},
         {"source": "runtime_event_summary", "path": _text(row["summary_ref"])},
     ]
     return {
-        "source_priority": "runtime_lifecycle_store",
+        "source_priority": "lifecycle_refs_adapter",
         "payload": payload,
         "evidence_refs": [ref for ref in evidence_refs if ref.get("path")],
     }
@@ -233,7 +231,7 @@ def _owner_route_receipt_source(
         evidence_refs.append({"source": "owner_route_receipts", "path": _text(owner_row["source_path"])})
     if dispatch_row is not None and _text(dispatch_row["source_path"]):
         evidence_refs.append({"source": "dispatch_receipts", "path": _text(dispatch_row["source_path"])})
-    evidence_refs.append({"source": "runtime_lifecycle_store", "path": str(resolved_db_path)})
+    evidence_refs.append({"source": "lifecycle_refs_adapter", "path": str(resolved_db_path)})
     return {
         "source_priority": "owner_route_receipts",
         "payload": payload,
@@ -486,7 +484,7 @@ def _last_seen_at(
         payload.get("updated_at"),
         payload.get("recorded_at"),
         event_payload.get("last_seen_at"),
-        event_payload.get("emitted_at") if source_priority == "runtime_lifecycle_store" else None,
+        event_payload.get("emitted_at") if source_priority == "lifecycle_refs_adapter" else None,
     )
 
 
@@ -556,7 +554,7 @@ def _resolve_lifecycle_db_path(*, quest_root: Path | None, db_path: Path | None)
     if db_path is not None:
         return Path(db_path).expanduser().resolve()
     if quest_root is not None:
-        return runtime_lifecycle_store.quest_lifecycle_store_path(Path(quest_root))
+        return lifecycle_refs_adapter.quest_lifecycle_store_path(Path(quest_root))
     return None
 
 

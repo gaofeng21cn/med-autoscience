@@ -341,7 +341,7 @@ on:
 
 - [ ] **Step 4: 运行目标测试与构建验证**
 
-Run: `uv run pytest tests/test_dev_preflight_contract.py tests/test_dev_preflight.py tests/test_cli.py tests/test_release_workflow.py tests/test_codex_plugin.py tests/test_codex_plugin_installer.py tests/test_codex_plugin_installer_script.py tests/test_display_schema_contract.py tests/test_display_surface_materialization.py tests/test_display_layout_qc.py tests/test_publication_gate.py tests/test_medical_publication_surface.py tests/test_study_runtime_router.py tests/test_runtime_transport_med_deepscientist.py tests/test_runtime_protocol_study_runtime.py tests/test_runtime_protocol_runtime_watch.py -q`
+Run: `uv run pytest tests/test_dev_preflight_contract.py tests/test_dev_preflight.py tests/test_cli.py tests/test_release_workflow.py tests/test_codex_plugin.py tests/test_codex_plugin_installer.py tests/test_codex_plugin_installer_script.py tests/test_display_schema_contract.py tests/test_display_surface_materialization.py tests/test_display_layout_qc.py tests/test_publication_gate.py tests/test_medical_publication_surface.py tests/test_study_runtime_router.py tests/test_runtime_transport_med_deepscientist.py tests/test_runtime_protocol_study_runtime.py tests/test_runtime_protocol_domain_health_diagnostic.py -q`
 Expected: PASS
 
 Run: `uv run python -m build --sdist --wheel`

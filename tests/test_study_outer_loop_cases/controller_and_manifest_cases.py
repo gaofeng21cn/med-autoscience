@@ -33,7 +33,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -138,7 +138,7 @@ def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_ru
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -207,7 +207,7 @@ def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_c
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -273,7 +273,7 @@ def test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_r
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -349,7 +349,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mi
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -412,7 +412,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_supervisor_tick_i
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -468,7 +468,7 @@ def test_study_outer_loop_tick_rejects_publication_eval_ref_outside_eval_owned_l
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -524,7 +524,7 @@ def test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_l
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -591,7 +591,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_escalation_artifact_mis
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -651,7 +651,7 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -765,7 +765,7 @@ def test_study_outer_loop_tick_rejects_human_gate_for_autonomous_scientific_deci
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",

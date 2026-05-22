@@ -9,7 +9,7 @@ from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_ca
 from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration import (
     build_functional_consumer_boundary,
 )
-from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.agent_pack_refs import (
+from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.agent_pack_refs import (
     AGENT_KNOWLEDGE_REFS,
     AGENT_PROMPT_REFS,
     AGENT_QUALITY_GATE_REFS,
@@ -17,7 +17,7 @@ from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.agent_pack_r
     AGENT_STAGE_POLICY_REFS,
     REQUIRED_DOMAIN_PACK_PATHS,
 )
-from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.family_adoption import (
+from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.family_adoption import (
     build_domain_memory_descriptor,
     build_family_stage_control_plane,
 )
@@ -346,11 +346,11 @@ def _pack_compiler_input() -> dict[str, Any]:
             "required_domain_pack_paths": REQUIRED_DOMAIN_PACK_PATHS,
             "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
             "stage_control_plane": (
-                "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/"
+                "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/"
                 "family_adoption.py::build_family_stage_control_plane"
             ),
             "memory_descriptor": (
-                "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/"
+                "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/"
                 "family_adoption.py::build_domain_memory_descriptor"
             ),
             "functional_audit": (

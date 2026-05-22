@@ -19,7 +19,7 @@ Work from current MAS-owned refs. If the available refs do not establish the stu
 
 ## Inputs And Refs
 
-- Study charter, task intake, controller decision refs, and current `study_runtime_status`.
+- Study charter, task intake, controller decision refs, and current `progress_projection`.
 - Source readiness refs, source provenance refs, and workspace source locators.
 - Evidence ledger refs, prior failed-path refs, review ledger refs, and publication-route memory refs.
 - Literature coverage refs and journal-neighbor context when present.

@@ -78,8 +78,8 @@ DOC_REFERENCE_MAS_PACKAGING_SURFACES: tuple[str, ...] = (
     "optional_local_read_only_progress_service",
 )
 DOC_REFERENCE_FORBIDDEN_AUTHORITY_WRITES: tuple[str, ...] = (
-    "study_runtime_status",
-    "runtime_watch",
+    "progress_projection",
+    "domain_health_diagnostic",
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
     "study_macro_state/latest.json",
@@ -96,7 +96,7 @@ DOC_REFERENCE_HUB_ROLES: tuple[dict[str, Any], ...] = (
         "authority_claims": [],
         "authority_source_refs": [
             "study_macro_state/latest.json",
-            "study_runtime_status",
+            "progress_projection",
             "publication_eval/latest.json",
             "controller_decisions/latest.json",
         ],
@@ -111,8 +111,8 @@ DOC_REFERENCE_HUB_ROLES: tuple[dict[str, Any], ...] = (
         "authority_claims": [],
         "authority_source_refs": [
             "study_macro_state/latest.json",
-            "study_runtime_status",
-            "runtime_watch",
+            "progress_projection",
+            "domain_health_diagnostic",
             "publication_eval/latest.json",
             "controller_decisions/latest.json",
         ],
@@ -141,8 +141,8 @@ DOC_REFERENCE_HUB_ROLES: tuple[dict[str, Any], ...] = (
         "authority_source_refs": [
             "study_progress.user_visible_projection",
             "workspace-cockpit",
-            "study_runtime_status",
-            "runtime_watch",
+            "progress_projection",
+            "domain_health_diagnostic",
             "publication_eval/latest.json",
             "controller_decisions/latest.json",
         ],

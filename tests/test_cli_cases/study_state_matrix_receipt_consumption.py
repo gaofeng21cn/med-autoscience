@@ -128,7 +128,7 @@ def test_study_state_matrix_consumes_bundle_stage_package_closure_receipt(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -210,7 +210,7 @@ def test_study_state_matrix_marks_default_executor_execution_receipt_supersessio
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -282,7 +282,7 @@ def test_study_state_matrix_consumes_mas_owner_apply_receipt_as_artifact_delta(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -343,7 +343,7 @@ def test_study_state_matrix_consumes_controller_decision_owner_receipt_as_stable
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -399,13 +399,13 @@ def test_study_state_matrix_projection_error_does_not_consume_controller_owner_r
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
             "quest_status": "paused",
             "active_run_id": None,
-            "status_projection_error": {"message": "study status projection failed"},
+            "status_projection_error": {"message": "progress projection failed"},
         },
     )
 
@@ -415,7 +415,7 @@ def test_study_state_matrix_projection_error_does_not_consume_controller_owner_r
 
     assert exit_code == 0
     assert transition["decision_type"] == "fail_closed"
-    assert transition["typed_blocker"]["blocker_id"] == "study_status_projection_error"
+    assert transition["typed_blocker"]["blocker_id"] == "progress_projection_error"
     assert "completion_receipt_consumption" not in transition
 
 
@@ -444,7 +444,7 @@ def test_study_state_matrix_consumes_controller_route_decision_owner_receipt(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -508,7 +508,7 @@ def test_study_state_matrix_consumes_controller_stop_loss_owner_receipt(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -575,7 +575,7 @@ def test_study_state_matrix_does_not_consume_pending_stop_loss_human_gate_receip
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -649,7 +649,7 @@ def test_study_state_matrix_consumes_human_gate_resume_receipt(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -758,7 +758,7 @@ def test_study_state_matrix_consumes_ai_reviewer_publication_eval_receipt(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),

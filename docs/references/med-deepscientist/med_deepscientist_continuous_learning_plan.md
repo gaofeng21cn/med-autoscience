@@ -72,7 +72,7 @@
 重点主题：
 
 1. 外环 controller 如何基于 durable truth 做继续、暂停、恢复、升级、收口裁决
-2. `runtime_watch -> outer-loop wakeup -> controller decision` 如何成为统一治理链
+2. `domain_health_diagnostic -> outer-loop wakeup -> controller decision` 如何成为统一治理链
 3. study 级进度、阻塞、恢复点、人工接手点如何稳定投影到前台
 4. 长时间运行中的 memory、checkpoint、artifact、decision 如何保持可追溯
 

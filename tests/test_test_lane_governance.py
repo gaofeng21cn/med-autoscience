@@ -140,8 +140,8 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert lane["truth_owner"] == "MedAutoScience"
     assert set(lane["forbidden_authority_writes"]) >= {
         "study_truth",
-        "study_runtime_status",
-        "runtime_watch",
+        "progress_projection",
+        "domain_health_diagnostic",
         "publication_eval/latest.json",
         "controller_decisions/latest.json",
         "paper/current_package",
@@ -316,14 +316,14 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert classification["declarative_pack_generated_surface"] == [
         "workspace_source_intake_shell",
         "workbench_portal_generic_shell",
-        "domain_route_scan_materialize_dispatch_shell",
+        "owner_route_reconcile_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
         "generic_transition_runner",
     ]
     assert classification["refs_only_adapter"] == [
-        "runtime_lifecycle_sqlite_reference_adapter",
+        "lifecycle_refs_adapter",
         "paper_work_unit_outbox_index",
         "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell",
@@ -331,8 +331,8 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "terminal_attach_transport",
     ]
     assert set(classification["minimal_authority_function"]) == set(lane["mas_retains"]) | {
-        "study_runtime_status",
-        "runtime_watch_domain_health",
+        "progress_projection",
+        "domain_health_diagnostic",
         "ai_reviewer_workflow",
         "publication_gate",
     }
@@ -345,7 +345,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     }
     assert set(classification["legacy_cleanup_physical_retired"]) == {
         "local_launchd_scheduler_install_path",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
         "workspace_local_watch_service_wrappers",
     }
     assert lane["functional_module_inventory_ref"] == (
@@ -372,12 +372,12 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         lane["functional_module_inventory_expected_modules"]
     )
     inventory_by_id = {item["module_id"]: item for item in inventory}
-    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["code_paths"] == [
-        "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+    assert inventory_by_id["lifecycle_refs_adapter"]["code_paths"] == [
+        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
         "src/med_autoscience/runtime_protocol/study_runtime.py",
         "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
     ]
-    assert set(inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["forbidden_mas_roles"]) == {
+    assert set(inventory_by_id["lifecycle_refs_adapter"]["forbidden_mas_roles"]) == {
         "generic_persistence_engine",
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",
@@ -401,14 +401,14 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         assert gate["can_emit_generic_owner_verdict"] is False
         assert "paper_closure_verdict" in gate["must_not_emit"]
         assert "active_caller_count=0" in gate["delete_or_tombstone_after"]
-    assert inventory_by_id["domain_route_scan_materialize_dispatch_shell"]["active_caller_status"] == (
+    assert inventory_by_id["owner_route_reconcile_materialize_dispatch_shell"]["active_caller_status"] == (
         "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active"
     )
     closed_semantic_equivalence_modules = [
         "runtime_storage_maintenance",
         "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
-        "domain_route_scan_materialize_dispatch_shell",
+        "owner_route_reconcile_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_queue_attempt_retry_dead_letter",
     ]
@@ -445,8 +445,8 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "default_caller_count"
     ] == 0
     assert inventory_by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
-    assert inventory_by_id["runtime_watch_loop_shell"]["physical_retired"] is True
-    assert inventory_by_id["runtime_watch_loop_shell"]["no_active_caller_gate"]["replacement_surface"] == (
+    assert inventory_by_id["domain_health_diagnostic_loop_shell"]["physical_retired"] is True
+    assert inventory_by_id["domain_health_diagnostic_loop_shell"]["no_active_caller_gate"]["replacement_surface"] == (
         "opl_provider_runtime_manager"
     )
     assert runtime_boundary["functional_module_inventory_summary"]["classification_counts"] == {
@@ -489,7 +489,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
     ]
     assert followthrough_summary["legacy_cleanup_items_tombstoned"] == [
         "mas_generic_workbench_shell",
@@ -572,7 +572,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     )
     assert residue_by_id["owner_receipt_lifecycle_ref_index"]["active_caller_count"] == 3
     assert residue_by_id["owner_receipt_lifecycle_ref_index"]["refs_only_gate"] == (
-        refs_only_retirement_gates["runtime_lifecycle_sqlite_reference_adapter"]
+        refs_only_retirement_gates["lifecycle_refs_adapter"]
     )
     assert residue_by_id["owner_route_dispatch_receipt"]["active_caller_count"] == 1
     for item in residue_by_id.values():
@@ -608,9 +608,9 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         assert item["default_entry_allowed"] is False
         assert item["retirement_gate"] == "no_active_caller_proven_move_to_tombstone"
         assert "paper_closure_verdict" in item["must_not_emit"]
-    lifecycle_role = lane["runtime_lifecycle_sqlite_role"]
+    lifecycle_role = lane["lifecycle_refs_adapter_role"]
     assert lifecycle_role["classification"] == "refs_only_adapter"
-    assert lifecycle_role["current_mas_role"] == "domain_sidecar_index_reference_adapter"
+    assert lifecycle_role["current_mas_role"] == "domain_lifecycle_ref_index_adapter"
     assert lifecycle_role["authority"] == "refs_only_index_not_generic_persistence_engine"
     assert lifecycle_role["owner"] == "one-person-lab"
     assert lifecycle_role["mas_may_claim_generic_persistence_engine"] is False

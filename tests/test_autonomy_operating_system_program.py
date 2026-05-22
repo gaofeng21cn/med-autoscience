@@ -33,7 +33,7 @@ def test_program_board_freezes_eight_lanes_and_owner_boundary() -> None:
     }
     assert "study_charter" in board["quality_authority_surfaces"]
     assert "artifacts/publication_eval/latest.json" in board["quality_authority_surfaces"]
-    assert "study_runtime_status" in board["runtime_truth_surfaces"]
+    assert "progress_projection" in board["runtime_truth_surfaces"]
 
 
 def test_program_board_accepts_lane_progress_and_only_releases_when_all_absorbed() -> None:

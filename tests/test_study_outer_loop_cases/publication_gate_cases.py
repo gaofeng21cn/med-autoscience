@@ -8,7 +8,7 @@ globals().update({
     if not name.startswith('__')
 })
 
-def test_build_runtime_watch_outer_loop_tick_request_ignores_stale_task_intake_after_bundle_only_closeout(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_ignores_stale_task_intake_after_bundle_only_closeout(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -126,11 +126,11 @@ def test_build_runtime_watch_outer_loop_tick_request_ignores_stale_task_intake_a
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -142,7 +142,7 @@ def test_build_runtime_watch_outer_loop_tick_request_ignores_stale_task_intake_a
         lambda **_: None,
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -166,7 +166,7 @@ def test_build_runtime_watch_outer_loop_tick_request_ignores_stale_task_intake_a
     ]
 
 
-def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_escalation_ref(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_autoparks_without_runtime_escalation_ref(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
@@ -290,7 +290,7 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_e
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -312,7 +312,7 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_e
     ]
 
 
-def test_build_runtime_watch_outer_loop_tick_request_routes_active_write_task_intake_before_autopark(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_routes_active_write_task_intake_before_autopark(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -460,13 +460,13 @@ def test_build_runtime_watch_outer_loop_tick_request_routes_active_write_task_in
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -613,7 +613,7 @@ def test_refresh_parked_submission_milestone_controller_decision_writes_parked_f
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
-def test_build_runtime_watch_outer_loop_tick_request_skips_autonomous_dispatch_for_parked_submission_milestone(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_skips_autonomous_dispatch_for_parked_submission_milestone(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -743,7 +743,7 @@ def test_build_runtime_watch_outer_loop_tick_request_skips_autonomous_dispatch_f
 
     assert refreshed is not None
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module(),
+        _domain_health_diagnostic_tick_request_module(),
         "_read_latest_publication_eval_payload",
         lambda **_: pytest.fail("parked submission milestone should not re-enter publication-eval autonomous dispatch"),
     )
@@ -753,13 +753,13 @@ def test_build_runtime_watch_outer_loop_tick_request_skips_autonomous_dispatch_f
         lambda root: pytest.fail("parked submission milestone should not resolve batch profiles"),
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload=parked_status,
     )
 
     assert request is None
-def test_build_runtime_watch_outer_loop_tick_request_prefers_quality_review_loop_re_review(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_prefers_quality_review_loop_re_review(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
@@ -852,7 +852,7 @@ def test_build_runtime_watch_outer_loop_tick_request_prefers_quality_review_loop
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -874,7 +874,7 @@ def test_build_runtime_watch_outer_loop_tick_request_prefers_quality_review_loop
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
-def test_build_runtime_watch_outer_loop_tick_request_handles_gate_clearing_batch_profile_resolution(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_handles_gate_clearing_batch_profile_resolution(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -894,7 +894,7 @@ def test_build_runtime_watch_outer_loop_tick_request_handles_gate_clearing_batch
         lambda **kwargs: None,
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -928,7 +928,7 @@ def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",

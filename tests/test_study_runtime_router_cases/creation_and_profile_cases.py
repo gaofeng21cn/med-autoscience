@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_keeps_explicit_manual_finish_contract_parked_even_when_stopped_auto_continuation_has_pending_messages(
+def test_progress_projection_keeps_explicit_manual_finish_contract_parked_even_when_stopped_auto_continuation_has_pending_messages(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -59,14 +59,14 @@ def test_study_runtime_status_keeps_explicit_manual_finish_contract_parked_even_
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "stopped"
 
 
-def test_study_runtime_status_parks_bundle_only_handoff_before_invalid_blocking_resume(
+def test_progress_projection_parks_bundle_only_handoff_before_invalid_blocking_resume(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -171,7 +171,7 @@ def test_study_runtime_status_parks_bundle_only_handoff_before_invalid_blocking_
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
@@ -179,7 +179,7 @@ def test_study_runtime_status_parks_bundle_only_handoff_before_invalid_blocking_
     assert result["interaction_arbitration"]["classification"] == "invalid_blocking"
 
 
-def test_study_runtime_status_refreshes_stale_launch_report_for_stopped_quest(
+def test_progress_projection_refreshes_stale_launch_report_for_stopped_quest(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -230,13 +230,13 @@ def test_study_runtime_status_refreshes_stale_launch_report_for_stopped_quest(
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_stopped_requires_explicit_rerun"
     assert result["quest_status"] == "stopped"
     assert result["runtime_summary_alignment"] == {
-        "source_of_truth": "study_runtime_status",
+        "source_of_truth": "progress_projection",
         "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
         "runtime_state_status": "stopped",
         "source_active_run_id": None,
@@ -353,7 +353,7 @@ def test_ensure_study_runtime_explicitly_relaunches_stopped_quest(monkeypatch, t
     assert launch_report["daemon_result"]["resume"]["action"] == "relaunch_stopped"
 
 
-def test_study_runtime_status_reopened_task_intake_does_not_keep_bundle_only_handoff_parked(
+def test_progress_projection_reopened_task_intake_does_not_keep_bundle_only_handoff_parked(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -407,7 +407,7 @@ def test_study_runtime_status_reopened_task_intake_does_not_keep_bundle_only_han
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_on_invalid_blocking"
@@ -557,7 +557,7 @@ def test_ensure_study_runtime_auto_resumes_controller_parked_quest_after_review_
         json.dumps(
             {
                 "status": "stopped",
-                "stop_reason": "controller_stop:runtime_watch_outer_loop_wakeup",
+                "stop_reason": "controller_stop:domain_health_diagnostic_outer_loop_wakeup",
                 "continuation_policy": "auto",
                 "continuation_anchor": "decision",
                 "continuation_reason": "decision:decision-continue-001",
@@ -620,7 +620,7 @@ def test_ensure_study_runtime_auto_resumes_controller_parked_quest_after_review_
     }
 
 
-def test_study_runtime_status_parks_reopened_task_intake_after_fresh_bundle_only_closeout(
+def test_progress_projection_parks_reopened_task_intake_after_fresh_bundle_only_closeout(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -733,7 +733,7 @@ def test_study_runtime_status_parks_reopened_task_intake_after_fresh_bundle_only
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
@@ -865,7 +865,7 @@ def test_ensure_study_runtime_parks_reopened_task_intake_after_fresh_bundle_only
     assert result["quest_status"] == "stopped"
 
 
-def test_study_runtime_status_keeps_explicit_rerun_for_reopened_task_intake_after_manual_takeover_stop(
+def test_progress_projection_keeps_explicit_rerun_for_reopened_task_intake_after_manual_takeover_stop(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -931,7 +931,7 @@ def test_study_runtime_status_keeps_explicit_rerun_for_reopened_task_intake_afte
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_stopped_requires_explicit_rerun"

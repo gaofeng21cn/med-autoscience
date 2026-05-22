@@ -9,7 +9,7 @@ def test_allow_stopped_relaunch_reopens_current_domain_transition_routeback(
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision_status_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.status_and_decision"
+        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
     )
 
     profile = make_profile(tmp_path)
@@ -41,7 +41,7 @@ def test_allow_stopped_relaunch_reopens_current_domain_transition_routeback(
                 "last_controller_decision_authorization": {
                     "authorization_basis": "controller_domain_transition",
                     "decision_id": "study-decision::dm002::route-back-analysis",
-                    "source": "domain_route_scan_platform_repair",
+                    "source": "owner_route_reconcile_platform_repair",
                     "route_target": "analysis-campaign",
                     "work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
                     "work_unit_fingerprint": (
@@ -114,7 +114,7 @@ def test_allow_stopped_relaunch_reopens_current_domain_transition_routeback(
         profile=profile,
         study_id=study_id,
         allow_stopped_relaunch=True,
-        source="domain_route_scan_platform_repair",
+        source="owner_route_reconcile_platform_repair",
     )
 
     assert result["decision"] == "blocked"

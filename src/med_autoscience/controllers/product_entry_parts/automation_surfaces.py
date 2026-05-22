@@ -20,7 +20,7 @@ def _build_automation_surface(
 ) -> dict[str, Any]:
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS automation entry surface."
     refresh_command = (
-        f"{_command_prefix(profile_ref)} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
         f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     runtime_supervision = _build_shared_automation_descriptor(
@@ -28,12 +28,12 @@ def _build_automation_surface(
         title="MAS domain runtime projection refresh",
         owner="one-person-lab",
         trigger_kind="interval",
-        target_surface_kind="runtime_watch_refresh",
+        target_surface_kind="domain_health_diagnostic_refresh",
         summary="由 OPL-owned scheduler transport 触发 MAS domain projection refresh，保持恢复建议和 attention queue 为最新状态。",
         readiness_status="automation_ready",
         gate_policy="publication_gated",
         output_expectation=[
-            "refresh runtime watch",
+            "refresh domain health diagnostic",
             "update workspace attention queue",
             "preserve controller decision lineage",
         ],

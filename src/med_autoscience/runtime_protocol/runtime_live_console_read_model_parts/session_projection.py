@@ -91,10 +91,10 @@ def controller_action_intents(
             "command": f"medautosci study progress --profile {profile_arg}{study_arg}",
         },
         {
-            "intent": "open_study_runtime_status",
+            "intent": "open_progress_projection",
             "authority": "controller_required",
             "executes_directly": False,
-            "command": f"medautosci study-runtime-status --profile {profile_arg}{study_arg}",
+            "command": f"medautosci study progress-projection --profile {profile_arg}{study_arg}",
         },
         {
             "intent": "request_reconcile",

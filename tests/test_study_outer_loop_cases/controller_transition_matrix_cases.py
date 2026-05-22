@@ -824,7 +824,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
     ),
     ids=lambda factory: factory(Path("/tmp/study")).case_id,
 )
-def test_runtime_watch_outer_loop_controller_transition_matrix(
+def test_domain_health_diagnostic_outer_loop_controller_transition_matrix(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     case_factory,
@@ -848,7 +848,7 @@ def test_runtime_watch_outer_loop_controller_transition_matrix(
         ),
     )
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(case.gate_report))
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(case.gate_report))
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -859,9 +859,9 @@ def test_runtime_watch_outer_loop_controller_transition_matrix(
         "build_quality_repair_batch_recommended_action",
         lambda **_: None,
     )
-    monkeypatch.setattr(_runtime_watch_tick_request_module(), "recommended_task_intake_action", lambda **_: case.task_intake_action)
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module(), "recommended_task_intake_action", lambda **_: case.task_intake_action)
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -888,7 +888,7 @@ def test_domain_transition_arbitration_candidates_ai_reviewer_prose_quality_gap(
     module = importlib.import_module(
         "med_autoscience.controllers.study_runtime_decision_parts.domain_transition_arbitration"
     )
-    status_module = importlib.import_module("med_autoscience.controllers.study_runtime_status_parts")
+    status_module = importlib.import_module("med_autoscience.controllers.progress_projection_parts")
     study_root = tmp_path / "studies" / "001-risk"
     study_root.mkdir(parents=True)
     _write_charter(study_root)
@@ -928,7 +928,7 @@ def test_domain_transition_arbitration_candidates_ai_reviewer_prose_quality_gap(
             },
         ),
     )
-    status = status_module.StudyRuntimeStatus.from_payload(
+    status = status_module.ProgressProjectionStatus.from_payload(
         {
             "schema_version": 1,
             "study_id": "001-risk",

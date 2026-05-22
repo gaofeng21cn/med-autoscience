@@ -76,7 +76,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "behavior_difference": "MDS can supervise while the daemon is alive; MAS default outer supervision reacts on the next scheduled tick, while per-turn continuation is handled by the MAS turn kernel.",
         "default_user_impact": "Five-minute latency remains for outer drift detection and stale recovery, but normal turn-to-turn continuation no longer waits for the cron tick.",
-        "mas_contract": "OPL scheduler replacement triggers provider SLO, MAS domain intake, and family-runtime tick; MAS keeps runtime_watch/progress freshness interpretation and MAS-owned recovery receipts.",
+        "mas_contract": "OPL scheduler replacement triggers provider SLO, MAS domain intake, and family-runtime tick; MAS keeps domain_health_diagnostic/progress freshness interpretation and MAS-owned recovery receipts.",
         "recommended_operator_action": "use_mas_with_latency_awareness",
     },
     {
@@ -115,7 +115,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "behavior_difference": "MAS uses controller/runtime surfaces rather than MDS daemon HTTP routes.",
         "default_user_impact": "Daily MAS operation can create, resume, pause, and stop study runtime without external MDS.",
-        "mas_contract": "study_runtime_status, ensure_study_runtime, pause-runtime and runtime transport own lifecycle controls.",
+        "mas_contract": "progress_projection, ensure_study_runtime, pause-runtime and runtime transport own lifecycle controls.",
         "recommended_operator_action": "use_mas_default",
     },
     {
@@ -154,7 +154,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "behavior_difference": "MDS resumes at daemon startup; MAS resumes when the MAS scheduler invokes the next tick or an operator runs watch explicitly.",
         "default_user_impact": "Recovery is independent of MDS checkout but has scheduler-bound latency.",
-        "mas_contract": "recovery_intent records the controller-owned recovery reason and safe_reconcile readiness; runtime_watch and study_runtime_router reconcile active-but-not-running state and escalate fail-closed.",
+        "mas_contract": "recovery_intent records the controller-owned recovery reason and safe_reconcile readiness; domain_health_diagnostic and study_runtime_router reconcile active-but-not-running state and escalate fail-closed.",
         "recommended_operator_action": "use_mas_with_latency_awareness",
     },
     {
@@ -254,7 +254,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "title": "GitOps state management",
         "equivalence_class": "not_equivalent_retired",
         "mds_behavior": {"root_git": True, "quest_git": True, "diff_log_reader": True},
-        "mas_behavior": {"root_git": False, "quest_git": False, "runtime_lifecycle_sqlite": True},
+        "mas_behavior": {"root_git": False, "quest_git": False, "lifecycle_refs_sqlite": True},
         "behavior_difference": "MAS intentionally retired workspace root Git and quest Git as runtime lifecycle owners.",
         "default_user_impact": "Existing papers use SQLite/restore-proof lifecycle, not MDS GitOps behavior.",
         "mas_contract": "runtime_lifecycle.sqlite, restore index and migration ledger own runtime history/proof.",
@@ -355,8 +355,8 @@ RUNTIME_CONTINUITY_COMPLETION = {
         "role": "read_model",
         "read_only": True,
         "source_priority": [
-            "study_runtime_status/runtime_liveness_audit",
-            "runtime_lifecycle_store",
+            "progress_projection/runtime_liveness_audit",
+            "lifecycle_refs_adapter",
             "owner_route/dispatch_receipts",
             "historical_fixture_ref",
         ],

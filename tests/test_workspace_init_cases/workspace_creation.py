@@ -322,7 +322,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
     assert 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in watch_runtime_text
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in watch_runtime_text
-    assert 'run_medautosci runtime watch \\' in watch_runtime_text
+    assert 'run_medautosci runtime domain-health-diagnostic \\' in watch_runtime_text
     assert "ops/med-deepscientist" not in watch_runtime_text
 
 

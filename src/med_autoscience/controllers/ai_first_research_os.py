@@ -34,7 +34,7 @@ OPERATING_LAYERS: tuple[dict[str, Any], ...] = (
         "owner": "MedAutoScience Runtime OS",
         "authority_surfaces": (
             "RuntimeHealthKernel",
-            "runtime_watch",
+            "domain_health_diagnostic",
             "runtime_escalation_record.json",
             "artifacts/runtime/health/latest.json",
         ),

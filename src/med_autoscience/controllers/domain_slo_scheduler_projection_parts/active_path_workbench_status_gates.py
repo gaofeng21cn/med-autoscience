@@ -9,9 +9,9 @@ def build_workbench_status_active_path_gates(
     must_not_emit: tuple[str, ...],
 ) -> tuple[dict[str, Any], ...]:
     sidecar_focused_test_refs = [
-        "tests/test_cli_cases/sidecar_family_adapter_command.py",
-        "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py",
-        "tests/test_cli_cases/sidecar_family_adapter_command_cases/dispatch_cases.py",
+        "tests/test_cli_cases/owner_route_handoff_command.py",
+        "tests/test_cli_cases/owner_route_handoff_command_cases/export_cases.py",
+        "tests/test_cli_cases/owner_route_handoff_command_cases/dispatch_cases.py",
     ]
     common = {
         "current_disposition": "retain_with_explicit_cleanup_gate",
@@ -73,17 +73,17 @@ def build_workbench_status_active_path_gates(
         },
         {
             **common,
-            "residue_id": "sidecar_dispatch_adapter",
+            "residue_id": "owner_route_handoff_adapter",
             "residue_class": "sidecar",
             "current_paths": [
-                "src/med_autoscience/controllers/sidecar_family_adapter.py",
-                "src/med_autoscience/controllers/sidecar_family_adapter_parts/",
-                "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
-                "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py",
-                "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py",
+                "src/med_autoscience/controllers/owner_route_handoff.py",
+                "src/med_autoscience/controllers/owner_route_handoff_parts/",
+                "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py",
+                "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py",
+                "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py",
             ],
-            "current_role": "domain_sidecar_dispatch_adapter",
-            "active_caller_status": "active_domain_sidecar_dispatch_caller_present",
+            "current_role": "domain_owner_route_handoff_adapter",
+            "active_caller_status": "active_domain_owner_route_handoff_caller_present",
             "active_caller_count": 1,
             "opl_replacement_parity_status": (
                 "opl_generated_sidecar_default_projected_not_physical_delete_ready"
@@ -92,24 +92,24 @@ def build_workbench_status_active_path_gates(
                 "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
             ),
             "active_caller_proof_refs": [
-                "physical_retirement_gate_matrix.retirement_candidates.sidecar_adapter",
+                "physical_retirement_gate_matrix.retirement_candidates.owner_route_handoff",
                 "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
             ],
             "latest_thinning_evidence": {
                 "status": "sidecar_export_projection_split_to_parts_facade_retained",
-                "facade_path": "src/med_autoscience/controllers/sidecar_family_adapter.py",
+                "facade_path": "src/med_autoscience/controllers/owner_route_handoff.py",
                 "facade_role": "dispatch_facade_and_public_export_only",
                 "extracted_paths": [
                     (
-                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "src/med_autoscience/controllers/owner_route_handoff_parts/"
                         "export_projection.py"
                     ),
                     (
-                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "src/med_autoscience/controllers/owner_route_handoff_parts/"
                         "export_study_projection.py"
                     ),
                     (
-                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "src/med_autoscience/controllers/owner_route_handoff_parts/"
                         "dispatch_orchestration.py"
                     ),
                 ],
@@ -120,9 +120,9 @@ def build_workbench_status_active_path_gates(
             },
             "focused_test_refs": sidecar_focused_test_refs,
             "deletion_readiness_worklist": {
-                "surface_kind": "mas_sidecar_dispatch_adapter_deletion_readiness",
-                "status": "blocked_active_domain_sidecar_dispatch_caller_present",
-                "allowed_current_role": "domain_sidecar_dispatch_adapter",
+                "surface_kind": "mas_owner_route_handoff_adapter_deletion_readiness",
+                "status": "blocked_active_domain_owner_route_handoff_caller_present",
+                "allowed_current_role": "domain_owner_route_handoff_adapter",
                 "can_delete": False,
                 "can_archive": False,
                 "can_tombstone": False,
@@ -161,21 +161,21 @@ def build_workbench_status_active_path_gates(
                     {
                         "gate": "history_tombstone_refs_recorded",
                         "status": "required_before_delete",
-                        "required_evidence": "history/provenance tombstone refs for retired sidecar adapter",
+                        "required_evidence": "history/provenance tombstone refs for retired owner-route handoff adapter",
                     },
                 ],
                 "active_caller_proof_refs": [
-                    "physical_retirement_gate_matrix.retirement_candidates.sidecar_adapter",
+                    "physical_retirement_gate_matrix.retirement_candidates.owner_route_handoff",
                     "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
                 ],
                 "focused_test_refs": sidecar_focused_test_refs,
                 "no_forbidden_write_proof_refs": [
                     (
-                        "tests/test_cli_cases/sidecar_family_adapter_command_cases/"
+                        "tests/test_cli_cases/owner_route_handoff_command_cases/"
                         "dispatch_cases.py::"
                         "test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth"
                     ),
-                    "sidecar_dispatch_response.forbidden_write_guard_proof",
+                    "owner_route_handoff_response.forbidden_write_guard_proof",
                 ],
                 "must_not_write": [
                     ".ds/user_message_queue.json",
@@ -199,8 +199,8 @@ def build_workbench_status_active_path_gates(
             "residue_class": "status_projection",
             "current_paths": [
                 "src/med_autoscience/controllers/product_entry_parts/",
-                "src/med_autoscience/controllers/study_runtime_status.py",
-                "src/med_autoscience/controllers/study_runtime_status_parts/",
+                "src/med_autoscience/controllers/progress_projection.py",
+                "src/med_autoscience/controllers/progress_projection_parts/",
             ],
             "current_role": "domain_truth_status_projection",
             "active_caller_status": "active_domain_truth_status_projection_caller_present",
@@ -208,15 +208,15 @@ def build_workbench_status_active_path_gates(
             "opl_replacement_parity_status": (
                 "opl_generated_status_default_projected_not_physical_delete_ready"
             ),
-            "domain_receipt_parity_status": "pending_study_runtime_status_truth_ref_parity",
+            "domain_receipt_parity_status": "pending_progress_projection_truth_ref_parity",
             "active_caller_proof_refs": [
                 "physical_retirement_gate_matrix.retirement_candidates.status_projection",
                 "functional_module_inventory.study_truth.active_callers",
             ],
             "focused_test_refs": [
-                "tests/test_study_runtime_status_evidence_adoption.py",
+                "tests/test_progress_projection_evidence_adoption.py",
                 "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-                "tests/test_runtime_watch_cases/runtime_status_cases.py",
+                "tests/test_domain_health_diagnostic_cases/runtime_status_cases.py",
             ],
         },
     )

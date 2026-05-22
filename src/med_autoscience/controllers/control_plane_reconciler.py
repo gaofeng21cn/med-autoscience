@@ -31,7 +31,7 @@ def _next_work_unit(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     direct = _mapping(gate_summary.get("next_work_unit"))
     if direct:
         return direct
-    wakeup = _mapping(payload.get("runtime_watch_wakeup_dedupe_summary"))
+    wakeup = _mapping(payload.get("domain_health_diagnostic_wakeup_dedupe_summary"))
     return _mapping(wakeup.get("next_work_unit"))
 
 

@@ -25,14 +25,14 @@ from med_autoscience.controllers.study_runtime_decision_parts.status_finalizatio
 from med_autoscience.controllers.study_runtime_decision_parts.status_projection_shell_parts.read_model_projection_assembly import (
     attach_status_read_model_projections,
 )
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
+from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
 def finalize_status_projection_shell(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     profile,
     study_id: str,
     study_root: Path,
@@ -45,7 +45,7 @@ def finalize_status_projection_shell(
     entry_mode: str | None,
     sync_runtime_summary: bool,
     include_progress_projection: bool,
-) -> StudyRuntimeStatus:
+) -> ProgressProjectionStatus:
     """Attach refs-only runtime/read-model projections after MAS has chosen the decision."""
     if quest_runtime.runtime_liveness_audit is not None or quest_runtime.bash_session_audit is not None:
         router._record_quest_runtime_audits(status=status, quest_runtime=quest_runtime)

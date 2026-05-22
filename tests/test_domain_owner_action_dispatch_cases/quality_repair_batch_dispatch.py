@@ -92,7 +92,7 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "quest_id": f"quest-{study_id}",

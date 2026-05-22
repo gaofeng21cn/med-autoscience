@@ -8,7 +8,7 @@ from typing import Any
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import control_intent
 
-from ..study_runtime_status import StudyRuntimeDecision, StudyRuntimeStatus
+from ..progress_projection import StudyRuntimeDecision, ProgressProjectionStatus
 from .controller_authorization_context import (
     _WORK_UNIT_TARGET_CONTEXT_KEYS,
     _controller_decision_authorization_identity,
@@ -38,7 +38,7 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-def _active_run_id_from_status_or_state(*, status: StudyRuntimeStatus, runtime_state: dict[str, Any]) -> str | None:
+def _active_run_id_from_status_or_state(*, status: ProgressProjectionStatus, runtime_state: dict[str, Any]) -> str | None:
     active_run_id = str(runtime_state.get("active_run_id") or "").strip()
     if active_run_id:
         return active_run_id
@@ -311,7 +311,7 @@ def _runtime_state_awaits_artifact_delta_or_gate_replay(
 
 def _controller_decision_authorization_allowed_while_waiting(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     authorization_context: dict[str, Any],
 ) -> bool:
     controller_actions = {
@@ -339,7 +339,7 @@ def _controller_decision_authorization_allowed_while_waiting(
 
 def relay_controller_decision_authorization_to_runtime(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
     runtime_state: dict[str, Any],
     authorization_context: dict[str, Any],
@@ -394,7 +394,7 @@ def relay_controller_decision_authorization_to_runtime(
 
 def _quality_repair_authorization_has_current_work_unit(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     authorization_context: dict[str, Any],
 ) -> bool:
     next_work_unit = authorization_context.get("next_work_unit")

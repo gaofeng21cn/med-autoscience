@@ -13,7 +13,7 @@ Machine boundary: 人读交付契约。正式 delivery authority 继续归 `pape
 
 - `study_root/paper/` 下的 canonical manuscript source、draft、figures、tables、evidence ledger、review ledger、study charter、revision / rebuttal input。
 - 已存在的 generated DOCX/PDF/figure/table projection，前提是在 manifest 中标记为 `existing_projection_snapshot`。
-- `publication_gate`、`publication_supervisor_state`、`runtime_watch` 或 `study_progress` 的 blocked context，前提是仅作为 provenance。
+- `publication_gate`、`publication_supervisor_state`、`domain_health_diagnostic` 或 `study_progress` 的 blocked context，前提是仅作为 provenance。
 
 禁止把以下对象作为 authority 输入：
 

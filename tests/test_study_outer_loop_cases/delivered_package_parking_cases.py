@@ -51,7 +51,7 @@ def _write_directory_current_package_delivery(study_root: Path) -> None:
     )
 
 
-def test_build_runtime_watch_outer_loop_tick_request_stops_live_delivered_package_before_ai_reviewer_redrive(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_stops_live_delivered_package_before_ai_reviewer_redrive(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -184,11 +184,11 @@ def test_build_runtime_watch_outer_loop_tick_request_stops_live_delivered_packag
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -200,7 +200,7 @@ def test_build_runtime_watch_outer_loop_tick_request_stops_live_delivered_packag
         lambda **_: pytest.fail("delivered package handoff must not run quality-repair redrive"),
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "002-dm",

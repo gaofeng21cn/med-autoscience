@@ -80,14 +80,14 @@ def test_lifecycle_read_model_reads_git_retirement_projection_surfaces_from_sqli
 def test_lifecycle_read_model_sqlite_only_surfaces_report_missing_without_legacy_restore_import(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
-    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    legacy_latest = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     legacy_latest.parent.mkdir(parents=True)
     legacy_latest.write_text(json.dumps({"legacy": True}), encoding="utf-8")
 
     projection = read_model.read_lifecycle_projection(surface="lineage_route", quest_root=quest_root)
 
     assert projection["status"] == "missing"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["source_paths"] == []
     assert projection["payload"] == {}
@@ -102,7 +102,7 @@ def test_lifecycle_read_model_sqlite_only_surfaces_report_capability_gap_for_mis
     projection = read_model.read_lifecycle_projection(surface="lineage_route", db_path=db_path)
 
     assert projection["status"] == "capability_gap"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_table_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_table_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {"missing_tables": ["lineage_edges"]}
 
@@ -110,18 +110,18 @@ def test_lifecycle_read_model_sqlite_only_surfaces_report_capability_gap_for_mis
 def test_lifecycle_read_model_legacy_surfaces_use_no_legacy_restore_import_by_default(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
-    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    legacy_latest = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     legacy_latest.parent.mkdir(parents=True)
     legacy_latest.write_text(json.dumps({"legacy": True}), encoding="utf-8")
 
     projection = read_model.read_lifecycle_projection(
         surface="runtime_report",
         quest_root=quest_root,
-        report_group="runtime_watch",
+        report_group="domain_health_diagnostic",
     )
 
     assert projection["status"] == "missing"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["source_paths"] == []
     assert projection["payload"] == {}
@@ -131,7 +131,7 @@ def test_lifecycle_read_model_legacy_surfaces_use_no_legacy_restore_import_by_de
 def test_lifecycle_read_model_legacy_restore_import_diagnostic_can_read_explicit_legacy_restore_import_diagnostic(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
-    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    legacy_latest = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     legacy_latest.parent.mkdir(parents=True)
     legacy_payload = {"legacy": True}
     legacy_latest.write_text(json.dumps(legacy_payload), encoding="utf-8")
@@ -139,7 +139,7 @@ def test_lifecycle_read_model_legacy_restore_import_diagnostic_can_read_explicit
     projection = read_model.read_legacy_restore_import_diagnostic_projection(
         surface="runtime_report",
         quest_root=quest_root,
-        report_group="runtime_watch",
+        report_group="domain_health_diagnostic",
     )
 
     assert projection["status"] == "legacy_restore_import_available"
@@ -158,7 +158,7 @@ def test_lifecycle_read_model_legacy_surfaces_report_capability_gap_for_missing_
     projection = read_model.read_lifecycle_projection(surface="runtime_report", db_path=db_path)
 
     assert projection["status"] == "capability_gap"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_table_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_table_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {"missing_tables": ["runtime_reports"]}
 
@@ -188,12 +188,12 @@ def test_lifecycle_read_model_legacy_surfaces_report_missing_for_missing_row(tmp
     projection = read_model.read_lifecycle_projection(
         surface="runtime_report",
         quest_root=quest_root,
-        report_group="runtime_watch",
+        report_group="domain_health_diagnostic",
         db_path=db_path,
     )
 
     assert projection["status"] == "missing"
-    assert projection["missing_reason"] == "runtime_lifecycle_sqlite_row_missing"
+    assert projection["missing_reason"] == "lifecycle_refs_sqlite_row_missing"
     assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {}
 
@@ -238,7 +238,7 @@ def test_lifecycle_read_model_exports_sqlite_only_projection_as_json_and_markdow
 def test_lifecycle_read_model_export_uses_no_legacy_restore_import_by_default(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
-    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    legacy_latest = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     output_path = tmp_path / "exports" / "runtime_report.json"
     legacy_latest.parent.mkdir(parents=True)
     legacy_latest.write_text(json.dumps({"legacy": True}), encoding="utf-8")
@@ -246,7 +246,7 @@ def test_lifecycle_read_model_export_uses_no_legacy_restore_import_by_default(tm
     export = read_model.export_lifecycle_projection(
         surface="runtime_report",
         quest_root=quest_root,
-        report_group="runtime_watch",
+        report_group="domain_health_diagnostic",
         export_format="json",
         output_path=output_path,
     )

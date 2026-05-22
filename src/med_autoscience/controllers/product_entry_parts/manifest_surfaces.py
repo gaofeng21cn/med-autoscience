@@ -146,8 +146,8 @@ def build_product_entry_manifest(
     profile_arg = _profile_arg(profile_ref)
     prefix = _command_prefix(profile_ref)
     workspace_root = str(profile.workspace_root)
-    study_runtime_status_command = _json_surface_command(
-        f"{prefix} study-runtime-status --profile {profile_arg} --study-id <study_id>"
+    progress_projection_command = _json_surface_command(
+        f"{prefix} study progress-projection --profile {profile_arg} --study-id <study_id>"
     )
     action_catalog = _build_mas_action_catalog(profile_ref=profile_ref)
 
@@ -309,8 +309,8 @@ def build_product_entry_manifest(
         },
         event_envelope_surface={
             "ref_kind": "workspace_locator",
-            "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
-            "label": "runtime watch event companion",
+            "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
+            "label": "domain health diagnostic event companion",
         },
         checkpoint_lineage_surface={
             "ref_kind": "workspace_locator",
@@ -438,7 +438,7 @@ def build_product_entry_manifest(
         executor_owner=CONTROLLED_BACKEND_EXECUTOR_OWNER,
         supervision_status_surface="study_progress",
         attention_queue_surface="workspace_cockpit",
-        recovery_contract_surface="study_runtime_status",
+        recovery_contract_surface="progress_projection",
     )
     runtime = {
         "runtime_owner": MAS_RUNTIME_OWNER,
@@ -498,7 +498,7 @@ def build_product_entry_manifest(
         family_orchestration=family_orchestration,
         product_entry_shell=product_entry_shell,
         task_lifecycle=task_lifecycle,
-        study_runtime_status_command=study_runtime_status_command,
+        progress_projection_command=progress_projection_command,
     )
     progress_projection = _build_progress_projection_surface(
         profile=profile,
@@ -509,13 +509,13 @@ def build_product_entry_manifest(
         family_orchestration=family_orchestration,
         operator_loop_surface=operator_loop_surface,
         product_entry_shell=product_entry_shell,
-        study_runtime_status_command=study_runtime_status_command,
+        progress_projection_command=progress_projection_command,
     )
     artifact_inventory = _build_artifact_inventory_surface(
         profile=profile,
         progress_projection=progress_projection,
         product_entry_shell=product_entry_shell,
-        study_runtime_status_command=study_runtime_status_command,
+        progress_projection_command=progress_projection_command,
     )
     opl_family_persistence_lifecycle_owner_route_adoption = build_product_entry_adoption_projection(
         workspace_root=profile.workspace_root,

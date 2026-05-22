@@ -104,7 +104,7 @@ def test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_ga
                 },
                 "autonomy_soak_status": {
                     "summary": "最近一次自治外环已完成 soak dispatch。",
-                    "next_confirmation_signal": "看 runtime_watch 是否刷新。",
+                    "next_confirmation_signal": "看 domain_health_diagnostic 是否刷新。",
                 },
                 "quality_closure_truth": {"summary": "质量闭环已进入 bundle-only 收口。"},
                 "quality_review_followthrough": {

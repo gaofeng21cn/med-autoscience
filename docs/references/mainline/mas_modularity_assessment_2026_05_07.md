@@ -36,7 +36,7 @@ MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projecti
 | Line budget | pass | 当前 repo guard 可运行，触碰过的 near-limit part 已降到 preferred range。 |
 | Mechanical split residue | no tracked `part_*` / `chunk_*` / `split_*` source file | 没有明显编号式机械拆分回流。 |
 | Direct test-gap heuristic | low direct ratio | 许多行为通过 public/facade tests 覆盖，后续高风险子域应补更贴近 natural boundary 的 focused tests。 |
-| 30-day churn | `product_entry`、`study_progress`、`cli`、`study_runtime_decision`、`runtime_watch`、display surfaces 最高 | 热点与 public entry / projection / display mainline 高度重合，说明结构风险集中在真实维护面。 |
+| 30-day churn | `product_entry`、`study_progress`、`cli`、`study_runtime_decision`、`domain_health_diagnostic`、display surfaces 最高 | 热点与 public entry / projection / display mainline 高度重合，说明结构风险集中在真实维护面。 |
 
 Sentrux `git_stats` 不能直接跑在 relative worktree extension 上；本次通过兼容 clone 读取 30 天演化信号。该演化信号只用于定位 hotspot，不作为完成性证明。
 

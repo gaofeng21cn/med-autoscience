@@ -209,7 +209,7 @@ def test_ensure_study_runtime_auto_resumes_controller_guard_stopped_quest_when_b
     assert binding["last_action"] == "resume"
 
 
-def test_study_runtime_status_auto_resumes_controller_guard_stopped_quest_when_write_stage_is_ready(
+def test_progress_projection_auto_resumes_controller_guard_stopped_quest_when_write_stage_is_ready(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -276,7 +276,7 @@ def test_study_runtime_status_auto_resumes_controller_guard_stopped_quest_when_w
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_stale_decision_after_write_stage_ready"

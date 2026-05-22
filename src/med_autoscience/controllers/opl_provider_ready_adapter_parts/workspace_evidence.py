@@ -75,7 +75,7 @@ def _workspace_root_refs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
             "sidecar_dispatch_receipt_root",
             profile.workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts",
         ),
-        _ref("runtime_lifecycle_sqlite", profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"),
+        _ref("lifecycle_refs_sqlite", profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"),
     ]
 
 
@@ -89,7 +89,7 @@ def _study_refs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
                 _ref("stage_review_index", study_root / "artifacts" / "stage_reviews" / "index.json", study_id=study_root.name),
                 _ref("publication_eval", study_root / "artifacts" / "publication_eval" / "latest.json", study_id=study_root.name),
                 _ref("controller_decisions", study_root / "artifacts" / "controller_decisions" / "latest.json", study_id=study_root.name),
-                _ref("runtime_watch", study_root / "artifacts" / "runtime_watch" / "latest.json", study_id=study_root.name),
+                _ref("domain_health_diagnostic", study_root / "artifacts" / "domain_health_diagnostic" / "latest.json", study_id=study_root.name),
             ]
         )
         refs.extend(

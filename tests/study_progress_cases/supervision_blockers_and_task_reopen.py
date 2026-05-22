@@ -32,7 +32,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -96,9 +96,9 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         "summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
         "reason_summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
         "primary_step_id": "refresh_supervision",
-        "primary_surface_kind": "runtime_watch_refresh",
+        "primary_surface_kind": "domain_health_diagnostic_refresh",
         "primary_command": (
-            "uv run python -m med_autoscience.cli runtime watch --runtime-root "
+            "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
             + str(profile.runtime_root)
             + " --profile "
             + str(profile_ref.resolve())
@@ -106,7 +106,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         ),
     }
     assert result["recommended_command"].endswith(
-        "runtime watch --runtime-root "
+        "domain-health-diagnostic --runtime-root "
         + str(profile.runtime_root)
         + " --profile "
         + str(profile_ref.resolve())
@@ -137,7 +137,7 @@ def test_study_progress_projects_explicit_runtime_blocker_before_publication_sup
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -233,7 +233,7 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -347,7 +347,7 @@ def test_study_progress_projects_manual_finishing_fast_lane_intake(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -474,7 +474,7 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -598,7 +598,7 @@ def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
         },
     )
     _write_json(
-        quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json",
+        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
         {
             "schema_version": 1,
             "scanned_at": "2026-04-26T07:17:19+00:00",
@@ -661,7 +661,7 @@ def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -847,7 +847,7 @@ def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeou
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",

@@ -46,7 +46,7 @@
 
 对 `MAS` 的核心启发：
 
-- `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 这类 durable surface 要继续做厚。
+- 当前 `progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json` 这类 durable surface 要继续做厚；MDS 学习语境里的旧 runtime/status 名只保留为历史 provenance。
 - `paper evidence ledger` 与 `review ledger` 要成为质量治理的常驻主账本。
 - 前台解释、人工接手、恢复和最终投稿审计都应读取 durable truth，而不是读取局部运行日志。
 
@@ -132,7 +132,7 @@
 | --- | --- | --- | --- |
 | 研究合同前置 | `controller_charter` | study charter、gate policy、status/program docs | contract docs、meta tests、真实 study charter |
 | 单主线研究推进 | `controller_charter` + `eval_hygiene` | quest/study program、evidence/review ledger、delivery plane | docs、ledger tests、真实研究轨迹 |
-| durable truth 与前台可见性 | `runtime` + `eval_hygiene` | `study_runtime_status`、`runtime_watch`、`publication_eval`、progress projection | runtime tests、meta tests、fresh runtime evidence |
+| durable truth 与前台可见性 | `runtime` + `eval_hygiene` | `progress_projection`、`domain_health_diagnostic`、`publication_eval`、progress projection | runtime tests、meta tests、fresh runtime evidence |
 | interrupt / resume / replan 治理 | `runtime` | supervision loop、outer-loop decision、controller decision record | runtime tests、真实恢复场景 |
 | 持续学习 program | `controller_charter` + `runtime` + `eval_hygiene` | `docs/active/`、intake / parity / oracle gate、长期主线 status | docs、merge gate、parity proof |
 

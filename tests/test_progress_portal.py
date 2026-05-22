@@ -133,8 +133,8 @@ def _progress_payload(study_id: str = "001-risk") -> dict[str, object]:
             "latest_outer_supervision_at": "2026-05-08T00:59:00+00:00",
         },
         "refs": {
-            "study_runtime_status": "studies/001-risk/artifacts/runtime/status.json",
-            "runtime_watch": "studies/001-risk/artifacts/runtime_watch/latest.json",
+            "progress_projection": "studies/001-risk/progress_projection.json",
+            "domain_health_diagnostic": "studies/001-risk/artifacts/domain_health_diagnostic/latest.json",
             "publication_eval": "studies/001-risk/artifacts/publication_eval/latest.json",
         },
     }

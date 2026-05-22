@@ -25,7 +25,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": True,
         "production_path": "outer_supervision_recovery_latency",
         "rationale": "Scheduled supervision can delay stale-run detection and recovery, but MAS turn continuation no longer depends on resident MDS.",
-        "required_guard_surface": "runtime_watch/runtime_supervision freshness",
+        "required_guard_surface": "domain_health_diagnostic/runtime_supervision freshness",
     },
     "supervision_cadence": {
         "classification": "production_risk",
@@ -46,7 +46,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": True,
         "production_path": "study_runtime_lifecycle_controls",
         "rationale": "Lifecycle controls remain available through MAS owner surfaces rather than MDS HTTP routes.",
-        "required_guard_surface": "study_runtime_status/ensure_study_runtime",
+        "required_guard_surface": "progress_projection/ensure_study_runtime",
     },
     "live_worker_session_tracking": {
         "classification": "production_risk",
@@ -60,7 +60,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": True,
         "production_path": "crash_recovery_and_auto_resume",
         "rationale": "Recovery is MAS-owned and MDS-independent, while scheduler-bound restart latency can slow automatic paper progress.",
-        "required_guard_surface": "recovery_intent/runtime_watch",
+        "required_guard_surface": "recovery_intent/domain_health_diagnostic",
     },
     "queued_user_messages_mailbox": {
         "classification": "production_risk",

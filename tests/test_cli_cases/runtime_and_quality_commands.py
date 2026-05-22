@@ -174,7 +174,7 @@ def test_ensure_study_runtime_command_serializes_typed_controller_result(monkeyp
     monkeypatch.setattr(
         cli.study_runtime_router,
         "ensure_study_runtime",
-        lambda **kwargs: typed_surface.StudyRuntimeStatus.from_payload(
+        lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
                 "schema_version": 1,
                 "study_id": "001-risk",
@@ -209,7 +209,7 @@ def test_ensure_study_runtime_command_serializes_typed_controller_result(monkeyp
     assert exit_code == 0
     assert '"decision": "create_and_start"' in captured.out
     assert '"study_id": "001-risk"' in captured.out
-def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_progress_projection_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -222,11 +222,11 @@ def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_pat
         called["entry_mode"] = entry_mode
         return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
 
-    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
 
     exit_code = cli.main(
         [
-            "study-runtime-status",
+            "progress-projection",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -243,7 +243,7 @@ def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_pat
     assert called["study_root"] is None
     assert called["entry_mode"] is None
     assert '"quest_status": "running"' in captured.out
-def test_study_runtime_status_command_serializes_typed_controller_result(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_progress_projection_command_serializes_typed_controller_result(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -251,8 +251,8 @@ def test_study_runtime_status_command_serializes_typed_controller_result(monkeyp
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
-        lambda **kwargs: typed_surface.StudyRuntimeStatus.from_payload(
+        "progress_projection",
+        lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
                 "schema_version": 1,
                 "study_id": "001-risk",
@@ -274,7 +274,7 @@ def test_study_runtime_status_command_serializes_typed_controller_result(monkeyp
 
     exit_code = cli.main(
         [
-            "study-runtime-status",
+            "progress-projection",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -294,7 +294,7 @@ def test_quality_repair_batch_command_dispatches_controller(monkeypatch, tmp_pat
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(tmp_path / "workspace" / "studies" / "001-risk"),
@@ -347,7 +347,7 @@ def test_gate_clearing_batch_command_dispatches_controller(monkeypatch, tmp_path
     called: dict[str, object] = {}
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_root": str(tmp_path / "workspace" / "studies" / "001-risk"),
             "quest_id": "quest-001",
@@ -457,7 +457,7 @@ def test_study_group_help_surfaces_profile_cycle(capsys) -> None:
 
     assert exit_code == 0
     assert "profile-cycle" in captured.out
-def test_grouped_study_runtime_status_alias_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_grouped_progress_projection_alias_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -470,12 +470,11 @@ def test_grouped_study_runtime_status_alias_dispatches_controller(monkeypatch, t
         called["entry_mode"] = entry_mode
         return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
 
-    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
 
     exit_code = cli.main(
         [
-            "study",
-            "runtime-status",
+            "study", "progress-projection",
             "--profile",
             str(profile_path),
             "--study-id",

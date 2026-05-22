@@ -106,7 +106,7 @@ def test_execute_noop_runtime_decision_adopts_mas_quality_repair_report(
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -212,7 +212,7 @@ def test_execute_noop_runtime_decision_adopts_mas_quality_repair_latest_specific
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -316,7 +316,7 @@ def test_execute_noop_runtime_decision_adopts_analysis_claim_evidence_repair_bat
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -416,7 +416,7 @@ def test_execute_noop_runtime_decision_adopts_analysis_lane_exhausted_handoff(
     status_payload["quest_root"] = str(quest_root)
     status_payload["quest_id"] = "quest-003"
     status_payload["execution"]["quest_id"] = "quest-003"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -576,7 +576,7 @@ def test_execute_noop_runtime_decision_adopts_stage_memory_analysis_handoff_payl
     status_payload["quest_root"] = str(quest_root)
     status_payload["quest_id"] = "quest-003"
     status_payload["execution"]["quest_id"] = "quest-003"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -696,7 +696,7 @@ def test_execute_noop_runtime_decision_adopts_current_run_repair_control_packet(
     status_payload["quest_root"] = str(quest_root)
     status_payload["quest_id"] = "quest-002"
     status_payload["execution"]["quest_id"] = "quest-002"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -814,7 +814,7 @@ def test_execute_noop_runtime_decision_adopts_analysis_source_repair_packet(
     status_payload["quest_root"] = str(quest_root)
     status_payload["quest_id"] = "quest-002"
     status_payload["execution"]["quest_id"] = "quest-002"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -924,7 +924,7 @@ def test_execute_noop_runtime_decision_adopts_retry_backoff_handoff_for_current_
     status_payload["quest_root"] = str(quest_root)
     status_payload["quest_id"] = "quest-003"
     status_payload["execution"]["quest_id"] = "quest-003"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:

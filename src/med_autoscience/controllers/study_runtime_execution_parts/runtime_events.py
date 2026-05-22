@@ -11,12 +11,12 @@ from med_autoscience.runtime_control import callable_owner_names
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecord
 
-from ..study_runtime_status import (
+from ..progress_projection import (
     StudyRuntimeAutonomousRuntimeNotice,
     StudyRuntimeAuditStatus,
     StudyRuntimeBindingAction,
     StudyRuntimeQuestStatus,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
     _LIVE_QUEST_STATUSES,
 )
 from .runtime_event_relay import (
@@ -760,7 +760,7 @@ def has_delivered_human_package_surface(study_root: Path) -> bool:
     )
 
 
-def record_auto_runtime_parked_projection(status: StudyRuntimeStatus) -> None:
+def record_auto_runtime_parked_projection(status: ProgressProjectionStatus) -> None:
     projection = auto_runtime_parking.build_auto_runtime_parked_projection(status.to_dict())
     status["auto_runtime_parked"] = projection
     for field_name in (
@@ -799,7 +799,7 @@ def managed_runtime_notice_reason(
 
 def should_record_autonomous_runtime_notice(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     router_module: Callable[[], Any],
 ) -> bool:
     return (
@@ -828,7 +828,7 @@ def monitoring_url_supports_daemon_api(browser_url: str | None) -> bool:
 
 def is_strictly_live_runtime_notice(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     active_run_id: str | None,
 ) -> bool:
     if active_run_id is None:
@@ -842,7 +842,7 @@ def is_strictly_live_runtime_notice(
 
 def record_autonomous_runtime_notice_if_required(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     runtime_root: Path,
     launch_report_path: Path,
     router_module: Callable[[], Any],

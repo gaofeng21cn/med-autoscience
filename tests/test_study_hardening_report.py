@@ -12,8 +12,8 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
         "case_id": "study-soak-replay::001-risk::same_line_quality_gate_fast_lane",
         "case_family": "same_line_quality_gate_fast_lane",
         "required_truth_surfaces": [
-            "study_runtime_status",
-            "runtime_watch",
+            "progress_projection",
+            "domain_health_diagnostic",
             "publication_eval/latest.json",
             "controller_decisions/latest.json",
             "study_charter",
@@ -64,7 +64,7 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
                 }
             ]
         },
-        "runtime_watch_wakeup_dedupe_summary": {"status": "not_confirmed"},
+        "domain_health_diagnostic_wakeup_dedupe_summary": {"status": "not_confirmed"},
         "gate_blocker_summary": {
             "status": "blocked",
             "current_blockers": ["claim_evidence_consistency_failed"],
@@ -139,9 +139,9 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
     assert report["regression_manifest"]["required_truth_surfaces"] == [
         "controller_decisions/latest.json",
         "publication_eval/latest.json",
-        "runtime_watch",
+        "domain_health_diagnostic",
         "study_charter",
-        "study_runtime_status",
+        "progress_projection",
     ]
     assert report["regression_manifest"]["gate_relaxation_allowed"] is False
     assert report["regression_manifest"]["edits_paper_body"] is False
@@ -180,7 +180,7 @@ def test_study_hardening_report_classifies_external_provider_and_human_gate() ->
             },
             "study_soak_replay_case": {
                 "case_id": "study-soak-replay::002-provider::runtime_recovery_taxonomy",
-                "required_truth_surfaces": ["runtime_watch"],
+                "required_truth_surfaces": ["domain_health_diagnostic"],
                 "must_assert": ["external_runtime_blocker_is_not_retried_as_mas_work"],
                 "gate_relaxation_allowed": False,
                 "edits_paper_body": False,

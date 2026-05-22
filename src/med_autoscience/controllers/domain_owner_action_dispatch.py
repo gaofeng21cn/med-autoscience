@@ -10,7 +10,7 @@ from med_autoscience.developer_supervisor_mode import resolve_developer_supervis
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import runtime_lifecycle_store
+from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
 from . import runtime_dispatch_cost, study_runtime_router
 from .domain_owner_action_dispatch_parts import action_execution
@@ -21,7 +21,7 @@ from .domain_owner_action_dispatch_parts import managed_runtime_dispatches
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import persisted_dispatches
 from .domain_owner_action_dispatch_parts import terminal_stall_handoff
-from .domain_route_scan import SUPERVISION_LATEST_RELATIVE_PATH
+from .owner_route_reconcile import SUPERVISION_LATEST_RELATIVE_PATH
 from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
@@ -418,7 +418,7 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
     source: str = "ai_reviewer_publication_eval_workflow",
 ) -> dict[str, Any]:
     try:
-        status = study_runtime_router.study_runtime_status(
+        status = study_runtime_router.progress_projection(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
@@ -428,14 +428,14 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
         return {
             "refresh_status": "blocked",
-            "blocked_reason": "study_runtime_status_unavailable",
+            "blocked_reason": "progress_projection_unavailable",
             "error": str(exc),
         }
 
     from . import study_outer_loop
 
     try:
-        tick_request = study_outer_loop.build_runtime_watch_outer_loop_tick_request(
+        tick_request = study_outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
             study_root=study_root,
             status_payload=status_payload,
         )
@@ -922,11 +922,11 @@ def dispatch_domain_owner_actions(
             written_files.append(str(history_path))
             for execution in study_executions:
                 quest_root = profile.runtime_root / (_text(execution.get("quest_id")) or study_id)
-                execution["runtime_lifecycle_index"] = runtime_lifecycle_store.record_dispatch_receipt(
+                execution["runtime_lifecycle_index"] = lifecycle_refs_adapter.record_dispatch_receipt(
                     quest_root=quest_root,
                     receipt=execution,
                     receipt_path=latest_path,
-                    db_path=runtime_lifecycle_store.workspace_lifecycle_store_path(profile.workspace_root),
+                    db_path=lifecycle_refs_adapter.workspace_lifecycle_store_path(profile.workspace_root),
                 )
             _write_json(latest_path, study_payload)
     payload = {

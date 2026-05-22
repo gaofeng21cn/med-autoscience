@@ -305,7 +305,7 @@ def test_ensure_study_runtime_uses_protocol_refresh_gate_for_blocked_existing_qu
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.StudyRuntimeStatus,
+        module.ProgressProjectionStatus,
         "should_refresh_startup_hydration_while_blocked",
         lambda self: False,
     )
@@ -449,7 +449,7 @@ def test_ensure_study_runtime_relaunches_failed_quest_when_platform_repair_reque
         },
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", allow_stopped_relaunch=True, source="domain_route_scan_platform_repair")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", allow_stopped_relaunch=True, source="owner_route_reconcile_platform_repair")
 
     assert result["decision"] == "relaunch_stopped"
     assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
@@ -598,7 +598,7 @@ def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_st
     ]
 
 
-def test_study_runtime_status_records_missing_supervisor_tick_audit_for_existing_managed_quest(
+def test_progress_projection_records_missing_supervisor_tick_audit_for_existing_managed_quest(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -637,7 +637,7 @@ def test_study_runtime_status_records_missing_supervisor_tick_audit_for_existing
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["supervisor_tick_audit"]["required"] is True
     assert result["supervisor_tick_audit"]["status"] == "missing"
@@ -648,7 +648,7 @@ def test_study_runtime_status_records_missing_supervisor_tick_audit_for_existing
     assert result["supervisor_tick_audit"]["stale_after_seconds"] == 600
 
 
-def test_study_runtime_status_marks_supervisor_tick_audit_stale_when_latest_report_is_too_old(
+def test_progress_projection_marks_supervisor_tick_audit_stale_when_latest_report_is_too_old(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -705,7 +705,7 @@ def test_study_runtime_status_marks_supervisor_tick_audit_stale_when_latest_repo
         lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["supervisor_tick_audit"]["required"] is True
     assert result["supervisor_tick_audit"]["status"] == "stale"
@@ -714,7 +714,7 @@ def test_study_runtime_status_marks_supervisor_tick_audit_stale_when_latest_repo
     assert result["supervisor_tick_audit"]["seconds_since_latest_recorded_at"] == 1800
 
 
-def test_study_runtime_status_records_supervisor_tick_transition_from_fresh_to_stale(
+def test_progress_projection_records_supervisor_tick_transition_from_fresh_to_stale(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -773,9 +773,9 @@ def test_study_runtime_status_records_supervisor_tick_transition_from_fresh_to_s
         lambda: decision_module.datetime.fromisoformat(now_state["value"]),
     )
 
-    fresh_result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    fresh_result = module.progress_projection(profile=profile, study_id="001-risk")
     now_state["value"] = "2026-04-10T09:50:00+00:00"
-    stale_result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    stale_result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert fresh_result["supervisor_tick_audit"]["status"] == "fresh"
     assert stale_result["supervisor_tick_audit"]["status"] == "stale"

@@ -422,7 +422,7 @@ def test_runtime_lifecycle_export_command_dispatches_read_model(monkeypatch, tmp
             "--format",
             "markdown",
             "--report-group",
-            "runtime_watch",
+            "domain_health_diagnostic",
             "--output-path",
             str(output_path),
         ]
@@ -435,7 +435,7 @@ def test_runtime_lifecycle_export_command_dispatches_read_model(monkeypatch, tmp
         "export_format": "markdown",
         "quest_root": quest_root,
         "workspace_root": None,
-        "report_group": "runtime_watch",
+        "report_group": "domain_health_diagnostic",
         "output_path": output_path,
         "db_path": None,
     }
@@ -697,7 +697,7 @@ def test_runtime_lifecycle_read_accepts_sqlite_only_surface(monkeypatch, tmp_pat
             "--surface",
             "lineage_route",
             "--report-group",
-            "runtime_watch",
+            "domain_health_diagnostic",
         ]
     )
     captured = capsys.readouterr()
@@ -705,7 +705,7 @@ def test_runtime_lifecycle_read_accepts_sqlite_only_surface(monkeypatch, tmp_pat
     assert exit_code == 0
     assert called == {
         "surface": "lineage_route",
-        "report_group": "runtime_watch",
+        "report_group": "domain_health_diagnostic",
         "quest_root": None,
         "workspace_root": workspace_root,
         "db_path": None,

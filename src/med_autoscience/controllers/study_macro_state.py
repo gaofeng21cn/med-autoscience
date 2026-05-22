@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.runtime_protocol import runtime_lifecycle_store
+from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
 
 SCHEMA_VERSION = 1
@@ -176,7 +176,7 @@ def materialize_study_macro_state_snapshot(
     payload = _snapshot_payload(snapshot)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    index_result = runtime_lifecycle_store.record_study_macro_state_snapshot(
+    index_result = lifecycle_refs_adapter.record_study_macro_state_snapshot(
         study_root=resolved_study_root,
         snapshot=payload,
         snapshot_path=snapshot_path,

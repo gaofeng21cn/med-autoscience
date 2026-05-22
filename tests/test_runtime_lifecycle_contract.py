@@ -8,39 +8,39 @@ def test_runtime_lifecycle_contract_exposes_shared_schema_and_authority_boundary
 
     contract = contract_module.runtime_lifecycle_contract()
 
-    assert contract["surface_kind"] == "runtime_lifecycle_sqlite_index"
+    assert contract["surface_kind"] == "lifecycle_refs_sqlite_index"
     assert contract["schema_version"] == 1
     assert contract["default_db_filename"] == "runtime_lifecycle.sqlite"
     assert "publication_eval/latest.json" in contract["file_authority_surfaces"]
     assert "controller_decisions/latest.json" in contract["file_authority_surfaces"]
-    assert "runtime_events" in contract["sqlite_sidecar_tables"]
-    assert "lineage_nodes" in contract["sqlite_sidecar_tables"]
-    assert "lineage_edges" in contract["sqlite_sidecar_tables"]
-    assert "workspace_allocations" in contract["sqlite_sidecar_tables"]
-    assert "runtime_snapshots" in contract["sqlite_sidecar_tables"]
-    assert "snapshot_file_refs" in contract["sqlite_sidecar_tables"]
-    assert "revision_diffs" in contract["sqlite_sidecar_tables"]
-    assert "canvas_projection" in contract["sqlite_sidecar_tables"]
-    assert "retention_actions" in contract["sqlite_sidecar_tables"]
-    assert "migration_runs" in contract["sqlite_sidecar_tables"]
-    assert "study_macro_state_snapshots" in contract["sqlite_sidecar_tables"]
-    assert "owner_route_receipts" in contract["sqlite_sidecar_tables"]
-    assert "dispatch_receipts" in contract["sqlite_sidecar_tables"]
-    assert "turn_receipts" in contract["sqlite_sidecar_tables"]
-    assert "paper_work_unit_receipts" in contract["sqlite_sidecar_tables"]
-    assert "surface_refs" in contract["sqlite_sidecar_tables"]
+    assert "runtime_events" in contract["sqlite_refs_index_tables"]
+    assert "lineage_nodes" in contract["sqlite_refs_index_tables"]
+    assert "lineage_edges" in contract["sqlite_refs_index_tables"]
+    assert "workspace_allocations" in contract["sqlite_refs_index_tables"]
+    assert "runtime_snapshots" in contract["sqlite_refs_index_tables"]
+    assert "snapshot_file_refs" in contract["sqlite_refs_index_tables"]
+    assert "revision_diffs" in contract["sqlite_refs_index_tables"]
+    assert "canvas_projection" in contract["sqlite_refs_index_tables"]
+    assert "retention_actions" in contract["sqlite_refs_index_tables"]
+    assert "migration_runs" in contract["sqlite_refs_index_tables"]
+    assert "study_macro_state_snapshots" in contract["sqlite_refs_index_tables"]
+    assert "owner_route_receipts" in contract["sqlite_refs_index_tables"]
+    assert "dispatch_receipts" in contract["sqlite_refs_index_tables"]
+    assert "turn_receipts" in contract["sqlite_refs_index_tables"]
+    assert "paper_work_unit_receipts" in contract["sqlite_refs_index_tables"]
+    assert "surface_refs" in contract["sqlite_refs_index_tables"]
     assert "apply" in contract["migration_run_modes"]
     assert "rollback_plan" in contract["migration_run_modes"]
     assert "*.sqlite-wal" in contract["sqlite_gitignore_patterns"]
     assert "*.sqlite-shm" in contract["sqlite_gitignore_patterns"]
 
 
-def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_authority() -> None:
+def test_runtime_lifecycle_contract_declares_lifecycle_ref_index_not_macro_state_authority() -> None:
     contract_module = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_contract")
 
     contract = contract_module.runtime_lifecycle_contract()
 
-    assert contract["sidecar_indexed_surfaces"] == [
+    assert contract["lifecycle_ref_indexed_surfaces"] == [
         "study_macro_state_snapshot",
         "owner_route_receipt",
         "dispatch_receipt",
@@ -55,8 +55,8 @@ def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_autho
         "revision_diff",
         "canvas_projection",
     ]
-    assert contract["sidecar_authority_policy"] == "index_only_authority_remains_file_surfaces"
-    assert contract["sidecar_role"] == "mas_domain_sidecar_index_reference_adapter"
+    assert contract["lifecycle_ref_authority_policy"] == "index_only_authority_remains_file_surfaces"
+    assert contract["lifecycle_ref_role"] == "mas_domain_lifecycle_ref_index_adapter"
     assert contract["generic_persistence_owner"] == "one-person-lab"
     assert contract["generic_persistence_engine_claim_allowed"] is False
     assert "study_macro_state/latest.json" in contract["file_authority_surfaces"]
@@ -95,7 +95,7 @@ def test_runtime_lifecycle_contract_declares_q1_q6_git_replacement_cutover() -> 
         "canvas_projection",
     ]
     assert contract["q1_q6_cutover_contract"][-1]["required_proof"] == (
-        "sqlite_lifecycle_store_remains_index_only_and_file_truth_surfaces_remain_authoritative"
+        "lifecycle_refs_store_remains_index_only_and_file_truth_surfaces_remain_authoritative"
     )
 
 
@@ -280,9 +280,9 @@ def test_runtime_lifecycle_contract_declares_opl_family_adapter_surface() -> Non
             "manuscript/current_package",
             "current_package.zip",
         ],
-        "runtime_lifecycle_sqlite_role": {
+        "lifecycle_refs_adapter_role": {
             "classification": "refs_only_adapter",
-            "current_mas_role": "mas_domain_sidecar_index_reference_adapter",
+            "current_mas_role": "mas_domain_lifecycle_ref_index_adapter",
             "owner": "one-person-lab",
             "authority": "refs_payload_projection_only",
             "generic_persistence_engine_claim_allowed": False,

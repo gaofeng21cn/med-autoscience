@@ -101,7 +101,7 @@ def test_module_boundary_audit_validation_fails_closed_on_authority_and_control_
     ]
     by_group["maintainability"]["writable_authority_surfaces"] = [
         "runtime_health",
-        "study_runtime_status",
+        "progress_projection",
     ]
     by_group["maintainability"]["modifies_runtime_or_study_truth"] = True
     acceptance = report["target_architecture"]["high_aggregation_low_coupling_acceptance"]

@@ -10,46 +10,46 @@ globals().update({
 
 def test_study_runtime_types_reexports_status_and_execution_surfaces_from_split_modules() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
     execution_surface = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     execution_types = importlib.import_module(
         "med_autoscience.controllers.study_runtime_execution_parts.execution_types"
     )
 
-    assert typed_surface.StudyRuntimeStatus is status_surface.StudyRuntimeStatus
+    assert typed_surface.ProgressProjectionStatus is status_surface.ProgressProjectionStatus
     assert typed_surface.StudyRuntimeExecutionContext is execution_surface.StudyRuntimeExecutionContext
     assert typed_surface.StudyRuntimeExecutionOutcome is execution_surface.StudyRuntimeExecutionOutcome
-    assert typed_surface.StudyRuntimeStatus.__module__ == status_surface.__name__
+    assert typed_surface.ProgressProjectionStatus.__module__ == status_surface.__name__
     assert typed_surface.StudyRuntimeExecutionContext.__module__ == execution_types.__name__
     assert typed_surface.StudyRuntimeExecutionOutcome.__module__ == execution_types.__name__
 def test_study_runtime_types_reexports_publication_supervisor_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.StudyRuntimePublicationSupervisorState is status_surface.StudyRuntimePublicationSupervisorState
     assert typed_surface.StudyRuntimePublicationSupervisorState.__module__ == status_surface.__name__
 def test_study_runtime_types_reexports_execution_owner_guard_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.StudyRuntimeExecutionOwnerGuard is status_surface.StudyRuntimeExecutionOwnerGuard
     assert typed_surface.StudyRuntimeExecutionOwnerGuard.__module__ == status_surface.__name__
 def test_study_runtime_types_reexports_pending_user_interaction_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.StudyRuntimePendingUserInteraction is status_surface.StudyRuntimePendingUserInteraction
     assert typed_surface.StudyRuntimePendingUserInteraction.__module__ == status_surface.__name__
 def test_study_runtime_types_reexports_continuation_state_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
     assert typed_surface.StudyRuntimeContinuationState is status_surface.StudyRuntimeContinuationState
     assert typed_surface.StudyRuntimeContinuationState.__module__ == status_surface.__name__
 def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types() -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
     execution_surface = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     execution_types = importlib.import_module(
         "med_autoscience.controllers.study_runtime_execution_parts.execution_types"
@@ -73,28 +73,28 @@ def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types()
     assert router.StudyRuntimeStartupBoundaryGate is typed_surface.StudyRuntimeStartupBoundaryGate
     assert router.StudyRuntimeReentryGate is typed_surface.StudyRuntimeReentryGate
     assert router.StudyCompletionSyncResult is typed_surface.StudyCompletionSyncResult
-    assert router.StudyRuntimeStatus is typed_surface.StudyRuntimeStatus
+    assert router.ProgressProjectionStatus is typed_surface.ProgressProjectionStatus
     assert router.StudyRuntimeExecutionContext is typed_surface.StudyRuntimeExecutionContext
     assert router.StudyRuntimeExecutionOutcome is typed_surface.StudyRuntimeExecutionOutcome
-    assert router.StudyRuntimeStatus.__module__ == status_surface.__name__
+    assert router.ProgressProjectionStatus.__module__ == status_surface.__name__
     assert router.StudyRuntimeExecutionContext.__module__ == execution_types.__name__
     assert router.StudyRuntimeExecutionOutcome.__module__ == execution_types.__name__
-    assert router.study_runtime_status.__module__ == router.__name__
+    assert router.progress_projection.__module__ == router.__name__
     assert router.ensure_study_runtime.__module__ == router.__name__
 def test_study_runtime_types_reexports_status_and_execution_modules() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_module = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+    status_module = importlib.import_module("med_autoscience.controllers.progress_projection")
     execution_module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     execution_types = importlib.import_module(
         "med_autoscience.controllers.study_runtime_execution_parts.execution_types"
     )
 
-    assert typed_surface.StudyRuntimeStatus is status_module.StudyRuntimeStatus
+    assert typed_surface.ProgressProjectionStatus is status_module.ProgressProjectionStatus
     assert typed_surface.StudyRuntimeDecision is status_module.StudyRuntimeDecision
     assert typed_surface.StudyRuntimeReason is status_module.StudyRuntimeReason
     assert typed_surface.StudyRuntimeExecutionContext is execution_module.StudyRuntimeExecutionContext
     assert typed_surface.StudyRuntimeExecutionOutcome is execution_module.StudyRuntimeExecutionOutcome
-    assert typed_surface.StudyRuntimeStatus.__module__ == status_module.__name__
+    assert typed_surface.ProgressProjectionStatus.__module__ == status_module.__name__
     assert typed_surface.StudyRuntimeExecutionOutcome.__module__ == execution_types.__name__
 def test_study_runtime_reason_drops_legacy_med_deepscientist_only_owner_label() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
@@ -124,7 +124,7 @@ def test_runtime_supervision_refresh_preserves_recovering_target(tmp_path: Path)
         + "\n",
         encoding="utf-8",
     )
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         make_status_payload(
             study_root=str(study_root),
             quest_status="running",
@@ -168,7 +168,7 @@ def test_runtime_supervision_refresh_uses_runtime_health_recovery_target_for_str
         + "\n",
         encoding="utf-8",
     )
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         make_status_payload(
             study_root=str(study_root),
             quest_status="running",
@@ -192,7 +192,7 @@ def test_runtime_supervision_refresh_uses_runtime_health_recovery_target_for_str
     )
 
     assert module._should_refresh_runtime_supervision_from_status(status=status, study_root=study_root) is True
-def test_study_runtime_status_round_trips_through_typed_state() -> None:
+def test_progress_projection_round_trips_through_typed_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload(
         quest_status="paused",
@@ -205,7 +205,7 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
         runtime_overlay={"audit": {"all_roots_ready": True}},
     )
 
-    status = module.StudyRuntimeStatus.from_payload(payload)
+    status = module.ProgressProjectionStatus.from_payload(payload)
     expected_payload = dict(payload)
     expected_payload["study_completion_contract"] = {
         "ready": False,
@@ -247,11 +247,11 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
     assert status.to_dict()["quest_status"] == "created"
     assert status.to_dict()["quest_id"] == "quest-002"
     assert status.to_dict()["quest_root"] == "/tmp/runtime/quests/quest-002"
-def test_study_runtime_status_mapping_semantics_follow_serialized_payload() -> None:
+def test_progress_projection_mapping_semantics_follow_serialized_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload()
 
-    status = module.StudyRuntimeStatus.from_payload(payload)
+    status = module.ProgressProjectionStatus.from_payload(payload)
     expected_payload = dict(payload)
     expected_payload["study_completion_contract"] = {
         "ready": False,
@@ -269,31 +269,31 @@ def test_study_runtime_status_mapping_semantics_follow_serialized_payload() -> N
     assert dict(status) == expected_payload
     assert "decision" not in status
     assert status.get("decision", "missing") == "missing"
-def test_study_runtime_status_accepts_retrying_live_quest_state() -> None:
+def test_progress_projection_accepts_retrying_live_quest_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload(quest_status="retrying")
 
-    status = module.StudyRuntimeStatus.from_payload(payload)
+    status = module.ProgressProjectionStatus.from_payload(payload)
 
     assert status.quest_status is module.StudyRuntimeQuestStatus.RETRYING
     assert status.quest_status in module._LIVE_QUEST_STATUSES
     assert status.to_dict()["quest_status"] == "retrying"
 
 
-def test_study_runtime_status_accepts_failed_non_live_quest_state() -> None:
+def test_progress_projection_accepts_failed_non_live_quest_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload(quest_status="failed")
 
-    status = module.StudyRuntimeStatus.from_payload(payload)
+    status = module.ProgressProjectionStatus.from_payload(payload)
 
     assert status.quest_status is module.StudyRuntimeQuestStatus.FAILED
     assert status.quest_status not in module._LIVE_QUEST_STATUSES
     assert status.to_dict()["quest_status"] == "failed"
 
 
-def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> None:
+def test_progress_projection_core_key_assignment_uses_typed_normalization() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     status["decision"] = "blocked"
     status["reason"] = "runtime_overlay_not_ready"
@@ -335,7 +335,7 @@ def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> 
         status["startup_boundary_gate"] = {"allow_compute_stage": "false"}
     with pytest.raises(TypeError, match="study runtime reentry require_managed_skill_audit"):
         status["runtime_reentry_gate"] = {"allow_runtime_entry": True, "require_managed_skill_audit": "true"}
-def test_study_runtime_status_normalizes_study_completion_contract_to_typed_state(tmp_path: Path) -> None:
+def test_progress_projection_normalizes_study_completion_contract_to_typed_state(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload(
         study_root=str(tmp_path / "studies" / "001-risk"),
@@ -344,7 +344,7 @@ def test_study_runtime_status_normalizes_study_completion_contract_to_typed_stat
         study_completion_contract={"status": "absent", "ready": False, "errors": []},
     )
 
-    status = module.StudyRuntimeStatus.from_payload(payload)
+    status = module.ProgressProjectionStatus.from_payload(payload)
     status["study_completion_contract"] = {
         "ready": True,
         "status": "resolved",
@@ -375,27 +375,27 @@ def test_study_runtime_status_normalizes_study_completion_contract_to_typed_stat
 
     with pytest.raises(TypeError, match="study_completion_contract must be dict"):
         status["study_completion_contract"] = []
-def test_study_runtime_status_rejects_unknown_decision_value() -> None:
+def test_progress_projection_rejects_unknown_decision_value() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     with pytest.raises(ValueError, match="unknown study runtime decision"):
         status.set_decision("unexpected_action", "test_only")
-def test_study_runtime_status_rejects_unknown_reason_value() -> None:
+def test_progress_projection_rejects_unknown_reason_value() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     with pytest.raises(ValueError, match="unknown study runtime reason"):
         status.set_decision("blocked", "unexpected_reason")
-def test_study_runtime_status_rejects_unknown_quest_status_value() -> None:
+def test_progress_projection_rejects_unknown_quest_status_value() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     with pytest.raises(ValueError, match="unknown study runtime quest status"):
         status.update_quest_runtime(quest_status="unexpected_status")
-def test_study_runtime_status_records_structured_runtime_extras() -> None:
+def test_progress_projection_records_structured_runtime_extras() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     status.record_analysis_bundle({"ready": True})
     status.record_runtime_overlay({"audit": {"all_roots_ready": True}})
@@ -436,9 +436,9 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
     assert payload["runtime_binding_path"] == "/tmp/studies/001-risk/runtime_binding.updated.yaml"
     assert payload["launch_report_path"] == "/tmp/studies/001-risk/launch_report.json"
     assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
-def test_study_runtime_status_records_typed_completion_sync_and_audits() -> None:
+def test_progress_projection_records_typed_completion_sync_and_audits() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
     completion_sync = module.StudyCompletionSyncResult.from_payload(make_completion_sync_payload())
     runtime_liveness_audit = module.StudyRuntimeAuditRecord.from_payload(
         {
@@ -467,9 +467,9 @@ def test_study_runtime_status_records_typed_completion_sync_and_audits() -> None
     assert status.completion_sync_result.completion_snapshot_status == "completed"
     assert status.runtime_liveness_audit_record.status is module.StudyRuntimeAuditStatus.LIVE
     assert status.bash_session_audit_record.status is module.StudyRuntimeAuditStatus.NONE
-def test_study_runtime_status_records_typed_preflight_and_recovery_extras() -> None:
+def test_progress_projection_records_typed_preflight_and_recovery_extras() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
     analysis_bundle = module.StudyRuntimeAnalysisBundleResult.from_payload(make_analysis_bundle_result())
     runtime_overlay = module.StudyRuntimeOverlayResult.from_payload(make_runtime_overlay_result())
     startup_context_sync = module.StudyRuntimeStartupContextSyncResult.from_payload(
@@ -494,14 +494,14 @@ def test_study_runtime_status_records_typed_preflight_and_recovery_extras() -> N
     assert status.runtime_overlay_result.audit.all_roots_ready is True
     assert status.startup_context_sync_result.ok is True
     assert status.partial_quest_recovery_result.archived_root.endswith("20260403T000000Z")
-def test_study_runtime_status_records_typed_publication_supervisor_state() -> None:
+def test_progress_projection_records_typed_publication_supervisor_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload(
         execution={"quest_id": "quest-001"},
         publication_supervisor_state=make_publication_supervisor_state_payload(),
     )
 
-    status = module.StudyRuntimeStatus.from_payload(payload)
+    status = module.ProgressProjectionStatus.from_payload(payload)
     status.record_publication_supervisor_state(
         module.StudyRuntimePublicationSupervisorState.from_payload(
             make_publication_supervisor_state_payload(
@@ -518,9 +518,9 @@ def test_study_runtime_status_records_typed_publication_supervisor_state() -> No
     assert status.publication_supervisor_state.supervisor_phase == "publishability_gate_blocked"
     assert status.publication_supervisor_state.phase_owner == "publication_gate"
     assert status.publication_supervisor_state.upstream_scientific_anchor_ready is True
-def test_study_runtime_status_records_typed_progress_projection() -> None:
+def test_progress_projection_records_typed_progress_projection() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
 
     status.record_progress_projection(make_progress_projection_payload())
 
@@ -554,9 +554,9 @@ def test_startup_context_sync_result_requires_echoed_quest_id() -> None:
                 },
             }
         )
-def test_study_runtime_status_records_typed_startup_hydration_reports() -> None:
+def test_progress_projection_records_typed_startup_hydration_reports() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
     hydration_report = module.study_runtime_protocol.StartupHydrationReport.from_payload(
         make_startup_hydration_report(Path("/tmp/runtime/quests/quest-001"))
     )
@@ -569,9 +569,9 @@ def test_study_runtime_status_records_typed_startup_hydration_reports() -> None:
     payload = status.to_dict()
     assert payload["startup_hydration"]["status"] == "hydrated"
     assert payload["startup_hydration_validation"]["status"] == "clear"
-def test_study_runtime_status_records_typed_startup_contract_validation() -> None:
+def test_progress_projection_records_typed_startup_contract_validation() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
     validation = module.study_runtime_protocol.StartupContractValidation.from_payload(
         make_startup_contract_validation_payload()
     )
@@ -579,9 +579,9 @@ def test_study_runtime_status_records_typed_startup_contract_validation() -> Non
     status.record_startup_contract_validation(validation)
 
     assert status.to_dict()["startup_contract_validation"] == make_startup_contract_validation_payload()
-def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> None:
+def test_progress_projection_exposes_typed_gate_and_completion_accessors() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         make_status_payload(
             startup_data_readiness={
                 "study_summary": {
@@ -634,12 +634,12 @@ def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> N
     assert status.study_completion_state.ready is True
     assert status.study_completion_state.contract is not None
     assert status.study_completion_state.contract.status.value == "completed"
-def test_study_runtime_status_records_runtime_artifacts_with_binding_existence(tmp_path: Path) -> None:
+def test_progress_projection_records_runtime_artifacts_with_binding_existence(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     binding_path = tmp_path / "studies" / "001-risk" / "runtime_binding.yaml"
     launch_report_path = tmp_path / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
     startup_payload_path = tmp_path / "runtime" / "startup_payloads" / "001-risk.json"
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         make_status_payload(
             study_root=str(tmp_path / "studies" / "001-risk"),
             quest_root=str(tmp_path / "runtime" / "quests" / "quest-001"),
@@ -659,9 +659,9 @@ def test_study_runtime_status_records_runtime_artifacts_with_binding_existence(t
     assert payload["runtime_binding_exists"] is False
     assert payload["launch_report_path"] == str(launch_report_path)
     assert payload["startup_payload_path"] == str(startup_payload_path)
-def test_study_runtime_status_records_autonomous_runtime_notice_payload() -> None:
+def test_progress_projection_records_autonomous_runtime_notice_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     status.record_autonomous_runtime_notice(
         {
@@ -694,9 +694,9 @@ def test_study_runtime_status_records_autonomous_runtime_notice_payload() -> Non
         "monitoring_error": None,
         "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
     }
-def test_study_runtime_status_records_execution_owner_guard_payload() -> None:
+def test_progress_projection_records_execution_owner_guard_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     status.record_execution_owner_guard(make_execution_owner_guard_payload())
 
@@ -704,9 +704,9 @@ def test_study_runtime_status_records_execution_owner_guard_payload() -> None:
     assert status.execution_owner_guard.owner == "managed_runtime"
     assert status.execution_owner_guard.supervisor_only is True
     assert status.execution_owner_guard.takeover_required is True
-def test_study_runtime_status_records_pending_user_interaction_payload() -> None:
+def test_progress_projection_records_pending_user_interaction_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     status.record_pending_user_interaction(make_pending_user_interaction_payload())
 
@@ -714,9 +714,9 @@ def test_study_runtime_status_records_pending_user_interaction_payload() -> None
     assert status.pending_user_interaction.interaction_id == "progress-standby-001"
     assert status.pending_user_interaction.blocking is True
     assert status.pending_user_interaction.relay_required is True
-def test_study_runtime_status_records_continuation_state_payload() -> None:
+def test_progress_projection_records_continuation_state_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(make_status_payload(quest_status="active"))
+    status = module.ProgressProjectionStatus.from_payload(make_status_payload(quest_status="active"))
 
     payload = {
         "quest_status": "active",
@@ -732,9 +732,9 @@ def test_study_runtime_status_records_continuation_state_payload() -> None:
     assert status.to_dict()["continuation_state"] == payload
     assert status.continuation_state.continuation_reason == "unchanged_finalize_state"
     assert status.continuation_state.continuation_policy == "wait_for_user_or_resume"
-def test_study_runtime_status_detects_blocked_hydration_refresh_candidate() -> None:
+def test_progress_projection_detects_blocked_hydration_refresh_candidate() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         make_status_payload(
             execution={"quest_id": "quest-001", "auto_resume": False},
             quest_status="created",

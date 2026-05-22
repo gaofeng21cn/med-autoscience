@@ -6,7 +6,7 @@ from typing import Any
 
 CONTRACT_VERSION = 1
 SCHEMA_VERSION = 1
-SURFACE_KIND = "runtime_lifecycle_sqlite_index"
+SURFACE_KIND = "lifecycle_refs_sqlite_index"
 DEFAULT_DB_FILENAME = "runtime_lifecycle.sqlite"
 
 SQLITE_GITIGNORE_PATTERNS = (
@@ -36,7 +36,7 @@ MIGRATION_RUN_MODES = (
 
 LIFECYCLE_READER_NAMES = (
     "study_progress",
-    "runtime_watch_latest",
+    "domain_health_diagnostic_latest",
     "storage_audit_status",
     "cli_product_entry",
     "mcp_product_entry",
@@ -47,8 +47,8 @@ LIFECYCLE_READER_NAMES = (
 FILE_AUTHORITY_SURFACES = (
     "runtime_binding.yaml",
     ".ds/runtime_state.json",
-    "study_runtime_status",
-    "runtime_watch/latest.json",
+    "progress_projection",
+    "domain_health_diagnostic/latest.json",
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
     "runtime_escalation_record.json",
@@ -64,7 +64,7 @@ FILE_AUTHORITY_SURFACES = (
     "current_package.zip",
 )
 
-SQLITE_SIDECAR_TABLES = (
+LIFECYCLE_REF_TABLES = (
     "schema_migrations",
     "runtime_objects",
     "lineage_nodes",
@@ -92,7 +92,7 @@ SQLITE_SIDECAR_TABLES = (
     "migration_runs",
 )
 
-SIDECAR_INDEXED_SURFACES = (
+LIFECYCLE_REF_INDEXED_SURFACES = (
     "study_macro_state_snapshot",
     "owner_route_receipt",
     "dispatch_receipt",
@@ -108,8 +108,8 @@ SIDECAR_INDEXED_SURFACES = (
     "canvas_projection",
 )
 
-SIDECAR_AUTHORITY_POLICY = "index_only_authority_remains_file_surfaces"
-SIDECAR_ROLE = "mas_domain_sidecar_index_reference_adapter"
+LIFECYCLE_REF_AUTHORITY_POLICY = "index_only_authority_remains_file_surfaces"
+LIFECYCLE_REF_ROLE = "mas_domain_lifecycle_ref_index_adapter"
 GENERIC_PERSISTENCE_OWNER = "one-person-lab"
 GENERIC_PERSISTENCE_ENGINE_CLAIM_ALLOWED = False
 
@@ -188,7 +188,7 @@ Q1_Q6_CUTOVER_CONTRACT = (
     {
         "quarter": "Q6",
         "status": "post_cutover_verification",
-        "required_proof": "sqlite_lifecycle_store_remains_index_only_and_file_truth_surfaces_remain_authoritative",
+        "required_proof": "lifecycle_refs_store_remains_index_only_and_file_truth_surfaces_remain_authoritative",
     },
 )
 
@@ -226,9 +226,9 @@ OPL_FAMILY_ADAPTER_SURFACE = {
         "manuscript/current_package",
         "current_package.zip",
     ],
-    "runtime_lifecycle_sqlite_role": {
+    "lifecycle_refs_adapter_role": {
         "classification": "refs_only_adapter",
-        "current_mas_role": SIDECAR_ROLE,
+        "current_mas_role": LIFECYCLE_REF_ROLE,
         "owner": GENERIC_PERSISTENCE_OWNER,
         "authority": "refs_payload_projection_only",
         "generic_persistence_engine_claim_allowed": GENERIC_PERSISTENCE_ENGINE_CLAIM_ALLOWED,
@@ -273,7 +273,7 @@ LIFECYCLE_VERIFICATION_REQUIRED_FIELDS = (
     "study_id",
     "quest_id",
     "authority_files_checked",
-    "sqlite_sidecar_checked",
+    "sqlite_refs_index_checked",
     "legacy_restore_import_used",
     "export_paths",
     "result",
@@ -292,10 +292,10 @@ def runtime_lifecycle_contract() -> dict[str, Any]:
         "migration_run_modes": list(MIGRATION_RUN_MODES),
         "lifecycle_reader_names": list(LIFECYCLE_READER_NAMES),
         "file_authority_surfaces": list(FILE_AUTHORITY_SURFACES),
-        "sqlite_sidecar_tables": list(SQLITE_SIDECAR_TABLES),
-        "sidecar_indexed_surfaces": list(SIDECAR_INDEXED_SURFACES),
-        "sidecar_authority_policy": SIDECAR_AUTHORITY_POLICY,
-        "sidecar_role": SIDECAR_ROLE,
+        "sqlite_refs_index_tables": list(LIFECYCLE_REF_TABLES),
+        "lifecycle_ref_indexed_surfaces": list(LIFECYCLE_REF_INDEXED_SURFACES),
+        "lifecycle_ref_authority_policy": LIFECYCLE_REF_AUTHORITY_POLICY,
+        "lifecycle_ref_role": LIFECYCLE_REF_ROLE,
         "generic_persistence_owner": GENERIC_PERSISTENCE_OWNER,
         "generic_persistence_engine_claim_allowed": GENERIC_PERSISTENCE_ENGINE_CLAIM_ALLOWED,
         "sqlite_authority_scope": list(SQLITE_AUTHORITY_SCOPE),
@@ -416,12 +416,12 @@ __all__ = [
     "QUEST_LIVE_WRITER_ROOT_POLICY",
     "Q1_Q6_CUTOVER_CONTRACT",
     "SCHEMA_VERSION",
-    "SIDECAR_AUTHORITY_POLICY",
-    "SIDECAR_INDEXED_SURFACES",
+    "LIFECYCLE_REF_AUTHORITY_POLICY",
+    "LIFECYCLE_REF_INDEXED_SURFACES",
     "SQLITE_AUTHORITY_SCOPE",
     "SQLITE_FORBIDDEN_AUTHORITY_SURFACES",
     "SQLITE_GITIGNORE_PATTERNS",
-    "SQLITE_SIDECAR_TABLES",
+    "LIFECYCLE_REF_TABLES",
     "SURFACE_KIND",
     "WORKSPACE_CLASSIFICATIONS",
     "runtime_lifecycle_contract",

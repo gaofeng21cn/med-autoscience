@@ -201,7 +201,7 @@ _OPERATOR_STATUS_TRUTH_SOURCE_LABELS = {
     "publication_eval": "publication_eval/latest.json",
     "controller_confirmation": "controller_confirmation_summary.json",
     "controller_decision": "controller_decisions/latest.json",
-    "runtime_watch": "runtime_watch",
+    "domain_health_diagnostic": "domain_health_diagnostic",
     "latest_event": "latest_events[0]",
 }
 _CONTINUATION_REASON_LABELS = {

@@ -209,7 +209,7 @@ def build_forbidden_write_guard_proof(
         "proof_refs": [
             {
                 "ref_kind": "python_symbol",
-                "ref": "med_autoscience.controllers.sidecar_family_adapter.dispatch_family_sidecar_task",
+                "ref": "med_autoscience.controllers.owner_route_handoff.dispatch_family_sidecar_task",
                 "role": "dispatch_guard",
             },
             {
@@ -375,7 +375,7 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
                 packet_id="no_forbidden_write_proof_ref_packet",
                 required_role="no_forbidden_write_proof_ref",
                 owner_surface="product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
-                fallback_owner_surface="sidecar_dispatch_response.forbidden_write_guard_proof",
+                fallback_owner_surface="owner_route_handoff_response.forbidden_write_guard_proof",
             ),
         ],
         "opl_stage_evidence_receipt_handoff": {
@@ -459,7 +459,7 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
         "no_forbidden_write_proof_handoff": {
             "proof_ref_role": "no_forbidden_write_proof_ref",
             "owner_surface": "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
-            "fallback_owner_surface": "sidecar_dispatch_response.forbidden_write_guard_proof",
+            "fallback_owner_surface": "owner_route_handoff_response.forbidden_write_guard_proof",
             "result_policy": "accepted_no_forbidden_writes_or_fail_closed_typed_blocker",
             "must_be_recorded_with_each_opl_stage_evidence_receipt": True,
             "body_included": False,
@@ -735,7 +735,7 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         ],
         "no_regression_evidence_refs": [
             "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py::test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers",
-            "tests/test_cli_cases/sidecar_family_adapter_command_cases/export_cases.py::test_sidecar_family_export_exposes_managed_temporal_state_consistency",
+            "tests/test_cli_cases/owner_route_handoff_command_cases/export_cases.py::test_owner_route_handoff_export_exposes_managed_temporal_state_consistency",
         ],
         "retired_or_tombstoned_surfaces": retired_surfaces,
         "tombstone_refs": [
@@ -851,7 +851,7 @@ def build_provider_availability_from_opl_proof(
                 "provider_residency_proven": True,
                 "provider_completion_is_paper_closure": False,
                 "paper_closure_requires_mas_owner_receipt": True,
-                "mas_runtime_watch_role": "domain_truth_and_local_diagnostics",
+                "mas_domain_health_diagnostic_role": "domain_truth_and_local_diagnostics",
             },
         }
     return {

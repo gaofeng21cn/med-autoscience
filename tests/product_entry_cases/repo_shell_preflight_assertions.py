@@ -108,7 +108,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
                         "symptom": "OPL scheduler replacement projection 未在线，或 MAS domain runtime freshness stale/missing。",
                     "recommended_command": (
-                        "uv run python -m med_autoscience.cli watch --runtime-root "
+                        "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
@@ -147,7 +147,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 },
                 {
                     "guardrail_id": "quality_floor_blocker",
-                    "trigger": "study-progress intervention_lane / runtime watch figure-loop alerts / publication gate",
+                    "trigger": "study-progress intervention_lane / domain health diagnostic figure-loop alerts / publication gate",
                     "symptom": "研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
                     "recommended_command": (
                         "uv run python -m med_autoscience.cli study-progress --profile "
@@ -165,13 +165,13 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 {
                     "step_id": "refresh_supervision",
                     "command": (
-                        "uv run python -m med_autoscience.cli watch --runtime-root "
+                        "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
                         + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                     ),
-                    "surface_kind": "runtime_watch_refresh",
+                    "surface_kind": "domain_health_diagnostic_refresh",
                 },
                 {
                     "step_id": "inspect_study_progress",

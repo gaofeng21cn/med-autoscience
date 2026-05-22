@@ -72,7 +72,7 @@ def test_work_unit_ledger_appends_replayable_events(tmp_path: Path) -> None:
         study_root=study_root,
         identity=identity,
         event_type="dispatched",
-        payload={"source": "runtime_watch"},
+        payload={"source": "domain_health_diagnostic"},
         recorded_at="2026-04-26T00:01:00+00:00",
     )
 
@@ -368,7 +368,7 @@ def test_work_unit_ledger_coalesces_lifecycle_and_enforces_single_writer(tmp_pat
         study_root=study_root,
         identity=identity,
         event_type="dispatched",
-        payload={"source": "runtime_watch"},
+        payload={"source": "domain_health_diagnostic"},
         recorded_at="2026-04-26T00:01:00+00:00",
     )
     accepted = ledger.append_event(

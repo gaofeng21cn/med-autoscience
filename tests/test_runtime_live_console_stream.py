@@ -42,7 +42,7 @@ def test_runtime_live_console_once_emits_read_only_sse_events(monkeypatch, tmp_p
                         "sequence": 2,
                         "topic": "runtime.health",
                         "observed_at": "2026-05-08T01:02:04+00:00",
-                        "source_ref": [{"surface": "study_runtime_status"}],
+                        "source_ref": [{"surface": "progress_projection"}],
                         "payload": {"state": "live"},
                     },
                     {
@@ -269,7 +269,7 @@ def test_runtime_live_console_snapshot_materializes_workspace_session_model(tmp_
         study_root = workspace_root / "studies" / study_id
         study_root.mkdir(parents=True)
         (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
-        status_path = study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json"
+        status_path = study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json"
         status_path.parent.mkdir(parents=True)
         status_path.write_text(
             json.dumps(

@@ -14,8 +14,8 @@ REQUIRED_DURABILITY_GUARANTEES = (
 )
 
 RUNTIME_TRUTH_SURFACES = (
-    "study_runtime_status",
-    "runtime_watch",
+    "progress_projection",
+    "domain_health_diagnostic",
     "artifacts/runtime/health/latest.json",
     "runtime_escalation_record.json",
 )
@@ -74,8 +74,8 @@ IDEMPOTENT_TICK_CONTRACT: dict[str, Any] = {
     ],
     "duplicate_tick_policy": "return_existing_decision_ref",
     "allowed_write_surfaces": [
-        "study_runtime_status",
-        "runtime_watch",
+        "progress_projection",
+        "domain_health_diagnostic",
         "runtime_escalation_record.json",
         "artifacts/controller_decisions/latest.json",
     ],

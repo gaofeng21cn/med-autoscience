@@ -94,7 +94,7 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",

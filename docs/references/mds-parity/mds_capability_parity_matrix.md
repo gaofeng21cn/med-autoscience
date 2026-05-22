@@ -10,7 +10,7 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 behavior equivalence audit 追加 `mds_behavior_equivalence_matrix`，2026-05-09 scheduler contract correction 曾把 owner 口径从 Hermes adapter 提升为 MAS-owned scheduler contract，2026-05-16 P0 migration 又把默认 outer supervision owner 迁到 OPL scheduler replacement，并退役 MAS local install path。2026-05-20 进一步把 Hermes ensure/create/refresh/trigger 路径退为 cleanup-only。该矩阵明确区分 `default_independence` 与 `full_mds_daemon_behavior_equivalence`：MAS 默认 operation 不依赖外部 MDS repo / daemon / WebUI；当前默认 adapter 是 OPL `opl_family_runtime_provider`，MAS-owned `local` scheduler / LaunchAgent 已物理退役为 tombstone/provenance refs，不再每 300 秒调用 MAS-owned supervision tick sequence，也不暴露 status/remove cleanup path；Hermes gateway cron 只作 explicit legacy diagnostic cleanup adapter，不是 MDS resident HTTP/WebSocket daemon 的完整行为复刻。详细差异见 [MDS Behavior Equivalence Gap Matrix](./mds_behavior_equivalence_gap_matrix.md)。
 
-2026-05-08 Runtime Turn Lifecycle correction 把旧 MDS daemon 的连续科研主循环落成 MAS-owned runtime surface：`runtime_core_daemon` 和 `worker_runner_lifecycle` 现在归类为 `mas_owned`。`runtime_watch` / supervisor / scheduler adapter 只负责 reconcile、wakeup、redrive 和 stale recovery；真正的连续执行由 `schedule_turn`、`complete_turn_and_normalize`、runner monitor、delayed auto-continue timer、worker lease、turn receipt 和 user message queue 决定。
+2026-05-08 Runtime Turn Lifecycle correction 把旧 MDS daemon 的连续科研主循环落成 MAS-owned runtime surface：`runtime_core_daemon` 和 `worker_runner_lifecycle` 现在归类为 `mas_owned`。`domain_health_diagnostic` / supervisor / scheduler adapter 只负责 reconcile、wakeup、redrive 和 stale recovery；真正的连续执行由 `schedule_turn`、`complete_turn_and_normalize`、runner monitor、delayed auto-continue timer、worker lease、turn receipt 和 user message queue 决定。
 
 2026-05-08 Runtime Continuity closeout 在 behavior matrix 中追加 `runtime_continuity_completion` 合同：`runtime_session` 只读投影 worker/session/freshness，`recovery_intent` 记录 controller-owned recovery intent，`runtime_reconcile_trigger` 只输出 safe reconcile 推荐和 blocked reasons，`runtime_continuity` 投到 progress/cockpit/product-entry/Portal/MCP/OPL。该合同明确 `external_mds_repo_required=false`、`mds_daemon_required=false`，并固定 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`。
 
@@ -89,7 +89,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 
 ### runtime execution
 
-- MAS contract: `study_runtime_status` / `runtime_watch` 持有 runtime decision 与 recovery visibility。
+- MAS contract: `progress_projection` / `domain_health_diagnostic` 持有 runtime decision 与 recovery visibility。
 - MDS oracle: MDS quest execution trace 只能作为 backend behavior fixture 被 replay。
 - Proof: MAS recovery decision 必须匹配或显式 supersede replayed MDS behavior。
 

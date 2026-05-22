@@ -87,7 +87,7 @@ def test_execute_noop_runtime_decision_ignores_repair_report_older_than_current_
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
     chats: list[dict[str, object]] = []
 
     class FakeBackend:

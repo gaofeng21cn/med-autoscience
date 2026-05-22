@@ -94,8 +94,8 @@ def _dispatch_profile_command(
             study_id=str(request["study_id"]),
             entry_mode=_optional_text(request.get("entry_mode")),
         ),
-        "study-runtime-status": lambda: product_entry._serialize_runtime_status(
-            study_runtime_router.study_runtime_status(
+        "progress-projection": lambda: product_entry._serialize_runtime_status(
+            study_runtime_router.progress_projection(
                 profile=profile,
                 study_id=str(request["study_id"]),
                 entry_mode=_optional_text(request.get("entry_mode")),

@@ -879,7 +879,7 @@ def test_ensure_study_runtime_blocks_when_resume_request_fails_after_active_ques
     assert calls == []
 
 
-def test_study_runtime_status_resumes_controller_owned_finalize_parking_and_surfaces_continuation_state(
+def test_progress_projection_resumes_controller_owned_finalize_parking_and_surfaces_continuation_state(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -962,7 +962,7 @@ def test_study_runtime_status_resumes_controller_owned_finalize_parking_and_surf
         raising=False,
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_parked_on_unchanged_finalize_state"

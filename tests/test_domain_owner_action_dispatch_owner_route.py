@@ -58,7 +58,7 @@ def test_execute_dispatch_materializes_display_contract_stubs_before_gate_cleari
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "quest_id": f"quest-{study_id}",
@@ -247,7 +247,7 @@ def test_execute_dispatch_allows_external_engineering_agent_for_external_supervi
         lambda **_: {
             "execution_status": "executed",
             "blocked_reason": None,
-            "owner_callable_surface": "domain_route_scan.scan_domain_routes(apply_runtime_platform_repair=True)",
+            "owner_callable_surface": "owner_route_reconcile.scan_domain_routes(apply_runtime_platform_repair=True)",
         },
     )
 
@@ -304,7 +304,7 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": ready_route}],
         },
@@ -376,7 +376,7 @@ def test_execute_dispatch_action_type_requires_current_consumer_dispatch(
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": route}],
         },
@@ -527,7 +527,7 @@ def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_an
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -658,7 +658,7 @@ def test_execute_dispatch_does_not_repeat_suppress_pending_ai_reviewer_output(
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -775,7 +775,7 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -897,7 +897,7 @@ def test_execute_dispatch_runs_runtime_platform_repair_when_terminal_stall_route
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -923,7 +923,7 @@ def test_execute_dispatch_runs_runtime_platform_repair_when_terminal_stall_route
         return {
             "execution_status": "executed",
             "blocked_reason": None,
-            "owner_callable_surface": "domain_route_scan.scan_domain_routes(apply_runtime_platform_repair=True)",
+            "owner_callable_surface": "owner_route_reconcile.scan_domain_routes(apply_runtime_platform_repair=True)",
             "owner_result": {"dispatch_status": "applied", "started": True, "active_run_id": "run-obesity"},
         }
 

@@ -835,11 +835,11 @@ def test_materialize_evaluation_summary_artifacts_aligns_bundle_only_agenda_with
     assert summary["quality_review_agenda"] == {
         "top_priority_issue": "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。",
         "suggested_revision": "对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。",
-        "next_review_focus": "复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。",
+        "next_review_focus": "复核 medical_reporting_audit、domain_health_diagnostic 与 publication gate 状态是否已清掉 stale reporting blockers。",
         "agenda_summary": (
             "优先修复：当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。；"
             "建议修订：对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。；"
-            "下一轮复评重点：复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。"
+            "下一轮复评重点：复核 medical_reporting_audit、domain_health_diagnostic 与 publication gate 状态是否已清掉 stale reporting blockers。"
         ),
     }
     assert summary["quality_revision_plan"] == {
@@ -862,9 +862,9 @@ def test_materialize_evaluation_summary_artifacts_aligns_bundle_only_agenda_with
                 "action_type": "stabilize_submission_bundle",
                 "action": "对齐 reporting contract、display registry 与必需 shell/input surfaces，让 current package 与已接受展示包保持一致。",
                 "rationale": "当前任务范围已收窄到 reporting/display contract mismatch；现阶段不要重开 manuscript evidence adequacy 或 scientific claims。",
-                "done_criteria": "下一轮复评能够明确确认：复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。",
+                "done_criteria": "下一轮复评能够明确确认：复核 medical_reporting_audit、domain_health_diagnostic 与 publication gate 状态是否已清掉 stale reporting blockers。",
                 "route_target": "finalize",
             }
         ],
-        "next_review_focus": ["复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。"],
+        "next_review_focus": ["复核 medical_reporting_audit、domain_health_diagnostic 与 publication gate 状态是否已清掉 stale reporting blockers。"],
     }

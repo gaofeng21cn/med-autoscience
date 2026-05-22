@@ -762,7 +762,7 @@ def test_medical_manuscript_quality_agent_lab_suite_records_controller_read_mode
     _write_json(
         study_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "studies": [
                 {
                     "study_id": study_root.name,

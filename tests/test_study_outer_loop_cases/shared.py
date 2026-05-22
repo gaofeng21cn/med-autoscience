@@ -14,7 +14,7 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _runtime_watch_tick_request_module() -> object:
+def _domain_health_diagnostic_tick_request_module() -> object:
     return importlib.import_module("med_autoscience.controllers.study_outer_loop_parts.tick_request")
 
 
@@ -72,7 +72,7 @@ def _write_runtime_event_record(
         study_id="001-risk",
         quest_id=quest_id,
         emitted_at="2026-04-05T05:56:00+00:00",
-        event_source="study_runtime_status",
+        event_source="progress_projection",
         event_kind="status_observed",
         summary_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
         status_snapshot={

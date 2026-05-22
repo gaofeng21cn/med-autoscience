@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .publication_runtime import _latest_runtime_watch_report
+from .publication_runtime import _latest_domain_health_diagnostic_report
 from .shared import _candidate_path, _non_empty_text
 
 
@@ -16,7 +16,7 @@ class ProjectionInputPaths:
     publication_eval_path: Path
     controller_decision_path: Path
     runtime_escalation_path: Path | None
-    runtime_watch_path: Path | None
+    domain_health_diagnostic_path: Path | None
     runtime_supervision_path: Path
     gate_clearing_batch_path: Path
     bash_summary_path: Path | None
@@ -48,7 +48,7 @@ def resolve_projection_input_paths(
         publication_eval_path=study_root / "artifacts" / "publication_eval" / "latest.json",
         controller_decision_path=study_root / "artifacts" / "controller_decisions" / "latest.json",
         runtime_escalation_path=runtime_escalation_path,
-        runtime_watch_path=_latest_runtime_watch_report(quest_root),
+        domain_health_diagnostic_path=_latest_domain_health_diagnostic_report(quest_root),
         runtime_supervision_path=study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
         gate_clearing_batch_path=study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         bash_summary_path=quest_root / ".ds" / "bash_exec" / "summary.json" if quest_root is not None else None,

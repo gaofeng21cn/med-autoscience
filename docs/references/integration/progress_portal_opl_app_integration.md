@@ -26,7 +26,7 @@ ops/mas/progress/index.html
 
 `latest.json` 是展示 payload，不是 study truth。`index.html` 是 per-workspace fixed entrance，不依赖 OPL App 才能打开。payload 应包含 `generated_at`、freshness、source refs、study/workspace identity、user-visible state、next action、blockers、quality/publication projection、delivery/artifact locators 和 stale/missing/conflict 状态。OPL 只能消费这些 payload refs 与定位信息，不能把它们提升为 OPL-owned study truth、runtime authority、publication authority 或 package authority。
 
-MAS payload 的输入只能来自 MAS durable surfaces，例如 `study_macro_state/latest.json`、`study_progress.user_visible_projection`、`workspace-cockpit`、`study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、delivery/package projection 和 runtime lifecycle read model。
+MAS payload 的输入只能来自 MAS durable surfaces，例如 `study_macro_state/latest.json`、`study_progress.user_visible_projection`、`workspace-cockpit`、`progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json`、delivery/package projection 和 runtime lifecycle read model。
 
 `latest.json` 内固定包含 `opl_handoff`，作为 OPL family projection 的最小稳定 bundle：
 

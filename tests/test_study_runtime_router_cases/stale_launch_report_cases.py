@@ -1,7 +1,7 @@
 from .shared import *  # noqa: F403
 
 
-def test_study_runtime_status_invalidates_stale_live_launch_report_when_no_worker(
+def test_progress_projection_invalidates_stale_live_launch_report_when_no_worker(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -118,7 +118,7 @@ def test_study_runtime_status_invalidates_stale_live_launch_report_when_no_worke
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result.get("active_run_id") is None
     assert "autonomous_runtime_notice" not in result
@@ -139,7 +139,7 @@ def test_study_runtime_status_invalidates_stale_live_launch_report_when_no_worke
     assert refreshed_launch_report["stale_launch_report_invalidated"] is True
 
 
-def test_study_runtime_status_rebuilds_invalid_launch_report(
+def test_progress_projection_rebuilds_invalid_launch_report(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -236,7 +236,7 @@ def test_study_runtime_status_rebuilds_invalid_launch_report(
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["runtime_summary_alignment"]["aligned"] is False
     assert result["runtime_summary_alignment"]["mismatch_reason"] == "launch_report_invalid_json"

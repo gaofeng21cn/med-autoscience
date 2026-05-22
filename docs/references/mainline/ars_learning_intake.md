@@ -24,12 +24,12 @@ MAS 只吸收三类模式：
 
 2. `data_access_and_oversight_metadata`
    - 映射为 stage / source readiness / human gate 可读 metadata。
-   - 权威输入继续来自 `study_charter`、`evidence_ledger`、`review_ledger`、`study_runtime_status` 和 `runtime_watch`。
+   - 权威输入继续来自 `study_charter`、`evidence_ledger`、`review_ledger`、`progress_projection` 和 `domain_health_diagnostic`。
    - 该 metadata 不授予 OPL raw data access、source body access 或 write permission。
 
 3. `evidence_handoff_passport`
    - 映射为 body-free evidence handoff ref pack。
-   - MAS 使用 `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`controller_decisions/latest.json` 和 `runtime_watch` 表达 handoff / closeout / receipt。
+   - MAS 使用 `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`controller_decisions/latest.json` 和 `domain_health_diagnostic` 表达 handoff / closeout / receipt。
    - ARS passport 不成为 MAS truth，也不导出 passport body。
 
 ## OPL 边界

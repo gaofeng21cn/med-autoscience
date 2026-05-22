@@ -158,8 +158,8 @@ Portal 的输入来自现有 MAS surface：
 - `study_progress.runtime_reconcile_trigger`
 - `study.runtime_continuity`
 - `workspace-cockpit`
-- `study_runtime_status`
-- `runtime_watch`
+- `progress_projection`
+- `domain_health_diagnostic`
 - `runtime_supervision/latest.json`
 - `publication_eval/latest.json`
 - `controller_decisions/latest.json`

@@ -52,7 +52,7 @@ def test_retained_capability_absorb_surface_keeps_mds_oracle_consumed_by_mas_own
     assert runtime_group["consumption_contract"] == "execution/recovery replay consumer"
     assert runtime_group["mds_oracle_fixture"] == "legacy_med_deepscientist_runtime_replay_oracle_fixture"
     assert runtime_group["mds_fixture_role"] == "legacy_oracle"
-    assert runtime_group["mas_consumer_surfaces"] == ["study_runtime_status", "runtime_watch"]
+    assert runtime_group["mas_consumer_surfaces"] == ["progress_projection", "domain_health_diagnostic"]
 
     artifact_group = groups[1]
     assert artifact_group["capability_id"] == "artifact_inventory"

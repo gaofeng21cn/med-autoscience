@@ -314,7 +314,7 @@ def _build_candidate_path_graph(
         "authority": "read_model_only",
         "replaces_controller_decision": False,
         "can_replace_controller_decision_latest": False,
-        "can_replace_study_runtime_status": False,
+        "can_replace_progress_projection": False,
         "replaces_study_truth": False,
         "can_replace_study_truth": False,
         "can_authorize_submission_readiness": False,

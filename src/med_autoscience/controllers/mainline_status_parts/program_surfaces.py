@@ -304,7 +304,7 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
     doctor_command = "uv run python -m med_autoscience.cli doctor --profile <profile>"
     supervisor_service_command = "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>"
     refresh_supervision_command = (
-        "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> "
+        "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> "
         "--profile <profile> --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     launch_study_command = (
@@ -360,7 +360,7 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
                 title="刷新 MAS domain runtime projection",
-                surface_kind="runtime_watch_refresh",
+                surface_kind="domain_health_diagnostic_refresh",
                 command=refresh_supervision_command,
             ),
             _build_shared_product_entry_program_step(
@@ -382,12 +382,12 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="study_runtime_status.autonomous_runtime_notice",
-                command="uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>",
+                surface_kind="progress_projection.autonomous_runtime_notice",
+                command="uv run python -m med_autoscience.cli study progress-projection --profile <profile> --study-id <study_id>",
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="runtime_watch",
-                ref="studies/<study_id>/artifacts/runtime_watch/latest.json",
+                surface_kind="domain_health_diagnostic",
+                ref="studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="runtime_supervision",

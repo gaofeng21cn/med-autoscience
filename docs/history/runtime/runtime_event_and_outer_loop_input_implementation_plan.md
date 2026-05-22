@@ -39,7 +39,7 @@
 - Modify: `tests/test_runtime_transport_med_deepscientist.py`
 - Modify: `tests/test_study_runtime_router.py`
 - Modify: `tests/test_study_outer_loop.py`
-- Modify: `tests/test_runtime_watch.py`
+- Modify: `tests/test_domain_health_diagnostic.py`
 
 - [historical] 覆盖 `paused / stopped / waiting_for_user / stale / degraded / live`
 - [historical] 覆盖 session-native `runtime_event_ref` 缺失、quest mismatch、artifact mismatch、schema mismatch

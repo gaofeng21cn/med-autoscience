@@ -10,7 +10,7 @@ from typing import Any
 
 from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import domain_action_requests
-from med_autoscience.controllers.domain_route_scan_parts import study_identity
+from med_autoscience.controllers.owner_route_reconcile_parts import study_identity
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
@@ -254,14 +254,14 @@ def _resolve_study_ids(*, profile: WorkspaceProfile, study_ids: Iterable[str] | 
 
 
 def _discover_paper_study_ids(profile: WorkspaceProfile) -> tuple[str, ...]:
-    supervised = list(study_identity.resolve_domain_route_scan_study_ids(profile))
+    supervised = list(study_identity.resolve_owner_route_reconcile_study_ids(profile))
     return tuple(supervised)
 
 
 def _discover_noncanonical_paper_authority_residue_dirs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
     if not profile.studies_root.is_dir():
         return []
-    canonical_study_ids = set(study_identity.resolve_domain_route_scan_study_ids(profile))
+    canonical_study_ids = set(study_identity.resolve_owner_route_reconcile_study_ids(profile))
     residue_dirs: list[dict[str, Any]] = []
     for study_root in sorted(path for path in profile.studies_root.iterdir() if path.is_dir()):
         if study_root.name in canonical_study_ids:

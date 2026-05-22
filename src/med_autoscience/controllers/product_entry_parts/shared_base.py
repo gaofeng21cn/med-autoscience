@@ -33,7 +33,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
-from med_autoscience.runtime_protocol.runtime_lifecycle_store import (
+from med_autoscience.runtime_protocol.lifecycle_refs_adapter import (
     build_domain_memory_descriptor,
     build_family_stage_control_plane,
     build_product_entry_adoption_projection,
@@ -574,7 +574,7 @@ def _build_product_entry_guardrails(
     profile_arg = _profile_arg(profile_ref)
     progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
     refresh_command = (
-        f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
         f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     build_guardrails = _controller_override("_build_shared_product_entry_guardrails", _build_shared_product_entry_guardrails)
@@ -610,7 +610,7 @@ def _build_product_entry_guardrails(
             ),
             _build_shared_guardrail_class(
                 guardrail_id="quality_floor_blocker",
-                trigger="study-progress intervention_lane / runtime watch figure-loop alerts / publication gate",
+                trigger="study-progress intervention_lane / domain health diagnostic figure-loop alerts / publication gate",
                 symptom="研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
                 recommended_command=progress_command,
             ),
@@ -624,7 +624,7 @@ def _build_product_entry_guardrails(
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
                 command=refresh_command,
-                surface_kind="runtime_watch_refresh",
+                surface_kind="domain_health_diagnostic_refresh",
             ),
             _build_shared_product_entry_program_step(
                 step_id="inspect_study_progress",

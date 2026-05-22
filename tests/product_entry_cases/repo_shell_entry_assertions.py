@@ -200,8 +200,8 @@ def _assert_skill_catalog_projection(*, module, payload, profile, profile_ref) -
     }
     assert payload["task_lifecycle"]["checkpoint_summary"]["verification_ref"] == {
         "ref_kind": "workspace_locator",
-        "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
-        "label": "runtime watch event companion",
+        "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
+        "label": "domain health diagnostic event companion",
     }
     assert payload["task_lifecycle"]["human_gate_ids"] == [
         "study_user_decision_gate",
@@ -264,7 +264,7 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
             + " --study-id <study_id> --format json"
         ),
         "recommended_artifact_command": (
-            "uv run python -m med_autoscience.cli study-runtime-status --profile "
+            "uv run python -m med_autoscience.cli study progress-projection --profile "
             + str(profile_ref.resolve())
             + " --study-id <study_id> --format json"
         ),
@@ -279,17 +279,17 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
             "title": "MAS domain runtime projection refresh",
             "owner": "one-person-lab",
             "trigger_kind": "interval",
-            "target_surface_kind": "runtime_watch_refresh",
+            "target_surface_kind": "domain_health_diagnostic_refresh",
             "summary": "由 OPL-owned scheduler transport 触发 MAS domain projection refresh，保持恢复建议和 attention queue 为最新状态。",
             "readiness_status": "automation_ready",
             "gate_policy": "publication_gated",
             "output_expectation": [
-                "refresh runtime watch",
+                "refresh domain health diagnostic",
                 "update workspace attention queue",
                 "preserve controller decision lineage",
             ],
             "target_command": (
-                "uv run python -m med_autoscience.cli watch --runtime-root "
+                "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                 + str(profile.runtime_root)
                 + " --profile "
                 + str(profile_ref.resolve())

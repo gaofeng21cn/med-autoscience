@@ -144,7 +144,7 @@ def test_waiting_owner_closeout_superseded_by_default_executor_execution_redrive
     )
     _patch_ready_workspace(monkeypatch, module, study_id=study_id)
 
-    status = module.study_runtime_status(
+    status = module.progress_projection(
         profile=profile,
         study_id=study_id,
         include_progress_projection=False,
@@ -212,7 +212,7 @@ def test_waiting_controller_colon_owner_closeout_resumes_after_explicit_user_wak
         or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-explicit"}},
     )
 
-    status = module.study_runtime_status(
+    status = module.progress_projection(
         profile=profile,
         study_id=study_id,
         include_progress_projection=False,

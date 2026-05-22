@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.runtime_protocol import runtime_lifecycle_store
+from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
 
 SCHEMA_VERSION = 1
@@ -207,7 +207,7 @@ def _index_receipt(
     receipt: Mapping[str, Any],
     db_path: Path | None,
 ) -> None:
-    runtime_lifecycle_store.record_paper_work_unit_receipt(
+    lifecycle_refs_adapter.record_paper_work_unit_receipt(
         study_root=study_root,
         quest_root=quest_root,
         receipt=receipt,

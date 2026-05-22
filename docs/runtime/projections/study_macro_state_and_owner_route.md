@@ -8,7 +8,7 @@ MAS 的状态读取、runtime 修复、publication gate、AI reviewer 与 dispat
 
 - 论文真相继续由 canonical paper、manuscript、package、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_truth/latest.json` 等文件 surface 持有。
 - 用户干预和记忆使用 append-only 文件 surface，例如 `artifacts/interventions/events.jsonl`；它记录用户做过什么、为什么暂停或重开、下一次 Agent 应如何接力。
-- SQLite lifecycle store 只做 sidecar index、read model、receipt 与幂等检索。它可以索引 `study_macro_state_snapshot`、`owner_route_receipt`、`dispatch_receipt`、`surface_ref`，不能替代文件 authority。
+- lifecycle refs SQLite store 只做 refs index、read model、receipt 与幂等检索。它可以索引 `study_macro_state_snapshot`、`owner_route_receipt`、`dispatch_receipt`、`surface_ref`，不能替代文件 authority。
 
 ## 宏观状态
 
@@ -50,4 +50,4 @@ consumer 和 dispatch executor 只能传播并执行 route 允许的动作。req
 
 ## 工程依据
 
-该合同采用 [controller reconcile loop](https://kubernetes.io/docs/concepts/architecture/controller/)、CQRS/read model、durable workflow replay、[idempotent command receipt](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) 和 trace/context propagation 的工程原则。MAS 内部落点是文件 authority + reducer + owner route + SQLite sidecar index；外部名词不作为新的 runtime 依赖。
+该合同采用 [controller reconcile loop](https://kubernetes.io/docs/concepts/architecture/controller/)、CQRS/read model、durable workflow replay、[idempotent command receipt](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) 和 trace/context propagation 的工程原则。MAS 内部落点是文件 authority + reducer + owner route + SQLite refs index index；外部名词不作为新的 runtime 依赖。

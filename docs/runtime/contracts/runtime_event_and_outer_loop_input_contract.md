@@ -30,7 +30,7 @@
 
 稳定表面：
 
-- `study_runtime_status`
+- `progress_projection`
 - `runtime_supervision/latest.json`
 - `runtime_escalation_record.json`
 - `controller_decisions/latest.json`
@@ -75,7 +75,7 @@ native runtime truth 扩展字段：
 
 ## 4. Managed Study Status Contract
 
-对 managed runtime 且 quest 已存在的 study，`study_runtime_status` 必须满足：
+对 managed runtime 且 quest 已存在的 study，`progress_projection` 必须满足：
 
 - `runtime_event_ref` 直接来自 session-native `runtime_event_ref`
 - `runtime_event` 可内联暴露最新 native event payload
@@ -85,7 +85,7 @@ native runtime truth 扩展字段：
 
 禁止事项：
 
-- 不得再由 `study_runtime_status` 把本地观测重新写成 quest-owned `status_observed` event
+- 不得再由 `progress_projection` 把本地观测重新写成 quest-owned `status_observed` event
 - 不得再由 `study_runtime_execution` 把 create / resume / pause / completion 动作写成 quest-owned `transition_applied` event
 - `runtime_supervision` 可以在 study-level supervision report 中回显 `runtime_event_ref`，但不得覆盖 quest-owned `runtime_events/latest.json`
 
@@ -137,7 +137,7 @@ native runtime truth 扩展字段：
 - `supervisor_tick_audit.status != fresh` 时，不得把当前 runtime 输入表述成稳定托管中
 - `runtime_escalation_ref` 缺失或非法时，不得把需要 escalation 的场景描述成正常可继续
 - 不允许再用 controller-side synthetic event 覆盖 native runtime truth
-- 不允许把 `runtime_watch`、`launch_report` 或 `study_progress` 升格成 quest runtime truth
+- 不允许把 `domain_health_diagnostic`、`launch_report` 或 `study_progress` 升格成 quest runtime truth
 
 ## 7. 当前完成状态
 

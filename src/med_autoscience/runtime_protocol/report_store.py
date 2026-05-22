@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from . import runtime_lifecycle_store
+from . import lifecycle_refs_adapter
 
 
 def _dump_json(path: Path, payload: Any) -> None:
@@ -19,10 +19,10 @@ def _load_json(path: Path, default: Any = None) -> Any:
 
 
 def _state_dir(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "reports" / "runtime_watch"
+    return quest_root / "artifacts" / "reports" / "domain_health_diagnostic"
 
 
-def load_watch_state(quest_root: Path) -> dict[str, Any]:
+def load_domain_health_diagnostic_state(quest_root: Path) -> dict[str, Any]:
     path = _state_dir(quest_root) / "state.json"
     return _load_json(path, default={"schema_version": 1, "controllers": {}}) or {
         "schema_version": 1,
@@ -30,9 +30,9 @@ def load_watch_state(quest_root: Path) -> dict[str, Any]:
     }
 
 
-def save_watch_state(quest_root: Path, payload: Mapping[str, Any]) -> None:
+def save_domain_health_diagnostic_state(quest_root: Path, payload: Mapping[str, Any]) -> None:
     _dump_json(_state_dir(quest_root) / "state.json", dict(payload))
-    runtime_lifecycle_store.record_watch_state(quest_root=quest_root, payload=dict(payload))
+    lifecycle_refs_adapter.record_domain_health_diagnostic_state(quest_root=quest_root, payload=dict(payload))
 
 
 def write_timestamped_report(
@@ -52,7 +52,7 @@ def write_timestamped_report(
     md_path.write_text(markdown, encoding="utf-8")
     _dump_json(base / "latest.json", dict(report))
     (base / "latest.md").write_text(markdown, encoding="utf-8")
-    runtime_lifecycle_store.record_runtime_report(
+    lifecycle_refs_adapter.record_runtime_report(
         quest_root=quest_root,
         report_group=report_group,
         timestamp=timestamp,

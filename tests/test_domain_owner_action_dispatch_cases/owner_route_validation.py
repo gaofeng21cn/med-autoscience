@@ -129,7 +129,7 @@ def test_execute_dispatch_blocks_apply_when_stall_fingerprint_is_not_current(mon
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {

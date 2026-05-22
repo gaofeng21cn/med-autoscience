@@ -2,14 +2,14 @@ from __future__ import annotations
 
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from ..publication_and_submission import *  # noqa: F403
-from med_autoscience.controllers.domain_route_scan_parts import hard_methodology_currentness
+from med_autoscience.controllers.owner_route_reconcile_parts import hard_methodology_currentness
 from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers import source_provenance_owner_result
 
 
 def _publication_gate_allows_live_runtime_write_stage_resume(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     publication_gate_report: dict[str, object] | None,
 ) -> bool:
     if not _publication_gate_allows_post_clear_runtime_continuation(publication_gate_report):
@@ -61,7 +61,7 @@ def _runtime_owned_roots(quest_root: Path) -> tuple[str, ...]:
 
 def _record_execution_owner_guard(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     quest_root: Path,
 ) -> None:
     execution = status.execution
@@ -159,7 +159,7 @@ def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQ
 
 def _record_controller_authorization_if_present(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     quest_root: Path,
     study_root: Path | None = None,
 ) -> None:
@@ -222,7 +222,7 @@ def _blocked_closeout_payload(*, quest_root: Path) -> dict[str, object] | None:
     return payload
 
 
-def _record_blocked_closeout_if_present(*, status: StudyRuntimeStatus, quest_root: Path) -> None:
+def _record_blocked_closeout_if_present(*, status: ProgressProjectionStatus, quest_root: Path) -> None:
     payload = _blocked_closeout_payload(quest_root=quest_root)
     if payload is None:
         return
@@ -285,7 +285,7 @@ def _controller_action_types(runtime_state: dict[str, object]) -> set[str]:
 
 def _superseding_default_executor_execution(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
     runtime_state: dict[str, object],
     blocked_closeout: dict[str, object],
@@ -337,7 +337,7 @@ def _superseding_default_executor_execution(
 
 def _record_blocked_closeout_supersession_if_present(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
     quest_root: Path,
 ) -> None:
@@ -371,7 +371,7 @@ def _record_blocked_closeout_supersession_if_present(
     )
 
 
-def _record_continuation_state_if_present(*, status: StudyRuntimeStatus, quest_root: Path) -> None:
+def _record_continuation_state_if_present(*, status: ProgressProjectionStatus, quest_root: Path) -> None:
     payload = _continuation_state_payload(quest_root=quest_root, quest_status=status.quest_status)
     if payload is None:
         return

@@ -168,7 +168,7 @@ def test_group_help_lists_subcommands(capsys) -> None:
     assert exit_code == 0
     assert "Usage: medautosci study <command> [options]" in captured.out
     assert "progress" in captured.out
-    assert "runtime-status" in captured.out
+    assert "progress-projection" in captured.out
 
 
 def test_publication_group_help_lists_route_memory_inventory(capsys) -> None:
@@ -357,11 +357,11 @@ def test_preflight_changes_command_rejects_multiple_change_sources() -> None:
 
     with pytest.raises(SystemExit):
         cli.main(["doctor", "preflight", "--files", "README.md", "--staged"])
-def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_domain_health_diagnostic_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
 
-    def fake_run_watch_for_runtime(
+    def fake_run_domain_health_diagnostic_for_runtime(
         *,
         runtime_root: Path,
         apply: bool,
@@ -376,9 +376,9 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
         called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
         return {"scanned_quests": ["q001"], "runtime_root": str(runtime_root)}
 
-    monkeypatch.setattr(cli.runtime_watch, "run_watch_for_runtime", fake_run_watch_for_runtime)
+    monkeypatch.setattr(cli.domain_health_diagnostic, "run_domain_health_diagnostic_for_runtime", fake_run_domain_health_diagnostic_for_runtime)
 
-    exit_code = cli.main(["runtime", "watch", "--runtime-root", str(tmp_path / "quests"), "--apply"])
+    exit_code = cli.main(["runtime", "domain-health-diagnostic", "--runtime-root", str(tmp_path / "quests"), "--apply"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -631,7 +631,7 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_run_watch_for_runtime(
+    def fake_run_domain_health_diagnostic_for_runtime(
         *,
         runtime_root: Path,
         apply: bool,
@@ -646,12 +646,11 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
         called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
         return {"managed_study_actions": [{"study_id": "001-risk", "decision": "create_and_start"}]}
 
-    monkeypatch.setattr(cli.runtime_watch, "run_watch_for_runtime", fake_run_watch_for_runtime)
+    monkeypatch.setattr(cli.domain_health_diagnostic, "run_domain_health_diagnostic_for_runtime", fake_run_domain_health_diagnostic_for_runtime)
 
     exit_code = cli.main(
         [
-            "runtime",
-            "watch",
+            "runtime", "domain-health-diagnostic",
             "--runtime-root",
             str(tmp_path / "quests"),
             "--profile",
@@ -691,8 +690,7 @@ def test_watch_command_rejects_retired_loop_parameter(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         cli.main(
             [
-                "runtime",
-                "watch",
+                "runtime", "domain-health-diagnostic",
                 "--runtime-root",
                 str(tmp_path / "quests"),
                 "--loop",

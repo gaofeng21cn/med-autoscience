@@ -145,7 +145,7 @@ def test_study_state_matrix_routes_ai_reviewer_ready_without_currentness_back_to
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "002-dm",
             "study_root": str(study_root),
@@ -209,7 +209,7 @@ def test_study_state_matrix_underdefined_ai_reviewer_preempts_delivered_director
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "002-dm",
             "study_root": str(study_root),

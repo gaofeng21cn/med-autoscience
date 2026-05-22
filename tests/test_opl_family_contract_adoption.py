@@ -68,7 +68,7 @@ def test_mas_runtime_projection_maps_to_existing_runtime_truth_surfaces() -> Non
     contract = _contract()
     attempt = contract["attempt_projection"]
 
-    for surface in ("study_runtime_status", "runtime_watch", "controller_decisions/latest.json"):
+    for surface in ("progress_projection", "domain_health_diagnostic", "controller_decisions/latest.json"):
         assert surface in attempt["source_surfaces"]
     assert attempt["maps_to_opl_contract"] == "opl_family_runtime_attempt_contract.v1"
     assert "study runtime truth" in attempt["owner_boundary"]

@@ -150,7 +150,7 @@ def test_human_takeover_pause_blocks_status_auto_resume(monkeypatch, tmp_path: P
         lambda **kwargs: (_ for _ in ()).throw(AssertionError("human takeover pause must not be auto-resumed")),
     )
 
-    status = module.study_runtime_status(profile=profile, study_root=study_root)
+    status = module.progress_projection(profile=profile, study_root=study_root)
 
     assert status["quest_status"] == "paused"
     assert status["decision"] == "blocked"

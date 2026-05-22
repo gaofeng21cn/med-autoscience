@@ -26,7 +26,7 @@ __all__ = [
     "product_entry",
     "reference_papers",
     "runtime_reentry_gate",
-    "runtime_watch",
+    "domain_health_diagnostic",
     "study_runtime_router",
     "study_delivery_sync",
     "study_progress",

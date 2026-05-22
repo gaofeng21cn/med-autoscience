@@ -230,7 +230,7 @@
         "owner": "med-autoscience",
         "required_role": "no_forbidden_write_proof_ref",
         "owner_surface": "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
-        "fallback_owner_surface": "sidecar_dispatch_response.forbidden_write_guard_proof",
+        "fallback_owner_surface": "owner_route_handoff_response.forbidden_write_guard_proof",
         "body_included": false,
         "opl_ingestable": true,
         "opl_projection_only": true,
@@ -448,7 +448,7 @@
     "no_forbidden_write_proof_handoff": {
       "proof_ref_role": "no_forbidden_write_proof_ref",
       "owner_surface": "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
-      "fallback_owner_surface": "sidecar_dispatch_response.forbidden_write_guard_proof",
+      "fallback_owner_surface": "owner_route_handoff_response.forbidden_write_guard_proof",
       "result_policy": "accepted_no_forbidden_writes_or_fail_closed_typed_blocker",
       "must_be_recorded_with_each_opl_stage_evidence_receipt": true,
       "body_included": false,
@@ -730,9 +730,9 @@
         "execution_owner": "Codex CLI",
         "primary_surfaces": [
           "runtime_transport/mas_runtime_core*",
-          "runtime_protocol/runtime_lifecycle_store.py",
+          "runtime_protocol/lifecycle_refs_adapter.py",
           "product_entry_parts/workspace_cockpit",
-          "sidecar_family_adapter",
+          "owner_route_handoff",
           "runtime status projection"
         ],
         "done_criteria": [

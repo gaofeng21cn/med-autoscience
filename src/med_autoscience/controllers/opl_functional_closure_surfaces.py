@@ -10,8 +10,8 @@ MAS_EVIDENCE_LANE_REF = "contracts/evidence/mas-evidence-lane.json"
 STABLE_BLOCKER_EVIDENCE_REFS = (
     MAS_EVIDENCE_LANE_REF,
     "tests/test_real_paper_readiness_owner_blocker.py::test_readiness_owner_blocker_projection_unblocks_guarded_apply_as_stable_blocker",
-    "tests/test_cli_cases/sidecar_family_guarded_apply_cases.py::test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present",
-    "tests/test_cli_cases/sidecar_family_guarded_apply_cases.py::test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker",
+    "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present",
+    "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker",
 )
 
 

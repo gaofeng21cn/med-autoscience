@@ -19,10 +19,10 @@ def handle_study_read_command(
     study_truth_kernel: Any,
     runtime_health_kernel: Any,
 ) -> int | None:
-    if args.command == "study-runtime-status":
+    if args.command == "progress-projection":
         _require_one_study_ref(args, parser)
         profile = load_profile(args.profile)
-        result = study_runtime_router.study_runtime_status(
+        result = study_runtime_router.progress_projection(
             profile=profile,
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
@@ -127,7 +127,7 @@ def _read_status_payload(
     study_runtime_router: Any,
     serialize_study_runtime_result: Callable[[Any], dict[str, Any]],
 ) -> dict[str, Any]:
-    status = study_runtime_router.study_runtime_status(
+    status = study_runtime_router.progress_projection(
         profile=profile,
         study_id=args.study_id,
         study_root=Path(args.study_root) if args.study_root else None,

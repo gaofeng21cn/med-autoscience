@@ -160,7 +160,7 @@ def _escalation_ref(
     recorded_at: str,
     runtime_reason: str | None,
     latest_report_path: Path,
-    runtime_watch_report_path: Path | None,
+    domain_health_diagnostic_report_path: Path | None,
 ) -> dict[str, str] | None:
     if quest_root is None or quest_id is None:
         return None
@@ -172,8 +172,8 @@ def _escalation_ref(
     evidence_refs = [str(latest_report_path)]
     if launch_report_path is not None:
         evidence_refs.append(str(launch_report_path))
-    if runtime_watch_report_path is not None:
-        evidence_refs.append(str(runtime_watch_report_path))
+    if domain_health_diagnostic_report_path is not None:
+        evidence_refs.append(str(domain_health_diagnostic_report_path))
     record = study_runtime_protocol.RuntimeEscalationRecord(
         schema_version=1,
         record_id=f"runtime-escalation::{study_root.name}::{quest_id}::{escalation_reason}::{recorded_at}",
@@ -307,7 +307,7 @@ def materialize_runtime_supervision(
     status_payload: Mapping[str, Any],
     recorded_at: str,
     apply: bool,
-    runtime_watch_report_path: Path | None = None,
+    domain_health_diagnostic_report_path: Path | None = None,
 ) -> dict[str, Any] | None:
     resolved_study_root = Path(study_root).expanduser().resolve()
     if not _is_managed_runtime_status(status_payload):
@@ -515,8 +515,8 @@ def materialize_runtime_supervision(
             "runtime_health_snapshot_path": str(
                 runtime_health_kernel.runtime_health_snapshot_path(study_root=resolved_study_root)
             ),
-            "runtime_watch_report_path": (
-                str(runtime_watch_report_path.expanduser().resolve()) if runtime_watch_report_path is not None else None
+            "domain_health_diagnostic_report_path": (
+                str(domain_health_diagnostic_report_path.expanduser().resolve()) if domain_health_diagnostic_report_path is not None else None
             ),
         },
     }
@@ -529,7 +529,7 @@ def materialize_runtime_supervision(
             recorded_at=recorded_at,
             runtime_reason=runtime_reason,
             latest_report_path=latest_report_path,
-            runtime_watch_report_path=runtime_watch_report_path,
+            domain_health_diagnostic_report_path=domain_health_diagnostic_report_path,
         )
         if escalation_ref is not None:
             report["runtime_escalation_ref"] = escalation_ref

@@ -25,9 +25,9 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
         manuscript_family="prediction_model",
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
-    runtime_watch_path = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    domain_health_diagnostic_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     _write_json(
-        runtime_watch_path,
+        domain_health_diagnostic_path,
         {
             "schema_version": 1,
             "scanned_at": "2026-04-21T04:16:00+00:00",
@@ -40,7 +40,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
                     "route_key_question": "当前同线稿件还差哪一步最窄修订？",
                     "controller_action_type": "ensure_study_runtime_relaunch_stopped",
                     "dispatch_status": "executed",
-                    "source": "runtime_watch_outer_loop_wakeup",
+                    "source": "domain_health_diagnostic_outer_loop_wakeup",
                 }
             ],
             "controllers": {},
@@ -49,7 +49,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -123,7 +123,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
         "progress_freshness_status": "missing",
         "next_confirmation_signal": "先补齐论文证据与叙事，再回到发表门控复核。",
         "proof_refs": [
-            str(runtime_watch_path),
+            str(domain_health_diagnostic_path),
             str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
         ],
     }
@@ -201,7 +201,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
         ],
     )
     _write_runtime_escalation(quest_root, study_root)
-    _write_runtime_watch(quest_root)
+    _write_domain_health_diagnostic(quest_root)
     _write_bash_summary(quest_root)
     _write_details_projection(quest_root)
     publishability_gate_path = _write_publishability_gate_report(quest_root)
@@ -227,7 +227,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -617,7 +617,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -730,7 +730,7 @@ def test_study_progress_does_not_project_autonomous_controller_gate_as_physician
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -799,7 +799,7 @@ def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -882,7 +882,7 @@ def test_study_progress_surfaces_same_line_route_back_quality_focus(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",

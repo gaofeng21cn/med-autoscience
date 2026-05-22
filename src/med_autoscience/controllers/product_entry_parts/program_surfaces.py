@@ -129,7 +129,7 @@ def _build_phase3_clearance_lane(
     doctor_command = f"{prefix} doctor --profile {profile_arg}"
     supervisor_service_command = f"{prefix} runtime-supervision-status --profile {profile_arg}"
     refresh_supervision_command = (
-        f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
         f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     launch_study_command = f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>"
@@ -182,7 +182,7 @@ def _build_phase3_clearance_lane(
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
                 title="刷新 MAS domain runtime projection",
-                surface_kind="runtime_watch_refresh",
+                surface_kind="domain_health_diagnostic_refresh",
                 command=refresh_supervision_command,
             ),
             _build_shared_product_entry_program_step(
@@ -204,12 +204,12 @@ def _build_phase3_clearance_lane(
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="study_runtime_status.autonomous_runtime_notice",
-                command=f"{prefix} study-runtime-status --profile {profile_arg} --study-id <study_id>",
+                surface_kind="progress_projection.autonomous_runtime_notice",
+                command=f"{prefix} study progress-projection --profile {profile_arg} --study-id <study_id>",
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="runtime_watch",
-                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_watch" / "latest.json"),
+                surface_kind="domain_health_diagnostic",
+                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "domain_health_diagnostic" / "latest.json"),
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="runtime_supervision",
@@ -354,8 +354,8 @@ def _build_opl_native_helper_proof_surface() -> dict[str, Any]:
             "helper_owner": "one-person-lab",
             "helper_write_policy": "no_domain_truth_writes",
             "authoritative_truth_refs": [
-                "/study_runtime_status",
-                "/runtime_watch",
+                "/progress_projection",
+                "/domain_health_diagnostic",
                 "/publication_eval/latest.json",
                 "/controller_decisions/latest.json",
             ],

@@ -95,7 +95,7 @@ def _publication_eval_latest_path(study_root: Path) -> Path:
 
 def quest_root_from_status(profile: WorkspaceProfile, study_id: str) -> Path | None:
     try:
-        status = study_runtime_router.study_runtime_status(profile=profile, study_id=study_id, study_root=None, entry_mode=None)
+        status = study_runtime_router.progress_projection(profile=profile, study_id=study_id, study_root=None, entry_mode=None)
     except Exception:
         return None
     status_payload = dict(status) if isinstance(status, Mapping) else status.to_dict()
@@ -173,11 +173,11 @@ def execute_runtime_platform_repair(
         return {
             "execution_status": "dry_run",
             "blocked_reason": None,
-            "owner_callable_surface": "runtime domain-route-scan --apply-runtime-platform-repair",
+            "owner_callable_surface": "runtime owner-route-reconcile --apply-runtime-platform-repair",
         }
-    from .. import domain_route_scan
+    from .. import owner_route_reconcile
 
-    result = domain_route_scan.scan_domain_routes(
+    result = owner_route_reconcile.scan_domain_routes(
         profile=profile,
         study_ids=(study_id,),
         apply_safe_actions=True,
@@ -194,7 +194,7 @@ def execute_runtime_platform_repair(
     return {
         "execution_status": "executed" if executed else "blocked",
         "blocked_reason": None if executed else _text(apply_result.get("reason")) or "runtime_platform_repair_not_applied",
-        "owner_callable_surface": "domain_route_scan.scan_domain_routes(apply_runtime_platform_repair=True)",
+        "owner_callable_surface": "owner_route_reconcile.scan_domain_routes(apply_runtime_platform_repair=True)",
         "owner_result": apply_result or result,
     }
 

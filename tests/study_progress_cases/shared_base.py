@@ -46,7 +46,7 @@ def test_study_progress_import_does_not_require_submission_pdf_dependency(monkey
     assert callable(module.read_study_progress)
 
 
-def test_publishability_gate_report_path_prefers_fresher_latest_gate_over_runtime_watch_pointer(
+def test_publishability_gate_report_path_prefers_fresher_latest_gate_over_domain_health_diagnostic_pointer(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
@@ -73,7 +73,7 @@ def test_publishability_gate_report_path_prefers_fresher_latest_gate_over_runtim
     )
 
     result = module._publishability_gate_report_path(
-        runtime_watch_payload={
+        domain_health_diagnostic_payload={
             "controllers": {
                 "publication_gate": {
                     "report_json": str(stale_gate_path),
@@ -302,7 +302,7 @@ def _write_runtime_escalation(quest_root: Path, study_root: Path) -> Path:
     return path
 
 
-def _write_runtime_watch(quest_root: Path) -> Path:
+def _write_domain_health_diagnostic(quest_root: Path) -> Path:
     payload = {
         "schema_version": 1,
         "scanned_at": "2026-04-10T09:08:00+00:00",
@@ -347,7 +347,7 @@ def _write_runtime_watch(quest_root: Path) -> Path:
             }
         },
     }
-    path = quest_root / "artifacts" / "reports" / "runtime_watch" / "20260410T090800Z.json"
+    path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "20260410T090800Z.json"
     _write_json(path, payload)
     return path
 
@@ -400,7 +400,7 @@ def _write_runtime_supervision(study_root: Path, quest_root: Path) -> Path:
         "next_action_summary": "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。",
         "refs": {
             "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
-            "runtime_watch_report_path": str(quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"),
+            "domain_health_diagnostic_report_path": str(quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"),
         },
     }
     path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"

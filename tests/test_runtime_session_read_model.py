@@ -6,7 +6,7 @@ from pathlib import Path
 import sqlite3
 
 
-def test_runtime_session_projection_prefers_study_runtime_status_and_enforces_strict_live_active_run(
+def test_runtime_session_projection_prefers_progress_projection_and_enforces_strict_live_active_run(
     tmp_path: Path,
 ) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_session_read_model")
@@ -42,7 +42,7 @@ def test_runtime_session_projection_prefers_study_runtime_status_and_enforces_st
     }
 
     projection = read_model.build_runtime_session_read_model(
-        study_runtime_status=status_payload,
+        progress_projection=status_payload,
         quest_root=tmp_path / "runtime" / "quests" / "quest-001",
         db_path=db_path,
         generated_at="2026-05-08T00:05:00+00:00",
@@ -52,7 +52,7 @@ def test_runtime_session_projection_prefers_study_runtime_status_and_enforces_st
     session = projection["runtime_session"]
     assert projection["surface_kind"] == "runtime_session_read_model"
     assert projection["read_only"] is True
-    assert session["source_priority"] == "study_runtime_status"
+    assert session["source_priority"] == "progress_projection"
     assert session["study_id"] == "001-risk"
     assert session["quest_id"] == "quest-001"
     assert session["active_run_id"] is None
@@ -64,7 +64,7 @@ def test_runtime_session_projection_prefers_study_runtime_status_and_enforces_st
     assert session["last_stdout_ref"] == "stdout://run-from-status"
     assert session["freshness_state"] == "fresh"
     assert session["freshness_age_seconds"] == 120
-    assert session["evidence_refs"] == [{"source": "study_runtime_status"}]
+    assert session["evidence_refs"] == [{"source": "progress_projection"}]
     assert session["generated_at"] == "2026-05-08T00:05:00+00:00"
 
 
@@ -93,7 +93,7 @@ def test_runtime_session_projection_includes_watchdog_fields_without_relaxing_st
     }
 
     projection = read_model.build_runtime_session_read_model(
-        study_runtime_status=status_payload,
+        progress_projection=status_payload,
         generated_at="2026-05-08T00:10:00+00:00",
     )
 
@@ -127,7 +127,7 @@ def test_runtime_session_projection_reads_runtime_worker_activity() -> None:
     }
 
     projection = read_model.build_runtime_session_read_model(
-        study_runtime_status=status_payload,
+        progress_projection=status_payload,
         generated_at="2026-05-08T00:10:00+00:00",
     )
 
@@ -168,7 +168,7 @@ def test_runtime_session_projection_reads_latest_lifecycle_event_when_status_is_
     )
 
     session = projection["runtime_session"]
-    assert session["source_priority"] == "runtime_lifecycle_store"
+    assert session["source_priority"] == "lifecycle_refs_adapter"
     assert session["study_id"] == "001-risk"
     assert session["quest_id"] == "quest-001"
     assert session["active_run_id"] == "run-live"
@@ -181,7 +181,7 @@ def test_runtime_session_projection_reads_latest_lifecycle_event_when_status_is_
     assert session["freshness_state"] == "measured"
     assert session["freshness_age_seconds"] == 120
     assert {ref["source"] for ref in session["evidence_refs"]} == {
-        "runtime_lifecycle_store",
+        "lifecycle_refs_adapter",
         "runtime_event_artifact",
         "runtime_event_latest",
         "runtime_event_summary",
@@ -229,7 +229,7 @@ def test_runtime_session_projection_falls_back_to_owner_route_receipts_without_c
             "source": "dispatch_receipts",
             "path": str((quest_root / "artifacts" / "runtime" / "dispatch" / "dispatch-001.json").resolve()),
         },
-        {"source": "runtime_lifecycle_store", "path": str(db_path.resolve())},
+        {"source": "lifecycle_refs_adapter", "path": str(db_path.resolve())},
     ]
 
 
@@ -300,7 +300,7 @@ def test_runtime_session_projection_is_read_only_for_authority_files(tmp_path: P
     before_mtime = status_path.stat().st_mtime_ns
 
     projection = read_model.build_runtime_session_read_model(
-        study_runtime_status_path=status_path,
+        progress_projection_path=status_path,
         generated_at="2026-05-08T00:01:00+00:00",
     )
 
@@ -326,19 +326,19 @@ def _write_runtime_event(
         "study_id": study_id,
         "quest_id": quest_id,
         "emitted_at": emitted_at,
-        "event_source": "study_runtime_status",
+        "event_source": "progress_projection",
         "event_kind": "status_observed",
         "summary_ref": str((quest_root / "artifacts" / "runtime" / "last_launch_report.json").resolve()),
         "status_snapshot": {
             "quest_status": "running",
             "decision": "continue",
-            "reason": "runtime_watch",
+            "reason": "domain_health_diagnostic",
             "active_run_id": active_run_id,
             "runtime_liveness_status": "live",
             "worker_running": True,
             "worker_state": "running",
             "continuation_policy": "auto",
-            "continuation_reason": "runtime_watch",
+            "continuation_reason": "domain_health_diagnostic",
             "supervisor_tick_status": "fresh",
             "controller_owned_finalize_parking": False,
             "runtime_escalation_ref": None,
@@ -347,7 +347,7 @@ def _write_runtime_event(
         "outer_loop_input": {
             "quest_status": "running",
             "decision": "continue",
-            "reason": "runtime_watch",
+            "reason": "domain_health_diagnostic",
             "active_run_id": active_run_id,
             "runtime_liveness_status": "live",
             "worker_running": True,
@@ -398,7 +398,7 @@ def _write_runtime_event(
                 quest_id,
                 study_id,
                 emitted_at,
-                "study_runtime_status",
+                "progress_projection",
                 "status_observed",
                 "running",
                 active_run_id,

@@ -262,7 +262,7 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
     status_result = module.call_tool(
         "study_runtime",
         {
-            "mode": "study_runtime_status",
+            "mode": "progress_projection",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },
@@ -334,7 +334,7 @@ def test_mcp_server_can_serialize_typed_ensure_study_runtime_result(monkeypatch,
     monkeypatch.setattr(
         module.study_runtime_router,
         "ensure_study_runtime",
-        lambda **kwargs: typed_surface.StudyRuntimeStatus.from_payload(
+        lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
                 "schema_version": 1,
                 "study_id": "001-risk",
@@ -368,7 +368,7 @@ def test_mcp_server_can_serialize_typed_ensure_study_runtime_result(monkeypatch,
     assert result["structuredContent"]["study_id"] == "001-risk"
 
 
-def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_server_can_serialize_typed_progress_projection_result(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -376,8 +376,8 @@ def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch,
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
-        lambda **kwargs: typed_surface.StudyRuntimeStatus.from_payload(
+        "progress_projection",
+        lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
                 "schema_version": 1,
                 "study_id": "001-risk",
@@ -400,7 +400,7 @@ def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch,
     result = module.call_tool(
         "study_runtime",
         {
-            "mode": "study_runtime_status",
+            "mode": "progress_projection",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },
@@ -411,7 +411,7 @@ def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch,
     assert result["structuredContent"]["study_id"] == "001-risk"
 
 
-def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_when_available(
+def test_mcp_server_progress_projection_prefers_progress_projection_markdown_when_available(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -421,7 +421,7 @@ def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_wh
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -499,7 +499,7 @@ def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_wh
     result = module.call_tool(
         "study_runtime",
         {
-            "mode": "study_runtime_status",
+            "mode": "progress_projection",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },
@@ -696,8 +696,8 @@ def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tm
     assert mcp_surface["mas_generic_owner_allowed"] is False
     retirement_matrix = boundary["physical_retirement_gate_matrix"]
     candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
-    assert candidates["sidecar_adapter"]["active_default_caller_count"] == 0
-    assert candidates["sidecar_adapter"]["physical_delete_permitted"] is False
+    assert candidates["owner_route_handoff"]["active_default_caller_count"] == 0
+    assert candidates["owner_route_handoff"]["physical_delete_permitted"] is False
     assert candidates["status_projection"]["retained_as"] == "domain_truth_status_projection"
     assert manifest["runtime_transport_handoff_projection"]["generated_default_caller_boundary"] == (
         generated_default

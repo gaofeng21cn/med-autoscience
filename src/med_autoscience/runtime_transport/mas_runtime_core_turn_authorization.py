@@ -9,7 +9,7 @@ from typing import Any
 from med_autoscience.controllers import domain_transition_currentness
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import provenance_limited_harmonization_owner_result
-from med_autoscience.controllers.domain_route_scan_parts import platform_current_controller
+from med_autoscience.controllers.owner_route_reconcile_parts import platform_current_controller
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
 )

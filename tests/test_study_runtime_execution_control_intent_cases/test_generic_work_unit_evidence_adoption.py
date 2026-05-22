@@ -78,7 +78,7 @@ def _status_for(study_root: Path, quest_root: Path, *, study_id: str, quest_id: 
     status_payload["quest_id"] = quest_id
     status_payload["quest_root"] = str(quest_root)
     status_payload["execution"]["quest_id"] = quest_id
-    return module.StudyRuntimeStatus.from_payload(status_payload)
+    return module.ProgressProjectionStatus.from_payload(status_payload)
 
 
 def _context(study_root: Path, quest_root: Path, runtime_root: Path) -> Any:
@@ -238,7 +238,7 @@ def test_execute_noop_runtime_decision_terminalizes_existing_completed_work_unit
                 "source_refs_count": 0,
             },
             "route_target": "analysis-campaign",
-            "source": "runtime_watch",
+            "source": "domain_health_diagnostic",
             "status": "completed",
             "work_unit_id": "manuscript_story_repair",
         },

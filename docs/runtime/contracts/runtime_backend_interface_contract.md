@@ -48,7 +48,7 @@
 
 fail-closed 规则：
 
-- 如果 `execution.runtime_backend_id` / `execution.runtime_backend` 被显式设置，但仓内没有注册对应 backend，`study_runtime_status` 必须返回阻断，而不是静默降级成 lightweight
+- 如果 `execution.runtime_backend_id` / `execution.runtime_backend` 被显式设置，但仓内没有注册对应 backend，`progress_projection` 必须返回阻断，而不是静默降级成 lightweight
 - 如果 execution 里没有显式 backend，且 `execution.engine` 也映射不到任何已注册 backend，才可判定为非 managed runtime execution
 
 ## 3. Backend Contract Surface

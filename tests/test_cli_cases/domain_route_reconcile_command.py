@@ -44,7 +44,7 @@ def test_domain_route_reconcile_command_runs_one_shot_and_writes_receipt(
         calls.append(("scan", tuple(study_ids)))
         suffix = len([name for name, _ in calls if name == "scan"])
         return {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "workspace_root": str(profile.workspace_root),
             "studies": [
                 {
@@ -106,7 +106,7 @@ def test_domain_route_reconcile_command_runs_one_shot_and_writes_receipt(
             ],
         }
 
-    monkeypatch.setattr(reconcile.domain_route_scan, "scan_domain_routes", fake_scan_domain_routes)
+    monkeypatch.setattr(reconcile.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
     monkeypatch.setattr(reconcile.domain_action_request_materializer, "materialize_domain_action_requests", fake_materialize_domain_action_requests)
     monkeypatch.setattr(
         reconcile.domain_owner_action_dispatch,
@@ -170,7 +170,7 @@ def test_domain_route_reconcile_dry_run_never_dispatches_llm(
 
     def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
         return {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "workspace_root": str(kwargs["profile"].workspace_root),
             "studies": [
                 {
@@ -187,7 +187,7 @@ def test_domain_route_reconcile_dry_run_never_dispatches_llm(
             "action_queue": [{"study_id": "DM002", "action_type": "runtime_platform_repair"}],
         }
 
-    monkeypatch.setattr(reconcile.domain_route_scan, "scan_domain_routes", fake_scan_domain_routes)
+    monkeypatch.setattr(reconcile.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
     monkeypatch.setattr(
         reconcile.domain_action_request_materializer,
         "materialize_domain_action_requests",
@@ -301,7 +301,7 @@ def test_domain_route_reconcile_executes_current_consume_payload_without_writing
 
     def fake_scan_domain_routes(**kwargs) -> dict[str, object]:
         payload = {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "workspace_root": str(kwargs["profile"].workspace_root),
             "studies": [{"study_id": study_id, "owner_route": current_route}],
             "action_queue": [],
@@ -309,7 +309,7 @@ def test_domain_route_reconcile_executes_current_consume_payload_without_writing
         _write_json(workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json", payload)
         return payload
 
-    monkeypatch.setattr(reconcile.domain_route_scan, "scan_domain_routes", fake_scan_domain_routes)
+    monkeypatch.setattr(reconcile.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
     monkeypatch.setattr(
         reconcile.domain_action_request_materializer,
         "materialize_domain_action_requests",
@@ -370,7 +370,7 @@ def test_domain_route_reconcile_dispatches_medical_prose_quality_repair_batch(
         }
     )
     scan_payload = {
-        "surface": "portable_domain_route_scan",
+        "surface": "portable_owner_route_reconcile",
         "workspace_root": str(workspace_root),
         "studies": [
             {
@@ -396,7 +396,7 @@ def test_domain_route_reconcile_dispatches_medical_prose_quality_repair_batch(
     }
     _write_json(workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json", scan_payload)
 
-    monkeypatch.setattr(reconcile.domain_route_scan, "scan_domain_routes", lambda **_: scan_payload)
+    monkeypatch.setattr(reconcile.owner_route_reconcile, "scan_domain_routes", lambda **_: scan_payload)
     called: dict[str, object] = {}
 
     def fake_execute_quality_repair_batch(**kwargs) -> dict[str, object]:

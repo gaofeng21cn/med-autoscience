@@ -131,7 +131,7 @@ def _render_watch_runtime_script(*, workspace_root: Path, runtime_quests_root: P
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
         f'WORKSPACE_RUNTIME_ROOT="${{WORKSPACE_ROOT}}/{relative_runtime_root}"\n\n'
-        'run_medautosci runtime watch \\\n'
+        'run_medautosci runtime domain-health-diagnostic \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         '  --runtime-root "${WORKSPACE_RUNTIME_ROOT}" \\\n'
         '  --ensure-study-runtimes \\\n'
@@ -146,7 +146,7 @@ def _render_scan_domain_routes_script() -> str:
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime domain-route-scan \\\n'
+        'run_medautosci runtime owner-route-reconcile \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         '  "$@"\n'
     )

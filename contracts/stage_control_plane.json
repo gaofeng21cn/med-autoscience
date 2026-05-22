@@ -507,7 +507,7 @@
             "role": "stage_progress_monitor"
           },
           {
-            "ref": "/study_runtime_status",
+            "ref": "/progress_projection",
             "ref_kind": "json_pointer",
             "role": "runtime_status_monitor"
           }
@@ -1041,7 +1041,7 @@
             "role": "stage_progress_monitor"
           },
           {
-            "ref": "/study_runtime_status",
+            "ref": "/progress_projection",
             "ref_kind": "json_pointer",
             "role": "runtime_status_monitor"
           }
@@ -1190,7 +1190,7 @@
           "independent_gate_receipt_required": false,
           "owner_receipt_contract_ref": "/product_entry_manifest/owner_receipt_contract",
           "runtime_event_refs": [
-            "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+            "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
             "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
           ],
           "stage_status_ref": "/progress_projection",
@@ -1593,7 +1593,7 @@
             "role": "stage_progress_monitor"
           },
           {
-            "ref": "/study_runtime_status",
+            "ref": "/progress_projection",
             "ref_kind": "json_pointer",
             "role": "runtime_status_monitor"
           }
@@ -1602,7 +1602,7 @@
           "baseline_evidence_ready"
         ],
         "runtime_event_refs": [
-          "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+          "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
           "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
         ],
         "source_scope_refs": [
@@ -1702,7 +1702,7 @@
         "owner_receipt_required": true,
         "records_runtime_events": true,
         "runtime_event_refs": [
-          "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+          "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
           "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
         ],
         "runtime_guard_required": true,
@@ -2141,7 +2141,7 @@
             "role": "stage_progress_monitor"
           },
           {
-            "ref": "/study_runtime_status",
+            "ref": "/progress_projection",
             "ref_kind": "json_pointer",
             "role": "runtime_status_monitor"
           }
@@ -2710,7 +2710,7 @@
             "role": "stage_progress_monitor"
           },
           {
-            "ref": "/study_runtime_status",
+            "ref": "/progress_projection",
             "ref_kind": "json_pointer",
             "role": "runtime_status_monitor"
           }
@@ -3281,7 +3281,7 @@
             "role": "stage_progress_monitor"
           },
           {
-            "ref": "/study_runtime_status",
+            "ref": "/progress_projection",
             "ref_kind": "json_pointer",
             "role": "runtime_status_monitor"
           }

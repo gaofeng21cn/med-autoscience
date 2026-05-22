@@ -44,9 +44,9 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
             },
         },
     )
-    runtime_watch_path = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    domain_health_diagnostic_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     _write_json(
-        runtime_watch_path,
+        domain_health_diagnostic_path,
         {
             "schema_version": 1,
             "scanned_at": "2026-04-28T10:00:00+00:00",
@@ -101,7 +101,7 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -185,7 +185,7 @@ def test_study_progress_projects_autonomy_slo_ai_doctor_state(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -251,7 +251,7 @@ def test_study_progress_materializes_autonomy_slo_when_surface_is_missing(
     monkeypatch.setattr(profiler, "profile_study_cycle", _materialize_slo)
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -596,7 +596,7 @@ def test_study_progress_freshness_uses_gate_clearing_batch_closure_as_progress_s
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -686,7 +686,7 @@ def test_study_progress_freshness_separates_supervisor_tick_from_artifact_delta(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "002-dm",
@@ -784,7 +784,7 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "002-dm",
@@ -902,7 +902,7 @@ def test_study_progress_gives_new_live_run_grace_before_activity_timeout(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "002-dm",

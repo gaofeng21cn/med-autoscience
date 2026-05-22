@@ -79,7 +79,7 @@ def test_task_intake_stop_loss_overrides_publication_supervisor_state(
         quest_status="running",
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="004-invasive-architecture")
+    result = module.progress_projection(profile=profile, study_id="004-invasive-architecture")
 
     assert result["publication_supervisor_state"]["supervisor_phase"] == "stop_loss"
     assert result["publication_supervisor_state"]["phase_owner"] == "task_intake"
@@ -97,7 +97,7 @@ def test_task_intake_stop_loss_blocks_stopped_auto_resume(
         quest_status="stopped",
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="004-invasive-architecture")
+    result = module.progress_projection(profile=profile, study_id="004-invasive-architecture")
 
     assert result["publication_supervisor_state"]["supervisor_phase"] == "stop_loss"
     assert result["decision"] == "blocked"
@@ -199,7 +199,7 @@ def test_task_intake_manual_hold_blocks_active_no_live_auto_repair(
         },
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="004-dpcc-longitudinal-care-inertia-intensification-gap",
     )

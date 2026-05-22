@@ -494,7 +494,7 @@ def test_quality_repair_batch_derives_route_context_from_runtime_status(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),
@@ -632,7 +632,7 @@ def test_quality_repair_batch_uses_paper_route_for_upstream_repair_under_downstr
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),
@@ -781,7 +781,7 @@ def test_quality_repair_batch_uses_runtime_authorization_for_submission_refresh_
             },
         },
         "last_controller_decision_authorization": {
-            "source": "domain_route_scan_platform_repair",
+            "source": "owner_route_reconcile_platform_repair",
             "decision_id": "decision-003-current",
             "work_unit_id": "submission_minimal_refresh",
             "work_unit_fingerprint": "publication-blockers::current",
@@ -800,7 +800,7 @@ def test_quality_repair_batch_uses_runtime_authorization_for_submission_refresh_
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),

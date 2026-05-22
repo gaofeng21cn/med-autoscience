@@ -313,7 +313,7 @@ def _delivery_journal_usability_guard() -> dict[str, Any]:
         "authority_surfaces": {
             "publication_quality": "artifacts/publication_eval/latest.json",
             "controller_decision": "artifacts/controller_decisions/latest.json",
-            "study_truth": "study_runtime_status",
+            "study_truth": "progress_projection",
         },
     }
 

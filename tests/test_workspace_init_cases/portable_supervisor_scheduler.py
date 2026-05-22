@@ -38,11 +38,11 @@ def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: P
     assert "--mode developer_apply_safe" in reconcile_domain_routes_text
     assert "--apply" in reconcile_domain_routes_text
 
-    scan_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan"
+    scan_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "owner-route-reconcile"
     assert scan_domain_routes.is_file()
     assert os.access(scan_domain_routes, os.X_OK)
     scan_domain_routes_text = scan_domain_routes.read_text(encoding="utf-8")
-    assert "run_medautosci runtime domain-route-scan" in scan_domain_routes_text
+    assert "run_medautosci runtime owner-route-reconcile" in scan_domain_routes_text
     assert '--profile "${PROFILE_PATH}"' in scan_domain_routes_text
 
     materialize_domain_action_requests = workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize"

@@ -35,7 +35,7 @@ def build_study_state_matrix(
     for study_id in resolved_study_ids:
         try:
             status = _dict(
-                study_runtime_router.study_runtime_status(
+                study_runtime_router.progress_projection(
                     profile=profile,
                     study_id=study_id,
                     study_root=None,
@@ -250,7 +250,7 @@ def _projection_error_macro_state(*, study_id: str, status: Mapping[str, Any]) -
             {
                 "type": "StatusProjectionError",
                 "status": "true",
-                "reason": "study status projection failed and must be inspected before routing",
+                "reason": "progress projection failed and must be inspected before routing",
             }
         ],
         "source_fingerprint": f"study-macro-state:projection-error:{study_id}",

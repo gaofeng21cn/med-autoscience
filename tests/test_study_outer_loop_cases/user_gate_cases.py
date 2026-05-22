@@ -30,7 +30,7 @@ def test_study_outer_loop_tick_dispatches_stop_runtime_action(monkeypatch, tmp_p
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -107,7 +107,7 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "study_root": str(study_root),
@@ -147,7 +147,7 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
             }
         ],
         reason="Human-review milestone reached; stop the live runtime and wait for explicit resume.",
-        source="runtime_watch_outer_loop_wakeup",
+        source="domain_health_diagnostic_outer_loop_wakeup",
         recorded_at="2026-04-05T06:12:00+00:00",
     )
 
@@ -161,5 +161,5 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
     assert seen["stop_kwargs"] == {
         "runtime_root": profile.managed_runtime_home,
         "quest_id": "quest-001",
-        "source": "runtime_watch_outer_loop_wakeup",
+        "source": "domain_health_diagnostic_outer_loop_wakeup",
     }

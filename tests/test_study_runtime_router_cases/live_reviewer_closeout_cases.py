@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_pauses_live_reviewer_intake_after_proven_bundle_closeout(
+def test_progress_projection_pauses_live_reviewer_intake_after_proven_bundle_closeout(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -143,14 +143,14 @@ def test_study_runtime_status_pauses_live_reviewer_intake_after_proven_bundle_cl
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "pause", result
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["publication_supervisor_state"]["current_required_action"] == "continue_bundle_stage"
 
 
-def test_study_runtime_status_keeps_live_reviewer_intake_running_with_open_blockers(
+def test_progress_projection_keeps_live_reviewer_intake_running_with_open_blockers(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -299,7 +299,7 @@ def test_study_runtime_status_keeps_live_reviewer_intake_running_with_open_block
         lambda **kwargs: pytest.fail("live reviewer repair with open blockers must not duplicate live resume"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
     ensured = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="user_explicit_wakeup")
 
     assert result["decision"] == "resume", result
@@ -316,7 +316,7 @@ def test_study_runtime_status_keeps_live_reviewer_intake_running_with_open_block
     assert not launch_report["daemon_result"]
 
 
-def test_study_runtime_status_resumes_running_delivered_package_without_worker_when_reviewer_blockers_open(
+def test_progress_projection_resumes_running_delivered_package_without_worker_when_reviewer_blockers_open(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -478,7 +478,7 @@ def test_study_runtime_status_resumes_running_delivered_package_without_worker_w
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["quest_status"] == "running"
     _assert_opl_runtime_owner_route_block(result)

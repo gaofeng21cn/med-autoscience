@@ -85,7 +85,7 @@ def _write_consumer_scan(profile, study_id: str, quest_id: str) -> None:
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [_runtime_platform_repair_action(study_id, quest_id)],
         },

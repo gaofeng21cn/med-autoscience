@@ -46,7 +46,7 @@ SQLite must not hold or authorize:
 
 Files and archives remain authoritative for:
 
-- `publication_eval/latest.json`, `controller_decisions/latest.json`, `study_runtime_status`, `runtime_watch`, study charter, evidence ledger, review ledger, manuscripts, tables, figures, packages, delivery mirrors, dataset manifests, restore manifests, and archive payloads.
+- `publication_eval/latest.json`, `controller_decisions/latest.json`, `progress_projection`, `domain_health_diagnostic`, study charter, evidence ledger, review ledger, manuscripts, tables, figures, packages, delivery mirrors, dataset manifests, restore manifests, and archive payloads.
 
 ## Current Drift Handling
 

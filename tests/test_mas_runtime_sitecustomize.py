@@ -143,7 +143,7 @@ def test_sitecustomize_prevents_repo_cache_when_direct_pytest_is_used(tmp_path: 
     probe_test = tmp_path / "probe_test.py"
     probe_test.write_text(
         "def test_import_mas_runtime_surface():\n"
-        "    import med_autoscience.controllers.runtime_watch\n"
+        "    import med_autoscience.controllers.domain_health_diagnostic\n"
         "    assert True\n",
         encoding="utf-8",
     )

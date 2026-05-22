@@ -9,11 +9,11 @@ from med_autoscience.controllers import control_intent
 from med_autoscience.runtime_protocol import quest_state, user_message
 
 from .controller_authorization_context import _load_controller_decision_route_context
-from ..study_runtime_status import (
+from ..progress_projection import (
     StudyRuntimeAuditStatus,
     StudyRuntimeDecision,
     StudyRuntimeReason,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
 )
 
 
@@ -48,7 +48,7 @@ def _write_runtime_state(*, quest_root: Path, runtime_state: dict[str, Any]) -> 
     path.write_text(json.dumps(runtime_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _live_controller_reroute_fingerprint(*, status: StudyRuntimeStatus) -> str:
+def _live_controller_reroute_fingerprint(*, status: ProgressProjectionStatus) -> str:
     publication_supervisor_state = status.extras.get("publication_supervisor_state")
     supervisor_payload = publication_supervisor_state if isinstance(publication_supervisor_state, dict) else {}
     canonical_payload = {
@@ -73,7 +73,7 @@ def _live_controller_reroute_fingerprint(*, status: StudyRuntimeStatus) -> str:
     return f"live-controller-reroute:{hashlib.sha256(encoded).hexdigest()[:24]}"
 
 
-def _live_controller_reroute_identity(*, status: StudyRuntimeStatus) -> control_intent.ControlIntentIdentity:
+def _live_controller_reroute_identity(*, status: ProgressProjectionStatus) -> control_intent.ControlIntentIdentity:
     publication_supervisor_state = status.extras.get("publication_supervisor_state")
     supervisor_payload = publication_supervisor_state if isinstance(publication_supervisor_state, dict) else {}
     current_required_action = _text(supervisor_payload.get("current_required_action")) or (
@@ -91,7 +91,7 @@ def _live_controller_reroute_identity(*, status: StudyRuntimeStatus) -> control_
     )
 
 
-def _study_root_for_lifecycle(*, status: StudyRuntimeStatus, context: Any) -> Path | None:
+def _study_root_for_lifecycle(*, status: ProgressProjectionStatus, context: Any) -> Path | None:
     value = getattr(context, "study_root", None) or status.study_root
     text = str(value or "").strip()
     return Path(text).expanduser().resolve() if text else None
@@ -99,7 +99,7 @@ def _study_root_for_lifecycle(*, status: StudyRuntimeStatus, context: Any) -> Pa
 
 def _live_controller_reroute_restart_already_recorded(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     runtime_state: dict[str, Any],
 ) -> bool:
     marker = runtime_state.get(_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY)
@@ -116,7 +116,7 @@ def _live_controller_reroute_restart_already_recorded(
 
 def _mark_live_controller_reroute_restart(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
     same_fingerprint_auto_turn_count: int,
 ) -> None:
@@ -154,7 +154,7 @@ def _reset_same_fingerprint_count_for_changed_live_controller_intent(
 
 def _mark_live_controller_reroute_awaiting_artifact_delta(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
     identity: control_intent.ControlIntentIdentity,
     same_fingerprint_auto_turn_count: int,
@@ -203,7 +203,7 @@ def _append_route_context_to_message(*, message: str, route_context: dict[str, s
 
 def _controller_owned_interaction_reply_message(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     route_context: dict[str, str] | None = None,
 ) -> str | None:
     if status.reason is StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
@@ -264,7 +264,7 @@ def _controller_owned_interaction_reply_message(
 
 def _relay_controller_owned_runtime_reply_if_required(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
 ) -> dict[str, Any] | None:
     route_context = _load_controller_decision_route_context(study_root=context.study_root)
@@ -295,7 +295,7 @@ def _relay_controller_owned_runtime_reply_if_required(
     return record
 
 
-def _has_live_running_worker(*, status: StudyRuntimeStatus) -> bool:
+def _has_live_running_worker(*, status: ProgressProjectionStatus) -> bool:
     payload = status.extras.get("runtime_liveness_audit")
     if not isinstance(payload, dict):
         return False
@@ -312,13 +312,13 @@ def _has_live_running_worker(*, status: StudyRuntimeStatus) -> bool:
     return payload.get("worker_running") is True
 
 
-def _should_skip_redundant_resume_for_live_controller_reroute(*, status: StudyRuntimeStatus) -> bool:
+def _should_skip_redundant_resume_for_live_controller_reroute(*, status: ProgressProjectionStatus) -> bool:
     if status.reason not in _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON:
         return False
     return _has_live_running_worker(status=status)
 
 
-def _should_skip_redundant_resume_for_live_domain_redrive(*, status: StudyRuntimeStatus) -> bool:
+def _should_skip_redundant_resume_for_live_domain_redrive(*, status: ProgressProjectionStatus) -> bool:
     if status.reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
         return False
     return _has_live_running_worker(status=status)
@@ -326,7 +326,7 @@ def _should_skip_redundant_resume_for_live_domain_redrive(*, status: StudyRuntim
 
 def _should_force_restart_for_live_controller_reroute(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
 ) -> bool:
     if not _should_skip_redundant_resume_for_live_controller_reroute(status=status):

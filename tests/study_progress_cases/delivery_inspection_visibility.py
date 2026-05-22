@@ -83,7 +83,7 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",

@@ -100,8 +100,8 @@ def build_progress_portal_hosted_package(
                 "upstream DeepScientist UI state",
             ],
             "must_not_write": [
-                "study_runtime_status",
-                "runtime_watch",
+                "progress_projection",
+                "domain_health_diagnostic",
                 "publication_eval/latest.json",
                 "controller_decisions/latest.json",
                 "study_macro_state/latest.json",

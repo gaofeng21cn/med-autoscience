@@ -36,7 +36,7 @@ def _minimal_payload(study_root: Path) -> dict[str, object]:
             / "escalation"
             / "runtime_escalation_record.json"
         ),
-        "runtime_watch_ref": str(
+        "domain_health_diagnostic_ref": str(
             study_root.parents[1]
             / "ops"
             / "med-deepscientist"
@@ -45,7 +45,7 @@ def _minimal_payload(study_root: Path) -> dict[str, object]:
             / "quest-001"
             / "artifacts"
             / "reports"
-            / "runtime_watch"
+            / "domain_health_diagnostic"
             / "latest.json"
         ),
         "health_status": "escalated",
@@ -115,7 +115,7 @@ def test_materialize_runtime_status_summary_writes_stable_runtime_artifact(tmp_p
                 / "escalation"
                 / "runtime_escalation_record.json"
             ),
-            runtime_watch_ref=str(
+            domain_health_diagnostic_ref=str(
                 study_root.parents[1]
                 / "ops"
                 / "med-deepscientist"
@@ -124,7 +124,7 @@ def test_materialize_runtime_status_summary_writes_stable_runtime_artifact(tmp_p
                 / "quest-001"
                 / "artifacts"
                 / "reports"
-                / "runtime_watch"
+                / "domain_health_diagnostic"
                 / "latest.json"
             ),
             health_status="live",

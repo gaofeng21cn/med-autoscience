@@ -70,7 +70,7 @@
 当前 `MAS` 把 DeepScientist lesson 固定映射到四条主线：
 
 1. `controller_charter`：研究合同、route-back、human gate、decision record。
-2. `runtime`：runtime_watch、outer-loop wakeup、takeover/resume/mailbox semantics。
+2. `runtime`：domain_health_diagnostic、outer-loop wakeup、takeover/resume/mailbox semantics。
 3. `eval_hygiene`：evidence ledger、review ledger、publication_eval、submission blocker。
 4. `workspace_projection`：study-progress、product-entry、artifact inventory、用户可见恢复点。
 

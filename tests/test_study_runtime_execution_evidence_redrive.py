@@ -86,7 +86,7 @@ def test_execute_resume_runtime_decision_stops_after_work_unit_evidence_adoption
     status_payload["quest_root"] = str(quest_root)
     status_payload["decision"] = "resume"
     status_payload["reason"] = "quest_marked_running_but_no_live_session"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -165,7 +165,7 @@ def test_execute_resume_runtime_decision_adopts_evidence_and_keeps_owner_handoff
             "continuation_anchor": "decision",
             "continuation_reason": "controller_work_unit_pending",
             "last_controller_decision_authorization": {
-                "source": "domain_route_scan_platform_repair",
+                "source": "owner_route_reconcile_platform_repair",
                 "work_unit_id": "analysis_claim_evidence_repair",
                 "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
             },
@@ -187,7 +187,7 @@ def test_execute_resume_runtime_decision_adopts_evidence_and_keeps_owner_handoff
         "continuation_reason": "controller_work_unit_pending",
         "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
     }
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
     resume_calls: list[dict[str, object]] = []
 
     monkeypatch.setattr(router, "_build_context_create_payload", lambda context: {"startup_contract": {}})
@@ -226,7 +226,7 @@ def test_execute_resume_runtime_decision_adopts_evidence_and_keeps_owner_handoff
         quest_root=quest_root,
         runtime_root=tmp_path / "runtime",
         runtime_backend=object(),
-        source="domain_route_scan_platform_repair",
+        source="owner_route_reconcile_platform_repair",
         execution={"quest_id": "quest-003", "auto_resume": True},
     )
 

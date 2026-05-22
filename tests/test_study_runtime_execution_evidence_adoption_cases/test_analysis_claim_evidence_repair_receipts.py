@@ -129,7 +129,7 @@ def test_execute_noop_runtime_decision_adopts_quality_repair_receipt_with_target
     status_payload["quest_root"] = str(quest_root)
     status_payload["quest_id"] = "quest-002"
     status_payload["execution"]["quest_id"] = "quest-002"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:

@@ -146,7 +146,7 @@ def _task_intake_scoped_quality_agenda(summary_payload: dict[str, Any]) -> dict[
         "让 current package 与已接受展示包保持一致。"
     )
     next_review_focus = (
-        "复核 medical_reporting_audit、runtime_watch 与 publication gate 状态是否已清掉 stale reporting blockers。"
+        "复核 medical_reporting_audit、domain_health_diagnostic 与 publication gate 状态是否已清掉 stale reporting blockers。"
         if _task_intake_contains_hint(texts, _TASK_INTAKE_STATUS_RECHECK_HINTS)
         else "复核 reporting/display contract mismatch 是否已经清零，且 current package 与 submission surfaces 保持事实一致。"
     )

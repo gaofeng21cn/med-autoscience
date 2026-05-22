@@ -30,7 +30,7 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
@@ -85,7 +85,7 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
         "reason": "quest_stopped_explicit_relaunch_requested",
         "quest_status": "active",
     }
-def test_build_runtime_watch_outer_loop_tick_request_materializes_bounded_analysis(tmp_path: Path) -> None:
+def test_build_domain_health_diagnostic_outer_loop_tick_request_materializes_bounded_analysis(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
@@ -154,7 +154,7 @@ def test_build_runtime_watch_outer_loop_tick_request_materializes_bounded_analys
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -176,7 +176,7 @@ def test_build_runtime_watch_outer_loop_tick_request_materializes_bounded_analys
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
-def test_runtime_watch_outer_loop_prefers_active_task_intake_analysis_over_gate_clearing(
+def test_domain_health_diagnostic_outer_loop_prefers_active_task_intake_analysis_over_gate_clearing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -259,7 +259,7 @@ def test_runtime_watch_outer_loop_prefers_active_task_intake_analysis_over_gate_
     )
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_report",
         lambda state: {"status": "clear"},
     )
@@ -278,7 +278,7 @@ def test_runtime_watch_outer_loop_prefers_active_task_intake_analysis_over_gate_
         fail_batch_recommendation,
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -300,7 +300,7 @@ def test_runtime_watch_outer_loop_prefers_active_task_intake_analysis_over_gate_
     ]
 
 
-def test_runtime_watch_outer_loop_promotes_task_intake_generic_gate_specificity_to_controller(
+def test_domain_health_diagnostic_outer_loop_promotes_task_intake_generic_gate_specificity_to_controller(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -391,12 +391,12 @@ def test_runtime_watch_outer_loop_promotes_task_intake_generic_gate_specificity_
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_report",
         lambda state: dict(generic_gate_report),
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -421,7 +421,7 @@ def test_runtime_watch_outer_loop_promotes_task_intake_generic_gate_specificity_
     assert "generic" in request["route_rationale"].lower()
 
 
-def test_runtime_watch_outer_loop_routes_deterministic_closeout_before_stale_task_intake(
+def test_domain_health_diagnostic_outer_loop_routes_deterministic_closeout_before_stale_task_intake(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -527,11 +527,11 @@ def test_runtime_watch_outer_loop_routes_deterministic_closeout_before_stale_tas
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": quest_root / ".ds" / "worktrees" / "paper-run" / "paper"})(),
     )
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -548,7 +548,7 @@ def test_runtime_watch_outer_loop_routes_deterministic_closeout_before_stale_tas
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -574,7 +574,7 @@ def test_runtime_watch_outer_loop_routes_deterministic_closeout_before_stale_tas
         ("quest_stopped_requires_explicit_rerun", "ensure_study_runtime_relaunch_stopped"),
     ],
 )
-def test_build_runtime_watch_outer_loop_tick_request_materializes_route_back_same_line(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_materializes_route_back_same_line(
     tmp_path: Path,
     status_reason: str,
     expected_action_type: str,
@@ -639,7 +639,7 @@ def test_build_runtime_watch_outer_loop_tick_request_materializes_route_back_sam
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -658,7 +658,7 @@ def test_build_runtime_watch_outer_loop_tick_request_materializes_route_back_sam
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
-def test_build_runtime_watch_outer_loop_tick_request_falls_back_to_quest_runtime_escalation_ref(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_falls_back_to_quest_runtime_escalation_ref(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
@@ -721,7 +721,7 @@ def test_build_runtime_watch_outer_loop_tick_request_falls_back_to_quest_runtime
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -739,7 +739,7 @@ def test_build_runtime_watch_outer_loop_tick_request_falls_back_to_quest_runtime
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
-def test_build_runtime_watch_outer_loop_tick_request_autoparks_ready_submission_milestone(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_autoparks_ready_submission_milestone(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
@@ -912,7 +912,7 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_ready_submission_
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",

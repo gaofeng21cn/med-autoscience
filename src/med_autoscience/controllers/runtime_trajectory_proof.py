@@ -24,7 +24,7 @@ _MUTATING_SIDE_EFFECT_CLASSES = frozenset(
 _AUTHORITY_GUARDED_REFS: tuple[str, ...] = (
     "artifacts/publication_eval/latest.json",
     "artifacts/controller_decisions/latest.json",
-    "study_runtime_status",
+    "progress_projection",
     "study_truth",
     "submission readiness",
 )
@@ -33,7 +33,7 @@ _AUTHORITY_GUARDED_REF_MATCHES: tuple[str, ...] = (
     "publication_eval/latest.json",
     "artifacts/controller_decisions/latest.json",
     "controller_decisions/latest.json",
-    "study_runtime_status",
+    "progress_projection",
     "study_truth",
     "submission readiness",
     "submission_minimal/readiness",

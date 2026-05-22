@@ -447,7 +447,7 @@ def test_non_managed_executor_still_blocks_stale_dispatch_even_when_runtime_auth
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": current_route}],
         },

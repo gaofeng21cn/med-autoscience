@@ -8,8 +8,8 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 
 from .. import study_runtime_router
-from ..domain_route_scan_parts import pending_user_messages
-from ..domain_route_scan_parts import platform_current_controller, platform_repair_pending_redrive
+from ..owner_route_reconcile_parts import pending_user_messages
+from ..owner_route_reconcile_parts import platform_current_controller, platform_repair_pending_redrive
 
 
 def _text(value: object) -> str | None:

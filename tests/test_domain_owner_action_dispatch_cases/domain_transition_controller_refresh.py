@@ -89,8 +89,8 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
         _write_json(
@@ -235,8 +235,8 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
         _write_json(
@@ -386,8 +386,8 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
     }
     calls: list[str] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
         _write_json(
@@ -531,8 +531,8 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
     }
     calls: list[str] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
         _write_json(

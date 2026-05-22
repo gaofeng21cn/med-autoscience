@@ -13,7 +13,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeDecision,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
 )
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import _load_json_dict
 
@@ -27,7 +27,7 @@ _STOPPED_RUNTIME_REDRIVE_CLASSIFICATIONS = frozenset(
 
 def _stopped_runtime_redrive_arbitration_candidate(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     execution: dict[str, object],
 ) -> dict[str, object] | None:
     if status.quest_status is not StudyRuntimeQuestStatus.STOPPED:
@@ -52,7 +52,7 @@ def _stopped_runtime_redrive_arbitration_candidate(
 
 def _record_interaction_arbitration_if_required(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     quest_root: Path,
     execution: dict[str, object],
     submission_metadata_only: bool,
@@ -96,7 +96,7 @@ def _record_interaction_arbitration_if_required(
     status.record_interaction_arbitration(arbitration)
 
 
-def _domain_transition_runtime_redrive_reason(status: StudyRuntimeStatus) -> StudyRuntimeReason | None:
+def _domain_transition_runtime_redrive_reason(status: ProgressProjectionStatus) -> StudyRuntimeReason | None:
     domain_transition = status.extras.get("domain_transition")
     if not isinstance(domain_transition, dict):
         return None
@@ -121,7 +121,7 @@ def _domain_transition_runtime_redrive_reason(status: StudyRuntimeStatus) -> Stu
     return reason
 
 
-def _publication_gate_domain_redrive_reason(status: StudyRuntimeStatus) -> StudyRuntimeReason | None:
+def _publication_gate_domain_redrive_reason(status: ProgressProjectionStatus) -> StudyRuntimeReason | None:
     domain_transition = status.extras.get("domain_transition")
     if not isinstance(domain_transition, dict):
         return None
@@ -139,7 +139,7 @@ def _publication_gate_domain_redrive_reason(status: StudyRuntimeStatus) -> Study
     return StudyRuntimeReason.DOMAIN_TRANSITION_PUBLICATION_GATE_BLOCKER
 
 
-def _has_domain_transition_runtime_redrive(status: StudyRuntimeStatus) -> bool:
+def _has_domain_transition_runtime_redrive(status: ProgressProjectionStatus) -> bool:
     interaction_arbitration = status.extras.get("interaction_arbitration")
     return (
         isinstance(interaction_arbitration, dict)
@@ -149,7 +149,7 @@ def _has_domain_transition_runtime_redrive(status: StudyRuntimeStatus) -> bool:
     )
 
 
-def _has_controller_work_unit_pending_redrive(status: StudyRuntimeStatus) -> bool:
+def _has_controller_work_unit_pending_redrive(status: ProgressProjectionStatus) -> bool:
     interaction_arbitration = status.extras.get("interaction_arbitration")
     return (
         isinstance(interaction_arbitration, dict)
@@ -159,7 +159,7 @@ def _has_controller_work_unit_pending_redrive(status: StudyRuntimeStatus) -> boo
     )
 
 
-def _has_stopped_runtime_redrive(status: StudyRuntimeStatus) -> bool:
+def _has_stopped_runtime_redrive(status: ProgressProjectionStatus) -> bool:
     interaction_arbitration = status.extras.get("interaction_arbitration")
     return (
         isinstance(interaction_arbitration, dict)
@@ -170,7 +170,7 @@ def _has_stopped_runtime_redrive(status: StudyRuntimeStatus) -> bool:
 
 
 def _current_ai_reviewer_domain_redrive_reason(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
 ) -> StudyRuntimeReason | None:
@@ -196,7 +196,7 @@ def _current_ai_reviewer_domain_redrive_reason(
 
 
 def _completion_blocked_ai_reviewer_redrive_reason(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
     publication_gate_report: dict[str, object] | None,
@@ -209,7 +209,7 @@ def _completion_blocked_ai_reviewer_redrive_reason(
 
 
 def _apply_completion_blocked_ai_reviewer_redrive_decision(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
     publication_gate_report: dict[str, object] | None,
@@ -226,7 +226,7 @@ def _apply_completion_blocked_ai_reviewer_redrive_decision(
 
 
 def _apply_completion_publication_gate_decision(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
     publication_gate_report: dict[str, object] | None,
@@ -249,7 +249,7 @@ def _apply_completion_publication_gate_decision(
 
 
 def _apply_ai_reviewer_domain_redrive_decision(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     reason: StudyRuntimeReason | None,
     execution: dict[str, object],
@@ -266,7 +266,7 @@ def _apply_ai_reviewer_domain_redrive_decision(
 
 
 def _apply_domain_transition_redrive_decision(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     reason: StudyRuntimeReason | None,
     execution: dict[str, object],

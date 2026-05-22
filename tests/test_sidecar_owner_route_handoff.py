@@ -13,7 +13,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 
 def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_state_mutation(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
@@ -60,7 +60,7 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
                 "study_id": study_id,
                 "quest_id": study_id,
                 "runtime_state_path": str(runtime_state_path),
-                "source": "domain_route_scan_platform_repair",
+                "source": "owner_route_reconcile_platform_repair",
                 "reason": "quest_waiting_opl_runtime_owner_route",
                 "repair_kind": "controller_work_unit_pending_redrive",
                 "authority_boundary": {

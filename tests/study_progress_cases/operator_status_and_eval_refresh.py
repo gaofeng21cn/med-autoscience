@@ -57,7 +57,7 @@ def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_ga
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -130,7 +130,7 @@ def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_de
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -284,7 +284,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -410,7 +410,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": study_id,
@@ -537,7 +537,7 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": study_id,
@@ -646,7 +646,7 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -735,7 +735,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
             ],
         },
     )
-    _write_runtime_watch(quest_root)
+    _write_domain_health_diagnostic(quest_root)
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
@@ -745,7 +745,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -852,7 +852,7 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "002-risk",

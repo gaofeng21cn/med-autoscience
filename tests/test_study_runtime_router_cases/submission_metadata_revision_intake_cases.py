@@ -90,7 +90,7 @@ def test_explicit_reviewer_revision_intake_resumes_paused_delivered_package(
     assert calls == ["prepare_overlay", "sync_context", "resume"]
 
 
-def test_study_runtime_status_does_not_resume_paused_delivered_package_from_stale_revision_intake(
+def test_progress_projection_does_not_resume_paused_delivered_package_from_stale_revision_intake(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -292,7 +292,7 @@ def test_study_runtime_status_does_not_resume_paused_delivered_package_from_stal
         lambda **kwargs: pytest.fail("read-only status must not resume from stale revision intake"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["quest_status"] == "paused"
     assert result["decision"] == "blocked"
@@ -785,7 +785,7 @@ def test_waiting_submission_metadata_reviewer_revision_with_open_concerns_resume
         or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-explicit"}},
     )
 
-    status = module.study_runtime_status(
+    status = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -844,7 +844,7 @@ def test_failed_submission_metadata_reviewer_revision_with_controller_owner_rela
                     "closeout_path": str(quest_root / "artifacts" / "runtime" / "turn_closeouts" / "run-blocked.json"),
                 },
                 "last_controller_decision_authorization": {
-                    "source": "domain_route_scan_platform_repair",
+                    "source": "owner_route_reconcile_platform_repair",
                     "work_unit_id": "submission_minimal_refresh",
                     "work_unit_fingerprint": "publication-blockers::current",
                 },
@@ -919,12 +919,12 @@ def test_failed_submission_metadata_reviewer_revision_with_controller_owner_rela
         or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-relaunched"}},
     )
 
-    status = module.study_runtime_status(
+    status = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
     )
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="runtime_watch")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="domain_health_diagnostic")
 
     assert status["decision"] == "resume"
     assert status["reason"] == "quest_waiting_on_invalid_blocking"

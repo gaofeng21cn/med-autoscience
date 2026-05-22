@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers.domain_route_scan_parts import current_truth_owner
+from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.controllers.study_outer_loop_parts.domain_transition_actions import (
     domain_transition_recommended_action,
 )
@@ -83,9 +83,9 @@ def test_current_ai_reviewer_write_routeback_does_not_project_reviewer_redrive_f
         active_run_id="mas-run-dm002",
     )
 
-    assert transition["decision_type"] == "active_runtime_watch"
-    assert transition["owner"] == "mas_runtime"
-    assert transition["controller_action"] == "runtime_watch"
+    assert transition["decision_type"] == "active_domain_health_diagnostic"
+    assert transition["owner"] == "med-autoscience"
+    assert transition["controller_action"] == "domain_health_diagnostic"
 
 
 def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_when_not_live(

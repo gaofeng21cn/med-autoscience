@@ -24,8 +24,8 @@ REQUIRED_EVENTS = (
 
 PROHIBITED_WRITES = {
     "live_study",
-    "study_runtime_status",
-    "runtime_watch",
+    "progress_projection",
+    "domain_health_diagnostic",
     "current_package",
     "publication_eval",
     "publication_eval/latest.json",

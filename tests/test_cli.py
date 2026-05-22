@@ -10,7 +10,7 @@ globals().update({
 
 from .test_cli_cases.public_entry_commands import *  # noqa: F403,F401
 from .test_cli_cases.progress_portal_commands import *  # noqa: F403,F401
-from .test_cli_cases.domain_route_scan_command import *  # noqa: F403,F401
+from .test_cli_cases.owner_route_reconcile_command import *  # noqa: F403,F401
 from .test_cli_cases.domain_route_reconcile_command import *  # noqa: F403,F401
 from .test_cli_cases.domain_action_request_materializer_command import *  # noqa: F403,F401
 from .test_cli_cases.runtime_and_quality_commands import *  # noqa: F403,F401
@@ -21,10 +21,10 @@ from .test_cli_cases.truth_reconcile_command import *  # noqa: F403,F401
 from .test_cli_cases.mainline_projection_commands import *  # noqa: F403,F401
 from .test_cli_cases.ai_reviewer_publication_eval_command import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_and_submission_commands import *  # noqa: F403,F401
-from .test_cli_cases.sidecar_family_adapter_command import *  # noqa: F403,F401
+from .test_cli_cases.owner_route_handoff_command import *  # noqa: F403,F401
 from .test_cli_cases.functional_consumer_boundary import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_transition_descriptor_command import *  # noqa: F403,F401
-from .test_cli_cases.sidecar_family_guarded_apply_cases import *  # noqa: F403,F401
+from .test_cli_cases.owner_route_handoff_guarded_apply_cases import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_functional_closure_command import *  # noqa: F403,F401
 from .test_cli_cases.stage_memory_cli_commands import *  # noqa: F403,F401
 from .test_cli_cases.bootstrap_and_bundle_commands import *  # noqa: F403,F401

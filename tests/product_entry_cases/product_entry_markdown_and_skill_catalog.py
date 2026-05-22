@@ -93,8 +93,8 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes",
         "authoritative_truth_refs": [
-            "/study_runtime_status",
-            "/runtime_watch",
+            "/progress_projection",
+            "/domain_health_diagnostic",
             "/publication_eval/latest.json",
             "/controller_decisions/latest.json",
         ],

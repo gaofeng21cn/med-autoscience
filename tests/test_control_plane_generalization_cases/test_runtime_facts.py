@@ -21,7 +21,7 @@ def test_profile_sli_summary_separates_active_duplicate_dispatch_from_history() 
                 "health_status_counts": {"live": 8, "recovering": 2},
                 "transition_counts": {"live->recovering": 1, "recovering->live": 1},
             },
-            "runtime_watch_wakeup_dedupe_summary": {
+            "domain_health_diagnostic_wakeup_dedupe_summary": {
                 "status": "dedupe_confirmed",
                 "outcome": "skipped_matching_work_unit",
             },
@@ -175,7 +175,7 @@ def test_control_plane_facts_treat_closeout_continuation_as_parked_not_recovery(
     assert facts.missing_live_session is False
     assert facts.recovery_pending is False
     assert facts.to_runtime_worker_activity()["activity_state"] == "parked"
-def test_study_runtime_status_exposes_runtime_worker_activity(monkeypatch, tmp_path: Path) -> None:
+def test_progress_projection_exposes_runtime_worker_activity(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -220,7 +220,7 @@ def test_study_runtime_status_exposes_runtime_worker_activity(monkeypatch, tmp_p
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk", include_progress_projection=False)
+    result = module.progress_projection(profile=profile, study_id="001-risk", include_progress_projection=False)
 
     legacy_worker_activity_key = "mds" + "_worker_activity"
     assert legacy_worker_activity_key not in result

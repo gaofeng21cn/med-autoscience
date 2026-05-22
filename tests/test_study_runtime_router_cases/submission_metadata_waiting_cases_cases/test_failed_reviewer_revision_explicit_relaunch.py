@@ -53,7 +53,7 @@ def test_explicit_stopped_relaunch_reopens_failed_reviewer_revision_invalid_bloc
                     "closeout_path": str(quest_root / "artifacts" / "runtime" / "turn_closeouts" / "run-blocked.json"),
                 },
                 "last_controller_decision_authorization": {
-                    "source": "domain_route_scan_platform_repair",
+                    "source": "owner_route_reconcile_platform_repair",
                     "work_unit_id": "submission_minimal_refresh",
                     "work_unit_fingerprint": "publication-blockers::current",
                 },
@@ -137,7 +137,7 @@ def test_explicit_stopped_relaunch_reopens_failed_reviewer_revision_invalid_bloc
         },
     )
 
-    status = module.study_runtime_status(
+    status = module.progress_projection(
         profile=profile,
         study_id=study_id,
         include_progress_projection=False,

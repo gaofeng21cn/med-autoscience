@@ -9,13 +9,13 @@ from med_autoscience.controllers.study_runtime_decision_parts.publication_and_su
 from med_autoscience.controllers.study_runtime_decision_parts.runtime_events.runtime_summary import (
     _should_refresh_runtime_supervision_from_status,
 )
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
+from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
 def _refresh_runtime_supervision_from_status_if_needed(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
     runtime_context: study_runtime_protocol.StudyRuntimeContext,
     router: object,
@@ -71,7 +71,7 @@ def _refresh_runtime_supervision_from_status_if_needed(
         quest_id=status.quest_id if status.quest_exists else None,
         last_action=None,
         status=status.to_dict(),
-        source="study_runtime_status",
+        source="progress_projection",
         force=False,
         startup_payload_path=None,
         daemon_result=None,

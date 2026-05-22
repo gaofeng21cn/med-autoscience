@@ -213,7 +213,7 @@ Follow-up patch:
 
 ## Route-Scan Rebuild Handoff Currentness Follow-Up
 
-The turn prompt authorization patch fixed worker instructions, but DM002 then exposed the matching read-model defect: `domain-route-scan` still evaluated the older source-provenance terminal blocker before the newer provenance-limited owner result, so the next queued action returned to `methodology_reframe_route_decision` instead of continuing the already-authorized unit-harmonized rerun.
+The turn prompt authorization patch fixed worker instructions, but DM002 then exposed the matching read-model defect: `owner-route-reconcile` still evaluated the older source-provenance terminal blocker before the newer provenance-limited owner result, so the next queued action returned to `methodology_reframe_route_decision` instead of continuing the already-authorized unit-harmonized rerun.
 
 Follow-up patch:
 
@@ -224,5 +224,5 @@ Follow-up patch:
 
 Additional verification:
 
-- `scripts/run-pytest-clean.sh tests/domain_route_scan_cases/test_methodology_reframe_route_priority.py::test_scan_prefers_current_provenance_limited_rebuild_handoff_over_stale_audit_decision -q`: 1 passed.
-- `scripts/run-pytest-clean.sh tests/domain_route_scan_cases/test_methodology_reframe_route_priority.py tests/domain_route_scan_cases/test_methodology_reframe_currentness.py tests/domain_route_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/domain_route_scan_cases/test_hard_methodology_currentness.py -q`: 18 passed.
+- `scripts/run-pytest-clean.sh tests/owner_route_reconcile_cases/test_methodology_reframe_route_priority.py::test_scan_prefers_current_provenance_limited_rebuild_handoff_over_stale_audit_decision -q`: 1 passed.
+- `scripts/run-pytest-clean.sh tests/owner_route_reconcile_cases/test_methodology_reframe_route_priority.py tests/owner_route_reconcile_cases/test_methodology_reframe_currentness.py tests/owner_route_reconcile_cases/test_analysis_harmonization_owner_result_consumption.py tests/owner_route_reconcile_cases/test_hard_methodology_currentness.py -q`: 18 passed.

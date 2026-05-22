@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_build_runtime_watch_outer_loop_tick_request_keeps_stopped_submission_milestone_parked(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_keeps_stopped_submission_milestone_parked(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
@@ -133,7 +133,7 @@ def test_build_runtime_watch_outer_loop_tick_request_keeps_stopped_submission_mi
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",

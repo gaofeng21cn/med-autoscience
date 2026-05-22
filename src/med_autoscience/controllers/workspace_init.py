@@ -158,7 +158,7 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "12. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
-        "- `runtime/` 保存运行态，`artifacts/runtime/` 保存 SQLite sidecar 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
+        "- `runtime/` 保存运行态，`artifacts/runtime/` 保存 SQLite refs index 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
         "- 不要直接通过外部后端 UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
         "- 如果需要启动、查看或停止 runtime，只把 `ops/mas/bin/*` 当作 MAS 运维面，不把它当成研究入口。\n"
     )
@@ -423,7 +423,7 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan",
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "owner-route-reconcile",
             content=_render_scan_domain_routes_script(),
             executable=True,
         ),

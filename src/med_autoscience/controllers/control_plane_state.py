@@ -56,7 +56,7 @@ _STATE_SPECS: dict[str, dict[str, Any]] = {
         "auto_recovery_allowed": True,
         "resource_release_expected": False,
         "long_write_turn_allowed": False,
-        "recovery_route": "runtime_watch_stall_recovery",
+        "recovery_route": "domain_health_diagnostic_stall_recovery",
         "human_gate_required": False,
         "operator_summary": "Runtime progress is stalled; route through runtime watch recovery before new work dispatch.",
     },

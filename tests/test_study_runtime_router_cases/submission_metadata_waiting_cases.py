@@ -36,7 +36,7 @@ def test_stopped_submission_metadata_package_resumes_current_controller_work_uni
                 "last_controller_decision_authorization": {
                     "authorization_basis": "controller_domain_transition",
                     "decision_id": "study-decision::dm002::route-back-analysis",
-                    "source": "domain_route_scan_platform_repair",
+                    "source": "owner_route_reconcile_platform_repair",
                     "route_target": "analysis-campaign",
                     "work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
                     "work_unit_fingerprint": (
@@ -72,7 +72,7 @@ def test_stopped_submission_metadata_package_resumes_current_controller_work_uni
         lambda *, workspace_root: _clear_readiness_report(workspace_root, study_id),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id=study_id,
         include_progress_projection=False,
@@ -90,7 +90,7 @@ def test_stopped_submission_metadata_package_resumes_current_domain_transition_r
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision_status_module = importlib.import_module(
-        "med_autoscience.controllers.study_runtime_decision_parts.status_and_decision"
+        "med_autoscience.controllers.study_runtime_decision_parts.domain_status_authority"
     )
 
     profile = make_profile(tmp_path)
@@ -121,7 +121,7 @@ def test_stopped_submission_metadata_package_resumes_current_domain_transition_r
                 "last_controller_decision_authorization": {
                     "authorization_basis": "controller_domain_transition",
                     "decision_id": "study-decision::dm002::route-back-analysis",
-                    "source": "domain_route_scan_platform_repair",
+                    "source": "owner_route_reconcile_platform_repair",
                     "route_target": "analysis-campaign",
                     "work_unit_id": "unit_harmonized_validation_uncertainty_and_grouped_calibration",
                     "work_unit_fingerprint": (
@@ -206,7 +206,7 @@ def test_stopped_submission_metadata_package_resumes_current_domain_transition_r
             "source_refs": [
                 "artifacts/publication_eval/latest.json",
                 "artifacts/controller_decisions/latest.json",
-                "study_runtime_status",
+                "progress_projection",
                 "study_macro_state",
             ],
         }
@@ -233,7 +233,7 @@ def test_stopped_submission_metadata_package_resumes_current_domain_transition_r
         lambda *, workspace_root: _clear_readiness_report(workspace_root, study_id),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id=study_id,
         include_progress_projection=False,
@@ -245,7 +245,7 @@ def test_stopped_submission_metadata_package_resumes_current_domain_transition_r
     assert result["interaction_arbitration"]["classification"] == "domain_transition_runtime_redrive"
 
 
-def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_resumable(
+def test_progress_projection_treats_submission_metadata_only_waiting_quest_as_resumable(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -289,13 +289,13 @@ def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_r
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "waiting_for_user"
 
-def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_resumable_when_checklist_uses_key(
+def test_progress_projection_treats_submission_metadata_only_waiting_quest_as_resumable_when_checklist_uses_key(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -382,13 +382,13 @@ def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_r
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "waiting_for_user"
 
-def test_study_runtime_status_treats_external_metadata_gap_status_as_submission_metadata_only(
+def test_progress_projection_treats_external_metadata_gap_status_as_submission_metadata_only(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -467,13 +467,13 @@ def test_study_runtime_status_treats_external_metadata_gap_status_as_submission_
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "waiting_for_user"
 
-def test_study_runtime_status_parks_submission_metadata_only_waiting_quest_after_auditable_package_delivery(
+def test_progress_projection_parks_submission_metadata_only_waiting_quest_after_auditable_package_delivery(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -519,7 +519,7 @@ def test_study_runtime_status_parks_submission_metadata_only_waiting_quest_after
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
@@ -588,7 +588,7 @@ def test_ensure_study_runtime_keeps_submission_metadata_only_waiting_quest_parke
         lambda *, runtime_root, quest_id, source: calls.append("resume") or {"ok": True, "status": "active"},
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="runtime_watch")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="domain_health_diagnostic")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
@@ -601,7 +601,7 @@ def test_ensure_study_runtime_pauses_live_delivered_submission_package_milestone
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
-    from tests.test_runtime_watch_cases.event_scan_helpers import ready_reviewer_operating_system
+    from tests.test_domain_health_diagnostic_cases.event_scan_helpers import ready_reviewer_operating_system
 
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -762,7 +762,7 @@ def test_ensure_study_runtime_pauses_live_delivered_submission_package_milestone
     assert calls == [("pause", "001-risk")]
 
 
-def test_study_runtime_status_parks_waiting_user_after_revision_intake_consumed_by_current_package(
+def test_progress_projection_parks_waiting_user_after_revision_intake_consumed_by_current_package(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -806,7 +806,7 @@ def test_study_runtime_status_parks_waiting_user_after_revision_intake_consumed_
                     ),
                 },
                 "last_controller_decision_authorization": {
-                    "source": "domain_route_scan_platform_repair",
+                    "source": "owner_route_reconcile_platform_repair",
                     "work_unit_id": "submission_authority_sync_closure",
                     "work_unit_fingerprint": "domain-transition::bundle_stage_finalize::submission_authority_sync_closure",
                     "route_target": "finalize",
@@ -923,7 +923,7 @@ def test_study_runtime_status_parks_waiting_user_after_revision_intake_consumed_
         ),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="002-attribution",
         include_progress_projection=False,

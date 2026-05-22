@@ -104,13 +104,13 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     guarded_apply_proof_parser.add_argument("--profile", action="append", dest="profiles")
     guarded_apply_proof_parser.add_argument("--target-study", action="append", dest="target_studies")
 
-    watch_parser = subparsers.add_parser("watch")
-    watch_parser.add_argument("--quest-root", type=str)
-    watch_parser.add_argument("--runtime-root", type=str)
-    watch_parser.add_argument("--profile", type=str)
-    watch_parser.add_argument("--ensure-study-runtimes", action="store_true")
-    watch_parser.add_argument("--apply-supervisor-platform-repair", action="store_true")
-    watch_parser.add_argument("--apply", action="store_true")
+    domain_health_diagnostic_parser = subparsers.add_parser("domain-health-diagnostic")
+    domain_health_diagnostic_parser.add_argument("--quest-root", type=str)
+    domain_health_diagnostic_parser.add_argument("--runtime-root", type=str)
+    domain_health_diagnostic_parser.add_argument("--profile", type=str)
+    domain_health_diagnostic_parser.add_argument("--ensure-study-runtimes", action="store_true")
+    domain_health_diagnostic_parser.add_argument("--apply-supervisor-platform-repair", action="store_true")
+    domain_health_diagnostic_parser.add_argument("--apply", action="store_true")
 
     runtime_supervision_status_parser = subparsers.add_parser("runtime-supervision-status")
     runtime_supervision_status_parser.add_argument("--profile", required=True)
@@ -142,12 +142,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
         default="opl",
     )
 
-    domain_route_scan_parser = subparsers.add_parser("domain-route-scan")
-    domain_route_scan_parser.add_argument("--profile", required=True)
-    domain_route_scan_parser.add_argument("--studies", nargs="+")
-    domain_route_scan_parser.add_argument("--apply-safe-actions", action="store_true")
-    domain_route_scan_parser.add_argument("--apply-runtime-platform-repair", action="store_true")
-    domain_route_scan_parser.add_argument(
+    owner_route_reconcile_parser = subparsers.add_parser("owner-route-reconcile")
+    owner_route_reconcile_parser.add_argument("--profile", required=True)
+    owner_route_reconcile_parser.add_argument("--studies", nargs="+")
+    owner_route_reconcile_parser.add_argument("--apply-safe-actions", action="store_true")
+    owner_route_reconcile_parser.add_argument("--apply-runtime-platform-repair", action="store_true")
+    owner_route_reconcile_parser.add_argument(
         "--developer-supervisor-mode",
         choices=("internal_only", "external_observe", "developer_apply_safe"),
     )
@@ -484,12 +484,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     pause_study_runtime_parser.add_argument("--study-root", type=str)
     pause_study_runtime_parser.add_argument("--entry-mode", type=str)
     pause_study_runtime_parser.add_argument("--force", action="store_true")
-    study_runtime_status_parser = subparsers.add_parser("study-runtime-status")
-    study_runtime_status_parser.add_argument("--profile", required=True)
-    study_runtime_status_parser.add_argument("--study-id", type=str)
-    study_runtime_status_parser.add_argument("--study-root", type=str)
-    study_runtime_status_parser.add_argument("--entry-mode", type=str)
-    study_runtime_status_parser.add_argument("--format", choices=("json",), default="json")
+    progress_projection_parser = subparsers.add_parser("progress-projection")
+    progress_projection_parser.add_argument("--profile", required=True)
+    progress_projection_parser.add_argument("--study-id", type=str)
+    progress_projection_parser.add_argument("--study-root", type=str)
+    progress_projection_parser.add_argument("--entry-mode", type=str)
+    progress_projection_parser.add_argument("--format", choices=("json",), default="json")
     study_progress_parser = subparsers.add_parser("study-progress")
     study_progress_parser.add_argument("--profile", required=True)
     study_progress_parser.add_argument("--study-id", type=str)

@@ -4,14 +4,14 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from ..study_runtime_status import StudyRuntimeBindingAction, StudyRuntimeStatus
+from ..progress_projection import StudyRuntimeBindingAction, ProgressProjectionStatus
 from . import runtime_events as _runtime_events
 from .execution_types import StudyRuntimeExecutionContext, StudyRuntimeExecutionOutcome
 
 
 def _record_autonomous_runtime_notice_if_required(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     runtime_root: Path,
     launch_report_path: Path,
     router_module: Callable[[], Any],
@@ -28,13 +28,13 @@ def _record_autonomous_runtime_notice_if_required(
     )
 
 
-def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
+def _runtime_event_status_snapshot(status: ProgressProjectionStatus) -> dict[str, object]:
     return _runtime_events.runtime_event_status_snapshot(status)
 
 
 def _record_transition_runtime_event(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     outcome: StudyRuntimeExecutionOutcome,
     router_module: Callable[[], Any],
@@ -51,7 +51,7 @@ def _record_transition_runtime_event(
 
 def _maybe_emit_runtime_escalation_record(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     router_module: Callable[[], Any],
 ) -> None:
@@ -64,7 +64,7 @@ def _maybe_emit_runtime_escalation_record(
 
 def _persist_runtime_artifacts(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     outcome: StudyRuntimeExecutionOutcome,
     force: bool,

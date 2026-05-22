@@ -27,7 +27,7 @@ def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -
             "owner": "med-autoscience",
         },
         "recovery_contract_surface": {
-            "surface_kind": "study_runtime_status",
+            "surface_kind": "progress_projection",
             "owner": "med-autoscience",
         },
         "fail_closed_rules": [
@@ -46,7 +46,9 @@ def _assert_runtime_inventory(*, module, payload, profile, profile_ref) -> None:
     assert payload["runtime_inventory"]["availability"] == "ready"
     assert payload["runtime_inventory"]["health_status"] == "healthy"
     assert payload["runtime_inventory"]["status_surface"]["ref_kind"] == "workspace_locator"
-    assert payload["runtime_inventory"]["status_surface"]["ref"] == "studies/<study_id>/artifacts/runtime_watch/latest.json"
+    assert payload["runtime_inventory"]["status_surface"]["ref"] == (
+        "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json"
+    )
     assert payload["runtime_inventory"]["attention_surface"]["ref_kind"] == "json_pointer"
 
 def _assert_session_and_progress_projection(*, module, payload, profile, profile_ref) -> None:
@@ -62,7 +64,7 @@ def _assert_research_runtime_control_projection(*, module, payload, profile, pro
     assert payload["session_continuity"]["domain_agent_id"] == "mas"
     assert payload["session_continuity"]["restore_surface"]["surface_kind"] == "launch_study"
     assert payload["session_continuity"]["progress_surface"]["surface_kind"] == "study_progress"
-    assert payload["session_continuity"]["artifact_surface"]["surface_kind"] == "study_runtime_status"
+    assert payload["session_continuity"]["artifact_surface"]["surface_kind"] == "progress_projection"
     assert payload["progress_projection"]["surface_kind"] == "progress_projection"
     assert payload["progress_projection"]["progress_surface"]["surface_kind"] == "workspace_cockpit"
     assert "studies/<study_id>/artifacts" in payload["progress_projection"]["inspect_paths"]
@@ -124,7 +126,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
                 "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
                 "refs.runtime_supervision_path",
-                "refs.runtime_watch_report_path",
+                "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },
@@ -156,7 +158,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
                 + " --study-id <study_id> --format json"
             ),
             "check_runtime_status": (
-                "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                "uv run python -m med_autoscience.cli study progress-projection --profile "
                 + str(profile_ref.resolve())
                 + " --study-id <study_id> --format json"
             ),
@@ -182,10 +184,10 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert policy["target_domain_id"] == "med-autoscience"
     assert {entry["storage_role"] for entry in policy["authority_surfaces"]} == {"file_authority"}
     assert "publication_eval_latest" in {entry["surface_id"] for entry in policy["authority_surfaces"]}
-    assert policy["sidecar_indexes"][0]["storage_role"] == "refs_only_sidecar_index"
-    assert policy["sidecar_indexes"][0]["owner"] == "one-person-lab"
-    assert policy["sidecar_indexes"][0]["surface_role"] == "domain_sidecar_reference_adapter"
-    assert policy["sidecar_indexes"][0]["ref"]["ref"] == "artifacts/runtime/runtime_lifecycle.sqlite"
+    assert policy["lifecycle_ref_indexes"][0]["storage_role"] == "refs_only_lifecycle_ref_index"
+    assert policy["lifecycle_ref_indexes"][0]["owner"] == "one-person-lab"
+    assert policy["lifecycle_ref_indexes"][0]["surface_role"] == "domain_lifecycle_refs_adapter"
+    assert policy["lifecycle_ref_indexes"][0]["ref"]["ref"] == "artifacts/runtime/runtime_lifecycle.sqlite"
     assert policy["projection_caches"][0]["storage_role"] == "projection_cache"
     assert policy["explicit_archive_import_refs"][0]["storage_role"] == "explicit_archive_import_ref_only"
 
@@ -194,7 +196,7 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert ledger["target_domain_id"] == "med-autoscience"
     assert ledger["phase"] == "verify"
     assert ledger["actions"][0]["manifest_ref"]["ref"] == (
-        "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_sidecar"
+        "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_refs_index"
     )
     assert ledger["actions"][0]["authority_owner"] == "one-person-lab"
     assert ledger["actions"][0]["safety_gate"] == "refs_only_no_domain_truth_write"

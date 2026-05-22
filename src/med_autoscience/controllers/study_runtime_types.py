@@ -29,7 +29,7 @@ __all__ = [
     "StudyRuntimeStartupBoundaryGate",
     "StudyRuntimeStartupContextSyncResult",
     "StudyRuntimeStartupDataReadinessReport",
-    "StudyRuntimeStatus",
+    "ProgressProjectionStatus",
     "StudyRuntimeWorkspaceContractsSummary",
     "_LIVE_QUEST_STATUSES",
     "_RESUMABLE_QUEST_STATUSES",
@@ -48,7 +48,7 @@ def __getattr__(name: str):
     if name in _EXECUTION_NAMES:
         value = getattr(import_module("med_autoscience.controllers.study_runtime_execution"), name)
     elif name in _STATUS_NAMES:
-        value = getattr(import_module("med_autoscience.controllers.study_runtime_status"), name)
+        value = getattr(import_module("med_autoscience.controllers.progress_projection"), name)
     else:
         raise AttributeError(name)
     globals()[name] = value

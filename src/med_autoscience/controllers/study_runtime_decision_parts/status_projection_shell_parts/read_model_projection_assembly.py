@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_control_plane_kernel, study_progress, study_truth_kernel
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
+from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 
 
 def attach_status_read_model_projections(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     profile: Any,
     study_id: str,
     study_root: Path,

@@ -104,7 +104,7 @@ def write_scan_latest(profile, study_id: str, owner_route: dict[str, object]) ->
     write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": owner_route}],
         },

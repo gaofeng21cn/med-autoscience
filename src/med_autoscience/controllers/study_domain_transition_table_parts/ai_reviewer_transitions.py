@@ -102,11 +102,15 @@ def _route_back_transition(
     if active_run_id:
         return _transition(
             study_id=study_id,
-            decision_type="active_runtime_watch",
-            route_target="runtime",
-            next_work_unit=_work_unit("watch_active_run", "runtime", "Watch the active MAS runtime run."),
-            controller_action="runtime_watch",
-            owner="mas_runtime",
+            decision_type="active_domain_health_diagnostic",
+            route_target="diagnostic",
+            next_work_unit=_work_unit(
+                "domain_health_diagnostic_active_run",
+                "diagnostic",
+                "Observe the active MAS runtime run through domain health diagnostic refs.",
+            ),
+            controller_action="domain_health_diagnostic",
+            owner="med-autoscience",
             typed_blocker=None,
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=True),
             source_refs=source_refs,

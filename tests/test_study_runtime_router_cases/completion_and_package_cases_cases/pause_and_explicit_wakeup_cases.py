@@ -8,7 +8,7 @@ def test_execute_pause_runtime_decision_records_nested_pause_daemon_step(monkeyp
     transport = _managed_runtime_transport(module)
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         {
             "schema_version": 1,
             "study_id": "001-risk",

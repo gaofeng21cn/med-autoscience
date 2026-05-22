@@ -24,7 +24,7 @@ def test_study_progress_projects_active_quest_without_live_run_as_recovery(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -100,7 +100,7 @@ def test_study_progress_projects_output_blocker_impact_from_runtime_continuity(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -242,7 +242,7 @@ def test_study_progress_absorbs_live_runtime_supervision_over_stale_status(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",

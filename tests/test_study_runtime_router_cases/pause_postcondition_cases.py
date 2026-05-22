@@ -1,6 +1,6 @@
 from .shared import *  # noqa: F403
 def _runtime_pause_status(module, *, profile, study_root, quest_root):
-    return module.StudyRuntimeStatus.from_payload(
+    return module.ProgressProjectionStatus.from_payload(
         {
             "schema_version": 1,
             "study_id": "001-risk",

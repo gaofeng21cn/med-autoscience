@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_keeps_delivered_human_review_milestone_parked_before_preflight_contracts(
+def test_progress_projection_keeps_delivered_human_review_milestone_parked_before_preflight_contracts(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -106,7 +106,7 @@ def test_study_runtime_status_keeps_delivered_human_review_milestone_parked_befo
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="003-endocrine-burden-followup")
+    result = module.progress_projection(profile=profile, study_id="003-endocrine-burden-followup")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_parked_on_unchanged_finalize_state", result

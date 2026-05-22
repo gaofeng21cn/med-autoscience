@@ -50,7 +50,7 @@ def test_study_progress_does_not_project_abnormal_stopped_blocked_bundle_as_pack
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-dm-cvd-mortality-risk",

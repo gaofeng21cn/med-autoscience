@@ -46,7 +46,7 @@ def test_study_state_matrix_command_projects_macro_state_without_writing(
             },
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
 
     exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
@@ -60,8 +60,8 @@ def test_study_state_matrix_command_projects_macro_state_without_writing(
     assert payload["studies"][0]["domain_transition"]["decision_type"] == "human_gate"
     assert payload["studies"][1]["study_macro_state"]["writer_state"] == "live"
     assert payload["studies"][1]["active_run_id"] == "run-002"
-    assert payload["studies"][1]["domain_transition"]["decision_type"] == "active_runtime_watch"
-    assert payload["domain_transition_table"]["counts"] == {"human_gate": 1, "active_runtime_watch": 1}
+    assert payload["studies"][1]["domain_transition"]["decision_type"] == "active_domain_health_diagnostic"
+    assert payload["domain_transition_table"]["counts"] == {"human_gate": 1, "active_domain_health_diagnostic": 1}
 
 
 def test_study_state_matrix_markdown_uses_short_macro_status(
@@ -79,7 +79,7 @@ def test_study_state_matrix_markdown_uses_short_macro_status(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "004-invasive",
             "quest_status": "paused",
@@ -141,7 +141,7 @@ def test_study_state_matrix_marks_stop_line_milestone_package_without_reopening_
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "004-dpcc",
             "study_root": str(study_root),
@@ -183,7 +183,7 @@ def test_study_state_matrix_top_active_run_uses_macro_truth_when_status_top_leve
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "002-dm",
             "study_root": str(study_root),
@@ -203,8 +203,8 @@ def test_study_state_matrix_top_active_run_uses_macro_truth_when_status_top_leve
     assert exit_code == 0
     assert study["active_run_id"] == "run-from-truth"
     assert study["study_macro_state"]["writer_state"] == "live"
-    assert study["domain_transition"]["decision_type"] == "active_runtime_watch"
-    assert study["domain_transition"]["controller_action"] == "runtime_watch"
+    assert study["domain_transition"]["decision_type"] == "active_domain_health_diagnostic"
+    assert study["domain_transition"]["controller_action"] == "domain_health_diagnostic"
 
 
 def test_study_state_matrix_prefers_materialized_macro_state_surface(
@@ -239,7 +239,7 @@ def test_study_state_matrix_prefers_materialized_macro_state_surface(
     )
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "004-dm",
             "study_root": str(study_root),
@@ -283,7 +283,7 @@ def test_study_state_matrix_projects_publication_gate_blocker_transition(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "003-gate",
             "study_root": str(study_root),
@@ -396,7 +396,7 @@ def test_study_state_matrix_projects_ai_reviewer_re_eval_transition(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "002-review",
             "study_root": str(study_root),
@@ -455,7 +455,7 @@ def test_study_state_matrix_projects_ai_reviewer_required_before_finalize(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "003-dpcc",
             "study_root": str(study_root),
@@ -513,7 +513,7 @@ def test_study_state_matrix_projects_ai_reviewer_required_before_gate_replay(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "003-dpcc",
             "study_root": str(study_root),
@@ -585,7 +585,7 @@ def test_study_state_matrix_routes_ai_reviewer_backed_blocked_eval_to_publicatio
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "obesity-atlas",
             "study_root": str(study_root),
@@ -664,7 +664,7 @@ def test_study_state_matrix_hands_off_delivered_bundle_stage_package_even_with_a
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "002-dm",
             "study_root": str(study_root),
@@ -724,7 +724,7 @@ def test_study_state_matrix_bundle_stage_ignores_stale_publication_gate_review_u
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "002-dm",
             "study_root": str(study_root),
@@ -770,7 +770,7 @@ def test_study_state_matrix_projects_artifact_delta_live_apply_transition(
 
     monkeypatch.setattr(
         cli.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "003-artifact",
             "study_root": str(study_root),
@@ -846,7 +846,7 @@ def test_study_state_matrix_fails_closed_for_human_gate_stop_loss_and_conflict_n
             "active_run_id": None,
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
 
     exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
@@ -920,7 +920,7 @@ def test_study_state_matrix_projects_delivered_package_and_unclassified_fail_clo
             "active_run_id": None,
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
 
     exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
@@ -934,7 +934,7 @@ def test_study_state_matrix_projects_delivered_package_and_unclassified_fail_clo
     assert rows["unknown"]["typed_blocker"]["blocker_id"] == "domain_transition_unclassified"
 
 
-def test_study_state_matrix_fails_closed_per_study_status_projection_error(
+def test_study_state_matrix_fails_closed_per_study_progress_projection_error(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -959,7 +959,7 @@ def test_study_state_matrix_fails_closed_per_study_status_projection_error(
             "active_run_id": "run-still-running",
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
 
     exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
@@ -970,8 +970,8 @@ def test_study_state_matrix_fails_closed_per_study_status_projection_error(
     assert exit_code == 0
     assert payload["counts"] == {"conflict": 1, "live": 1}
     assert rows["old-config"]["decision_type"] == "fail_closed"
-    assert rows["old-config"]["typed_blocker"]["blocker_id"] == "study_status_projection_error"
+    assert rows["old-config"]["typed_blocker"]["blocker_id"] == "progress_projection_error"
     assert "manual_finish.compatibility_guard_only" in (
         studies["old-config"]["study_macro_state"]["details"]["status_projection_error"]["message"]
     )
-    assert rows["still-running"]["decision_type"] == "active_runtime_watch"
+    assert rows["still-running"]["decision_type"] == "active_domain_health_diagnostic"

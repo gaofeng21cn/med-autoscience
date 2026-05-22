@@ -15,7 +15,7 @@ OPL generated or hosted surfaces may index refs, project status, dispatch allowl
 Treat these as the normal truth-bearing surfaces to inspect before making a stage decision:
 
 - study charter, task intake, owner route, and controller decisions.
-- `study_runtime_status` and `runtime_watch` for runtime state and current next action.
+- `progress_projection` and `domain_health_diagnostic` for runtime state and current next action.
 - evidence ledger, run context, runtime event ledger, failed-path records, and claim-evidence map.
 - source readiness records, source provenance refs, source locator refs, and data/cohort/endpoint definitions.
 - review ledger, AI reviewer operating-system trace, independent reviewer/auditor records, and `publication_eval/latest.json`.
