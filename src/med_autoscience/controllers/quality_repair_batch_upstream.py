@@ -313,12 +313,22 @@ def run_upstream_paper_repair_unit(
     )
     if review_ledger["changed"]:
         changed_refs.append(review_ledger["path"])
-    ai_request = _materialize_ai_reviewer_request(
-        study_id=study_id,
-        quest_id=quest_id,
-        study_root=resolved_study_root,
-        source_fingerprint=source_fingerprint,
-        gate_report=gate_report,
+    ai_request = (
+        _materialize_ai_reviewer_request(
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=resolved_study_root,
+            source_fingerprint=source_fingerprint,
+            gate_report=gate_report,
+        )
+        if _should_materialize_ai_reviewer_request(
+            paper_root=paper_root,
+            work_unit_id=resolved_work_unit_id,
+            changed_refs=changed_refs,
+            source_eval_id=source_eval_id,
+            previous_quality_repair_batch=previous_quality_repair_batch,
+        )
+        else {}
     )
     canonical_refs = [
         str(path.resolve())
@@ -343,7 +353,51 @@ def run_upstream_paper_repair_unit(
             "changed_artifact_refs": changed_refs,
             "canonical_artifact_refs": canonical_refs,
             "ai_reviewer_recheck_request_ref": ai_request.get("path"),
+            **(
+                {"ai_reviewer_recheck_deferred_reason": "manuscript_story_surface_delta_missing"}
+                if not ai_request.get("path")
+                and resolved_work_unit_id == medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID
+                else {}
+            ),
             "quality_gate_relaxation_allowed": False,
             "current_package_write_allowed": False,
         },
     }
+
+
+def _should_materialize_ai_reviewer_request(
+    *,
+    paper_root: Path,
+    work_unit_id: str,
+    changed_refs: list[str],
+    source_eval_id: str | None,
+    previous_quality_repair_batch: Mapping[str, Any] | None,
+) -> bool:
+    if work_unit_id != medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
+        return bool(changed_refs)
+    if _changed_refs_include_manuscript_story_surface(
+        paper_root=paper_root,
+        changed_refs=changed_refs,
+    ):
+        return True
+    return medical_prose_story_surface.preserve_current_writer_story_delta(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+        medical_prose_write_repair_work_unit_id=medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+        manuscript_story_surface_relative_paths=medical_prose_story_surface.MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS,
+        contains_forbidden_manuscript_terms=medical_prose_story_surface._contains_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        previous_quality_repair_batch=previous_quality_repair_batch,
+    )
+
+
+def _changed_refs_include_manuscript_story_surface(
+    *,
+    paper_root: Path,
+    changed_refs: list[str],
+) -> bool:
+    story_surfaces = {
+        (paper_root / relative_path).expanduser().resolve()
+        for relative_path in _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
+    }
+    return any(Path(ref).expanduser().resolve() in story_surfaces for ref in changed_refs if _text(ref))

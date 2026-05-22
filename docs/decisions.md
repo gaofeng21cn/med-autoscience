@@ -419,6 +419,13 @@
 - 理由：DM003 用户反馈要求把治疗缺口降风险为 recorded medication-coverage gap。旧 preservation guard 仍绑定 `recorded treatment-review gap`，导致更成熟的 writer 修订被旧 materializer 文案覆盖，形成“看似执行成功、实际稿件回滚”的系统性质量回归。
 - 影响：这是 MAS writer owner / quality repair currentness 能力修复，不改变 AI reviewer 和 publication gate authority；它只阻止旧模板覆盖更高质量的 canonical story surface，不授权写 `current_package`、submission package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。
 
+## 2026-05-23：AI reviewer-bound current manuscript 不能被记作本轮 write delta
+
+- 决策：`paper_repair_execution_evidence` 在评估 `medical_prose_write_repair` 时，不能把 `publication_eval.reviewer_operating_system.currentness_checks.medical_prose_review` 指向的 current manuscript 直接算作本轮 `story_surface_delta`。若 `paper/draft.md` 与 `paper/build/review_manuscript.md` 只是当前 AI reviewer 绑定稿的等价 current surface，而没有相对上一轮 blocker 记录的真实正文变更，`repair_execution_evidence` 必须保持 `manuscript_story_surface_delta_missing`，`progress_delta_candidate=false`，并让 `quality_repair_batch` 继续返回 `handoff_ready -> write` 而不是伪装成已完成。
+- 决策：同一条件下，AI reviewer recheck request 也不得被提前物化为“已完成写作修复”的副产物。只有在 canonical manuscript 发生真实变化、并通过 write-owner story delta guard 后，才可以 materialize `ai_reviewer_recheck_request_ref` 并继续 AI reviewer re-eval。
+- 理由：DM003 暴露出一个更隐蔽的失真：系统把“当前稿确实就是 reviewer 正在看的一版”误当成“write owner 已产出新稿”，进而在 evidence 层给出 `progress_delta_candidate` 和 recheck request。这样会让论文进度看起来向前推进，实际并没有新的稿件质量增量。
+- 影响：这是 MAS write-owner / AI reviewer currentness boundary 修复。它保持 current manuscript 不被覆盖，但不把 currentness 误记为 write delta，也不授权写 `publication_eval/latest.json`、`controller_decisions/latest.json`、current package 或 submission package。
+
 ## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
 
 - 决策：`quality_repair_batch_writer_handoff` 生成 `run_quality_repair_batch` dispatch 时，必须同步物化 `artifacts/supervision/requests/quality_repair_batch/latest.json`，并把 `prompt_contract.request_packet_ref` 指向该 request surface。后续 dispatcher 以 request+dispatch 双面 currentness 为主。

@@ -12,6 +12,40 @@ def _write_json(path: Path, payload: object) -> Path:
     return path
 
 
+def _sha256_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _medical_prose_story() -> str:
+    return "\n\n".join(
+        [
+            "# Clinically interpretable diabetes phenotypes and recorded medication-coverage gaps in Hunan primary care",
+            "## Abstract",
+            "**Background:** Primary-care diabetes services need reproducible phenotype summaries.",
+            "**Methods:** Phenotype derivation used deterministic clinical rules.",
+            "**Results:** Recorded medication-coverage gaps varied across phenotype groups.",
+            "**Conclusions:** The findings support regional service review.",
+            "## Introduction",
+            "Primary-care diabetes management varies across glycemic, adiposity, and cardiometabolic domains.",
+            "## Methods",
+            "### Phenotype derivation and assignment",
+            "Phenotype derivation used a deterministic hierarchy that can be reproduced for a new patient.",
+            "### Data quality assessment",
+            "Data quality assessment defined the blood-pressure interpretation boundary.",
+            "### Statistical analysis",
+            "Statistical analysis used descriptive counts, percentages, denominators, and measurement availability.",
+            "## Results",
+            "The cohort contained six clinically interpretable phenotype groups.",
+            "## Discussion",
+            "The findings identify service-review priorities in regional primary care.",
+            "## Limitations",
+            "Medication exposure was limited to recorded primary-care medication fields.",
+            "## Conclusion",
+            "The deterministic phenotype hierarchy identified recorded medication-coverage gap profiles.",
+        ]
+    ) + "\n"
+
+
 def test_quality_repair_batch_evidence_does_not_treat_canonical_story_surface_refs_as_delta(
     tmp_path: Path,
 ) -> None:
@@ -94,6 +128,74 @@ def test_quality_repair_batch_evidence_does_not_treat_canonical_story_surface_re
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False
     assert "manuscript_story_surface_delta_missing" in evidence["blockers"]
     assert evidence["ai_reviewer_recheck_request_ref"] == str(ai_request.resolve())
+
+
+def test_medical_prose_write_repair_does_not_count_ai_reviewer_bound_current_manuscript_as_delta(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
+    study_root = tmp_path / "studies" / "003-dpcc"
+    story = _medical_prose_story()
+    draft = study_root / "paper" / "draft.md"
+    review_manuscript = study_root / "paper" / "build" / "review_manuscript.md"
+    for path in (draft, review_manuscript):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(story, encoding="utf-8")
+    claim_map = _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
+    evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    gate_replay = _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-003"})
+    ai_request = _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {"request_id": "ai-reviewer-recheck::003"},
+    )
+    publication_eval_payload = {
+        "eval_id": "eval-003",
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "request_digest": "sha256:" + "a" * 64,
+                    "manuscript_ref": str(draft.resolve()),
+                    "manuscript_digest": _sha256_text(story),
+                    "route_target": "write",
+                    "route_back_required": True,
+                }
+            }
+        },
+    }
+
+    evidence = module.build_repair_execution_evidence(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        study_root=study_root,
+        repair_work_unit={
+            "unit_id": "medical_prose_write_repair",
+            "owner": "quality_repair_batch",
+            "gate_replay_target": "publication_gate",
+        },
+        review_finding={"source_eval_id": "eval-003", "severity": "must_fix"},
+        source_refs=[str(gate_replay)],
+        changed_artifact_refs=[
+            {"path": str(claim_map), "artifact_role": "claim_evidence_map"},
+            {"path": str(evidence_ledger), "artifact_role": "evidence_ledger"},
+            {"path": str(review_ledger), "artifact_role": "review_ledger"},
+        ],
+        revision_log_ref=str(review_ledger),
+        evidence_ledger_ref=str(evidence_ledger),
+        review_ledger_ref=str(review_ledger),
+        gate_replay_refs=[str(gate_replay)],
+        ai_reviewer_recheck_request_ref=str(ai_request),
+        publication_eval_payload=publication_eval_payload,
+    )
+
+    assert evidence["status"] == "blocked"
+    assert evidence["progress_delta_candidate"] is False
+    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
+    assert "manuscript_story_surface_delta_missing" in evidence["blockers"]
+    hygiene = evidence["manuscript_surface_hygiene"]
+    assert hygiene["story_surface_delta_present"] is False
+    assert hygiene["story_surface_delta_refs"] == []
 
 
 def test_dm002_publication_hardening_work_unit_requires_story_surface_delta(tmp_path: Path) -> None:

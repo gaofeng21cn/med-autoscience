@@ -18,7 +18,7 @@ def _sha256_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def test_medical_prose_write_repair_preserves_current_ai_reviewer_bound_story_surface(
+def test_medical_prose_write_repair_does_not_close_on_current_ai_reviewer_bound_story_surface(
     monkeypatch: Any,
     tmp_path: Path,
 ) -> None:
@@ -181,20 +181,19 @@ def test_medical_prose_write_repair_preserves_current_ai_reviewer_bound_story_su
     )
 
     assert result["ok"] is True
-    assert result["status"] == "executed"
+    assert result["status"] == "handoff_ready"
+    assert result["next_owner"] == "write"
+    assert result["writer_worker_handoff"]["typed_blocker_if_unresolved"] == "manuscript_story_surface_delta_missing"
     assert (paper_root / "draft.md").read_text(encoding="utf-8") == writer_story
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == writer_story
     evidence = result["repair_execution_evidence"]
-    assert evidence["status"] == "progress_delta_candidate"
+    assert evidence["status"] == "blocked"
+    assert evidence["progress_delta_candidate"] is False
+    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
+    assert "manuscript_story_surface_delta_missing" in evidence["blockers"]
     story_refs = evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"]
-    assert {
-        Path(ref["path"]).relative_to(study_root).as_posix()
-        for ref in story_refs
-    } == {"paper/draft.md", "paper/build/review_manuscript.md"}
-    assert {ref["fingerprint"]["content_sha256"] for ref in story_refs} == {
-        manuscript_digest.removeprefix("sha256:")
-    }
-    assert {
-        ref.get("reason")
-        for ref in story_refs
-    } == {"ai_reviewer_eval_bound_current_manuscript_preserved"}
+    assert story_refs == []
+    upstream_result = result["gate_clearing_batch"]["unit_results"][0]["result"]
+    assert upstream_result["ai_reviewer_recheck_request_ref"] is None
+    assert upstream_result["ai_reviewer_recheck_deferred_reason"] == "manuscript_story_surface_delta_missing"
+    assert manuscript_digest == _sha256_text(writer_story)
