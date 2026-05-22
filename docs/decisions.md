@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-23：pending AI reviewer request 可作为 retry-exhausted scan route 的 currentness anchor
+
+- 决策：当 `return_to_ai_reviewer_workflow` 的 ready dispatch 自身携带完整、可 dispatch 的 AI reviewer owner route，且 `artifacts/supervision/requests/ai_reviewer/latest.json` 是同一 action 的 requested/pending owner request 时，`domain-owner-action-dispatch` 可把该 request 的 fallback owner route 作为 currentness anchor。这个 fallback 只适用于 AI reviewer request 与 dispatch 已通过 `owner_request_matches_dispatch` 的路径；不放宽其他 action，也不允许凭 stale `publication_eval/latest.json` 或无 request 的持久 dispatch 执行。
+- 理由：DM003 暴露出 canonical manuscript repair 已完成后，fresh supervisor scan 因 `runtime_recovery_retry_budget_exhausted` 生成了 `owner_reason=null/allowed_actions=[]` 的 terminal scan route；但同一 tick 保留的 AI reviewer request 与 dispatch 仍然是当前、合法、pending 的 reviewer redrive。旧执行器只用 scan 顶层 route 做 currentness，导致合法 `return_to_ai_reviewer_workflow` 被误判 `owner_route_stale`，论文质量闭环停在巡检层。
+- 影响：这是 MAS owner-dispatch currentness 修复，不写 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只允许已物化的 AI reviewer owner request 进入 AI reviewer workflow；论文质量、publishability 和 submission-facing readiness 仍由 AI reviewer-backed eval、publication gate 与后续 owner receipts 判定。
+
 ## 2026-05-23：terminal-stall write handoff 以 Owner-Route Attempt Protocol 为准
 
 - 决策：`domain_owner_action_dispatch` 在 `paper_progress_stall.terminal=true` 下处理 `run_quality_repair_batch` 时，不能只允许硬编码的 `medical_prose_write_repair`。若当前 owner route 明确 `next_owner=write`、允许该 action、reason 已在 Owner-Route Attempt Protocol 注册、priority 为 `write_route_back`、attempt protocol 可 dispatch、currentness contract 无缺失、source fingerprint 存在，且 `source_refs.owner_route_currentness_basis.work_unit_id` 指向当前 work unit，则允许进入 MAS write-owner callable。

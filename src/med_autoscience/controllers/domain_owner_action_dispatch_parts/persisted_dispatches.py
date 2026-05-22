@@ -308,6 +308,8 @@ def owner_request_route(
     request_route = _mapping(_mapping(request).get("owner_route")) or _mapping(
         _mapping(_mapping(request).get("owner_pickup")).get("owner_route")
     )
+    if not request_route:
+        request_route = _owner_request_fallback_route(action_type=action_type, dispatch=dispatch)
     route = owner_route_part.ensure_owner_route_v2(request_route)
     return route or None
 
