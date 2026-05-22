@@ -59,6 +59,18 @@ MANUSCRIPT_TERMINOLOGY_REDLINE_PATTERNS = (
             r"\bbounded complexity audit\b"
         ),
     },
+    {
+        "label": "internal_runtime_or_repair_process_language",
+        "pattern": (
+            r"\bbefore manuscript repair\b|"
+            r"\bmanuscript repair\b|"
+            r"\bquality repair\b|"
+            r"\bAI reviewer\b|"
+            r"\bcontroller\b|"
+            r"\bpublication gate\b|"
+            r"\bsubmission readiness\b"
+        ),
+    },
 )
 
 BLOCKED_RECOMMENDED_ACTION = "return_to_publishability_gate"

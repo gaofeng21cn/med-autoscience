@@ -224,10 +224,14 @@ def test_build_gate_report_blocks_forbidden_manuscript_terminology(tmp_path: Pat
         tmp_path,
         include_submission_minimal=True,
         manuscript_files={
-            "build/review_manuscript.md": "Methods: we analyzed the locked v2026-03-31 dataset.\n",
+            "build/review_manuscript.md": (
+                "Methods: we analyzed the locked v2026-03-31 dataset. Candidate domains "
+                "were selected before manuscript repair, then reviewed by the AI reviewer "
+                "after quality repair and publication gate routing.\n"
+            ),
             "submission_minimal/tables/Table1.md": (
                 "Note: the paper-facing mainline analysis used the workspace cohort and "
-                "the 2024-06-30 follow-up freeze.\n"
+                "the 2024-06-30 follow-up freeze. This table does not imply submission readiness.\n"
             ),
         },
     )
@@ -266,6 +270,36 @@ def test_build_gate_report_blocks_forbidden_manuscript_terminology(tmp_path: Pat
         item["path"].endswith("submission_minimal/tables/Table1.md")
         and item["label"] == "followup_freeze_label"
         and item["match"] == "follow-up freeze"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("build/review_manuscript.md")
+        and item["label"] == "internal_runtime_or_repair_process_language"
+        and item["match"] == "before manuscript repair"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("build/review_manuscript.md")
+        and item["label"] == "internal_runtime_or_repair_process_language"
+        and item["match"] == "AI reviewer"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("build/review_manuscript.md")
+        and item["label"] == "internal_runtime_or_repair_process_language"
+        and item["match"] == "quality repair"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("build/review_manuscript.md")
+        and item["label"] == "internal_runtime_or_repair_process_language"
+        and item["match"] == "publication gate"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("submission_minimal/tables/Table1.md")
+        and item["label"] == "internal_runtime_or_repair_process_language"
+        and item["match"] == "submission readiness"
         for item in violations
     )
 def test_build_gate_report_blocks_submission_surface_qc_failures(tmp_path: Path) -> None:

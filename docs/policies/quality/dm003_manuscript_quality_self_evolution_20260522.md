@@ -70,11 +70,20 @@ The regression now also locks the route target for each DM003 quality target, in
 
 This is still a refs-only Agent Lab capability. It does not mutate DM003 study truth, write `publication_eval/latest.json`, refresh `manuscript/current_package`, or authorize publication readiness.
 
+## 2026-05-22 Internal Process Language Gate
+
+DM003 exposed a writer-materializer leak where a Methods sentence described domains as selected "before manuscript repair". That phrase is internal repair chronology, not a medical methods statement.
+
+The writer materializer now renders this as a study-design statement and treats `manuscript repair`, `quality repair`, `publication gate`, and `controller` as forbidden manuscript terms alongside existing runtime-authority language. The publication gate also redlines internal runtime or repair-process language in manuscript and managed submission surfaces, including `before manuscript repair`, `AI reviewer`, `quality repair`, `controller`, `publication gate`, and `submission readiness`.
+
+This gate blocks leaked process language; it does not authorize readiness or mutate DM003 study truth.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/owner_route_handoff_command.py::test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
 - `tests/test_agent_lab_medical_manuscript_quality.py::test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets`
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_updates_canonical_story_surface`
+- `tests/test_publication_gate_cases/supervisor_cases.py::test_build_gate_report_blocks_forbidden_manuscript_terminology`
 - `tests/test_paper_repair_executor.py::test_paper_repair_executor_executes_text_repair_on_canonical_sources`
 - `tests/test_medical_reporting_contract.py::test_resolve_medical_reporting_contract_for_primary_care_gap_manuscript`
 - `tests/test_medical_startup_contract_support.py::test_reporting_contract_supports_primary_care_gap_manuscript_family`

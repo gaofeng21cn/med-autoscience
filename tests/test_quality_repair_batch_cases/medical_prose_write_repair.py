@@ -197,6 +197,9 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
         "source gaps",
         "submission readiness",
         "repair note",
+        "before manuscript repair",
+        "quality repair",
+        "publication gate",
     )
     assert not any(term in story_text for term in forbidden_runtime_terms)
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == story_text

@@ -18,6 +18,10 @@ FORBIDDEN_MANUSCRIPT_TERMS = (
     "source gaps",
     "submission readiness",
     "repair note",
+    "manuscript repair",
+    "quality repair",
+    "publication gate",
+    "controller",
 )
 
 
@@ -153,7 +157,7 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         "row for phenotype assignment and treatment-review gap summaries.\n\n"
         "### Phenotype derivation and assignment\n\n"
         "Phenotype assignment was deterministic and rule based. It was not a clustering model, latent-class model, "
-        "prediction model, or treatment-effect model. Candidate domains were selected before manuscript repair from "
+        "prediction model, or treatment-effect model. Candidate domains were defined from "
         "routinely available clinical fields: age, sex, body size, HbA1c, fasting glucose, lipid values, renal-risk "
         "context, diagnosis indicators, medication records, visit structure, and site identifiers. A new patient can "
         "be classified by applying the same hierarchy to the index-visit phenotype-ready fields; the assignment is "
