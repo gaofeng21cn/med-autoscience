@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -242,6 +243,13 @@ def _resolved_text_ref(*, study_root: Path, value: object) -> str | None:
     if not candidate.is_absolute():
         candidate = study_root / candidate
     return str(candidate.resolve())
+
+
+def _sha256_file(path: Path) -> str | None:
+    try:
+        return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
 
 
 def _analysis_harmonization_currentness_refs(*, study_root: Path) -> list[str]:
@@ -632,8 +640,14 @@ def _publication_eval_consumes_ai_reviewer_request(
 ) -> bool:
     if not _publication_eval_ai_reviewer_owned(publication_eval_payload):
         return False
-    if _request_packet_has_record_currentness_blocker(request_packet):
-        return False
+    record_blocker = _request_packet_record_blocker_reason(request_packet)
+    if record_blocker:
+        return _publication_eval_consumes_record_blocked_request(
+            study_root=study_root,
+            publication_eval_payload=_mapping(publication_eval_payload),
+            request_packet=request_packet,
+            blocked_reason=record_blocker,
+        )
     publication_eval = _mapping(publication_eval_payload)
     request_ref = str(request_path.resolve())
     source_refs = set(_record_source_refs(study_root=study_root, record=publication_eval))
@@ -660,13 +674,140 @@ def _publication_eval_consumes_ai_reviewer_request(
     return True
 
 
-def _request_packet_has_record_currentness_blocker(request_packet: Mapping[str, Any]) -> bool:
+def _publication_eval_consumes_record_blocked_request(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    request_packet: Mapping[str, Any],
+    blocked_reason: str,
+) -> bool:
+    if blocked_reason == AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON:
+        return False
+    if blocked_reason not in {
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+    }:
+        return False
+    required_refs = _request_required_currentness_refs(study_root=study_root, request_packet=request_packet)
+    if not required_refs:
+        return False
+    reviewer_os = _mapping(publication_eval_payload.get("reviewer_operating_system"))
+    currentness_checks = _mapping(reviewer_os.get("currentness_checks"))
+    if not currentness_checks:
+        return False
+    return all(
+        _currentness_checks_cover_live_ref(
+            study_root=study_root,
+            currentness_checks=currentness_checks,
+            required_ref=required_ref,
+        )
+        for required_ref in required_refs
+    )
+
+
+def _request_required_currentness_refs(
+    *,
+    study_root: Path,
+    request_packet: Mapping[str, Any],
+) -> list[str]:
+    refs: list[str] = []
+    lifecycle = _mapping(request_packet.get("request_lifecycle"))
+    for value in _string_items(lifecycle.get("required_currentness_refs")):
+        resolved = _resolved_text_ref(study_root=study_root, value=value)
+        if resolved:
+            refs.append(resolved)
+    return list(dict.fromkeys(refs))
+
+
+def _currentness_checks_cover_live_ref(
+    *,
+    study_root: Path,
+    currentness_checks: Mapping[str, Any],
+    required_ref: str,
+) -> bool:
+    ref_path = Path(required_ref).expanduser().resolve()
+    live_digest = _sha256_file(ref_path)
+    if live_digest is None:
+        return False
+    for check in _currentness_check_mappings(currentness_checks):
+        if _currentness_check_matches_live_ref(
+            study_root=study_root,
+            check=check,
+            required_ref=str(ref_path),
+            live_digest=live_digest,
+        ):
+            return True
+    return False
+
+
+def _currentness_check_mappings(value: object, *, depth: int = 0) -> list[Mapping[str, Any]]:
+    if depth > 4:
+        return []
+    if isinstance(value, Mapping):
+        mappings: list[Mapping[str, Any]] = [value]
+        for nested in value.values():
+            mappings.extend(_currentness_check_mappings(nested, depth=depth + 1))
+        return mappings
+    if isinstance(value, list):
+        mappings: list[Mapping[str, Any]] = []
+        for item in value:
+            mappings.extend(_currentness_check_mappings(item, depth=depth + 1))
+        return mappings
+    return []
+
+
+def _currentness_check_matches_live_ref(
+    *,
+    study_root: Path,
+    check: Mapping[str, Any],
+    required_ref: str,
+    live_digest: str,
+) -> bool:
+    status = _text(check.get("status"))
+    if status not in {"current", "ready", "fresh", "completed", "materialized"}:
+        return False
+    matched_ref = False
+    for field in (
+        "manuscript_ref",
+        "ref",
+        "path",
+        "source_ref",
+        "evidence_ref",
+        "result_ref",
+    ):
+        resolved = _resolved_text_ref(study_root=study_root, value=check.get(field))
+        if resolved == required_ref:
+            matched_ref = True
+            break
+    if not matched_ref:
+        return False
+    expected_digests = {live_digest, live_digest.removeprefix("sha256:")}
+    return any(
+        (_text(check.get(field)) or "") in expected_digests
+        for field in (
+            "manuscript_digest",
+            "digest",
+            "sha256",
+            "content_sha256",
+            "file_sha256",
+            "file_digest",
+        )
+    )
+
+
+def _request_packet_record_blocker_reason(request_packet: Mapping[str, Any]) -> str | None:
     blocked_reason = _text(_mapping(request_packet.get("request_lifecycle")).get("blocked_reason"))
-    return blocked_reason in {
+    if blocked_reason in {
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
         AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON,
-    }
+    }:
+        return blocked_reason
+    return None
+
+
+def _request_packet_has_record_currentness_blocker(request_packet: Mapping[str, Any]) -> bool:
+    return _request_packet_record_blocker_reason(request_packet) is not None
 
 
 def _input_contract(packet: Mapping[str, Any]) -> Mapping[str, Any]:

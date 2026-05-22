@@ -749,6 +749,49 @@ def test_ai_reviewer_publication_eval_workflow_fails_closed_when_live_manuscript
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
+def test_request_bound_ai_reviewer_workflow_fails_closed_when_live_manuscript_changed_after_review(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    record["quality_assessment"]["medical_journal_prose_quality"]["evidence_refs"] = [refs["medical_prose_review"]]
+    _write_ai_reviewer_currentness_inputs(
+        study_root,
+        prose_status="partial",
+        style_verdict="revise",
+        route_back_required=True,
+    )
+    _write_text(
+        Path(refs["manuscript"]),
+        "# Revised manuscript\n\nThis text changed after the AI prose review was produced.\n",
+    )
+
+    try:
+        module.run_ai_reviewer_publication_eval_workflow(
+            study_root=study_root,
+            manuscript_ref=refs["manuscript"],
+            evidence_ref=refs["evidence_ledger"],
+            review_ref=refs["review_ledger"],
+            charter_ref=refs["study_charter"],
+            additional_refs={
+                "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+                "claim_evidence_map": refs["claim_evidence_map"],
+                "medical_prose_review": refs["medical_prose_review"],
+                "publication_gate_projection": refs["publication_gate_projection"],
+            },
+            record=record,
+            workflow_currentness_mode="request_bound_ai_reviewer_record",
+        )
+    except ValueError as exc:
+        assert "medical_prose_review_live_manuscript_digest_mismatch" in str(exc)
+    else:
+        raise AssertionError("request-bound workflow accepted stale AI prose review after live manuscript changed")
+
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_ai_reviewer_publication_eval_workflow_fails_closed_when_package_freshness_is_for_old_eval(
     tmp_path: Path,
 ) -> None:
