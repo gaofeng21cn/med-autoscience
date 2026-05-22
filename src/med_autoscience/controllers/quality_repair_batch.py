@@ -73,6 +73,18 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _materialize_writer_worker_handoff(handoff: Mapping[str, Any] | None) -> str | None:
+    if handoff is None:
+        return None
+    refs = handoff.get("refs") if isinstance(handoff.get("refs"), Mapping) else {}
+    dispatch_path_text = _non_empty_text(refs.get("dispatch_path"))
+    if dispatch_path_text is None:
+        raise ValueError("writer_worker_handoff_missing_dispatch_path")
+    dispatch_path = Path(dispatch_path_text).expanduser()
+    _write_json(dispatch_path, handoff)
+    return str(dispatch_path)
+
+
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -927,6 +939,7 @@ def run_quality_repair_batch(
         if writer_handoff.should_emit_writer_handoff(blocked_repair_reason)
         else None
     )
+    writer_worker_handoff_path = _materialize_writer_worker_handoff(writer_worker_handoff)
     record = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": current_eval_id,
@@ -952,6 +965,7 @@ def run_quality_repair_batch(
         "repair_execution_evidence": repair_execution_evidence,
         "repair_execution_evidence_path": str(repair_execution_evidence_path),
         **({"writer_worker_handoff": writer_worker_handoff} if writer_worker_handoff is not None else {}),
+        **({"writer_worker_handoff_path": writer_worker_handoff_path} if writer_worker_handoff_path is not None else {}),
         **(
             {
                 "blocked_reason": None if writer_worker_handoff is not None else blocked_repair_reason,

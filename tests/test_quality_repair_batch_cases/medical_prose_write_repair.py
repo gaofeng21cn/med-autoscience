@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -111,6 +112,11 @@ def test_medical_prose_write_repair_returns_writer_handoff_for_missing_story_del
     assert handoff["next_executable_owner"] == "write"
     assert "canonical manuscript story-surface delta" in handoff["required_output_surface"]
     assert handoff["typed_blocker_if_unresolved"] == "manuscript_story_surface_delta_missing"
+    dispatch_path = Path(handoff["refs"]["dispatch_path"])
+    assert result["writer_worker_handoff_path"] == str(dispatch_path)
+    assert dispatch_path.exists()
+    materialized_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    assert materialized_dispatch == handoff
     assert evidence["progress_delta_candidate"] is False
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_required"] is True
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False
