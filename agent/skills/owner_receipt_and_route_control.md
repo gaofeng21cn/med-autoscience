@@ -14,7 +14,7 @@ Every mutating or decision-bearing path must emit a durable owner receipt. The r
 - source, evidence, review, artifact, publication, memory, and runtime refs affected or intentionally left unchanged.
 - currentness basis relative to task intake, controller decision, manuscript/source refs, and artifact rebuild refs.
 - consumed quality pack refs, including journal-family pack refs when in scope.
-- output refs for reviewer response, Data Availability/FAIR, citation support grades, figure source-data/statistics/export QA, source-grounded reader materials, and presentation materials when produced.
+- output refs for reviewer response, response difficult-case / appeal-like / author-input routing, Data Availability restricted-access / FAIR metadata, citation support grades and selected reference export, figure source-data/statistics/export QA, figure backend refs, source-grounded reader source maps / block anchors, and presentation PPTX QA / asset manifest when produced.
 - next owner, next stage, or terminal blocker.
 
 ## Valid Route Outcomes
@@ -55,4 +55,6 @@ Execution receipts and review/audit receipts are separate artifacts. The same in
 
 ## Nature-Skills Absorption Boundary
 
-`journal_response_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack` are nature-skills-derived quality floors and reviewer rubrics consumed through MAS-native stage packets. They do not authorize publication readiness, artifact mutation, source readiness, memory acceptance, or submission. A receipt that relies on these packs must still name the MAS owner, output refs, typed blockers when incomplete, and independent reviewer/auditor receipt when closing a quality gate.
+`journal_response_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack` are nature-skills-derived clean-room quality floors and reviewer rubrics consumed through MAS-native stage packets. They do not create a vendor dependency, runtime dependency, default skill source, publication readiness authority, quality verdict authority, artifact mutation authority, source readiness authority, memory acceptance authority, or submission authority. A receipt that relies on these packs must still name the MAS owner, consumed pack refs, output refs, typed blockers when incomplete, and independent reviewer/auditor receipt when closing a quality gate.
+
+The receipt floor for these packs is concrete, not merely nominal: response receipts must preserve difficult-case / appeal-like / author-input routing; Data Availability receipts must preserve restricted-access route and FAIR metadata refs; citation receipts must preserve strict Nature / CNS scope when requested plus support grades and selected ENW / RIS / Zotero RDF export refs; figure receipts must preserve backend, source-data, statistics, export, and QA refs; reader receipts must preserve full-paper source maps and page/block anchors; presentation receipts must preserve selected asset manifest, crop QA, PPTX package/reopen QA, slide overflow/readability QA, and speaker-notes refs.

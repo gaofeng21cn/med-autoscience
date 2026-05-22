@@ -36,12 +36,13 @@ External submission, journal portal action, claim expansion, and PI-level strate
 
 - Confirm final manuscript, figures, tables, supplement, references, response materials, and package outputs are rebuilt from canonical sources.
 - Check that publication quality, artifact authority, source readiness, and package refs are current relative to latest task intake, review record, and materialization.
-- Re-consume journal-family quality pack refs as handoff floors, not authority: `journal_response_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack`.
-- Confirm reviewer response materials carry stable comment ids, action mapping, missing-author-input state, response readiness refs, and typed blocker refs for unresolved comments.
-- Confirm Data Availability and FAIR outputs carry dataset-location mapping, restricted-access route, repository identifier, dataset citation, FAIR metadata, output refs, and owner receipt.
-- Confirm citation integrity outputs carry support grades, candidate citation refs, metadata-only flags, reference/export notes, and route-back blockers for unsupported claims.
-- Confirm figure/table outputs carry source-data refs, statistics refs, export contract refs, QA-risk refs, rebuild proof, and artifact authority receipt.
-- Confirm reader and presentation outputs carry source-map refs, page/block anchors, figure-near-claim refs, evidence-spine refs, selected figure asset refs, speaker-notes context, and source-grounded follow-up refs.
+- Re-consume journal-family quality pack refs as handoff floors, not authority: `journal_response_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack`. These floors remain MAS-native clean-room guidance, not vendor dependency, runtime dependency, default skill source, publication readiness authority, or quality verdict authority.
+- Confirm reviewer response materials carry stable comment ids, action mapping, difficult-case routing, appeal-like routing, missing-author-input state, response readiness refs, and typed blocker refs for unresolved comments.
+- Confirm Data Availability and FAIR outputs carry dataset-location mapping, restricted-access reason and access route, repository or persistent identifier, dataset citation, public metadata for restricted data when possible, licence / rights / provenance / README refs, output refs, and owner receipt.
+- Confirm citation integrity outputs carry strict Nature / CNS scope decisions when requested, support grades, candidate citation refs, metadata-only flags, publisher or abstract verification refs, selected ENW / RIS / Zotero RDF export refs, and route-back blockers for unsupported claims.
+- Confirm figure/table outputs carry backend selection, final size, source-data refs, statistics refs, export contract refs, image-integrity / reviewer-risk QA refs, rebuild proof, and artifact authority receipt.
+- Confirm reader outputs carry full-paper source-map refs, stable page/block anchors, caption/table/figure anchors, figure-near-claim refs, source-grounded follow-up refs, and owner receipt.
+- Confirm presentation outputs carry evidence-spine refs, selected figure asset refs, asset manifest, crop QA, PPTX package/reopen QA, slide overflow/readability QA, speaker-notes context, and owner receipt.
 - Preserve distinction between handoff readiness and external submission. Human supervision controls journal submission and external system actions.
 - Ensure route memory writeback and failed-path records are accepted, rejected, or blocked before closing the research line.
 - If finalization exposes source, quality, artifact, journal-fit, or human-gate gaps, route back to the owning stage.
@@ -67,7 +68,7 @@ Return publication handoff receipt, artifact authority refs, package freshness p
 - `publication_quality_blocker` or reviewer route-back when quality evidence is stale.
 - source-readiness blocker or human gate when external authority is required.
 
-The handoff receipt must include current output refs and owner receipts for reviewer response, Data Availability/FAIR, citation support, figure source-data/statistics/export QA, source-grounded reader view, and presentation materials when present. Missing or stale refs must become typed blockers, not silent exclusions.
+The handoff receipt must include current output refs and owner receipts for reviewer response difficult-case / appeal-like / author-input routing, Data Availability restricted-access / FAIR metadata, strict citation support and selected export, figure backend / source-data / statistics / export QA, source-grounded full-paper reader view with page/block anchors, and presentation PPTX QA / asset-manifest materials when present. Missing or stale refs must become typed blockers, not silent exclusions.
 
 ## Done Criteria
 

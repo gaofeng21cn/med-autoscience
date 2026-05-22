@@ -34,14 +34,15 @@ The executor must treat all medical research work as claim-boundary work. A coho
 - Name the clinical interpretation and reviewer risk of each material result.
 - Prefer claim narrowing, stop-loss, or route-back over unsupported positive-result harvesting.
 - Record when source provenance, artifact rebuild proof, or reviewer currentness is missing.
-- Treat nature-skills-derived journal-family packs as executable quality floors and reviewer rubrics, not as publication authority or template instructions.
-- For reviewer response work, require stable comment ids, response tracker refs, action mapping refs, author-input flags, response readiness refs, output refs, typed blocker or owner receipt.
+- Treat nature-skills-derived journal-family packs as MAS-native quality floors and reviewer rubrics, not as vendor dependency, runtime dependency, default skill source, publication readiness authority, or template authority.
+- For reviewer response work, require stable comment ids, response tracker refs, action mapping refs, difficult-case routing refs, appeal-like routing refs, author-input flags, response readiness refs, output refs, typed blocker or owner receipt. Difficult-case coverage includes impossible or out-of-scope experiments, reviewer factual errors, conflicting reviewer requests, major statistical critiques, ethics/compliance/data-integrity critiques, transfer-after-review, and rejection challenge / appeal-like cases.
 - For manuscript argument work, require paper type logic, one-sentence argument, section job map, claim-evidence boundary refs, paragraph flow review, hedging/overclaim review, output refs, typed blocker or reviewer record.
 - For statistical reporting work, require sample size and denominator refs, effect size / confidence interval / p value refs, missingness and exclusion refs, model performance / calibration / external validation refs, multiplicity / sensitivity / subgroup / assumption refs, software and reproducibility refs, output refs, typed blocker or owner receipt.
-- For Data Availability work, require dataset-location refs, restricted-access route refs, repository identifier refs, dataset citation refs, FAIR metadata refs, Data Availability output refs, typed blocker or owner receipt.
-- For citation work, require claim-segment ids, candidate citation refs, citation support grades, metadata-only support flags, reference/export notes, output refs, typed blocker or owner receipt.
-- For figure/table work, require core-claim mapping, evidence chain, panel role, source-data refs, statistics refs, export contract refs, QA-risk refs, output refs, typed blocker or owner receipt.
-- For source-grounded reader or presentation work, require source maps, page/block anchors, figure-near-claim refs, evidence spine refs, selected figure assets, speaker-notes context, output refs, typed blocker or owner receipt.
+- For Data Availability work, require dataset-location refs, restricted-access reason and access route refs, repository or persistent identifier refs, dataset citation refs, public metadata for restricted data when possible, FAIR metadata refs, licence / rights / provenance / README refs, Data Availability output refs, typed blocker or owner receipt.
+- For citation work, require strict journal-family scope refs when Nature / CNS support is requested, claim-segment ids, English concept search claims, candidate citation refs, citation support grades, metadata-only support flags, publisher or abstract verification refs, reference-manager export notes for the selected ENW / RIS / Zotero RDF output, output refs, typed blocker or owner receipt.
+- For figure/table work, require core conclusion, figure archetype, selected backend, final size, panel map, evidence hierarchy, panel role, source-data refs, statistics refs, export contract refs, QA-risk refs, output refs, typed blocker or owner receipt. Backend/export/QA coverage must make renderer choice, source-data linkage, statistical annotation, image-integrity risk, export format, and reviewer-risk checks explicit.
+- For source-grounded reader work, require full-paper source maps, stable page/block anchors, caption/table/figure anchors, figure-near-claim refs, source-grounded follow-up refs, output refs, typed blocker or owner receipt.
+- For presentation work, require evidence spine refs, selected figure asset refs, asset-manifest refs, crop QA refs, PPTX package/reopen QA refs, slide overflow/readability QA refs, speaker-notes context, output refs, typed blocker or owner receipt.
 
 ## Forbidden Work
 
@@ -61,6 +62,6 @@ Every execution must return one of these semantic outcomes:
 - human gate request with decision needed, scope impact, and refs.
 - no-op with currentness proof explaining why no mutation was needed.
 
-When journal-family packs are in scope, the output must name the consumed pack refs and either the produced output refs or the typed blockers for missing response, manuscript argument, statistical reporting, Data Availability, citation support, figure source-data/statistics/export QA, reader-grounding, or presentation-grounding evidence.
+When journal-family packs are in scope, the output must name the consumed pack refs and either the produced output refs or the typed blockers for missing response edge-case routing, manuscript argument, statistical reporting, Data Availability restricted-access / FAIR metadata, strict citation support / export, figure backend / source-data / statistics / export QA, full-paper reader source-map / block-anchor grounding, or presentation PPTX QA / asset-manifest evidence.
 
 Ambiguous completion is invalid because it lets runtime progress replace medical authority.
