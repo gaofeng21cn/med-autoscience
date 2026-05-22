@@ -168,10 +168,14 @@ def _materialize_medical_prose_story_surfaces(
     *,
     paper_root: Path,
     work_unit_id: str,
+    source_eval_id: str | None,
+    previous_quality_repair_batch: Mapping[str, Any] | None,
 ) -> list[str]:
     return medical_prose_story_surface.materialize_medical_prose_story_surfaces(
         paper_root=paper_root,
         work_unit_id=work_unit_id,
+        source_eval_id=source_eval_id,
+        previous_quality_repair_batch=previous_quality_repair_batch,
     )
 
 def _materialize_ai_reviewer_request(
@@ -236,6 +240,7 @@ def run_upstream_paper_repair_unit(
     gate_report: Mapping[str, Any],
     work_unit_id: str | None,
     source_eval_id: str | None,
+    previous_quality_repair_batch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     resolved_work_unit_id = _text(work_unit_id)
     if resolved_work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
@@ -271,6 +276,8 @@ def run_upstream_paper_repair_unit(
         _materialize_medical_prose_story_surfaces(
             paper_root=paper_root,
             work_unit_id=resolved_work_unit_id,
+            source_eval_id=source_eval_id,
+            previous_quality_repair_batch=previous_quality_repair_batch,
         )
     )
     review_ledger = _materialize_review_ledger(

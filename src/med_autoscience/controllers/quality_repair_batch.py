@@ -902,6 +902,7 @@ def run_quality_repair_batch(
         gate_report=gate_report,
         work_unit_id=upstream_work_unit_id,
         source_eval_id=current_eval_id,
+        previous_quality_repair_batch=latest_batch,
     )
     gate_clearing_result = repair_execution_gate.merge_upstream_unit_result(
         gate_clearing_result=gate_clearing_result,

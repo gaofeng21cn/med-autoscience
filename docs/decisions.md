@@ -334,9 +334,18 @@
 
 - 决策：`medical_prose_write_repair` 在 canonical paper inputs 足够时，不再停留在 ledger-only repair 或 writer handoff；MAS writer-owner materializer 必须从 `paper/` 下的 methods/cohort/display/treatment-gap/transition/table/evidence surfaces 生成 `paper/draft.md`，并同步 `paper/build/review_manuscript.md`。
 - 决策：该 materializer 必须覆盖 observational phenotype treatment-gap family 的核心质量目标：phenotype derivation transparency、recorded treatment-review gap terminology、BP/data-quality assessment、baseline characteristics table、numeric abstract/results、restrained discussion 和无运行态正文语言。它不得读取或复制 `manuscript/current_package`、delivery mirror、旧 runtime archive、inspection package 或其他非 canonical authority surface。
+- 决策：若同一 `source_eval_id` 的上一轮 `quality_repair_batch` 已因 `manuscript_story_surface_delta_missing` 阻塞，且当前 `paper/draft.md` 与 `paper/build/review_manuscript.md` 相对上一轮 blocker 记录的 story-surface fingerprint 已同步变化、无内部运行态术语、并具备 journal manuscript 基本结构，`medical_prose_write_repair` 必须保留该 writer-owned story delta，不得用 generator 模板覆盖更成熟正文。
+- 决策：story-surface 完成证据必须在 mutation 后 live-read 当前 canonical files。`repair_execution_evidence.manuscript_surface_hygiene.story_surface_delta_refs` 和 `canonical_artifact_delta.artifact_refs` 记录的 fingerprint 必须来自当前 `paper/draft.md` / `paper/build/review_manuscript.md`，不能复用 pre-write、fixture、旧 template 或上轮 blocked fingerprint。对 `medical_prose_write_repair` 的 currentness-delta adoption，完成证据还必须复用同一套 writer-story guard：同一 `source_eval_id`、上一轮 story-delta blocker、两份 story surface 同步变化且内容一致、无运行态术语、具备 journal manuscript 基本结构；单边更新、内容不一致或非 journal 正文不得补成 `story_surface_delta_present`。
+- 决策：DM003 observational phenotype treatment-gap writer materializer 的 Methods 必须显式覆盖 study design/cohort、variable definition and measurement、phenotype derivation and assignment、model/grouping framework、recorded treatment-review gap definitions、data quality assessment、validation framework 与 statistical analysis；Results 以临床估计和 denominator 为句子主语，display 只作证据引用。
 - 决策：`paper_repair_executor` 的普通 text/claim repair 默认目标改为 `paper/draft.md`；只有旧 workspace 缺 `draft.md` 且存在 `paper/manuscript.md` 时，才保留 legacy manuscript 作为迁移期输入。`draft.md` 和 `build/review_manuscript.md` 的 artifact role 是 `canonical_manuscript_story_surface`，旧 `paper/manuscript.md` 不再是新路线的主 story surface。
 - 理由：DM003 暴露出 MAS 工作流可以识别写作质量问题，却没有把反馈实际落成用户可见的正文变化。单靠 revision intake、ledger、AI reviewer request 或 handoff 不能保证初稿质量前移；write owner 必须能在当前 owner-chain 内把 canonical evidence 转成 journal-facing manuscript surface。
 - 影响：这是 MAS manuscript autonomy 能力修复，不是单篇论文手工修稿，也不是质量放行。AI reviewer recheck 和 publication gate 仍负责判断 `medical_journal_prose_quality`、publishability 和 submission-facing readiness；package/current_package 仍需后续 owner 授权刷新。
+
+## 2026-05-22：stage quality pack contract catalog 按自然边界拆分
+
+- 决策：`stage_quality_contract.py` 继续作为 public contract/API owner，保留 `build_stage_quality_pack_contract`、projection builder、pack id 常量和 `CONTRACT_REF`；静态 pack catalog、promotion evidence、owner refs 与 required refs 迁入 `stage_quality_contract_parts/catalog.py`，由 `stage_quality_contract_parts/__init__.py` 做显式 re-export。
+- 理由：DM003 writer materializer 修复触发 smoke `line_budget` gate，暴露 `stage_quality_contract.py` 已超过 preferred boundary 且没有 reviewed baseline。正确处理方式是按 quality-pack catalog 自然边界拆分，而不是新增白名单或放宽 line budget。
+- 影响：这是结构治理修复，不改变 stage quality pack contract 的 public callable 或 authority boundary；OPL projection 仍只能消费 descriptor/ref/freshness locator，不能授权 MAS truth、quality verdict、publication readiness 或 submission readiness。
 
 ## 2026-05-21：provenance-limited rebuild handoff 必须覆盖旧 methodology decision
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 from pathlib import Path
@@ -93,3 +94,98 @@ def test_quality_repair_batch_evidence_does_not_treat_canonical_story_surface_re
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False
     assert "manuscript_story_surface_delta_missing" in evidence["blockers"]
     assert evidence["ai_reviewer_recheck_request_ref"] == str(ai_request.resolve())
+
+def test_medical_prose_currentness_delta_requires_synchronized_journal_story_surfaces(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
+    study_root = tmp_path / "studies" / "003-dpcc"
+    paper_root = study_root / "paper"
+    draft = paper_root / "draft.md"
+    review_manuscript = paper_root / "build" / "review_manuscript.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    review_manuscript.parent.mkdir(parents=True, exist_ok=True)
+    old_text = "# Draft\n\nOld DPCC story surface.\n"
+    draft.write_text(old_text, encoding="utf-8")
+    review_manuscript.write_text(old_text, encoding="utf-8")
+    old_refs = [
+        {
+            "path": str(path.resolve()),
+            "artifact_role": "canonical_manuscript_story_surface",
+            "fingerprint": {
+                "size": len(path.read_bytes()),
+                "content_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            },
+        }
+        for path in (draft, review_manuscript)
+    ]
+    draft.write_text(
+        "\n\n".join(
+            [
+                "# Clinically interpretable diabetes phenotypes and recorded treatment-review gaps",
+                "## Abstract",
+                "The study describes DPCC diabetes phenotypes and recorded treatment-review gap patterns.",
+                "## Introduction",
+                "The clinical problem is primary-care diabetes heterogeneity.",
+                "## Methods",
+                "### Phenotype derivation and assignment",
+                "Phenotype derivation used deterministic rules.",
+                "### Data quality assessment",
+                "Data quality checks defined the blood-pressure boundary.",
+                "### Statistical analysis",
+                "Analyses were descriptive.",
+                "## Results",
+                "The cohort included adults with diabetes.",
+                "## Discussion",
+                "The findings support service review.",
+                "## Limitations",
+                "Medication capture was limited to recorded fields.",
+                "## Conclusion",
+                "Recorded treatment-review gap patterns varied by phenotype.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    claim_map = _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
+    evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    gate_replay = _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-003"})
+
+    evidence = module.build_repair_execution_evidence(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        study_root=study_root,
+        repair_work_unit={
+            "unit_id": "medical_prose_write_repair",
+            "owner": "quality_repair_batch",
+            "gate_replay_target": "publication_gate",
+        },
+        review_finding={"source_eval_id": "eval-003", "finding_id": "medical-prose", "severity": "must_fix"},
+        source_refs=[str(gate_replay)],
+        changed_artifact_refs=[
+            {"path": str(claim_map), "artifact_role": "claim_evidence_map"},
+            {"path": str(evidence_ledger), "artifact_role": "evidence_ledger"},
+            {"path": str(review_ledger), "artifact_role": "review_ledger"},
+        ],
+        revision_log_ref=str(review_ledger),
+        evidence_ledger_ref=str(evidence_ledger),
+        review_ledger_ref=str(review_ledger),
+        gate_replay_refs=[str(gate_replay)],
+        previous_quality_repair_batch={
+            "source_eval_id": "eval-003",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+                "manuscript_surface_hygiene": {
+                    "surface_refs": old_refs,
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                },
+            },
+        },
+    )
+
+    assert evidence["status"] == "blocked"
+    assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False
+    assert evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"] == []
+    assert "manuscript_story_surface_delta_missing" in evidence["blockers"]

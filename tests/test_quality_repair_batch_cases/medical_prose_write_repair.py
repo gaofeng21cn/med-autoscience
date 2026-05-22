@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,11 @@ from tests.test_quality_repair_batch_cases.upstream_paper_owner_surface import (
     _write_json,
     _write_quality_summary,
 )
+
+
+def _fingerprint(path: Path) -> dict[str, Any]:
+    data = path.read_bytes()
+    return {"size": len(data), "content_sha256": hashlib.sha256(data).hexdigest()}
 
 
 def test_medical_prose_write_repair_updates_canonical_story_surface(
@@ -184,8 +190,14 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert "row-level, variable-level, or eligibility-level consequences" in story_text
     assert "first and last phenotype-ready visits" in story_text
     assert "dominant-site deterministic partition" in story_text
-    assert "Table 1 is a cohort-assembly and data-quality summary, not a traditional baseline-characteristics table" in story_text
-    assert "Table 2 is the phenotype-level baseline table" in story_text
+    assert "Study design and cohort" in story_text
+    assert "Variable definition and measurement" in story_text
+    assert "Model or grouping framework" in story_text
+    assert "Validation framework" in story_text
+    assert "Table 1 is the cohort-assembly and data-quality table" in story_text
+    assert "Table 2 is the phenotype-level baseline-characteristics table" in story_text
+    assert "No sampling-based 95% confidence intervals were calculated" in story_text
+    assert "Python" in story_text
     assert "71,370 of 181,306" in story_text
     assert "104,900 of 181,306" in story_text
     assert "151,579 of 181,306" in story_text
@@ -205,6 +217,175 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == story_text
     assert not (study_root / "manuscript" / "current_package").exists()
     assert not (paper_root / "submission_minimal").exists()
+
+
+def test_medical_prose_write_repair_preserves_current_writer_story_delta(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_gap",
+    )
+    quest_id = "quest-003"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
+    paper_root = study_root / "paper"
+    old_text = "# Draft\n\nPrimary-care treatment-gap draft surface before the writer revision.\n"
+    for relative_path in ("draft.md", "build/review_manuscript.md"):
+        path = paper_root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(old_text, encoding="utf-8")
+    old_refs = [
+        {
+            "path": str((paper_root / relative_path).resolve()),
+            "artifact_role": "canonical_manuscript_story_surface",
+            "fingerprint": _fingerprint(paper_root / relative_path),
+        }
+        for relative_path in ("draft.md", "build/review_manuscript.md")
+    ]
+    writer_story = "\n\n".join(
+        [
+            "# Clinically interpretable diabetes phenotypes and recorded treatment-review gaps in Hunan primary care",
+            "## Abstract",
+            "**Background:** Primary-care diabetes services need reproducible phenotype summaries that connect clinical burden with documented medication coverage.",
+            "**Methods:** The study used 1,779,360 DPCC records and 692,702 adult index patients. Phenotypes were assigned with a deterministic rule hierarchy, not a fitted clustering or prediction model.",
+            "**Results:** Six phenotypes were retained; severe glycemic multimorbidity and glycemic-dominant diabetes had the largest glycemic burden. Regional treatment review should begin with the phenotype-specific denominator, because each recorded treatment-review gap used its own eligible denominator.",
+            "**Conclusions:** The findings support regional service review and prospective validation.",
+            "## Introduction",
+            "The clinical problem is the heterogeneity of diabetes management needs in primary care. Prior subclassification literature shows that diabetes is not a single clinical pattern, but routine-care networks also need transparent service-review groupings.",
+            "This study addressed the evidence gap by asking whether DPCC records could define reproducible phenotypes and phenotype-specific recorded treatment-review gaps without converting the analysis into individualized treatment advice.",
+            "## Methods",
+            "### Study design and cohort",
+            "We conducted a retrospective descriptive study of deidentified DPCC primary-care records from May 2020 through December 2025. The index encounter was the first qualifying diabetes-coded visit after semantic-audit plausibility filtering.",
+            "### Variable definition and measurement",
+            "Candidate domains included age, sex, BMI, waist circumference, HbA1c, fasting glucose, lipid measures, eGFR, diagnoses, medication records, visit structure, and site identifiers. Missing values were not imputed.",
+            "### Phenotype derivation and assignment",
+            "Phenotype derivation used a prespecified deterministic hierarchy: severe glycemic multimorbidity, adiposity-linked multimorbidity, glycemic-dominant diabetes, adiposity-dominant diabetes, cardiometabolic-risk dominant diabetes, and lower-burden diabetes. The assignment is reproducible for a new patient by applying the same index-visit rules.",
+            "### Model or grouping framework",
+            "No clustering model, latent-class model, treatment-effect model, or individualized prediction model was fitted. The grouping framework was a clinical rule hierarchy.",
+            "### Validation framework",
+            "First-to-last repeated-visit transitions and deterministic dominant-site support were used as within-network support checks, not external validation.",
+            "### Data quality assessment",
+            "Blood-pressure semantic inversion was handled as a data-quality boundary, so blood-pressure control status was excluded while hypertension context was interpreted cautiously.",
+            "### Statistical analysis",
+            "Analyses were descriptive and used counts, percentages, and phenotype-level means. No model-based confidence intervals were introduced for the release-level descriptive counts.",
+            "## Results",
+            "The index cohort included 692,702 adults with diabetes. Six phenotype groups accounted for the full index cohort, and recorded treatment-review gap rates varied by phenotype and eligible denominator.",
+            "## Discussion",
+            "The principal finding is that a reproducible clinical hierarchy separated different service-review problems inside one regional diabetes network. This interpretation is useful for local review and prospective evaluation.",
+            "## Limitations",
+            "Medication capture was limited to recorded primary-care medication fields, and blood-pressure target attainment was not assessed because of the semantic-field issue.",
+            "## Conclusion",
+            "A deterministic DPCC phenotype hierarchy identified clinically interpretable groups with distinct recorded medication-coverage patterns.",
+        ]
+    ) + "\n"
+    for relative_path in ("draft.md", "build/review_manuscript.md"):
+        (paper_root / relative_path).write_text(writer_story, encoding="utf-8")
+    _write_json(paper_root / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
+    _write_json(paper_root / "evidence_ledger.json", {"schema_version": 1, "claims": []})
+    _write_json(paper_root / "medical_manuscript_blueprint.json", {"schema_version": 1, "sections": []})
+    _write_json(paper_root / "medical_prose_review.json", {"schema_version": 1, "findings": []})
+    _write_json(paper_root / "results_narrative_map.json", {"schema_version": 1, "sections": []})
+    _write_json(paper_root / "figure_semantics_manifest.json", {"schema_version": 1, "figures": []})
+    _write_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _write_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["recommended_actions"][0].update(
+        {
+            "action_type": "route_back_same_line",
+            "route_target": "write",
+            "next_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+                "summary": "Repair the manuscript body against current medical-prose findings.",
+            },
+        }
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_quality_summary(study_root)
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": publication_eval_payload["eval_id"],
+            "status": "handoff_ready",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": ["manuscript_story_surface_delta_missing"],
+                "manuscript_surface_hygiene": {
+                    "status": "blocked",
+                    "surface_refs": old_refs,
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                    "story_surface_delta_refs": [],
+                },
+            },
+        },
+    )
+
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["medical_publication_surface_blocked", "reviewer_first_concerns_unresolved"],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["medical_prose_quality_blocked"],
+            "current_required_action": "return_to_publishability_gate",
+            "gate_fingerprint": "publication-gate::medical-prose",
+        },
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **_: {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+            "selected_publication_work_unit": {"unit_id": "medical_prose_write_repair"},
+            "gate_replay": {
+                "status": "blocked",
+                "report_json": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            },
+            "unit_results": [],
+        },
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        control_plane_route_context=_paper_write_supervisor_route_context(),
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "executed"
+    assert (paper_root / "draft.md").read_text(encoding="utf-8") == writer_story
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == writer_story
+    story_refs = result["repair_execution_evidence"]["manuscript_surface_hygiene"]["story_surface_delta_refs"]
+    assert {
+        Path(ref["path"]).relative_to(study_root).as_posix()
+        for ref in story_refs
+    } == {"paper/draft.md", "paper/build/review_manuscript.md"}
+    assert {ref["fingerprint"]["content_sha256"] for ref in story_refs} == {
+        _fingerprint(paper_root / "draft.md")["content_sha256"]
+    }
 
 
 def test_medical_prose_write_repair_uses_explicit_route_context_when_gate_result_lacks_selection(

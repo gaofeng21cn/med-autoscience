@@ -4,6 +4,10 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
+    preserve_current_writer_story_delta,
+)
+
 
 MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID = "medical_prose_write_repair"
 DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID = "dm002_same_line_publication_paper_repair"
@@ -30,7 +34,19 @@ def materialize_medical_prose_story_surfaces(
     *,
     paper_root: Path,
     work_unit_id: str,
+    source_eval_id: str | None = None,
+    previous_quality_repair_batch: Mapping[str, Any] | None = None,
 ) -> list[str]:
+    if preserve_current_writer_story_delta(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+        medical_prose_write_repair_work_unit_id=MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+        manuscript_story_surface_relative_paths=MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS,
+        contains_forbidden_manuscript_terms=_contains_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        previous_quality_repair_batch=previous_quality_repair_batch,
+    ):
+        return []
     if work_unit_id == MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
         manuscript = _medical_prose_manuscript_from_canonical_surfaces(paper_root=paper_root)
     elif work_unit_id == DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID:
@@ -400,43 +416,52 @@ def _abstract_section(
 def _introduction_section() -> str:
     return (
         "## Introduction\n\n"
-        "Diabetes care in primary practice requires clinicians to manage glycemia together with adiposity, blood-pressure "
-        "context, lipid burden, renal-risk context, comorbidity, medication access, and follow-up. Patients carrying "
-        "the same diagnostic label can therefore present with very different service needs. Interpretable phenotype "
-        "summaries can make this heterogeneity visible when the assignment rule is reproducible and the clinical "
-        "question is kept descriptive.\n\n"
-        "The DPCC primary-care network provides a large regional source for such a descriptive analysis. This study "
-        "asks whether routine records can define clinically interpretable diabetes phenotypes and whether those "
-        "phenotypes identify different recorded treatment-review gap patterns. The study is framed as clinical "
-        "epidemiology for service review, with repeated-visit transitions and site-level holdout summaries used as "
-        "supportive context."
+        "Type 2 diabetes management in primary care is shaped by glycemic burden, adiposity, blood-pressure context, "
+        "lipid burden, renal-risk context, comorbidity, medication access, and follow-up. Patients with the same "
+        "diagnostic label can therefore require different service responses. A reproducible phenotype summary can make "
+        "this heterogeneity visible, provided that the assignment rule is transparent and the treatment indicators are "
+        "kept within the information available in routine records.\n\n"
+        "Data-driven subclassification studies have shown that diabetes phenotypes can carry different clinical risks, "
+        "but many primary-care quality-improvement questions require simpler rule-based groups that can be audited from "
+        "local records. In routine-care networks, a second problem is medication documentation: absence of a recorded "
+        "drug class may reflect true non-use, prescribing outside the network, self-purchased medication, incomplete "
+        "capture, contraindications, or clinical preference. A service-review atlas should therefore distinguish "
+        "recorded medication-coverage gaps from direct treatment failure or treatment-effect claims.\n\n"
+        "The DPCC primary-care network provides a large regional source for this descriptive question. We evaluated "
+        "whether routinely collected records could define clinically interpretable diabetes phenotypes and whether "
+        "those phenotypes identified different recorded treatment-review gap patterns. Repeated-visit transitions and "
+        "site-level support were used only to characterize within-network stability and coverage."
     )
 
 
 def _methods_section(*, cohort: Mapping[str, Any]) -> str:
     return (
         "## Methods\n\n"
-        "### Study Design And Data Source\n\n"
+        "### Study design and cohort\n\n"
         f"We conducted a retrospective descriptive analysis of routinely collected DPCC primary-care records. The "
         f"processed release contained {cohort['processed_records']} source records from {cohort['unique_patients']} "
-        "patients, with most participating practices located in Hunan. Records were analyzed after the prespecified "
-        "semantic audit and plausibility filtering of the phenotype-ready variable set. Repeated source rows from "
-        "the same patient within a 7-day visit episode were not counted as separate transition opportunities.\n\n"
-        "### Cohort Assembly\n\n"
-        f"The primary denominator was the index diabetes cohort of {cohort['index_patients']} adults. The repeated-visit "
-        f"support panel included {cohort['repeated_visit_patients']} patients, and {cohort['transition_eligible']} "
-        "patients were eligible for first-to-last phenotype transition summaries. The site-level holdout surface "
-        f"included {cohort['eligible_sites']} eligible sites covering {cohort['visit_coverage']} of release visit episodes. "
-        "For each patient, the index encounter was the first qualifying diabetes-coded visit with phenotype-ready "
-        "fields after semantic-audit plausibility filtering. This index-visit rule defines the patient-level analytic "
-        "row for phenotype assignment and treatment-review gap summaries.\n\n"
+        "patients, with most participating practices located in Hunan. The primary denominator was the index diabetes "
+        f"cohort of {cohort['index_patients']} adults. For each patient, the index encounter was the first qualifying "
+        "diabetes-coded visit with phenotype-ready fields after semantic-audit plausibility filtering. Repeated source "
+        "rows from the same patient within a 7-day visit episode were not counted as separate transition opportunities. "
+        f"The repeated-visit support panel included {cohort['repeated_visit_patients']} patients, and "
+        f"{cohort['transition_eligible']} patients were eligible for first-to-last phenotype transition summaries. "
+        f"The site-level support surface included {cohort['eligible_sites']} eligible sites covering "
+        f"{cohort['visit_coverage']} of release visit episodes.\n\n"
+        "### Variable definition and measurement\n\n"
+        "Candidate variables came from routine DPCC fields: age, sex, body size, HbA1c, fasting glucose, eGFR, lipid "
+        "measures, diagnosis text, medication records, visit dates, and site identifiers. Medication classes were "
+        "identified from recorded regimen text. Diabetes medication classes included metformin, alpha-glucosidase "
+        "inhibitors, sulfonylureas, SGLT2 inhibitors, DPP-4 inhibitors, thiazolidinediones, other oral diabetes drugs, "
+        "insulin, and injectable GLP-1 receptor agonists where recorded. Antihypertensive and lipid-lowering exposure "
+        "were similarly restricted to medication classes documented in the primary-care release. Missing values were "
+        "not imputed, and a missing measurement could remove a patient from a variable-specific summary or an "
+        "indicator-specific eligible denominator.\n\n"
         "### Phenotype derivation and assignment\n\n"
         "Phenotype assignment was deterministic and rule based. It was not a clustering model, latent-class model, "
-        "prediction model, or treatment-effect model. Candidate domains were defined from "
-        "routinely available clinical fields: age, sex, body size, HbA1c, fasting glucose, lipid values, renal-risk "
-        "context, diagnosis indicators, medication records, visit structure, and site identifiers. A new patient can "
-        "be classified by applying the same hierarchy to the index-visit phenotype-ready fields; the assignment is "
-        "therefore reproducible without model fitting or post hoc label optimization.\n\n"
+        "prediction model, or treatment-effect model. A new patient can be classified by applying the same hierarchy "
+        "to the index-visit phenotype-ready fields; the assignment is therefore reproducible without model fitting or "
+        "post hoc label optimization.\n\n"
         "The glycemic domain defined uncontrolled glycemia as HbA1c >=7.0% or fasting plasma glucose >=7.0 mmol/L, "
         "and severe glycemia as HbA1c >=9.0% or fasting plasma glucose >=11.1 mmol/L. The adiposity domain was "
         "positive with an obesity or central-obesity diagnosis, BMI >=28 kg/m2, or waist circumference >=90 cm in "
@@ -449,6 +474,11 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         "cardiometabolic-risk dominant diabetes, and lower-burden diabetes. The six-class structure was retained "
         "because it separated severe glycemia, adiposity, cardiometabolic context, and lower-burden profiles into "
         "clinically interpretable groups while preserving sufficient group sizes for descriptive service review.\n\n"
+        "### Model or grouping framework\n\n"
+        "The grouping framework was the rule hierarchy described above. No training set, optimization target, model "
+        "coefficient, probability score, or individual decision threshold was estimated for phenotype assignment. The "
+        "analysis therefore reports phenotype composition and recorded medication-coverage patterns, not prediction "
+        "performance, treatment effects, or individualized prescribing recommendations.\n\n"
         "### Recorded treatment-review gap definitions\n\n"
         "Treatment-gap indicators were defined as recorded medication-coverage gaps: discordance between documented "
         "clinical burden and medication classes recorded in the available primary-care data. The main indicators were "
@@ -475,15 +505,21 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         f"{cohort['bp_swapped_plausible_rate']}. Therefore, blood-pressure control status was excluded from the main "
         "analysis. Hypertension context was retained only as a diagnosis-or-context indicator and interpreted with "
         "this limitation.\n\n"
+        "### Validation framework\n\n"
+        "Because this was not a prediction model, validation was limited to descriptive support checks. First-to-last "
+        "transition summaries compared each transition-eligible patient's first and last phenotype-ready visits after "
+        "7-day episode consolidation. Site support used a dominant-site deterministic partition: patients were assigned "
+        "to their dominant anonymous site where possible, small sites were pooled, and the resulting site folds were "
+        "used to describe within-network coverage. These analyses do not constitute external validation.\n\n"
         "### Statistical analysis\n\n"
         "Analyses were descriptive. Categorical variables are summarized as counts and percentages, and continuous "
         "variables as means where table surfaces provide means. Denominators were the index cohort for phenotype "
-        "composition and treatment-review gaps, the repeated-visit cohort for follow-up support, transition-eligible "
-        "patients for first-to-last transition summaries, and release visit episodes for site-level coverage. "
-        "First-to-last transition summaries compared each transition-eligible patient's first and last phenotype-ready visits "
-        "after 7-day episode consolidation. Site support used a dominant-site deterministic partition: patients were "
-        "assigned to their dominant anonymous site where possible, small sites were pooled, and the resulting site "
-        "folds were used only to describe within-network support. No "
+        "composition, phenotype-specific eligible patients for treatment-review gaps, the repeated-visit cohort for "
+        "follow-up support, transition-eligible patients for first-to-last transition summaries, and release visit "
+        "episodes for site-level coverage. No sampling-based 95% confidence intervals were calculated for the main "
+        "release-level descriptive counts, because the analysis enumerated the retained DPCC release rather than "
+        "sampling from a target national population. Revision analyses were implemented in Python using sqlite3, numpy, "
+        "scipy, and matplotlib. No "
         "causal model, p-value-driven hypothesis test, individualized prediction model, or blood-pressure target "
         "attainment analysis was used for the main manuscript."
     )
@@ -508,10 +544,10 @@ def _results_section(
         f"{cohort['repeated_visit_patients']} patients, and {cohort['transition_eligible']} contributed to the "
         "first-to-last transition analysis. Figure 1 presents the cohort flow and quality-control exclusions.\n\n"
         "### Baseline characteristics\n\n"
-        "Table 1 is a cohort-assembly and data-quality summary, not a traditional baseline-characteristics table. It "
-        "documents the release size, index denominator, repeated-visit support, site-level support, blood-pressure "
-        "semantic checks, and plausibility-filter exclusions. Table 2 is the phenotype-level baseline table, with "
-        "patient counts, cohort shares, mean age, mean BMI, mean HbA1c, and phenotype-scoped treatment-review gap rates.\n\n"
+        "Table 1 is the cohort-assembly and data-quality table for the retained DPCC release. It documents the release "
+        "size, index denominator, repeated-visit support, site-level support, blood-pressure semantic checks, and "
+        "plausibility-filter exclusions. Table 2 is the phenotype-level baseline-characteristics table, with patient "
+        "counts, cohort shares, mean age, mean BMI, mean HbA1c, and phenotype-scoped treatment-review gap rates.\n\n"
         "### Phenotype distribution and clinical profiles\n\n"
         f"{phenotype_sentence} The phenotype table shows a clinically interpretable gradient: severe glycemic "
         "multimorbidity had the highest mean HbA1c, adiposity-linked multimorbidity and adiposity-dominant diabetes "

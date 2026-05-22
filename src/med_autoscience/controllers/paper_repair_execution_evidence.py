@@ -7,6 +7,9 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
+    current_writer_story_delta_is_preservable,
+)
 from med_autoscience.policies.medical_manuscript_draft_quality import (
     PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS,
 )
@@ -59,6 +62,20 @@ _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
     Path("paper/build/review_manuscript.md"),
 )
 _MANUSCRIPT_STORY_BLOCKING_PATTERN_IDS = frozenset({"invalid_analysis_history_residue"})
+_MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID = "medical_prose_write_repair"
+_MEDICAL_PROSE_FORBIDDEN_MANUSCRIPT_TERMS = (
+    "MAS",
+    "AI reviewer",
+    "verified outputs",
+    "accepted records",
+    "source gaps",
+    "submission readiness",
+    "repair note",
+    "manuscript repair",
+    "quality repair",
+    "publication gate",
+    "controller",
+)
 
 
 def stable_repair_execution_evidence_path(*, study_root: Path) -> Path:
@@ -556,6 +573,16 @@ def _story_surface_currentness_delta_refs(
     )
     if not previous_surface_refs:
         return []
+    if work_unit_id == _MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID and not current_writer_story_delta_is_preservable(
+        paper_root=study_root / "paper",
+        work_unit_id=work_unit_id,
+        medical_prose_write_repair_work_unit_id=_MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+        manuscript_story_surface_relative_paths=(Path("draft.md"), Path("build") / "review_manuscript.md"),
+        contains_forbidden_manuscript_terms=_contains_medical_prose_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        previous_quality_repair_batch=previous_quality_repair_batch,
+    ):
+        return []
     previous_by_path = {
         _text(ref.get("path")): ref
         for ref in previous_surface_refs
@@ -655,6 +682,11 @@ def _manuscript_surface_residue_hits(surfaces: Iterable[Path]) -> list[dict[str,
                         }
                     )
     return hits
+
+
+def _contains_medical_prose_forbidden_manuscript_terms(text: str) -> bool:
+    lowered = text.lower()
+    return any(term.lower() in lowered for term in _MEDICAL_PROSE_FORBIDDEN_MANUSCRIPT_TERMS)
 
 
 def _excerpt_around(line: str, start: int, end: int, *, radius: int = 80) -> str:
