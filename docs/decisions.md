@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：ready default-executor dispatch 必须作为 refs-only sidecar task 暴露给 OPL
+
+- 决策：当 MAS materialize 出 `artifacts/supervision/consumer/default_executor_dispatches/*.json`，且该文件明确为 `surface=default_executor_dispatch_request`、`dispatch_status=ready`、`executor_kind=codex_cli_default`、`next_executable_owner=write` 时，`sidecar export` 必须生成 `domain_owner/default-executor-dispatch` pending family task。该 task 只携带 `dispatch_ref`、prompt contract ref、action type、dispatch authority、study / quest identity 和 authority boundary，不内联 request body。
+- 决策：该 task 的 dispatch owner / queue owner 是 `one-person-lab`，domain truth owner 仍是 `med-autoscience`。MAS 不用 sidecar export 直接启动 Codex writer，不写 OPL queue 或 stage attempt；OPL 只能据此建立 Codex-default writer stage attempt，再由后续 MAS owner receipt、AI reviewer-backed publication eval 和 publication gate 判定论文进展。
+- 理由：DM002 暴露出 MAS 已生成 writer handoff / default executor request，但 OPL hydrate 面看不到这个可执行 handoff，只能继续围绕旧 paper autonomy / aftercare / domain route task 打转。正确边界是 MAS 输出 refs-only writer dispatch request，OPL 承接 generic queue / attempt / provider lifecycle。
+- 影响：这是 MAS sidecar adapter / owner handoff 暴露修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。
+
 ## 2026-05-21：DM003 primary-care treatment-gap 稿件修复必须进入 write owner story-delta 回路
 
 - 决策：`primary_care_gap` 是 MAS 支持的 observational manuscript family，报告规范默认解析为 STROBE。该 family 的 descriptive clinical treatment-gap / phenotype 稿件可以使用 clinical subtype reconstruction strong display shell，但不能把 display support、ledger update 或 QA 摘要当成正文完成证据。
