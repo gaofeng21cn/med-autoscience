@@ -116,6 +116,7 @@
         "archive_permitted": false,
         "current_disposition": "retain_with_explicit_cleanup_gate",
         "current_paths": [
+          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_residency.py",
           "src/med_autoscience/runtime_transport/mas_runtime_core_worker_leases.py",
           "src/med_autoscience/runtime_transport/mas_runtime_core_worker_env.py",
           "src/med_autoscience/runtime_transport/mas_runtime_core_worker_wrapper.py"

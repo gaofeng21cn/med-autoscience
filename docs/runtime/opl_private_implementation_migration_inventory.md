@@ -145,6 +145,12 @@ MAS 的 OPL 标准智能体目标态是：
 
 该拆分只关闭 user-message delivery shell 的自然边界收薄，不删除 message queue、turn runner、worker lease、runtime transport 或 lifecycle refs SQLite index active caller，也不声明 OPL queue/provider parity、MAS paper-line receipt parity、no-active-caller 或 physical delete gate 成立。`functional_privatization_audit` 已把新模块列入 `runtime_turn_runner_closeout_adapter.current_paths`，其删除门槛继续是 active caller 清零、OPL replacement parity、domain receipt parity、focused tests、no-forbidden-write proof 和 history/tombstone refs 同时成立。
 
+## 2026-05-22 turn worker residency adapter split
+
+本轮继续清理 retained turn lifecycle / worker lease 控制面：worker liveness check、orphan worker lease cleanup、delayed-turn drain/timer wiring、turn lifecycle inspection 和 stale liveness reconciliation 的调用壳已移入 `runtime_transport/mas_runtime_core_turn_residency.py`。`mas_runtime_core_turns.py` 继续保留既有 public helper 名称，但只作为 thin delegator，主文件从约 916 行降到约 809 行；`worker_lease_residency_projection.current_paths` 已把新 residency adapter 列入 active retained residue。
+
+该拆分只关闭 worker residency / liveness adapter 的自然边界收薄，不删除 worker lease、worker wrapper、runtime transport、message queue、turn runner 或 lifecycle refs SQLite index active caller，也不声明 OPL worker residency manager/default caller 已接管、MAS paper-line receipt parity、no-active-caller 或 physical delete gate 成立。后续迁移或删除仍要求 active caller 清零、OPL replacement parity、MAS receipt parity、focused runtime tests、no-forbidden-write proof 和 history/tombstone refs 同时成立。
+
 ## 2026-05-22 workspace init profile/config and legacy-entry split
 
 本轮继续清理 `workspace_init.py` 的 workspace/source/bootstrap 私有平台化控制面：profile/config TOML/env render 与 merge helper 已移入 `workspace_init_parts/profile_config.py`，legacy workspace entry upgrade detector 已移入 `workspace_init_parts/legacy_entries.py`。`workspace_init.py` 主入口降到约 736 行，并从 boundary fitness oversized baseline 中移除，后续不能再把该文件作为被允许的超长控制面继续扩写。

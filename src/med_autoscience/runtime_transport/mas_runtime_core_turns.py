@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_transport import mas_runtime_core_turn_monitor as turn_monitor
 from med_autoscience.runtime_transport import mas_runtime_core_turn_blocks as turn_blocks
 from med_autoscience.runtime_transport import mas_runtime_core_turn_messages as turn_messages
+from med_autoscience.runtime_transport import mas_runtime_core_turn_residency as turn_residency
 from med_autoscience.runtime_transport import mas_runtime_core_turn_state as turn_state
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     BLOCKED_CLOSEOUT_RUNNER_STATUS,
@@ -29,15 +30,7 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_receipts import (
     schedule_result,
     turn_receipt_payload,
 )
-from med_autoscience.runtime_transport.mas_runtime_core_turn_liveness import (
-    initial_worker_lease_payload,
-    lease_payload_live as _lease_payload_live,
-    lease_payload_status as _lease_payload_status,
-    reconcile_stale_liveness as reconcile_stale_liveness_impl,
-    watchdog_projection as _watchdog_projection,
-)
 from med_autoscience.runtime_transport import mas_runtime_core_turn_timers as turn_timers
-from med_autoscience.runtime_transport import mas_runtime_core_delayed_turns as delayed_turns
 from med_autoscience.runtime_transport.mas_runtime_core_pause_resume import release_paused_explicit_resume
 from med_autoscience.runtime_transport.mas_runtime_core_turn_paths import (
     delayed_turn_path,
@@ -47,15 +40,9 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_paths import (
 )
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     idempotency_key as make_idempotency_key,
-    parse_time,
     pid_live,
     runner_unavailable,
     text,
-)
-from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
-    terminate_orphan_worker_leases,
-    terminate_worker_lease_for_run,
-    terminate_worker_leases,
 )
 from med_autoscience.runtime_transport.mas_runtime_core_turn_policy import (
     AUTO_CONTINUE_DELAY_SECONDS,
@@ -65,7 +52,6 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_policy import (
     RETRY_BACKOFF_BASE_SECONDS,
     SAME_FINGERPRINT_AUTO_TURN_THRESHOLD,
     TERMINAL_STATUSES,
-    WORKER_LEASE_TTL_SECONDS,
 )
 
 
@@ -318,25 +304,7 @@ def schedule_turn(
 
 
 def _prune_orphan_worker_leases_before_new_turn(*, quest_root: Path, source: str) -> dict[str, Any] | None:
-    cleanup = terminate_orphan_worker_leases(
-        quest_root=quest_root,
-        active_run_id=None,
-        source=source,
-        reason="orphan_worker_before_new_turn",
-        utc_now=utc_now,
-        read_json=read_json,
-        write_json=write_json,
-        append_runtime_event=append_runtime_event,
-    )
-    if cleanup is None:
-        return None
-    persist_state(
-        quest_root=quest_root,
-        updates={"last_orphan_worker_cleanup": cleanup},
-        source=source,
-        event_name="orphan_worker_before_new_turn_pruned",
-    )
-    return cleanup
+    return turn_residency.prune_orphan_worker_leases_before_new_turn(quest_root=quest_root, source=source)
 
 
 def start_turn(
@@ -428,7 +396,7 @@ def start_turn(
             "turn_receipt": receipt,
             "snapshot": snapshot(quest_root=quest_root, state=updated),
         }
-    lease = initial_worker_lease_payload(
+    lease = turn_residency.initial_worker_lease_payload(
         quest_id=quest_id,
         run_id=new_run_id,
         reason=reason,
@@ -644,81 +612,23 @@ def complete_turn_and_normalize(
 
 
 def inspect_turn_lifecycle(*, quest_root: Path) -> dict[str, Any]:
-    drained_delayed_turn = drain_due_delayed_turn(quest_root=quest_root, source="mas_runtime_core.inspect_turn_lifecycle")
-    state = load_state(quest_root=quest_root)
-    active_run_id = text(state.get("active_run_id"))
-    lease = read_json(worker_lease_path(quest_root=quest_root, run_id=active_run_id)) if active_run_id else {}
-    lease_status = _lease_payload_status(
-        lease=lease,
-        run_id=active_run_id,
-        now=turn_state.now,
-        parse_time=parse_time,
+    return turn_residency.inspect_turn_lifecycle(
+        quest_root=quest_root,
+        schedule_turn=schedule_turn,
         pid_live_check=pid_live,
-        ttl_seconds=WORKER_LEASE_TTL_SECONDS,
     )
-    lease_live = bool(lease_status.get("live"))
-    payload = {
-        "ok": True,
-        "status": "live" if state.get("worker_running") is True and lease_live else "none",
-        "active_run_id": active_run_id if lease_live else None,
-        "stale_active_run_id": active_run_id if state.get("worker_running") is True and active_run_id and not lease_live else None,
-        "worker_running": state.get("worker_running") is True and lease_live,
-        "worker_pending": state.get("worker_pending") is True,
-        "stop_requested": state.get("stop_requested") is True,
-        "lease": lease if lease else None,
-        "worker_watchdog": _watchdog_projection(lease=lease, lease_status=lease_status),
-        "snapshot": snapshot(quest_root=quest_root, state=state),
-    }
-    if drained_delayed_turn is not None:
-        payload["drained_delayed_turn"] = drained_delayed_turn
-    return payload
 
 
 def drain_due_delayed_turn(*, quest_root: Path, source: str) -> dict[str, Any] | None:
-    delayed = read_json(delayed_turn_path(quest_root))
-    if not delayed:
-        return None
-    state = load_state(quest_root=quest_root)
-    if text(state.get("status")) in TERMINAL_STATUSES:
-        delayed_turns.cancel_delayed_turn(
-            quest_root=quest_root, source=source, reason="terminal_state", delayed_turn_path=delayed_turn_path,
-            read_json=read_json, text=text, utc_now=utc_now, append_runtime_event=append_runtime_event,
-        )
-        return None
-    scheduled_at = parse_time(text(delayed.get("scheduled_at")))
-    delay_seconds = float(delayed.get("delay_seconds") or 0)
-    if scheduled_at is None or (turn_state.now() - scheduled_at).total_seconds() < delay_seconds:
-        return None
-    if state.get("worker_running") is True and text(state.get("active_run_id")):
-        return None
-    try:
-        delayed_turn_path(quest_root).unlink()
-    except FileNotFoundError:
-        pass
-    result = schedule_turn(
-        runtime_root=quest_root.parent.parent,
-        quest_root=quest_root,
-        quest_id=text(delayed.get("quest_id")) or quest_root.name,
-        reason=text(delayed.get("reason")) or "auto_continue",
-        source=text(delayed.get("source")) or source,
-    )
-    return {
-        "quest_id": text(delayed.get("quest_id")) or quest_root.name,
-        "reason": text(delayed.get("reason")) or "auto_continue",
-        "source": text(delayed.get("source")) or source,
-        "delay_seconds": delay_seconds,
-        "scheduled_at": text(delayed.get("scheduled_at")),
-        "started": bool(result.get("started")),
-        "active_run_id": text(result.get("active_run_id")),
-    }
+    return turn_residency.drain_due_delayed_turn(quest_root=quest_root, source=source, schedule_turn=schedule_turn)
 
 
 def _arm_delayed_turn_timer(*, quest_root: Path, delay_seconds: float, source: str) -> None:
-    turn_timers.arm_delayed_turn_timer(
+    turn_residency.arm_delayed_turn_timer(
         quest_root=quest_root,
         delay_seconds=delay_seconds,
         source=source,
-        drain_due_delayed_turn=drain_due_delayed_turn,
+        schedule_turn=schedule_turn,
     )
 
 
@@ -742,22 +652,12 @@ def _arm_runner_monitor(*, runtime_root: Path, quest_root: Path, quest_id: str, 
 
 
 def reconcile_stale_liveness(*, quest_root: Path, source: str) -> dict[str, Any] | None:
-    return reconcile_stale_liveness_impl(
+    return turn_residency.reconcile_stale_liveness(
         quest_root=quest_root,
         source=source,
         inspect_turn_lifecycle=inspect_turn_lifecycle,
-        text=text,
-        load_state=load_state,
-        persist_state=persist_state,
-        snapshot=snapshot,
         turn_receipt=_turn_receipt,
         make_idempotency_key=make_idempotency_key,
-        terminate_worker_leases=terminate_worker_leases,
-        terminate_worker_lease_for_run=terminate_worker_lease_for_run,
-        utc_now=utc_now,
-        read_json=read_json,
-        write_json=write_json,
-        append_runtime_event=append_runtime_event,
     )
 
 
@@ -906,11 +806,4 @@ def _record_post_turn_storage_maintenance_hook(*, quest_root: Path, quest_id: st
 
 
 def _worker_lease_live(*, quest_root: Path, run_id: str) -> bool:
-    return _lease_payload_live(
-        lease=read_json(worker_lease_path(quest_root=quest_root, run_id=run_id)),
-        run_id=run_id,
-        now=turn_state.now,
-        parse_time=parse_time,
-        pid_live_check=pid_live,
-        ttl_seconds=WORKER_LEASE_TTL_SECONDS,
-    )
+    return turn_residency.worker_lease_live(quest_root=quest_root, run_id=run_id, pid_live_check=pid_live)

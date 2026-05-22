@@ -92,6 +92,7 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         "residue_id": "worker_lease_residency_projection",
         "residue_class": "runtime_transport",
         "current_paths": [
+            "src/med_autoscience/runtime_transport/mas_runtime_core_turn_residency.py",
             "src/med_autoscience/runtime_transport/mas_runtime_core_worker_leases.py",
             "src/med_autoscience/runtime_transport/mas_runtime_core_worker_env.py",
             "src/med_autoscience/runtime_transport/mas_runtime_core_worker_wrapper.py",
