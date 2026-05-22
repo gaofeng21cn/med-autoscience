@@ -338,6 +338,75 @@ def test_paper_repair_executor_routes_ai_reviewer_callable_to_owner_dispatch(
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
+def test_paper_repair_executor_ai_reviewer_handoff_preserves_runtime_health_epoch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    profile = make_profile(tmp_path)
+    study_root = profile.studies_root / "006c-dpcc"
+    calls: list[dict[str, object]] = []
+
+    def fake_dispatch_domain_owner_actions(**kwargs) -> dict[str, object]:
+        calls.append(kwargs)
+        return {
+            "surface": "default_executor_dispatch_executor",
+            "executed_count": 0,
+            "blocked_count": 1,
+            "executions": [
+                {
+                    "execution_status": "blocked",
+                    "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                    "owner_callable_surface": (
+                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                    ),
+                }
+            ],
+        }
+
+    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
+    work_unit = {
+        **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-currentness"),
+        "owner": "ai_reviewer",
+        "callable_surface": (
+            "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+        ),
+    }
+    route_context = {
+        "controller_route_context": {
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            "work_unit_fingerprint": "domain-transition::ai-reviewer-current",
+            "runtime_health_epoch": "runtime-health-event-current",
+        },
+        "current_owner_route": {
+            "runtime_health_epoch": "runtime-health-event-current",
+            "truth_epoch": "study-decision::ai-reviewer-current",
+        },
+    }
+
+    result = module.dispatch_repair_work_unit(
+        profile=profile,
+        study_id="006c-dpcc",
+        quest_id="quest-006c",
+        study_root=study_root,
+        repair_work_unit=work_unit,
+        control_plane_route_context=route_context,
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    dispatch = calls[0]["consumer_payload"]["default_executor_dispatches"][0]
+    assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
+    assert dispatch["prompt_contract"]["owner_route"]["runtime_health_epoch"] == "runtime-health-event-current"
+    envelope = attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
+    assert envelope["owner_route_currentness_basis"]["runtime_health_epoch"] == (
+        "runtime-health-event-current"
+    )
+    assert envelope["dispatchable"] is True
+
+
 def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before_execution(
     monkeypatch,
     tmp_path: Path,
