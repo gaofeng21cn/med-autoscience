@@ -934,6 +934,12 @@
 - 理由：DM002 暴露出 `run_quality_repair_batch` 已改 claim/evidence/review ledgers，但没有更新正式稿件正文；旧 receipt consumer 把该 progress delta 当成同一路由完成，导致 `study-runtime-status` 仍 blocked 而 `owner-route-reconcile` action queue 为空。
 - 影响：后续医学论文硬化路线必须把“是否像高质量医学论文”的核心反馈落到 manuscript-native story surface 和 AI reviewer recheck，而不是让 evidence ledger delta、controller receipt 或 package/display materialization 伪装成正文质量完成。
 
+## 2026-05-23：AI reviewer request materializer 必须刷新现有 stable request
+
+- 决策：`domain-action-request-materialize --apply` 不只物化当前 scan 中的新 request task；当目标 study 已存在 `artifacts/supervision/requests/ai_reviewer/latest.json` 时，也必须通过 AI reviewer request lifecycle owner 刷新该 stable request，使其吸收最新合规、current 的 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`。没有新 action queue item 不能成为 stale AI reviewer record 留在 stable request 的理由。
+- 理由：DM002 暴露出新 AI reviewer record 已正式落盘，但 materializer 在 action queue 为空时不会重刷 existing request，导致 default executor 继续读取 stale request 并误报 `ai_reviewer_record_stale_after_current_manuscript`。刷新必须复用 lifecycle currentness validator，不得手写 JSON 或放宽 record currentness。
+- 影响：materializer result 公开 `ai_reviewer_request_refreshes` / `ai_reviewer_request_refresh_count`；apply 模式只在 developer-safe owner boundary 内写 `artifacts/supervision/requests/ai_reviewer/latest.json`，仍不写 `publication_eval/latest.json`、paper、current_package 或质量结论。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

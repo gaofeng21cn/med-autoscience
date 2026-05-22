@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
+from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
@@ -71,6 +72,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/consumer/methodology_reframe_route_decision.json",
     "studies/<study_id>/artifacts/supervision/consumer/provenance_limited_harmonization_audit.json",
     "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
+    "studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json",
 ]
 MERGE_CLEANUP_CHECKLIST = [
     "focused pytest green",
@@ -750,6 +752,55 @@ def _resolve_study_ids_from_scan(scan_payload: Mapping[str, Any], study_ids: Ite
     return tuple(dict.fromkeys(resolved))
 
 
+def _ai_reviewer_request_refresh(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+) -> dict[str, Any] | None:
+    study_root = _study_root(profile, study_id)
+    request_path = domain_action_request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
+    packet = domain_action_request_lifecycle.read_ai_reviewer_request(study_root=study_root)
+    if packet is None:
+        return None
+    refreshed = domain_action_request_lifecycle.ai_reviewer_request_with_latest_record(
+        study_root=study_root,
+        packet=packet,
+    )
+    changed = refreshed != packet
+    if apply and changed:
+        request_path.parent.mkdir(parents=True, exist_ok=True)
+        request_path.write_text(
+            json.dumps(refreshed, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    return {
+        "surface": "ai_reviewer_request_refresh",
+        "schema_version": SCHEMA_VERSION,
+        "study_id": study_id,
+        "request_path": str(request_path),
+        "refresh_status": "refreshed" if changed else "unchanged",
+        "written": bool(apply and changed),
+        "publication_eval_record_ref": _text(refreshed.get("publication_eval_record_ref")),
+        "attached_eval_id": _text(_mapping(refreshed.get("ai_reviewer_record")).get("eval_id")),
+        "blocked_reason": _text(_mapping(refreshed.get("request_lifecycle")).get("blocked_reason")),
+    }
+
+
+def _ai_reviewer_request_refreshes(
+    *,
+    profile: WorkspaceProfile,
+    study_ids: tuple[str, ...],
+    apply: bool,
+) -> list[dict[str, Any]]:
+    refreshes: list[dict[str, Any]] = []
+    for study_id in study_ids:
+        refresh = _ai_reviewer_request_refresh(profile=profile, study_id=study_id, apply=apply)
+        if refresh is not None:
+            refreshes.append(refresh)
+    return refreshes
+
+
 def materialize_domain_action_requests(
     *,
     profile: WorkspaceProfile,
@@ -814,6 +865,7 @@ def materialize_domain_action_requests(
         )
         for action in selected_request_actions
     ]
+    ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
     if apply and developer_mode.safe_actions_enabled:
         for task in repair_tasks:
@@ -845,6 +897,20 @@ def materialize_domain_action_requests(
             packet = _mapping(task.get("handoff_packet"))
             _write_json(packet_path, packet)
             written_files.append(str(packet_path))
+        ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
+            profile=profile,
+            study_ids=resolved_study_ids,
+            apply=True,
+        )
+        for refresh in ai_reviewer_request_refreshes:
+            if refresh.get("written") is True:
+                written_files.append(str(refresh["request_path"]))
+    else:
+        ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
+            profile=profile,
+            study_ids=resolved_study_ids,
+            apply=False,
+        )
 
     payload = {
         "surface": "domain_action_request_materializer",
@@ -863,6 +929,8 @@ def materialize_domain_action_requests(
         "repair_tasks": repair_tasks,
         "request_task_count": len(request_tasks),
         "request_tasks": request_tasks,
+        "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
+        "ai_reviewer_request_refreshes": ai_reviewer_request_refreshes,
         "default_executor_dispatch_count": len(default_executor_dispatches),
         "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in default_executor_dispatches),
         "default_executor_dispatches": default_executor_dispatches,
@@ -888,6 +956,7 @@ def materialize_domain_action_requests(
                 "study_ids": list(resolved_study_ids),
                 "repair_task_count": len(repair_tasks),
                 "request_task_count": len(request_tasks),
+                "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
                 "written_files": list(written_files),
                 "effective_mode": developer_mode.mode,
             },

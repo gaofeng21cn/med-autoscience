@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
+import os
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -10,6 +12,10 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _sha256_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _owner_route(
@@ -152,3 +158,135 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
     assert dispatch["repeat_suppressed"] is False
     assert dispatch["blocked_reason"] is None
     assert result["repeat_suppressed_count"] == 0
+
+
+def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_request_to_latest_valid_record_without_new_queue_task(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript with numeric results and 95% CIs.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    os.utime(manuscript_path, (0, 0))
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    old_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260521T213722Z_publication_eval_record.json"
+    )
+    new_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260522T203041Z_publication_eval_record.json"
+    )
+    quality_assessment = {
+        dimension: {"status": "blocked", "summary": f"{dimension} remains blocked."}
+        for dimension in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "medical_journal_prose_quality",
+            "human_review_readiness",
+        )
+    }
+    _write_json(
+        request_path,
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "request_id": f"return_to_ai_reviewer_workflow::{study_id}::{quest_id}",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                "stale_record_ref": str(old_record_path.resolve()),
+                "required_currentness_refs": [str(manuscript_path.resolve())],
+            },
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+                    "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
+                    "review_ledger": {"path": str(study_root / "paper" / "review" / "review_ledger.json"), "present": True, "valid": True},
+                    "study_charter": {"path": str(study_root / "artifacts" / "controller" / "study_charter.json"), "present": True, "valid": True},
+                    "medical_manuscript_blueprint": {"path": str(study_root / "paper" / "medical_manuscript_blueprint.json"), "present": True, "valid": True},
+                    "claim_evidence_map": {"path": str(study_root / "paper" / "claim_evidence_map.json"), "present": True, "valid": True},
+                    "medical_prose_review": {"path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"), "present": True, "valid": True},
+                    "publication_gate_projection": {"path": str(study_root / "artifacts" / "publication_eval" / "latest.json"), "present": True, "valid": True},
+                }
+            },
+        },
+    )
+    _write_json(
+        new_record_path,
+        {
+            "eval_id": "publication-eval::002::quest::2026-05-22T20:30:41+00:00::ai-reviewer",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "emitted_at": "2026-05-22T20:30:41+00:00",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "ai_reviewer_required": False,
+                "source_refs": [str(manuscript_path.resolve())],
+            },
+            "quality_assessment": quality_assessment,
+            "future_facing_limitations_plan": [
+                {
+                    "limitation": "Current manuscript remains below publication quality.",
+                    "impact_on_claim": "The external-validation story must stay restrained.",
+                    "required_future_analysis_data_or_design": "Repair prose and display alignment before package refresh.",
+                    "current_manuscript_wording_must_be_restrained": True,
+                }
+            ],
+            "reviewer_operating_system": {
+                "currentness_checks": {
+                    "manuscript": {
+                        "status": "current",
+                        "manuscript_ref": str(manuscript_path.resolve()),
+                        "manuscript_digest": _sha256_text(manuscript_text),
+                    }
+                }
+            },
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": quest_id}],
+            "action_queue": [],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    refreshed = json.loads(request_path.read_text(encoding="utf-8"))
+    assert result["ai_reviewer_request_refresh_count"] == 1
+    assert result["ai_reviewer_request_refreshes"][0]["refresh_status"] == "refreshed"
+    assert result["ai_reviewer_request_refreshes"][0]["publication_eval_record_ref"] == str(new_record_path.resolve())
+    assert refreshed["request_lifecycle"]["blocked_reason"] is None
+    assert "stale_record_ref" not in refreshed["request_lifecycle"]
+    assert "required_currentness_refs" not in refreshed["request_lifecycle"]
+    assert refreshed["publication_eval_record_ref"] == str(new_record_path.resolve())
+    assert refreshed["ai_reviewer_record"]["eval_id"] == "publication-eval::002::quest::2026-05-22T20:30:41+00:00::ai-reviewer"

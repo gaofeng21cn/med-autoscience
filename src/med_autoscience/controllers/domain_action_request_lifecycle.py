@@ -608,6 +608,15 @@ def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[
     return payload
 
 
+def ai_reviewer_request_with_latest_record(
+    *,
+    study_root: str | Path,
+    packet: Mapping[str, Any],
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    return _packet_with_latest_ai_reviewer_record(study_root=resolved_study_root, packet=packet)
+
+
 def materialize_ai_reviewer_request(
     *,
     study_root: str | Path,
@@ -615,7 +624,7 @@ def materialize_ai_reviewer_request(
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     path = stable_ai_reviewer_request_path(study_root=resolved_study_root)
-    payload = _packet_with_latest_ai_reviewer_record(study_root=resolved_study_root, packet=packet)
+    payload = ai_reviewer_request_with_latest_record(study_root=resolved_study_root, packet=packet)
     payload["path"] = str(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
