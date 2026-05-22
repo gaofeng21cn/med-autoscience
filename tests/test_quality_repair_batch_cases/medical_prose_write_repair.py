@@ -591,6 +591,10 @@ def test_dm002_same_line_publication_paper_repair_updates_external_validation_ma
     assert "nonparametric bootstrap replicates" in story_text
     assert "lifelines 0.30.3" in story_text
     assert "unweighted NHANES" in story_text
+    assert "10.11 percentage points" in story_text
+    assert "age, sex, smoking status, HbA1c, HDL cholesterol, systolic blood pressure, and diastolic blood pressure" in story_text
+    assert "hdl_mmol_l" not in story_text
+    assert "% percentage points" not in story_text
     forbidden_runtime_terms = (
         "MAS",
         "AI reviewer",

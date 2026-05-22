@@ -162,8 +162,9 @@ def _dm002_values(evidence: Mapping[str, Any]) -> dict[str, Any]:
         "absolute_gap": _percent_value(
             observed - predicted if observed is not None and predicted is not None else None,
             digits=2,
+            symbol=False,
         ),
-        "feature_order": ", ".join(str(item) for item in model.get("feature_order") or []),
+        "feature_order": _dm002_predictor_list(model.get("feature_order")),
         "baseline_survival": _metric_value(model.get("baseline_survival_at_5y"), digits=6),
         "hdl_factor": _metric_value(hdl.get("mg_dl_to_mmol_l_factor"), digits=5),
         "bootstrap_replicates": _format_count(_mapping(evidence.get("uncertainty")).get("replicates") or 200),
@@ -340,6 +341,24 @@ def _dm002_group_sentence(group: object, *, fallback_label: str) -> str:
         f"In {group_label}, observed mortality was {observed} (95% CI {observed_ci}) with {events} events among "
         f"{n} participants, compared with mean predicted risk of {predicted}."
     )
+
+
+def _dm002_predictor_list(value: object) -> str:
+    labels = {
+        "Age": "age",
+        "Sex": "sex",
+        "Smoke": "smoking status",
+        "HbA1c": "HbA1c",
+        "hdl_mmol_l": "HDL cholesterol",
+        "SBP": "systolic blood pressure",
+        "DBP": "diastolic blood pressure",
+    }
+    items = [labels.get(str(item), str(item)) for item in value or []]
+    if not items:
+        return "age, sex, smoking status, HbA1c, HDL cholesterol, systolic blood pressure, and diastolic blood pressure"
+    if len(items) == 1:
+        return items[0]
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
 
 
 def _abstract_section(
@@ -805,11 +824,12 @@ def _metric_value(value: object, *, digits: int) -> str:
     return f"{number:.{digits}f}"
 
 
-def _percent_value(value: object, *, digits: int) -> str:
+def _percent_value(value: object, *, digits: int, symbol: bool = True) -> str:
     number = _float(value)
     if number is None:
         return "NA"
-    return f"{number * 100:.{digits}f}%"
+    suffix = "%" if symbol else ""
+    return f"{number * 100:.{digits}f}{suffix}"
 
 
 def _metric_ci(metrics: Mapping[str, Any], key: str, *, digits: int, percent: bool = False) -> str:
