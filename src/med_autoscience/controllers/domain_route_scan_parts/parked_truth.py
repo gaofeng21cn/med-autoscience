@@ -113,7 +113,12 @@ def _current_controller_route_available(
     if not publication_eval:
         return False
     return (
-        current_truth_owner.current_controller_runtime_route(
+        current_truth_owner.current_story_surface_delta_blocker_route(
+            study_root=resolved_study_root,
+            publication_eval_payload=publication_eval,
+        )
+        is not None
+        or current_truth_owner.current_controller_runtime_route(
             study_root=resolved_study_root,
             publication_eval_payload=publication_eval,
         )

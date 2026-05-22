@@ -50,6 +50,13 @@
 - 理由：DM002 暴露出 current prose review metadata 仍标注 `route_target=analysis`，但同一 AI reviewer record 的顶层 action 已明确 `route_back_same_line -> write`，要求把 unit-harmonized rerun 吸收进 Abstract、Results、Methods、Table/Figure 和 claim-evidence map。旧 helper 要求 metadata target 与顶层 action target 相同，导致 current eval 被误投成 `ai_reviewer_re_eval`，循环复评而不能交给 write owner。
 - 影响：这是 MAS AI reviewer / controller route authority 修复，不放宽 publication gate，不授权机械 ready verdict，不写 DM002 truth、paper、submission package、current package、`publication_eval/latest.json` 或 `.ds` runtime state；它只让 MAS owner chain 正确把当前 AI reviewer verdict 路由到 paper-write repair。
 
+## 2026-05-22：quality_repair_batch handoff_ready 不是 story-surface 修复完成证据
+
+- 决策：`quality_repair_batch.status=handoff_ready` 只表示 write-owner/default-executor handoff 已物化；若同一 record 的 `repair_execution_evidence.status=blocked`、`canonical_artifact_delta.meaningful_artifact_delta=false`，且 blocker 含 `manuscript_story_surface_delta_missing` 或 forbidden manuscript term residue，`domain-route-scan` 必须继续投影 `write/run_quality_repair_batch`。
+- 决策：当前 story-surface writer blocker 必须优先于 `completed_current_truth` 与 parked truth 短路；旧 completion/resolved 投影不能吞掉同一 `publication_eval/latest.json` 下仍未产生 canonical `paper/draft.md` 或 `paper/build/review_manuscript.md` delta 的 write route。
+- 理由：DM002 暴露出 `domain-route-reconcile` 已执行 `run_quality_repair_batch`，但 batch 顶层为 `handoff_ready`、nested repair evidence 仍 blocked，正文仍含 `validation surface` 禁用运行态措辞；旧 scan 只看顶层 `blocked_reason`，随后 action queue 变空，导致 write owner route 丢失。
+- 影响：该修复只修 MAS currentness/read-model projection，不改 sidecar authority，不写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission readiness verdict。论文质量仍需 write owner 产出 canonical story-surface delta，并由 AI reviewer-backed publication eval 与 publication gate 重新判定。
+
 ## 2026-05-22：terminal paper-progress stall 必须以当前 owner route 为准，不能让旧 dispatch fingerprint 吞掉合法 handoff
 
 - 决策：`paper_progress_stall` 已进入 `terminal=true` 时，`domain_owner_action_dispatch` 必须先用当前 scan/latest owner route 判断该 action 是否是合法 terminal-stall handoff；若 `terminal_stall_handoff.owner_handoff_allowed(...)` 成立，就允许进入对应 MAS owner callable。旧 dispatch payload 携带的 `paper_progress_stall.action_fingerprint` 只对非 terminal 或 owner handoff 不合法的路径继续 fail closed。
