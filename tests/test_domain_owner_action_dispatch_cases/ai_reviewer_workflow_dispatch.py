@@ -74,6 +74,67 @@ def _complete_ai_reviewer_input_refs(
     return refs
 
 
+def _write_medical_prose_review_request_inputs(study_root: Path, *, study_id: str) -> None:
+    _write_json(
+        study_root / "paper" / "medical_manuscript_blueprint.json",
+        {
+            "schema_version": 1,
+            "surface": "medical_manuscript_blueprint",
+            "authoring_provenance": {
+                "owner": "ai_author",
+                "source_kind": "medical_manuscript_blueprint",
+                "policy_id": "medical_manuscript_blueprint_v1",
+                "ai_reviewer_required": False,
+            },
+            "argument_sequence": [
+                "clinical_problem",
+                "evidence_gap",
+                "study_objective",
+                "target_population",
+                "study_design",
+                "main_findings_by_clinical_importance",
+                "clinical_interpretation",
+                "discussion_claim_boundary",
+                "limitations",
+            ],
+            "study_id": study_id,
+            "clinical_problem": "Primary care diabetes management needs reproducible treatment-gap measurement.",
+            "evidence_gap": "Prior regional reports do not separate recorded coverage gaps from causal treatment effects.",
+            "study_objective": "To describe DPCC diabetes phenotypes and recorded treatment-review gaps.",
+            "target_population": "Adults with diabetes in the DPCC primary-care network.",
+            "study_design": "Retrospective descriptive clinical epidemiology study.",
+            "main_findings_by_clinical_importance": [
+                {"rank": 1, "clinical_finding": "Recorded medication-coverage gaps vary by phenotype."}
+            ],
+            "clinical_interpretation": "Interpret treatment gaps as documentation-aware review targets.",
+            "claim_evidence_map": [{"claim_id": "C1", "statement": "Recorded gaps differ across phenotypes."}],
+            "figure_table_rhetorical_roles": [
+                {"display_id": "T1", "rhetorical_role": "Defines baseline characteristics."}
+            ],
+            "discussion_claim_boundary": "Do not infer treatment effects or national representativeness.",
+            "limitations": ["Medication data may miss outside prescriptions."],
+            "journal_voice_target": {"voice": "neutral_clinical_original_research"},
+            "source_refs": [str(study_root / "paper" / "claim_evidence_map.json")],
+        },
+    )
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claims": [{"claim_id": "C1"}]})
+    _write_json(
+        study_root / "paper" / "results_narrative_map.json",
+        {"sections": [{"section_id": "results", "direct_answer": "Recorded gaps varied across phenotypes."}]},
+    )
+    _write_json(
+        study_root / "paper" / "figure_semantics_manifest.json",
+        {"figures": [{"figure_id": "T1", "direct_message": "Baseline characteristics by phenotype."}]},
+    )
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"items": []})
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text(
+        "# Draft\n\n## Methods\n\nWe defined the DPCC cohort, phenotypes, and recorded treatment-review gaps.\n",
+        encoding="utf-8",
+    )
+
+
 def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
     monkeypatch,
     tmp_path: Path,
@@ -534,6 +595,7 @@ def test_execute_dispatch_routes_stale_medical_prose_review_request_to_rehydrate
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    _write_medical_prose_review_request_inputs(study_root, study_id=study_id)
     input_refs = _complete_ai_reviewer_input_refs(study_root)
     _write_json(
         study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
@@ -598,6 +660,13 @@ def test_execute_dispatch_routes_stale_medical_prose_review_request_to_rehydrate
         study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
     )
     assert execution["error"] == "medical_prose_review_request_digest_mismatch"
+    request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    assert request_path.exists()
+    rehydrated = json.loads(request_path.read_text(encoding="utf-8"))
+    assert rehydrated["surface"] == "medical_prose_review_request"
+    assert rehydrated["request_currentness"]["status"] == "current"
+    assert execution["owner_result"]["medical_prose_review_request_rehydrated"] is True
+    assert execution["owner_result"]["rehydrated_request_ref"] == str(request_path.resolve())
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 

@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 
 from med_autoscience import medical_manuscript_blueprint
+from med_autoscience.medical_prose_review_request import materialize_medical_prose_review_request
 
 from .. import (
     ai_reviewer_publication_eval_workflow,
@@ -292,6 +293,7 @@ def _paper_authority_clean_migration_blocker(*, study_root: Path, exc: Exception
             },
         )
     if "medical_prose_review_request" in error:
+        rehydrate = _try_rehydrate_medical_prose_review_request(study_root=study_root)
         return _blocked_ai_reviewer_execution(
             apply=True,
             reason="medical_prose_review_request_rehydrate_required",
@@ -299,8 +301,43 @@ def _paper_authority_clean_migration_blocker(*, study_root: Path, exc: Exception
             next_owner="ai_reviewer",
             required_input_surface=str(study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"),
             error=error,
+            owner_result={
+                "surface_kind": "medical_prose_review_currentness_blocker",
+                "authority_source_signature": "paper_authority_clean_migration",
+                "currentness_error": error,
+                "stale_medical_prose_review_reuse_allowed": False,
+                "medical_prose_review_request_rehydrated": rehydrate["status"] == "materialized",
+                "rehydrated_request_ref": rehydrate.get("artifact_path"),
+                "quality_verdict_written": False,
+                "submission_package_regenerated": False,
+                "next_owner": "ai_reviewer",
+                "next_required_actions": [
+                    "produce_ai_reviewer_medical_prose_review_against_current_manuscript",
+                    "produce_ai_reviewer_medical_prose_review_against_current_request",
+                    "return_to_ai_reviewer_workflow",
+                ],
+                "rehydrate_result": rehydrate,
+            },
         )
     return None
+
+
+def _try_rehydrate_medical_prose_review_request(*, study_root: Path) -> dict[str, Any]:
+    try:
+        result = materialize_medical_prose_review_request(study_root=study_root)
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            "surface_kind": "medical_prose_review_request_rehydrate_receipt",
+            "status": "blocked",
+            "blocked_reason": "medical_prose_review_request_rehydrate_failed",
+            "error": str(exc),
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"),
+        }
+    return {
+        "surface_kind": "medical_prose_review_request_rehydrate_receipt",
+        "status": "materialized",
+        "artifact_path": str(result.get("artifact_path") or study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"),
+    }
 
 
 def _medical_prose_review_currentness_blocker(*, study_root: Path, exc: Exception, request_path: Path) -> dict[str, Any] | None:
@@ -308,6 +345,7 @@ def _medical_prose_review_currentness_blocker(*, study_root: Path, exc: Exceptio
     if error not in _MEDICAL_PROSE_REVIEW_CURRENTNESS_ERRORS:
         return None
     prose_request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    rehydrate = _try_rehydrate_medical_prose_review_request(study_root=study_root)
     return _blocked_ai_reviewer_execution(
         apply=True,
         reason="medical_prose_review_request_rehydrate_required",
@@ -320,6 +358,8 @@ def _medical_prose_review_currentness_blocker(*, study_root: Path, exc: Exceptio
             "authority_source_signature": "ai_reviewer_publication_eval_workflow",
             "currentness_error": error,
             "stale_medical_prose_review_reuse_allowed": False,
+            "medical_prose_review_request_rehydrated": rehydrate["status"] == "materialized",
+            "rehydrated_request_ref": rehydrate.get("artifact_path"),
             "quality_verdict_written": False,
             "submission_package_regenerated": False,
             "next_owner": "ai_reviewer",
@@ -329,6 +369,7 @@ def _medical_prose_review_currentness_blocker(*, study_root: Path, exc: Exceptio
                 "produce_ai_reviewer_medical_prose_review_against_current_request",
                 "return_to_ai_reviewer_workflow",
             ],
+            "rehydrate_result": rehydrate,
         },
     )
 

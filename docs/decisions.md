@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：medical prose review request stale 时必须重建当前 request 而非复用旧评审
+
+- 决策：`return_to_ai_reviewer_workflow` 遇到 `medical_prose_review_request_digest_mismatch`、`medical_prose_review_live_manuscript_digest_mismatch` 等 prose currentness blocker 时，`domain-owner-action-dispatch` 必须先通过 MAS-owned `materialize_medical_prose_review_request()` 物化当前稿件 digest 对应的 `artifacts/publication_eval/medical_prose_review_request.json`，并在 owner result 中记录 `medical_prose_review_request_rehydrated`、`rehydrated_request_ref` 与 rehydrate receipt。
+- 决策：该 rehydrate 只生成 AI reviewer 输入 request，不写 `publication_eval/latest.json`，不写 `controller_decisions/latest.json`，不改 canonical paper，不重建 package，也不声明 quality ready。下一步仍必须由 AI reviewer 基于当前 request 和当前 manuscript 产出新的 `medical_prose_review.json` / publication eval record 后，才能回到 `return_to_ai_reviewer_workflow`。
+- 理由：DM003 暴露出 currentness gate 已能拒绝旧 request / 旧 prose review，但如果只返回 blocker，不自动物化当前 request，系统会卡在“知道旧评审不能用，却没有生成下一轮 AI reviewer 输入”的状态。这个缺口和 DM002/DM003 的共同问题一致：ready / routed / blocked 必须绑定当前证据 refs 和 owner receipt，不能依赖旧投影。
+- 影响：这是 MAS AI reviewer owner-chain 的 currentness / owner-receipt 修复，不放宽 publication gate，不授权人工或 OPL 写医学质量 verdict。DM003 后续仍需 AI reviewer 对当前稿件重新审阅，并由 publication gate 判定是否可进入下一阶段。
+
 ## 2026-05-22：medical prose review currentness 必须绑定当前稿件 digest
 
 - 决策：`ai_reviewer_publication_eval_workflow` 消费 `artifacts/publication_eval/medical_prose_review.json` 时，除校验 prose review 与 request 的 `request_digest`、`manuscript_ref` 和 request manuscript digest 一致外，还必须读取当前 `manuscript` input ref 的 live 文件并计算 SHA-256。live manuscript digest 与 prose review provenance 的 `manuscript_digest` 不一致时，必须 fail closed 为 `medical_prose_review_live_manuscript_digest_mismatch`；live manuscript 缺失时必须 fail closed 为 `medical_prose_review_live_manuscript_missing`。
