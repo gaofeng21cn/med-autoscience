@@ -264,20 +264,7 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
         return self.startup_data_readiness_report.has_unresolved_contract_for(study_id)
 
     def should_refresh_startup_hydration_while_blocked(self) -> bool:
-        if self.decision is not StudyRuntimeDecision.BLOCKED or not self.quest_exists:
-            return False
-        if self.quest_status not in {
-            StudyRuntimeQuestStatus.CREATED,
-            StudyRuntimeQuestStatus.IDLE,
-            StudyRuntimeQuestStatus.PAUSED,
-        }:
-            return False
-        return self.reason in {
-            StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
-            StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
-            StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
-            StudyRuntimeReason.QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED,
-        }
+        return study_runtime_protocol.should_refresh_startup_hydration_while_blocked(self.to_dict())
 
     def _record_dict_extra(self, key: str, value: Any) -> None:
         self.extras[key] = self._require_dict_field(key, value)
