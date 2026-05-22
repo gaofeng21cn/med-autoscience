@@ -332,6 +332,16 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         assert provenance_boundary["body_policy"].endswith("_only")
         assert expected["must_not_emit"] in provenance_boundary["must_not_emit"]
         assert "paper_closure_verdict" in provenance_boundary["must_not_emit"]
+    storage_adapter = inventory["runtime_storage_maintenance"]
+    assert (
+        "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
+        in storage_adapter["code_paths"]
+    )
+    storage_thinning = storage_adapter["latest_thinning_evidence"]
+    assert storage_thinning["status"] == "runtime_storage_cache_cleanup_shell_split"
+    assert storage_thinning["does_not_claim_physical_delete"] is True
+    assert storage_thinning["does_not_claim_generic_cleanup_policy_owner"] is True
+    assert storage_thinning["does_not_touch_publication_or_package_authority"] is True
     cleanup_gates = {
         item["residue_id"]: item for item in functional_boundary["active_path_residue_cleanup_gates"]
     }

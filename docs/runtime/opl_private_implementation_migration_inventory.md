@@ -194,6 +194,12 @@ MAS 的 OPL 标准智能体目标态是：
 
 该拆分只把 generic watch/report/event/archive record index shell 单独成域，作为 OPL lifecycle index / App workbench lifecycle projection primitive 的迁移输入。它不删除 lifecycle refs SQLite index active caller，不声明 OPL lifecycle/default caller 已接管，不生成 MAS owner receipt，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper/package/`current_package`，也不授权 publication quality、source readiness、artifact mutation、memory writeback、domain-ready 或 production-ready。后续迁移或删除仍需 OPL lifecycle parity、MAS receipt parity、focused lifecycle tests、no-forbidden-write proof、active caller 清零和 tombstone/provenance refs。
 
+## 2026-05-22 runtime storage cache cleanup shell split
+
+本轮继续收薄 `runtime_storage_maintenance.py` 的 workspace storage / cache cleanup 私有控制面：delete-safe cache scan、scoped scan-root resolution、apply/delete result assembly 和 workspace-boundary guard 已移入 `runtime_storage_maintenance_parts/cache_cleanup.py`。主入口从约 923 行降到约 775 行，继续保留 `audit_workspace_storage(...)`、`maintain_runtime_storage(...)`、runtime/storage report 写入、dataset/git/runtime refs 汇总和既有 `_delete_safe_candidates(...)` thin delegator。
+
+该拆分只把可上收到 OPL storage lifecycle cleanup policy / artifact lifecycle storage-audit shell 的 generic cache cleanup 子域单独成迁移输入。它不删除 runtime storage maintenance active caller，不声明 OPL cleanup/default caller 已接管，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper/package/`current_package`，不授权 restore-ready、publication-ready、source-ready、artifact mutation 或 paper closure。后续迁移或删除仍需 active caller 清零、OPL cleanup policy parity、MAS artifact authority receipt parity、focused storage tests、no-forbidden-write proof 和 tombstone/provenance refs。
+
 ## 2026-05-22 stage knowledge proof projection split
 
 本轮继续收薄 `stage_knowledge_plane.py` 的 stage-knowledge / publication-route memory 控制面：paper-soak memory apply proof 的 stage closeout refs、MAS router receipt refs、workspace writeback receipt refs、sidecar dispatch receipt refs、OPL/Aion read-only receipt projection 和 body-free input-ref assembly 已移入 `stage_knowledge_plane_parts/paper_soak_memory_apply_proof.py`。`stage_knowledge_plane.py` 主入口降到约 878 行，继续保留 stage knowledge packet、publication-route memory selection、typed closeout normalization、memory router/writeback authority 和 public wrapper。

@@ -898,8 +898,22 @@
         "code_paths": [
           "src/med_autoscience/controllers/runtime_storage_maintenance.py",
           "src/med_autoscience/controllers/runtime_storage_maintenance_parts/",
+          "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py",
           "src/med_autoscience/cli_parts/runtime_storage_commands.py"
         ],
+        "latest_thinning_evidence": {
+          "does_not_claim_generic_cleanup_policy_owner": true,
+          "does_not_claim_opl_default_caller": true,
+          "does_not_claim_physical_delete": true,
+          "does_not_touch_publication_or_package_authority": true,
+          "extracted_paths": [
+            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
+          ],
+          "retained_entry_role": "workspace_storage_refs_and_runtime_audit_entry",
+          "retained_entry_shell": "src/med_autoscience/controllers/runtime_storage_maintenance.py",
+          "scope": "delete_safe_cache_scan_apply_shell",
+          "status": "runtime_storage_cache_cleanup_shell_split"
+        },
         "migration_action": "keep_storage_audit_refs_only_adapter_and_consume_opl_lifecycle_cleanup_policy",
         "module_id": "runtime_storage_maintenance",
         "opl_expected_primitives": [
@@ -1653,6 +1667,43 @@
       ],
       "mas_handwritten_shell_default_caller_allowed": false,
       "mas_handwritten_shell_expansion_allowed": false,
+      "opl_default_caller_readiness_evidence": {
+        "active_caller_cutover": "ready",
+        "authority_boundary": {
+          "can_authorize_physical_delete": false,
+          "can_claim_artifact_authority": false,
+          "can_claim_domain_ready": false,
+          "can_claim_production_ready": false,
+          "can_claim_quality_verdict": false,
+          "mas_truth_verdict_artifact_and_owner_receipt_stay_in_mas": true
+        },
+        "blocked_surface_count": 0,
+        "consumed_surface_ids": [
+          "cli",
+          "mcp",
+          "skill",
+          "product_entry",
+          "product_status",
+          "product_session",
+          "sidecar",
+          "workbench"
+        ],
+        "default_caller_owner": "one-person-lab",
+        "domain_owner_receipt_or_typed_blocker": "required_from_mas_owner_before_physical_delete",
+        "generated_default_caller_surface_count": 8,
+        "no_forbidden_write_proof": "required_before_physical_delete",
+        "owner": "one-person-lab",
+        "physical_delete_authorized": false,
+        "ready_surface_count": 8,
+        "replacement_parity": "ready",
+        "schema_version": 1,
+        "source_command": "opl agents default-callers --agent mas=/Users/gaofeng/workspace/med-autoscience --json",
+        "source_surface_kind": "opl_agent_generated_default_caller_readiness_report",
+        "status": "ready_domain_evidence_required",
+        "structural_replacement_evidence_ready": true,
+        "surface_kind": "mas_opl_default_caller_readiness_evidence",
+        "tombstone_or_provenance_ref": "required_before_physical_delete"
+      },
       "physical_delete_is_not_implied": true,
       "proof_refs": [
         "functional_consumer_boundary.generated_surface_handoff",
@@ -1756,44 +1807,7 @@
           "target_role": "opl_generated_harness_consumer_over_mas_pack"
         }
       ],
-      "surface_kind": "mas_generated_default_caller_boundary",
-      "opl_default_caller_readiness_evidence": {
-        "surface_kind": "mas_opl_default_caller_readiness_evidence",
-        "schema_version": 1,
-        "owner": "one-person-lab",
-        "source_command": "opl agents default-callers --agent mas=/Users/gaofeng/workspace/med-autoscience --json",
-        "source_surface_kind": "opl_agent_generated_default_caller_readiness_report",
-        "status": "ready_domain_evidence_required",
-        "default_caller_owner": "one-person-lab",
-        "generated_default_caller_surface_count": 8,
-        "ready_surface_count": 8,
-        "blocked_surface_count": 0,
-        "structural_replacement_evidence_ready": true,
-        "replacement_parity": "ready",
-        "active_caller_cutover": "ready",
-        "domain_owner_receipt_or_typed_blocker": "required_from_mas_owner_before_physical_delete",
-        "no_forbidden_write_proof": "required_before_physical_delete",
-        "tombstone_or_provenance_ref": "required_before_physical_delete",
-        "physical_delete_authorized": false,
-        "authority_boundary": {
-          "can_claim_domain_ready": false,
-          "can_claim_quality_verdict": false,
-          "can_claim_artifact_authority": false,
-          "can_claim_production_ready": false,
-          "can_authorize_physical_delete": false,
-          "mas_truth_verdict_artifact_and_owner_receipt_stay_in_mas": true
-        },
-        "consumed_surface_ids": [
-          "cli",
-          "mcp",
-          "skill",
-          "product_entry",
-          "product_status",
-          "product_session",
-          "sidecar",
-          "workbench"
-        ]
-      }
+      "surface_kind": "mas_generated_default_caller_boundary"
     },
     "generated_surface_handoff": {
       "current_mas_role": "handwritten_migration_bridge",
@@ -2507,6 +2521,7 @@
         "physical_delete_candidate_count": 5,
         "physical_delete_ready_count": 0
       },
+      "opl_default_caller_readiness_ref": "functional_consumer_boundary.generated_default_caller_boundary.opl_default_caller_readiness_evidence",
       "physical_delete_requires_all_gates": [
         "active_caller_count=0",
         "opl_replacement_parity",
@@ -2536,9 +2551,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
+            "opl_default_caller_readiness": "ready_domain_evidence_required",
             "opl_replacement_parity": "structural_default_caller_ready_provider_attempt_queue_retry_parity_required",
-            "tombstone_refs_landed": "required_before_delete",
-            "opl_default_caller_readiness": "ready_domain_evidence_required"
+            "tombstone_refs_landed": "required_before_delete"
           },
           "no_active_caller_proof": {
             "default_callers": [],
@@ -2569,9 +2584,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "domain_owner_receipt_ref_parity_required",
+            "opl_default_caller_readiness": "ready_domain_evidence_required",
             "opl_replacement_parity": "structural_default_caller_ready_opl_lifecycle_index_parity_required",
-            "tombstone_refs_landed": "required_before_delete",
-            "opl_default_caller_readiness": "ready_domain_evidence_required"
+            "tombstone_refs_landed": "required_before_delete"
           },
           "no_active_caller_proof": {
             "default_callers": [],
@@ -2604,9 +2619,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "domain_projection_receipt_refs_required",
+            "opl_default_caller_readiness": "ready_domain_evidence_required",
             "opl_replacement_parity": "structural_default_caller_ready_generated_workbench_default_required",
-            "tombstone_refs_landed": "landed_for_retired_legacy_only",
-            "opl_default_caller_readiness": "ready_domain_evidence_required"
+            "tombstone_refs_landed": "landed_for_retired_legacy_only"
           },
           "no_active_caller_proof": {
             "default_callers": [],
@@ -2638,9 +2653,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
+            "opl_default_caller_readiness": "ready_domain_evidence_required",
             "opl_replacement_parity": "structural_default_caller_ready_opl_generated_sidecar_default_required",
-            "tombstone_refs_landed": "required_before_delete",
-            "opl_default_caller_readiness": "ready_domain_evidence_required"
+            "tombstone_refs_landed": "required_before_delete"
           },
           "latest_thinning_evidence": {
             "does_not_claim_physical_delete": true,
@@ -2683,9 +2698,9 @@
             "active_caller_count=0": false,
             "focused_tests_green": "focused_lane_required",
             "mas_owner_receipt_parity": "progress_projection_truth_refs_required",
+            "opl_default_caller_readiness": "ready_domain_evidence_required",
             "opl_replacement_parity": "structural_default_caller_ready_opl_generated_status_default_required",
-            "tombstone_refs_landed": "landed_for_retired_legacy_only",
-            "opl_default_caller_readiness": "ready_domain_evidence_required"
+            "tombstone_refs_landed": "landed_for_retired_legacy_only"
           },
           "no_active_caller_proof": {
             "default_callers": [],
@@ -2699,8 +2714,7 @@
       ],
       "schema_version": 1,
       "status": "physical_delete_blocked_until_all_gate_inputs_hold",
-      "surface_kind": "mas_generated_caller_retirement_gate_matrix",
-      "opl_default_caller_readiness_ref": "functional_consumer_boundary.generated_default_caller_boundary.opl_default_caller_readiness_evidence"
+      "surface_kind": "mas_generated_caller_retirement_gate_matrix"
     },
     "physical_thinning_evidence": {
       "active_path_residue_cleanup_gates_ref": "functional_consumer_boundary.active_path_residue_cleanup_gates",
