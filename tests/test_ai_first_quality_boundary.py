@@ -133,6 +133,8 @@ def test_nature_skills_quality_packs_are_consumed_as_stage_boundaries() -> None:
 
     for pack_id in (
         "journal_response_pack",
+        "manuscript_argument_pack",
+        "statistical_reporting_pack",
         "data_availability_fair_pack",
         "citation_integrity_pack",
         "figure_evidence_contract_pack",
@@ -148,6 +150,8 @@ def test_nature_skills_quality_packs_are_consumed_as_stage_boundaries() -> None:
         "not publication authority",
         "owner receipt",
         "typed blocker",
+        "one-sentence argument",
+        "statistical reporting",
         "citation support grades",
         "figure source-data/statistics/export QA",
         "self-review",

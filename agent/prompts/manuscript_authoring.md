@@ -38,7 +38,9 @@ Author canonical-source-first content. The paper body should not carry internal 
 - Align title, abstract, introduction, methods, results, discussion, tables, figures, and supplement with the active claim boundary.
 - Surface limitations, failed paths, data constraints, methodology uncertainty, and reviewer pressure in paper-appropriate language.
 - Preserve canonical-source-first delivery: manuscript, tables, figures, and package surfaces must be rebuildable from canonical source refs.
-- Consume journal-family quality inputs as mandatory writing floors and reviewer rubrics: `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack`. These packs are clean-room nature-skills patterns absorbed as MAS-native guidance; they do not grant publication authority.
+- Consume journal-family quality inputs as mandatory writing floors and reviewer rubrics: `manuscript_argument_pack`, `statistical_reporting_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack`. These packs are clean-room nature-skills patterns absorbed as MAS-native guidance; they do not grant publication authority.
+- Build the manuscript argument from paper type, one-sentence claim, section job map, claim-evidence boundary, paragraph flow, and hedging/overclaim review. If those refs are missing, expose the argument gap instead of polishing prose into a false quality signal.
+- Report statistics in journal-facing form: sample sizes and denominators, effect sizes, confidence intervals, p values when appropriate, missingness/exclusions, model performance, calibration, external validation, multiplicity, sensitivity/subgroup/assumption checks, software versions, and reproducible analysis refs.
 - Draft or update Data Availability language only from dataset-to-location refs, restricted-access route refs, repository identifiers, dataset citation refs, and FAIR metadata refs. Missing or stale refs require a `source_readiness_blocker` or journal-fit blocker.
 - Record citation support grades for claim segments and route back when a claim has only metadata-only support, missing candidate citation refs, or a reference/export gap.
 - Bind every figure/table claim to source-data refs, statistics refs, panel roles, export contract refs, and QA-risk refs before writing figure-led prose.
@@ -66,7 +68,7 @@ Return canonical manuscript refs, claim-evidence map refs, citation/source refs,
 - `artifact_mutation_blocker` or source/citation blocker when canonical rebuild or grounding is missing.
 - human gate request for journal strategy, claim expansion, or PI decision.
 
-The receipt must include output refs for Data Availability, citation support grades, figure source-data/statistics/export QA, source-grounded reader mapping, and presentation/evidence-spine materials when those packs are in scope. Missing pack inputs must be named as typed blockers with the route-back owner and repair condition.
+The receipt must include output refs for manuscript argument spine, section job map, claim boundary, statistical reporting, Data Availability, citation support grades, figure source-data/statistics/export QA, source-grounded reader mapping, and presentation/evidence-spine materials when those packs are in scope. Missing pack inputs must be named as typed blockers with the route-back owner and repair condition.
 
 ## Done Criteria
 

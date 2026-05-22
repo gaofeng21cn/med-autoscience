@@ -17,7 +17,7 @@ The executor must treat all medical research work as claim-boundary work. A coho
 - Evidence ledger refs, run context refs, runtime event refs, failed-path refs, and reviewer concern refs.
 - Publication-route memory refs and memory writeback receipt refs when available.
 - Canonical manuscript, claim-evidence, citation, display, artifact rebuild, and package refs when the stage touches delivery.
-- Journal-family quality pack refs when the stage touches writing, review, finalization, response, or presentation: `journal_response_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack`.
+- Journal-family quality pack refs when the stage touches writing, review, finalization, response, or presentation: `journal_response_pack`, `manuscript_argument_pack`, `statistical_reporting_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack`.
 
 ## Allowed Work
 
@@ -36,6 +36,8 @@ The executor must treat all medical research work as claim-boundary work. A coho
 - Record when source provenance, artifact rebuild proof, or reviewer currentness is missing.
 - Treat nature-skills-derived journal-family packs as executable quality floors and reviewer rubrics, not as publication authority or template instructions.
 - For reviewer response work, require stable comment ids, response tracker refs, action mapping refs, author-input flags, response readiness refs, output refs, typed blocker or owner receipt.
+- For manuscript argument work, require paper type logic, one-sentence argument, section job map, claim-evidence boundary refs, paragraph flow review, hedging/overclaim review, output refs, typed blocker or reviewer record.
+- For statistical reporting work, require sample size and denominator refs, effect size / confidence interval / p value refs, missingness and exclusion refs, model performance / calibration / external validation refs, multiplicity / sensitivity / subgroup / assumption refs, software and reproducibility refs, output refs, typed blocker or owner receipt.
 - For Data Availability work, require dataset-location refs, restricted-access route refs, repository identifier refs, dataset citation refs, FAIR metadata refs, Data Availability output refs, typed blocker or owner receipt.
 - For citation work, require claim-segment ids, candidate citation refs, citation support grades, metadata-only support flags, reference/export notes, output refs, typed blocker or owner receipt.
 - For figure/table work, require core-claim mapping, evidence chain, panel role, source-data refs, statistics refs, export contract refs, QA-risk refs, output refs, typed blocker or owner receipt.
@@ -59,6 +61,6 @@ Every execution must return one of these semantic outcomes:
 - human gate request with decision needed, scope impact, and refs.
 - no-op with currentness proof explaining why no mutation was needed.
 
-When journal-family packs are in scope, the output must name the consumed pack refs and either the produced output refs or the typed blockers for missing response, Data Availability, citation support, figure source-data/statistics/export QA, reader-grounding, or presentation-grounding evidence.
+When journal-family packs are in scope, the output must name the consumed pack refs and either the produced output refs or the typed blockers for missing response, manuscript argument, statistical reporting, Data Availability, citation support, figure source-data/statistics/export QA, reader-grounding, or presentation-grounding evidence.
 
 Ambiguous completion is invalid because it lets runtime progress replace medical authority.
