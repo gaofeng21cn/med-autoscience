@@ -1190,8 +1190,26 @@
           "src/med_autoscience/runtime_protocol/runtime_live_console_read_model_parts/stream_projection.py",
           "src/med_autoscience/runtime_protocol/runtime_live_console_read_model_parts/study_projection.py",
           "src/med_autoscience/controllers/runtime_live_console_ui.py",
-          "src/med_autoscience/controllers/runtime_live_console_ui_parts/rendering.py"
+          "src/med_autoscience/controllers/runtime_live_console_ui_parts/constants.py",
+          "src/med_autoscience/controllers/runtime_live_console_ui_parts/html.py",
+          "src/med_autoscience/controllers/runtime_live_console_ui_parts/payload.py",
+          "src/med_autoscience/controllers/runtime_live_console_ui_parts/rendering.py",
+          "src/med_autoscience/controllers/runtime_live_console_ui_parts/shared.py"
         ],
+        "latest_thinning_evidence": {
+          "does_not_claim_opl_default_caller": true,
+          "does_not_claim_physical_delete": true,
+          "does_not_touch_study_truth_publication_quality_or_package_authority": true,
+          "extracted_paths": [
+            "src/med_autoscience/controllers/runtime_live_console_ui_parts/constants.py",
+            "src/med_autoscience/controllers/runtime_live_console_ui_parts/html.py",
+            "src/med_autoscience/controllers/runtime_live_console_ui_parts/payload.py",
+            "src/med_autoscience/controllers/runtime_live_console_ui_parts/shared.py",
+            "src/med_autoscience/controllers/runtime_live_console_ui_parts/rendering.py"
+          ],
+          "retained_entry_shell": "src/med_autoscience/controllers/runtime_live_console_ui.py",
+          "status": "live_console_ui_payload_and_html_shell_split"
+        },
         "migration_action": "keep_read_only_terminal_refs_adapter_for_opl_operator_workbench",
         "module_id": "terminal_attach_transport",
         "opl_expected_primitives": [
