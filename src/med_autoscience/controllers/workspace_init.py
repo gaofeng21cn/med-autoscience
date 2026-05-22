@@ -418,6 +418,11 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status",
+            content=_render_forward_script("study progress-projection", with_profile=True),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime",
             content=_render_watch_runtime_script(workspace_root=workspace_root, runtime_quests_root=layout.quests_root),
             executable=True,

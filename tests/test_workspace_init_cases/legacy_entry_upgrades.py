@@ -151,6 +151,7 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
     bootstrap = workspace_root / "ops" / "medautoscience" / "bin" / "bootstrap"
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
+    study_runtime_status = workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status"
     publication_gate = workspace_root / "ops" / "medautoscience" / "bin" / "publication-gate"
     resolve_submission_targets = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-submission-targets"
     init_portfolio_memory = workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory"
@@ -176,6 +177,13 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
         'run_medautosci ensure-study-runtime --profile "${PROFILE_PATH}" "$@"\n',
+        encoding="utf-8",
+    )
+    study_runtime_status.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'run_medautosci study-runtime-status --profile "${PROFILE_PATH}" "$@"\n',
         encoding="utf-8",
     )
     publication_gate.write_text(
@@ -237,6 +245,7 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
         bootstrap,
         show_profile,
         enter_study,
+        study_runtime_status,
         publication_gate,
         resolve_submission_targets,
         init_portfolio_memory,
@@ -248,6 +257,10 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap.read_text(encoding="utf-8")
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile.read_text(encoding="utf-8")
     assert 'run_medautosci study ensure-runtime --profile "${PROFILE_PATH}" "$@"' in enter_study.read_text(encoding="utf-8")
+    assert (
+        'run_medautosci study progress-projection --profile "${PROFILE_PATH}" "$@"'
+        in study_runtime_status.read_text(encoding="utf-8")
+    )
     assert 'run_medautosci publication gate "$@"' in publication_gate.read_text(encoding="utf-8")
     resolve_targets_text = resolve_submission_targets.read_text(encoding="utf-8")
     assert 'run_medautosci publication resolve-targets "${args[@]}"' in resolve_targets_text

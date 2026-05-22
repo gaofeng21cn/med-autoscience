@@ -139,6 +139,12 @@ def legacy_workspace_command_entry_reason(
         ("bootstrap", "workspace bootstrap", "run_medautosci bootstrap", "legacy_workspace_bootstrap_entry"),
         ("show-profile", "doctor profile", "run_medautosci show-profile", "legacy_show_profile_entry"),
         ("enter-study", "study ensure-runtime", "run_medautosci ensure-study-runtime", "legacy_enter_study_entry"),
+        (
+            "study-runtime-status",
+            "study progress-projection",
+            "run_medautosci study-runtime-status",
+            "legacy_study_runtime_status_entry",
+        ),
         ("publication-gate", "publication gate", "run_medautosci publication-gate", "legacy_publication_gate_entry"),
         (
             "medical-surface",
