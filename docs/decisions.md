@@ -6,6 +6,13 @@
 - 理由：DM002 暴露出 writer handoff 的 `quality-repair-writer-handoff::*` route 与当前 `run_quality_repair_batch` owner route 不一致时，study-level persisted dispatch 无法匹配 owner request，stale consumer inline dispatch 会再次抢占并触发 `paper_progress_stall_fingerprint_stale`。修复应保持 fail-closed currentness，不放宽 owner-route guard。
 - 影响：domain owner dispatch 会把当前 owner route 传给 quality repair owner callable；writer handoff 继续只授权 Codex default writer attempt，不授权 MAS 直接改 `paper/submission_minimal`、`manuscript/current_package` 或 publication truth surface。
 
+## 2026-05-22：default executor dispatch 必须显式要求 typed closeout packet
+
+- 决策：所有 MAS `default_executor_dispatch_request`，包括 `run_quality_repair_batch` writer handoff 和通用 `domain_action_request_materializer` 生成的 Codex default executor dispatch，都必须携带 `required_closeout_packet`。该 contract 固定 `typed_closeout_required_for_completion=true`、`free_text_closeout_accepted=false`，并声明可接受的 `stage_attempt_closeout_packet`、`stage_memory_closeout_packet`、`domain_stage_closeout_packet` 形态和至少一个 `closeout_refs`。
+- 决策：dispatch 的 `executor_prompt` / `prompt_contract` 必须要求 Codex 在完成 MAS owner-authorized work 或返回 typed blocker 后，以唯一终端 JSON object 输出 typed closeout。正文、进度说明、审稿意见、paper delta 或 free text 都不能作为 OPL provider completion 信号。
+- 理由：DM003 暴露出 Codex writer 已产生 `paper/draft.md`、claim-evidence map 和 paper-facing delta，但 OPL Temporal provider 仍因 `closeout_packet=null` 返回 `typed_closeout_packet_required`，导致 provider completion 没有闭合。根因是 MAS dispatch packet 没把 typed closeout 作为硬输出契约写入 prompt/contract；OPL 的 fail-closed 行为是正确的。
+- 影响：这是 MAS -> OPL handoff contract 修复，不写 DM003 canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。论文质量仍需 write owner delta、AI reviewer-backed publication eval 和 publication gate 关闭；typed closeout 只证明 provider attempt 有可消费 owner receipt / artifact delta / typed blocker refs。
+
 ## 2026-05-22：显式 owner dispatch 必须用当前 persisted dispatch 覆盖旧 consumer inline payload
 
 - 决策：`domain-owner-action-dispatch --action-types <action>` 读取到同一 `refs.dispatch_path` 的 consumer inline dispatch 与 study-level persisted dispatch 时，若 persisted dispatch 仍为 `dispatch_status=ready` 且匹配当前 owner request / owner route，必须用 persisted dispatch 覆盖 consumer inline payload。

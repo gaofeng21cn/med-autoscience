@@ -11,6 +11,39 @@ from tests.domain_owner_action_dispatch_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
+def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: Path) -> None:
+    writer_handoff = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.writer_handoff"
+    )
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+
+    handoff = writer_handoff.build_writer_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        quest_id=f"quest-{study_id}",
+        schema_version=1,
+        source_eval_id="publication-eval::dm003",
+        source_eval_artifact_path="artifacts/publication_eval/latest.json",
+        source_summary_artifact_path="artifacts/eval_hygiene/evaluation_summary/latest.json",
+        repair_execution_evidence_path=profile.studies_root / study_id / "artifacts/controller/repair_execution_evidence/latest.json",
+        blocked_repair_reason="manuscript_story_surface_delta_missing",
+        control_plane_route_context={
+            "controller_route_context": {
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+            },
+        },
+    )
+
+    closeout_contract = handoff["required_closeout_packet"]
+    assert closeout_contract["typed_closeout_required_for_completion"] is True
+    assert closeout_contract["free_text_closeout_accepted"] is False
+    assert "stage_attempt_closeout_packet" in closeout_contract["accepted_surface_kinds"]
+    assert handoff["prompt_contract"]["required_closeout_packet"] == closeout_contract
+    assert "exactly one JSON object" in handoff["terminal_output_instruction"]
+
+
 def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_not_blocked(
     monkeypatch,
     tmp_path: Path,
@@ -83,6 +116,12 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
                     "canonical manuscript story-surface delta or "
                     "typed blocker:manuscript_story_surface_delta_missing"
                 ),
+                "required_closeout_packet": {
+                    "typed_closeout_required_for_completion": True,
+                    "free_text_closeout_accepted": False,
+                    "accepted_surface_kinds": ["stage_attempt_closeout_packet"],
+                },
+                "terminal_output_instruction": "End with exactly one JSON object.",
             },
         }
 
@@ -111,6 +150,12 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     assert execution["will_start_llm"] is True
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
     assert execution["writer_worker_handoff"]["next_executable_owner"] == "write"
+    closeout_contract = execution["writer_worker_handoff"]["required_closeout_packet"]
+    assert closeout_contract["typed_closeout_required_for_completion"] is True
+    assert closeout_contract["free_text_closeout_accepted"] is False
+    assert "stage_attempt_closeout_packet" in closeout_contract["accepted_surface_kinds"]
+    assert "terminal_output_instruction" in execution["writer_worker_handoff"]
+    assert "exactly one JSON object" in execution["writer_worker_handoff"]["terminal_output_instruction"]
     assert called["study_id"] == study_id
     assert called["quest_id"] == f"quest-{study_id}"
     route_context = called["control_plane_route_context"]

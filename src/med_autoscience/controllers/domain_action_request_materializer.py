@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.default_executor_closeout_contract import (
+    default_executor_typed_closeout_contract,
+)
 from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
@@ -367,12 +370,14 @@ def _executor_prompt(
     next_executable_owner: str,
     required_output_surface: str,
 ) -> str:
+    typed_closeout_contract = default_executor_typed_closeout_contract(action_type=action_type)
     return (
         "Use Codex CLI as the default MAS repair executor. "
         f"Handle action `{action_type}` for study `{study_id}` as owner `{next_executable_owner}`. "
         f"Read the referenced MAS durable truth surfaces and write only the owner-authorized output `{required_output_surface}` "
         "or the supervision handoff surfaces listed in this dispatch. Do not patch paper/current_package, "
-        "manuscript/current_package, publication gates, or medical conclusions outside the owner workflow."
+        "manuscript/current_package, publication gates, or medical conclusions outside the owner workflow. "
+        f"{typed_closeout_contract['terminal_output_instruction']}"
     )
 
 
@@ -395,6 +400,7 @@ def _default_executor_dispatch(
     )
     idempotency_key = _text(owner_route.get("idempotency_key"))
     repeat_key = repeat_suppression.repeat_key(owner_route)
+    typed_closeout_contract = default_executor_typed_closeout_contract(action_type=action_type)
     prompt_contract = {
         "study_id": study_id,
         "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
@@ -410,6 +416,8 @@ def _default_executor_dispatch(
         "request_packet_ref": _request_packet_ref_for_dispatch(action_type),
         "paper_progress_stall": _mapping(action.get("paper_progress_stall")) or None,
         "source_scan_latest": str(_scan_latest_path(profile)),
+        "required_closeout_packet": typed_closeout_contract,
+        "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "paper_package_mutation_allowed": False,
@@ -476,6 +484,8 @@ def _default_executor_dispatch(
         "why_not_applied": repeat_guard["why_not_applied"],
         "repeat_suppression": repeat_guard,
         "consumer_mutation_scope": "executor_dispatch_request_only",
+        "required_closeout_packet": typed_closeout_contract,
+        "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
         "default_executor_policy": executor_policy,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "prompt_contract": prompt_contract,

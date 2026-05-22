@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
+from med_autoscience.controllers.default_executor_closeout_contract import default_executor_typed_closeout_contract
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.study_decision_record import StudyDecisionActionType
@@ -69,6 +70,9 @@ def build_writer_worker_handoff(
         / "default_executor_dispatches"
         / "run_quality_repair_batch.json"
     )
+    typed_closeout_contract = default_executor_typed_closeout_contract(
+        action_type=StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
+    )
     prompt_contract = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -85,6 +89,8 @@ def build_writer_worker_handoff(
         "source_eval_ref": source_eval_artifact_path,
         "source_summary_ref": source_summary_artifact_path,
         "repair_execution_evidence_ref": str(repair_execution_evidence_path),
+        "required_closeout_packet": typed_closeout_contract,
+        "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "paper_package_mutation_allowed": False,
@@ -110,6 +116,8 @@ def build_writer_worker_handoff(
         "repeat_suppression_key": owner_route["work_unit_fingerprint"],
         "action_fingerprint": owner_route["work_unit_fingerprint"],
         "consumer_mutation_scope": "executor_dispatch_request_only",
+        "required_closeout_packet": typed_closeout_contract,
+        "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
         "prompt_contract": prompt_contract,
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,

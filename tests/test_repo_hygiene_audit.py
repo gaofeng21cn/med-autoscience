@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
@@ -8,6 +9,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "repo_hygiene_audit.py"
+
+
+def _load_repo_hygiene_module():
+    spec = importlib.util.spec_from_file_location("repo_hygiene_audit", SCRIPT_PATH)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _git_init(root: Path) -> None:
@@ -108,3 +118,15 @@ def test_repo_hygiene_audit_fix_removes_only_ignored_artifacts(tmp_path: Path) -
     assert ignored_cache.exists() is False
     assert unignored_cache.exists() is True
     assert "other/__pycache__" in result.stderr
+
+
+def test_repo_hygiene_audit_remove_path_is_idempotent(tmp_path: Path) -> None:
+    module = _load_repo_hygiene_module()
+    cache_dir = tmp_path / "src" / "med_autoscience.egg-info"
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "PKG-INFO").write_text("metadata\n", encoding="utf-8")
+
+    module._remove_path(cache_dir)
+    module._remove_path(cache_dir)
+
+    assert cache_dir.exists() is False
