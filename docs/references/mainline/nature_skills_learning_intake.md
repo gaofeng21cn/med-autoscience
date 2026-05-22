@@ -72,7 +72,7 @@ adopted patterns 的 owner 映射如下：
 
 ## Expected Acceptance Evidence
 
-最终集成 agent 可补真实验证记录；本 lane 只预留 expected commands。
+最终集成 agent 可在 machine-readable contracts、test manifests、owner receipts 或 history/provenance 中补真实验证证据；本文只预留 expected commands。
 
 Expected minimum docs-only validation:
 
@@ -97,4 +97,3 @@ Expected live/workspace proof when adopted patterns are exercised on a real pape
 - AI reviewer-backed `publication_eval/latest.json` carries required provenance before any submission-facing quality closure.
 - Portal / Workbench renders source, figure, citation and reviewer-response refs as read-only projection.
 - No external vendor runtime, default skill source or publication authority is introduced.
-

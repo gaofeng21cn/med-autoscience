@@ -1,5 +1,10 @@
 # Real-Study Relaunch Verification
 
+Owner: `MedAutoScience`
+Purpose: `historical_real_study_relaunch_verification`
+State: `history_provenance`
+Machine boundary: 本文是历史真实 study relaunch 验证记录，不是 current runtime truth、paper-line readiness、cutover authority 或执行队列。当前 real paper-line / provider evidence gate 回到 `docs/status.md`、`docs/active/mas-ideal-state-gap-plan.md` 和真实 workspace / owner receipt surfaces。
+
 这份文档记录 `research-foundry-medical-mainline` 在 `P2 delivery plane contract map and artifact-surface freeze` 之后，对真实锚点 study 做的最小受控 relaunch / verify 结果。
 
 它不是：

@@ -11,7 +11,6 @@
 - [OPL Temporal MAS Runtime Retirement Program](../../active/opl_temporal_mas_runtime_retirement_program.md)
 - [MAS 单项目 MDS 吸收 Program](../../active/mas_single_project_mds_absorb_program.md)
 - [Runtime Lifecycle SQLite 迁移 Program](../../active/runtime_lifecycle_sqlite_migration_program.md)
-- [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md)
 
 周期性支持线快照：
 
@@ -29,6 +28,9 @@
 已落地 closeout 与 activation 记录：
 
 - [Docs lifecycle governance closeout 2026-05-20](./docs_lifecycle_governance_closeout_2026_05_20.md)
+- [Docs lifecycle audit 2026-05-17](./docs_lifecycle_audit_2026_05_17.md)
+- [Plan Completion Ledger](./plan_completion_ledger.md)
+- [Real-study relaunch verification](./real_study_relaunch_verification.md)
 - [AI-first paper autonomy full record 2026-05-10](./ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)
 - [AI-first closeout handoff governance](./ai_first_closeout_handoff_governance.md)
 - [AI-first operationalization closeout](./ai_first_operationalization_closeout.md)

@@ -48,4 +48,4 @@ Focused lane verification before absorb:
 - `uv run pytest -q tests/test_publication_critique_policy.py` -> `7 passed`
 - `git diff --check` -> clean in each implementation worktree
 
-The final closeout row in [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md) records root verification, push and worktree cleanup.
+The final closeout row in [Plan Completion Ledger](./plan_completion_ledger.md) records root verification, push and worktree cleanup.

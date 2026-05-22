@@ -113,7 +113,7 @@ AI-first stage output 必须来自与执行 agent 分离的 reviewer/auditor age
 | `stage_closeout_owner_chain` | `production_evidence_gate` | `planned; guarded_apply_harness_landed` | Provider-hosted live apply 产出 MAS owner receipt，证明 stage closeout / memory / quality / artifact delta 沿 MAS owner surface 闭合，或返回 typed blocker。 |
 | `ai_first_verdict_alignment` | `functional_follow_through_gate` | `required; authority_wording_split_pending` | `publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict` 等必须由独立 reviewer/auditor agent 产生的 AI-first stage quality gate 输出支撑；程序只做 validator / materializer / receipt signer / guard。 |
 
-具体 landed proof、focused tests 和 dated receipt 由 machine-readable contracts、test manifests、product-entry / sidecar surfaces、[Plan Completion Ledger](../references/verification/plan_completion_ledger.md) 和 [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md) 承担。本文不再维护按日期增长的 proof ledger。
+具体 landed proof、focused tests 和 dated receipt 由 machine-readable contracts、test manifests、product-entry / sidecar surfaces、[Plan Completion Ledger](../history/program/plan_completion_ledger.md) 和 [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md) 承担。本文不再维护按日期增长的 proof ledger。
 
 ## 距离理想情况
 

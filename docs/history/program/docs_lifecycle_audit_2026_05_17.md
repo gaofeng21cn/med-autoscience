@@ -2,14 +2,14 @@
 
 Owner: `MedAutoScience`
 Purpose: `docs_lifecycle_audit_record`
-State: `support_reference`
-Machine boundary: 本文是人读审计记录，不是执行队列、runtime truth、policy truth 或机器合同。机器真相继续归 contracts、source、runtime/controller surfaces、product-entry manifest、sidecar receipt 和真实 workspace artifact。
+State: `history_provenance`
+Machine boundary: 本文是历史人读审计记录，不是执行队列、runtime truth、policy truth 或机器合同。当前文档治理入口回到 `docs/docs_portfolio_consolidation.md`；机器真相继续归 contracts、source、runtime/controller surfaces、product-entry manifest、sidecar receipt 和真实 workspace artifact。
 
 ## 审计基准
 
 本轮审计以以下当前 owner surface 为准：
 
-- [MAS 理想目标态](../positioning/mas_ideal_state.md)
+- [MAS 理想目标态](../../references/positioning/mas_ideal_state.md)
 - [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)
 - `/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-development-reference.md`
 - MAS 核心五件套、[文档组合治理](../../docs_portfolio_consolidation.md) 和各目录 README

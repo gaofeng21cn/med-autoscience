@@ -46,7 +46,7 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 | `docs/source/` | study workspace、source readiness、external intake、source truth consumption | 承接 workspace/source intake 与 source truth 边界。 |
 | `docs/policies/` | 长期规则 | quality、study-workflow、runtime-governance、repo-ops。 |
 | `docs/specs/` | 当前有效技术规格索引 | 新增 active spec 前先确认是否更适合 runtime/policies/references 或 machine contract。 |
-| `docs/references/` | 支撑参考、定位、integration、MDS parity、verification、workspace、med-deepscientist | target/support/reference，不承担 active owner。 |
+| `docs/references/` | 支撑参考、定位、integration、MDS parity、workspace、med-deepscientist | target/support/reference，不承担 active owner，不保存 dated verification ledger。 |
 | `docs/history/` | dated snapshot、provenance、retired board、process archive | 旧 `program/`、旧 `capabilities/`、runtime/OMX/superpowers history、过程性 closeout 摘要。 |
 
 ## 非 canonical 目录
@@ -66,7 +66,7 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 5. Source/workspace/intake 支撑进入 `docs/source/`；generic shell 候选记录为 MAS-to-OPL 上收边界。
 6. 稳定规则进入 `docs/policies/`；一次性计划不得放入 policies。
 7. MDS/DeepScientist 只作为 historical fixture、explicit archive import、backend audit、upstream intake、source provenance 或 parity oracle reference。
-8. dated evidence、follow-through、过程流水和 closeout 摘要进入 `docs/history/program/` 或相应 `docs/history/<area>/`。
+8. dated evidence、verification ledger、real-study verification note、follow-through、过程流水和 closeout 摘要进入 `docs/history/program/` 或相应 `docs/history/<area>/`。
 
 ## Direct Retirement
 
