@@ -29,10 +29,16 @@ PRODUCT_ENTRY_CONTRACT_GAP_TEXT = (
     "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution."
 )
 MCP_INPUT_SCHEMA_BY_ACTION_ID = {
-    "launch_study": {"type": "string", "enum": ["runtime_watch", "study_runtime_status", "ensure_study_runtime"]},
+    "launch_study": {"type": "string", "enum": ["owner_route_handoff", "stage_attempt", "ensure_study_runtime"]},
     "study_progress": {"type": "object"},
     "product_entry": "product_entry_mode_schema",
 }
+AUTHORITATIVE_TRUTH_REFS = [
+    "/progress_projection",
+    "/owner_route/latest.json",
+    "/publication_eval/latest.json",
+    "/controller_decisions/latest.json",
+]
 
 
 def _quote_profile(profile_ref: str | Path | None) -> str:
@@ -57,12 +63,7 @@ def _authority_boundary(*, helper_owner: str = "one-person-lab") -> dict[str, An
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": MAS_TRUTH_OWNER,
         "helper_write_policy": "no_domain_truth_writes",
-        "authoritative_truth_refs": [
-            "/study_runtime_status",
-            "/runtime_watch",
-            "/publication_eval/latest.json",
-            "/controller_decisions/latest.json",
-        ],
+        "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
     }
 
 
@@ -163,12 +164,7 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "can_execute_domain_action": False,
                 "can_authorize_publication_quality": False,
                 "can_authorize_submission_readiness": False,
-                "authoritative_truth_refs": [
-                    "/study_runtime_status",
-                    "/runtime_watch",
-                    "/publication_eval/latest.json",
-                    "/controller_decisions/latest.json",
-                ],
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
             },
         },
         {
@@ -193,12 +189,7 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "can_write_submission_minimal": False,
                 "can_authorize_publication_quality": False,
                 "can_authorize_submission_readiness": False,
-                "authoritative_truth_refs": [
-                    "/study_runtime_status",
-                    "/runtime_watch",
-                    "/publication_eval/latest.json",
-                    "/controller_decisions/latest.json",
-                ],
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
             },
         },
         {
@@ -229,12 +220,7 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "can_dispatch_runtime_owner_task": False,
                 "can_emit_owner_route_task_refs": True,
                 "runtime_owner_task_dispatch_policy": "forbidden_mas_emits_refs_or_typed_blockers_only",
-                "authoritative_truth_refs": [
-                    "/study_runtime_status",
-                    "/runtime_watch",
-                    "/publication_eval/latest.json",
-                    "/controller_decisions/latest.json",
-                ],
+                "authoritative_truth_refs": list(AUTHORITATIVE_TRUTH_REFS),
             },
         },
         {
@@ -271,7 +257,10 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
         {
             "action_id": "sidecar_export",
             "title": "Export MAS sidecar bridge projection",
-            "summary": "Read-only MAS sidecar export for OPL provider queue discovery; Hermes references are optional diagnostics/provenance only.",
+            "summary": (
+                "Read-only MAS owner-route handoff export for OPL stage graph hydration; "
+                "Hermes references are optional diagnostics/provenance only."
+            ),
             "effect": "read_only",
             "command": "medautosci sidecar export --profile {profile} --format json",
             "surface_kind": "mas_family_sidecar_export",
@@ -280,10 +269,10 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
         },
         {
             "action_id": "sidecar_dispatch",
-            "title": "Receive MAS sidecar guarded dispatch receipt",
+            "title": "Receive MAS owner-route dispatch receipt",
             "summary": (
-                "MAS guarded dispatch receipt for OPL provider queue control. "
-                "It records a domain control receipt only and does not authorize domain truth, "
+                "MAS owner-route dispatch receipt for OPL stage-attempt handoff. "
+                "It records a domain owner receipt only and does not authorize domain truth, "
                 "publication quality, artifact gate, or current package writes; Hermes paths are "
                 "explicit OPL opt-in executor/proof refs only, never MAS default runtime paths."
             ),

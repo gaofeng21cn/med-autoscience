@@ -99,7 +99,7 @@ You can start with prompts like:
 - MAS can be invoked directly through its Codex app skill or through OPL. Both routes use the same MAS-owned stage, controller, durable truth, and artifact surfaces; OPL/Temporal is the default hosted autonomous runtime for durable scheduling, wakeup, retry, resume, and projection.
 - New disease workspaces are no-root-Git / no-quest-Git by default. Runtime lifecycle status is read from file authority, `artifacts/runtime/runtime_lifecycle.sqlite`, `artifacts/runtime/lifecycle_migration`, `runtime/quests` manifests, and `runtime/restore_index`, not from Git history.
 - When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill, the underlying command contracts, and a machine-readable `runtime_continuity` envelope projected from existing runtime/session/progress/artifact surfaces.
-- For OPL Full online runtime integration, use `medautosci sidecar export --profile <profile> --format json` and `medautosci sidecar dispatch --task <task.json> --format json`. Local CLI/status/manifest reads can diagnose provider readiness; when Temporal is unavailable, status surfaces should report a required OPL production dependency blocker explicitly.
+- For OPL Full online handoff, `medautosci sidecar export --profile <profile> --format json` exposes body-free owner-route refs and `medautosci sidecar dispatch --task <task.json> --format json` records MAS owner-route dispatch receipts. OPL owns stage graph hydration, queue, attempt ledger, retry/dead-letter, and provider readiness; MAS owner surfaces only return receipts, typed blockers, human gates, or domain refs.
 
 </details>
 

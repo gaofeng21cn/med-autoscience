@@ -524,7 +524,11 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert route_stage_boundary["runtime_transition_owner"] == "one-person-lab"
     assert route_stage_boundary["queue_attempt_owner"] == "one-person-lab"
     assert route_stage_boundary["mas_owns_inter_route_scheduler"] is False
-    assert route_stage_boundary["all_residual_surfaces_physically_retired"] is False
+    assert route_stage_boundary["legacy_surface_names_current_active"] is False
+    assert route_stage_boundary["all_residual_surfaces_physically_retired"] is True
+    assert route_stage_boundary["physical_retirement_scope"] == (
+        "legacy_mas_private_runtime_route_surface_names"
+    )
     assert route_stage_boundary["physical_retirement_gate"] == [
         "no_active_caller_proof",
         "opl_replacement_parity",
@@ -537,36 +541,46 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         item["surface_id"]: item for item in route_stage_boundary["residual_surfaces"]
     }
     assert set(residue_by_id) == {
-        "domain_route_scan",
-        "study_runtime_status",
-        "runtime_watch",
-        "status_and_decision",
-        "runtime_lifecycle_sqlite_sidecar",
-        "sidecar_dispatch_adapter",
+        "owner_route_reconcile",
+        "progress_projection",
+        "domain_health_diagnostic",
+        "domain_decision_authority",
+        "owner_receipt_lifecycle_ref_index",
+        "owner_route_dispatch_receipt",
     }
-    assert residue_by_id["domain_route_scan"]["opl_consumes_as"] == (
+    assert residue_by_id["owner_route_reconcile"]["retired_legacy_surface_id"] == "domain_route_scan"
+    assert residue_by_id["progress_projection"]["retired_legacy_surface_id"] == "study_runtime_status"
+    assert residue_by_id["domain_health_diagnostic"]["retired_legacy_surface_id"] == "runtime_watch"
+    assert residue_by_id["domain_decision_authority"]["retired_legacy_surface_id"] == "status_and_decision"
+    assert residue_by_id["owner_receipt_lifecycle_ref_index"]["retired_legacy_surface_id"] == (
+        "runtime_lifecycle_sqlite_sidecar"
+    )
+    assert residue_by_id["owner_route_dispatch_receipt"]["retired_legacy_surface_id"] == (
+        "sidecar_dispatch_adapter"
+    )
+    assert residue_by_id["owner_route_reconcile"]["opl_consumes_as"] == (
         "owner_route_refs_for_opl_queue_stage_attempt_hydration"
     )
-    assert residue_by_id["domain_route_scan"]["stage_or_queue_owner"] == "one-person-lab"
-    assert residue_by_id["study_runtime_status"]["current_role"] == (
+    assert residue_by_id["owner_route_reconcile"]["stage_or_queue_owner"] == "one-person-lab"
+    assert residue_by_id["progress_projection"]["current_role"] == (
         "domain_truth_status_projection"
     )
-    assert residue_by_id["runtime_watch"]["long_loop_shell_physical_retired"] is True
-    assert residue_by_id["runtime_watch"]["active_long_loop_caller_allowed"] is False
-    assert residue_by_id["status_and_decision"]["migration_state"] == (
-        "needs_split_before_opl_status_projection_migration"
+    assert residue_by_id["domain_health_diagnostic"]["long_loop_shell_physical_retired"] is True
+    assert residue_by_id["domain_health_diagnostic"]["active_long_loop_caller_allowed"] is False
+    assert residue_by_id["domain_decision_authority"]["migration_state"] == (
+        "legacy_name_retired_authority_and_projection_split_active"
     )
-    assert residue_by_id["runtime_lifecycle_sqlite_sidecar"]["active_caller_count"] == 3
-    assert residue_by_id["runtime_lifecycle_sqlite_sidecar"]["refs_only_gate"] == (
+    assert residue_by_id["owner_receipt_lifecycle_ref_index"]["active_caller_count"] == 3
+    assert residue_by_id["owner_receipt_lifecycle_ref_index"]["refs_only_gate"] == (
         refs_only_retirement_gates["runtime_lifecycle_sqlite_reference_adapter"]
     )
-    assert residue_by_id["sidecar_dispatch_adapter"]["active_caller_count"] == 1
+    assert residue_by_id["owner_route_dispatch_receipt"]["active_caller_count"] == 1
     for item in residue_by_id.values():
         assert item["generic_runtime_owner_claim_allowed"] is False
-        assert item["physical_retired"] is False
+        assert item["physical_retired"] is True
         assert item["physical_delete_permitted"] is False
     assert "route_is_stage" in route_stage_boundary["forbidden_claims"]
-    assert "all_residual_surfaces_physically_retired" in route_stage_boundary[
+    assert "legacy_surface_names_current_active" in route_stage_boundary[
         "forbidden_claims"
     ]
     assert {item["functional_structure_gap"] for item in followthrough_summary["remaining_evidence_gates"]} == {
