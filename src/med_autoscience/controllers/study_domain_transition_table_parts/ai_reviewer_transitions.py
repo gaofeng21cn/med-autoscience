@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
+import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.domain_action_request_lifecycle import (
+    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+    AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+)
 from med_autoscience.publication_eval_reviewer_os import (
     current_ai_reviewer_route_back_action,
     validate_ai_reviewer_operating_system_trace,
@@ -22,6 +27,15 @@ def project_transition(
     source_refs: Iterable[str],
     completion_receipt_consumption: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    stale_record_transition = project_stale_ai_reviewer_record_transition(
+        study_id=study_id,
+        study_root=study_root,
+        publication_eval_relative_path=publication_eval_relative_path,
+        source_refs=source_refs,
+        completion_receipt_consumption=completion_receipt_consumption,
+    )
+    if stale_record_transition is not None:
+        return stale_record_transition
     stale_transition = project_stale_reviewer_revision_transition(
         study_id=study_id,
         study_root=study_root,
@@ -88,6 +102,54 @@ def project_stale_reviewer_revision_transition(
             completion_receipt_consumption=completion_receipt_consumption,
         )
     return None
+
+
+def project_stale_ai_reviewer_record_transition(
+    *,
+    study_id: str,
+    study_root: Path | None,
+    publication_eval_relative_path: Path,
+    source_refs: Iterable[str],
+    completion_receipt_consumption: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if study_root is None:
+        return None
+    request_path = Path(study_root) / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    request = _read_json_mapping(request_path)
+    lifecycle = _mapping(request.get("request_lifecycle"))
+    blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if blocked_reason not in {
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+    }:
+        return None
+    request_kind = (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+        if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+        else "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
+    )
+    stale_record_ref = _text(lifecycle.get("stale_record_ref"))
+    request_refs = [
+        str(request_path),
+        *_text_list(lifecycle.get("required_currentness_refs")),
+        *([stale_record_ref] if stale_record_ref else []),
+    ]
+    return _transition(
+        study_id=study_id,
+        decision_type="ai_reviewer_re_eval",
+        route_target="review",
+        next_work_unit=_work_unit(
+            request_kind,
+            "review",
+            "Produce a current AI reviewer publication-eval record before dispatching the publication-eval workflow.",
+        ),
+        controller_action="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        typed_blocker=None,
+        guard_boundary=_guard_boundary(required_owner_surface=str(publication_eval_relative_path)),
+        source_refs=[*source_refs, *request_refs],
+        completion_receipt_consumption=completion_receipt_consumption,
+    )
 
 
 def _route_back_transition(
@@ -291,4 +353,23 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-__all__ = ["project_stale_reviewer_revision_transition", "project_transition", "stale_after_reviewer_revision"]
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := _text(item))]
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+__all__ = [
+    "project_stale_ai_reviewer_record_transition",
+    "project_stale_reviewer_revision_transition",
+    "project_transition",
+    "stale_after_reviewer_revision",
+]

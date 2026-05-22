@@ -50,6 +50,12 @@ ANALYSIS_HARMONIZATION_WORK_UNIT_IDS = frozenset(
         "unit_harmonized_validation_uncertainty_and_grouped_calibration",
     }
 )
+AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS = frozenset(
+    {
+        "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+    }
+)
 
 
 def controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
@@ -71,6 +77,10 @@ def controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
         names = [name for name in names if name not in RUNTIME_REDRIVE_ACTION_NAMES]
         if "unit_harmonized_external_validation_rerun" not in names:
             names.append("unit_harmonized_external_validation_rerun")
+    elif ai_reviewer_record_production_work_unit_present(authorization):
+        names = [name for name in names if name not in RUNTIME_REDRIVE_ACTION_NAMES]
+        if "return_to_ai_reviewer_workflow" not in names:
+            names.append("return_to_ai_reviewer_workflow")
     elif (
         not controller_callable_action_present(names)
         and runtime_redrive_action_present(names)
@@ -222,6 +232,13 @@ def gate_clearing_work_unit_present(authorization: Mapping[str, Any]) -> bool:
 
 def analysis_harmonization_work_unit_present(authorization: Mapping[str, Any]) -> bool:
     return any(unit_id in ANALYSIS_HARMONIZATION_WORK_UNIT_IDS for unit_id in controller_work_unit_ids(authorization))
+
+
+def ai_reviewer_record_production_work_unit_present(authorization: Mapping[str, Any]) -> bool:
+    return any(
+        unit_id in AI_REVIEWER_RECORD_PRODUCTION_WORK_UNIT_IDS
+        for unit_id in controller_work_unit_ids(authorization)
+    )
 
 
 def domain_owner_work_unit_present(authorization: Mapping[str, Any]) -> bool:

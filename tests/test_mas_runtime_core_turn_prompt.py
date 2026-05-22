@@ -913,3 +913,63 @@ def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_reviewer_owner_co
     assert "--managed-runtime-worker" in prompt
     assert "fake package freshness" in prompt
     assert "No callable MAS CLI command is registered" not in prompt
+
+
+def test_codex_exec_runner_prompt_maps_current_manuscript_record_production_to_record_only_contract(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-003"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-ai-reviewer-record-003",
+    "controller_actions": ["return_to_ai_reviewer_workflow"],
+    "route_target": "review",
+    "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+    "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+    "next_work_unit": {
+      "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+      "lane": "review",
+      "summary": "Produce an AI reviewer publication-eval record against the current manuscript only."
+    }
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-003",
+        run_id="run-003",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "AI reviewer publication-eval record production contract" in prompt
+    assert "produce_ai_reviewer_publication_eval_record_against_current_manuscript" in prompt
+    assert "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json" in prompt
+    assert "-m med_autoscience.cli materialize-ai-reviewer-publication-eval-record" in prompt
+    assert "--payload-file <ai_reviewer_publication_eval_record.json>" in prompt
+    assert "-m med_autoscience.cli domain-action-request-materialize" in prompt
+    assert "-m med_autoscience.cli domain-owner-action-dispatch" in prompt
+    assert "--action-types return_to_ai_reviewer_workflow" in prompt
+    assert "Do not write `artifacts/publication_eval/latest.json`" in prompt
+    assert "medical-publication-surface --apply" not in prompt
+    assert "materialize-ai-medical-prose-review" not in prompt

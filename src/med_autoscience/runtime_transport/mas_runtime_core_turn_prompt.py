@@ -170,6 +170,18 @@ def _ai_reviewer_redrive_execution_contract_prompt_section(
     if "return_to_ai_reviewer_workflow" not in action_names:
         return ""
     work_unit_ids = set(_controller_work_unit_ids(authorization))
+    if work_unit_ids.intersection(
+        {
+            "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization",
+            "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        }
+    ):
+        return _ai_reviewer_record_production_execution_contract_prompt_section(
+            authorization=authorization,
+            action_names=action_names,
+            quest_id=quest_id,
+            runtime_context=runtime_context,
+        )
     if not work_unit_ids.intersection({"ai_reviewer_recheck", "ai_reviewer_medical_prose_quality_review"}):
         return ""
     prose_command = _ai_medical_prose_review_command(runtime_context=runtime_context)
@@ -209,6 +221,57 @@ def _ai_reviewer_redrive_execution_contract_prompt_section(
     )
 
 
+def _ai_reviewer_record_production_execution_contract_prompt_section(
+    *,
+    authorization: Mapping[str, Any],
+    action_names: list[str],
+    quest_id: str,
+    runtime_context: Mapping[str, Any] | None = None,
+) -> str:
+    record_command = _ai_reviewer_publication_eval_record_command(runtime_context=runtime_context)
+    materialize_command = _domain_action_request_materialize_command(runtime_context=runtime_context)
+    dispatch_command = _controller_action_command(
+        action_name="return_to_ai_reviewer_workflow",
+        quest_id=quest_id,
+        runtime_context=runtime_context,
+    )
+    work_unit_ids = ", ".join(f"`{unit_id}`" for unit_id in sorted(_controller_work_unit_ids(authorization)))
+    return (
+        "AI reviewer publication-eval record production contract:\n"
+        f"- Controller action names: {', '.join(action_names)}.\n"
+        f"- Active record-production work unit(s): {work_unit_ids}.\n"
+        "- This is an AI-reviewer-owner record-only turn. Read "
+        "`artifacts/supervision/requests/ai_reviewer/latest.json`, its `ai_reviewer_record_production_request`, "
+        "the current manuscript, study charter, evidence ledger, review ledger, claim-evidence map, medical "
+        "manuscript blueprint, current publication gate projection, and every `required_currentness_refs` entry.\n"
+        "- Produce a full AI reviewer-owned publication-eval record against those current refs. The record must carry "
+        "current `assessment_provenance.source_refs`, `runtime_context_refs`, `delivery_context_refs`, "
+        "`reviewer_operating_system`, `quality_assessment`, `gaps`, and `recommended_actions` as required by the "
+        "PublicationEvalRecord contract. It must be a medical reviewer judgment, not a mechanical checklist.\n"
+        "- Materialize only the AI reviewer record through the MAS validator:\n"
+        "```bash\n"
+        f"  {record_command}\n"
+        "```\n"
+        "- Do not write `artifacts/publication_eval/latest.json`, `artifacts/controller_decisions/latest.json`, "
+        "`paper/**`, `manuscript/**`, `paper/submission_minimal/**`, or `manuscript/current_package/**` during "
+        "record production. The record-only output is "
+        "`artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`.\n"
+        "- After the record file is materialized, rematerialize the AI reviewer request so MAS attaches the current "
+        "record to `artifacts/supervision/requests/ai_reviewer/latest.json`:\n"
+        "```bash\n"
+        f"  {materialize_command}\n"
+        "```\n"
+        "- Then run the AI reviewer workflow dispatch to consume the validated current record and update the MAS "
+        "quality truth surface if validation passes:\n"
+        "```bash\n"
+        f"  {dispatch_command}\n"
+        "```\n"
+        "- If current manuscript/evidence inputs are missing or the reviewer cannot produce a complete record, write a "
+        "blocked closeout with status=blocked, meaningful_artifact_delta=false, "
+        "blocked_reason=ai_reviewer_publication_eval_record_production_blocked, and next_owner=ai_reviewer.\n\n"
+    )
+
+
 def _ai_medical_prose_review_command(runtime_context: Mapping[str, Any] | None = None) -> str:
     repo_ref = _runtime_context_text(runtime_context, "med_autoscience_repo") or "${MED_AUTOSCIENCE_REPO}"
     profile_arg = _optional_shell_arg(_runtime_context_text(runtime_context, "med_autoscience_profile")) or (
@@ -225,6 +288,44 @@ def _ai_medical_prose_review_command(runtime_context: Mapping[str, Any] | None =
         "-m med_autoscience.cli materialize-ai-medical-prose-review "
         f"--profile {profile_arg} --study-id {study_id_arg} "
         "--payload-file <ai_reviewer_response.json>"
+    )
+
+
+def _ai_reviewer_publication_eval_record_command(runtime_context: Mapping[str, Any] | None = None) -> str:
+    repo_ref = _runtime_context_text(runtime_context, "med_autoscience_repo") or "${MED_AUTOSCIENCE_REPO}"
+    profile_arg = _optional_shell_arg(_runtime_context_text(runtime_context, "med_autoscience_profile")) or (
+        "<med_autoscience_profile>"
+    )
+    study_id_arg = _optional_shell_arg(_runtime_context_text(runtime_context, "study_id")) or "<study_id>"
+    runner = (
+        f"{_shell_arg(repo_ref)}/scripts/run-python-clean.sh"
+        if repo_ref.startswith("/")
+        else '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh"'
+    )
+    return (
+        f"{runner} "
+        "-m med_autoscience.cli materialize-ai-reviewer-publication-eval-record "
+        f"--profile {profile_arg} --study-id {study_id_arg} "
+        "--payload-file <ai_reviewer_publication_eval_record.json>"
+    )
+
+
+def _domain_action_request_materialize_command(runtime_context: Mapping[str, Any] | None = None) -> str:
+    repo_ref = _runtime_context_text(runtime_context, "med_autoscience_repo") or "${MED_AUTOSCIENCE_REPO}"
+    profile_arg = _optional_shell_arg(_runtime_context_text(runtime_context, "med_autoscience_profile")) or (
+        "<med_autoscience_profile>"
+    )
+    study_id_arg = _optional_shell_arg(_runtime_context_text(runtime_context, "study_id")) or "<study_id>"
+    runner = (
+        f"{_shell_arg(repo_ref)}/scripts/run-python-clean.sh"
+        if repo_ref.startswith("/")
+        else '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh"'
+    )
+    return (
+        f"{runner} "
+        "-m med_autoscience.cli domain-action-request-materialize "
+        f"--profile {profile_arg} --studies {study_id_arg} "
+        "--action-types return_to_ai_reviewer_workflow --apply"
     )
 
 
