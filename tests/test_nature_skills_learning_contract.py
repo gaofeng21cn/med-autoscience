@@ -156,3 +156,177 @@ def test_nature_skills_status_pattern_becomes_contract_maturity_not_vendor_autho
             assert strong_evidence
         else:
             assert promotion["stable_strong_evidence_satisfied"] is False
+
+
+def test_remaining_nature_skills_patterns_land_as_extension_contracts() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+
+    expected = {
+        "journal_response_pack": {
+            "reviewer_response_edge_case_contract": {
+                "learned_from": "nature-response",
+                "required_fields": {
+                    "editor_instruction_ids",
+                    "stable_reviewer_comment_ids",
+                    "action_label",
+                    "missing_author_input_state",
+                    "appeal_like_case_route",
+                },
+                "blocker": "journal_response_traceability_blocker",
+            }
+        },
+        "data_availability_fair_pack": {
+            "restricted_access_fair_metadata_contract": {
+                "learned_from": "nature-data",
+                "required_fields": {
+                    "result_supporting_dataset_inventory",
+                    "dataset_access_route",
+                    "generated_reused_third_party_class",
+                    "access_route",
+                    "restriction_reason",
+                    "restricted_access_process_ref",
+                    "repository_identifier_or_blocker",
+                    "available_upon_request_blocker_ref",
+                    "fair_metadata_check_ref",
+                },
+                "blocker": "data_availability_or_fair_metadata_blocker",
+            }
+        },
+        "citation_integrity_pack": {
+            "strict_citation_scope_and_export_contract": {
+                "learned_from": "nature-citation",
+                "required_fields": {
+                    "claim_segment_id",
+                    "source_segment_ref",
+                    "claim_boundary",
+                    "batch_strategy_ref",
+                    "accepted_journal_scope",
+                    "identifier_refs",
+                    "support_grade",
+                    "contradictory_or_limiting_refs",
+                    "metadata_only_candidate_flag",
+                    "reference_export_format",
+                },
+                "blocker": "citation_support_or_export_blocker",
+            }
+        },
+        "figure_evidence_contract_pack": {
+            "figure_backend_export_qa_contract": {
+                "learned_from": "nature-figure",
+                "required_fields": {
+                    "core_conclusion",
+                    "evidence_chain",
+                    "panel_map",
+                    "selected_backend",
+                    "backend_exclusivity_proof",
+                    "export_formats",
+                    "visual_qa_ref",
+                },
+                "blocker": "figure_export_or_source_data_blocker",
+            }
+        },
+        "manuscript_argument_pack": {
+            "prose_polish_claim_boundary_contract": {
+                "learned_from": "nature-polishing",
+                "required_fields": {
+                    "paper_type",
+                    "section_role",
+                    "reader_question",
+                    "reader_question_sequence",
+                    "writing_failure_mode",
+                    "section_architecture_id",
+                    "evidence_ladder_refs",
+                    "hedging_calibration",
+                    "overclaim_detection_ref",
+                },
+                "blocker": "manuscript_argument_or_overclaim_blocker",
+            }
+        },
+        "paper_reader_grounding_pack": {
+            "full_paper_reader_source_map_contract": {
+                "learned_from": "nature-reader",
+                "required_fields": {
+                    "source_map_ref",
+                    "stable_text_block_ids",
+                    "caption_block_ids",
+                    "figure_or_table_asset_ids",
+                    "page_and_block_anchors",
+                    "source_grounded_followup_refs",
+                },
+                "blocker": "reader_source_map_or_anchor_blocker",
+            }
+        },
+        "paper_presentation_pack": {
+            "pptx_asset_manifest_and_package_qa_contract": {
+                "learned_from": "nature-paper2ppt",
+                "required_fields": {
+                    "presentation_logic",
+                    "evidence_spine",
+                    "selected_figure_asset_refs",
+                    "asset_manifest_ref",
+                    "text_overflow_check_ref",
+                    "pptx_reopen_or_package_qa_ref",
+                },
+                "blocker": "presentation_asset_or_package_qa_blocker",
+            }
+        },
+    }
+
+    for pack_id, expected_contracts in expected.items():
+        contracts = {
+            extension["contract_id"]: extension
+            for extension in packs[pack_id]["extension_contracts"]
+        }
+        assert set(expected_contracts) <= set(contracts)
+
+        for contract_id, expectation in expected_contracts.items():
+            extension = contracts[contract_id]
+            assert extension["learned_from"] == expectation["learned_from"]
+            assert expectation["required_fields"] <= set(extension["required_fields"])
+            assert extension["typed_blocker_if_missing"] == expectation["blocker"]
+            assert extension["may_authorize_publication_readiness"] is False
+            assert extension["may_authorize_quality_verdict"] is False
+
+
+def test_figure_and_citation_extensions_keep_output_integrity_without_authority() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+    figure_contract = {
+        item["contract_id"]: item
+        for item in packs["figure_evidence_contract_pack"]["extension_contracts"]
+    }["figure_backend_export_qa_contract"]
+    citation_contract = {
+        item["contract_id"]: item
+        for item in packs["citation_integrity_pack"]["extension_contracts"]
+    }["strict_citation_scope_and_export_contract"]
+
+    assert "cross_backend_visual_fallback" in figure_contract["forbidden_shortcuts"]
+    assert "figure_without_source_data_or_statistics_trace" in figure_contract["forbidden_shortcuts"]
+    assert {"ENW", "RIS", "Zotero RDF"} <= set(citation_contract["allowed_export_formats"])
+
+    for extension in (figure_contract, citation_contract):
+        assert extension["may_authorize_publication_readiness"] is False
+        assert extension["may_authorize_quality_verdict"] is False
+
+
+def test_academic_search_source_pack_records_preflight_fallback_and_id_conversion_refs() -> None:
+    contract = build_stage_quality_pack_contract()
+    citation_pack = {
+        pack["pack_id"]: pack for pack in contract["packs"]
+    }["citation_integrity_pack"]
+    search_pack = citation_pack["literature_search_source_pack"]
+
+    assert {
+        "source_preflight_refs",
+        "source_failure_refs",
+        "fallback_route_refs",
+        "mesh_strategy_proof_refs",
+        "dedup_result_refs",
+        "id_conversion_refs",
+    } <= set(search_pack["search_strategy_fields"])
+    assert search_pack["failed_or_degraded_source_behavior"] == (
+        "typed_blocker_or_explicit_fallback_ref"
+    )
+    assert search_pack["may_authorize_quality_verdict"] is False
+    assert search_pack["may_authorize_publication_readiness"] is False

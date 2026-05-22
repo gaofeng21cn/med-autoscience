@@ -37,16 +37,23 @@ def build_literature_search_source_pack() -> dict[str, object]:
         ],
         "search_strategy_fields": [
             "domain_route",
+            "source_preflight_refs",
+            "source_failure_refs",
+            "fallback_route_refs",
             "mesh_terms_or_reason_not_applicable",
+            "mesh_strategy_proof_refs",
             "keyword_queries",
             "source_tier_attempts",
             "deduplication_basis",
+            "dedup_result_refs",
+            "id_conversion_refs",
             "search_checked_at",
             "search_expires_or_stale_after",
         ],
         "multi_source_search_required": True,
         "mesh_strategy_required_for_biomedical_claims": True,
         "insufficient_source_behavior": "typed_blocker_or_reference_only",
+        "failed_or_degraded_source_behavior": "typed_blocker_or_explicit_fallback_ref",
         "may_authorize_quality_verdict": False,
         "may_authorize_publication_readiness": False,
     }
@@ -112,4 +119,3 @@ __all__ = [
     "build_journal_policy_currentness_pack",
     "build_literature_search_source_pack",
 ]
-

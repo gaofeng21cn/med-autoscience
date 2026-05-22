@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.stage_quality_contract_parts.pack_data import (
     _JOURNAL_ACCEPTANCE_EVIDENCE_FIELDS,
+    _JOURNAL_EXTENSION_CONTRACTS,
     _JOURNAL_FAMILY_PATTERNS,
     _JOURNAL_REQUIRED_REVIEWER_OUTPUTS,
     _PACK_OWNER_REFS,
@@ -285,6 +286,8 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
         pack["required_reviewer_output"] = _journal_required_reviewer_output(pack_id)
         pack["forbidden_authority"] = _journal_forbidden_authority()
         pack["quality_pack_consumption"] = _journal_quality_pack_consumption(pack_id)
+        if pack_id in _JOURNAL_EXTENSION_CONTRACTS:
+            pack["extension_contracts"] = list(_JOURNAL_EXTENSION_CONTRACTS[pack_id])
     if pack_id in LITERATURE_SEARCH_SOURCE_PACKS:
         pack["literature_search_source_pack"] = build_literature_search_source_pack()
     if pack_id in JOURNAL_POLICY_CURRENTNESS_PACKS:
