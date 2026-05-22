@@ -37,6 +37,12 @@ The reviewer/auditor may be Codex CLI only as a separate invocation with separat
 - Check medical claim restraint, statistical rigor, source grounding, reporting guideline fit, citation integrity, display-to-claim consistency, limitations, and journal-facing prose.
 - Verify currentness of manuscript refs, evidence ledger, review ledger, publication eval, controller decisions, task intake, and artifact rebuild proof.
 - Distinguish AI reviewer verdict, mechanical guard, materializer output, and projection status. Mechanical checks can block or request repair; they cannot authorize publication quality.
+- Consume journal-family quality packs as the minimum review floor and explicit reviewer rubric: `journal_response_pack`, `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack`. These nature-skills-derived patterns are quality inputs only; MAS reviewer/auditor judgment remains the publication quality authority.
+- For reviewer response work, check stable comment ids, response trackers, action mappings, missing author-input flags, readiness state, and response-material refs. Missing response traceability blocks with a journal-response typed blocker.
+- For Data Availability, verify dataset-to-location mapping, restricted-data access route, repository identifier, dataset citation, and FAIR metadata refs. Absence or mismatch blocks source readiness or journal handoff.
+- For citation integrity, review claim-segment support grades, candidate citation refs, metadata-only support flags, and reference-manager/export notes. Unsupported or weakly supported claims must route back instead of being accepted through prose polish.
+- For figures and tables, verify core claim, evidence chain, panel role, source-data refs, statistics refs, export contract, and QA risks. Missing source-data/statistics/export QA refs require artifact or evidence blocker.
+- For reader and presentation grounding, verify source maps, page/block anchors, figure-near-claim refs, source-grounded follow-up refs, evidence spine, selected figure assets, and speaker-notes context. Reader-facing or presentation-facing deliverables cannot pass when disconnected from source refs.
 - Route back with concrete owner, work unit, required refs, and typed blocker when evidence, source, writing, artifact, methodology, or memory gaps remain.
 - Accept or reject publication-route memory writeback only through reviewer/auditor judgment plus router receipt.
 
@@ -46,6 +52,7 @@ The reviewer/auditor may be Codex CLI only as a separate invocation with separat
 - Do not mark publication quality, AI reviewer quality, submission readiness, memory acceptance, source readiness, or artifact mutation ready from provider completion, test pass, generated interface readiness, or file/package presence.
 - Do not write MAS publication verdict, artifact authority, memory body, source body, current package, or submission status from OPL-generated surfaces.
 - Do not ignore stale reviewer evidence just because publication eval or package refs exist.
+- Do not let templates, pack presence, checklist wording, or nature-skills pattern matching substitute for AI-native medical reviewer judgment.
 
 ## Review And Audit Separation
 
@@ -60,6 +67,8 @@ Return independent AI reviewer/auditor record refs, review ledger refs, publicat
 - `ai_reviewer_quality_blocker` route back to AI reviewer repair.
 - `publication_route_memory_writeback_blocker` route back to memory writeback repair.
 - route to `finalize_and_publication_handoff` only when gate records are current and no quality blocker remains.
+
+The reviewer/auditor receipt must cite the consumed journal-family pack refs, output refs reviewed, pack-specific blockers if any, and the owner receipt proving independence from the executor. A pass without current pack refs is invalid unless the receipt explains why a pack is out of scope for the route.
 
 ## Done Criteria
 

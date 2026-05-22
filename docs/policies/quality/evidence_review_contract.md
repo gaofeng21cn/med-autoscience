@@ -86,7 +86,7 @@ canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `evidence_r
 
 proof package 不能只靠聊天总结、memory 或 terminal prose，也不能把 screenshot-style QA 当成证据面。聊天、memory、terminal prose 和截图式 QA 只能辅助定位上下文，不能替代 evidence ledger、review ledger、publication eval、controller decision 或 manuscript/package 引用。
 
-外部 skill/workflow 材料中的 source-grounded deliverable、reviewer response、data/table 和 Figure/display pattern 只能 clean-room 吸收到 MAS proof package 规则中。它们可以提高 source refs、figure refs、data refs、reviewer concern closure 和 response-action trace 的表达质量，但不能把外部 vendor、runtime、HTML/export UI、citation helper 或 skill source 升格为 evidence authority。nature-skills 相关记录见 [Nature-skills Learning Intake](../../references/mainline/nature_skills_learning_intake.md)。
+外部 skill/workflow 材料中的 source-grounded deliverable、reviewer response、data/table 和 Figure/display pattern 只能 clean-room 吸收到 MAS proof package 规则中。它们可以提高 source refs、figure refs、data refs、reviewer concern closure 和 response-action trace 的表达质量，但不能把外部 vendor、runtime、HTML/export UI、citation helper 或 skill source 升格为 evidence authority。nature-skills 相关模式已经通过 `stage_quality_pack_contract`、stage prompt / quality gate refs、product-entry / descriptor refs 和 tests 落到 repo-level 可用面；proof package 的剩余验收是 live paper-line owner receipts、evidence/review ledger refs、AI reviewer-backed `publication_eval/latest.json`、controller decision、artifact delta / gate replay / typed blocker 和 no external authority proof。nature-skills closeout 记录见 [Nature-skills Learning Intake](../../references/mainline/nature_skills_learning_intake.md)。
 
 ### Medical QA Feedback Loop
 

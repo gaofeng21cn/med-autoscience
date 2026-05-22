@@ -298,9 +298,11 @@ Reporting guideline selection should be explicit:
 
 ## Nature-skills Clean-room Pattern Intake
 
-nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clean-room pattern absorption。MAS 只采用 reviewer response、data deliverable、Figure/display 和 source-grounded deliverable 这类可验证工作模式，并把它们落回 stage quality pack、AI reviewer、evidence/review ledgers、publication gate、controller decisions、Stage Deliverable Review Page / Index 与 Portal read model。citation HTML / export UX 只作为 watch 项；如未来落地，也只能消费 MAS source refs、publication profile、artifact locator 和 read-only Portal / Workbench projection。
+nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clean-room pattern absorption，并已从 intake 推进到可用的 MAS-native contract / prompt / descriptor / test surfaces。MAS 只采用 reviewer response、data deliverable、Figure/display 和 source-grounded deliverable 这类可验证工作模式，并把它们落回 `stage_quality_pack_contract`、stage prompts / quality gate、AI reviewer、evidence/review ledgers、publication gate、controller decisions、Stage Deliverable Review Page / Index、product-entry / descriptor refs 与 Portal read model。citation HTML / export UX 只作为 watch 项；如未来落地，也只能消费 MAS source refs、publication profile、artifact locator 和 read-only Portal / Workbench projection。
 
-明确拒绝的边界是：不新增 vendor/runtime dependency，不把外部 skill runner 写成 MAS provider、Agent executor adapter、default skill source 或 publication authority，不复制外部代码、prompt、schema、HTML 模板或目录布局。详细 intake 与 expected evidence 见 [Nature-skills Learning Intake](../references/mainline/nature_skills_learning_intake.md)。
+当前 landed evidence 是：`stage_quality_contract.py` 提供 quality pack contract；主 stage skill / prompt surface 消费 stage card、knowledge obligations、quality pack refs、closeout packet 和 forbidden actions；product-entry manifest、family stage control-plane descriptor、standard skeleton quality locator 和 stage deliverable index 暴露只读 refs；focused tests 覆盖 stage quality contract、stage surface contract、stage route assets、product-entry descriptor parity、citation/data/figure/display/reviewer-response 与 stage review portal surface。剩余证据尾巴是 live paper-line：真实论文线必须留下 owner receipt、evidence/review ledger refs、AI reviewer-backed `publication_eval/latest.json`、controller decision、artifact delta / gate replay / human gate / typed blocker 和 no external authority proof。
+
+明确拒绝的边界是：不新增 vendor/runtime dependency，不把外部 skill runner 写成 MAS provider、Agent executor adapter、default skill source 或 publication authority，不复制外部代码、prompt、schema、HTML 模板或目录布局，也不让 citation/export UI、checklist 或 runner completion 直接授权 publication readiness。详细 closeout 与 acceptance evidence 见 [Nature-skills Learning Intake](../references/mainline/nature_skills_learning_intake.md)。
 
 ## 执行计划
 
@@ -312,7 +314,7 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 | `P1` | `landed` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_stage_route_assets.py` |
 | `P2` | `landed` | 抽出 reporting guideline quality pack 和 stage quality pack contract | `stage_quality_contract.py` + generated product-entry / family descriptor refs | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
 | `P2` | `landed` | 对齐 OPL descriptor 中的 stage/skill/quality locator | product-entry manifest / skeleton mapping update | product-entry / OPL family adapter tests |
-| `P2` | `documented` | 记录 nature-skills clean-room pattern absorption | `docs/references/mainline/nature_skills_learning_intake.md` + 本 program closeout note | `git diff --check` |
+| `P2` | `contract_prompt_test_landed` | 记录并关闭 nature-skills clean-room pattern absorption repo-level 落地 | `docs/references/mainline/nature_skills_learning_intake.md` + `stage_quality_pack_contract` + stage prompts / quality gate refs + product-entry / descriptor refs + focused tests | `git diff --check` + stage quality/surface/route/product-entry descriptor/citation/data/figure/display/reviewer/stage-review focused tests |
 | `P3` | `tombstone_surface_retired_cleanup_pending` | 退役旧 alias vocabulary 或移入 history/reference | `legacy_retirement_tombstone_proof` + retired tombstone machine surface + no default caller + replacement proof | `rg` stale scan + focused cleanup tests |
 | `P4` | `provider_live_apply_pending` | 在已 ingest 的 OPL production proof 之上，用真实 paper-line provider-hosted live apply 验证 | OPL attempt -> MAS owner receipt -> artifact delta / gate replay / blocker | real paper-line guarded apply evidence |
 

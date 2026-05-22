@@ -38,6 +38,11 @@ Author canonical-source-first content. The paper body should not carry internal 
 - Align title, abstract, introduction, methods, results, discussion, tables, figures, and supplement with the active claim boundary.
 - Surface limitations, failed paths, data constraints, methodology uncertainty, and reviewer pressure in paper-appropriate language.
 - Preserve canonical-source-first delivery: manuscript, tables, figures, and package surfaces must be rebuildable from canonical source refs.
+- Consume journal-family quality inputs as mandatory writing floors and reviewer rubrics: `data_availability_fair_pack`, `citation_integrity_pack`, `figure_evidence_contract_pack`, `paper_reader_grounding_pack`, and `paper_presentation_pack`. These packs are clean-room nature-skills patterns absorbed as MAS-native guidance; they do not grant publication authority.
+- Draft or update Data Availability language only from dataset-to-location refs, restricted-access route refs, repository identifiers, dataset citation refs, and FAIR metadata refs. Missing or stale refs require a `source_readiness_blocker` or journal-fit blocker.
+- Record citation support grades for claim segments and route back when a claim has only metadata-only support, missing candidate citation refs, or a reference/export gap.
+- Bind every figure/table claim to source-data refs, statistics refs, panel roles, export contract refs, and QA-risk refs before writing figure-led prose.
+- Keep reader and presentation surfaces source-grounded: source maps, page/block anchors, figure-near-claim refs, evidence spine refs, selected figure asset refs, and speaker-notes context must remain traceable outputs, not free-form template text.
 - If writing exposes source, evidence, artifact, citation, or claim-boundary gaps, route back instead of polishing unsupported prose.
 
 ## Forbidden Shortcuts
@@ -46,6 +51,7 @@ Author canonical-source-first content. The paper body should not carry internal 
 - Do not infer medical journal prose quality from regex, completeness checks, script success, package freshness, or generated surface readiness.
 - Do not expand claims beyond current evidence, reviewer refs, or study charter.
 - Do not hide weak or negative evidence by changing wording without a route decision.
+- Do not use nature-skills-derived pack wording, journal templates, reader/presentation templates, or checklist completion as a replacement for AI medical writing judgment.
 
 ## Review And Audit Separation
 
@@ -59,6 +65,8 @@ Return canonical manuscript refs, claim-evidence map refs, citation/source refs,
 - route-back to analysis, baseline/source, or decision when claims are unsupported.
 - `artifact_mutation_blocker` or source/citation blocker when canonical rebuild or grounding is missing.
 - human gate request for journal strategy, claim expansion, or PI decision.
+
+The receipt must include output refs for Data Availability, citation support grades, figure source-data/statistics/export QA, source-grounded reader mapping, and presentation/evidence-spine materials when those packs are in scope. Missing pack inputs must be named as typed blockers with the route-back owner and repair condition.
 
 ## Done Criteria
 

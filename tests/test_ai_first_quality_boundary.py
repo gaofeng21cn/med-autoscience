@@ -118,3 +118,39 @@ def test_medical_manuscript_blueprint_canonical_surface_requires_ai_authorizatio
     assert "validate_medical_manuscript_blueprint(resolved_payload)" in blueprint_source
     assert "requires AI authorization provenance" in blueprint_source
     assert 'owner not in {"ai_author", "ai_reviewer"}' in blueprint_source
+
+
+def test_nature_skills_quality_packs_are_consumed_as_stage_boundaries() -> None:
+    prompt_and_skill_paths = (
+        "agent/prompts/manuscript_authoring.md",
+        "agent/prompts/review_and_quality_gate.md",
+        "agent/prompts/finalize_and_publication_handoff.md",
+        "agent/quality_gates/ai_reviewer_auditor_gate.md",
+        "agent/skills/medical_research_execution.md",
+        "agent/skills/owner_receipt_and_route_control.md",
+    )
+    combined = "\n".join(_read(path) for path in prompt_and_skill_paths)
+
+    for pack_id in (
+        "journal_response_pack",
+        "data_availability_fair_pack",
+        "citation_integrity_pack",
+        "figure_evidence_contract_pack",
+        "paper_reader_grounding_pack",
+        "paper_presentation_pack",
+    ):
+        assert pack_id in combined
+
+    for required_boundary in (
+        "nature-skills",
+        "quality floors",
+        "reviewer rubrics",
+        "not publication authority",
+        "owner receipt",
+        "typed blocker",
+        "citation support grades",
+        "figure source-data/statistics/export QA",
+        "self-review",
+        "template",
+    ):
+        assert required_boundary in combined

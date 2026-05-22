@@ -243,6 +243,10 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
     if pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS:
         pack["journal_family_patterns"] = list(_JOURNAL_FAMILY_PATTERNS[pack_id])
         pack["clean_room_absorption"] = _clean_room_absorption()
+        pack["acceptance_evidence_fields"] = _journal_acceptance_evidence_fields(pack_id)
+        pack["required_reviewer_output"] = _journal_required_reviewer_output(pack_id)
+        pack["forbidden_authority"] = _journal_forbidden_authority()
+        pack["quality_pack_consumption"] = _journal_quality_pack_consumption(pack_id)
     return pack
 
 
@@ -317,6 +321,63 @@ def _clean_room_absorption() -> dict[str, object]:
         "publication_authority": False,
         "default_skill_source": False,
     }
+
+
+def _journal_acceptance_evidence_fields(pack_id: str) -> list[dict[str, object]]:
+    return [
+        _field(field_id, role)
+        for field_id, role in _JOURNAL_ACCEPTANCE_EVIDENCE_FIELDS[pack_id]
+    ]
+
+
+def _journal_required_reviewer_output(pack_id: str) -> list[dict[str, object]]:
+    return [
+        {
+            "output_id": output_id,
+            "role": role,
+            "required": True,
+            "may_authorize_publication_readiness": False,
+            "may_authorize_quality_verdict": False,
+        }
+        for output_id, role in _JOURNAL_REQUIRED_REVIEWER_OUTPUTS[pack_id]
+    ]
+
+
+def _journal_forbidden_authority() -> list[dict[str, object]]:
+    return [
+        {
+            "authority_id": authority_id,
+            "forbidden": True,
+            "reason": reason,
+        }
+        for authority_id, reason in (
+            ("vendor_skill_authority", "clean_room_pattern_only"),
+            ("runtime_authority", "opl_descriptor_ref_locator_only"),
+            ("default_skill_authority", "journal_pack_must_be_explicitly_consumed"),
+            ("publication_readiness_authority", "mas_owner_receipt_or_reviewer_record_required"),
+            ("quality_verdict_authority", "mas_quality_owner_closure_required"),
+            ("mas_truth_write_authority", "pack_is_reviewer_rubric_not_truth_writer"),
+        )
+    ]
+
+
+def _journal_quality_pack_consumption(pack_id: str) -> dict[str, object]:
+    return {
+        "consumer_roles": ["reviewer_agent", "auditor_agent"],
+        "consumed_as": "explicit_quality_pack_descriptor",
+        "required_contract_refs": [ref["ref"] for ref in _PACK_REQUIRED_REFS[pack_id]],
+        "required_output_classes": [
+            output_id for output_id, _role in _JOURNAL_REQUIRED_REVIEWER_OUTPUTS[pack_id]
+        ],
+        "opl_consumption_role": "descriptor_ref_freshness_locator_only",
+        "opl_may_authorize_quality_verdict": False,
+        "opl_may_authorize_publication_readiness": False,
+        "opl_may_write_mas_truth": False,
+    }
+
+
+def _field(field_id: str, role: str) -> dict[str, object]:
+    return {"field_id": field_id, "role": role, "required": True}
 
 
 _PACK_TITLES = {
@@ -513,6 +574,72 @@ _JOURNAL_FAMILY_PATTERNS: dict[str, tuple[str, ...]] = {
         "selected_figure_assets",
         "speaker_notes_context",
         "optional_human_facing_deliverable",
+    ),
+}
+
+_JOURNAL_ACCEPTANCE_EVIDENCE_FIELDS: dict[str, tuple[tuple[str, str], ...]] = {
+    "journal_response_pack": (
+        ("reviewer_comment_refs", "stable_reviewer_comment_identity"),
+        ("response_action_map_refs", "comment_to_revision_or_blocker_trace"),
+        ("readiness_or_blocker_ref", "response_closeout_state"),
+    ),
+    "data_availability_fair_pack": (
+        ("dataset_locator_refs", "dataset_to_repository_or_restricted_access_trace"),
+        ("data_availability_statement_ref", "submission_statement_trace"),
+        ("fair_metadata_review_refs", "repository_metadata_and_identifier_check"),
+    ),
+    "citation_integrity_pack": (
+        ("claim_segment_refs", "claim_to_source_review_unit"),
+        ("citation_candidate_refs", "candidate_reference_identity"),
+        ("support_grade_refs", "support_or_blocker_trace"),
+    ),
+    "figure_evidence_contract_pack": (
+        ("figure_panel_refs", "panel_to_claim_review_unit"),
+        ("source_data_refs", "source_data_and_statistics_trace"),
+        ("export_contract_refs", "rendered_artifact_trace"),
+    ),
+    "paper_reader_grounding_pack": (
+        ("source_map_refs", "paper_reader_source_anchor_trace"),
+        ("page_block_anchor_refs", "reader_visible_block_identity"),
+        ("followup_grounding_refs", "reader_question_to_source_trace"),
+    ),
+    "paper_presentation_pack": (
+        ("evidence_spine_refs", "presentation_claim_sequence_trace"),
+        ("selected_figure_asset_refs", "human_facing_visual_evidence_trace"),
+        ("speaker_context_refs", "reader_or_presenter_context_trace"),
+    ),
+}
+
+_JOURNAL_REQUIRED_REVIEWER_OUTPUTS: dict[str, tuple[tuple[str, str], ...]] = {
+    "journal_response_pack": (
+        ("refs", "reviewer_comment_and_response_refs"),
+        ("blocker_or_readiness", "revision_response_ready_or_blocked"),
+        ("reviewer_record", "independent_reviewer_response_record"),
+    ),
+    "data_availability_fair_pack": (
+        ("refs", "dataset_statement_and_repository_refs"),
+        ("blocker_or_readiness", "data_availability_ready_or_blocked"),
+        ("owner_receipt_ref", "mas_data_asset_owner_receipt_or_typed_blocker"),
+    ),
+    "citation_integrity_pack": (
+        ("refs", "claim_citation_and_evidence_refs"),
+        ("blocker_or_readiness", "citation_support_ready_or_blocked"),
+        ("reviewer_record", "independent_citation_review_record"),
+    ),
+    "figure_evidence_contract_pack": (
+        ("refs", "figure_panel_source_data_and_export_refs"),
+        ("blocker_or_readiness", "figure_evidence_ready_or_blocked"),
+        ("owner_receipt_ref", "mas_display_or_artifact_owner_receipt_or_typed_blocker"),
+    ),
+    "paper_reader_grounding_pack": (
+        ("refs", "source_map_and_reader_anchor_refs"),
+        ("blocker_or_readiness", "reader_grounding_ready_or_blocked"),
+        ("reviewer_record", "independent_reader_grounding_review_record"),
+    ),
+    "paper_presentation_pack": (
+        ("refs", "presentation_source_and_asset_refs"),
+        ("blocker_or_readiness", "presentation_ready_or_blocked"),
+        ("owner_receipt_ref", "mas_delivery_owner_receipt_or_typed_blocker"),
     ),
 }
 

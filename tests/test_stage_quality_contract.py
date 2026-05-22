@@ -116,6 +116,14 @@ def test_journal_family_quality_packs_are_projection_only_clean_room_absorptions
         assert pack["clean_room_absorption"]["publication_authority"] is False
         assert pack["clean_room_absorption"]["absorbed_as"] == "mas_native_contract_pattern"
         assert pack["required_refs"]
+        assert pack["acceptance_evidence_fields"]
+        assert pack["required_reviewer_output"]
+        assert pack["forbidden_authority"]
+        assert pack["quality_pack_consumption"]["consumer_roles"] == ["reviewer_agent", "auditor_agent"]
+        assert pack["quality_pack_consumption"]["opl_consumption_role"] == "descriptor_ref_freshness_locator_only"
+        assert pack["quality_pack_consumption"]["opl_may_authorize_quality_verdict"] is False
+        assert pack["quality_pack_consumption"]["opl_may_authorize_publication_readiness"] is False
+        assert pack["quality_pack_consumption"]["opl_may_write_mas_truth"] is False
 
     response_pack = packs["journal_response_pack"]
     assert response_pack["journal_family_patterns"] == [

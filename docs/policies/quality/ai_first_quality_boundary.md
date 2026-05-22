@@ -52,7 +52,7 @@
 - 003 暴露的初稿质量缺陷必须按 MAS 层边界修复：机械 hygiene 负责发现可重放的 citation/rendered-reference 缺陷，AI reviewer 负责审稿式质量判断，study / publication owner 负责最终路线和质量裁决。任何一层都不得把自己的 projection 写成完整医学质量结论。
 - 不得用 hidden templates、heuristic-only reviewer verdict、scorecard-only ready verdict 或程序化正文/论文质量判断替代 AI reviewer artifact。
 - 需要新增可调用面时，优先挂在现有 controller / publication-eval surface 下，不新增第二前台入口。
-- 外部 skill/workflow 材料只能作为 clean-room 学习背景。reviewer response、data、Figure/display、source-grounded deliverable patterns 必须吸收到 MAS stage quality pack、AI reviewer、evidence/review ledgers、publication gate、controller decisions、Stage Deliverable Review Page / Index 或 Portal read model；不得把 vendor prompt、runtime、HTML exporter、citation UI、skill runner 或 checklist 写成质量 owner、publication authority、default skill source 或外部 runtime dependency。当前 nature-skills intake 见 [Nature-skills Learning Intake](../../references/mainline/nature_skills_learning_intake.md)。
+- 外部 skill/workflow 材料只能作为 clean-room 学习背景。reviewer response、data、Figure/display、source-grounded deliverable patterns 必须吸收到 MAS stage quality pack、AI reviewer、evidence/review ledgers、publication gate、controller decisions、Stage Deliverable Review Page / Index 或 Portal read model；不得把 vendor prompt、runtime、HTML exporter、citation UI、skill runner 或 checklist 写成质量 owner、publication authority、default skill source 或外部 runtime dependency。nature-skills clean-room 学习已经落到可用的 `stage_quality_pack_contract`、stage prompts / quality gate、product-entry / descriptor refs 和 focused tests；剩余验收是 live paper-line evidence tail，而不是再引入外部 runner 或 authority。当前 closeout 见 [Nature-skills Learning Intake](../../references/mainline/nature_skills_learning_intake.md)。
 
 ## AI-first drift audit
 
