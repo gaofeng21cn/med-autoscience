@@ -25,7 +25,7 @@ def write_owner_action(
         return None
     work_unit_id = _text(controller_route.get("work_unit_id")) or "medical_prose_write_repair"
     reason = _reason_for_route(controller_route)
-    return {
+    action = {
         "action_type": "run_quality_repair_batch",
         "authority": "observability_only",
         "owner": "write",
@@ -54,6 +54,9 @@ def write_owner_action(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+    if original_route_target := _text(controller_route.get("original_route_target")):
+        action["original_route_target"] = original_route_target
+    return action
 
 
 def _reason_for_route(controller_route: Mapping[str, Any]) -> str:

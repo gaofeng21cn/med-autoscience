@@ -216,7 +216,9 @@
 
 - 决策：`quality_repair_batch.status=handoff_ready` 只表示 write-owner/default-executor handoff 已物化；若同一 record 的 `repair_execution_evidence.status=blocked`、`canonical_artifact_delta.meaningful_artifact_delta=false`，且 blocker 含 `manuscript_story_surface_delta_missing` 或 forbidden manuscript term residue，`domain-route-scan` 必须继续投影 `write/run_quality_repair_batch`。
 - 决策：当前 story-surface writer blocker 必须优先于 `completed_current_truth` 与 parked truth 短路；旧 completion/resolved 投影不能吞掉同一 `publication_eval/latest.json` 下仍未产生 canonical `paper/draft.md` 或 `paper/build/review_manuscript.md` delta 的 write route。
+- 决策：AI reviewer route-back 若把 `medical_prose_write_repair` 这类 story-surface work unit 放在 `analysis-campaign` route target 或 lane 下，owner-route 仍必须按 work-unit 语义投影为 `write/run_quality_repair_batch`。lane 名称是 reviewer 路由语境，不是可执行 owner truth。
 - 理由：DM002 暴露出 `domain-route-reconcile` 已执行 `run_quality_repair_batch`，但 batch 顶层为 `handoff_ready`、nested repair evidence 仍 blocked，正文仍含 `validation surface` 禁用运行态措辞；旧 scan 只看顶层 `blocked_reason`，随后 action queue 变空，导致 write owner route 丢失。
+- 理由：DM003 暴露出医学 reviewer 会把“补 phenotype derivation、denominator、baseline table、figure/table captions、citation”等混合修复描述为 analysis lane，但实际 next work unit 是 manuscript story-surface repair。旧 currentness 判断只认 `route_target=write` 或 `next_work_unit.lane=write`，导致未改稿就进入 AI reviewer recheck 空转。
 - 影响：该修复只修 MAS currentness/read-model projection，不改 sidecar authority，不写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission readiness verdict。论文质量仍需 write owner 产出 canonical story-surface delta，并由 AI reviewer-backed publication eval 与 publication gate 重新判定。
 
 ## 2026-05-22：terminal paper-progress stall 必须以当前 owner route 为准，不能让旧 dispatch fingerprint 吞掉合法 handoff

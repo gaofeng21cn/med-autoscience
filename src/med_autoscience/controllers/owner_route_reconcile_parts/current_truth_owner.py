@@ -173,8 +173,9 @@ def current_story_surface_delta_blocker_route(
         return None
     next_work_unit = _mapping(action.get("next_work_unit"))
     work_unit_id = _text(next_work_unit.get("unit_id"))
+    action_route_target = _text(action.get("route_target"))
     gate_batch = _mapping(batch.get("gate_clearing_batch"))
-    return {
+    route = {
         "decision_path": None,
         "decision_id": None,
         "controller_actions": ["run_quality_repair_batch"],
@@ -186,6 +187,9 @@ def current_story_surface_delta_blocker_route(
         "quality_repair_batch_path": str(batch_path),
         "authorization_basis": "quality_repair_story_surface_delta_blocker",
     }
+    if action_route_target and action_route_target != "write":
+        route["original_route_target"] = action_route_target
+    return route
 
 
 def current_ai_reviewer_write_routeback_route(
@@ -204,7 +208,8 @@ def current_ai_reviewer_write_routeback_route(
         return None
     source_eval_id = _text(publication_eval_payload.get("eval_id"))
     resolved_study_root = Path(study_root).expanduser().resolve()
-    return {
+    action_route_target = _text(action.get("route_target"))
+    route = {
         "decision_path": None,
         "decision_id": None,
         "controller_actions": ["run_quality_repair_batch"],
@@ -224,6 +229,9 @@ def current_ai_reviewer_write_routeback_route(
         "source": "owner_route_reconcile_ai_reviewer_write_routeback",
         "authorization_basis": "ai_reviewer_current_write_routeback",
     }
+    if action_route_target and action_route_target != "write":
+        route["original_route_target"] = action_route_target
+    return route
 
 
 def _ai_reviewer_write_routeback_current(publication_eval_payload: Mapping[str, Any]) -> bool:
@@ -253,9 +261,14 @@ def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]
         if not isinstance(action, Mapping):
             continue
         next_work_unit = _mapping(action.get("next_work_unit"))
+        work_unit_id = _text(next_work_unit.get("unit_id"))
         if _text(action.get("action_type")) != "route_back_same_line":
             continue
-        if _text(action.get("route_target")) != "write" and _text(next_work_unit.get("lane")) != "write":
+        if (
+            _text(action.get("route_target")) != "write"
+            and _text(next_work_unit.get("lane")) != "write"
+            and not is_story_surface_delta_write_work_unit(work_unit_id)
+        ):
             continue
         return dict(action)
     return None
