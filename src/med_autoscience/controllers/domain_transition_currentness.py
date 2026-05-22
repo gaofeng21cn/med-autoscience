@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import gate_clearing_batch
+from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -43,14 +44,30 @@ def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
         status_payload=dict(status),
     )
     if not isinstance(tick_request, dict):
-        return None
+        tick_request = status_domain_transition_ai_reviewer_tick_request(
+            study_root=resolved_study_root,
+            status_payload=status,
+        )
+        if not isinstance(tick_request, dict):
+            return None
     if not tick_request_matches_ai_reviewer_domain_transition(
         tick_request=tick_request,
         transition_action=transition_action,
         transition_type=transition_type,
         transition_unit_id=transition_unit_id,
     ):
-        return None
+        tick_request = status_domain_transition_ai_reviewer_tick_request(
+            study_root=resolved_study_root,
+            status_payload=status,
+        )
+        if not isinstance(tick_request, dict) or not tick_request_matches_ai_reviewer_domain_transition(
+            tick_request=tick_request,
+            transition_action=transition_action,
+            transition_type=transition_type,
+            transition_unit_id=transition_unit_id,
+        ):
+            return None
+    currentness_basis = _text(tick_request.get("currentness_basis")) or "outer_loop_tick_request"
     if latest_controller_decision_matches_tick_request(
         study_root=resolved_study_root,
         tick_request=tick_request,
@@ -59,6 +76,7 @@ def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
             "status": "already_current",
             "work_unit_id": transition_unit_id,
             "work_unit_fingerprint": _text(tick_request.get("work_unit_fingerprint")),
+            "currentness_basis": currentness_basis,
         }
     materialized = outer_loop.materialize_non_dispatching_outer_loop_decision(
         profile=resolved_profile,
@@ -89,7 +107,56 @@ def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
         "status": "materialized",
         "work_unit_id": transition_unit_id,
         "work_unit_fingerprint": _text(tick_request.get("work_unit_fingerprint")),
+        "currentness_basis": currentness_basis,
         "materialization": dict(materialized) if isinstance(materialized, Mapping) else {},
+    }
+
+
+def status_domain_transition_ai_reviewer_tick_request(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if _status_payload_requests_human_gate(status_payload):
+        return None
+    domain_transition = _mapping(status_payload.get("domain_transition"))
+    transition_unit = _mapping(domain_transition.get("next_work_unit"))
+    transition_unit_id = _text(transition_unit.get("unit_id"))
+    transition_action = _text(domain_transition.get("controller_action"))
+    transition_type = _text(domain_transition.get("decision_type"))
+    if (
+        transition_type != "ai_reviewer_re_eval"
+        or transition_action != StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value
+        or transition_unit_id is None
+    ):
+        return None
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    charter_ref = _stable_charter_ref(resolved_study_root)
+    publication_eval_ref = _stable_publication_eval_ref(resolved_study_root)
+    if charter_ref is None or publication_eval_ref is None:
+        return None
+    reason = _text(transition_unit.get("summary")) or "Re-run AI reviewer manuscript-quality review after upstream manuscript repair."
+    return {
+        "study_root": resolved_study_root,
+        "charter_ref": charter_ref,
+        "publication_eval_ref": publication_eval_ref,
+        "decision_type": StudyDecisionType.CONTINUE_SAME_LINE.value,
+        "route_target": _text(domain_transition.get("route_target")) or "review",
+        "route_key_question": "当前稿件是否已经通过 AI reviewer-owned publication evaluation？",
+        "route_rationale": "Mechanical or stale publication projection cannot authorize quality closure; AI reviewer must own the next evaluation.",
+        "source_route_key_question": None,
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value,
+                "payload_ref": str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": reason,
+        "work_unit_fingerprint": f"domain-transition::{transition_type}::{transition_unit_id}",
+        "next_work_unit": dict(transition_unit),
+        "blocking_work_units": [dict(transition_unit)],
+        "currentness_basis": "status_domain_transition",
     }
 
 
@@ -148,6 +215,40 @@ def controller_action_types_from_tick_request(tick_request: Mapping[str, Any]) -
     return sorted(set(action_types))
 
 
+def _stable_charter_ref(study_root: Path) -> dict[str, str] | None:
+    path = study_root / "artifacts" / "controller" / "study_charter.json"
+    payload = _read_json_mapping(path)
+    charter_id = _text(payload.get("charter_id"))
+    if charter_id is None:
+        return None
+    return {"charter_id": charter_id, "artifact_path": str(path)}
+
+
+def _stable_publication_eval_ref(study_root: Path) -> dict[str, str] | None:
+    path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    payload = _read_json_mapping(path)
+    eval_id = _text(payload.get("eval_id"))
+    if eval_id is None:
+        return None
+    return {"eval_id": eval_id, "artifact_path": str(path)}
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _status_payload_requests_human_gate(status_payload: Mapping[str, Any]) -> bool:
+    publication_supervisor_state = _mapping(status_payload.get("publication_supervisor_state"))
+    current_required_action = _text(publication_supervisor_state.get("current_required_action"))
+    if current_required_action == "human_confirmation_required":
+        return True
+    return _text(status_payload.get("controller_confirmation_status")) == "pending"
+
+
 def _status_payload(
     *,
     profile: WorkspaceProfile,
@@ -183,6 +284,7 @@ __all__ = [
     "controller_action_types_from_tick_request",
     "latest_controller_decision_matches_tick_request",
     "materialize_fresh_ai_reviewer_transition_controller_decision_if_required",
+    "status_domain_transition_ai_reviewer_tick_request",
     "tick_request_matches_ai_reviewer_domain_transition",
     "work_unit_id_from_tick_request",
 ]

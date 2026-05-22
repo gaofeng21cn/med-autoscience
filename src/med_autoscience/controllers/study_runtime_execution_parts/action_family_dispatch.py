@@ -136,25 +136,42 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
         status_payload=status_payload,
     )
     if not isinstance(tick_request, dict):
-        status.extras["controller_decision_currentness"] = {
-            "status": "skipped",
-            "reason": "outer_loop_tick_request_unavailable",
-        }
-        return None
+        tick_request = domain_transition_currentness.status_domain_transition_ai_reviewer_tick_request(
+            study_root=context.study_root,
+            status_payload=status_payload,
+        )
+        if not isinstance(tick_request, dict):
+            status.extras["controller_decision_currentness"] = {
+                "status": "skipped",
+                "reason": "outer_loop_tick_request_unavailable",
+            }
+            return None
     if not domain_transition_currentness.tick_request_matches_ai_reviewer_domain_transition(
         tick_request=tick_request,
         transition_action=transition_action,
         transition_type=transition_type,
         transition_unit_id=transition_unit_id,
     ):
-        status.extras["controller_decision_currentness"] = {
-            "status": "skipped",
-            "reason": "outer_loop_tick_request_did_not_match_domain_transition",
-            "transition_unit_id": transition_unit_id,
-            "tick_work_unit_id": domain_transition_currentness.work_unit_id_from_tick_request(tick_request),
-            "tick_controller_actions": domain_transition_currentness.controller_action_types_from_tick_request(tick_request),
-        }
-        return None
+        stale_tick_request = dict(tick_request)
+        tick_request = domain_transition_currentness.status_domain_transition_ai_reviewer_tick_request(
+            study_root=context.study_root,
+            status_payload=status_payload,
+        )
+        if not isinstance(tick_request, dict) or not domain_transition_currentness.tick_request_matches_ai_reviewer_domain_transition(
+            tick_request=tick_request,
+            transition_action=transition_action,
+            transition_type=transition_type,
+            transition_unit_id=transition_unit_id,
+        ):
+            status.extras["controller_decision_currentness"] = {
+                "status": "skipped",
+                "reason": "outer_loop_tick_request_did_not_match_domain_transition",
+                "transition_unit_id": transition_unit_id,
+                "tick_work_unit_id": domain_transition_currentness.work_unit_id_from_tick_request(stale_tick_request),
+                "tick_controller_actions": domain_transition_currentness.controller_action_types_from_tick_request(stale_tick_request),
+            }
+            return None
+    currentness_basis = str(tick_request.get("currentness_basis") or "").strip() or "outer_loop_tick_request"
     if domain_transition_currentness.latest_controller_decision_matches_tick_request(
         study_root=context.study_root,
         tick_request=tick_request,
@@ -163,6 +180,7 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
             "status": "already_current",
             "work_unit_id": transition_unit_id,
             "work_unit_fingerprint": str(tick_request.get("work_unit_fingerprint") or "").strip() or None,
+            "currentness_basis": currentness_basis,
         }
         return None
     materialized = outer_loop.materialize_non_dispatching_outer_loop_decision(
@@ -198,6 +216,7 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
         "status": "materialized",
         "work_unit_id": transition_unit_id,
         "work_unit_fingerprint": str(tick_request.get("work_unit_fingerprint") or "").strip() or None,
+        "currentness_basis": currentness_basis,
         "materialization": dict(materialized) if isinstance(materialized, dict) else {},
     }
     return dict(materialized) if isinstance(materialized, dict) else {}

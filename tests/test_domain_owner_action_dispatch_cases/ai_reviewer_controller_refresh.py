@@ -119,7 +119,6 @@ def test_refresh_controller_decisions_for_current_publication_eval_materializes_
     assert calls["materialize_kwargs"]["publication_eval_ref"] == tick_request["publication_eval_ref"]
     assert calls["materialize_kwargs"]["source"] == "domain_owner_action_controller_decision_refresh"
 
-
 def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
     monkeypatch,
     tmp_path: Path,

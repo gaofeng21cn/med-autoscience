@@ -120,7 +120,7 @@ def test_execute_resume_runtime_decision_records_nested_resume_daemon_step(monke
     assert status.quest_status is module.StudyRuntimeQuestStatus.RUNNING
 
 
-def test_execute_resume_runtime_decision_materializes_fresh_domain_transition_before_resume(
+def test_execute_resume_runtime_decision_materializes_status_domain_transition_when_outer_tick_is_stale(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -251,23 +251,27 @@ def test_execute_resume_runtime_decision_materializes_fresh_domain_transition_be
         "lane": "review",
         "summary": "Re-run AI reviewer manuscript-quality review after the latest reviewer revision intake.",
     }
-    tick_request = {
+    stale_tick_request = {
         "study_root": study_root,
         "charter_ref": charter_ref,
         "publication_eval_ref": publication_eval_ref,
-        "decision_type": "continue_same_line",
-        "route_target": "review",
-        "route_key_question": "当前稿件是否已经通过 AI reviewer-owned publication evaluation？",
-        "route_rationale": "Mechanical or stale publication projection cannot authorize quality closure.",
+        "decision_type": "route_back_same_line",
+        "route_target": "write",
+        "route_key_question": "Repair medical manuscript prose quality.",
+        "route_rationale": "Old write route from the previous quality-repair batch.",
         "source_route_key_question": None,
         "requires_human_confirmation": False,
         "controller_actions": [
-            {"action_type": "return_to_ai_reviewer_workflow", "payload_ref": str(controller_decision_path)}
+            {"action_type": "run_quality_repair_batch", "payload_ref": str(controller_decision_path)}
         ],
-        "reason": fresh_next_work_unit["summary"],
-        "work_unit_fingerprint": fresh_fingerprint,
-        "next_work_unit": fresh_next_work_unit,
-        "blocking_work_units": [fresh_next_work_unit],
+        "reason": "Old write route from the previous quality-repair batch.",
+        "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+        "next_work_unit": {
+            "unit_id": "medical_prose_write_repair",
+            "lane": "write",
+            "summary": "Revise the manuscript to medical journal prose standards.",
+        },
+        "blocking_work_units": [{"unit_id": "medical_prose_write_repair", "lane": "write"}],
     }
     materialized_calls: list[dict[str, object]] = []
 
@@ -282,19 +286,19 @@ def test_execute_resume_runtime_decision_materializes_fresh_domain_transition_be
                     "study_id": study_id,
                     "quest_id": study_id,
                     "emitted_at": "2026-05-21T15:28:06+00:00",
-                    "decision_type": "continue_same_line",
-                    "charter_ref": charter_ref,
+                    "decision_type": kwargs["decision_type"],
+                    "charter_ref": kwargs["charter_ref"],
                     "runtime_escalation_ref": runtime_escalation_ref,
-                    "publication_eval_ref": publication_eval_ref,
+                    "publication_eval_ref": kwargs["publication_eval_ref"],
                     "requires_human_confirmation": False,
-                    "controller_actions": tick_request["controller_actions"],
-                    "reason": tick_request["reason"],
-                    "route_target": "review",
-                    "route_key_question": tick_request["route_key_question"],
-                    "route_rationale": tick_request["route_rationale"],
-                    "work_unit_fingerprint": fresh_fingerprint,
-                    "next_work_unit": fresh_next_work_unit,
-                    "blocking_work_units": [fresh_next_work_unit],
+                    "controller_actions": kwargs["controller_actions"],
+                    "reason": kwargs["reason"],
+                    "route_target": kwargs["route_target"],
+                    "route_key_question": kwargs["route_key_question"],
+                    "route_rationale": kwargs["route_rationale"],
+                    "work_unit_fingerprint": kwargs["work_unit_fingerprint"],
+                    "next_work_unit": kwargs["next_work_unit"],
+                    "blocking_work_units": kwargs["blocking_work_units"],
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -357,7 +361,7 @@ def test_execute_resume_runtime_decision_materializes_fresh_domain_transition_be
             },
         },
     )
-    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: stale_tick_request)
     monkeypatch.setattr(
         outer_loop,
         "materialize_non_dispatching_outer_loop_decision",
@@ -378,6 +382,7 @@ def test_execute_resume_runtime_decision_materializes_fresh_domain_transition_be
     assert materialized_calls
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.RESUME
     assert status.to_dict()["controller_decision_currentness"]["status"] == "materialized"
+    assert status.to_dict()["controller_decision_currentness"]["currentness_basis"] == "status_domain_transition"
     assert status.quest_status is module.StudyRuntimeQuestStatus.RUNNING
 
 

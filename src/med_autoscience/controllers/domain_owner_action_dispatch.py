@@ -22,6 +22,7 @@ from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import persisted_dispatches
 from .domain_owner_action_dispatch_parts import terminal_stall_handoff
 from .owner_route_reconcile import SUPERVISION_LATEST_RELATIVE_PATH
+from . import domain_transition_currentness
 from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
@@ -445,6 +446,17 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
             "blocked_reason": "outer_loop_tick_request_failed",
             "error": str(exc),
         }
+    fallback_tick_request = domain_transition_currentness.status_domain_transition_ai_reviewer_tick_request(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    if isinstance(fallback_tick_request, dict) and not domain_transition_currentness.tick_request_matches_ai_reviewer_domain_transition(
+        tick_request=tick_request if isinstance(tick_request, Mapping) else {},
+        transition_action="return_to_ai_reviewer_workflow",
+        transition_type="ai_reviewer_re_eval",
+        transition_unit_id=domain_transition_currentness.work_unit_id_from_tick_request(fallback_tick_request) or "",
+    ):
+        tick_request = fallback_tick_request
     if tick_request is None:
         return {
             "refresh_status": "skipped",
