@@ -25,6 +25,15 @@ _HUMAN_GATE_RESUME_ACTIONS = frozenset(
 )
 _PUBLICATION_ROUTE_MEMORY_FAMILY = "publication_route_memory"
 _MEMORY_WRITEBACK_CONSUMABLE_STATUSES = frozenset({"applied", "blocked"})
+_DEFAULT_EXECUTOR_EXECUTED_STATUSES = frozenset({"executed"})
+_DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES = frozenset({"executed", "applied", "ok"})
+_DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
+    {
+        "progress_delta_candidate",
+        "executed",
+        "applied",
+    }
+)
 
 
 def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
@@ -41,6 +50,55 @@ def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
         "source_ref": source_ref or _text(supersession.get("source_surface")),
         "next_action": "honor_newer_owner_execution_receipt",
     }
+
+
+def default_executor_execution_receipt_consumption(
+    *,
+    study_root: Path,
+    owner_route: Mapping[str, Any],
+    actions: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
+    current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
+    if not current_action_types:
+        return {}
+    receipt_ref = Path("artifacts/supervision/consumer/default_executor_execution/latest.json")
+    receipt = _read_json_object(Path(study_root).expanduser().resolve() / receipt_ref)
+    if receipt is None:
+        return {}
+    for execution in reversed(_mapping_list(receipt.get("executions"))):
+        action_type = _text(execution.get("action_type"))
+        if action_type not in current_action_types:
+            continue
+        if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
+            continue
+        if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
+            continue
+        owner_result = _mapping(execution.get("owner_result"))
+        repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
+        if not _default_executor_owner_result_consumable(
+            owner_result=owner_result,
+            repair_evidence=repair_evidence,
+        ):
+            continue
+        return {
+            "status": "consumed",
+            "receipt_kind": "default_executor_execution",
+            "receipt_ref": str(receipt_ref),
+            "execution_id": _text(execution.get("execution_id")),
+            "action_type": action_type,
+            "execution_status": _text(execution.get("execution_status")),
+            "owner_result_status": _text(owner_result.get("status")),
+            "repair_execution_evidence_status": _text(repair_evidence.get("status")),
+            "consumed_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
+            "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),
+            "consumed_owner_route_source_fingerprint": _text(owner_route.get("source_fingerprint")),
+            "changed_artifact_ref_count": len(_mapping_list(repair_evidence.get("changed_artifact_refs"))),
+            "quality_authorized": False,
+            "submission_authorized": False,
+            "current_package_write_authorized": False,
+            "next_action": "do_not_redrive_consumed_owner_route",
+        }
+    return {}
 
 
 def ai_reviewer_publication_eval_receipt_consumption(
@@ -471,6 +529,79 @@ def _workspace_root_from_study_root(study_root: Path) -> Path | None:
     return None
 
 
+def _current_owner_route_action_types(
+    *,
+    owner_route: Mapping[str, Any],
+    actions: Iterable[Mapping[str, Any]],
+) -> set[str]:
+    allowed_actions = {_text(item) for item in owner_route.get("allowed_actions") or []}
+    allowed_actions.discard("")
+    action_types = {_text(action.get("action_type")) for action in actions}
+    action_types.discard("")
+    return allowed_actions & action_types
+
+
+def _execution_matches_owner_route(
+    *,
+    execution: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    current_idempotency_key = _text(owner_route.get("idempotency_key"))
+    if current_idempotency_key and _text(execution.get("idempotency_key")) == current_idempotency_key:
+        return True
+    prompt_contract = _mapping(execution.get("prompt_contract"))
+    for execution_route in (
+        _mapping(execution.get("current_owner_route")),
+        _mapping(execution.get("owner_route")),
+        _mapping(prompt_contract.get("owner_route")),
+    ):
+        if _owner_route_currentness_matches(execution_route=execution_route, owner_route=owner_route):
+            return True
+    return False
+
+
+def _owner_route_currentness_matches(
+    *,
+    execution_route: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    if not execution_route:
+        return False
+    comparisons = (
+        "idempotency_key",
+        "route_epoch",
+        "source_fingerprint",
+        "next_owner",
+        "owner_reason",
+    )
+    for key in comparisons:
+        current_value = _text(owner_route.get(key))
+        execution_value = _text(execution_route.get(key))
+        if current_value and execution_value and current_value != execution_value:
+            return False
+        if current_value and not execution_value:
+            return False
+    current_allowed = {_text(item) for item in owner_route.get("allowed_actions") or []}
+    execution_allowed = {_text(item) for item in execution_route.get("allowed_actions") or []}
+    current_allowed.discard("")
+    execution_allowed.discard("")
+    return bool(current_allowed) and current_allowed == execution_allowed
+
+
+def _default_executor_owner_result_consumable(
+    *,
+    owner_result: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> bool:
+    if owner_result.get("ok") is True:
+        return True
+    if _text(owner_result.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES:
+        return True
+    if _text(repair_evidence.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
+        return True
+    return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
+
+
 def _mapping_list(value: object) -> list[Mapping[str, Any]]:
     if not isinstance(value, list):
         return []
@@ -505,6 +636,7 @@ def _text(value: object) -> str:
 __all__ = [
     "ai_reviewer_publication_eval_receipt_consumption",
     "bundle_stage_completion_receipt_consumption",
+    "default_executor_execution_receipt_consumption",
     "execution_receipt_consumption",
     "mas_owner_apply_receipt_consumption",
     "publication_route_memory_writeback_receipt_consumption",

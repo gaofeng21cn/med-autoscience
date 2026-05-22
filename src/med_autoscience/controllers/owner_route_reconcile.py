@@ -10,6 +10,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_re
 from med_autoscience.controllers import study_progress, study_runtime_router
 from med_autoscience.controllers import recovery_intent_ledger
 from med_autoscience.controllers.owner_route_reconcile_parts import canonical_inputs
+from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.owner_route_reconcile_parts import action_projection
 from med_autoscience.controllers.owner_route_reconcile_parts import applied_repair_merge
@@ -762,21 +763,23 @@ def _study_projection(
         else block_state["next_owner"] or ("external_supervisor" if block_state["external_supervisor_required"] else None)
     )
     blocked_reason = block_state["blocked_reason"] or why_not_applied
-    owner_route, actions = owner_route_part.route_and_decorate_actions(
-        study_id=study_id,
-        quest_id=resolved_quest_id,
-        status=status_payload,
-        progress=progress_payload,
-        actions=actions,
-        blocked_reason=blocked_reason,
-        next_owner=next_owner,
-        active_run_id=_active_run_id(status_payload, progress_payload),
+    owner_route, actions, default_executor_execution_receipt_consumption = (
+        default_executor_receipts.route_and_consume_current_execution_receipt(
+            study_id=study_id,
+            quest_id=resolved_quest_id,
+            study_root=study_root,
+            status=status_payload,
+            progress=progress_payload,
+            actions=actions,
+            blocked_reason=blocked_reason,
+            next_owner=next_owner,
+            active_run_id=_active_run_id(status_payload, progress_payload),
+        )
     )
-    actions = [
-        action
-        for action in actions
-        if owner_route_part.route_allows_action(action=action, owner_route=owner_route)
-    ]
+    if default_executor_execution_receipt_consumption:
+        why_not_applied = None
+        blocked_reason = None
+        next_owner = None
     actions = repo_write_policy.attach_repo_write_policy(actions, developer_mode=developer_mode)
     paper_progress_stall_payload, actions = paper_progress_stall_projection.build_and_attach(
         status=status_payload,
@@ -849,6 +852,7 @@ def _study_projection(
         "recovery_intent": recovery_intent,
         "paper_progress_stall": paper_progress_stall_payload,
         "owner_route": owner_route,
+        "default_executor_execution_receipt_consumption": default_executor_execution_receipt_consumption or None,
         "repeat_suppression": repeat_guard,
         "why_not_applied": why_not_applied,
         "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),
