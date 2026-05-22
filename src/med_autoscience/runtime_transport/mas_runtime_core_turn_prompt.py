@@ -325,7 +325,7 @@ def _domain_action_request_materialize_command(runtime_context: Mapping[str, Any
         f"{runner} "
         "-m med_autoscience.cli domain-action-request-materialize "
         f"--profile {profile_arg} --studies {study_id_arg} "
-        "--action-types return_to_ai_reviewer_workflow --apply"
+        "--mode developer_apply_safe --apply"
     )
 
 

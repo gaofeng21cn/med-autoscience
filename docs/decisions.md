@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-22：AI reviewer record-production prompt 必须使用真实 request materializer CLI contract
+
+- 决策：runtime turn prompt 中 `produce_ai_reviewer_publication_eval_record_against_current_*` 的后续 materializer 命令必须调用 `domain-action-request-materialize --mode developer_apply_safe --apply`，不得在该 subcommand 上生成已不受支持的 `--action-types return_to_ai_reviewer_workflow` 参数。action-specific dispatch 继续由随后的 `domain-owner-action-dispatch --action-types return_to_ai_reviewer_workflow --mode developer_apply_safe --apply --managed-runtime-worker` 承接。
+- 理由：DM002 暴露出 AI reviewer managed worker 已成功物化 current publication-eval record，但 prompt 给出的 request materializer 命令与当前 CLI contract 漂移，导致 worker 先触发参数错误，再依靠读源码手动找到正确调用。根因是 MAS runtime prompt/CLI contract drift，不是 study truth、OPL queue/provider lifecycle 或单篇论文内容问题。
+- 影响：这是 MAS runtime prompt contract 修复，不写 DM002 canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。论文质量仍由 AI reviewer-backed `publication_eval/latest.json`、write owner delta 与 publication gate 判定。
+
 ## 2026-05-22：AI reviewer request currentness 不能只靠 stable latest path 消费
 
 - 决策：当 `artifacts/supervision/requests/ai_reviewer/latest.json` 携带 `source_fingerprint` 时，AI reviewer-owned `publication_eval/latest.json` 不能仅因 `assessment_provenance.source_refs` 包含同一个 stable `latest.json` 路径就视为已消费该 request。消费证据必须显式携带同一 request fingerprint，或由 publication eval 逻辑时间不早于 request 时间证明。

@@ -968,6 +968,9 @@ def test_codex_exec_runner_prompt_maps_current_manuscript_record_production_to_r
     assert "-m med_autoscience.cli materialize-ai-reviewer-publication-eval-record" in prompt
     assert "--payload-file <ai_reviewer_publication_eval_record.json>" in prompt
     assert "-m med_autoscience.cli domain-action-request-materialize" in prompt
+    assert "domain-action-request-materialize" in prompt
+    assert "domain-action-request-materialize --profile <med_autoscience_profile> --studies quest-003 --mode developer_apply_safe --apply" in prompt
+    assert "domain-action-request-materialize --profile <med_autoscience_profile> --studies quest-003 --action-types" not in prompt
     assert "-m med_autoscience.cli domain-owner-action-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "Do not write `artifacts/publication_eval/latest.json`" in prompt
