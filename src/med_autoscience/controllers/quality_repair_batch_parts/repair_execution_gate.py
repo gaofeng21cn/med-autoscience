@@ -17,12 +17,13 @@ def selected_work_unit_id_from_gate_result(
     *,
     upstream_work_unit_ids: frozenset[str],
 ) -> str | None:
+    explicit = _selected_work_unit_id_for_key(gate_clearing_result, key="explicit_publication_work_unit")
+    if explicit in upstream_work_unit_ids:
+        return explicit
     for key in ("selected_publication_work_unit", "current_publication_work_unit", "explicit_publication_work_unit"):
-        payload = gate_clearing_result.get(key)
-        if isinstance(payload, Mapping):
-            text = _non_empty_text(payload.get("unit_id"))
-            if text:
-                return text
+        text = _selected_work_unit_id_for_key(gate_clearing_result, key=key)
+        if text:
+            return text
     for item in gate_clearing_result.get("unit_results") or []:
         if not isinstance(item, Mapping):
             continue
@@ -65,6 +66,13 @@ def blocked_repair_execution_reason(repair_execution_evidence: Mapping[str, Any]
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _selected_work_unit_id_for_key(gate_clearing_result: Mapping[str, Any], *, key: str) -> str | None:
+    payload = gate_clearing_result.get(key)
+    if isinstance(payload, Mapping):
+        return _non_empty_text(payload.get("unit_id"))
+    return None
 
 
 __all__ = [

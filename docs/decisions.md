@@ -812,6 +812,16 @@
 - 理由：DM003 暴露出 `ai_reviewer_recheck` 已进入 paper repair executor、但 `domain_owner_action_dispatch` 没有可消费 dispatch 时返回 `execution_count=0` 的空执行，随后被误报为 `owner_callable_surface_blocked`。embedded callable 是 MAS owner contract 的一部分，转换点必须提供完整 request/dispatch envelope；失败时应得到执行级 blocker，例如 `ai_reviewer_request_missing`、`ai_reviewer_record_missing` 或 `repeat_suppressed`，而不是空 executions fallback。
 - 影响：repair executor 继续禁止直接写 `manuscript/current_package`、质量放行或投稿授权；它只负责把已声明 owner callable 接到 MAS owner surface，并写 owner receipt / typed blocker。单篇论文反馈必须转化为可回归的 owner-callable dispatch 测试，避免后续再由人工发现“写入 task intake 但不推进修复”的问题。
 
+## 2026-05-22：DM002 显式写作修复 work unit 与 Agent Lab 质量目标
+
+- 决策：`dm002_same_line_publication_paper_repair` 是 DM002 当前 AI reviewer route-back 的 manuscript story-surface work unit。`quality_repair_batch`、`gate_clearing_batch`、control-plane route gate、upstream paper repair materializer 与 `repair_execution_evidence` 必须把它当作 upstream paper-write repair，而不是折叠为 generic `analysis_claim_evidence_repair`；完成证据必须包含 `paper/draft.md` 或 `paper/build/review_manuscript.md` canonical story-surface delta。
+- 理由：DM002 暴露出 generic gate-clearing 可以更新 ledger/display surfaces，却不重写当前医学稿件，随后 AI reviewer 仍判定 Abstract、Methods、Results、calibration/grouped calibration 与内部语言没有吸收当前修改意见。显式 write work unit 必须保留 owner 语义和 manuscript delta requirement。
+- 影响：DM002 的 deterministic writer 只消费 MAS-owned analysis harmonization evidence 与 paper tables/figures，生成 clean external-validation manuscript story；不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal` 或 `manuscript/current_package`，也不授权 quality/submission readiness。
+
+- 决策：Agent Lab / opl-meta-agent 可消费的 `prediction_model_external_validation` quality target refs 必须显式包含 methods reproducibility、numeric abstract/results with uncertainty、uncertainty metrics、calibration/grouped calibration intervals、NHANES unweighted framing、claim-evidence/display alignment without runtime language、internal-language scrub。该 contract 只指导 MAS repo patch 与 regression，不是 publication quality verdict。
+- 理由：本轮 DM002 反馈不能只沉淀为单篇 writer fix；它应成为 MAS quality suite 的 repeatable regression，使后续类似 prediction-model external-validation 稿件在写作前或 reviewer route-back 后暴露同类缺口。
+- 影响：`contracts/agent_lab_handoff.json` 与 `agent_lab_medical_manuscript_quality` family targets 必须保持这些 refs；OPL/Agent Lab 只能消费 refs、发出 developer work order 或 typed blocker，不能直接写 study truth 或宣布论文 ready。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

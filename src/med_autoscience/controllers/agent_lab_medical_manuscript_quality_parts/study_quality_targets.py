@@ -42,9 +42,13 @@ def _prediction_model_external_validation_profile() -> dict[str, Any]:
             "hdl-harmonization-and-sensitivity",
             "model-reproducibility-and-baseline-survival",
             "table1-table2-visible-baseline-performance",
+            "methods-reproducibility-complete-case-external-validation",
+            "numeric-abstract-results-with-uncertainty",
             "uncertainty-intervals-and-validation-metrics",
             "nhanes-survey-weighting-and-unweighted-framing",
             "calibration-risk-collapse-and-figure-quality",
+            "grouped-calibration-with-observed-rate-intervals",
+            "claim-evidence-display-alignment-without-runtime-language",
             "internal-quality-language-purge",
         ],
         "targets": [
@@ -64,6 +68,23 @@ def _prediction_model_external_validation_profile() -> dict[str, Any]:
                 "route_target": "write",
             },
             {
+                "target_id": "methods_reproducibility_complete_case_external_validation",
+                "requirement": (
+                    "Methods state data sources, inclusion criteria, sample sizes, event counts, "
+                    "predictor definitions, HDL conversion, complete-case handling, fixed Cox model, "
+                    "validation strategy, bootstrap uncertainty, grouped calibration, and software versions"
+                ),
+                "route_target": "write",
+            },
+            {
+                "target_id": "numeric_abstract_results_with_uncertainty",
+                "requirement": (
+                    "abstract reports sample sizes, event counts, discrimination, observed and predicted "
+                    "5-year risks, O:E ratio, Brier score, and calibration estimates with supported 95% CIs"
+                ),
+                "route_target": "write",
+            },
+            {
                 "target_id": "uncertainty_intervals_and_validation_metrics",
                 "requirement": "uncertainty intervals and validation metrics",
                 "route_target": "analysis-campaign",
@@ -77,6 +98,22 @@ def _prediction_model_external_validation_profile() -> dict[str, Any]:
                 "target_id": "calibration_risk_collapse_figure_quality",
                 "requirement": "calibration and risk-collapse figure quality",
                 "route_target": "figure-polish",
+            },
+            {
+                "target_id": "grouped_calibration_with_observed_rate_intervals",
+                "requirement": (
+                    "risk groups report observed event counts, observed rates with intervals, and mean "
+                    "predicted risks without using grouped calibration as a readiness verdict"
+                ),
+                "route_target": "analysis-campaign",
+            },
+            {
+                "target_id": "claim_evidence_display_alignment_without_runtime_language",
+                "requirement": (
+                    "claims, main text, tables, figures, and evidence ledger align around external-validation "
+                    "metrics while excluding MAS, AI reviewer, package, readiness, and other runtime language"
+                ),
+                "route_target": "write",
             },
             {
                 "target_id": "internal_quality_language_purge",

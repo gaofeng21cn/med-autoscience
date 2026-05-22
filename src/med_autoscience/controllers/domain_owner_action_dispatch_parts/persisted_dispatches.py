@@ -111,6 +111,7 @@ def selected_dispatches(
     ):
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         if key in selected_by_key:
+            selected[selected_by_key[key]] = payload
             continue
         elif key not in selected_keys:
             selected.append(payload)

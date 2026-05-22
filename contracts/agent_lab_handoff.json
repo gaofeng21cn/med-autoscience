@@ -335,9 +335,13 @@
               "hdl_harmonization_and_sensitivity",
               "model_reproducibility_and_baseline_survival",
               "visible_baseline_and_performance_tables",
+              "methods_reproducibility_complete_case_external_validation",
+              "numeric_abstract_results_with_uncertainty",
               "uncertainty_intervals_and_validation_metrics",
               "nhanes_weighting_or_unweighted_framing",
-              "calibration_risk_collapse_figure_quality"
+              "calibration_risk_collapse_figure_quality",
+              "grouped_calibration_with_observed_rate_intervals",
+              "claim_evidence_display_alignment_without_runtime_language"
             ]
           },
           {
