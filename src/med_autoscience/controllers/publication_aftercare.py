@@ -269,6 +269,7 @@ def _pending_task(
             reason=reason,
             evidence_refs=source_refs,
             source_fingerprint=source_fingerprint,
+            profile_name=profile_name,
         ),
         "dispatch_owner": "med-autoscience",
         "profile_name": profile_name,

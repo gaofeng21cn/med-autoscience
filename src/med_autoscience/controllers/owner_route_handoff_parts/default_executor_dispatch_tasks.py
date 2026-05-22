@@ -56,6 +56,7 @@ def default_executor_dispatch_tasks(
             reason="default_executor_owner_receipt_or_typed_closeout_pending",
             evidence_refs=source_refs,
             source_fingerprint=source_fingerprint,
+            profile_name=profile.name,
         )
         tasks.append(
             {

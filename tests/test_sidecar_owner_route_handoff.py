@@ -130,6 +130,19 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
     assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
     assert evidence_payload["task_kind"] == "domain_route/reconcile-apply"
     assert evidence_payload["study_id"] == study_id
+    assert task["source_fingerprint"]
+    assert evidence_payload["source_fingerprint"] == task["source_fingerprint"]
+    assert evidence_payload["profile_name"] == profile.name
+    assert {
+        key: evidence_payload["record_payload"][key]
+        for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "profile_name")
+    } == {
+        "domain_id": "medautoscience",
+        "task_kind": "domain_route/reconcile-apply",
+        "study_id": study_id,
+        "source_fingerprint": task["source_fingerprint"],
+        "profile_name": profile.name,
+    }
     assert evidence_payload["body_included"] is False
     assert evidence_payload["domain_ready_claimed"] is False
     assert evidence_payload["publication_ready_claimed"] is False

@@ -162,6 +162,27 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
         "domain_owner/default-executor-dispatch",
     )
     assert evidence_payload["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert evidence_payload["source_fingerprint"] == task["source_fingerprint"]
+    assert evidence_payload["domain_source_fingerprint"] == task["source_fingerprint"]
+    assert evidence_payload["profile_name"] == "nfpitnet"
+    assert {
+        key: evidence_payload["record_payload"][key]
+        for key in (
+            "domain_id",
+            "task_kind",
+            "study_id",
+            "source_fingerprint",
+            "domain_source_fingerprint",
+            "profile_name",
+        )
+    } == {
+        "domain_id": "medautoscience",
+        "task_kind": "domain_owner/default-executor-dispatch",
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "source_fingerprint": task["source_fingerprint"],
+        "domain_source_fingerprint": task["source_fingerprint"],
+        "profile_name": "nfpitnet",
+    }
     assert all(
         evidence_payload[field] is False
         for field in (

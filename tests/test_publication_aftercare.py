@@ -275,6 +275,18 @@ def test_publication_aftercare_pending_tasks_are_runtime_owner_only(tmp_path: Pa
         assert evidence_payload["domain_id"] == "medautoscience"
         assert evidence_payload["task_kind"] == task["task_kind"]
         assert evidence_payload["study_id"] == "DM002"
+        assert evidence_payload["source_fingerprint"] == task["source_fingerprint"]
+        assert evidence_payload["profile_name"] == "nfpitnet"
+        assert {
+            key: evidence_payload["record_payload"][key]
+            for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "profile_name")
+        } == {
+            "domain_id": "medautoscience",
+            "task_kind": task["task_kind"],
+            "study_id": "DM002",
+            "source_fingerprint": task["source_fingerprint"],
+            "profile_name": "nfpitnet",
+        }
         assert evidence_payload["body_included"] is False
         assert evidence_payload["domain_ready_claimed"] is False
         assert evidence_payload["publication_ready_claimed"] is False

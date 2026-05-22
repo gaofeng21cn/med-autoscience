@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -41,11 +43,24 @@ def owner_route_handoff_task(
         )
         if ref["exists"]
     ]
+    source_fingerprint = _fingerprint(
+        {
+            "profile": profile.name,
+            "study_id": study_id,
+            "reason": reason,
+            "owner_route_handoff_ref": owner_route_handoff_ref,
+            "route_transition_contract": route_transition_contract,
+            "stage_graph_handoff": stage_graph_handoff,
+            "source_refs": source_refs,
+        }
+    )
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
         task_kind="domain_route/reconcile-apply",
         study_id=study_id,
         reason=reason,
         evidence_refs=source_refs,
+        source_fingerprint=source_fingerprint,
+        profile_name=profile.name,
     )
     return {
         "domain_id": "medautoscience",
@@ -55,6 +70,7 @@ def owner_route_handoff_task(
         "source": "mas-sidecar-export",
         "requires_approval": False,
         "dedupe_key": f"mas:{profile.name}:{study_id}:owner-route-handoff:{reason}",
+        "source_fingerprint": source_fingerprint,
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
         "reason": reason,
@@ -68,6 +84,7 @@ def owner_route_handoff_task(
         "payload": {
             "profile": str(profile_ref),
             "study_id": study_id,
+            "source_fingerprint": source_fingerprint,
             "continuation_reason": reason,
             "authority_boundary": "mas_owner_reconcile_only",
             "owner_route_handoff_ref": owner_route_handoff_ref,
@@ -234,6 +251,11 @@ def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
         return str(path.relative_to(workspace_root))
     except ValueError:
         return str(path)
+
+
+def _fingerprint(value: object) -> str:
+    rendered = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
 
 
 __all__ = ["owner_route_handoff_task"]

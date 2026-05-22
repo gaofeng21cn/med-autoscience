@@ -271,7 +271,18 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     assert payload["version"] == "mas-domain-dispatch-evidence-record-payload.v1"
     assert payload["body_included"] is False
     assert payload["domain_ready_claimed"] is False
+    assert payload["source_fingerprint"] == "abc123"
     assert payload["record_payload"]["typed_blocker_refs"]
+    assert {
+        key: payload["record_payload"][key]
+        for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "domain_source_fingerprint")
+    } == {
+        "domain_id": "medautoscience",
+        "task_kind": "domain_route/reconcile-apply",
+        "study_id": "DM002",
+        "source_fingerprint": "abc123",
+        "domain_source_fingerprint": "abc123",
+    }
     assert payload["record_payload"]["evidence_refs"] == [
         "studies/DM002/artifacts/supervision/owner_route_handoff/latest.json",
         "studies/DM002/artifacts/controller_decisions/latest.json",

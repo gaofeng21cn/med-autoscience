@@ -7,6 +7,10 @@ from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
 
+from med_autoscience.controllers.domain_dispatch_evidence_payload import (
+    build_domain_dispatch_evidence_record_payload,
+)
+
 
 _AUTO_CONTINUATION_BLOCKING_DECISIONS = {"stop_loss", "terminal_stop", "completed"}
 
@@ -44,6 +48,21 @@ def controller_decision_route_back_task(
             "controller_actions": controller.get("controller_actions"),
         }
     )
+    source_refs = [
+        {
+            "role": "mas_controller_decision_route_back",
+            "ref": controller_ref,
+            "exists": controller_path.exists(),
+        }
+    ]
+    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+        task_kind="domain_route/reconcile-apply",
+        study_id=study_id,
+        reason="controller_decision_route_back",
+        evidence_refs=source_refs,
+        source_fingerprint=source_fingerprint,
+        profile_name=profile.name,
+    )
     return {
         "domain_id": "medautoscience",
         "task_kind": "domain_route/reconcile-apply",
@@ -56,18 +75,14 @@ def controller_decision_route_back_task(
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
         "reason": "controller_decision_route_back",
-        "source_refs": [
-            {
-                "role": "mas_controller_decision_route_back",
-                "ref": controller_ref,
-                "exists": controller_path.exists(),
-            }
-        ],
+        "source_refs": source_refs,
         "dispatch_owner": "med-autoscience",
         "profile_name": profile.name,
+        "domain_dispatch_evidence_record_payload": evidence_record_payload,
         "payload": {
             "profile": str(profile_ref),
             "study_id": study_id,
+            "source_fingerprint": source_fingerprint,
             "continuation_reason": "controller_decision_route_back",
             "route_target": route_target,
             "route_key_question": _text(controller.get("route_key_question")),

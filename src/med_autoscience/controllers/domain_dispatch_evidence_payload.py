@@ -20,10 +20,18 @@ def build_domain_dispatch_evidence_record_payload(
     reason: str,
     evidence_refs: Sequence[str | Mapping[str, Any]] = (),
     source_fingerprint: str | None = None,
+    stage_attempt_source_fingerprint: str | None = None,
+    profile_name: str | None = None,
 ) -> dict[str, Any]:
     normalized_task_kind = _text(task_kind) or "domain_route/reconcile-apply"
     normalized_study_id = _text(study_id) or "unknown-study"
     normalized_reason = _text(reason) or "owner_chain_receipt_pending"
+    normalized_source_fingerprint = _text(source_fingerprint)
+    normalized_stage_attempt_source_fingerprint = _text(stage_attempt_source_fingerprint)
+    normalized_payload_source_fingerprint = (
+        normalized_stage_attempt_source_fingerprint or normalized_source_fingerprint
+    )
+    normalized_profile_name = _text(profile_name)
     evidence_ref_values = _unique_refs(
         [
             *[_ref_text(ref) for ref in evidence_refs],
@@ -34,7 +42,7 @@ def build_domain_dispatch_evidence_record_payload(
         ]
     )
     slug = _slug(f"{normalized_task_kind}:{normalized_study_id}:{normalized_reason}")
-    receipt_token = source_fingerprint or _fingerprint(
+    receipt_token = normalized_stage_attempt_source_fingerprint or normalized_source_fingerprint or _fingerprint(
         {
             "task_kind": normalized_task_kind,
             "study_id": normalized_study_id,
@@ -60,9 +68,25 @@ def build_domain_dispatch_evidence_record_payload(
         owner=OWNER,
     )
     record_payload = {
+        "domain_id": DOMAIN_ID,
+        "task_kind": normalized_task_kind,
+        "study_id": normalized_study_id,
         "typed_blocker_refs": [typed_blocker_ref],
         "evidence_refs": evidence_ref_values,
         "no_regression_refs": [no_forbidden_write_ref],
+    }
+    identity_payload_fields = {
+        "source_fingerprint": normalized_payload_source_fingerprint,
+        "domain_source_fingerprint": normalized_source_fingerprint,
+        "profile_name": normalized_profile_name,
+    }
+    for key, value in identity_payload_fields.items():
+        if value is not None:
+            record_payload[key] = value
+    top_level_identity_fields = {
+        "source_fingerprint": normalized_payload_source_fingerprint,
+        "domain_source_fingerprint": normalized_source_fingerprint,
+        "profile_name": normalized_profile_name,
     }
     return {
         "surface_kind": "mas_domain_dispatch_evidence_record_payload",
@@ -71,6 +95,7 @@ def build_domain_dispatch_evidence_record_payload(
         "domain_id": DOMAIN_ID,
         "task_kind": normalized_task_kind,
         "study_id": normalized_study_id,
+        **{key: value for key, value in top_level_identity_fields.items() if value is not None},
         "reason": normalized_reason,
         "request_id_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>",
         "record_action_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:record",

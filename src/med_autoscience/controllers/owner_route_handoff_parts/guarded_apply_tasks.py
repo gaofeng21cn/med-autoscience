@@ -107,6 +107,7 @@ def _provider_hosted_guarded_apply_task(
         reason="real_paper_line_owner_receipt_or_stable_typed_blocker_pending",
         evidence_refs=source_refs,
         source_fingerprint=source_fingerprint,
+        profile_name=profile.name,
     )
     return {
         "domain_id": "medautoscience",
