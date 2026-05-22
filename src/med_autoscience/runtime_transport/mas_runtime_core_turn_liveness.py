@@ -8,6 +8,9 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     read_blocked_closeout_payload,
     inspect_logical_turn_completion,
 )
+from med_autoscience.runtime_transport.mas_runtime_core_turn_paths import worker_lease_path
+from med_autoscience.runtime_transport.mas_runtime_core_turn_policy import WORKER_LEASE_TTL_SECONDS
+from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import parse_time, pid_live
 from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import worker_lease_status
 
 
@@ -143,6 +146,7 @@ def reconcile_stale_liveness(
     read_json: Callable[[Path], dict[str, Any]],
     write_json: Callable[[Path, Mapping[str, Any]], None],
     append_runtime_event: Callable[..., None],
+    now: Callable[[], Any],
 ) -> dict[str, Any] | None:
     lifecycle = inspect_turn_lifecycle(quest_root=quest_root)
     _clear_stale_blocked_closeout_for_live_run(
@@ -162,6 +166,13 @@ def reconcile_stale_liveness(
     if logical_completion is not None and (
         stale_run_id is None or stale_run_id == logical_completion["run_id"]
     ):
+        if _logical_completion_has_live_worker_lease(
+            quest_root=quest_root,
+            run_id=str(logical_completion["run_id"]),
+            read_json=read_json,
+            now=now,
+        ):
+            return None
         stale_run_id = logical_completion["run_id"]
         stale_reason = logical_completion["reason"]
         if not logical_completion["latest_receipt_terminal"]:
@@ -238,6 +249,27 @@ def reconcile_stale_liveness(
     if logical_completion is not None:
         result["logical_completion"] = logical_completion
     return result
+
+
+def _logical_completion_has_live_worker_lease(
+    *,
+    quest_root: Path,
+    run_id: str,
+    read_json: Callable[[Path], dict[str, Any]],
+    now: Callable[[], Any],
+) -> bool:
+    lease = read_json(worker_lease_path(quest_root=quest_root, run_id=run_id))
+    if lease.get("monitor_state") != "live":
+        return False
+    status = worker_lease_status(
+        lease=lease,
+        run_id=run_id,
+        now=now,
+        parse_time=parse_time,
+        pid_live_check=pid_live,
+        ttl_seconds=WORKER_LEASE_TTL_SECONDS,
+    )
+    return bool(status.get("live"))
 
 
 def _reconcile_latest_completed_closeout_without_live_run(

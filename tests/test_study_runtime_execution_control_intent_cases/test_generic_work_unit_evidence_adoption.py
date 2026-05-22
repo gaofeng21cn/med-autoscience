@@ -351,6 +351,36 @@ def test_execute_noop_runtime_decision_adopts_completed_closeout_from_superseded
     assert adoption["status"] == "completed"
 
 
+def test_completed_medical_prose_repair_closeout_matches_manuscript_surface_refs_without_run_marker() -> None:
+    generic_completed_work_unit = importlib.import_module(
+        "med_autoscience.controllers.work_unit_evidence_adoption_parts.generic_completed_work_unit"
+    )
+    payload = {
+        "status": "completed",
+        "created_at": "2026-05-20T04:47:57Z",
+        "meaningful_artifact_delta": True,
+        "artifact_refs": [
+            "../../../studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/draft.md",
+            "../../../studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/build/review_manuscript.md",
+        ],
+    }
+    authorization_context = {
+        "decision_id": "decision-medical-prose-repair",
+        "decision_emitted_at": "2026-05-20T04:42:17+00:00",
+        "route_target": "write",
+        "work_unit_id": "medical_prose_write_repair",
+        "next_work_unit": {"unit_id": "medical_prose_write_repair", "lane": "write"},
+    }
+
+    assert generic_completed_work_unit.matches_completed_work_unit(
+        payload=payload,
+        authorization_context=authorization_context,
+        analysis_repair_authorized=False,
+        active_run_id=None,
+        delivered_run_ids=(),
+    ) is True
+
+
 def test_execute_noop_runtime_decision_adopts_dm003_revised_manuscript_write_artifact(
     tmp_path: Path,
 ) -> None:

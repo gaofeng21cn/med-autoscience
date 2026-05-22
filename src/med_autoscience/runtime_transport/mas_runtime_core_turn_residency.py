@@ -189,6 +189,7 @@ def reconcile_stale_liveness(
         read_json=turn_state.read_json,
         write_json=turn_state.write_json,
         append_runtime_event=turn_state.append_runtime_event,
+        now=turn_state.now,
     )
 
 

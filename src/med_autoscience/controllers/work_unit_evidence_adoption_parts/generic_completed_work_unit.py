@@ -12,6 +12,12 @@ CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authoriz
 RUNTIME_RELAY_DELIVERY_MODES = frozenset({"managed_runtime_chat", "queued_owner_message_delivery"})
 DELIVERED_EVENT_TYPE = "delivered"
 SKIPPED_DUPLICATE_EVENT_TYPE = "skipped_duplicate"
+MANUSCRIPT_SURFACE_REPAIR_WORK_UNITS = frozenset(
+    {
+        "manuscript_story_repair",
+        "medical_prose_write_repair",
+    }
+)
 
 
 def report_candidates(
@@ -447,7 +453,7 @@ def _artifact_refs_match_expected_work_unit(
     authorization_context: dict[str, Any],
 ) -> bool:
     expected_values = _expected_work_unit_values(authorization_context)
-    if "manuscript_story_repair" not in expected_values:
+    if not (MANUSCRIPT_SURFACE_REPAIR_WORK_UNITS & expected_values):
         return False
     refs = _artifact_ref_texts(payload.get("artifact_refs"))
     return any(ref.endswith("paper/draft.md") for ref in refs) and any(

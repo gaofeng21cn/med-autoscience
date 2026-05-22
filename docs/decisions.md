@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：live managed lease 不能被 logical closeout 误清，medical prose closeout 要闭合 work-unit lifecycle
+
+- 决策：`reconcile_stale_liveness` 遇到当前 run 已有 logical completion / closeout 时，必须先检查 run-scoped `worker_lease.json`；若该 run 仍有 fresh `monitor_state=live` managed lease 且 pid/heartbeat 判定为 live，则保持当前 run 为 live，不清 `active_run_id`、不终止 worker、也不把状态投影为 stale。真正无 lease、lease stale、旧非 managed stuck pid 或 orphan completed worker 仍按既有 cleanup/reconcile 规则处理。
+- 决策：`medical_prose_write_repair` 与 `manuscript_story_repair` 同属 manuscript-facing story-surface work unit。completed closeout 若携带 `paper/draft.md` 与 `paper/build/review_manuscript.md` artifact refs，即使缺少 active-run/delivered-run marker，也可作为当前授权 work unit 的完成证据，被 `publication_work_unit_lifecycle` 采用并转回 publication gate recheck。
+- 理由：DM003 暴露出两类会让论文质量推进失真的系统问题：一是 live MAS worker 正在修稿时，read model 可能因 closeout/receipt residue 把 active run 清成 `null`，诱发重复启动或误判停滞；二是 `medical_prose_write_repair` 已产生 manuscript surface delta 后，完成证据没有稳定闭合 work-unit lifecycle，导致相同写作修复被反复 redrive。修复必须落在 MAS runtime liveness / work-unit evidence adoption，而不是手工 patch DM003 paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal` 或 `manuscript/current_package`。
+- 影响：该修复只改变 MAS owner-chain 对 live worker 与 completed manuscript repair closeout 的判定。DM003 是否达到高质量医学论文标准仍由当前稿件、AI reviewer-backed publication eval、publication gate、display/package freshness proof 与后续 MAS owner receipt 判定；本决策不声明论文 ready、不授权前台写 study truth，也不把 OPL generic runtime 职责回流给 MAS。
+
 ## 2026-05-22：completed writer closeout adoption 必须重建 repair execution evidence
 
 - 决策：MAS 采纳 completed writer / work-unit closeout 时，必须把 closeout `artifact_refs` 作为 `repair_execution_evidence.changed_artifact_refs` 重建证据，并保留 closeout `source_refs` / `report_ref`。对 manuscript story/write repair，`paper/draft.md` 或 `paper/build/review_manuscript.md` 的 canonical story-surface delta 仍是必需完成证据。
