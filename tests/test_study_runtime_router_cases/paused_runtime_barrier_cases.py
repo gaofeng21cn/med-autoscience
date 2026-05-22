@@ -158,3 +158,123 @@ def test_bare_paused_quest_resumes_after_explicit_user_wakeup(
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
     assert runtime_state["last_explicit_user_wakeup"]["cleared_bare_paused"] is True
+
+
+def test_active_no_worker_user_pause_barrier_records_owner_route_handoff_after_explicit_wakeup(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    runtime_health_kernel = importlib.import_module("med_autoscience.controllers.runtime_health_kernel")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc"
+    study_root, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "active",
+                "display_status": "running",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "continuation_policy": "auto",
+                "continuation_anchor": "live_run",
+                "continuation_reason": "stale_blocked_turn_closeout_superseded_by_live_run",
+                "human_takeover_contract": {
+                    "recorded_at": "2026-05-17T19:01:46+00:00",
+                    "resume_requires_explicit_wakeup": True,
+                    "source": "runtime_supervisor_scan_platform_repair",
+                    "recommended_actions": [
+                        "manual_runtime_review_required",
+                        "controller_review_required",
+                    ],
+                },
+            }
+        )
+        + "\n",
+    )
+    runtime_health_kernel.reconcile_runtime_health_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=study_id,
+        status_payload={
+            "study_id": study_id,
+            "quest_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "quest_user_paused_requires_explicit_wakeup",
+            "runtime_liveness_status": "none",
+            "worker_running": False,
+            "active_run_id": None,
+        },
+        recorded_at="2026-05-22T03:45:19+00:00",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "none",
+            "active_run_id": None,
+            "runner_live": False,
+            "bash_live": False,
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "none",
+                "session_count": 0,
+                "live_session_count": 0,
+                "live_session_ids": [],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("explicit wakeup of active barrier must hand off to OPL owner route")
+        ),
+    )
+
+    blocked = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_status_read")
+
+    assert blocked["quest_status"] == "active"
+    assert blocked["decision"] == "blocked"
+    assert blocked["reason"] == "quest_user_paused_requires_explicit_wakeup"
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id=study_id,
+        explicit_user_wakeup=True,
+        source="user_explicit_wakeup",
+    )
+
+    assert result["quest_status"] == "active"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["explicit_user_wakeup"]["status"] == "recorded"
+    assert result["explicit_user_wakeup"]["cleared_active_pause_barrier"] is True
+    assert result["explicit_user_wakeup"]["handoff_kind"] == "opl_runtime_owner_route"
+    assert result["interaction_arbitration"]["classification"] == "opl_runtime_owner_route_handoff"
+    assert result["opl_runtime_owner_route_handoff"]["queue_owner"] == "one-person-lab"
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
+    assert runtime_state["last_explicit_user_wakeup"]["cleared_active_pause_barrier"] is True
+    handoff_record = json.loads(
+        (study_root / "artifacts" / "supervision" / "owner_route_handoff" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert handoff_record["runtime_state_mutated"] is False
+    assert handoff_record["handoff"]["recommended_task_kind"] == "domain_route/reconcile-apply"

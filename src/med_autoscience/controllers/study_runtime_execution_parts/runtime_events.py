@@ -288,6 +288,14 @@ def record_explicit_user_wakeup(
             runtime_state=runtime_state,
             runtime_state_path=runtime_state_path,
         )
+    active_pause_barrier_wakeup = record_explicit_active_pause_barrier_wakeup(
+        quest_root=quest_root,
+        source=source,
+        runtime_state=runtime_state,
+        runtime_state_path=runtime_state_path,
+    )
+    if active_pause_barrier_wakeup is not None:
+        return active_pause_barrier_wakeup
     if runtime_status not in {
         StudyRuntimeQuestStatus.PAUSED.value,
         StudyRuntimeQuestStatus.STOPPED.value,
@@ -357,6 +365,81 @@ def record_explicit_user_wakeup(
         "recorded_at": recorded_at,
         "cleared_keys": cleared_keys,
         "cleared_stop_reason": cleared_stop_reason,
+    }
+
+
+def _active_pause_barrier_requires_explicit_wakeup(runtime_state: dict[str, Any]) -> bool:
+    if str(runtime_state.get("status") or "").strip().lower() != StudyRuntimeQuestStatus.ACTIVE.value:
+        return False
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return False
+    if bool(runtime_state.get("worker_running")) or bool(runtime_state.get("worker_pending")):
+        return False
+    contract = runtime_state.get("human_takeover_contract")
+    if isinstance(contract, dict) and contract.get("resume_requires_explicit_wakeup") is True:
+        return True
+    if str(runtime_state.get("stop_reason") or "").strip() == "user_pause":
+        return True
+    last_wakeup = runtime_state.get("last_explicit_user_wakeup")
+    return (
+        isinstance(last_wakeup, dict)
+        and str(last_wakeup.get("cleared_stop_reason") or "").strip() == "user_pause"
+    )
+
+
+def record_explicit_active_pause_barrier_wakeup(
+    *,
+    quest_root: Path,
+    source: str,
+    runtime_state: dict[str, Any],
+    runtime_state_path: Path,
+) -> dict[str, Any] | None:
+    if not _active_pause_barrier_requires_explicit_wakeup(runtime_state):
+        return None
+    previous_continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
+    cleared_keys = [
+        key
+        for key in (
+            "stop_reason",
+            "user_pause_contract",
+            "human_takeover_contract",
+            "last_runner_start_error",
+            "pending_turn_reason",
+            "pending_turn_source",
+        )
+        if key in runtime_state
+    ]
+    for key in cleared_keys:
+        runtime_state.pop(key, None)
+    recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    owner_route_handoff = _owner_route_handoff_record(
+        source=source,
+        recorded_at=recorded_at,
+        reason="active_runtime_explicit_resume_barrier",
+        runtime_state_path=runtime_state_path,
+    )
+    runtime_state["last_explicit_user_wakeup"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_active_pause_barrier": True,
+        "previous_continuation_reason": previous_continuation_reason,
+        "handoff_kind": "opl_runtime_owner_route",
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "recorded",
+        "runtime_state_path": str(runtime_state_path),
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_active_pause_barrier": True,
+        "previous_continuation_reason": previous_continuation_reason,
+        "handoff_kind": "opl_runtime_owner_route",
+        "owner_route_handoff": owner_route_handoff,
     }
 
 

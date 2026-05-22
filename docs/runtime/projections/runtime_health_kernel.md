@@ -55,6 +55,7 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 - `pause-runtime` 成功后若 quest 已 paused、无 `active_run_id`、无 worker，必须清理 stale `runtime_platform_repair_redrive` continuation 三元组，避免下一次 status read 把人工/投稿停驻重新投影成自动恢复。
 - `pause-runtime` 后的 terminal control barrier 必须覆盖三个竞态源：due delayed turn 不得 drain 成新 run；旧 active worker 的 late completion 不得把 paused 改回 active；普通 `progress_projection` 读取必须投影为 `quest_user_paused_requires_explicit_wakeup`，直到显式 resume contract 释放。transport 层的释放点固定为 `resume_quest` 发出的 `explicit_resume`，它可以把同一 quest identity 从 paused 重入 running；其他 schedule 原因仍必须被 `terminal_runtime_state` 阻断。
 - 历史残留的裸 `paused` read model 也属于 terminal control barrier：当 runtime state 无 `active_run_id`、无 live worker、无 `stop_reason`、无 controller continuation owner 时，普通 status/read/reconcile 只能投影为 `await_explicit_resume`，不能依赖 `_RESUMABLE_QUEST_STATUSES` 自动发起 `resume`。
+- 历史残留的 `active` read model 也可能承载同一显式恢复屏障：当 `active` quest 无 `active_run_id`、无 live worker，且 runtime health 已把 dominant observation 投影为 `await_explicit_resume / quest_user_paused_requires_explicit_wakeup` 时，显式 user wakeup 只能把 stale human-takeover/user-pause barrier 清成 OPL runtime owner-route handoff；MAS 不直接恢复 provider worker。
 - runtime health 只能影响 runtime action；不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state。
 
 ## MDS 边界

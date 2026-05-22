@@ -83,6 +83,8 @@
 - `quest_status=paused`
 - 后续恢复必须来自显式 user wakeup、明确 controller takeover release 或同等 durable resume contract
 - 在没有显式恢复 contract 前，`progress_projection(...)` 必须保持 `blocked / quest_user_paused_requires_explicit_wakeup`；裸 `paused` 状态不能因为 `auto_resume=true` 被当成可自动恢复的 `quest_paused`
+- 若历史竞态把同一 barrier 留成 `quest_status=active`、无 `active_run_id`、无 live worker，并且 `runtime_health_snapshot.canonical_runtime_action=await_explicit_resume`，显式 user wakeup 只能记录 barrier release 并写出 `artifacts/supervision/owner_route_handoff/latest.json` 给 OPL owner-route；MAS 不直接写 generic queue、不提交 runtime chat、也不直接恢复 provider worker。
+- stopped pending-user-message redrive 若已经被标记为 OPL owner-route handoff，显式 user wakeup 也只能刷新 handoff artifact；不能在 MAS 前台直接 `relaunch_stopped` provider worker。
 
 ### 3.2 `stop_runtime`
 

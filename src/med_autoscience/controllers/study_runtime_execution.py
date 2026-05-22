@@ -34,6 +34,7 @@ from .study_runtime_execution_parts.execution_types import (
 from .progress_projection import (
     StudyCompletionSyncResult,
     StudyRuntimeAnalysisBundleResult,
+    StudyRuntimeAuditStatus,
     StudyRuntimeBindingAction,
     StudyRuntimeDaemonStep,
     StudyRuntimeDecision,
@@ -209,6 +210,23 @@ def _enable_explicit_user_wakeup_if_requested(
     status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> None:
+    if _active_explicit_resume_barrier_can_handoff_to_opl(status):
+        wakeup_record = _runtime_events.record_explicit_user_wakeup(
+            quest_root=context.quest_root,
+            source=context.source,
+        )
+        if wakeup_record is None:
+            return
+        status._record_dict_extra("explicit_user_wakeup", wakeup_record)
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+        )
+        _record_opl_runtime_owner_route_handoff_projection(
+            status=status,
+            wakeup_record=wakeup_record,
+        )
+        return
     if (
         status.decision is StudyRuntimeDecision.BLOCKED
         and status.reason is StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
@@ -372,6 +390,16 @@ def _enable_explicit_user_wakeup_if_requested(
     if wakeup_record is None:
         return
     status._record_dict_extra("explicit_user_wakeup", wakeup_record)
+    if wakeup_record.get("handoff_kind") == "opl_runtime_owner_route":
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE,
+        )
+        _record_opl_runtime_owner_route_handoff_projection(
+            status=status,
+            wakeup_record=wakeup_record,
+        )
+        return
     if status.quest_status is StudyRuntimeQuestStatus.STOPPED:
         status.set_decision(
             StudyRuntimeDecision.RELAUNCH_STOPPED,
@@ -382,6 +410,44 @@ def _enable_explicit_user_wakeup_if_requested(
             StudyRuntimeDecision.RESUME,
             StudyRuntimeReason.QUEST_PAUSED,
         )
+
+
+def _active_explicit_resume_barrier_can_handoff_to_opl(status: ProgressProjectionStatus) -> bool:
+    if (
+        status.decision is not StudyRuntimeDecision.BLOCKED
+        or status.reason is not StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP
+        or status.quest_status is not StudyRuntimeQuestStatus.ACTIVE
+    ):
+        return False
+    try:
+        runtime_liveness = status.runtime_liveness_audit_record
+    except KeyError:
+        runtime_liveness = None
+    if runtime_liveness is not None and runtime_liveness.status is StudyRuntimeAuditStatus.LIVE:
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        continuation_state = None
+    if continuation_state is not None and continuation_state.active_run_id is not None:
+        return False
+    if status._resolved_active_run_id() is not None:
+        return False
+    snapshot = status.extras.get("runtime_health_snapshot")
+    if not isinstance(snapshot, dict):
+        return False
+    canonical_action = str(snapshot.get("canonical_runtime_action") or "").strip()
+    if canonical_action != "await_explicit_resume":
+        return False
+    observed_state = snapshot.get("observed_quest_state")
+    observed_reason = (
+        str(observed_state.get("reason") or "").strip()
+        if isinstance(observed_state, dict)
+        else ""
+    )
+    if observed_reason and observed_reason != StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP.value:
+        return False
+    return True
 
 
 def _record_explicit_user_wakeup_projection(
