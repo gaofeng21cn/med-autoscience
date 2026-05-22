@@ -46,6 +46,20 @@ def execute_quality_repair_batch(
         result_payload.get("status") == "handoff_ready"
         and isinstance(result_payload.get("writer_worker_handoff"), Mapping)
     )
+    if handoff_ready and _dispatch_consumes_quality_repair_writer_handoff(dispatch):
+        blocker = _quality_repair_handoff_blocker(result_payload)
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": blocker,
+            "typed_blocker": blocker,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "owner_result": result_payload,
+            "consumed_writer_handoff_empty_spin_blocked": True,
+            "required_next_owner": "write",
+            "required_output_surface": _text(dispatch.get("required_output_surface"))
+            or _text(_mapping(dispatch.get("prompt_contract")).get("required_output_surface")),
+            "quest_root": str(quest_root),
+        }
     executed = bool(owner_result.get("ok")) if isinstance(owner_result, Mapping) else False
     return {
         "execution_status": "handoff_ready" if handoff_ready else ("executed" if executed else "blocked"),
@@ -85,6 +99,45 @@ def _control_plane_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
         "route_rationale": _text(source_action.get("route_rationale")) or _text(dispatch.get("route_rationale")),
         "current_owner_route": dict(owner_route) if owner_route else None,
     }
+
+
+def _dispatch_consumes_quality_repair_writer_handoff(dispatch: Mapping[str, Any]) -> bool:
+    if _text(dispatch.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
+        return False
+    if _text(dispatch.get("action_type")) != "run_quality_repair_batch":
+        return False
+    if _text(dispatch.get("next_executable_owner")) != "write":
+        return False
+    source_action = _mapping(dispatch.get("source_action"))
+    if _text(source_action.get("surface")) != "quality_repair_batch":
+        return False
+    if _text(source_action.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
+        return False
+    route = _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
+    route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
+    return _text(route.get("next_owner")) == "write" and route_reason == "manuscript_story_surface_delta_missing"
+
+
+def _quality_repair_handoff_blocker(result_payload: Mapping[str, Any]) -> str:
+    evidence = _mapping(result_payload.get("repair_execution_evidence"))
+    for candidate in (
+        result_payload.get("blocked_reason"),
+        _first_text(evidence.get("blockers")),
+        _first_text(_mapping(evidence.get("manuscript_surface_hygiene")).get("blockers")),
+        _mapping(result_payload.get("writer_worker_handoff")).get("typed_blocker_if_unresolved"),
+    ):
+        if text := _text(candidate):
+            return text
+    return "manuscript_story_surface_delta_missing"
+
+
+def _first_text(value: object) -> str | None:
+    if not isinstance(value, list):
+        return None
+    for item in value:
+        if text := _text(item):
+            return text
+    return None
 
 
 def _mapping(value: object) -> dict[str, Any]:

@@ -378,6 +378,148 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
     assert called["control_plane_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
+def test_execute_dispatch_does_not_empty_spin_consumed_quality_repair_writer_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    quest_root = profile.runtime_root / f"quest-{study_id}"
+    quest_root.mkdir(parents=True, exist_ok=True)
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    route["failure_signature"] = "manuscript_story_surface_delta_missing"
+    route["owner_reason"] = "manuscript_story_surface_delta_missing"
+    route["work_unit_fingerprint"] = "medical-prose-routeback::write::sha256-dm003"
+    route["idempotency_key"] = "owner-route::dm003::write::story-surface"
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    dispatch_payload["dispatch_authority"] = "quality_repair_batch_writer_handoff"
+    dispatch_payload["source_action"] = {
+        "surface": "quality_repair_batch",
+        "blocked_reason": "manuscript_story_surface_delta_missing",
+        "source_eval_id": "publication-eval::dm003::medical-prose-routeback",
+        "repair_execution_evidence_ref": str(
+            study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+        ),
+    }
+    dispatch_payload["source_action"]["next_work_unit"] = {
+        "unit_id": "medical_prose_write_repair",
+        "lane": "write",
+    }
+    dispatch_payload["prompt_contract"]["next_work_unit"] = {
+        "unit_id": "medical_prose_write_repair",
+        "lane": "write",
+    }
+    dispatch_payload["medical_claim_authoring_allowed"] = True
+    dispatch_payload["prompt_contract"]["medical_claim_authoring_allowed"] = True
+    dispatch_payload["prompt_contract"]["allowed_write_surfaces"] = [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    ]
+    dispatch_payload["prompt_contract"]["forbidden_surfaces"] = [
+        "manuscript/**",
+        "current_package/**",
+        "paper/current_package/**",
+        "manuscript/current_package/**",
+        "src/med_autoscience/platform/**",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+    ]
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": route}],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [],
+        },
+    )
+    monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
+    called: dict[str, object] = {}
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "handoff_ready",
+            "blocked_reason": None,
+            "next_owner": "write",
+            "writer_worker_handoff": {
+                "surface": "default_executor_dispatch_request",
+                "dispatch_status": "ready",
+                "next_executable_owner": "write",
+                "typed_blocker_if_unresolved": "manuscript_story_surface_delta_missing",
+                "required_output_surface": (
+                    "canonical manuscript story-surface delta or "
+                    "typed blocker:manuscript_story_surface_delta_missing"
+                ),
+            },
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    assert result["codex_dispatch_count"] == 0
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert execution["typed_blocker"] == "manuscript_story_surface_delta_missing"
+    assert execution["owner_route_current"] is True
+    assert execution["will_start_llm"] is False
+    assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
+    assert execution["consumed_writer_handoff_empty_spin_blocked"] is True
+    assert execution["required_next_owner"] == "write"
+    assert called["control_plane_route_context"]["work_unit_id"] == "medical_prose_write_repair"
+
+
 def test_quality_repair_writer_handoff_rejects_package_write_surface(
     tmp_path: Path,
 ) -> None:
