@@ -42,6 +42,58 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     _write_json(paper_root / "figure_semantics_manifest.json", {"schema_version": 1, "figures": []})
     _write_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     _write_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _write_json(
+        paper_root / "dpcc_treatment_gap_alignment.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "treatment_gap_alignment",
+                    "rows": [
+                        {
+                            "phenotype_label": "Adiposity-linked multimorbidity",
+                            "index_patients": 181306,
+                            "severe_glycemia_low_intensity_gap_patients": 0,
+                            "uncontrolled_glycemia_no_drug_gap_patients": 71370,
+                            "hypertension_no_antihypertensive_gap_patients": 104900,
+                            "dyslipidemia_no_lipid_lowering_gap_patients": 151579,
+                        },
+                        {
+                            "phenotype_label": "Glycemic-dominant diabetes",
+                            "index_patients": 104029,
+                            "severe_glycemia_low_intensity_gap_patients": 89578,
+                            "uncontrolled_glycemia_no_drug_gap_patients": 52071,
+                            "hypertension_no_antihypertensive_gap_patients": 74416,
+                            "dyslipidemia_no_lipid_lowering_gap_patients": 88999,
+                        },
+                        {
+                            "phenotype_label": "Severe glycemic multimorbidity",
+                            "index_patients": 73203,
+                            "severe_glycemia_low_intensity_gap_patients": 55480,
+                            "uncontrolled_glycemia_no_drug_gap_patients": 24532,
+                            "hypertension_no_antihypertensive_gap_patients": 53950,
+                            "dyslipidemia_no_lipid_lowering_gap_patients": 55607,
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+    (paper_root / "tables").mkdir(parents=True, exist_ok=True)
+    (paper_root / "tables" / "T2_phenotype_gap_summary.md").write_text(
+        "\n".join(
+            [
+                "# T2",
+                "",
+                "| Phenotype | Index patients | Share of index cohort | Mean age, y | Mean BMI | Mean HbA1c | Severe glycemia low-intensity gap | Uncontrolled glycemia with no diabetes drug | Hypertension with no antihypertensive | Dyslipidemia with no lipid-lowering |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+                "| Adiposity-linked multimorbidity | 181306 | 26.17% | 64.99 | 26.69 | 6.59 | NA | 39.36% | 57.86% | 83.60% |",
+                "| Glycemic-dominant diabetes | 104029 | 15.02% | 64.44 | 23.05 | 8.04 | 86.11% | 50.05% | 71.52% | 85.55% |",
+                "| Severe glycemic multimorbidity | 73203 | 10.57% | 61.21 | 24.91 | 10.69 | 75.79% | 33.51% | 73.68% | 75.96% |",
+            ]
+        ),
+        encoding="utf-8",
+    )
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
     publication_eval_payload["recommended_actions"][0].update(
         {
@@ -122,6 +174,21 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
     assert "recorded treatment-review gap" in story_text
     assert "Data quality assessment" in story_text
     assert "Baseline characteristics" in story_text
+    assert "first qualifying diabetes-coded visit" in story_text
+    assert "reproducible without model fitting" in story_text
+    assert "severe-glycemia patients as the eligible denominator" in story_text
+    assert "uncontrolled-glycemia patients as the eligible denominator" in story_text
+    assert "A Not assessed cell means the indicator was outside the phenotype-specific eligible denominator" in story_text
+    assert "Medication exposure was limited to medication classes recorded in the DPCC primary-care release" in story_text
+    assert "Missing values were not imputed" in story_text
+    assert "row-level, variable-level, or eligibility-level consequences" in story_text
+    assert "first and last phenotype-ready visits" in story_text
+    assert "dominant-site deterministic partition" in story_text
+    assert "Table 1 is a cohort-assembly and data-quality summary, not a traditional baseline-characteristics table" in story_text
+    assert "Table 2 is the phenotype-level baseline table" in story_text
+    assert "71,370 of 181,306" in story_text
+    assert "104,900 of 181,306" in story_text
+    assert "151,579 of 181,306" in story_text
     forbidden_runtime_terms = (
         "MAS",
         "AI reviewer",

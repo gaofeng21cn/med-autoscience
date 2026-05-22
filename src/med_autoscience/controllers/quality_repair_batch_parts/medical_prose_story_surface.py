@@ -147,13 +147,17 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         f"The primary denominator was the index diabetes cohort of {cohort['index_patients']} adults. The repeated-visit "
         f"support panel included {cohort['repeated_visit_patients']} patients, and {cohort['transition_eligible']} "
         "patients were eligible for first-to-last phenotype transition summaries. The site-level holdout surface "
-        f"included {cohort['eligible_sites']} eligible sites covering {cohort['visit_coverage']} of release visit episodes.\n\n"
+        f"included {cohort['eligible_sites']} eligible sites covering {cohort['visit_coverage']} of release visit episodes. "
+        "For each patient, the index encounter was the first qualifying diabetes-coded visit with phenotype-ready "
+        "fields after semantic-audit plausibility filtering. This index-visit rule defines the patient-level analytic "
+        "row for phenotype assignment and treatment-review gap summaries.\n\n"
         "### Phenotype derivation and assignment\n\n"
         "Phenotype assignment was deterministic and rule based. It was not a clustering model, latent-class model, "
         "prediction model, or treatment-effect model. Candidate domains were selected before manuscript repair from "
         "routinely available clinical fields: age, sex, body size, HbA1c, fasting glucose, lipid values, renal-risk "
         "context, diagnosis indicators, medication records, visit structure, and site identifiers. A new patient can "
-        "be classified by applying the same hierarchy to the index-visit phenotype-ready fields.\n\n"
+        "be classified by applying the same hierarchy to the index-visit phenotype-ready fields; the assignment is "
+        "therefore reproducible without model fitting or post hoc label optimization.\n\n"
         "The glycemic domain defined uncontrolled glycemia as HbA1c >=7.0% or fasting plasma glucose >=7.0 mmol/L, "
         "and severe glycemia as HbA1c >=9.0% or fasting plasma glucose >=11.1 mmol/L. The adiposity domain was "
         "positive with an obesity or central-obesity diagnosis, BMI >=28 kg/m2, or waist circumference >=90 cm in "
@@ -171,13 +175,23 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         "clinical burden and medication classes recorded in the available primary-care data. The main indicators were "
         "severe glycemia with low recorded treatment intensity, uncontrolled glycemia without a recorded diabetes "
         "medication, hypertension context without a recorded antihypertensive, and dyslipidemia context without "
-        "recorded lipid-lowering therapy. These indicators are potential treatment-review or documentation-review "
+        "recorded lipid-lowering therapy. The severe-glycemia low-intensity indicator used severe-glycemia patients "
+        "as the eligible denominator; the uncontrolled-glycemia no-drug indicator used uncontrolled-glycemia patients "
+        "as the eligible denominator; hypertension-context and dyslipidemia-context indicators used phenotype members "
+        "with the corresponding diagnosis-or-laboratory context as eligible denominators. A Not assessed cell means "
+        "the indicator was outside the phenotype-specific eligible denominator or was not part of the bounded "
+        "phenotype-specific reporting surface. Medication exposure was limited to medication classes recorded in the "
+        "DPCC primary-care release, so numerator counts should be read as recorded medication-coverage signals rather "
+        "than complete pharmacy-dispensing histories. These indicators are potential treatment-review or documentation-review "
         "signals. They do not establish non-treatment, non-adherence, contraindications, access problems, clinician "
         "rationale, or individual treatment benefit.\n\n"
         "### Data quality assessment\n\n"
         f"Data-quality checks were applied before analysis. Plausibility filters excluded {cohort['bmi_excluded']} rows "
         f"for BMI constraints, {cohort['hba1c_excluded']} rows for HbA1c constraints, and {cohort['fasting_glucose_excluded']} "
-        "rows for fasting-glucose constraints. Blood-pressure fields had a major semantic issue: the original "
+        "rows for fasting-glucose constraints. Missing values were not imputed. Filtering and missingness had "
+        "row-level, variable-level, or eligibility-level consequences: implausible source rows were excluded for the "
+        "affected measurement, unavailable variables did not contribute to that variable's summary, and patients could "
+        "be outside an indicator denominator when the required context was absent or not assessable. Blood-pressure fields had a major semantic issue: the original "
         f"blood-pressure inversion rate was {cohort['bp_inversion_rate']}, and the swapped-value plausibility rate was "
         f"{cohort['bp_swapped_plausible_rate']}. Therefore, blood-pressure control status was excluded from the main "
         "analysis. Hypertension context was retained only as a diagnosis-or-context indicator and interpreted with "
@@ -186,7 +200,11 @@ def _methods_section(*, cohort: Mapping[str, Any]) -> str:
         "Analyses were descriptive. Categorical variables are summarized as counts and percentages, and continuous "
         "variables as means where table surfaces provide means. Denominators were the index cohort for phenotype "
         "composition and treatment-review gaps, the repeated-visit cohort for follow-up support, transition-eligible "
-        "patients for first-to-last transition summaries, and release visit episodes for site-level coverage. No "
+        "patients for first-to-last transition summaries, and release visit episodes for site-level coverage. "
+        "First-to-last transition summaries compared each transition-eligible patient's first and last phenotype-ready visits "
+        "after 7-day episode consolidation. Site support used a dominant-site deterministic partition: patients were "
+        "assigned to their dominant anonymous site where possible, small sites were pooled, and the resulting site "
+        "folds were used only to describe within-network support. No "
         "causal model, p-value-driven hypothesis test, individualized prediction model, or blood-pressure target "
         "attainment analysis was used for the main manuscript."
     )
@@ -201,6 +219,7 @@ def _results_section(
 ) -> str:
     phenotype_sentence = _phenotype_distribution_sentence(phenotype_rows)
     leading_gaps = _leading_gap_sentence(gap_rows)
+    absolute_gaps = _absolute_gap_burden_sentence(gap_rows)
     return (
         "## Results\n\n"
         "### Cohort and analytic support\n\n"
@@ -210,9 +229,10 @@ def _results_section(
         f"{cohort['repeated_visit_patients']} patients, and {cohort['transition_eligible']} contributed to the "
         "first-to-last transition analysis. Figure 1 presents the cohort flow and quality-control exclusions.\n\n"
         "### Baseline characteristics\n\n"
-        "Baseline characteristics and analytic-support measures are summarized in Table 1. The table is presented as "
-        "the formal cohort-assembly and data-quality table for the index cohort, including the release size, repeated-visit "
-        "support, site-level support, blood-pressure semantic checks, and plausibility-filter exclusions.\n\n"
+        "Table 1 is a cohort-assembly and data-quality summary, not a traditional baseline-characteristics table. It "
+        "documents the release size, index denominator, repeated-visit support, site-level support, blood-pressure "
+        "semantic checks, and plausibility-filter exclusions. Table 2 is the phenotype-level baseline table, with "
+        "patient counts, cohort shares, mean age, mean BMI, mean HbA1c, and phenotype-scoped treatment-review gap rates.\n\n"
         "### Phenotype distribution and clinical profiles\n\n"
         f"{phenotype_sentence} The phenotype table shows a clinically interpretable gradient: severe glycemic "
         "multimorbidity had the highest mean HbA1c, adiposity-linked multimorbidity and adiposity-dominant diabetes "
@@ -224,15 +244,17 @@ def _results_section(
         "without a recorded diabetes medication was 50.05% in glycemic-dominant diabetes, 39.36% in adiposity-linked "
         "multimorbidity, and 33.51% in severe glycemic multimorbidity. Hypertension context without a recorded "
         "antihypertensive ranged from 57.86% to 73.68% among scoped phenotypes, and dyslipidemia context without "
-        f"recorded lipid-lowering therapy ranged from 75.96% to 91.40%. {leading_gaps} Figure 4 shows the absolute "
-        "burden of these medication-coverage gaps.\n\n"
+        f"recorded lipid-lowering therapy ranged from 75.96% to 91.40%. {leading_gaps} {absolute_gaps} Figure 4 supports "
+        "the service-burden claim by showing absolute patient counts for the same medication-coverage gaps, using "
+        "phenotype-specific denominators and retaining Not assessed indicators outside their scoped denominator.\n\n"
         "### Transition stability and site support\n\n"
         f"Among {transition['transition_eligible']} transition-eligible repeated-visit patients, first-to-last "
         f"same-phenotype stability was {transition['same_phenotype_stability']}. The most frequent self-transition "
         f"was {transition['most_frequent_self_transition']}. The most frequent cross-phenotype movement was "
         f"{transition['most_frequent_cross_transition']}. The site-level holdout surface included "
         f"{transition['eligible_sites']} eligible sites and covered {transition['visit_coverage']} of release visit episodes. "
-        "Figure 3 and Table 3 summarize these support analyses."
+        "Figure 3 and Table 3 support the within-network stability and site-coverage interpretation only; they do not "
+        "serve as external validation or transportability evidence."
     )
 
 
@@ -373,6 +395,24 @@ def _leading_gap_sentence(rows: list[dict[str, str]]) -> str:
         "diabetes and "
         f"{_format_count(severe_multi.get('severe_glycemia_low_intensity_gap_patients'))} patients in severe "
         "glycemic multimorbidity."
+    )
+
+
+def _absolute_gap_burden_sentence(rows: list[dict[str, str]]) -> str:
+    adiposity = _find_row(rows, "phenotype_label", "Adiposity-linked multimorbidity")
+    if not adiposity:
+        return ""
+    denominator = _format_count(adiposity.get("index_patients"))
+    uncontrolled = _format_count(adiposity.get("uncontrolled_glycemia_no_drug_gap_patients"))
+    hypertension = _format_count(adiposity.get("hypertension_no_antihypertensive_gap_patients"))
+    dyslipidemia = _format_count(adiposity.get("dyslipidemia_no_lipid_lowering_gap_patients"))
+    if "NA" in {denominator, uncontrolled, hypertension, dyslipidemia}:
+        return ""
+    return (
+        "For adiposity-linked multimorbidity, the corresponding absolute burdens were "
+        f"{uncontrolled} of {denominator} patients for uncontrolled glycemia without a recorded diabetes medication, "
+        f"{hypertension} of {denominator} for hypertension context without a recorded antihypertensive, and "
+        f"{dyslipidemia} of {denominator} for dyslipidemia context without recorded lipid-lowering therapy."
     )
 
 

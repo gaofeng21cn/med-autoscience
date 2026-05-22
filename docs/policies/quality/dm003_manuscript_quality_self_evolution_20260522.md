@@ -39,6 +39,22 @@ This patch does not write DM003 study truth, `publication_eval/latest.json`, `co
 
 These changes intentionally do not declare DM003 quality ready. They make the MAS owner chain capable of materializing prose-quality repairs on canonical manuscript surfaces and then routing back to AI reviewer currentness after a manuscript delta exists.
 
+## 2026-05-22 Round 2 Landing
+
+The next AI reviewer pass confirmed that a manuscript story surface delta alone is not enough for this study family. For phenotype / treatment-gap observational manuscripts, `medical_prose_write_repair` must now materialize reproducibility-grade prose, not only a readable manuscript outline.
+
+The writer materializer now requires the repaired story surface to include:
+
+- index-visit construction using the first qualifying diabetes-coded visit after semantic-audit plausibility filtering;
+- deterministic phenotype assignment that is reproducible without model fitting or post hoc label optimization;
+- treatment-gap numerator and eligible-denominator rules, including severe-glycemia, uncontrolled-glycemia, hypertension-context, dyslipidemia-context, Not assessed, and recorded-medication source handling;
+- missingness and plausibility-filter language that separates row-level, variable-level, and eligibility-level consequences without manuscript-only imputation;
+- first-to-last transition construction and dominant-site deterministic site-support construction;
+- explicit Table 1 relabeling as a cohort-assembly and data-quality summary, with Table 2 carrying phenotype-level baseline characteristics;
+- Results callouts that state claim support, denominator scope, and absolute medication-coverage burden instead of only naming figures.
+
+This is a MAS write-owner quality requirement. It does not transfer DM003 to data/stat owner unless the writer cannot recover these operational details from existing canonical evidence surfaces.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/sidecar_family_adapter_command.py::test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
