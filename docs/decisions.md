@@ -1,5 +1,18 @@
 # 关键决策记录
 
+## 2026-05-22：AI reviewer redrive controller decision 必须优先于旧 story-delta repair residue
+
+- 决策：managed runtime turn prompt 在读取当前 `controller_decisions/latest.json` 时，若该 decision 是 runtime-authorizing 的 `return_to_ai_reviewer_workflow`，且 work unit 为 `ai_reviewer_recheck` / `ai_reviewer_medical_prose_quality_review` 或 fingerprint 以 `domain-transition::ai_reviewer_re_eval::` 开头，必须优先采用该 controller decision。旧 `quality_repair_batch/latest.json` 中仍与同一 `publication_eval/latest.json` 对齐的 `manuscript_story_surface_delta_missing` residue 不得抢占这类 fresh AI reviewer redrive。
+- 决策：普通 story-surface delta blocker 仍可优先于 stale publication gate / gate-clearing decision；本规则只改变明确 AI reviewer redrive authorization 的 precedence，不把所有 controller decision 都提升到 story repair residue 之前。
+- 理由：DM003 已完成 `medical_prose_write_repair` story-surface delta 后，study progress/domain transition 要求 `ai_reviewer_medical_prose_quality_review`，但 runtime prompt 被旧 story repair batch residue 抢成 `medical_prose_write_repair`，导致系统重复写作修复而没有进入 AI reviewer 复评。根因在 MAS runtime authorization precedence，不是 OPL queue/provider，也不是单篇论文内容问题。
+- 影响：这是 MAS controller/runtime prompt authorization 修复，不写 DM003 study truth、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal` 或 `manuscript/current_package`。DM003 后续仍必须由 MAS runtime 重新进入 AI reviewer workflow，并以 AI reviewer-backed publication eval 与 publication gate 判定质量。
+
+## 2026-05-22：workspace helper wrappers 必须绑定当前扁平 MAS CLI 入口
+
+- 决策：workspace 初始化/升级生成的 `ops/medautoscience/bin/study-runtime-status` 必须直接调用当前 `progress-projection`，并把首个非 option 位置参数映射为 `--study-id`；`ops/medautoscience/bin/progress-portal` 与 `ops/mas/bin/start-web` 必须直接调用当前 `progress-portal`。workspace helper 不能依赖旧 `study-runtime-status` 命令或 grouped alias 作为稳定执行面。
+- 理由：DM003 supervisor fresh check 暴露出 workspace helper 仍生成 `run_medautosci study-runtime-status` / `workspace progress-portal`，而当前实际 CLI 公共面已收敛为扁平命令。入口漂移会让前台监督误以为 MAS 没有可用状态面，进而退回手工命令或反复巡检。
+- 影响：这是 MAS workspace entry surface 修复，不改变 study truth、runtime ownership、publication quality verdict 或 paper/package authority。Grouped commands 可继续作为 CLI public alias 存在，但 workspace helper 生成物要绑定可验证的当前命令。
+
 ## 2026-05-22：live managed lease 不能被 logical closeout 误清，medical prose closeout 要闭合 work-unit lifecycle
 
 - 决策：`reconcile_stale_liveness` 遇到当前 run 已有 logical completion / closeout 时，必须先检查 run-scoped `worker_lease.json`；若该 run 仍有 fresh `monitor_state=live` managed lease 且 pid/heartbeat 判定为 live，则保持当前 run 为 live，不清 `active_run_id`、不终止 worker、也不把状态投影为 stale。真正无 lease、lease stale、旧非 managed stuck pid 或 orphan completed worker 仍按既有 cleanup/reconcile 规则处理。

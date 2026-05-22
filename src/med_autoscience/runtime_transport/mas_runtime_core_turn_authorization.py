@@ -523,18 +523,35 @@ def _current_controller_decision_authorization(
     study_root = _resolve_study_root_from_quest_root_light(quest_root=Path(quest_root), quest_id=quest_id)
     if study_root is None:
         return {}
+    authorization = _load_controller_decision_authorization_context(study_root=study_root)
+    if _controller_decision_is_runtime_authorizing(authorization) and _authorization_is_ai_reviewer_redrive(
+        authorization
+    ):
+        return _normalized_controller_decision_authorization(authorization)
     story_surface_delta_authorization = _current_story_surface_delta_authorization(study_root=study_root)
     if story_surface_delta_authorization:
         return story_surface_delta_authorization
-    authorization = _load_controller_decision_authorization_context(study_root=study_root)
-    if not isinstance(authorization, Mapping):
-        return {}
-    if bool(authorization.get("requires_human_confirmation")):
-        return {}
-    action_names = _controller_action_names(authorization)
-    if not action_names:
+    if not _controller_decision_is_runtime_authorizing(authorization):
         return {}
     return _normalized_controller_decision_authorization(authorization)
+
+
+def _controller_decision_is_runtime_authorizing(authorization: object) -> bool:
+    if not isinstance(authorization, Mapping):
+        return False
+    if bool(authorization.get("requires_human_confirmation")):
+        return False
+    return bool(_controller_action_names(authorization))
+
+
+def _authorization_is_ai_reviewer_redrive(authorization: Mapping[str, Any]) -> bool:
+    if "return_to_ai_reviewer_workflow" not in set(_controller_action_names(authorization)):
+        return False
+    work_unit_ids = set(_controller_work_unit_ids(authorization))
+    if work_unit_ids.intersection({"ai_reviewer_recheck", "ai_reviewer_medical_prose_quality_review"}):
+        return True
+    fingerprint = _text(authorization.get("work_unit_fingerprint"))
+    return bool(fingerprint and fingerprint.startswith("domain-transition::ai_reviewer_re_eval::"))
 
 
 def _current_story_surface_delta_authorization(*, study_root: Path) -> dict[str, Any]:

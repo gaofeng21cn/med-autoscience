@@ -141,7 +141,7 @@ def legacy_workspace_command_entry_reason(
         ("enter-study", "study ensure-runtime", "run_medautosci ensure-study-runtime", "legacy_enter_study_entry"),
         (
             "study-runtime-status",
-            "study progress-projection",
+            "progress-projection",
             "run_medautosci study-runtime-status",
             "legacy_study_runtime_status_entry",
         ),

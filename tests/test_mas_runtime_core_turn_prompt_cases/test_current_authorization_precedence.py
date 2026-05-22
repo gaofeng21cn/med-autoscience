@@ -420,6 +420,152 @@ def test_codex_exec_runner_prompt_prefers_medical_prose_delta_blocker_over_stale
     assert authorization["active_run_id"] == "run-medical-prose-repair"
 
 
+def test_codex_exec_runner_prompt_prefers_fresh_ai_reviewer_decision_over_stale_story_delta_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    workspace_root = tmp_path / "workspace"
+    quest_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_root = workspace_root / "runtime" / "quests" / quest_id
+    runtime_root = workspace_root / "runtime"
+    study_root = workspace_root / "studies" / quest_id
+    _write_workspace_python(quest_root)
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {quest_id}\n", encoding="utf-8")
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        json.dumps({"quest_id": quest_id, "status": "paused"}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    eval_id = "publication-eval::dm003::post-story-repair"
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    publication_eval_path.parent.mkdir(parents=True, exist_ok=True)
+    publication_eval_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": eval_id,
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "route_target": "write",
+                        "route_key_question": "Repair medical manuscript prose quality.",
+                        "route_rationale": "The manuscript had not yet absorbed medical prose quality feedback.",
+                        "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
+                        "next_work_unit": {
+                            "unit_id": "medical_prose_write_repair",
+                            "lane": "write",
+                            "summary": "Revise the manuscript to medical journal prose standards.",
+                        },
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    quality_batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    quality_batch_path.parent.mkdir(parents=True, exist_ok=True)
+    quality_batch_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "blocked",
+                "source_eval_id": eval_id,
+                "next_owner": "write",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    controller_decision_path.parent.mkdir(parents=True, exist_ok=True)
+    controller_decision_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_id": "fresh-ai-reviewer-medical-prose-quality",
+                "study_id": quest_id,
+                "quest_id": quest_id,
+                "emitted_at": "2026-05-22T08:12:40+00:00",
+                "decision_type": "continue_same_line",
+                "charter_ref": {
+                    "charter_id": f"charter::{quest_id}::v1",
+                    "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                },
+                "runtime_escalation_ref": {
+                    "record_id": f"runtime-escalation::{quest_id}::ai-reviewer-redrive",
+                    "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                    "summary_ref": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+                },
+                "publication_eval_ref": {"eval_id": eval_id, "artifact_path": str(publication_eval_path)},
+                "requires_human_confirmation": False,
+                "controller_actions": [
+                    {
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "payload_ref": str(controller_decision_path),
+                    }
+                ],
+                "route_target": "review",
+                "route_key_question": "当前稿件是否已经通过 AI reviewer-owned publication evaluation？",
+                "route_rationale": "Re-run AI reviewer manuscript-quality review after the story repair.",
+                "reason": "Re-run AI reviewer manuscript-quality review after the story repair.",
+                "work_unit_fingerprint": (
+                    "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review"
+                ),
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                    "summary": "Re-run AI reviewer manuscript-quality review after the story repair.",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id="run-fresh-ai-reviewer-over-story-delta",
+        reason="auto_continue",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    authorization = runtime_state["current_controller_authorization"]
+
+    assert '"decision_id": "fresh-ai-reviewer-medical-prose-quality"' in prompt
+    assert '"work_unit_id": "ai_reviewer_medical_prose_quality_review"' in prompt
+    assert "return_to_ai_reviewer_workflow" in prompt
+    assert "AI reviewer redrive execution contract" in prompt
+    assert "medical_prose_write_repair" not in prompt
+    assert "run_quality_repair_batch" not in prompt
+    assert "Manuscript story repair follow-through contract" not in prompt
+    assert authorization["authorization_basis"] == "current_controller_decision"
+    assert authorization["decision_id"] == "fresh-ai-reviewer-medical-prose-quality"
+    assert authorization["controller_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert authorization["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert authorization["active_run_id"] == "run-fresh-ai-reviewer-over-story-delta"
+
+
 def test_codex_exec_runner_refreshes_domain_transition_decision_before_prompt(
     monkeypatch,
     tmp_path: Path,

@@ -115,12 +115,28 @@ def _render_profile_optional_forward_script(command: str) -> str:
     )
 
 
+def _render_study_runtime_status_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'args=("$@")\n'
+        'if [[ "${#args[@]}" -gt 0 && "${args[0]}" != -* ]]; then\n'
+        '  study_id="${args[0]}"\n'
+        '  args=("${args[@]:1}")\n'
+        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" --study-id "${study_id}" "${args[@]}"\n'
+        "else\n"
+        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"\n'
+        "fi\n"
+    )
+
+
 def _render_progress_portal_start_web_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/../../medautoscience/bin/_shared.sh"\n\n'
-        'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" --open "$@"\n'
+        'run_medautosci progress-portal --profile "${PROFILE_PATH}" --open "$@"\n'
     )
 
 

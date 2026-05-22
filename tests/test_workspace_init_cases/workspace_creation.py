@@ -213,7 +213,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
     assert 'run_medautosci study ensure-runtime --profile "${PROFILE_PATH}" "$@"' in enter_study_text
-    assert 'run_medautosci study progress-projection --profile "${PROFILE_PATH}" "$@"' in study_runtime_status_text
+    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in study_runtime_status_text
+    assert '--study-id "${study_id}"' in study_runtime_status_text
     assert '--profile "${PROFILE_PATH}"' in watch_runtime_text
     assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
     assert "--ensure-study-runtimes" in watch_runtime_text
@@ -221,7 +222,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "--apply" in watch_runtime_text
     assert "--loop" not in watch_runtime_text
     assert 'run_medautosci runtime storage-audit --profile "${PROFILE_PATH}" "$@"' in storage_audit_text
-    assert 'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" "$@"' in progress_portal_text
+    assert 'run_medautosci progress-portal --profile "${PROFILE_PATH}" "$@"' in progress_portal_text
     assert 'run_medautosci publication resolve-journal-shortlist "$@"' in resolve_journal_shortlist_text
     assert 'run_medautosci data init-memory "$@"' in init_portfolio_memory_text
     assert 'run_medautosci data memory-status "$@"' in portfolio_memory_status_text
@@ -232,7 +233,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci doctor report --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_doctor_text
     assert 'run_medautosci workspace cockpit --profile "${PROFILE_PATH}" --format json "$@"' in runtime_bridge_status_text
     assert 'run_medautosci study pause-runtime --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_stop_text
-    assert 'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" --open "$@"' in runtime_bridge_start_web_text
+    assert 'run_medautosci progress-portal --profile "${PROFILE_PATH}" --open "$@"' in runtime_bridge_start_web_text
     assert 'run_medautosci runtime live-console --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_live_console_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_doctor_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_status_text

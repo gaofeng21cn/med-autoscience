@@ -257,10 +257,9 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap.read_text(encoding="utf-8")
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile.read_text(encoding="utf-8")
     assert 'run_medautosci study ensure-runtime --profile "${PROFILE_PATH}" "$@"' in enter_study.read_text(encoding="utf-8")
-    assert (
-        'run_medautosci study progress-projection --profile "${PROFILE_PATH}" "$@"'
-        in study_runtime_status.read_text(encoding="utf-8")
-    )
+    study_runtime_status_text = study_runtime_status.read_text(encoding="utf-8")
+    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in study_runtime_status_text
+    assert '--study-id "${study_id}"' in study_runtime_status_text
     assert 'run_medautosci publication gate "$@"' in publication_gate.read_text(encoding="utf-8")
     resolve_targets_text = resolve_submission_targets.read_text(encoding="utf-8")
     assert 'run_medautosci publication resolve-targets "${args[@]}"' in resolve_targets_text

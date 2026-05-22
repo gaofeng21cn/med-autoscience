@@ -30,6 +30,7 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_progress_portal_start_web_script,
     _render_profile_optional_forward_script,
     _render_materialize_domain_action_requests_script,
+    _render_study_runtime_status_script,
     _render_supervisor_execute_dispatch_script,
     _render_reconcile_domain_routes_script,
     _render_scan_domain_routes_script,
@@ -419,7 +420,7 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status",
-            content=_render_forward_script("study progress-projection", with_profile=True),
+            content=_render_study_runtime_status_script(),
             executable=True,
         ),
         RenderedFile(
@@ -459,7 +460,7 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "progress-portal",
-            content=_render_forward_script("workspace progress-portal", with_profile=True),
+            content=_render_forward_script("progress-portal", with_profile=True),
             executable=True,
         ),
         RenderedFile(
