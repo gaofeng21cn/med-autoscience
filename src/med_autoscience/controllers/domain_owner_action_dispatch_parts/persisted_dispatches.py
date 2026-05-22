@@ -76,6 +76,7 @@ def selected_dispatches(
     action_types: tuple[str, ...],
     consumer_payload: Mapping[str, Any] | None,
     consumer_latest_path: Path,
+    scan_payload: Mapping[str, Any] | None,
     supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
     managed_runtime_dispatches: list[dict[str, Any]],
@@ -111,7 +112,13 @@ def selected_dispatches(
     ):
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         if key in selected_by_key:
-            selected[selected_by_key[key]] = payload
+            index = selected_by_key[key]
+            selected[index] = _prefer_current_dispatch(
+                consumer_dispatch=selected[index],
+                persisted_dispatch=payload,
+                scan_payload=scan_payload,
+                study_id=study_id,
+            )
             continue
         elif key not in selected_keys:
             selected.append(payload)
@@ -138,6 +145,115 @@ def _with_managed_runtime_dispatches(
             selected.append(payload)
             selected_action_types.add(action_type)
     return selected
+
+
+def _prefer_current_dispatch(
+    *,
+    consumer_dispatch: Mapping[str, Any],
+    persisted_dispatch: Mapping[str, Any],
+    scan_payload: Mapping[str, Any] | None,
+    study_id: str,
+) -> dict[str, Any]:
+    current_study = _scan_study(scan_payload, study_id)
+    consumer_score = _dispatch_currentness_score(consumer_dispatch, current_study)
+    persisted_score = _dispatch_currentness_score(persisted_dispatch, current_study)
+    if persisted_score > consumer_score:
+        return dict(persisted_dispatch)
+    return dict(consumer_dispatch)
+
+
+def _dispatch_currentness_score(dispatch: Mapping[str, Any], current_study: Mapping[str, Any]) -> tuple[int, int]:
+    route = _current_owner_route_from_scan(current_study, dispatch=dispatch)
+    route_current = (
+        1
+        if route
+        and owner_route_part.owner_route_matches(dispatch=dispatch, current_route=route)
+        and owner_route_part.route_allows_action(action=dispatch, owner_route=route)
+        else 0
+    )
+    stall_current = 1 if _dispatch_stall_matches_scan(dispatch=dispatch, current_study=current_study) else 0
+    return route_current, stall_current
+
+
+def _current_owner_route_from_scan(
+    current_study: Mapping[str, Any],
+    *,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+    if route:
+        return route
+    action_type = _text(dispatch.get("action_type"))
+    for action in current_study.get("action_queue") or []:
+        payload = _mapping(action)
+        if _text(payload.get("action_type")) != action_type:
+            continue
+        route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
+        if route:
+            return route
+    return None
+
+
+def current_owner_route_from_scan_payload(
+    *,
+    scan_payload: Mapping[str, Any] | None,
+    study_id: str,
+    dispatch: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    current_study = _scan_study(scan_payload, study_id)
+    route = owner_route_part.ensure_owner_route_v2(_mapping(current_study.get("owner_route")))
+    if route:
+        return route, "scan_latest"
+    if dispatch is None:
+        return None, None
+    action_route = _current_action_queue_owner_route(current_study, dispatch=dispatch)
+    if action_route is not None:
+        return action_route, "scan_action_queue"
+    return None, None
+
+
+def _current_action_queue_owner_route(
+    current_study: Mapping[str, Any],
+    *,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    action_type = _text(dispatch.get("action_type"))
+    for action in current_study.get("action_queue") or []:
+        payload = _mapping(action)
+        if _text(payload.get("action_type")) != action_type:
+            continue
+        route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
+        if not route:
+            continue
+        if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=route):
+            continue
+        if not owner_route_part.route_allows_action(action=dispatch, owner_route=route):
+            continue
+        return route
+    return None
+
+
+def _dispatch_stall_matches_scan(*, dispatch: Mapping[str, Any], current_study: Mapping[str, Any]) -> bool:
+    current_stall = _mapping(current_study.get("paper_progress_stall"))
+    if not current_stall:
+        return False
+    dispatch_stall = _mapping(dispatch.get("paper_progress_stall")) or _mapping(
+        _mapping(dispatch.get("prompt_contract")).get("paper_progress_stall")
+    )
+    if not dispatch_stall:
+        return False
+    dispatch_fingerprint = _text(dispatch_stall.get("action_fingerprint"))
+    current_fingerprint = _text(current_stall.get("action_fingerprint"))
+    return dispatch_fingerprint is not None and dispatch_fingerprint == current_fingerprint
+
+
+def _scan_study(scan_payload: Mapping[str, Any] | None, study_id: str) -> dict[str, Any]:
+    latest = _mapping(scan_payload)
+    for study in latest.get("studies") or []:
+        payload = _mapping(study)
+        if _text(payload.get("study_id")) == study_id:
+            return payload
+    return {}
 
 
 def current_consumer_dispatches(
@@ -272,6 +388,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "current_owner_route_from_scan_payload",
     "current_consumer_dispatches",
     "explicit_action_dispatches",
     "owner_request_matches_dispatch",

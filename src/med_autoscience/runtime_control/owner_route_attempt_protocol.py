@@ -369,6 +369,16 @@ _REASON_REGISTRY = {
         priority_class="hard_methodology_or_source_blocker",
         regression_refs=("DM002:unit_harmonized_rerun",),
     ),
+    "unit_harmonized_external_validation_rerun": _entry(
+        owner="analysis_harmonization_owner",
+        allowed_actions=["unit_harmonized_external_validation_rerun"],
+        required_output=(
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        ),
+        priority_class="hard_methodology_or_source_blocker",
+        regression_refs=("DM002:managed_runtime_unit_harmonized_rerun",),
+    ),
     "transport_model_provenance_recovery_required": _entry(
         owner="source_provenance_owner",
         allowed_actions=["recover_transport_model_provenance"],

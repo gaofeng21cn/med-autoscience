@@ -61,6 +61,88 @@ def test_execute_dispatch_blocks_dispatch_without_owner_route(monkeypatch, tmp_p
     assert execution["blocked_reason"] == "owner_route_missing"
 
 
+def test_execute_dispatch_accepts_current_action_queue_owner_route(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+    )
+    dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "action_type": "return_to_ai_reviewer_workflow",
+                            "owner": "ai_reviewer",
+                            "request_owner": "ai_reviewer",
+                            "recommended_owner": "ai_reviewer",
+                            "owner_route": dispatch["owner_route"],
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [dispatch],
+        },
+    )
+    called: list[str] = []
+
+    def fake_ai_reviewer_workflow(**kwargs) -> dict[str, object]:
+        called.append(str(kwargs["study_id"]))
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+        }
+
+    monkeypatch.setattr(module, "_execute_ai_reviewer_workflow", fake_ai_reviewer_workflow)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] == "scan_action_queue"
+    assert execution["current_owner_route"]["idempotency_key"] == dispatch["owner_route"]["idempotency_key"]
+    assert called == [study_id]
+
+
 def test_execute_dispatch_rejects_incomplete_forbidden_surface_contract(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")

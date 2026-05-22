@@ -142,6 +142,7 @@ def _dispatches(
         action_types=action_types,
         consumer_payload=consumer_payload,
         consumer_latest_path=_consumer_latest_path(profile),
+        scan_payload=_read_json_object(_scan_latest_path(profile)),
         supported_action_types=SUPPORTED_ACTION_TYPES,
         dispatch_relative_root=DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
         managed_runtime_dispatches=managed_dispatches,
@@ -278,16 +279,17 @@ def _prompt_contract_error(prompt_contract: Mapping[str, Any]) -> str | None:
     return None
 
 
-def _current_owner_route(profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
-    latest = _read_json_object(_scan_latest_path(profile))
-    if latest is None:
-        return None
-    for study in latest.get("studies") or []:
-        payload = _mapping(study)
-        if _text(payload.get("study_id")) == study_id:
-            route = _mapping(payload.get("owner_route"))
-            return owner_route_part.ensure_owner_route_v2(route) or None
-    return None
+def _current_owner_route(
+    profile: WorkspaceProfile,
+    study_id: str,
+    *,
+    dispatch: Mapping[str, Any] | None = None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    return persisted_dispatches.current_owner_route_from_scan_payload(
+        scan_payload=_read_json_object(_scan_latest_path(profile)),
+        study_id=study_id,
+        dispatch=dispatch,
+    )
 
 
 def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
@@ -318,9 +320,9 @@ def _execution_owner_route(
 ) -> tuple[dict[str, Any] | None, str | None]:
     if managed_authorization.get("status") == "authorized":
         return _dispatch_owner_route(dispatch), "managed_runtime_authorization"
-    scan_route = _current_owner_route(profile, study_id)
+    scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
     if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
-        return scan_route, "scan_latest"
+        return scan_route, scan_route_basis or "scan_latest"
     request_route = persisted_dispatches.owner_request_route(
         profile=profile,
         study_id=study_id,
@@ -329,7 +331,7 @@ def _execution_owner_route(
     )
     if request_route is not None:
         return request_route, "owner_request"
-    return scan_route, "scan_latest"
+    return scan_route, scan_route_basis or "scan_latest"
 
 
 def _paper_progress_stall_block_reason(

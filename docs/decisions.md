@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-22：owner dispatch currentness 必须同时消费 scan action_queue route 与同路径 dispatch 版本
+
+- 决策：`domain-owner-action-dispatch` 解析当前 owner route 时，不能只读取 `artifacts/supervision/hourly/latest.json` 的 `studies[*].owner_route`。当当前 scan 将可执行 route 写在同一 study 的 `action_queue[*].owner_route` 上，且该 route 与 dispatch 的 idempotency/source/currentness basis 匹配并允许对应 action 时，必须作为 current owner route 执行。
+- 决策：显式 `--action-types` 执行遇到同一 `refs.dispatch_path` 同 action 的 workspace consumer inline dispatch 与 study-level persisted dispatch 不一致时，选择规则必须按当前 scan owner route 和 paper-progress stall fingerprint 判定 currentness。当前版本优先于存储位置；不能固定“consumer latest 优先”或“persisted 文件优先”。
+- 决策：managed-runtime 授权生成的 `unit_harmonized_external_validation_rerun` owner route 是合法 hard-methodology dispatch reason，必须在 owner reason registry 中保持可 dispatch，不得因 action-type alias 缺失把 `allowed_actions` 清空。
+- 理由：DM003 暴露出 owner-route reconcile 正确投影 `return_to_ai_reviewer_workflow`，materializer 也物化了 dispatch，但 dispatcher 只看 study-level `owner_route`，忽略 `action_queue[*].owner_route`，导致合法 AI reviewer workflow 被 `current_owner_route_missing` 阻断。同期 DM002 覆盖了相反形态：consumer inline 可能旧、persisted 文件可能新；DM003 又覆盖了 persisted 文件旧、consumer inline 新。共同根因是 dispatcher 按存储位置判断 currentness，而不是按当前 scan/owner-route 证据判断。
+- 影响：这是 MAS owner dispatch read-model/currentness 修复，不写任何 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只保证当前 owner-authorized action 能进入对应 owner callable；论文质量仍由 owner output、AI reviewer-backed publication eval 和 publication gate 判定。
+
 ## 2026-05-22：owner-route 必须清理已由当前 AI reviewer eval 关闭的 stale-record lifecycle
 
 - 决策：`owner-route-reconcile` 遇到旧 `ai_repair_lifecycle.blocked_reason=ai_reviewer_record_stale_after_current_manuscript` 或 `ai_reviewer_record_stale_after_unit_harmonized_rerun` 时，若当前 `publication_eval/latest.json` 已投影为 present 的 AI reviewer-owned assessment，必须把该旧 lifecycle 和 `why_not_applied` 一并清空，不得继续保留 `next_owner=ai_reviewer`、`allowed_actions=[]` 的死锁 read-model。
