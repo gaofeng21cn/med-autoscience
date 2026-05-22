@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import shlex
 from typing import Any
 
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
@@ -103,12 +104,26 @@ def primary_controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[s
     )
 
 
-def controller_action_command(*, action_name: str, quest_id: str) -> str | None:
+def controller_action_command(
+    *,
+    action_name: str,
+    quest_id: str,
+    runtime_context: Mapping[str, Any] | None = None,
+) -> str | None:
+    profile_arg = _optional_shell_arg(_context_text(runtime_context, "med_autoscience_profile")) or "<med_autoscience_profile>"
+    repo_ref = _context_text(runtime_context, "med_autoscience_repo") or "${MED_AUTOSCIENCE_REPO}"
+    study_id_arg = _optional_shell_arg(_context_text(runtime_context, "study_id")) or "<study_id>"
+    quest_id_arg = _shell_arg(quest_id)
+    runner = (
+        f"{_shell_arg(repo_ref)}/scripts/run-python-clean.sh"
+        if repo_ref.startswith("/")
+        else '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh"'
+    )
     if action_name in SUPERVISOR_DISPATCH_ACTION_NAMES or action_name in DOMAIN_OWNER_DISPATCH_ACTION_NAMES:
         return (
-            '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
+            f"{runner} "
             "-m med_autoscience.cli domain-owner-action-dispatch "
-            '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --studies <study_id> '
+            f"--profile {profile_arg} --studies {study_id_arg} "
             f"--action-types {action_name} --mode developer_apply_safe --apply --managed-runtime-worker"
         )
     command_by_action = {
@@ -119,11 +134,28 @@ def controller_action_command(*, action_name: str, quest_id: str) -> str | None:
     if command_name is None:
         return None
     return (
-        '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
+        f"{runner} "
         f"-m med_autoscience.cli {command_name} "
-        '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
-        f"--quest-id {quest_id}"
+        f"--profile {profile_arg} --study-id {study_id_arg} "
+        f"--quest-id {quest_id_arg}"
     )
+
+
+def _context_text(runtime_context: Mapping[str, Any] | None, key: str) -> str | None:
+    if not runtime_context:
+        return None
+    value = runtime_context.get(key)
+    text = str(value or "").strip()
+    return text or None
+
+
+def _shell_arg(value: str | None) -> str:
+    return shlex.quote(str(value or ""))
+
+
+def _optional_shell_arg(value: str | None) -> str | None:
+    text = str(value or "").strip()
+    return shlex.quote(text) if text else None
 
 
 def _raw_controller_action_names(authorization: Mapping[str, Any]) -> list[str]:

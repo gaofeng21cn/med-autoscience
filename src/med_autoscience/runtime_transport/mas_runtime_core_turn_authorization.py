@@ -17,6 +17,10 @@ from med_autoscience.runtime_transport import mas_runtime_core_hard_methodology
 from med_autoscience.runtime_transport import mas_runtime_core_turn_actions
 from med_autoscience.runtime_transport import mas_runtime_core_turn_owner_handoff
 from med_autoscience.runtime_transport import mas_runtime_core_turn_prompt
+from med_autoscience.runtime_transport.mas_runtime_core_worker_env import (
+    load_workspace_mas_config_env,
+    workspace_root_from_quest_root,
+)
 
 
 def _codex_turn_prompt(
@@ -38,9 +42,15 @@ def _codex_turn_prompt(
         authorization=authorization,
     )
     messages = json.dumps(list(claimed_user_messages), ensure_ascii=False, indent=2, sort_keys=True)
+    runtime_context = _resolved_runtime_context(
+        authorization=authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
     authorization_section = mas_runtime_core_turn_prompt.controller_authorization_prompt_section(
         authorization=authorization,
         quest_id=quest_id,
+        runtime_context=runtime_context,
     )
     closeout_path = f"artifacts/runtime/turn_closeouts/{run_id}.json"
     return (
@@ -83,6 +93,52 @@ def _codex_turn_prompt(
         "- Do not relax MAS quality gates, quality thresholds, publication gates, or authority boundaries.\n\n"
         f"Claimed user messages:\n```json\n{messages}\n```\n"
     )
+
+
+def _resolved_runtime_context(
+    *,
+    authorization: Mapping[str, Any],
+    quest_root: Path | None,
+    quest_id: str,
+) -> dict[str, str]:
+    if quest_root is None:
+        return {"quest_id": quest_id}
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    workspace_root = workspace_root_from_quest_root(resolved_quest_root)
+    study_id = _text(authorization.get("study_id")) or _study_id_for_quest_root(
+        quest_root=resolved_quest_root,
+        quest_id=quest_id,
+    )
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=resolved_quest_root, quest_id=study_id)
+    env: dict[str, str] = {}
+    load_workspace_mas_config_env(quest_root=resolved_quest_root, env=env)
+    context: dict[str, str] = {
+        "quest_id": quest_id,
+        "quest_root": str(resolved_quest_root),
+        "study_id": study_id,
+    }
+    if workspace_root is not None:
+        context["workspace_root"] = str(workspace_root)
+    if study_root is not None:
+        context["study_root"] = str(study_root)
+    med_repo = _text(env.get("MED_AUTOSCIENCE_REPO"))
+    if med_repo is not None:
+        context["med_autoscience_repo"] = med_repo
+    profile = _text(env.get("MED_AUTOSCIENCE_PROFILE")) or _default_workspace_profile(workspace_root)
+    if profile is not None:
+        context["med_autoscience_profile"] = profile
+    return context
+
+
+def _default_workspace_profile(workspace_root: Path | None) -> str | None:
+    if workspace_root is None:
+        return None
+    profile_root = workspace_root / "ops" / "medautoscience" / "profiles"
+    for pattern in ("*.local.toml", "*.workspace.toml"):
+        for path in sorted(profile_root.glob(pattern)):
+            if path.is_file():
+                return str(path.resolve())
+    return None
 
 
 def _read_runtime_state(*, quest_root: Path) -> dict[str, Any]:

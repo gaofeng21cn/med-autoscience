@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+import shlex
 import subprocess
 
 
@@ -529,20 +530,38 @@ def test_codex_exec_runner_explicit_terminal_attach_capability_uses_controlled_b
 
 def test_codex_exec_runner_prompt_maps_controller_action_to_callable_command(monkeypatch, tmp_path: Path) -> None:
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
-    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-002"
-    runtime_root = tmp_path / "workspace" / "runtime"
+    workspace_root = tmp_path / "workspace"
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "profile with spaces.local.toml"
+    config_env_path = workspace_root / "ops" / "medautoscience" / "config.env"
+    quest_root = workspace_root / "runtime" / "quests" / "quest-002"
+    runtime_root = workspace_root / "runtime"
+    study_root = workspace_root / "studies" / "study with spaces"
+    profile_path.parent.mkdir(parents=True, exist_ok=True)
+    profile_path.write_text("profile = 'test'\n", encoding="utf-8")
+    config_env_path.write_text(
+        "\n".join(
+            [
+                f"MED_AUTOSCIENCE_REPO={shlex.quote(str(tmp_path / 'MAS repo'))}",
+                f"MED_AUTOSCIENCE_PROFILE={shlex.quote(str(profile_path))}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    study_root.mkdir(parents=True, exist_ok=True)
     _write_workspace_python(quest_root)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
     runtime_state_path.write_text(
         """
 {
-  "last_controller_decision_authorization": {
-    "decision_id": "decision-quality-002",
-    "controller_actions": ["run_quality_repair_batch"],
-    "work_unit_id": "analysis_claim_evidence_repair",
-    "next_work_unit": {
-      "unit_id": "analysis_claim_evidence_repair"
+    "last_controller_decision_authorization": {
+      "decision_id": "decision-quality-002",
+      "controller_actions": ["run_quality_repair_batch"],
+      "study_id": "study with spaces",
+      "work_unit_id": "analysis_claim_evidence_repair",
+      "next_work_unit": {
+        "unit_id": "analysis_claim_evidence_repair"
     }
   }
 }
@@ -569,15 +588,20 @@ def test_codex_exec_runner_prompt_maps_controller_action_to_callable_command(mon
 
     assert "Controller action execution contract" in prompt
     assert "run_quality_repair_batch" in prompt
-    assert '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh"' in prompt
+    assert f"{tmp_path / 'MAS repo'!s}" in prompt
+    assert f"{shlex.quote(str(tmp_path / 'MAS repo'))}/scripts/run-python-clean.sh" in prompt
     assert "-m med_autoscience.cli quality-repair-batch" in prompt
     assert "MED_AUTOSCIENCE_UV_BIN" not in prompt
     assert "uv run --directory" not in prompt
-    assert '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}"' in prompt
-    assert "--study-id <study_id>" in prompt
+    assert f"--profile '{profile_path!s}'" in prompt
+    assert "--study-id 'study with spaces'" in prompt
     assert "--quest-id quest-002" in prompt
-    assert "ops/medautoscience/profiles/*.workspace.toml" in prompt
-    assert "ops/medautoscience/profiles/*.local.toml" in prompt
+    assert "Resolved MAS runtime context" in prompt
+    assert "med_autoscience_repo" in prompt
+    assert "med_autoscience_profile" in prompt
+    assert "Do not use `git status`, `rg --files`, broad `find`, or repository discovery" in prompt
+    assert "ops/medautoscience/profiles/*.workspace.toml" not in prompt
+    assert "ops/medautoscience/profiles/*.local.toml" not in prompt
     assert "Invoke the listed controller command before freeform artifact writing" in prompt
     assert "repair packet, gate audit, controller handoff, runtime/watch receipt, or console-only summary is not sufficient" in prompt
     assert "blocked_reason=owner_callable_surface_missing" in prompt
@@ -630,9 +654,10 @@ def test_codex_exec_runner_prompt_maps_gate_clearing_action_to_callable_command(
     assert "Controller action execution contract" in prompt
     assert "run_gate_clearing_batch" in prompt
     assert "-m med_autoscience.cli gate-clearing-batch" in prompt
-    assert '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}"' in prompt
-    assert "--study-id <study_id>" in prompt
+    assert "--profile <med_autoscience_profile>" in prompt
+    assert "--study-id quest-002" in prompt
     assert "--quest-id quest-002" in prompt
+    assert "blocked_reason=managed_runtime_context_missing" in prompt
     assert "No callable MAS CLI command is registered" not in prompt
 
 
@@ -879,6 +904,8 @@ def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_reviewer_owner_co
     assert "manuscript completeness, Methods reproducibility, Results numeric specificity" in prompt
     assert "A mechanical checklist or script output is not quality authority" in prompt
     assert "-m med_autoscience.cli materialize-ai-medical-prose-review" in prompt
+    assert "--profile <med_autoscience_profile>" in prompt
+    assert "--study-id quest-003" in prompt
     assert "--payload-file <ai_reviewer_response.json>" in prompt
     assert "-m med_autoscience.cli domain-owner-action-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt

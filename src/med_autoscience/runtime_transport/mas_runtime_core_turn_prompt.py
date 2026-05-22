@@ -11,14 +11,21 @@ from med_autoscience.controllers.story_surface_work_units import (
 )
 
 
-def controller_authorization_prompt_section(*, authorization: Mapping[str, Any], quest_id: str) -> str:
+def controller_authorization_prompt_section(
+    *,
+    authorization: Mapping[str, Any],
+    quest_id: str,
+    runtime_context: Mapping[str, Any] | None = None,
+) -> str:
     if not authorization:
         return ""
     payload = _compact_controller_authorization(authorization)
     rendered = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+    runtime_context_contract = _resolved_runtime_context_prompt_section(runtime_context)
     controller_action_contract = _controller_action_execution_contract_prompt_section(
         authorization=authorization,
         quest_id=quest_id,
+        runtime_context=runtime_context,
     )
     hard_methodology_contract = _hard_methodology_contract_prompt_section(authorization)
     manuscript_story_contract = _manuscript_story_repair_followthrough_prompt_section(authorization)
@@ -45,6 +52,7 @@ def controller_authorization_prompt_section(*, authorization: Mapping[str, Any],
         "- Produce a MAS-authorized durable artifact that addresses `work_unit_id`, `next_work_unit`, and any listed "
         "`specificity_targets`, or write a blocked closeout naming the missing controller/owner surface.\n"
         "- A runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta for this work unit.\n\n"
+        f"{runtime_context_contract}"
         f"{hard_methodology_contract}"
         f"{manuscript_story_contract}"
         f"{controller_action_contract}"
@@ -103,6 +111,7 @@ def _controller_action_execution_contract_prompt_section(
     *,
     authorization: Mapping[str, Any],
     quest_id: str,
+    runtime_context: Mapping[str, Any] | None = None,
 ) -> str:
     action_names = _controller_action_names(authorization)
     if not action_names:
@@ -111,13 +120,19 @@ def _controller_action_execution_contract_prompt_section(
         authorization=authorization,
         action_names=action_names,
         quest_id=quest_id,
+        runtime_context=runtime_context,
     )
     if ai_reviewer_redrive_contract:
         return ai_reviewer_redrive_contract
     command_lines = [
         command
         for action_name in action_names
-        if (command := _controller_action_command(action_name=action_name, quest_id=quest_id)) is not None
+        if (command := _controller_action_command(
+            action_name=action_name,
+            quest_id=quest_id,
+            runtime_context=runtime_context,
+        ))
+        is not None
     ]
     if not command_lines:
         return (
@@ -135,10 +150,8 @@ def _controller_action_execution_contract_prompt_section(
         "```bash\n"
         f"{rendered_commands}\n"
         "```\n"
-        "- Resolve `<workspace MAS profile>` from `MED_AUTOSCIENCE_PROFILE`, "
-        "`ops/medautoscience/profiles/*.workspace.toml`, or `ops/medautoscience/profiles/*.local.toml`; "
-        "resolve `<study_id>` from the active authorization, "
-        "study runtime status, or quest/study directory identity.\n"
+        "- The command above is already materialized from the resolved runtime context; do not rediscover the MAS "
+        "repo, workspace profile, study root, or study id from Git state or broad filesystem search.\n"
         "- A repair packet, gate audit, controller handoff, runtime/watch receipt, or console-only summary is not "
         "sufficient unless the controller command itself produced the durable paper-facing artifact delta or returned "
         "a concrete owner block.\n"
@@ -152,16 +165,18 @@ def _ai_reviewer_redrive_execution_contract_prompt_section(
     authorization: Mapping[str, Any],
     action_names: list[str],
     quest_id: str,
+    runtime_context: Mapping[str, Any] | None = None,
 ) -> str:
     if "return_to_ai_reviewer_workflow" not in action_names:
         return ""
     work_unit_ids = set(_controller_work_unit_ids(authorization))
     if not work_unit_ids.intersection({"ai_reviewer_recheck", "ai_reviewer_medical_prose_quality_review"}):
         return ""
-    prose_command = _ai_medical_prose_review_command()
+    prose_command = _ai_medical_prose_review_command(runtime_context=runtime_context)
     dispatch_command = _controller_action_command(
         action_name="return_to_ai_reviewer_workflow",
         quest_id=quest_id,
+        runtime_context=runtime_context,
     )
     return (
         "AI reviewer redrive execution contract:\n"
@@ -194,11 +209,21 @@ def _ai_reviewer_redrive_execution_contract_prompt_section(
     )
 
 
-def _ai_medical_prose_review_command() -> str:
+def _ai_medical_prose_review_command(runtime_context: Mapping[str, Any] | None = None) -> str:
+    repo_ref = _runtime_context_text(runtime_context, "med_autoscience_repo") or "${MED_AUTOSCIENCE_REPO}"
+    profile_arg = _optional_shell_arg(_runtime_context_text(runtime_context, "med_autoscience_profile")) or (
+        "<med_autoscience_profile>"
+    )
+    study_id_arg = _optional_shell_arg(_runtime_context_text(runtime_context, "study_id")) or "<study_id>"
+    runner = (
+        f"{_shell_arg(repo_ref)}/scripts/run-python-clean.sh"
+        if repo_ref.startswith("/")
+        else '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh"'
+    )
     return (
-        '"${MED_AUTOSCIENCE_REPO}/scripts/run-python-clean.sh" '
+        f"{runner} "
         "-m med_autoscience.cli materialize-ai-medical-prose-review "
-        '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
+        f"--profile {profile_arg} --study-id {study_id_arg} "
         "--payload-file <ai_reviewer_response.json>"
     )
 
@@ -235,8 +260,60 @@ def _controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[str]:
     return mas_runtime_core_turn_actions.controller_work_unit_ids(authorization)
 
 
-def _controller_action_command(*, action_name: str, quest_id: str) -> str | None:
-    return mas_runtime_core_turn_actions.controller_action_command(action_name=action_name, quest_id=quest_id)
+def _controller_action_command(
+    *,
+    action_name: str,
+    quest_id: str,
+    runtime_context: Mapping[str, Any] | None = None,
+) -> str | None:
+    return mas_runtime_core_turn_actions.controller_action_command(
+        action_name=action_name,
+        quest_id=quest_id,
+        runtime_context=runtime_context,
+    )
+
+
+def _resolved_runtime_context_prompt_section(runtime_context: Mapping[str, Any] | None) -> str:
+    context = {key: value for key, value in dict(runtime_context or {}).items() if value not in (None, "", [], {})}
+    if not context:
+        return (
+            "Resolved MAS runtime context:\n"
+            "- No resolved runtime context was materialized for this turn. If a callable controller command needs "
+            "workspace/profile/repo/study paths, write a blocked closeout with "
+            "blocked_reason=managed_runtime_context_missing and next_owner=MAS/runtime.\n\n"
+        )
+    rendered = json.dumps(context, ensure_ascii=False, indent=2, sort_keys=True)
+    return (
+        "Resolved MAS runtime context:\n"
+        "```json\n"
+        f"{rendered}\n"
+        "```\n"
+        "- The managed runtime worker cwd is `quest_root`, which may not be a Git checkout. Do not use `git status`, "
+        "`rg --files`, broad `find`, or repository discovery to locate MAS repo/profile/study roots already listed "
+        "above.\n"
+        "- If any required resolved context field is missing or non-callable, write a typed blocked closeout with "
+        "blocked_reason=managed_runtime_context_missing and next_owner=MAS/runtime.\n\n"
+    )
+
+
+def _runtime_context_text(runtime_context: Mapping[str, Any] | None, key: str) -> str | None:
+    if not runtime_context:
+        return None
+    text = str(runtime_context.get(key) or "").strip()
+    return text or None
+
+
+def _shell_arg(value: str | None) -> str:
+    import shlex
+
+    return shlex.quote(str(value or ""))
+
+
+def _optional_shell_arg(value: str | None) -> str | None:
+    import shlex
+
+    text = str(value or "").strip()
+    return shlex.quote(text) if text else None
 
 
 def _controller_authorization_message(message: Mapping[str, Any]) -> bool:
