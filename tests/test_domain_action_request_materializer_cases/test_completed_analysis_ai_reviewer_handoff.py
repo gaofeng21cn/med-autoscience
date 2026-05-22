@@ -153,3 +153,93 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
     assert written_dispatch["prompt_contract"]["request_packet_ref"] == (
         "artifacts/supervision/requests/ai_reviewer/latest.json"
     )
+
+
+def test_materialize_domain_transition_ai_reviewer_re_eval_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="domain_transition_ai_reviewer_re_eval",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": "domain_transition_ai_reviewer_re_eval",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "next_work_unit": "ai_reviewer_medical_prose_quality_review",
+        "owner_route": route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "observability_only",
+            "request_owner": "ai_reviewer",
+            "owner_route": route,
+        },
+    }
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": route,
+                    "action_queue": [action],
+                    "ai_reviewer_assessment": {
+                        "present": True,
+                        "missing": False,
+                    },
+                }
+            ],
+            "action_queue": [action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["request_task_count"] == 1
+    assert result["default_executor_dispatch_count"] == 1
+    task = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    assert task["dispatch_status"] == "applied"
+    assert task["request_owner"] == "ai_reviewer"
+    assert task["owner_route_current"] is True
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["next_executable_owner"] == "ai_reviewer"
+    assert dispatch["blocked_reason"] is None
+    written_dispatch = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_dispatches"
+            / "return_to_ai_reviewer_workflow.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert written_dispatch["owner_route"]["owner_reason_contract"]["registered"] is True
+    assert written_dispatch["owner_route"]["owner_reason_contract"]["reason"] == (
+        "domain_transition_ai_reviewer_re_eval"
+    )
+    assert "return_to_ai_reviewer_workflow" in written_dispatch["owner_route"]["allowed_actions"]

@@ -302,6 +302,7 @@ _REASON_REGISTRY = {
     "analysis_repair_requires_ai_reviewer_recheck": _ai_reviewer_entry(),
     "rebuttal_closure_requires_ai_reviewer_recheck": _ai_reviewer_entry(),
     "text_repair_requires_ai_reviewer_recheck": _ai_reviewer_entry(),
+    "domain_transition_ai_reviewer_re_eval": _ai_reviewer_entry("DM003:domain_transition_ai_reviewer_re_eval"),
     "return_to_ai_reviewer_workflow": _ai_reviewer_entry(),
     "publication_gate_recheck_required": _ai_reviewer_entry(),
     "ai_reviewer_request_missing": _ai_reviewer_entry(),
