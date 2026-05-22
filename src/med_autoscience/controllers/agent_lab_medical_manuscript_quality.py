@@ -15,6 +15,11 @@ from .agent_lab_medical_manuscript_quality_parts.quality_boundary import (
     SUITE_RELATIVE_PATH,
     SURFACE_KIND,
 )
+from .agent_lab_medical_manuscript_quality_parts.route_refs import (
+    failure_delta_refs as _failure_delta_refs,
+    owner_route_refs as _owner_route_refs,
+    quality_floor_refs as _quality_floor_refs,
+)
 from .agent_lab_medical_manuscript_quality_parts.study_quality_targets import (
     study_quality_target_profile,
 )
@@ -68,6 +73,14 @@ def build_medical_manuscript_quality_agent_lab_suite(
     task_id = f"agent-lab-task:mas/{study_id}/high-quality-medical-manuscript"
     scorecard_ref = f"quality-scorecard:mas/{study_id}/high-quality-medical-manuscript"
     promotion_gate_ref = f"promotion-gate:mas/{study_id}/high-quality-medical-manuscript"
+    quality_floor_refs = _quality_floor_refs(study_id=study_id)
+    owner_route_refs = _owner_route_refs(study_id=study_id)
+    failure_delta_refs = _failure_delta_refs(
+        study_id=study_id,
+        prose_status=prose_status,
+        blocker_refs=blocker_refs,
+        feedback_ref=feedback_ref,
+    )
     developer_work_order = _developer_patch_work_order(
         study_id=study_id,
         evidence_refs=blocker_refs or evidence_refs,
@@ -138,6 +151,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "evidence_refs": evidence_refs,
             "review_refs": [str(root / "paper" / "review" / "review_ledger.json")],
             "quality_gate_refs": ["quality-gate:mas/publication-owner"],
+            "quality_floor_refs": quality_floor_refs,
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         },
         "improvement_candidate": {
@@ -145,6 +159,8 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "candidate_kind": "rubric_gap",
             "target_ref": "rubric-gap-ref:mas/high-quality-medical-manuscript-ai-reviewer",
             "evidence_refs": blocker_refs or evidence_refs,
+            "owner_route_ref": owner_route_refs[0],
+            "owner_route_refs": owner_route_refs,
             "developer_patch_work_order": developer_work_order,
             "target_agent_capability_gap": {
                 "status": "candidate_only",
@@ -173,6 +189,8 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "no_forbidden_write_proof_refs": [
                 "no-forbidden-write:mas/agent-lab-medical-manuscript-quality"
             ],
+            "owner_or_human_gate_refs": owner_route_refs,
+            "failure_delta_refs": failure_delta_refs,
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         },
     }

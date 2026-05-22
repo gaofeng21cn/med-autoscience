@@ -276,6 +276,60 @@ def test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets(
     assert mechanism_work_order["study_quality_target_family"] == work_order["study_quality_target_family"]
 
 
+def test_medical_manuscript_quality_agent_lab_suite_projects_opl_consumable_route_refs(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.agent_lab_medical_manuscript_quality")
+    study_root = tmp_path / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_text(study_root / "paper" / "draft.md", "# Draft\n")
+    _write_json(study_root / "paper" / "evidence_ledger.json", {"items": []})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": "AI reviewer must re-evaluate manuscript quality.",
+                }
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "task_intent": "reviewer_revision",
+            "summary": "Reviewer requests a high-quality medical journal manuscript revision.",
+        },
+    )
+
+    suite = module.build_medical_manuscript_quality_agent_lab_suite(study_root=study_root)
+    task = suite["tasks"][0]
+
+    assert task["scorecard"]["quality_floor_refs"] == [
+        "quality-floor-ref:mas/high-quality-medical-manuscript",
+        "quality-floor-ref:mas/003-dpcc-primary-care-phenotype-treatment-gap/publication-ai-reviewer",
+    ]
+    assert task["improvement_candidate"]["owner_route_ref"] == (
+        "owner-route:mas/003-dpcc-primary-care-phenotype-treatment-gap/write"
+    )
+    assert task["improvement_candidate"]["owner_route_refs"] == [
+        "owner-route:mas/003-dpcc-primary-care-phenotype-treatment-gap/write",
+        "owner-route:mas/003-dpcc-primary-care-phenotype-treatment-gap/publication-gate",
+    ]
+    assert any(
+        ref.startswith("failure-delta:mas/003-dpcc-primary-care-phenotype-treatment-gap/")
+        for ref in task["promotion_gate"]["failure_delta_refs"]
+    )
+    assert any(
+        ref.startswith("evidence-delta:mas/003-dpcc-primary-care-phenotype-treatment-gap/")
+        for ref in task["promotion_gate"]["failure_delta_refs"]
+    )
+    assert "owner-route:mas/003-dpcc-primary-care-phenotype-treatment-gap/write" in (
+        task["promotion_gate"]["owner_or_human_gate_refs"]
+    )
+
+
 def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_reviewer_and_analysis_queue(
     tmp_path: Path,
 ) -> None:

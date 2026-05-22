@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：Agent Lab 医学稿件质量 suite 必须投影 OPL 可消费的质量地板与 owner route refs
+
+- 决策：`agent-lab-medical-manuscript-quality-suite` 生成的 refs-only suite 必须显式投影 `quality_floor_refs`、`owner_route_refs` 与 `failure_delta_refs`。这些 refs 至少覆盖 MAS 高质量医学稿件质量地板、当前 study 的 AI reviewer authority、write owner、publication gate，以及当前 prose/reviewer-feedback route-back 的 failure/evidence delta。
+- 决策：该 suite 仍只允许 OPL / Agent Lab / opl-meta-agent 消费 refs、生成 developer patch work order、执行独立 review/canary 与 regression promotion 判断；不得把 OPL suite run、evolve 或 efficiency read-model 解释为医学质量 ready、publication verdict 或 study truth。
+- 理由：DM003 暴露出 Agent Lab 能读取 MAS external suite，但 MAS suite 缺 OPL efficiency/evolution 可识别的质量地板、owner route 与 failure delta 证据组，导致“像高质量医学论文”的反馈无法稳定转化为可回归的 MAS 智能体能力缺口。正确修复位置是 MAS suite projection，而不是 OPL runner 放宽判断，也不是在 DM003 study surface 手工写入质量结论。
+- 影响：这是 MAS Agent Lab medical manuscript quality suite / self-evolution projection 修复，不写 DM003 canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。论文质量仍由 MAS write owner delta、AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-22：已消费 recheck request 的 AI reviewer route-back 优先于旧 story recheck
 
 - 决策：`story_surface_recheck_transition` 只能在 completed story-surface delta 尚未被当前 AI reviewer eval 消费时投影 `return_to_ai_reviewer_workflow`。若 AI reviewer-owned `publication_eval/latest.json` 已有当前 `route_back_same_line` / `bounded_analysis` / `stop_loss` action，且 `assessment_provenance.source_refs` 明确包含 `repair_execution_evidence.ai_reviewer_recheck_request_ref`，domain transition 必须尊重当前 AI reviewer route-back owner。
