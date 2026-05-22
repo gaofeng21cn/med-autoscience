@@ -4,6 +4,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
+from med_autoscience.controllers.story_surface_work_units import (
+    is_story_surface_delta_write_work_unit,
+)
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 
 
@@ -63,6 +66,13 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         action["controller_next_work_unit"] = controller_next_work_unit
         action["controller_work_unit_id"] = controller_work_unit_id
         action["executable_work_unit"] = "unit_harmonized_external_validation_rerun"
+    if write_repair_route:
+        action["controller_next_work_unit"] = controller_next_work_unit
+        action["controller_work_unit_id"] = controller_work_unit_id
+        action["executable_work_unit"] = work_unit_id
+        action["route_target"] = "write"
+        if route_target and route_target != "write":
+            action["original_route_target"] = route_target
     if decision_type == "bundle_stage_finalize":
         action["authority"] = "observability_only"
         action["owner"] = "mas_controller"
@@ -133,6 +143,8 @@ def _is_write_repair_route(
     if decision_type != "route_back_same_line":
         return False
     if route_target == "write":
+        return True
+    if is_story_surface_delta_write_work_unit(next_work_unit.get("unit_id")):
         return True
     return _text(next_work_unit.get("lane")) == "write"
 

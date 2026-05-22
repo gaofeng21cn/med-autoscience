@@ -426,6 +426,13 @@
 - 理由：DM003 暴露出 writer 已更新 `paper/draft.md` 与 `paper/build/review_manuscript.md` 后，study-local `run_quality_repair_batch.json` 仍在，但缺少 `requests/quality_repair_batch/latest.json`，导致 `domain-owner-action-dispatch` 静默返回 `execution_count=0`，`repair_execution_evidence/latest.json` 仍停在旧稿件指纹。根因是 MAS handoff materialization 缺一面 owner request，而不是 OPL provider、单篇手写稿件或 publication gate 可以绕过的问题。
 - 影响：这是 MAS owner-chain currentness/dispatch 修复。它只让已授权 write owner 继续闭合 canonical story-surface delta，不授权 `publication_eval/latest.json`、`controller_decisions/latest.json`、`manuscript/current_package`、submission package 或 submission-ready verdict。
 
+## 2026-05-23：story-surface work unit 归属 write owner，不能被 analysis-campaign lane 吞掉
+
+- 决策：`domain_transition` 中 `route_target=analysis-campaign` 不能覆盖 story-surface write work unit 的可执行 owner。当 `next_work_unit.unit_id` 属于 `STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS`，例如 `medical_prose_write_repair`，`owner-route-reconcile` 必须投影为 `write/run_quality_repair_batch`，并保留 `original_route_target=analysis-campaign`、`controller_work_unit_id` 与 `executable_work_unit` 以便 OPL / Agent Lab / supervisor 追踪来源。
+- 决策：真正的 analysis owner route 仍以可执行 analysis work unit 为准，例如 `unit_harmonized_validation_uncertainty_and_grouped_calibration` 或 `unit_harmonized_external_validation_rerun`，继续投影为 `analysis_harmonization_owner/unit_harmonized_external_validation_rerun`。不得把 `analysis-campaign` 这个 lane 名当作通用 callable owner。
+- 理由：DM003 当前 AI reviewer-backed route-back 顶层 action 写成 `analysis-campaign`，但 work unit 是 `medical_prose_write_repair`，导致 owner route 生成 `run_quality_repair_batch` 时 owner 仍为不可执行的 `analysis-campaign`，再被 retry-exhausted/external-supervisor 投影吞掉。这个缺陷会让系统看似有 next work unit，实际没有可执行 owner，重复停在巡检层。
+- 影响：这是 MAS owner-route / executable-owner projection 修复，不改 DM003 study truth、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、current package 或 submission package。它只让当前医学写作质量 route 能进入 write owner，质量结论仍由 AI reviewer-backed publication eval 与 publication gate 决定。
+
 ## 2026-05-22：stage quality pack contract catalog 按自然边界拆分
 
 - 决策：`stage_quality_contract.py` 继续作为 public contract/API owner，保留 `build_stage_quality_pack_contract`、projection builder、pack id 常量和 `CONTRACT_REF`；静态 pack catalog、promotion evidence、owner refs 与 required refs 迁入 `stage_quality_contract_parts/catalog.py`，由 `stage_quality_contract_parts/__init__.py` 做显式 re-export。

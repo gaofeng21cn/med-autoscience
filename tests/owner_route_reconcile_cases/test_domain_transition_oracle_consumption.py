@@ -850,6 +850,38 @@ def test_domain_transition_routes_medical_prose_write_repair_to_quality_batch() 
     )
 
 
+def test_domain_transition_routes_analysis_campaign_medical_prose_write_repair_to_write_owner() -> None:
+    actions = domain_transition_actions.actions(
+        {
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "analysis-campaign",
+                "owner": "analysis-campaign",
+                "next_work_unit": {
+                    "unit_id": "medical_prose_write_repair",
+                    "lane": "analysis-campaign",
+                    "summary": "Repair denominator truth, displays, and journal prose from current AI reviewer findings.",
+                },
+                "guard_boundary": {"opl_generic_runner_may_resume": False},
+            }
+        }
+    )
+
+    assert actions is not None
+    assert len(actions) == 1
+    action = actions[0]
+    assert action["action_type"] == "run_quality_repair_batch"
+    assert action["owner"] == "write"
+    assert action["request_owner"] == "write"
+    assert action["recommended_owner"] == "write"
+    assert action["next_work_unit"] == "medical_prose_write_repair"
+    assert action["controller_work_unit_id"] == "medical_prose_write_repair"
+    assert action["executable_work_unit"] == "medical_prose_write_repair"
+    assert action["route_target"] == "write"
+    assert action["original_route_target"] == "analysis-campaign"
+    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+
+
 def test_scan_routes_medical_prose_write_repair_despite_stale_opl_owner_lifecycle(
     monkeypatch,
     tmp_path: Path,
