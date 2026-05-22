@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-23：terminal-stall write handoff 以 Owner-Route Attempt Protocol 为准
+
+- 决策：`domain_owner_action_dispatch` 在 `paper_progress_stall.terminal=true` 下处理 `run_quality_repair_batch` 时，不能只允许硬编码的 `medical_prose_write_repair`。若当前 owner route 明确 `next_owner=write`、允许该 action、reason 已在 Owner-Route Attempt Protocol 注册、priority 为 `write_route_back`、attempt protocol 可 dispatch、currentness contract 无缺失、source fingerprint 存在，且 `source_refs.owner_route_currentness_basis.work_unit_id` 指向当前 work unit，则允许进入 MAS write-owner callable。
+- 决策：该规则覆盖 DM002 当前 `dm002_current_publication_hardening_after_ai_reviewer_eval` 这类 controller-authorized manuscript hardening work unit；它不授权未知 reason、缺 truth/runtime/source currentness、非 write owner、非 `run_quality_repair_batch` action、delivery/package/current-package、AI reviewer verdict、publication eval 或 submission readiness 写入。
+- 理由：DM002 暴露出合法 write route-back 已由 controller/domain transition 产生，但 terminal-stall handoff 仍按历史 work unit 名称白名单判定，导致 default executor 返回 `paper_progress_stall_terminal`，无法把当前 AI reviewer 后的论文质量 hardening 交给 MAS write owner。根因是 MAS owner-dispatch currentness 判定仍残留单 work unit 特判，不是 OPL queue/provider lifecycle，也不是单篇 paper surface 可手工修的问题。
+- 影响：这是 MAS owner-dispatch currentness 修复。它只让 registered/current write-owner route 穿过 terminal stall 进入 MAS-owned quality repair callable；正式论文质量、publishability、package refresh 和 submission-facing readiness 仍由 canonical manuscript delta、AI reviewer-backed `publication_eval/latest.json`、publication gate 与后续 owner receipt 判定。
+
 ## 2026-05-22：owner dispatch currentness 必须同时消费 scan action_queue route 与同路径 dispatch 版本
 
 - 决策：`domain-owner-action-dispatch` 解析当前 owner route 时，不能只读取 `artifacts/supervision/hourly/latest.json` 的 `studies[*].owner_route`。当当前 scan 将可执行 route 写在同一 study 的 `action_queue[*].owner_route` 上，且该 route 与 dispatch 的 idempotency/source/currentness basis 匹配并允许对应 action 时，必须作为 current owner route 执行。

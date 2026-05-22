@@ -398,6 +398,150 @@ def test_execute_quality_repair_batch_uses_current_terminal_stall_when_dispatch_
     assert called["control_plane_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
+def test_execute_quality_repair_batch_allows_registered_dm002_write_route_under_terminal_stall(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    quest_root = profile.runtime_root / f"quest-{study_id}"
+    quest_root.mkdir(parents=True, exist_ok=True)
+    work_unit_id = "dm002_current_publication_hardening_after_ai_reviewer_eval"
+    route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    route.update(
+        {
+            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
+            "idempotency_key": "owner-route::dm002::write::current-publication-hardening",
+            "owner_reason_contract": {
+                "registered": True,
+                "reason": "quest_waiting_opl_runtime_owner_route",
+                "owner": "write",
+                "allowed_actions": ["run_quality_repair_batch"],
+                "required_output": (
+                    "canonical manuscript story-surface delta or "
+                    "typed blocker:manuscript_story_surface_delta_missing"
+                ),
+                "priority_class": "write_route_back",
+            },
+            "owner_route_attempt_protocol": {
+                "version": "mas-owner-route-attempt-protocol.v1",
+                "dispatchable": True,
+                "priority_class": "write_route_back",
+            },
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
+                    "truth_epoch": "truth-event-000017",
+                    "runtime_health_epoch": "runtime-health-event-006191",
+                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                }
+            },
+        }
+    )
+    stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "action_fingerprint": "paper_progress_stall::dm002-current-publication-hardening",
+        "stall_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        "action_cost": {
+            "surface_kind": "runtime_dispatch_cost_contract",
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "reason": "paper_progress_stall_read_model",
+            "llm_dispatch_allowed": False,
+            "codex_worker_dispatch": False,
+        },
+    }
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    dispatch_payload["source_action"] = {
+        "action_type": "run_quality_repair_batch",
+        "route_target": "write",
+        "next_work_unit": {
+            "unit_id": work_unit_id,
+            "lane": "write",
+        },
+        "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
+    }
+    dispatch_payload["prompt_contract"]["next_work_unit"] = {
+        "unit_id": work_unit_id,
+        "lane": "write",
+    }
+    dispatch_payload["paper_progress_stall"] = stall
+    dispatch_payload["prompt_contract"]["paper_progress_stall"] = stall
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "paper_progress_stall": stall,
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
+    called: dict[str, object] = {}
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
+    assert called["control_plane_route_context"]["work_unit_id"] == work_unit_id
+
+
 def test_execute_quality_repair_batch_prefers_fresh_persisted_dispatch_over_stale_consumer_inline(
     monkeypatch,
     tmp_path: Path,

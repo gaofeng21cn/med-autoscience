@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import repeat_suppression
 
 from . import output_readiness
@@ -58,6 +59,11 @@ def owner_handoff_allowed(
             return False
         if _text(owner_route.get("failure_signature")) == "manuscript_story_surface_delta_missing":
             return True
+        if _registered_write_route_back_handoff(
+            action_type=action_type,
+            owner_route=owner_route,
+        ):
+            return True
         next_work_unit_id = _work_unit_id(
             _mapping(dispatch.get("source_action")).get("next_work_unit")
             or dispatch.get("next_work_unit")
@@ -102,6 +108,54 @@ def _work_unit_id(value: object) -> str | None:
     if isinstance(value, Mapping):
         return _text(value.get("unit_id"))
     return _text(value)
+
+
+def _registered_write_route_back_handoff(
+    *,
+    action_type: str,
+    owner_route: Mapping[str, Any],
+) -> bool:
+    reason_contract = owner_route_attempt_protocol.owner_reason_contract(
+        reason=_text(owner_route.get("owner_reason")) or _text(owner_route.get("failure_signature")),
+        owner=_text(owner_route.get("next_owner")),
+        action_type=action_type,
+    )
+    if reason_contract.get("registered") is not True:
+        return False
+    if _text(reason_contract.get("owner")) != "write":
+        return False
+    if _text(reason_contract.get("priority_class")) != "write_route_back":
+        return False
+    if action_type not in {_text(action) for action in reason_contract.get("allowed_actions") or []}:
+        return False
+
+    protocol = _mapping(owner_route.get("owner_route_attempt_protocol"))
+    if not protocol:
+        protocol = _mapping(
+            owner_route_attempt_protocol.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
+        )
+    if protocol.get("dispatchable") is not True:
+        return False
+    if _text(protocol.get("priority_class")) != "write_route_back":
+        return False
+
+    currentness_contract = _mapping(owner_route.get("currentness_contract"))
+    if not currentness_contract:
+        currentness_contract = owner_route_attempt_protocol.currentness_contract(owner_route)
+    if currentness_contract.get("missing_required_fields"):
+        return False
+    if _text(owner_route.get("source_fingerprint")) is None:
+        return False
+    currentness_basis = _owner_route_currentness_basis(owner_route)
+    return _text(currentness_basis.get("work_unit_id")) is not None
+
+
+def _owner_route_currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
+    source_refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    if basis:
+        return basis
+    return owner_route_attempt_protocol.currentness_basis(owner_route)
 
 
 def _text(value: object) -> str | None:
