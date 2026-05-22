@@ -119,6 +119,121 @@ def test_scan_domain_routes_clears_stale_ai_reviewer_lifecycle_after_reviewer_ev
     assert not lifecycle_path.exists()
 
 
+def test_scan_domain_routes_clears_stale_record_lifecycle_after_current_ai_reviewer_eval_materialized(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text("Current manuscript body.\n", encoding="utf-8")
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    ai_reviewer_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::002::current-ai-reviewer",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+        },
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "manuscript_path": str(manuscript_path),
+                }
+            }
+        },
+        "recommended_actions": [],
+    }
+    _write_json(publication_eval_path, ai_reviewer_eval)
+    lifecycle_path = study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
+    _write_json(
+        lifecycle_path,
+        {
+            "surface": "ai_repair_lifecycle",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "state": "blocked",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+            "next_owner": "ai_reviewer",
+            "external_supervisor_required": False,
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "quest_root": str(profile.runtime_root / study_id),
+            "quest_status": "waiting_for_user",
+            "decision": "resume",
+            "reason": "domain_transition_ai_reviewer_re_eval",
+            "active_run_id": None,
+            "publication_eval": ai_reviewer_eval,
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "continue_supervising_runtime",
+                "attempt_state": "idle",
+                "retry_budget_remaining": 2,
+            },
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-dm002",
+                "source_signature": "truth-source-dm002",
+                "canonical_next_action": "resume_same_study_line",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "quest_root": str(profile.runtime_root / study_id),
+            "current_stage": "managed_runtime_supervision_gap",
+            "paper_stage": "publishability_gate_blocked",
+            "refs": {"publication_eval_path": str(publication_eval_path)},
+            "supervision": {"active_run_id": None, "health_status": "parked"},
+            "quality_review_loop": {"closure_state": "review_required"},
+            "ai_repair_lifecycle": {
+                "state": "blocked",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                "next_owner": "ai_reviewer",
+                "external_supervisor_required": False,
+            },
+        },
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=True,
+    )
+
+    study = result["studies"][0]
+    assert study["ai_reviewer_assessment"]["present"] is True
+    assert study["ai_reviewer_assessment"]["owner"] == "ai_reviewer"
+    assert study["action_queue"] == []
+    assert study["ai_repair_lifecycle"] is None
+    assert study["why_not_applied"] is None
+    assert study["blocked_reason"] is None
+    assert study["next_owner"] is None
+    assert study["owner_route"]["owner_reason"] is None
+    assert study["owner_route"]["allowed_actions"] == []
+    assert not lifecycle_path.exists()
+
+
 def test_scan_domain_routes_clears_stale_runtime_relaunch_lifecycle_after_live_worker_observed(
     monkeypatch,
     tmp_path: Path,
