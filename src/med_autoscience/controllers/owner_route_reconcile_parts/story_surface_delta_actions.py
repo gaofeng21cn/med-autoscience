@@ -17,17 +17,23 @@ def write_owner_action(
         publication_eval_payload=publication_eval_payload,
     )
     if controller_route is None:
+        controller_route = current_truth_owner.current_ai_reviewer_write_routeback_route(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+    if controller_route is None:
         return None
     work_unit_id = _text(controller_route.get("work_unit_id")) or "medical_prose_write_repair"
+    reason = _reason_for_route(controller_route)
     return {
         "action_type": "run_quality_repair_batch",
         "authority": "observability_only",
         "owner": "write",
         "request_owner": "write",
         "recommended_owner": "write",
-        "reason": "manuscript_story_surface_delta_missing",
+        "reason": reason,
         "summary": (
-            "The current AI reviewer-backed write route has a same-source story-surface blocker; "
+            "The current AI reviewer-backed write route requires manuscript story-surface repair; "
             "redrive the write owner through the quality repair batch until the canonical "
             "manuscript surface changes or a typed blocker remains."
         ),
@@ -48,6 +54,12 @@ def write_owner_action(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+
+
+def _reason_for_route(controller_route: Mapping[str, Any]) -> str:
+    if _text(controller_route.get("authorization_basis")) == "quality_repair_story_surface_delta_blocker":
+        return "manuscript_story_surface_delta_missing"
+    return "quest_waiting_opl_runtime_owner_route"
 
 
 def _text(value: object) -> str | None:

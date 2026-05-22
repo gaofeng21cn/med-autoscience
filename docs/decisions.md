@@ -194,8 +194,10 @@
 
 - 决策：当 AI reviewer-owned `publication_eval/latest.json` 的 `reviewer_operating_system.currentness_checks.medical_prose_review` 已证明 prose review 当前，且顶层 `recommended_actions[]` 明确给出 `route_back_same_line` / `bounded_analysis` / `stop_loss` owner action 时，controller/domain-transition 的 route authority 必须来自顶层 action，而不是 `medical_prose_review.route_target`。
 - 决策：`medical_prose_review.route_target` 只用于证明该 prose review 不是普通 clear 状态、并可作为缺失顶层 action 时的 fail-closed 信号；它不得覆盖 AI reviewer 顶层 action 的 `route_target=write`、`next_work_unit` 或 `work_unit_fingerprint`。若顶层 action 缺失或指向 `review`，继续 fail closed，不合成 owner route。
+- 决策：当 fresh AI reviewer 顶层 action 为 `route_back_same_line -> write` 且 work unit 是 manuscript-facing story-surface work unit（例如 `medical_prose_write_repair`）时，`owner-route-reconcile` 必须直接投影 `write/run_quality_repair_batch`。旧 `domain_transition_ai_reviewer_re_eval` 只能作为尚未产出 current AI reviewer record 前的重评路线，不能在 current AI reviewer route-back 已写入后继续抢占。
 - 理由：DM002 暴露出 current prose review metadata 仍标注 `route_target=analysis`，但同一 AI reviewer record 的顶层 action 已明确 `route_back_same_line -> write`，要求把 unit-harmonized rerun 吸收进 Abstract、Results、Methods、Table/Figure 和 claim-evidence map。旧 helper 要求 metadata target 与顶层 action target 相同，导致 current eval 被误投成 `ai_reviewer_re_eval`，循环复评而不能交给 write owner。
-- 影响：这是 MAS AI reviewer / controller route authority 修复，不放宽 publication gate，不授权机械 ready verdict，不写 DM002 truth、paper、submission package、current package、`publication_eval/latest.json` 或 `.ds` runtime state；它只让 MAS owner chain 正确把当前 AI reviewer verdict 路由到 paper-write repair。
+- 理由：DM003 随后暴露出同类问题的下一层：AI reviewer 已对当前 manuscript digest 产出 `partial/revise -> write/medical_prose_write_repair`，但 `status.domain_transition` 仍保留上一轮 `ai_reviewer_re_eval`，导致 owner route 继续派 `return_to_ai_reviewer_workflow`，形成复评循环而不是进入 write owner repair。
+- 影响：这是 MAS AI reviewer / controller route authority 修复，不放宽 publication gate，不授权机械 ready verdict，不写 DM002/DM003 truth、paper、submission package、current package、`publication_eval/latest.json` 或 `.ds` runtime state；它只让 MAS owner chain 正确把当前 AI reviewer verdict 路由到 paper-write repair。
 
 ## 2026-05-22：quality_repair_batch handoff_ready 不是 story-surface 修复完成证据
 

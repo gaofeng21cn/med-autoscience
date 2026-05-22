@@ -188,6 +188,63 @@ def current_story_surface_delta_blocker_route(
     }
 
 
+def current_ai_reviewer_write_routeback_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not _ai_reviewer_write_routeback_current(publication_eval_payload):
+        return None
+    action = _publication_story_repair_action(publication_eval_payload)
+    if action is None:
+        return None
+    next_work_unit = _mapping(action.get("next_work_unit"))
+    work_unit_id = _text(next_work_unit.get("unit_id"))
+    if not is_story_surface_delta_write_work_unit(work_unit_id):
+        return None
+    source_eval_id = _text(publication_eval_payload.get("eval_id"))
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    return {
+        "decision_path": None,
+        "decision_id": None,
+        "controller_actions": ["run_quality_repair_batch"],
+        "route_target": "write",
+        "route_key_question": _text(action.get("route_key_question")),
+        "route_rationale": _text(action.get("route_rationale")) or _text(action.get("reason")),
+        "source_route_key_question": _text(action.get("route_key_question")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint")) or _text(next_work_unit.get("fingerprint")),
+        "publication_eval_id": source_eval_id,
+        "publication_eval_ref": {
+            "eval_id": source_eval_id,
+            "artifact_path": str((resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
+        },
+        "next_work_unit": dict(next_work_unit),
+        "blocking_work_units": [dict(next_work_unit)] if next_work_unit else [],
+        "source": "owner_route_reconcile_ai_reviewer_write_routeback",
+        "authorization_basis": "ai_reviewer_current_write_routeback",
+    }
+
+
+def _ai_reviewer_write_routeback_current(publication_eval_payload: Mapping[str, Any]) -> bool:
+    provenance = _mapping(publication_eval_payload.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    reviewer_os = _mapping(publication_eval_payload.get("reviewer_operating_system"))
+    currentness = _mapping(reviewer_os.get("currentness_checks"))
+    prose = _mapping(currentness.get("medical_prose_review"))
+    if _text(prose.get("status")) != "current":
+        return False
+    if prose.get("route_back_required") is not True:
+        return False
+    if _text(prose.get("route_target")) not in {None, "write"}:
+        return False
+    for key in ("request_digest", "manuscript_ref", "manuscript_digest"):
+        if _text(prose.get(key)) is None:
+            return False
+    return _publication_story_repair_action(publication_eval_payload) is not None
+
+
 def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]) -> dict[str, Any] | None:
     actions = publication_eval_payload.get("recommended_actions")
     if not isinstance(actions, list):
