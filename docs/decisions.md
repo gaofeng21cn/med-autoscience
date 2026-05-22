@@ -889,6 +889,13 @@
 - 理由：本轮 DM002 反馈不能只沉淀为单篇 writer fix；它应成为 MAS quality suite 的 repeatable regression，使后续类似 prediction-model external-validation 稿件在写作前或 reviewer route-back 后暴露同类缺口。
 - 影响：`contracts/agent_lab_handoff.json` 与 `agent_lab_medical_manuscript_quality` family targets 必须保持这些 refs；OPL/Agent Lab 只能消费 refs、发出 developer work order 或 typed blocker，不能直接写 study truth 或宣布论文 ready。
 
+## 2026-05-23：DM002 publication hardening write route 必须以稿件 story-surface delta 收口
+
+- 决策：`dm002_current_publication_hardening_after_ai_reviewer_eval` 属于 MAS write-owner story-surface work unit；`quality_repair_batch` / `paper_repair_execution_evidence` 必须要求 `paper/draft.md` 或 `paper/build/review_manuscript.md` 产生 canonical manuscript story-surface delta。只改 `claim_evidence_map`、`evidence_ledger`、`review_ledger`、display surface 或 controller evidence，不能关闭该 write route。
+- 决策：`default_executor_execution/latest.json` 对 `run_quality_repair_batch` 的 receipt consumption 必须匹配 owner route 的 required output。只有正文 story-surface delta、显式 `manuscript_story_surface_delta_missing` typed blocker，或 write-owner handoff 才能消费当前 route；ledger-only `ok/progress_delta_candidate` 不能把 `owner_route` 清空。
+- 理由：DM002 暴露出 `run_quality_repair_batch` 已改 claim/evidence/review ledgers，但没有更新正式稿件正文；旧 receipt consumer 把该 progress delta 当成同一路由完成，导致 `study-runtime-status` 仍 blocked 而 `owner-route-reconcile` action queue 为空。
+- 影响：后续医学论文硬化路线必须把“是否像高质量医学论文”的核心反馈落到 manuscript-native story surface 和 AI reviewer recheck，而不是让 evidence ledger delta、controller receipt 或 package/display materialization 伪装成正文质量完成。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

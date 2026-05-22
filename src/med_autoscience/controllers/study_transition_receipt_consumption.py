@@ -76,6 +76,7 @@ def default_executor_execution_receipt_consumption(
         owner_result = _mapping(execution.get("owner_result"))
         repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
         if not _default_executor_owner_result_consumable(
+            action_type=action_type,
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         ):
@@ -590,9 +591,15 @@ def _owner_route_currentness_matches(
 
 def _default_executor_owner_result_consumable(
     *,
+    action_type: str | None,
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
 ) -> bool:
+    if action_type == "run_quality_repair_batch":
+        return _quality_repair_batch_owner_result_satisfies_route_output(
+            owner_result=owner_result,
+            repair_evidence=repair_evidence,
+        )
     if owner_result.get("ok") is True:
         return True
     if _text(owner_result.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES:
@@ -600,6 +607,45 @@ def _default_executor_owner_result_consumable(
     if _text(repair_evidence.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
         return True
     return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
+
+
+def _quality_repair_batch_owner_result_satisfies_route_output(
+    *,
+    owner_result: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> bool:
+    if _text(owner_result.get("status")) == "handoff_ready" and _mapping(owner_result.get("writer_worker_handoff")):
+        return True
+    if "manuscript_story_surface_delta_missing" in _string_set(repair_evidence.get("blockers")):
+        return True
+    if _text(owner_result.get("blocked_reason")) == "manuscript_story_surface_delta_missing":
+        return True
+    hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
+    if (
+        hygiene.get("story_surface_delta_required") is True
+        and hygiene.get("story_surface_delta_present") is not True
+    ):
+        return False
+    return bool(_story_surface_changed_refs(repair_evidence.get("changed_artifact_refs")))
+
+
+def _story_surface_changed_refs(value: object) -> list[Mapping[str, Any]]:
+    return [
+        ref
+        for ref in _mapping_list(value)
+        if _is_story_surface_path(_text(ref.get("path")))
+    ]
+
+
+def _is_story_surface_path(path_text: str) -> bool:
+    path = Path(path_text).expanduser()
+    parts = path.parts
+    return (
+        len(parts) >= 2
+        and parts[-2:] == ("paper", "draft.md")
+        or len(parts) >= 3
+        and parts[-3:] == ("paper", "build", "review_manuscript.md")
+    )
 
 
 def _mapping_list(value: object) -> list[Mapping[str, Any]]:
@@ -631,6 +677,15 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 def _text(value: object) -> str:
     return str(value or "").strip()
+
+
+def _string_set(value: object) -> set[str]:
+    if isinstance(value, str):
+        text = _text(value)
+        return {text} if text else set()
+    if not isinstance(value, list | tuple | set):
+        return set()
+    return {text for item in value if (text := _text(item))}
 
 
 __all__ = [

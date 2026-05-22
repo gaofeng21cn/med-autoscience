@@ -10,6 +10,10 @@ from typing import Any
 from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
     current_writer_story_delta_is_preservable,
 )
+from med_autoscience.controllers.story_surface_work_units import (
+    STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
+    is_story_surface_delta_write_work_unit,
+)
 from med_autoscience.policies.medical_manuscript_draft_quality import (
     PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS,
 )
@@ -43,18 +47,12 @@ _AUTHORITY_CLAIM_BLOCKERS = {
 _MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset(
     {
         "dm002_same_line_publication_paper_repair",
+        *STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
         "manuscript_story_repair",
         "medical_prose_write_repair",
         "analysis_claim_evidence_repair",
         "figure_results_trace_repair",
         "medical_prose_quality_analysis_source_documentation_repair",
-    }
-)
-_MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS = frozenset(
-    {
-        "dm002_same_line_publication_paper_repair",
-        "manuscript_story_repair",
-        "medical_prose_write_repair",
     }
 )
 _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
@@ -480,7 +478,10 @@ def _manuscript_surface_hygiene(
         }
     surfaces = _existing_manuscript_story_surfaces(study_root=study_root)
     hits = _manuscript_surface_residue_hits(surfaces)
-    story_surface_delta_required = work_unit_id in _MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS
+    story_surface_delta_required = (
+        work_unit_id == "dm002_same_line_publication_paper_repair"
+        or is_story_surface_delta_write_work_unit(work_unit_id)
+    )
     story_surface_delta_refs = _story_surface_delta_refs(
         study_root=study_root,
         changed_artifact_refs=changed_artifact_refs,
@@ -558,7 +559,10 @@ def _story_surface_currentness_delta_refs(
     previous_quality_repair_batch: Mapping[str, Any] | None,
 ) -> list[dict[str, Any]]:
     del source_refs
-    if work_unit_id not in _MANUSCRIPT_STORY_SURFACE_DELTA_WORK_UNIT_IDS:
+    if not (
+        work_unit_id == "dm002_same_line_publication_paper_repair"
+        or is_story_surface_delta_write_work_unit(work_unit_id)
+    ):
         return []
     if not _previous_batch_blocks_same_story_surface_delta(
         previous_quality_repair_batch,
