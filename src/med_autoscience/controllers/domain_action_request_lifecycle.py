@@ -763,6 +763,12 @@ def project_ai_reviewer_request_lifecycle(
         "required_output": dict(_mapping(packet.get("required_output") or packet.get("requested_artifact"))),
         "blockers": input_blockers or list(packet.get("blockers") if isinstance(packet.get("blockers"), list) else []),
         "assessment_written": output_written,
+        "blocked_reason": _text(_mapping(packet.get("request_lifecycle")).get("blocked_reason")),
+        "stale_record_ref": _text(_mapping(packet.get("request_lifecycle")).get("stale_record_ref")),
+        "required_currentness_refs": _string_items(
+            _mapping(packet.get("request_lifecycle")).get("required_currentness_refs")
+        ),
+        "source_ref": _text(_mapping(packet.get("request_lifecycle")).get("source_ref")),
         "can_authorize_quality": False,
         "can_authorize_finalize": False,
         "can_authorize_submission": False,

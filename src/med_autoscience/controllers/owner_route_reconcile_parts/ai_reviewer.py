@@ -42,7 +42,8 @@ def assessment(
         }
     if request_state in {"requested", "assigned"}:
         request_owner = _text(request_lifecycle.get("request_owner")) or "ai_reviewer"
-        return {
+        blocked_reason = _text(request_lifecycle.get("blocked_reason")) or "ai_reviewer_assessment_required"
+        assessment = {
             "present": False,
             "owner": request_owner,
             "required": True,
@@ -50,8 +51,15 @@ def assessment(
             "request_state": request_state,
             "request_id": _text(request_lifecycle.get("request_id")),
             "request_path": _text(_mapping(request_lifecycle.get("refs")).get("request_path")),
-            "blocked_reason": "ai_reviewer_assessment_required",
+            "blocked_reason": blocked_reason,
         }
+        if stale_record_ref := _text(request_lifecycle.get("stale_record_ref")):
+            assessment["stale_record_ref"] = stale_record_ref
+        if required_refs := _string_items(request_lifecycle.get("required_currentness_refs")):
+            assessment["required_currentness_refs"] = required_refs
+        if source_ref := _text(request_lifecycle.get("source_ref")):
+            assessment["source_ref"] = source_ref
+        return assessment
     reasons = set(blocking_reasons)
     required = bool(provenance.get("ai_reviewer_required")) or "publication_eval.ai_reviewer_required" in reasons
     present = owner == "ai_reviewer"
@@ -142,6 +150,12 @@ def _timestamp(value: object) -> datetime | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _string_items(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := _text(item))]
 
 
 def _text(value: object) -> str | None:

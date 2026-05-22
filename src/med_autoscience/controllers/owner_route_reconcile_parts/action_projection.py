@@ -155,6 +155,17 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    if _explicit_ai_reviewer_record_current_manuscript_request_pending(ai_reviewer_assessment):
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=_ai_reviewer_record_current_manuscript_action(ai_reviewer_assessment),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     story_surface_action = story_surface_delta_actions.write_owner_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -344,6 +355,35 @@ def _explicit_ai_reviewer_request_pending(ai_reviewer_assessment: Mapping[str, A
         ai_reviewer_assessment.get("missing") is True
         and _text(ai_reviewer_assessment.get("request_state")) in {"requested", "assigned"}
     )
+
+
+def _explicit_ai_reviewer_record_current_manuscript_request_pending(
+    ai_reviewer_assessment: Mapping[str, Any],
+) -> bool:
+    return (
+        _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
+        and _text(ai_reviewer_assessment.get("blocked_reason"))
+        == ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
+    )
+
+
+def _ai_reviewer_record_current_manuscript_action(
+    ai_reviewer_assessment: Mapping[str, Any],
+) -> dict[str, Any]:
+    action = ai_reviewer_actions.ai_reviewer_required_action(
+        reason=ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
+    )
+    action["summary"] = (
+        "The request-bound AI reviewer record predates the current manuscript; produce a new AI reviewer "
+        "publication-eval record against the current manuscript before refreshing publication_eval/latest.json."
+    )
+    if required_refs := _string_items(ai_reviewer_assessment.get("required_currentness_refs")):
+        action["required_currentness_refs"] = required_refs
+    if stale_record_ref := _text(ai_reviewer_assessment.get("stale_record_ref")):
+        action["stale_record_ref"] = stale_record_ref
+    if source_ref := _text(ai_reviewer_assessment.get("source_ref")):
+        action["source_ref"] = source_ref
+    return action
 
 
 def _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(

@@ -23,6 +23,7 @@
 
 - 决策：`ai_reviewer_request_lifecycle` 只能在 AI reviewer-owned `publication_eval/latest.json` 明确消费当前 `artifacts/supervision/requests/ai_reviewer/latest.json` 后进入 `assessment_written`。消费证据必须是 eval/provenance/source refs 包含该 request ref，或 eval 时间戳不早于 request 时间戳；缺 currentness evidence 时保持 request pending。
 - 决策：owner-route reconcile 在 progress 尚未投影 `ai_reviewer_request_lifecycle` 时，必须直接从 stable AI reviewer request file 投影 lifecycle；pending request 要优先于旧 `route_back_same_line/write` story route，但仍排在 methodology/source-provenance/analysis-harmonization 等硬 blocker 之后。
+- 决策：若 pending AI reviewer request 的 blocker 是 `ai_reviewer_record_stale_after_current_manuscript`，owner-route 必须把 `next_owner` 固定为 `ai_reviewer`，并保留 `stale_record_ref` 与 `required_currentness_refs` 进入 action packet；不得让旧 write/story residue 因 owner-route guard 把该 action 过滤为空。
 - 理由：DM002 暴露出 `quality_repair_batch` 已物化新的 AI reviewer recheck request，但 stale AI reviewer eval 与旧 write route 继续抢占，导致系统重复派 `run_quality_repair_batch` 而没有回到 `return_to_ai_reviewer_workflow`。根因是 MAS request currentness 和 action priority，不是 OPL queue/provider lifecycle。
 - 影响：这是 MAS owner-route/read-model currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍由当前 AI reviewer-backed publication eval、write owner delta 与 publication gate 判定。
 
