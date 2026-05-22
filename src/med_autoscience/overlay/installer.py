@@ -8,6 +8,11 @@ from pathlib import Path
 import shutil
 from typing import Any
 
+from med_autoscience.overlay.companion_blocks import (
+    companion_file_statuses,
+    companion_files_ready,
+    write_companion_files,
+)
 from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
 from med_autoscience.overlay.system_prompt_hygiene import (
     audit_runtime_system_prompt,
@@ -64,6 +69,7 @@ APPEND_BLOCK_TEMPLATE_MAP = {
     "intake-audit": "medical-research-intake-audit.block.md",
     "rebuttal": "medical-research-rebuttal.block.md",
 }
+TEMPLATE_ROOT = Path(__file__).resolve().parent / "templates"
 
 
 @dataclass(frozen=True)
@@ -161,8 +167,20 @@ def render_medical_runtime_contract_block() -> str:
 
 
 def _load_template_text(template_name: str) -> str:
-    template_path = Path(__file__).resolve().parent / "templates" / template_name
+    template_path = TEMPLATE_ROOT / template_name
     return template_path.read_text(encoding="utf-8")
+
+
+def _companion_file_statuses(target: OverlayTarget) -> list[dict[str, Any]]:
+    return companion_file_statuses(skill_id=target.skill_id, target_root=target.target_root, template_root=TEMPLATE_ROOT)
+
+
+def _companion_files_ready(target: OverlayTarget) -> bool:
+    return companion_files_ready(skill_id=target.skill_id, target_root=target.target_root, template_root=TEMPLATE_ROOT)
+
+
+def _write_companion_files(target: OverlayTarget) -> list[dict[str, Any]]:
+    return write_companion_files(skill_id=target.skill_id, target_root=target.target_root, template_root=TEMPLATE_ROOT)
 
 
 def _render_overlay_text_from_template(
@@ -408,13 +426,18 @@ def _describe_target(
 
     if target.skill_path.exists():
         current_fingerprint = _fingerprint(current_text or "")
+        companion_files = _companion_file_statuses(target)
+        companion_files_ready = all(item["status"] == "ready" for item in companion_files)
         if manifest_path_drift:
             status = "drifted"
             needs_reapply = True
         elif manifest_present:
-            if overlay_fingerprint and current_fingerprint == overlay_fingerprint:
+            if overlay_fingerprint and current_fingerprint == overlay_fingerprint and companion_files_ready:
                 status = "overlay_applied"
                 needs_reapply = False
+            elif overlay_fingerprint and current_fingerprint == overlay_fingerprint:
+                status = "drifted"
+                needs_reapply = True
             elif source_fingerprint_before_overlay and current_fingerprint == source_fingerprint_before_overlay:
                 status = "overwritten_by_upstream"
                 needs_reapply = True
@@ -423,13 +446,14 @@ def _describe_target(
                 needs_reapply = True
         else:
             if overlay_fingerprint and current_fingerprint == overlay_fingerprint:
-                status = "overlay_present_unmanaged"
+                status = "overlay_present_unmanaged" if companion_files_ready else "drifted"
             else:
                 status = "not_installed"
             needs_reapply = status != "overlay_applied"
     else:
         status = "missing_target"
         needs_reapply = True
+        companion_files = _companion_file_statuses(target)
 
     return {
         "skill_id": target.skill_id,
@@ -443,6 +467,7 @@ def _describe_target(
         "current_fingerprint": current_fingerprint,
         "overlay_fingerprint": overlay_fingerprint,
         "source_fingerprint_before_overlay": source_fingerprint_before_overlay,
+        "companion_files": companion_files,
         "policy_id": policy_id,
         "archetype_ids": list(archetype_ids),
     }
@@ -608,7 +633,7 @@ def _install_for_target(
         and manifest.get("overlay_fingerprint") == overlay_fingerprint
         and current_fingerprint == overlay_fingerprint
     )
-    if already_managed and not force:
+    if already_managed and not force and _companion_files_ready(target):
         return {
             "skill_id": target.skill_id,
             "action": "already_installed",
@@ -619,6 +644,7 @@ def _install_for_target(
 
     source_fingerprint_before_overlay = previous_source_fingerprint or current_fingerprint
     target.skill_path.write_text(overlay_text, encoding="utf-8")
+    companion_files = _write_companion_files(target)
     _write_manifest(
         target=target,
         quest_root=quest_root,
@@ -635,6 +661,7 @@ def _install_for_target(
         "target_root": str(target.target_root),
         "skill_path": str(target.skill_path),
         "manifest_path": str(target.manifest_path),
+        "companion_files": companion_files,
         "policy_id": policy_id,
         "archetype_ids": list(archetype_ids),
     }

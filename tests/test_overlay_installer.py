@@ -37,6 +37,7 @@ STAGE_SKILL_SURFACE_TOKEN = "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}"
 ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
 STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
 MEDICAL_RUNTIME_CONTRACT_TOKEN = "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}"
+STAGE_PACKET_TEMPLATE_NAME = "medical-research-stage-packet.block.md"
 STAGE_SKILL_TEMPLATE_FILES = {
     "analysis-campaign": "medical-research-analysis-campaign.SKILL.md",
     "baseline": "medical-research-baseline.SKILL.md",
@@ -79,6 +80,14 @@ def write_runtime_skill(repo_root: Path, skill_id: str, body: str) -> Path:
 
 def read_manifest(target_root: Path) -> dict:
     return json.loads((target_root / ".med_autoscience_overlay.json").read_text(encoding="utf-8"))
+
+
+def read_stage_packet_template() -> str:
+    return (OVERLAY_TEMPLATE_ROOT / STAGE_PACKET_TEMPLATE_NAME).read_text(encoding="utf-8")
+
+
+def stage_packet_path(root: Path, skill_id: str) -> Path:
+    return root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}" / STAGE_PACKET_TEMPLATE_NAME
 
 
 def write_system_prompt(root: Path, body: str) -> Path:
@@ -497,6 +506,7 @@ def test_install_medical_overlay_materializes_workspace_full_template_skill_with
         skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}" / "SKILL.md"
         assert skill_path.exists(), skill_path
         assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(skill_id)
+    assert stage_packet_path(quest_root, "write").read_text(encoding="utf-8") == read_stage_packet_template()
 
 
 def test_ensure_medical_overlay_noops_when_targets_are_ready(tmp_path: Path) -> None:
@@ -701,6 +711,59 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
     by_surface = {Path(item["runtime_root"]).name: item for item in audit["surfaces"]}
     assert by_surface["q001"]["all_targets_ready"] is True
     assert by_surface["paper-run-1"]["all_targets_ready"] is True
+
+
+def test_materialize_runtime_medical_overlay_materializes_required_companion_blocks(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    workspace_root = tmp_path / "workspace"
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+
+    module.install_medical_overlay(
+        quest_root=workspace_root,
+        skill_ids=("write",),
+    )
+    write_skill(worktree_root / ".codex" / "skills", "write", "upstream write\n")
+
+    result = module.materialize_runtime_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        skill_ids=("write",),
+    )
+
+    assert result["materialized_surface_count"] == 2
+    for runtime_root in (quest_root, worktree_root):
+        assert stage_packet_path(runtime_root, "write").read_text(encoding="utf-8") == read_stage_packet_template()
+
+
+def test_audit_runtime_medical_overlay_reports_missing_companion_block(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    workspace_root = tmp_path / "workspace"
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+
+    module.install_medical_overlay(
+        quest_root=workspace_root,
+        skill_ids=("write",),
+    )
+    module.materialize_runtime_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        skill_ids=("write",),
+    )
+    missing_stage_packet = stage_packet_path(quest_root, "write")
+    missing_stage_packet.unlink(missing_ok=False)
+
+    result = module.audit_runtime_medical_overlay(
+        quest_root=quest_root,
+        skill_ids=("write",),
+    )
+
+    assert result["all_roots_ready"] is False
+    surface = result["surfaces"][0]
+    assert surface["all_targets_ready"] is False
+    target = surface["status"]["targets"][0]
+    assert target["status"] == "drifted"
+    assert target["companion_files"][0]["status"] == "missing"
 def test_materialize_runtime_medical_overlay_does_not_mutate_legacy_mds_skills_without_home_global_writes(
     tmp_path: Path,
 ) -> None:

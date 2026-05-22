@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：medical overlay 必须物化 stage skill 引用的 companion block
+
+- 决策：`install_medical_overlay` / `reapply_medical_overlay` / `materialize_runtime_medical_overlay` 在写入 stage `SKILL.md` 时，必须同步物化该 skill 依赖的显式 companion template，例如 `medical-research-stage-packet.block.md`。companion 依赖由 MAS overlay installer 中的显式 registry 持有，不通过扫描 Markdown 链接隐式推断。
+- 决策：overlay status / runtime overlay audit 必须把 required companion block 纳入 readiness。已安装 overlay 的 `SKILL.md` 若匹配当前模板但 companion block 缺失或漂移，状态必须 fail closed 为 drifted，并由 reapply / materialize 修复；纯 upstream 未安装 skill 仍保持 `not_installed` 分类。
+- 理由：DM003 write owner repair turn 暴露出 `medical-research-write/SKILL.md` 引用 `./medical-research-stage-packet.block.md`，但 runtime overlay 只物化 `SKILL.md` 和 manifest，导致 stage packet discipline 文件在 quest overlay 中悬空。worker 可退回显式 skill 文本继续工作，但这是 MAS stage-surface delivery 缺陷，不能靠单篇 study 手工补 runtime overlay 掩盖。
+- 影响：这是 MAS overlay installer / stage skill surface 修复，不写 DM003 study truth、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal`、`manuscript/current_package` 或论文 ready verdict。论文质量仍由 MAS write owner delta、AI reviewer-backed publication eval 和 publication gate 判定。
+
 ## 2026-05-22：quality repair writer handoff 继承当前 owner route
 
 - 决策：`quality_repair_batch` 生成 `quality_repair_batch_writer_handoff` 时，必须优先继承当前 dispatch/scan owner route；只有当 study、quest、next owner、blocked reason 与 allowed action 全部匹配时才可继承。不能用由 publication blockers 或内部 selected work unit 推导出的新 route 替换当前 owner route。
