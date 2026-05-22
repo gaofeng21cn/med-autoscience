@@ -10,6 +10,9 @@ from med_autoscience.controllers import domain_action_requests
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
+from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+    eval_bound_current_story_delta_source_basis,
+)
 from med_autoscience.controllers.quality_repair_batch_parts import medical_prose_story_surface
 
 
@@ -42,7 +45,13 @@ def _write_json_if_changed(path: Path, payload: Mapping[str, Any]) -> bool:
     return True
 
 
-def _source_fingerprint(*, work_unit_id: str, source_eval_id: str | None, gate_report: Mapping[str, Any]) -> str:
+def _source_fingerprint(
+    *,
+    work_unit_id: str,
+    source_eval_id: str | None,
+    gate_report: Mapping[str, Any],
+    current_manuscript_basis: Mapping[str, Any] | None = None,
+) -> str:
     payload = {
         "work_unit_id": work_unit_id,
         "source_eval_id": source_eval_id,
@@ -57,6 +66,9 @@ def _source_fingerprint(*, work_unit_id: str, source_eval_id: str | None, gate_r
             for item in (gate_report.get("medical_publication_surface_named_blockers") or [])
             if str(item).strip()
         ],
+        "current_manuscript_basis": dict(current_manuscript_basis)
+        if isinstance(current_manuscript_basis, Mapping)
+        else {},
     }
     digest = hashlib.sha256(json.dumps(payload, ensure_ascii=True, sort_keys=True).encode("utf-8")).hexdigest()
     return f"sha256:{digest}"
@@ -170,12 +182,14 @@ def _materialize_medical_prose_story_surfaces(
     work_unit_id: str,
     source_eval_id: str | None,
     previous_quality_repair_batch: Mapping[str, Any] | None,
+    publication_eval_payload: Mapping[str, Any] | None,
 ) -> list[str]:
     return medical_prose_story_surface.materialize_medical_prose_story_surfaces(
         paper_root=paper_root,
         work_unit_id=work_unit_id,
         source_eval_id=source_eval_id,
         previous_quality_repair_batch=previous_quality_repair_batch,
+        publication_eval_payload=publication_eval_payload,
     )
 
 def _materialize_ai_reviewer_request(
@@ -241,6 +255,7 @@ def run_upstream_paper_repair_unit(
     work_unit_id: str | None,
     source_eval_id: str | None,
     previous_quality_repair_batch: Mapping[str, Any] | None = None,
+    publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     resolved_work_unit_id = _text(work_unit_id)
     if resolved_work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
@@ -259,10 +274,20 @@ def run_upstream_paper_repair_unit(
             },
         }
 
+    current_manuscript_basis = eval_bound_current_story_delta_source_basis(
+        paper_root=paper_root,
+        work_unit_id=resolved_work_unit_id,
+        medical_prose_write_repair_work_unit_id=medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+        manuscript_story_surface_relative_paths=medical_prose_story_surface.MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS,
+        contains_forbidden_manuscript_terms=medical_prose_story_surface._contains_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        publication_eval_payload=publication_eval_payload,
+    )
     source_fingerprint = _source_fingerprint(
         work_unit_id=resolved_work_unit_id,
         source_eval_id=source_eval_id,
         gate_report=gate_report,
+        current_manuscript_basis=current_manuscript_basis,
     )
     receipt = _repair_receipt(
         study_id=study_id,
@@ -278,6 +303,7 @@ def run_upstream_paper_repair_unit(
             work_unit_id=resolved_work_unit_id,
             source_eval_id=source_eval_id,
             previous_quality_repair_batch=previous_quality_repair_batch,
+            publication_eval_payload=publication_eval_payload,
         )
     )
     review_ledger = _materialize_review_ledger(

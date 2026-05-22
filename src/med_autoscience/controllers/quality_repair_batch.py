@@ -909,6 +909,7 @@ def run_quality_repair_batch(
         work_unit_id=upstream_work_unit_id,
         source_eval_id=current_eval_id,
         previous_quality_repair_batch=latest_batch,
+        publication_eval_payload=publication_eval_payload,
     )
     gate_clearing_result = repair_execution_gate.merge_upstream_unit_result(
         gate_clearing_result=gate_clearing_result,
@@ -929,6 +930,7 @@ def run_quality_repair_batch(
         source_summary_artifact_path=source_summary_artifact_path,
         gate_clearing_result=gate_clearing_result,
         previous_quality_repair_batch=latest_batch,
+        publication_eval_payload=publication_eval_payload,
     )
     repair_execution_evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
         study_root=resolved_study_root,

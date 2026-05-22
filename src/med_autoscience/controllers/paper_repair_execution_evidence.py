@@ -10,6 +10,9 @@ from typing import Any
 from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
     current_writer_story_delta_is_preservable,
 )
+from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+    eval_bound_current_story_delta_refs,
+)
 from med_autoscience.controllers.story_surface_work_units import (
     STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
     is_story_surface_delta_write_work_unit,
@@ -105,6 +108,7 @@ def build_repair_execution_evidence(
     ai_reviewer_recheck_request_ref: object | None = None,
     authority_claims: Mapping[str, Any] | None = None,
     previous_quality_repair_batch: Mapping[str, Any] | None = None,
+    publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     work_unit = _mapping(repair_work_unit)
@@ -124,6 +128,7 @@ def build_repair_execution_evidence(
             source_refs=normalized_source_refs,
             source_eval_id=_text(finding.get("source_eval_id")),
             previous_quality_repair_batch=previous_quality_repair_batch,
+            publication_eval_payload=publication_eval_payload,
         )
     )
     valid_changed_ref_delta = bool(valid_changed_refs)
@@ -269,6 +274,7 @@ def build_from_quality_repair_batch_result(
     source_summary_artifact_path: str,
     gate_clearing_result: Mapping[str, Any],
     previous_quality_repair_batch: Mapping[str, Any] | None = None,
+    publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     work_unit = _repair_work_unit(gate_clearing_result)
@@ -301,6 +307,7 @@ def build_from_quality_repair_batch_result(
         ai_reviewer_recheck_request_ref=_default_ai_reviewer_recheck_ref(resolved_study_root),
         authority_claims=_authority_claims_from_unit_results(gate_clearing_result.get("unit_results")),
         previous_quality_repair_batch=previous_quality_repair_batch,
+        publication_eval_payload=publication_eval_payload,
     )
 
 
@@ -557,6 +564,7 @@ def _story_surface_currentness_delta_refs(
     source_refs: Iterable[str],
     source_eval_id: str | None,
     previous_quality_repair_batch: Mapping[str, Any] | None,
+    publication_eval_payload: Mapping[str, Any] | None,
 ) -> list[dict[str, Any]]:
     del source_refs
     if not (
@@ -564,6 +572,18 @@ def _story_surface_currentness_delta_refs(
         or is_story_surface_delta_write_work_unit(work_unit_id)
     ):
         return []
+    if work_unit_id == _MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
+        refs = eval_bound_current_story_delta_refs(
+            paper_root=study_root / "paper",
+            work_unit_id=work_unit_id,
+            medical_prose_write_repair_work_unit_id=_MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+            manuscript_story_surface_relative_paths=(Path("draft.md"), Path("build") / "review_manuscript.md"),
+            contains_forbidden_manuscript_terms=_contains_medical_prose_forbidden_manuscript_terms,
+            source_eval_id=source_eval_id,
+            publication_eval_payload=publication_eval_payload,
+        )
+        if refs:
+            return refs
     if not _previous_batch_can_anchor_story_surface_delta(
         previous_quality_repair_batch,
         source_eval_id=source_eval_id,

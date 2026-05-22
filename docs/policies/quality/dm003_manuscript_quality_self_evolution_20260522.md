@@ -78,11 +78,20 @@ The writer materializer now renders this as a study-design statement and treats 
 
 This gate blocks leaked process language; it does not authorize readiness or mutate DM003 study truth.
 
+## 2026-05-22 Eval-Bound Manuscript Currentness Guard
+
+DM003 then exposed a deeper currentness bug: `run_quality_repair_batch` used the current AI reviewer eval for route authorization, but `medical_prose_write_repair` could still regenerate the manuscript from deterministic canonical templates and overwrite a more current manuscript that the AI reviewer had just assessed.
+
+`medical_prose_write_repair` now treats `publication_eval/latest.json#reviewer_operating_system.currentness_checks.medical_prose_review` as a content identity guard when the check is current and route target is write. If both canonical story surfaces match the eval-bound manuscript digest, contain journal-routable medical prose, and avoid forbidden runtime language, the writer materializer preserves them and records the current story surfaces as the canonical manuscript delta. The source fingerprint includes this current manuscript basis, so a stale deterministic repair batch cannot share the same identity with the AI reviewer-bound manuscript.
+
+This is still an owner-path guard, not a readiness verdict. A preserved current manuscript must return to AI reviewer / publication gate for quality authority.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/owner_route_handoff_command.py::test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
 - `tests/test_agent_lab_medical_manuscript_quality.py::test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets`
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_updates_canonical_story_surface`
+- `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_preserves_current_ai_reviewer_bound_story_surface`
 - `tests/test_publication_gate_cases/supervisor_cases.py::test_build_gate_report_blocks_forbidden_manuscript_terminology`
 - `tests/test_paper_repair_executor.py::test_paper_repair_executor_executes_text_repair_on_canonical_sources`
 - `tests/test_medical_reporting_contract.py::test_resolve_medical_reporting_contract_for_primary_care_gap_manuscript`

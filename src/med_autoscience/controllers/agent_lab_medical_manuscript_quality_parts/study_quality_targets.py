@@ -235,7 +235,9 @@ def _observational_phenotype_treatment_gap_profile() -> dict[str, Any]:
                 "requirement": (
                     "medical_prose_write_repair and manuscript-story repairs must produce a canonical "
                     "paper/draft.md or paper/build/review_manuscript.md delta; ledger-only repair evidence "
-                    "with manuscript_story_surface_delta_missing remains a typed blocker"
+                    "with manuscript_story_surface_delta_missing remains a typed blocker, while current "
+                    "AI reviewer eval-bound manuscript surfaces must be preserved instead of overwritten "
+                    "by deterministic templates"
                 ),
                 "route_target": "write",
             },
