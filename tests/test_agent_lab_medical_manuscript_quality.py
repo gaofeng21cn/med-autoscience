@@ -38,7 +38,12 @@ def test_agent_lab_handoff_contract_exposes_prediction_model_quality_target_refs
         "calibration_risk_collapse_figure_quality",
         "grouped_calibration_with_observed_rate_intervals",
         "claim_evidence_display_alignment_without_runtime_language",
+        "ai_reviewer_record_current_manuscript_binding",
     }.issubset(set(prediction_mapping["quality_target_refs"]))
+    assert (
+        "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
+        in prediction_mapping["target_surface_refs"]
+    )
 
 
 def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scorecard(
@@ -120,6 +125,7 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "methodology_reframe_decision_owner_route" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "ai_reviewer_output_readiness_currentness_consumption" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "ai_reviewer_record_production_handoff" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    assert "ai_reviewer_record_current_manuscript_binding" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "dm002_quality_targets" not in task["improvement_candidate"]["developer_patch_work_order"]
     assert task["improvement_candidate"]["developer_patch_work_order"]["study_quality_target_family"] == (
         "prediction_model_external_validation"
@@ -135,6 +141,7 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "calibration_risk_collapse_figure_quality" in dm002_target_ids
     assert "grouped_calibration_with_observed_rate_intervals" in dm002_target_ids
     assert "claim_evidence_display_alignment_without_runtime_language" in dm002_target_ids
+    assert "ai_reviewer_record_current_manuscript_binding" in dm002_target_ids
     assert (
         "ai_native_expert_judgment_first_quality_boundary"
         in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
@@ -188,6 +195,10 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
     assert (
+        "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
+    assert (
         "mechanism-edit-ref:mas/invalid-analysis-history-body-free-projection"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
@@ -205,6 +216,7 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert "analysis-harmonization-owner-routing" in " ".join(mechanism_inputs["target_editable_surface_refs"])
     assert "ai-reviewer-output-readiness-currentness-consumption" in " ".join(mechanism_inputs["target_editable_surface_refs"])
     assert "ai-reviewer-record-production-handoff" in " ".join(mechanism_inputs["target_editable_surface_refs"])
+    assert "ai-reviewer-record-current-manuscript-binding" in " ".join(mechanism_inputs["target_editable_surface_refs"])
     assert (
         "domain_route_analysis_harmonization_owner_result_consumption"
         in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]

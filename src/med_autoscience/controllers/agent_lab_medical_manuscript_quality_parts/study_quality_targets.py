@@ -49,6 +49,7 @@ def _prediction_model_external_validation_profile() -> dict[str, Any]:
             "calibration-risk-collapse-and-figure-quality",
             "grouped-calibration-with-observed-rate-intervals",
             "claim-evidence-display-alignment-without-runtime-language",
+            "ai-reviewer-record-current-manuscript-binding",
             "internal-quality-language-purge",
         ],
         "targets": [
@@ -114,6 +115,15 @@ def _prediction_model_external_validation_profile() -> dict[str, Any]:
                     "metrics while excluding MAS, AI reviewer, package, readiness, and other runtime language"
                 ),
                 "route_target": "write",
+            },
+            {
+                "target_id": "ai_reviewer_record_current_manuscript_binding",
+                "requirement": (
+                    "AI reviewer publication-eval records must be current against the manuscript they cite; "
+                    "records predating current paper/draft.md or review_manuscript.md fail closed to record "
+                    "production before publication_eval/latest.json can be refreshed"
+                ),
+                "route_target": "ai_reviewer",
             },
             {
                 "target_id": "internal_quality_language_purge",

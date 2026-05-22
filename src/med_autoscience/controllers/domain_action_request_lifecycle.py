@@ -37,6 +37,10 @@ AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB = (
     "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
 )
 ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
+AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN = (
+    "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+)
+AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT = "ai_reviewer_record_stale_after_current_manuscript"
 AI_REVIEWER_REQUIRED_QUALITY_DIMENSIONS = (
     "clinical_significance",
     "evidence_strength",
@@ -252,6 +256,16 @@ def _analysis_harmonization_currentness_refs(*, study_root: Path) -> list[str]:
     return refs
 
 
+def _current_manuscript_ref(*, study_root: Path, record: Mapping[str, Any]) -> str | None:
+    source_refs = _record_source_refs(study_root=study_root, record=record)
+    for relative_path in AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES:
+        candidate = (study_root / relative_path).resolve()
+        candidate_ref = str(candidate)
+        if candidate.exists() and candidate_ref in source_refs:
+            return candidate_ref
+    return None
+
+
 def _record_source_refs(*, study_root: Path, record: Mapping[str, Any]) -> set[str]:
     refs: set[str] = set()
     provenance = _mapping(record.get("assessment_provenance"))
@@ -304,9 +318,12 @@ def _record_missing_currentness_refs(
     record: Mapping[str, Any],
 ) -> list[str]:
     required_refs = _analysis_harmonization_currentness_refs(study_root=study_root)
+    source_refs = _record_source_refs(study_root=study_root, record=record)
+    current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
+    if current_manuscript_ref:
+        required_refs = [*required_refs, current_manuscript_ref]
     if not required_refs:
         return []
-    source_refs = _record_source_refs(study_root=study_root, record=record)
     record_timestamp = _reviewer_assessment_timestamp(record)
     missing_or_stale: list[str] = []
     for ref in required_refs:
@@ -319,6 +336,18 @@ def _record_missing_currentness_refs(
         ):
             missing_or_stale.append(ref)
     return missing_or_stale
+
+
+def _record_currentness_blocked_reason(
+    *,
+    study_root: Path,
+    record: Mapping[str, Any],
+    missing_currentness_refs: list[str],
+) -> str:
+    current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
+    if current_manuscript_ref and current_manuscript_ref in set(missing_currentness_refs):
+        return AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+    return AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN
 
 
 def _ref_timestamp(path: Path) -> datetime | None:
@@ -408,9 +437,10 @@ def _block_ai_reviewer_record_missing_currentness(
     payload: dict[str, Any],
     record_ref: str | None,
     missing_currentness_refs: list[str],
+    blocked_reason: str = AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 ) -> dict[str, Any]:
     lifecycle = dict(_mapping(payload.get("request_lifecycle")))
-    lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
+    lifecycle["blocked_reason"] = blocked_reason
     if record_ref:
         lifecycle["stale_record_ref"] = record_ref
     lifecycle["required_currentness_refs"] = missing_currentness_refs
@@ -465,6 +495,11 @@ def _validate_ai_reviewer_record_for_packet(
             payload=payload,
             record_ref=record_ref,
             missing_currentness_refs=missing_currentness_refs,
+            blocked_reason=_record_currentness_blocked_reason(
+                study_root=study_root,
+                record=record,
+                missing_currentness_refs=missing_currentness_refs,
+            ),
         )
     leakage = ai_reviewer_record_story_provenance_leakage(record)
     if leakage is not None:

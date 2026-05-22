@@ -329,7 +329,8 @@
               "quality_contract_ref:prediction_model_first_draft_quality",
               "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
               "mechanism-edit-ref:mas/source-provenance-owner-recovery",
-              "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption"
+              "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
+              "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
             ],
             "quality_target_refs": [
               "hdl_harmonization_and_sensitivity",
@@ -341,7 +342,8 @@
               "nhanes_weighting_or_unweighted_framing",
               "calibration_risk_collapse_figure_quality",
               "grouped_calibration_with_observed_rate_intervals",
-              "claim_evidence_display_alignment_without_runtime_language"
+              "claim_evidence_display_alignment_without_runtime_language",
+              "ai_reviewer_record_current_manuscript_binding"
             ]
           },
           {

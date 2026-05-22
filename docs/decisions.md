@@ -218,6 +218,14 @@
 - 理由：DM002 的 analysis rerun 完成后，request lifecycle 正确识别旧 AI reviewer record 已过期，但 dispatcher 只返回三条自然语言 next action，外层容易误诊为 OPL queue/provider 问题或普通不可执行 blocker。结构化 handoff 让前台、OPL Agent Lab 和 meta-agent 能看到真实 MAS owner 缺口，并按 record-only owner surface 推进。
 - 影响：这是 MAS AI reviewer / Agent Lab 自进化 read-model 修复，不放宽 quality gate，不授权机械 ready verdict，也不替 AI reviewer 生成医学结论；它只把当前 blocker 转成可消费、可测试、可回归的 owner handoff。
 
+## 2026-05-22：AI reviewer record 必须绑定当前 manuscript 版本
+
+- 决策：`domain_action_request_lifecycle` 接受 request-bound `ai_reviewer_record` 前，若该 record 的 provenance 或 dimension evidence refs 指向当前 canonical manuscript（例如 `paper/draft.md` 或 `paper/build/review_manuscript.md`），record 的逻辑评审时间必须不早于该 manuscript 的当前结构化时间或文件 mtime；否则 fail closed 为 `ai_reviewer_record_stale_after_current_manuscript`。
+- 决策：`return_to_ai_reviewer_workflow` 遇到 `ai_reviewer_record_stale_after_current_manuscript` 时，必须返回结构化 `ai_reviewer_record_production_request`，其 `request_kind=produce_ai_reviewer_publication_eval_record_against_current_manuscript`，并要求下一轮 record 消费当前 manuscript ref。它不得把旧 record 重新包装进 `publication_eval/latest.json`。
+- 决策：Agent Lab medical manuscript quality suite 必须暴露 `ai_reviewer_record_current_manuscript_binding` quality target、mechanism edit ref 和 regression suite ref，让“旧 AI reviewer record 复用在新稿件上”成为可回归的 MAS 智能体能力缺口。
+- 理由：DM002 暴露出 2026-05-22 21:10 刷新的 Abstract 已包含核心 95% CI，但 `return_to_ai_reviewer_workflow` 在 21:12 仍把 2026-05-21 旧 request-bound AI reviewer record 中的 “Abstract lacks 95% CIs” 原样物化为最新 `publication_eval/latest.json`。这是 reviewer record currentness 漏洞，不是论文 surface 缺 CI。
+- 影响：这是 MAS AI reviewer currentness / self-evolution 修复，不写 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`；正式质量判断仍由新的 AI reviewer record 和 MAS owner workflow 生成。
+
 ## 2026-05-22：workspace profile merge 必须把 root keys 插在 TOML table 之前
 
 - 决策：`medautosci init-workspace` 合并既有 workspace profile 时，缺失的 root-level entries 必须插入第一个 TOML table 之前，不得追加到文件末尾。
