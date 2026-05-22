@@ -2919,18 +2919,19 @@
       }
     ],
     "route_stage_residue_boundary": {
-      "all_residual_surfaces_physically_retired": false,
+      "all_residual_surfaces_physically_retired": true,
       "domain_truth_owner": "med-autoscience",
       "forbidden_claims": [
         "route_is_stage",
         "mas_owned_generic_route_scheduler",
         "mas_owned_generic_stage_attempt_graph",
-        "all_residual_surfaces_physically_retired",
+        "legacy_surface_names_current_active",
         "sqlite_lifecycle_sidecar_deleted",
         "status_projection_deleted",
         "sidecar_dispatch_adapter_deleted",
         "status_and_decision_migrated_to_opl"
       ],
+      "legacy_surface_names_current_active": false,
       "mas_owns_inter_route_scheduler": false,
       "opl_hydrates_route_refs_to_queue_and_stage_attempts": true,
       "physical_retirement_gate": [
@@ -2941,6 +2942,7 @@
         "no_forbidden_write_proof",
         "history_tombstone_refs"
       ],
+      "physical_retirement_scope": "legacy_mas_private_runtime_route_surface_names",
       "queue_attempt_owner": "one-person-lab",
       "residual_surfaces": [
         {
@@ -2951,9 +2953,10 @@
           "opl_consumes_as": "owner_route_refs_for_opl_queue_stage_attempt_hydration",
           "owner": "med-autoscience",
           "physical_delete_permitted": false,
-          "physical_retired": false,
+          "physical_retired": true,
+          "retired_legacy_surface_id": "domain_route_scan",
           "stage_or_queue_owner": "one-person-lab",
-          "surface_id": "domain_route_scan"
+          "surface_id": "owner_route_reconcile"
         },
         {
           "classification": "minimal_authority_function",
@@ -2970,8 +2973,9 @@
           "generic_runtime_owner_claim_allowed": false,
           "owner": "med-autoscience",
           "physical_delete_permitted": false,
-          "physical_retired": false,
-          "surface_id": "study_runtime_status"
+          "physical_retired": true,
+          "retired_legacy_surface_id": "study_runtime_status",
+          "surface_id": "progress_projection"
         },
         {
           "active_long_loop_caller_allowed": false,
@@ -2982,19 +2986,21 @@
           "long_loop_shell_physical_retired": true,
           "owner": "med-autoscience",
           "physical_delete_permitted": false,
-          "physical_retired": false,
-          "surface_id": "runtime_watch"
+          "physical_retired": true,
+          "retired_legacy_surface_id": "runtime_watch",
+          "surface_id": "domain_health_diagnostic"
         },
         {
           "classification": "control_plane_thinning_item",
           "current_role": "domain_decision_authority_with_refs_only_projection_shell",
           "gate_ref": "docs/runtime/opl_private_implementation_migration_inventory.md#status_and_decision",
           "generic_runtime_owner_claim_allowed": false,
-          "migration_state": "needs_split_before_opl_status_projection_migration",
+          "migration_state": "legacy_name_retired_authority_and_projection_split_active",
           "owner": "med-autoscience",
           "physical_delete_permitted": false,
-          "physical_retired": false,
-          "surface_id": "status_and_decision"
+          "physical_retired": true,
+          "retired_legacy_surface_id": "status_and_decision",
+          "surface_id": "domain_decision_authority"
         },
         {
           "active_caller_count": 3,
@@ -3012,7 +3018,7 @@
           "generic_runtime_owner_claim_allowed": false,
           "owner": "med-autoscience",
           "physical_delete_permitted": false,
-          "physical_retired": false,
+          "physical_retired": true,
           "refs_only_gate": {
             "active_caller_count": 3,
             "active_caller_proof": [
@@ -3039,7 +3045,8 @@
             ],
             "retirement_gate_status": "active_domain_ref_caller_retained_until_opl_lifecycle_index_parity"
           },
-          "surface_id": "runtime_lifecycle_sqlite_sidecar"
+          "retired_legacy_surface_id": "runtime_lifecycle_sqlite_sidecar",
+          "surface_id": "owner_receipt_lifecycle_ref_index"
         },
         {
           "active_caller_count": 1,
@@ -3057,8 +3064,9 @@
           "generic_runtime_owner_claim_allowed": false,
           "owner": "med-autoscience",
           "physical_delete_permitted": false,
-          "physical_retired": false,
-          "surface_id": "sidecar_dispatch_adapter"
+          "physical_retired": true,
+          "retired_legacy_surface_id": "sidecar_dispatch_adapter",
+          "surface_id": "owner_route_dispatch_receipt"
         }
       ],
       "route_is_stage": false,

@@ -4,8 +4,8 @@
       "action_id": "product_entry_status",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -63,8 +63,8 @@
       "action_id": "workspace_cockpit",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -122,8 +122,8 @@
       "action_id": "submit_study_task",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -185,8 +185,8 @@
       "action_id": "launch_study",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -247,8 +247,8 @@
       "action_id": "study_progress",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -307,8 +307,8 @@
       "action_id": "study_state_matrix",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -373,8 +373,8 @@
       "action_id": "export_inspection_package",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -436,8 +436,8 @@
       "action_id": "publication_aftercare_plan",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -503,8 +503,8 @@
       "action_id": "mainline_status",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -560,8 +560,8 @@
       "action_id": "mainline_phase",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -617,8 +617,8 @@
       "action_id": "product_entry",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -676,8 +676,8 @@
       "action_id": "sidecar_export",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -696,7 +696,7 @@
         "command": "medautosci sidecar export --profile <profile> --format json",
         "surface_kind": "mas_family_sidecar_export"
       },
-      "summary": "Read-only MAS sidecar export for OPL provider queue discovery; Hermes references are optional diagnostics/provenance only.",
+      "summary": "Read-only MAS owner-route handoff export for OPL stage graph hydration; Hermes references are optional diagnostics/provenance only.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "sidecar_export"
@@ -735,8 +735,8 @@
       "action_id": "sidecar_dispatch",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/study_runtime_status",
-          "/runtime_watch",
+          "/progress_projection",
+          "/owner_route/latest.json",
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
@@ -755,7 +755,7 @@
         "command": "medautosci sidecar dispatch --task <task.json> --format json",
         "surface_kind": "mas_family_sidecar_dispatch_receipt"
       },
-      "summary": "MAS guarded dispatch receipt for OPL provider queue control. It records a domain control receipt only and does not authorize domain truth, publication quality, artifact gate, or current package writes; Hermes paths are explicit OPL opt-in executor/proof refs only, never MAS default runtime paths.",
+      "summary": "MAS owner-route dispatch receipt for OPL stage-attempt handoff. It records a domain owner receipt only and does not authorize domain truth, publication quality, artifact gate, or current package writes; Hermes paths are explicit OPL opt-in executor/proof refs only, never MAS default runtime paths.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "sidecar_dispatch"
@@ -785,7 +785,7 @@
           "surface_kind": "mas_family_sidecar_dispatch_receipt"
         }
       },
-      "title": "Receive MAS sidecar guarded dispatch receipt",
+      "title": "Receive MAS owner-route dispatch receipt",
       "workspace_locator_fields": [
         "task_path"
       ]
