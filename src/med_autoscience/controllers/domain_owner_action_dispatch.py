@@ -357,10 +357,6 @@ def _paper_progress_stall_block_reason(
     current_stall = _mapping(_mapping(current_study).get("paper_progress_stall"))
     if not current_stall:
         return "paper_progress_stall_current_missing", False
-    dispatch_fingerprint = _text(dispatch_stall.get("action_fingerprint")) or _text(dispatch.get("action_fingerprint"))
-    current_fingerprint = _text(current_stall.get("action_fingerprint"))
-    if dispatch_fingerprint is not None and current_fingerprint is not None and dispatch_fingerprint != current_fingerprint:
-        return "paper_progress_stall_fingerprint_stale", False
     if current_stall.get("terminal") is True:
         if terminal_stall_handoff.owner_handoff_allowed(
             action_type=action_type,
@@ -369,6 +365,10 @@ def _paper_progress_stall_block_reason(
         ):
             return None, True
         return "paper_progress_stall_terminal", False
+    dispatch_fingerprint = _text(dispatch_stall.get("action_fingerprint")) or _text(dispatch.get("action_fingerprint"))
+    current_fingerprint = _text(current_stall.get("action_fingerprint"))
+    if dispatch_fingerprint is not None and current_fingerprint is not None and dispatch_fingerprint != current_fingerprint:
+        return "paper_progress_stall_fingerprint_stale", False
     return None, False
 
 

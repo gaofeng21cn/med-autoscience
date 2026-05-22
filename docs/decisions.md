@@ -22,6 +22,13 @@
 - 理由：DM002 暴露出 current prose review metadata 仍标注 `route_target=analysis`，但同一 AI reviewer record 的顶层 action 已明确 `route_back_same_line -> write`，要求把 unit-harmonized rerun 吸收进 Abstract、Results、Methods、Table/Figure 和 claim-evidence map。旧 helper 要求 metadata target 与顶层 action target 相同，导致 current eval 被误投成 `ai_reviewer_re_eval`，循环复评而不能交给 write owner。
 - 影响：这是 MAS AI reviewer / controller route authority 修复，不放宽 publication gate，不授权机械 ready verdict，不写 DM002 truth、paper、submission package、current package、`publication_eval/latest.json` 或 `.ds` runtime state；它只让 MAS owner chain 正确把当前 AI reviewer verdict 路由到 paper-write repair。
 
+## 2026-05-22：terminal paper-progress stall 必须以当前 owner route 为准，不能让旧 dispatch fingerprint 吞掉合法 handoff
+
+- 决策：`paper_progress_stall` 已进入 `terminal=true` 时，`domain_owner_action_dispatch` 必须先用当前 scan/latest owner route 判断该 action 是否是合法 terminal-stall handoff；若 `terminal_stall_handoff.owner_handoff_allowed(...)` 成立，就允许进入对应 MAS owner callable。旧 dispatch payload 携带的 `paper_progress_stall.action_fingerprint` 只对非 terminal 或 owner handoff 不合法的路径继续 fail closed。
+- 决策：对 DM003 这类 `next_owner=write`、`allowed_actions=["run_quality_repair_batch"]`、`failure_signature=quest_waiting_opl_runtime_owner_route`、`next_work_unit=medical_prose_write_repair` 的路径，当前 terminal stall 是把控制权交还 write owner 的证据，不是禁止 write owner 产出 canonical manuscript story-surface delta 的理由。
+- 理由：DM003 暴露出 MAS 已把 AI reviewer 的稿件质量反馈路由到 `write/medical_prose_write_repair`，但 default executor 先比较旧 dispatch stall fingerprint 与当前 scan stall fingerprint，返回 `paper_progress_stall_fingerprint_stale`，导致合法 write owner callable 被 terminal stall 投影挡住。DM002/DM003 的共同根因是 authoritative freshness 和 owner receipt 协议不够硬：queue、dispatch、stall 或 projection 不能替代当前 owner route、当前证据 refs 和 owner receipt。
+- 影响：该修复不放宽非 terminal stale fingerprint guard，不写 `paper/`、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission readiness verdict。它只保证当前 terminal stall 下的合法 MAS owner handoff 能执行；正式论文质量仍需 canonical paper delta、AI reviewer-backed `publication_eval/latest.json` currentness、publication gate 和 owner receipt 闭合。
+
 ## 2026-05-22：analysis harmonization completed result 必须覆盖 AI reviewer route-back 所需证据
 
 - 决策：`analysis_harmonization_owner_result` 不能仅凭 `unit_harmonized_rerun_completed=true` 判定 hard-methodology work unit 已关闭。completed result 必须指向或内联 `unit_harmonized_external_validation_rerun_evidence`，且该 evidence 必须包含 external-validation uncertainty intervals、observed-to-expected interval、Brier interval、calibration intercept/slope with 95% CI、以及 grouped calibration with observed-rate intervals；缺任一项时继续视为 required output pending。
