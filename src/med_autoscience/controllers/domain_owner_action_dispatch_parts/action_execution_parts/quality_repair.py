@@ -66,6 +66,7 @@ def execute_quality_repair_batch(
 def _control_plane_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     source_action = _mapping(dispatch.get("source_action"))
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
     next_work_unit_raw = source_action.get("next_work_unit") or dispatch.get("next_work_unit") or prompt_contract.get("next_work_unit")
     next_work_unit = _mapping(next_work_unit_raw)
     work_unit_id = _work_unit_id(next_work_unit_raw)
@@ -82,6 +83,7 @@ def _control_plane_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
         "route_target": _text(source_action.get("route_target")) or _text(dispatch.get("route_target")),
         "route_key_question": _text(source_action.get("route_key_question")) or _text(dispatch.get("route_key_question")),
         "route_rationale": _text(source_action.get("route_rationale")) or _text(dispatch.get("route_rationale")),
+        "current_owner_route": dict(owner_route) if owner_route else None,
     }
 
 

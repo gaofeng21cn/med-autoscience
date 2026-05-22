@@ -542,3 +542,7 @@ def test_execute_quality_repair_batch_prefers_fresh_persisted_dispatch_over_stal
     assert execution["current_paper_progress_stall"]["action_fingerprint"] == "paper_progress_stall::current"
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
     assert called["control_plane_route_context"]["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+    assert called["control_plane_route_context"]["current_owner_route"]["idempotency_key"] == route["idempotency_key"]
+    assert called["control_plane_route_context"]["current_owner_route"]["work_unit_fingerprint"] == (
+        "dm002_same_line_publication_paper_repair_20260521"
+    )

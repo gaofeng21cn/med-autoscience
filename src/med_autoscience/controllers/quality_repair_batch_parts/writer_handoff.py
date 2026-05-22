@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.study_decision_record import StudyDecisionActionType
 
 
@@ -143,6 +144,14 @@ def _writer_handoff_owner_route(
     blocked_repair_reason: str,
     control_plane_route_context: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
+    current_route = _current_owner_route_for_writer_handoff(
+        study_id=study_id,
+        quest_id=quest_id,
+        blocked_repair_reason=blocked_repair_reason,
+        control_plane_route_context=control_plane_route_context,
+    )
+    if current_route:
+        return current_route
     controller_context = (
         dict(control_plane_route_context.get("controller_route_context") or {})
         if isinstance(control_plane_route_context, Mapping)
@@ -179,6 +188,39 @@ def _writer_handoff_owner_route(
     }
 
 
+def _current_owner_route_for_writer_handoff(
+    *,
+    study_id: str,
+    quest_id: str,
+    blocked_repair_reason: str,
+    control_plane_route_context: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(control_plane_route_context, Mapping):
+        return {}
+    route = owner_route_part.ensure_owner_route_v2(_mapping(control_plane_route_context.get("current_owner_route")))
+    if not route:
+        return {}
+    if _non_empty_text(route.get("study_id")) != study_id:
+        return {}
+    route_quest_id = _non_empty_text(route.get("quest_id"))
+    if route_quest_id is not None and route_quest_id != quest_id:
+        return {}
+    if _non_empty_text(route.get("next_owner")) != NEXT_OWNER:
+        return {}
+    route_reason = _non_empty_text(route.get("owner_reason")) or _non_empty_text(route.get("failure_signature"))
+    if route_reason != blocked_repair_reason:
+        return {}
+    if not owner_route_part.route_allows_action(
+        action={
+            "action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+            "next_executable_owner": NEXT_OWNER,
+        },
+        owner_route=route,
+    ):
+        return {}
+    return route
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -186,6 +228,10 @@ def _utc_now() -> str:
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 __all__ = [

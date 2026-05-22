@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-22：quality repair writer handoff 继承当前 owner route
+
+- 决策：`quality_repair_batch` 生成 `quality_repair_batch_writer_handoff` 时，必须优先继承当前 dispatch/scan owner route；只有当 study、quest、next owner、blocked reason 与 allowed action 全部匹配时才可继承。不能用由 publication blockers 或内部 selected work unit 推导出的新 route 替换当前 owner route。
+- 理由：DM002 暴露出 writer handoff 的 `quality-repair-writer-handoff::*` route 与当前 `run_quality_repair_batch` owner route 不一致时，study-level persisted dispatch 无法匹配 owner request，stale consumer inline dispatch 会再次抢占并触发 `paper_progress_stall_fingerprint_stale`。修复应保持 fail-closed currentness，不放宽 owner-route guard。
+- 影响：domain owner dispatch 会把当前 owner route 传给 quality repair owner callable；writer handoff 继续只授权 Codex default writer attempt，不授权 MAS 直接改 `paper/submission_minimal`、`manuscript/current_package` 或 publication truth surface。
+
 ## 2026-05-22：显式 owner dispatch 必须用当前 persisted dispatch 覆盖旧 consumer inline payload
 
 - 决策：`domain-owner-action-dispatch --action-types <action>` 读取到同一 `refs.dispatch_path` 的 consumer inline dispatch 与 study-level persisted dispatch 时，若 persisted dispatch 仍为 `dispatch_status=ready` 且匹配当前 owner request / owner route，必须用 persisted dispatch 覆盖 consumer inline payload。
