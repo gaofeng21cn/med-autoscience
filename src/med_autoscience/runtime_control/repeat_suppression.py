@@ -159,7 +159,7 @@ def execution_repeat_suppression(
         return _not_suppressed(key)
     for execution in _list(_mapping(previous_execution_latest).get("executions")):
         execution_payload = _mapping(execution)
-        if repeat_key(execution_payload) == key:
+        if repeat_key(execution_payload) == key and _execution_owner_receipt_observed(execution_payload):
             return _suppressed(key, "previous_execution_same_work_unit_without_artifact_delta")
     return _not_suppressed(key)
 
@@ -272,6 +272,25 @@ def _action_owner_receipt_observed(action: Mapping[str, Any]) -> bool:
         return True
     owner_pickup_state = _text(_mapping(action.get("owner_pickup")).get("state"))
     return owner_pickup_state in {"picked_up", "consumed", "dispatched"}
+
+
+def _execution_owner_receipt_observed(execution: Mapping[str, Any]) -> bool:
+    status = _text(execution.get("execution_status"))
+    if status == "blocked" and (
+        execution.get("dispatch_contract_valid") is False
+        or _text(execution.get("dispatch_contract_blocked_reason")) is not None
+        or (_text(execution.get("blocked_reason")) or "").endswith("_guard_missing")
+    ):
+        return False
+    if status in {"executed", "handoff_ready", "repeat_suppressed"}:
+        return True
+    if _mapping(execution.get("owner_result")):
+        return True
+    if _mapping(execution.get("writer_worker_handoff")):
+        return True
+    if status == "blocked":
+        return True
+    return bool(_text(execution.get("owner_callable_surface")) and status is not None)
 
 
 def _mapping(value: object) -> dict[str, Any]:

@@ -16,6 +16,7 @@ from . import runtime_dispatch_cost, study_runtime_router
 from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
 from .domain_owner_action_dispatch_parts import controller_refresh
+from .domain_owner_action_dispatch_parts import dispatch_contract
 from .domain_owner_action_dispatch_parts import managed_runtime_authorization
 from .domain_owner_action_dispatch_parts import managed_runtime_dispatches
 from .domain_owner_action_dispatch_parts import output_readiness
@@ -256,27 +257,10 @@ def _executor_boundary(dispatch: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _prompt_contract_error(prompt_contract: Mapping[str, Any]) -> str | None:
-    for key in ("prompt_budget", "compact_evidence_packet_ref", "do_not_repeat", "repeat_suppression_key"):
-        if key not in prompt_contract:
-            return f"{key}_missing"
-    if prompt_contract.get("do_not_repeat") is not True:
-        return "do_not_repeat_guard_missing"
-    for key in (
-        "paper_package_mutation_allowed",
-        "quality_gate_relaxation_allowed",
-        "manual_study_patch_allowed",
-        "medical_claim_authoring_allowed",
-    ):
-        if prompt_contract.get(key) is not False:
-            return f"{key}_guard_missing"
-    forbidden = {
-        text
-        for item in prompt_contract.get("forbidden_surfaces") or []
-        if (text := _text(item)) is not None
-    }
-    if not set(FORBIDDEN_SURFACES).issubset(forbidden):
-        return "forbidden_surfaces_incomplete"
-    return None
+    return dispatch_contract.prompt_contract_error(
+        prompt_contract,
+        forbidden_surfaces=FORBIDDEN_SURFACES,
+    )
 
 
 def _current_owner_route(
