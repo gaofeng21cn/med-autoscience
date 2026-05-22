@@ -105,6 +105,8 @@ def _latest_controller_decision_requires_human_confirmation(*, study_root: Path)
     payload = json.loads(decision_path.read_text(encoding="utf-8")) or {}
     if not isinstance(payload, dict):
         raise ValueError("controller decision latest artifact must contain a mapping payload")
+    if "charter_ref" not in payload:
+        return False
     return StudyDecisionRecord.from_payload(payload).requires_human_confirmation
 
 
@@ -171,4 +173,3 @@ def _latest_controller_decision_matches_spec(
     if desired_runtime_escalation_ref is None:
         return True
     return record.runtime_escalation_ref.to_dict() == desired_runtime_escalation_ref.to_dict()
-

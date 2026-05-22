@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from importlib import import_module
 from typing import Any
 
 from med_autoscience.runtime_protocol import quest_state
@@ -114,8 +113,6 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
     status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> dict[str, Any] | None:
-    if status.reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
-        return None
     domain_transition = status.extras.get("domain_transition")
     if not isinstance(domain_transition, dict):
         return None
@@ -123,102 +120,30 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
     transition_unit_id = str(transition_unit.get("unit_id") or "").strip() if isinstance(transition_unit, dict) else ""
     transition_action = str(domain_transition.get("controller_action") or "").strip()
     transition_type = str(domain_transition.get("decision_type") or "").strip()
-    if (
-        transition_type != "ai_reviewer_re_eval"
-        or transition_action != "return_to_ai_reviewer_workflow"
-        or not transition_unit_id
-    ):
-        return None
-    outer_loop = import_module("med_autoscience.controllers.study_outer_loop")
-    status_payload = status.to_dict()
-    tick_request = outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
-        study_root=context.study_root,
-        status_payload=status_payload,
-    )
-    if not isinstance(tick_request, dict):
-        tick_request = domain_transition_currentness.status_domain_transition_ai_reviewer_tick_request(
-            study_root=context.study_root,
-            status_payload=status_payload,
-        )
-        if not isinstance(tick_request, dict):
-            status.extras["controller_decision_currentness"] = {
-                "status": "skipped",
-                "reason": "outer_loop_tick_request_unavailable",
-            }
-            return None
-    if not domain_transition_currentness.tick_request_matches_ai_reviewer_domain_transition(
-        tick_request=tick_request,
+    if not domain_transition_currentness.domain_transition_is_materializable(
         transition_action=transition_action,
         transition_type=transition_type,
-        transition_unit_id=transition_unit_id,
+        transition_unit_id=transition_unit_id or None,
     ):
-        stale_tick_request = dict(tick_request)
-        tick_request = domain_transition_currentness.status_domain_transition_ai_reviewer_tick_request(
-            study_root=context.study_root,
-            status_payload=status_payload,
-        )
-        if not isinstance(tick_request, dict) or not domain_transition_currentness.tick_request_matches_ai_reviewer_domain_transition(
-            tick_request=tick_request,
-            transition_action=transition_action,
-            transition_type=transition_type,
-            transition_unit_id=transition_unit_id,
-        ):
-            status.extras["controller_decision_currentness"] = {
-                "status": "skipped",
-                "reason": "outer_loop_tick_request_did_not_match_domain_transition",
-                "transition_unit_id": transition_unit_id,
-                "tick_work_unit_id": domain_transition_currentness.work_unit_id_from_tick_request(stale_tick_request),
-                "tick_controller_actions": domain_transition_currentness.controller_action_types_from_tick_request(stale_tick_request),
-            }
-            return None
-    currentness_basis = str(tick_request.get("currentness_basis") or "").strip() or "outer_loop_tick_request"
-    if domain_transition_currentness.latest_controller_decision_matches_tick_request(
-        study_root=context.study_root,
-        tick_request=tick_request,
-    ):
-        status.extras["controller_decision_currentness"] = {
-            "status": "already_current",
-            "work_unit_id": transition_unit_id,
-            "work_unit_fingerprint": str(tick_request.get("work_unit_fingerprint") or "").strip() or None,
-            "currentness_basis": currentness_basis,
-        }
         return None
-    materialized = outer_loop.materialize_non_dispatching_outer_loop_decision(
-        profile=context.profile,
-        study_id=context.study_id,
+    status_payload = status.to_dict()
+    currentness = domain_transition_currentness.materialize_fresh_domain_transition_controller_decision_if_required(
         study_root=context.study_root,
+        profile=context.profile,
         status_payload=status_payload,
-        charter_ref=tick_request["charter_ref"],
-        publication_eval_ref=tick_request["publication_eval_ref"],
-        decision_type=str(tick_request["decision_type"]),
-        route_target=str(tick_request.get("route_target") or "").strip() or None,
-        route_key_question=str(tick_request.get("route_key_question") or "").strip() or None,
-        route_rationale=str(tick_request.get("route_rationale") or "").strip() or None,
-        source_route_key_question=str(tick_request.get("source_route_key_question") or "").strip() or None,
-        work_unit_fingerprint=str(tick_request.get("work_unit_fingerprint") or "").strip() or None,
-        next_work_unit=(
-            dict(tick_request.get("next_work_unit"))
-            if isinstance(tick_request.get("next_work_unit"), dict)
-            else None
-        ),
-        blocking_work_units=[
-            dict(item) for item in tick_request.get("blocking_work_units") or [] if isinstance(item, dict)
-        ],
-        requires_human_confirmation=bool(tick_request.get("requires_human_confirmation")),
-        controller_actions=[
-            dict(item) for item in tick_request.get("controller_actions") or [] if isinstance(item, dict)
-        ],
-        reason=str(tick_request.get("reason") or "").strip()
-        or "fresh domain transition requires current controller authorization before runtime resume",
         source=context.source,
     )
-    status.extras["controller_decision_currentness"] = {
-        "status": "materialized",
-        "work_unit_id": transition_unit_id,
-        "work_unit_fingerprint": str(tick_request.get("work_unit_fingerprint") or "").strip() or None,
-        "currentness_basis": currentness_basis,
-        "materialization": dict(materialized) if isinstance(materialized, dict) else {},
-    }
+    if not isinstance(currentness, dict):
+        status.extras["controller_decision_currentness"] = {
+            "status": "skipped",
+            "reason": "domain_transition_currentness_unavailable",
+            "transition_unit_id": transition_unit_id,
+            "transition_action": transition_action,
+            "transition_type": transition_type,
+        }
+        return None
+    status.extras["controller_decision_currentness"] = dict(currentness)
+    materialized = currentness.get("materialization")
     return dict(materialized) if isinstance(materialized, dict) else {}
 
 
@@ -713,6 +638,7 @@ def _execute_runtime_decision(
         _relay_controller_decision_authorization_if_required(status=status, context=context)
         return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.NOOP)
     if status.decision == StudyRuntimeDecision.BLOCKED:
+        _materialize_fresh_domain_transition_controller_decision_if_required(status=status, context=context)
         _relay_controller_decision_authorization_if_required(status=status, context=context)
         if adopt_controller_work_unit_evidence_for_current_authorization(status=status, context=context) is not None:
             status.set_decision(

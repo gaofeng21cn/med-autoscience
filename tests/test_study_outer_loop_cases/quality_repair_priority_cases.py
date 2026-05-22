@@ -609,7 +609,7 @@ def test_current_ai_reviewer_route_back_preempts_gate_and_quality_batch(
     assert request["route_target"] == "write"
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "run_quality_repair_batch",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]

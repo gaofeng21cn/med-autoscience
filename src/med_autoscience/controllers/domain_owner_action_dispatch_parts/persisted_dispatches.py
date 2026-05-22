@@ -88,7 +88,10 @@ def selected_dispatches(
     if not current_dispatches and managed_runtime_dispatches:
         return managed_runtime_dispatches
     if not action_types:
-        return current_dispatches
+        return _with_managed_runtime_dispatches(
+            current_dispatches=current_dispatches,
+            managed_runtime_dispatches=managed_runtime_dispatches,
+        )
     requested = set(action_types)
     selected = [payload for payload in current_dispatches if _text(payload.get("action_type")) in requested]
     selected_keys = {
@@ -108,11 +111,31 @@ def selected_dispatches(
     ):
         key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
         if key in selected_by_key:
-            selected[selected_by_key[key]] = payload
+            continue
         elif key not in selected_keys:
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
+    return _with_managed_runtime_dispatches(
+        current_dispatches=selected,
+        managed_runtime_dispatches=managed_runtime_dispatches,
+    )
+
+
+def _with_managed_runtime_dispatches(
+    *,
+    current_dispatches: list[dict[str, Any]],
+    managed_runtime_dispatches: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if not managed_runtime_dispatches:
+        return current_dispatches
+    selected = list(current_dispatches)
+    selected_action_types = {_text(payload.get("action_type")) for payload in selected}
+    for payload in managed_runtime_dispatches:
+        action_type = _text(payload.get("action_type"))
+        if action_type not in selected_action_types:
+            selected.append(payload)
+            selected_action_types.add(action_type)
     return selected
 
 
@@ -192,9 +215,22 @@ def owner_request_matches_dispatch(
     if request_owner is not None and dispatch_owner is not None and request_owner != dispatch_owner:
         return False
     request_route = _mapping(request.get("owner_route")) or _mapping(_mapping(request.get("owner_pickup")).get("owner_route"))
+    if not request_route:
+        request_route = _owner_request_fallback_route(action_type=action_type, dispatch=dispatch)
     if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=request_route):
         return False
     return owner_route_part.route_allows_action(action=dispatch, owner_route=request_route)
+
+
+def _owner_request_fallback_route(*, action_type: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    if action_type != "return_to_ai_reviewer_workflow":
+        return {}
+    dispatch_route = _dispatch_owner_route(dispatch)
+    if not dispatch_route:
+        return {}
+    if not owner_route_part.route_allows_action(action=dispatch, owner_route=dispatch_route):
+        return {}
+    return dispatch_route
 
 
 def owner_request_payload(profile: WorkspaceProfile, study_id: str, action_type: str) -> dict[str, Any] | None:

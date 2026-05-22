@@ -89,6 +89,8 @@ def _controller_action_type_for_transition(transition: Mapping[str, Any]) -> str
         return StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
     if controller_action == "return_to_ai_reviewer_workflow":
         return StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value
+    if decision_type == "route_back_same_line" and controller_action == "ensure_study_runtime":
+        return StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
     if controller_action == "continue_bundle_stage":
         return StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value
     if controller_action == "ensure_study_runtime":

@@ -30,6 +30,8 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
     },
     "tests/test_study_runtime_router.py": {
+        "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_stale_lifecycle_currentness.py",
+        "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_story_surface_delta_routes.py",
         "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_failed_reviewer_revision_explicit_relaunch.py",
         "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_stopped_domain_transition_relaunch.py",
     },
@@ -64,7 +66,16 @@ NESTED_CASE_REEXPORT_SURFACES = {
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/product_entry_cases/cockpit_status_and_entry_status_focus.py"]
     ),
     "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases.py": (
-        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/test_study_runtime_router.py"]
+        {
+            "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_failed_reviewer_revision_explicit_relaunch.py",
+            "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_stopped_domain_transition_relaunch.py",
+        }
+    ),
+    "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases.py": (
+        {
+            "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_stale_lifecycle_currentness.py",
+            "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_story_surface_delta_routes.py",
+        }
     ),
     "tests/test_domain_health_diagnostic_cases/runtime_status_cases.py": {
         "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
@@ -103,6 +114,7 @@ AGGREGATE_ENTRYPOINT_REEXPORT_SURFACES = {
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases.py",
     },
     "tests/test_study_runtime_router.py": {
+        "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases.py",
         "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases.py",
     },
 }
@@ -122,6 +134,9 @@ REPRESENTATIVE_NESTED_CASES = {
     ),
     "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_failed_reviewer_revision_explicit_relaunch.py": (
         "test_explicit_stopped_relaunch_reopens_failed_reviewer_revision_invalid_blocking"
+    ),
+    "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_stale_lifecycle_currentness.py": (
+        "test_progress_projection_ignores_stale_publication_gate_recheck_lifecycle_for_current_write_route"
     ),
 }
 
@@ -313,6 +328,7 @@ def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert set(tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS) == {
         "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
         "test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_*.py",
+        "test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_*.py",
         "test_domain_health_diagnostic_cases/*_cases_cases/test_*.py",
     }
     assert tests_conftest.collect_ignore_glob == list(

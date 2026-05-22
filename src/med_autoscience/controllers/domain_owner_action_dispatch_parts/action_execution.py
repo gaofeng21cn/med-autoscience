@@ -479,6 +479,12 @@ def execute_ai_reviewer_workflow(
             "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
             "request_path": str(request_path),
         }
+    additional_refs = {
+        surface: ref
+        for surface, ref in {**required_refs, **_ai_reviewer_optional_refs(request)}.items()
+        if surface not in {"manuscript", "evidence_ledger", "review_ledger", "study_charter"}
+        and ref is not None
+    }
     try:
         owner_result = ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow(
             study_root=study_root,
@@ -487,12 +493,8 @@ def execute_ai_reviewer_workflow(
             review_ref=required_refs["review_ledger"],
             charter_ref=required_refs["study_charter"],
             record=record,
-            additional_refs={
-                surface: ref
-                for surface, ref in {**required_refs, **_ai_reviewer_optional_refs(request)}.items()
-                if surface not in {"manuscript", "evidence_ledger", "review_ledger", "study_charter"}
-                and ref is not None
-            },
+            additional_refs=additional_refs,
+            workflow_currentness_mode="request_bound_ai_reviewer_record",
         )
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
         clean_migration_blocker = _paper_authority_clean_migration_blocker(
@@ -822,7 +824,7 @@ def _ai_reviewer_record_for_execution(
         "payload": {
             "owner_record_requirements": ai_reviewer_record_requirements(),
         },
-}
+    }
 
 
 def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, Any]) -> dict[str, Any]:

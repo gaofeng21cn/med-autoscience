@@ -582,6 +582,7 @@ def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path:
         "medical_prose_review": input_refs["medical_prose_review"]["path"],
         "publication_gate_projection": input_refs["publication_gate_projection"]["path"],
     }
+    assert called["workflow_currentness_mode"] == "request_bound_ai_reviewer_record"
     assert called["record"]["study_id"] == study_id
     assert (study_root / "artifacts" / "publication_eval" / "latest.json").is_file()
 

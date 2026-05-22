@@ -10,6 +10,8 @@ from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
+from med_autoscience.controllers.study_domain_transition_table_parts import publication_gate_lifecycle_transitions
+from med_autoscience.controllers import domain_transition_currentness
 from med_autoscience.controllers.study_outer_loop_parts.decision_refs import (
     _build_study_decision_charter_ref,
     _latest_task_intake_yields_to_verified_fast_lane_closeout,
@@ -105,6 +107,11 @@ def _read_closed_publication_gate_recheck_lifecycle(study_root: Path) -> dict[st
         return None
     publication_eval_entry = _read_latest_publication_eval_payload(study_root=resolved_study_root)
     publication_eval_payload = publication_eval_entry[1] if publication_eval_entry is not None else {}
+    if publication_gate_lifecycle_transitions.lifecycle_is_stale_for_publication_eval(
+        lifecycle=payload,
+        publication_eval=publication_eval_payload,
+    ):
+        return None
     if story_surface_delta.ai_reviewer_recheck_supersedes_lifecycle(
         study_root=resolved_study_root,
         lifecycle=payload,
@@ -307,7 +314,15 @@ def build_domain_health_diagnostic_outer_loop_tick_request(
     if _latest_controller_decision_requires_human_confirmation(study_root=resolved_study_root):
         return None
 
-    publication_eval_entry = _read_latest_publication_eval_payload(study_root=resolved_study_root)
+    try:
+        publication_eval_entry = _read_latest_publication_eval_payload(study_root=resolved_study_root)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        if domain_transition_currentness.status_domain_transition_route_back_tick_request(
+            study_root=resolved_study_root,
+            status_payload=status_payload,
+        ) is not None:
+            return None
+        raise
     if publication_eval_entry is None:
         return None
     publication_eval_path, publication_eval_payload = publication_eval_entry

@@ -35,6 +35,12 @@ def resolve_why_not_applied(
         apply_reason = _text(runtime_platform_repair_apply.get("reason"))
         if apply_reason in {"publication_gate_specificity_required", "current_package_freshness_required"}:
             return apply_reason
+        if (
+            apply_reason == "stale_specificity_terminal_targets_resolved"
+            and default_why_not_applied == "runtime_recovery_retry_budget_exhausted"
+            and actions == []
+        ):
+            return "ai_reviewer_assessment_required"
     if submission_milestone_parked:
         return None
     if default_why_not_applied is None and lifecycle:

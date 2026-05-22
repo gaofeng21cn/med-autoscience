@@ -19,11 +19,17 @@ def project_transition(
     study_id: str,
     lifecycle: Mapping[str, Any],
     lifecycle_ref: str | None,
+    publication_eval: Mapping[str, Any] | None = None,
     source_refs: Iterable[str],
     completion_receipt_consumption: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     payload = dict(lifecycle) if isinstance(lifecycle, Mapping) else {}
     if not payload:
+        return None
+    if lifecycle_is_stale_for_publication_eval(
+        lifecycle=payload,
+        publication_eval=publication_eval,
+    ):
         return None
     if quality_repair_batch.story_surface_delta_blocker_supersedes_lifecycle(
         study_root=study_root,
@@ -65,6 +71,20 @@ def project_transition(
         source_refs=source_refs,
         completion_receipt_consumption=completion_receipt_consumption,
     )
+
+
+def lifecycle_is_stale_for_publication_eval(
+    *,
+    lifecycle: Mapping[str, Any],
+    publication_eval: Mapping[str, Any] | None,
+) -> bool:
+    source_eval_id = _text(lifecycle.get("source_eval_id"))
+    if source_eval_id is None:
+        return isinstance(publication_eval, Mapping) and _text(publication_eval.get("eval_id")) is not None
+    if not isinstance(publication_eval, Mapping):
+        return False
+    eval_id = _text(publication_eval.get("eval_id"))
+    return eval_id is not None and source_eval_id != eval_id
 
 
 def _transition(
@@ -141,4 +161,8 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-__all__ = ["PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH", "project_transition"]
+__all__ = [
+    "PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH",
+    "lifecycle_is_stale_for_publication_eval",
+    "project_transition",
+]

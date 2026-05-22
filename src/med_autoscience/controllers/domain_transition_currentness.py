@@ -11,7 +11,7 @@ from med_autoscience.study_decision_record import StudyDecisionActionType, Study
 from med_autoscience.profiles import WorkspaceProfile
 
 
-def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
+def materialize_fresh_domain_transition_controller_decision_if_required(
     *,
     study_root: Path,
     profile: WorkspaceProfile | None = None,
@@ -33,10 +33,10 @@ def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
     transition_unit_id = _text(transition_unit.get("unit_id"))
     transition_action = _text(domain_transition.get("controller_action"))
     transition_type = _text(domain_transition.get("decision_type"))
-    if (
-        transition_type != "ai_reviewer_re_eval"
-        or transition_action != "return_to_ai_reviewer_workflow"
-        or transition_unit_id is None
+    if not domain_transition_is_materializable(
+        transition_action=transition_action,
+        transition_type=transition_type,
+        transition_unit_id=transition_unit_id,
     ):
         return None
     tick_request = outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
@@ -44,23 +44,23 @@ def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
         status_payload=dict(status),
     )
     if not isinstance(tick_request, dict):
-        tick_request = status_domain_transition_ai_reviewer_tick_request(
+        tick_request = status_domain_transition_tick_request(
             study_root=resolved_study_root,
             status_payload=status,
         )
         if not isinstance(tick_request, dict):
             return None
-    if not tick_request_matches_ai_reviewer_domain_transition(
+    if not tick_request_matches_domain_transition(
         tick_request=tick_request,
         transition_action=transition_action,
         transition_type=transition_type,
         transition_unit_id=transition_unit_id,
     ):
-        tick_request = status_domain_transition_ai_reviewer_tick_request(
+        tick_request = status_domain_transition_tick_request(
             study_root=resolved_study_root,
             status_payload=status,
         )
-        if not isinstance(tick_request, dict) or not tick_request_matches_ai_reviewer_domain_transition(
+        if not isinstance(tick_request, dict) or not tick_request_matches_domain_transition(
             tick_request=tick_request,
             transition_action=transition_action,
             transition_type=transition_type,
@@ -112,6 +112,49 @@ def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
     }
 
 
+def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
+    *,
+    study_root: Path,
+    profile: WorkspaceProfile | None = None,
+    status_payload: Mapping[str, Any] | None = None,
+    source: str = "med_autoscience",
+) -> dict[str, Any] | None:
+    return materialize_fresh_domain_transition_controller_decision_if_required(
+        study_root=study_root,
+        profile=profile,
+        status_payload=status_payload,
+        source=source,
+    )
+
+
+def domain_transition_is_materializable(
+    *,
+    transition_action: str | None,
+    transition_type: str | None,
+    transition_unit_id: str | None,
+) -> bool:
+    if transition_unit_id is None:
+        return False
+    return bool(_tick_request_spec_for_transition(transition_type=transition_type, transition_action=transition_action))
+
+
+def status_domain_transition_tick_request(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    ai_reviewer_request = status_domain_transition_ai_reviewer_tick_request(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    if ai_reviewer_request is not None:
+        return ai_reviewer_request
+    return status_domain_transition_route_back_tick_request(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+
+
 def status_domain_transition_ai_reviewer_tick_request(
     *,
     study_root: Path,
@@ -160,6 +203,77 @@ def status_domain_transition_ai_reviewer_tick_request(
     }
 
 
+def status_domain_transition_route_back_tick_request(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if _status_payload_requests_human_gate(status_payload):
+        return None
+    domain_transition = _mapping(status_payload.get("domain_transition"))
+    transition_unit = _mapping(domain_transition.get("next_work_unit"))
+    transition_unit_id = _text(transition_unit.get("unit_id"))
+    transition_action = _text(domain_transition.get("controller_action"))
+    transition_type = _text(domain_transition.get("decision_type"))
+    if (
+        transition_type != StudyDecisionType.ROUTE_BACK_SAME_LINE.value
+        or transition_action != StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value
+        or transition_unit_id is None
+    ):
+        return None
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    charter_ref = _stable_charter_ref(resolved_study_root)
+    publication_eval_ref = _stable_publication_eval_ref(resolved_study_root)
+    if charter_ref is None or publication_eval_ref is None:
+        return None
+    reason = _text(transition_unit.get("summary")) or "Run current same-line quality repair for the AI reviewer route-back."
+    route_target = _text(domain_transition.get("route_target")) or "write"
+    return {
+        "study_root": resolved_study_root,
+        "charter_ref": charter_ref,
+        "publication_eval_ref": publication_eval_ref,
+        "decision_type": StudyDecisionType.ROUTE_BACK_SAME_LINE.value,
+        "route_target": route_target,
+        "route_key_question": "当前 AI reviewer-backed route-back 应由哪一个同线 owner work unit 继续？",
+        "route_rationale": "The current AI reviewer route-back must be materialized as a quality repair controller work unit before runtime continuation.",
+        "source_route_key_question": None,
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+                "payload_ref": str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": reason,
+        "work_unit_fingerprint": f"domain-transition::{transition_type}::{transition_unit_id}",
+        "next_work_unit": dict(transition_unit),
+        "blocking_work_units": [dict(transition_unit)],
+        "currentness_basis": "status_domain_transition",
+    }
+
+
+def tick_request_matches_domain_transition(
+    *,
+    tick_request: Mapping[str, Any],
+    transition_action: str,
+    transition_type: str,
+    transition_unit_id: str,
+) -> bool:
+    expected_action = _tick_request_spec_for_transition(
+        transition_type=transition_type,
+        transition_action=transition_action,
+    )
+    if expected_action is None:
+        return False
+    tick_unit_id = work_unit_id_from_tick_request(tick_request)
+    if tick_unit_id != transition_unit_id:
+        return False
+    if expected_action not in controller_action_types_from_tick_request(tick_request):
+        return False
+    fingerprint = _text(tick_request.get("work_unit_fingerprint"))
+    return fingerprint == f"domain-transition::{transition_type}::{transition_unit_id}"
+
+
 def tick_request_matches_ai_reviewer_domain_transition(
     *,
     tick_request: Mapping[str, Any],
@@ -167,13 +281,12 @@ def tick_request_matches_ai_reviewer_domain_transition(
     transition_type: str,
     transition_unit_id: str,
 ) -> bool:
-    tick_unit_id = work_unit_id_from_tick_request(tick_request)
-    if tick_unit_id != transition_unit_id:
-        return False
-    if transition_action not in controller_action_types_from_tick_request(tick_request):
-        return False
-    fingerprint = _text(tick_request.get("work_unit_fingerprint"))
-    return fingerprint == f"domain-transition::{transition_type}::{transition_unit_id}"
+    return tick_request_matches_domain_transition(
+        tick_request=tick_request,
+        transition_action=transition_action,
+        transition_type=transition_type,
+        transition_unit_id=transition_unit_id,
+    )
 
 
 def latest_controller_decision_matches_tick_request(
@@ -213,6 +326,28 @@ def controller_action_types_from_tick_request(tick_request: Mapping[str, Any]) -
         if action_type:
             action_types.append(action_type)
     return sorted(set(action_types))
+
+
+def _tick_request_spec_for_transition(
+    *,
+    transition_type: str | None,
+    transition_action: str | None,
+) -> str | None:
+    if (
+        transition_type == "ai_reviewer_re_eval"
+        and transition_action == StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value
+    ):
+        return StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value
+    if (
+        transition_type == StudyDecisionType.ROUTE_BACK_SAME_LINE.value
+        and transition_action
+        in {
+            StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value,
+            StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+        }
+    ):
+        return StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
+    return None
 
 
 def _stable_charter_ref(study_root: Path) -> dict[str, str] | None:
@@ -282,9 +417,14 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "controller_action_types_from_tick_request",
+    "domain_transition_is_materializable",
     "latest_controller_decision_matches_tick_request",
+    "materialize_fresh_domain_transition_controller_decision_if_required",
     "materialize_fresh_ai_reviewer_transition_controller_decision_if_required",
+    "status_domain_transition_route_back_tick_request",
+    "status_domain_transition_tick_request",
     "status_domain_transition_ai_reviewer_tick_request",
+    "tick_request_matches_domain_transition",
     "tick_request_matches_ai_reviewer_domain_transition",
     "work_unit_id_from_tick_request",
 ]

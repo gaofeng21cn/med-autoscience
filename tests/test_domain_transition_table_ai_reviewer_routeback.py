@@ -259,7 +259,7 @@ def test_current_ai_reviewer_routeback_materializes_outer_loop_controller_action
 
     assert action is not None
     assert action["action_type"] == "route_back_same_line"
-    assert action["controller_action_type"] == "ensure_study_runtime"
+    assert action["controller_action_type"] == "run_quality_repair_batch"
     assert action["route_target"] == "analysis-campaign"
     assert (
         action["work_unit_fingerprint"]
@@ -302,7 +302,7 @@ def test_current_ai_reviewer_routeback_controller_route_accepts_domain_transitio
             "decision_type": "route_back_same_line",
             "route_target": "analysis-campaign",
             "requires_human_confirmation": False,
-            "controller_actions": [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}],
+            "controller_actions": [{"action_type": "run_quality_repair_batch", "payload_ref": str(decision_path)}],
             "work_unit_fingerprint": (
                 "domain-transition::route_back_same_line::"
                 "unit_harmonized_validation_uncertainty_and_grouped_calibration"
