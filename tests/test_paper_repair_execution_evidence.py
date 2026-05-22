@@ -7,6 +7,7 @@ from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.test_quality_repair_batch import _write_blocked_publication_eval, _write_quality_summary
+from tests.test_paper_repair_execution_evidence_cases.story_surface_delta_cases import *  # noqa: F403,F401
 
 
 def _write_json(path: Path, payload: object) -> Path:

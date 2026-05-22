@@ -370,6 +370,253 @@ def test_ai_reviewer_currentness_preempts_stale_methodology_intake_and_repair_ba
     assert request["next_work_unit"]["unit_id"] == "ai_reviewer_recheck"
 
 
+def test_current_ai_reviewer_route_back_preempts_gate_and_quality_batch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-dm-china-us-mortality-attribution")
+    quest_root = profile.managed_runtime_home / "quests" / "002-dm-china-us-mortality-attribution"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    _write_charter(study_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::002::current-ai-reviewer-route-back",
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "emitted_at": "2026-05-22T02:04:07+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::002-dm-china-us-mortality-attribution::v1",
+                "publication_objective": "external validation of diabetes mortality risk transportability",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+            },
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "source_refs": [str(study_root / "paper" / "draft.md")],
+                "ai_reviewer_required": False,
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+                "summary": "AI reviewer routes the current manuscript back to write.",
+                "stop_loss_pressure": "high",
+            },
+            "quality_assessment": {
+                "clinical_significance": {
+                    "status": "ready",
+                    "summary": "Clinical framing is ready for current evidence.",
+                    "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                },
+                "evidence_strength": {
+                    "status": "ready",
+                    "summary": "Analysis evidence is current enough for write repair.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "novelty_positioning": {
+                    "status": "ready",
+                    "summary": "Transportability claim boundary is explicit.",
+                    "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                },
+                "medical_journal_prose_quality": {
+                    "status": "blocked",
+                    "summary": "Current prose review requires narrow write repair.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json")],
+                },
+                "human_review_readiness": {
+                    "status": "blocked",
+                    "summary": "Human review waits for the write repair and gate replay.",
+                    "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                }
+            },
+            "reviewer_operating_system": {
+                "contract_id": "medical_publication_ai_reviewer_os_v1",
+                "input_bundle": {
+                    "manuscript": str(study_root / "paper" / "draft.md"),
+                    "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                    "evidence_ledger": str(study_root / "paper" / "evidence_ledger.json"),
+                    "review_ledger": str(study_root / "paper" / "review" / "review_ledger.json"),
+                    "medical_manuscript_blueprint": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+                    "claim_evidence_map": str(study_root / "paper" / "claim_evidence_map.json"),
+                    "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                    "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                },
+                "rubric_scores": {},
+                "decision_matrix": [{"dimension": "medical_journal_prose_quality", "status": "blocked"}],
+                "currentness_checks": {
+                    "medical_prose_review": {
+                        "status": "current",
+                        "request_ref": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"),
+                        "request_digest": "sha256:current-route-back-request",
+                        "manuscript_ref": str(study_root / "paper" / "draft.md"),
+                        "manuscript_digest": "sha256:current-route-back-manuscript",
+                        "route_back_required": True,
+                        "route_target": "write",
+                    },
+                    "current_package_freshness": {
+                        "status": "downstream_pending",
+                        "source_eval_id": "publication-eval::002::current-ai-reviewer-route-back",
+                    }
+                },
+                "future_facing_limitations_plan": [
+                    {
+                        "limitation": "The current manuscript still needs narrow prose repair.",
+                        "impact_on_claim": "No claim expansion is authorized before write repair.",
+                        "required_future_analysis_data_or_design": "Re-run reviewer currentness after substantive changes.",
+                        "current_manuscript_wording_must_be_restrained": True,
+                    }
+                ],
+                "provenance_checks": {
+                    "assessment_owner": "ai_reviewer",
+                    "policy_id": "medical_publication_critique_v1",
+                    "ai_reviewer_required": False,
+                    "mechanical_projection_used_as_quality_authority": False,
+                },
+                "route_back_decision": {
+                    "recommended_action": "route_back_same_line",
+                    "rationale": "Current AI reviewer prose review routes the same paper line back to write.",
+                },
+            },
+            "future_facing_limitations_plan": [
+                {
+                    "limitation": "The current manuscript still needs narrow prose repair.",
+                    "impact_on_claim": "No claim expansion is authorized before write repair.",
+                    "required_future_analysis_data_or_design": "Re-run reviewer currentness after substantive changes.",
+                    "current_manuscript_wording_must_be_restrained": True,
+                }
+            ],
+            "gaps": [
+                {
+                    "gap_id": "dm002-current-prose-repair",
+                    "gap_type": "reporting",
+                    "severity": "must_fix",
+                    "summary": "Current AI reviewer prose review requires write repair.",
+                    "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "route-back-same-line-write-paper-repair",
+                    "action_type": "route_back_same_line",
+                    "priority": "now",
+                    "reason": "The current AI reviewer finding routes the same paper line back to write.",
+                    "route_target": "write",
+                    "route_key_question": "Can the current external-validation evidence be absorbed into clean manuscript prose?",
+                    "route_rationale": "AI reviewer currentness is closed and the remaining issue is write-owner paper repair.",
+                    "evidence_refs": [
+                        str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                        str(study_root / "paper" / "draft.md"),
+                    ],
+                    "requires_controller_decision": True,
+                    "work_unit_fingerprint": "dm002_current_ai_reviewer_write_repair",
+                    "next_work_unit": {
+                        "unit_id": "dm002_same_line_publication_paper_repair",
+                        "lane": "write",
+                        "summary": "Repair current manuscript prose against the current AI reviewer findings.",
+                    },
+                    "blocking_work_units": [
+                        {
+                            "unit_id": "dm002_same_line_publication_paper_repair",
+                            "lane": "write",
+                            "summary": "Repair current manuscript prose against the current AI reviewer findings.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    gate_report = {
+        "status": "blocked",
+        "allow_write": False,
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "stale_study_delivery_mirror",
+            "medical_publication_surface_blocked",
+        ],
+        "current_required_action": "return_to_publishability_gate",
+        "supervisor_phase": "publishability_gate_blocked",
+        "medical_publication_surface_status": "blocked",
+    }
+    stale_batch_action = {
+        "action_id": "quality-repair-batch::stale-gate",
+        "action_type": "route_back_same_line",
+        "priority": "now",
+        "reason": "Stale gate batch must not override the current AI reviewer route-back.",
+        "route_target": "finalize",
+        "route_key_question": "stale package refresh",
+        "route_rationale": "Old gate-clearing residue.",
+        "requires_controller_decision": True,
+        "controller_action_type": "run_gate_clearing_batch",
+        "next_work_unit": {
+            "unit_id": "submission_minimal_refresh",
+            "lane": "finalize",
+            "summary": "Stale downstream package refresh.",
+        },
+        "blocking_work_units": [
+            {
+                "unit_id": "submission_minimal_refresh",
+                "lane": "finalize",
+                "summary": "Stale downstream package refresh.",
+            }
+        ],
+        "work_unit_fingerprint": "publication-blockers::stale-gate",
+    }
+    monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
+    monkeypatch.setattr(
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
+        "build_gate_state",
+        lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
+    )
+    monkeypatch.setattr(
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
+        "build_gate_report",
+        lambda state: gate_report,
+    )
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module(), "recommended_task_intake_action", lambda **_: None)
+    monkeypatch.setattr(module.quality_repair_batch, "build_quality_repair_batch_recommended_action", lambda **_: stale_batch_action)
+    monkeypatch.setattr(module.gate_clearing_batch, "build_gate_clearing_batch_recommended_action", lambda **_: stale_batch_action)
+
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "quest_status": "waiting_for_user",
+            "runtime_liveness_status": "parked",
+            "active_run_id": None,
+            "reason": "domain_transition_ai_reviewer_re_eval",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "route_back_same_line"
+    assert request["route_target"] == "write"
+    assert request["controller_actions"] == [
+        {
+            "action_type": "ensure_study_runtime",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+    assert request["work_unit_fingerprint"] == "domain-transition::route_back_same_line::dm002_same_line_publication_paper_repair"
+    assert request["next_work_unit"]["unit_id"] == "dm002_same_line_publication_paper_repair"
+
+
 def test_quality_repair_batch_preserves_ai_reviewer_methodology_analysis_work_unit(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
     profile = make_profile(tmp_path)
