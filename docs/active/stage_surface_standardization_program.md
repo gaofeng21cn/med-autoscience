@@ -79,6 +79,12 @@ AI-first stage output 必须来自与执行 agent 分离的 reviewer/auditor age
 
 当前机器面已把这条边界落成 `judgment_mode`：AI-first verdict / memory decision surface 是 `ai_first_stage_gate`，artifact mutation 是 `ai_first_record_validator`，owner receipt signer 和不输出医学 verdict 的 helper 是 `mechanical_guard`。MAS 程序的统一输出策略是校验 AI-first stage gate record 后签 receipt 或 typed blocker；它不直接输出 ready/pass。缺少独立 reviewer/auditor receipt、复用 executor task/context/receipt、候选 record 来自 mechanical projection、或缺必需 AI-first refs 时，`ai_first_private_authority` validator 必须 route back 或 fail closed。
 
+### Quality Pack Maturity Gate
+
+stage quality pack 现在还必须声明 contract maturity，而不是只声明 pack id 和 reviewer rubric。`maturity_status` 表达 MAS contract 的可用成熟度，`promotion_evidence` 表达晋级依据。nature-skills README 中 Draft / Beta / Stable skill 状态只作为可学习的 status pattern；进入 MAS 后必须转译为 repo-tracked contract maturity，不得成为 vendor authority、default skill source、publication readiness 或 quality verdict。
+
+`stable_contract` 的最低门槛是强证据：synthetic fixture、focused tests、real paper-line owner receipt 或 anonymized package evidence。单独的文档说明、普通测试通过、README 状态或 vendor skill 标签都不足以晋级 stable。即使是 stable 的 nature-derived pack，也仍然只作为 reviewer / auditor 消费的 explicit quality pack descriptor，`publication_readiness_authority=false` 且 `quality_verdict_authority=false`。
+
 ## 当前状态
 
 当前已具备的基础按生命周期读成四组：
@@ -112,6 +118,7 @@ AI-first stage output 必须来自与执行 agent 分离的 reviewer/auditor age
 | `standard_skeleton_physicalization` | `functional_follow_through_gate` | `planned; repo_source_anchors_landed` | 新 repo-source surface 默认按 standard slot 落位；破坏性目录移动必须有 direct/hosted parity、provenance、restore 和 no-forbidden-write proof。 |
 | `stage_closeout_owner_chain` | `production_evidence_gate` | `planned; guarded_apply_harness_landed` | Provider-hosted live apply 产出 MAS owner receipt，证明 stage closeout / memory / quality / artifact delta 沿 MAS owner surface 闭合，或返回 typed blocker。 |
 | `ai_first_verdict_alignment` | `functional_follow_through_gate` | `required; authority_wording_split_pending` | `publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict` 等必须由独立 reviewer/auditor agent 产生的 AI-first stage quality gate 输出支撑；程序只做 validator / materializer / receipt signer / guard。 |
+| `quality_pack_maturity_gate` | `functional_follow_through_gate` | `landed; maturity_and_promotion_evidence_contract_landed` | 每个 stage quality pack 都投影 `maturity_status` / `promotion_evidence`；stable contract 必须有 synthetic fixture、focused tests、real paper-line owner receipt 或 anonymized package evidence 之一的强证据；nature-derived pack 仍无 publication readiness / quality verdict authority。 |
 
 具体 landed proof、focused tests 和 dated receipt 由 machine-readable contracts、test manifests、product-entry / sidecar surfaces、[Plan Completion Ledger](../history/program/plan_completion_ledger.md) 和 [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md) 承担。本文不再维护按日期增长的 proof ledger。
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from med_autoscience.stage_quality_contract import (
     REQUIRED_STAGE_QUALITY_PACK_IDS,
+    STRONG_PROMOTION_EVIDENCE_KINDS,
     build_stage_quality_pack_contract,
 )
 
@@ -28,6 +29,12 @@ def test_stage_quality_contract_defines_required_pack_boundaries_and_refs() -> N
     for pack_id, pack in packs.items():
         assert pack["pack_id"] == pack_id
         assert pack["role"] == "quality_input_and_reviewer_rubric"
+        assert pack["maturity_status"] in {"beta_contract", "stable_contract"}
+        assert pack["promotion_evidence"]["maturity_model"] == "mas_contract_maturity_not_vendor_skill_status"
+        assert pack["promotion_evidence"]["stable_requires_strong_evidence"] is True
+        assert pack["promotion_evidence"]["may_authorize_publication_readiness"] is False
+        assert pack["promotion_evidence"]["may_authorize_quality_verdict"] is False
+        assert pack["promotion_evidence"]["evidence"]
         assert pack["publication_readiness_authority"] is False
         assert pack["quality_verdict_authority"] is False
         assert pack["applies_to"]["stages"]
@@ -58,6 +65,29 @@ def test_stage_quality_contract_defines_required_pack_boundaries_and_refs() -> N
         ref["ref"] for ref in packs["medical_claim_evidence_pack"]["required_refs"]
     }
     assert packs["human_gate_pack"]["applies_to"]["stages"] == ["all_boundary_changing_stages"]
+
+
+def test_stable_quality_pack_maturity_requires_strong_promotion_evidence() -> None:
+    contract = build_stage_quality_pack_contract()
+    strong_evidence_kinds = set(STRONG_PROMOTION_EVIDENCE_KINDS)
+
+    for pack in contract["packs"]:
+        promotion = pack["promotion_evidence"]
+        assert set(promotion["strong_evidence_kinds"]) == strong_evidence_kinds
+
+        evidence = promotion["evidence"]
+        assert all(item["evidence_kind"] not in {"docs_only", "ordinary_tests"} for item in evidence)
+        strong_evidence = [
+            item
+            for item in evidence
+            if item["strength"] == "strong" and item["evidence_kind"] in strong_evidence_kinds
+        ]
+
+        if pack["maturity_status"] == "stable_contract":
+            assert promotion["stable_strong_evidence_satisfied"] is True
+            assert strong_evidence
+        else:
+            assert promotion["stable_strong_evidence_satisfied"] is False
 
 
 def test_reporting_guideline_selection_covers_required_families_and_clinical_base_guideline() -> None:
