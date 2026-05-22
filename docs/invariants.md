@@ -23,6 +23,7 @@
 
 - MAS 必须持有无法声明化的医学 authority function：publication quality verdict、AI reviewer-backed quality decision、artifact mutation authorization、publication-route memory accept/reject、source readiness verdict、owner receipt signer 或必要医学 helper implementation。缺少接口、active caller、不能上收原因、receipt/blocker/ref 输出边界和 no-forbidden-write 证据时，必须作为功能/结构差距处理。
 - AI-first 质量判断必须由 AI reviewer / author artifact 持有；schema、gate、scorecard、audit 只能持有结构、证据引用、机械完整性与阻塞投影。缺少 `assessment_provenance.owner=ai_reviewer` 的 `publication_eval/latest.json` 不得驱动 reviewer-first ready、bundle-only remaining、finalize-ready 或 submission-facing 质量闭环。
+- AI reviewer-backed `publication_eval/latest.json` 只有在 reviewer OS currentness proof 覆盖当前 canonical manuscript surface（`paper/draft.md`、`paper/manuscript.md` 或 `paper/build/review_manuscript.md`）且 digest/时间戳不陈旧时，才能关闭 `return_to_ai_reviewer_workflow` 的 required output；否则 materializer/dispatcher 必须视为 pending，repeat suppression 不得吞掉复评。
 - `allow_write` 必须按写面拆语义：publication gate 的 `allow_write=false` 只阻止下游投稿包、bundle、submission proofing、`current_package` 和 delivery mirror 写入；MAS managed runtime worker 在 controller-authorized analysis-campaign/write work unit 下仍可修改 canonical `paper/` 修订面。
 - 投稿包、submission-ready 或 finalize 后的用户、导师、审稿反馈是同一 study 的重新激活信号；必须先写入 durable revision intake，再通过 MAS-controlled relaunch/resume 接管 canonical paper surface 并重新生成投影包，不得让前台直接修改 `manuscript/current_package/`。
 - 大型 public data 默认保持 remote-only；只有 durable study charter 或 analysis plan 明确用途、体积预算、复用位置与清理/保留策略后，才允许下载或物化完整资产。

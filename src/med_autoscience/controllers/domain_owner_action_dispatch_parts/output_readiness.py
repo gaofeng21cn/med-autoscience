@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +19,11 @@ PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 MEDICAL_PROSE_REVIEW_RELATIVE_PATH = Path("artifacts/publication_eval/medical_prose_review.json")
 AI_REVIEWER_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/ai_reviewer/latest.json")
 MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint_source.json")
+AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES = (
+    Path("paper/draft.md"),
+    Path("paper/manuscript.md"),
+    Path("paper/build/review_manuscript.md"),
+)
 ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
 SOURCE_PROVENANCE_RESULT_RELATIVE_PATH = Path("artifacts/controller/source_provenance/latest.json")
 PROVENANCE_LIMITED_HARMONIZATION_RESULT_RELATIVE_PATH = Path(
@@ -77,6 +84,8 @@ def ai_reviewer_output_pending(
 def ai_reviewer_study_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
     study_root = profile.studies_root / study_id
     latest = _read_json_object(study_root / PUBLICATION_EVAL_RELATIVE_PATH)
+    if _current_manuscript_unconsumed_by_latest_eval(study_root=study_root, latest=latest):
+        return True
     if _request_record_newer_than_latest(study_root=study_root, latest=latest):
         return True
     return _current_medical_prose_route_back_unconsumed(study_root=study_root, latest=latest)
@@ -123,6 +132,112 @@ def _current_medical_prose_route_back_unconsumed(*, study_root: Path, latest: Ma
     ):
         return True
     return not _latest_recommends_same_route_back(latest=latest, route_target=route_target)
+
+
+def _current_manuscript_unconsumed_by_latest_eval(
+    *,
+    study_root: Path,
+    latest: Mapping[str, Any] | None,
+) -> bool:
+    manuscript_paths = _current_manuscript_paths(study_root=study_root)
+    if not manuscript_paths:
+        return False
+    if latest is None:
+        return True
+    latest_timestamp = _publication_eval_timestamp(study_root=study_root, latest=latest)
+    if latest_timestamp is None:
+        return True
+    for manuscript_path in manuscript_paths:
+        manuscript_timestamp = _path_timestamp(manuscript_path)
+        if manuscript_timestamp is not None and manuscript_timestamp > latest_timestamp:
+            return True
+    latest_prose = _latest_medical_prose_currentness(latest)
+    if _text(latest_prose.get("status")) != "current":
+        return True
+    latest_manuscript_ref = _text(latest_prose.get("manuscript_ref"))
+    if latest_manuscript_ref is None:
+        return True
+    matched_manuscript = _matching_current_manuscript(
+        study_root=study_root,
+        manuscript_paths=manuscript_paths,
+        latest_manuscript_ref=latest_manuscript_ref,
+    )
+    if matched_manuscript is None:
+        return True
+    latest_digest = _text(latest_prose.get("manuscript_digest"))
+    current_digest = _sha256_digest(matched_manuscript)
+    return latest_digest is None or current_digest is None or latest_digest != current_digest
+
+
+def _current_manuscript_paths(*, study_root: Path) -> list[Path]:
+    return [
+        path
+        for relative_path in AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES
+        if (path := study_root / relative_path).is_file()
+    ]
+
+
+def _latest_medical_prose_currentness(latest: Mapping[str, Any]) -> dict[str, Any]:
+    reviewer_os = _mapping(latest.get("reviewer_operating_system"))
+    currentness_checks = _mapping(reviewer_os.get("currentness_checks"))
+    return _mapping(currentness_checks.get("medical_prose_review"))
+
+
+def _matching_current_manuscript(
+    *,
+    study_root: Path,
+    manuscript_paths: list[Path],
+    latest_manuscript_ref: str,
+) -> Path | None:
+    for manuscript_path in manuscript_paths:
+        if _refs_match(left=latest_manuscript_ref, right=str(manuscript_path)):
+            return manuscript_path
+        try:
+            relative_ref = manuscript_path.relative_to(study_root).as_posix()
+        except ValueError:
+            continue
+        if _refs_match(left=latest_manuscript_ref, right=relative_ref):
+            return manuscript_path
+    return None
+
+
+def _publication_eval_timestamp(*, study_root: Path, latest: Mapping[str, Any]) -> datetime | None:
+    if timestamp := _payload_timestamp(latest):
+        return timestamp
+    return _path_timestamp(study_root / PUBLICATION_EVAL_RELATIVE_PATH)
+
+
+def _path_timestamp(path: Path) -> datetime | None:
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
+def _payload_timestamp(payload: Mapping[str, Any]) -> datetime | None:
+    for key in ("emitted_at", "generated_at", "created_at", "updated_at", "assessed_at", "recorded_at"):
+        if timestamp := _parse_timestamp(_text(payload.get(key))):
+            return timestamp
+    return None
+
+
+def _parse_timestamp(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _sha256_digest(path: Path) -> str | None:
+    try:
+        return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
 
 
 def _latest_recommends_same_route_back(*, latest: Mapping[str, Any], route_target: str) -> bool:

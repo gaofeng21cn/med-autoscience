@@ -6,6 +6,13 @@
 - 理由：DM003 暴露出 canonical manuscript repair 已完成后，fresh supervisor scan 因 `runtime_recovery_retry_budget_exhausted` 生成了 `owner_reason=null/allowed_actions=[]` 的 terminal scan route；但同一 tick 保留的 AI reviewer request 与 dispatch 仍然是当前、合法、pending 的 reviewer redrive。旧执行器只用 scan 顶层 route 做 currentness，导致合法 `return_to_ai_reviewer_workflow` 被误判 `owner_route_stale`，论文质量闭环停在巡检层。
 - 影响：这是 MAS owner-dispatch currentness 修复，不写 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只允许已物化的 AI reviewer owner request 进入 AI reviewer workflow；论文质量、publishability 和 submission-facing readiness 仍由 AI reviewer-backed eval、publication gate 与后续 owner receipts 判定。
 
+## 2026-05-23：AI reviewer required-output pending 必须覆盖当前 canonical manuscript
+
+- 决策：`return_to_ai_reviewer_workflow` 的 required-output pending 判定必须同时检查当前 canonical manuscript surface，包括 `paper/draft.md`、`paper/manuscript.md` 与 `paper/build/review_manuscript.md`。只要这些 surface 比当前 `artifacts/publication_eval/latest.json` 新，或 reviewer OS currentness proof 没有以 `manuscript_ref` 和 `sha256` digest 证明已消费当前稿件，就必须视为 AI reviewer publication-eval output pending。
+- 决策：materializer 与 dispatcher 调用同一 required-output 判定；当当前稿件尚未被 latest eval 消费时，`do_not_repeat` / repeat suppression 不能吞掉 `return_to_ai_reviewer_workflow`。
+- 理由：DM002 暴露出 write/default executor 已更新 `paper/draft.md` 与 `paper/build/review_manuscript.md` 后，latest AI reviewer eval 仍早于当前稿件，但 MAS 只检查 request record 和 medical prose route-back currentness，导致 `return_to_ai_reviewer_workflow` 被 repeat-suppressed，无法产出针对当前稿件的评审记录。根因是 MAS AI reviewer output readiness currentness 缺口，不是 OPL queue/provider lifecycle，也不是单篇 study truth 可手工 patch 的问题。
+- 影响：这是 MAS output-readiness/currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只保证当前稿件需要 AI reviewer 复评时不会被 repeat suppression 吞掉；正式质量结论仍由后续 AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-23：terminal-stall write handoff 以 Owner-Route Attempt Protocol 为准
 
 - 决策：`domain_owner_action_dispatch` 在 `paper_progress_stall.terminal=true` 下处理 `run_quality_repair_batch` 时，不能只允许硬编码的 `medical_prose_write_repair`。若当前 owner route 明确 `next_owner=write`、允许该 action、reason 已在 Owner-Route Attempt Protocol 注册、priority 为 `write_route_back`、attempt protocol 可 dispatch、currentness contract 无缺失、source fingerprint 存在，且 `source_refs.owner_route_currentness_basis.work_unit_id` 指向当前 work unit，则允许进入 MAS write-owner callable。
