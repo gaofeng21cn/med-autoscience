@@ -370,6 +370,151 @@ def test_sidecar_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, ca
     )
 
 
+def test_sidecar_export_projects_ai_reviewer_default_executor_dispatch_request(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = workspace_root / "studies" / study_id
+    dispatch_ref = (
+        f"studies/{study_id}/artifacts/supervision/consumer/default_executor_dispatches/"
+        "return_to_ai_reviewer_workflow.json"
+    )
+    dispatch_path = workspace_root / dispatch_ref
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": "truth-event-000017-bac190eb1c889a78",
+        "runtime_health_epoch": "runtime-health-event-006195-9cdb58e3383bd0a9",
+        "work_unit_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",
+        "source_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",
+        "current_owner": "mas_controller",
+        "next_owner": "ai_reviewer",
+        "owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "blocked_actions": ["run_quality_repair_batch"],
+        "source_refs": {
+            "publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "runtime_health_epoch": "runtime-health-event-006195-9cdb58e3383bd0a9",
+            "study_truth_epoch": "truth-event-000017-bac190eb1c889a78",
+            "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+        },
+    }
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "dispatch_status": "ready",
+            "dispatch_authority": "ai_reviewer_record_production_handoff",
+            "next_executable_owner": "ai_reviewer",
+            "executor_kind": "codex_cli_default",
+            "consumer_mutation_scope": "executor_dispatch_request_only",
+            "owner_route": owner_route,
+            "prompt_contract": {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "action_type": "return_to_ai_reviewer_workflow",
+                "next_executable_owner": "ai_reviewer",
+                "owner_route": owner_route,
+                "allowed_write_surfaces": [
+                    "artifacts/supervision/consumer/latest.json",
+                    "artifacts/supervision/consumer/history.jsonl",
+                    "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
+                    "studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json",
+                    (
+                        "artifacts/publication_eval/ai_reviewer_responses/"
+                        "*_publication_eval_record.json"
+                    ),
+                ],
+                "forbidden_surfaces": [
+                    "paper/**",
+                    "manuscript/**",
+                    "current_package/**",
+                    "paper/current_package/**",
+                    "manuscript/current_package/**",
+                    "artifacts/publication_eval/latest.json",
+                    "artifacts/controller_decisions/latest.json",
+                ],
+                "paper_package_mutation_allowed": False,
+                "quality_gate_relaxation_allowed": False,
+                "manual_study_patch_allowed": False,
+                "medical_claim_authoring_allowed": False,
+                "prompt_budget": {"max_prompt_tokens": 6000},
+                "compact_evidence_packet_ref": (
+                    "artifacts/supervision/compact_evidence_packets/"
+                    "return_to_ai_reviewer_workflow.json"
+                ),
+                "do_not_repeat": True,
+                "repeat_suppression_key": "truth-snapshot::085b4164f248a2f4c92bf66b",
+            },
+            "refs": {
+                "dispatch_path": str(dispatch_path),
+                "scan_latest": str(workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"),
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["payload"]["action_type"] == "return_to_ai_reviewer_workflow"
+    assert task["payload"]["domain_owner"] == "ai_reviewer"
+    assert task["payload"]["next_executable_owner"] == "ai_reviewer"
+    assert task["payload"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+    assert task["payload"]["dispatch_ref"] == dispatch_ref
+    assert task["payload"]["authority_boundary"] == "mas_default_executor_dispatch_request_only"
+    assert task["payload"]["owner_route_currentness_basis"] == {
+        "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "work_unit_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",
+        "truth_epoch": "truth-event-000017-bac190eb1c889a78",
+        "runtime_health_epoch": "runtime-health-event-006195-9cdb58e3383bd0a9",
+        "owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
+    }
+    assert task["owner_route_attempt_envelope"]["domain_owner"] == "ai_reviewer"
+    assert task["owner_route_attempt_envelope"]["dispatchable"] is True
+    assert {
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+        "paper/current_package/**",
+        "manuscript/current_package/**",
+    } <= set(task["payload"]["forbidden_surfaces"])
+    source_refs_by_role = {ref["role"]: ref for ref in task["source_refs"]}
+    assert source_refs_by_role["default_executor_dispatch_request"]["ref"] == dispatch_ref
+    assert source_refs_by_role["default_executor_prompt_contract"]["ref"] == f"{dispatch_ref}#prompt_contract"
+    assert source_refs_by_role["owner_route_work_unit_id"]["ref"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+    assert source_refs_by_role["owner_route_blocked_reason"]["ref"] == (
+        "ai_reviewer_record_stale_after_current_manuscript"
+    )
+    evidence_payload = task["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["authority_boundary"]["opl_writes_mas_truth"] is False
+    assert evidence_payload["authority_boundary"]["opl_authorizes_quality_or_publication"] is False
+    assert evidence_payload["current_package_mutation_authorized"] is False
+    assert evidence_payload["publication_ready_claimed"] is False
+
+
 def test_sidecar_export_skips_bare_default_executor_dispatch_without_owner_currentness(
     tmp_path: Path,
     capsys,

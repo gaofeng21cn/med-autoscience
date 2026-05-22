@@ -17,7 +17,8 @@ TASK_KIND = "domain_owner/default-executor-dispatch"
 DISPATCH_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_dispatches")
 REQUIRED_SURFACE = "default_executor_dispatch_request"
 REQUIRED_EXECUTOR_KIND = "codex_cli_default"
-REQUIRED_NEXT_OWNER = "write"
+DEFAULT_NEXT_OWNER = "write"
+ALLOWED_NEXT_OWNERS = frozenset({"write", "ai_reviewer", "write/ai_reviewer"})
 OWNER_RECEIPT_CONTRACT = "mas-default-executor-owner-receipt.v1"
 
 
@@ -56,7 +57,7 @@ def default_executor_dispatch_tasks(
             workspace_root=profile.workspace_root,
         )
         quest_id = _text(dispatch.get("quest_id")) or study_id
-        next_owner = _text(dispatch.get("next_executable_owner")) or REQUIRED_NEXT_OWNER
+        next_owner = _next_executable_owner(dispatch) or DEFAULT_NEXT_OWNER
         executor_kind = _text(dispatch.get("executor_kind")) or REQUIRED_EXECUTOR_KIND
         source_fingerprint = _source_fingerprint(dispatch=dispatch, dispatch_path=dispatch_path)
         evidence_record_payload = build_domain_dispatch_evidence_record_payload(
@@ -113,13 +114,23 @@ def _dispatch_ready_for_opl_attempt(dispatch: Mapping[str, Any] | None) -> bool:
         _text(dispatch.get("surface")) == REQUIRED_SURFACE
         and _text(dispatch.get("dispatch_status")) == "ready"
         and _text(dispatch.get("executor_kind")) == REQUIRED_EXECUTOR_KIND
-        and _text(dispatch.get("next_executable_owner")) == REQUIRED_NEXT_OWNER
+        and _next_executable_owner(dispatch) in ALLOWED_NEXT_OWNERS
         and bool(owner_route)
         and _text(refs.get("dispatch_path")) is not None
     ):
         return False
     envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
     return envelope.get("dispatchable") is True
+
+
+def _next_executable_owner(dispatch: Mapping[str, Any]) -> str | None:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    return (
+        _text(dispatch.get("next_executable_owner"))
+        or _text(prompt_contract.get("next_executable_owner"))
+        or _text(owner_route.get("next_owner"))
+    )
 
 
 def _source_refs(
