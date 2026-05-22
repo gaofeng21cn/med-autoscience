@@ -284,6 +284,118 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert payload["pending_family_tasks"][0]["dedupe_key"].startswith("mas:nfpitnet:001-risk:autonomy-continuation:")
 
 
+def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "quest_id": study_root.name,
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "dispatch_authority": "quality_repair_batch_writer_handoff",
+            "next_executable_owner": "write",
+            "executor_kind": "codex_cli_default",
+            "consumer_mutation_scope": "executor_dispatch_request_only",
+            "prompt_contract": {
+                "allowed_write_surfaces": [
+                    "paper/draft.md",
+                    "paper/build/review_manuscript.md",
+                    "paper/claim_evidence_map.json",
+                    "paper/evidence_ledger.json",
+                    "paper/review/**",
+                ],
+                "forbidden_surfaces": [
+                    "manuscript/**",
+                    "current_package/**",
+                    "paper/current_package/**",
+                    "manuscript/current_package/**",
+                    "artifacts/publication_eval/latest.json",
+                    "artifacts/controller_decisions/latest.json",
+                ],
+                "paper_package_mutation_allowed": False,
+                "quality_gate_relaxation_allowed": False,
+                "manual_study_patch_allowed": False,
+                "medical_claim_authoring_allowed": False,
+            },
+            "refs": {
+                "dispatch_path": str(dispatch_path),
+                "source_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["domain_id"] == "medautoscience"
+    assert task["dispatch_owner"] == "one-person-lab"
+    assert task["domain_truth_owner"] == "med-autoscience"
+    assert task["queue_owner"] == "one-person-lab"
+    assert task["profile_name"] == "nfpitnet"
+    assert task["requires_approval"] is False
+    assert task["dedupe_key"] == (
+        "mas:nfpitnet:002-dm-china-us-mortality-attribution:"
+        "default-executor:run_quality_repair_batch:quality_repair_batch_writer_handoff"
+    )
+    assert task["payload"] == {
+        "profile": str(profile_path),
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "quest_id": "002-dm-china-us-mortality-attribution",
+        "action_type": "run_quality_repair_batch",
+        "dispatch_authority": "quality_repair_batch_writer_handoff",
+        "next_executable_owner": "write",
+        "executor_kind": "codex_cli_default",
+        "dispatch_ref": (
+            "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+            "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+        ),
+        "authority_boundary": "mas_default_executor_dispatch_request_only",
+    }
+    assert task["source_refs"] == [
+        {
+            "role": "default_executor_dispatch_request",
+            "ref": (
+                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+            ),
+            "exists": True,
+            "body_included": False,
+        },
+        {
+            "role": "default_executor_prompt_contract",
+            "ref": (
+                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                "consumer/default_executor_dispatches/run_quality_repair_batch.json#prompt_contract"
+            ),
+            "exists": True,
+            "body_included": False,
+        },
+    ]
+
+
 def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"

@@ -16,6 +16,7 @@ from .. import study_domain_transition_table
 from ..domain_slo_scheduler_projection_parts import consumer_migration
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
+from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
 from .dispatch_orchestration import ALLOWED_TASK_KINDS
 from .functional_closure import build_sidecar_functional_closure_projection
 from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_guarded_apply_tasks
@@ -449,6 +450,13 @@ def _pending_family_tasks(
         tasks.extend(
             _paper_autonomy_tasks(
                 study=study,
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=study_id,
+            )
+        )
+        tasks.extend(
+            default_executor_dispatch_tasks(
                 profile=profile,
                 profile_ref=profile_ref,
                 study_id=study_id,

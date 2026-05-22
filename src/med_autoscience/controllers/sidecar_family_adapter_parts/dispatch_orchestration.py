@@ -18,6 +18,7 @@ from .. import publication_aftercare
 from .. import real_paper_autonomy_soak_inventory
 from ..real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 from .authority_boundary import authority_boundary_payload
+from .default_executor_dispatch_tasks import TASK_KIND as DEFAULT_EXECUTOR_DISPATCH_TASK_KIND
 from .dispatch_receipts import write_dispatch_receipt
 
 
@@ -38,6 +39,7 @@ ALLOWED_TASK_KINDS = {
     "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/guarded-apply": "paper_autonomy_guarded_apply",
+    DEFAULT_EXECUTOR_DISPATCH_TASK_KIND: "default_executor_dispatch_request",
     publication_aftercare.ANALYSIS_QUEUE_TASK_KIND: "domain_route_reconcile_apply",
     publication_aftercare.REVIEWER_REFRESH_TASK_KIND: "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/gate-replay": "domain_route_reconcile_apply",
@@ -348,6 +350,18 @@ def _apply_dispatch_action(
             study_id=study_id,
             task=task,
         )
+    if action_type == "default_executor_dispatch_request":
+        receipt["will_start_llm_worker"] = True
+        receipt["dispatch"]["execution_policy"] = "opl_default_executor_stage_attempt_admission"
+        receipt["dispatch"]["result"] = {
+            "surface": "default_executor_dispatch_request_admission",
+            "status": "admitted",
+            "study_id": study_id,
+            "next_owner": _text(_mapping(task.get("payload")).get("next_executable_owner")) or "write",
+            "dispatch_ref": _text(_mapping(task.get("payload")).get("dispatch_ref")),
+            "authority_boundary": "mas_default_executor_dispatch_request_only",
+        }
+        return receipt
     return receipt
 
 
