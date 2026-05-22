@@ -21,9 +21,18 @@ def ai_reviewer_lifecycle_resolved(
     lifecycle: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> bool:
-    if _text(lifecycle.get("blocked_reason")) != "ai_reviewer_assessment_required":
-        return False
-    return ai_reviewer_assessment.get("missing") is not True
+    blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if blocked_reason == "ai_reviewer_assessment_required":
+        return ai_reviewer_assessment.get("missing") is not True
+    if blocked_reason in {
+        ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON,
+        ai_reviewer_actions.RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON,
+    }:
+        return (
+            ai_reviewer_assessment.get("present") is True
+            and _text(ai_reviewer_assessment.get("owner")) == "ai_reviewer"
+        )
+    return False
 
 
 def runtime_relaunch_lifecycle_resolved(

@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：owner-route 必须清理已由当前 AI reviewer eval 关闭的 stale-record lifecycle
+
+- 决策：`owner-route-reconcile` 遇到旧 `ai_repair_lifecycle.blocked_reason=ai_reviewer_record_stale_after_current_manuscript` 或 `ai_reviewer_record_stale_after_unit_harmonized_rerun` 时，若当前 `publication_eval/latest.json` 已投影为 present 的 AI reviewer-owned assessment，必须把该旧 lifecycle 和 `why_not_applied` 一并清空，不得继续保留 `next_owner=ai_reviewer`、`allowed_actions=[]` 的死锁 read-model。
+- 决策：该清理只适用于当前 AI reviewer assessment 明确 present 且 owner 为 `ai_reviewer` 的路径；stable AI reviewer request 仍处于 requested/assigned，或仍缺 currentness proof 时，继续按 stale-record blocker 路由到 AI reviewer。
+- 理由：DM002 暴露出 stale-record request lifecycle 已被新的 AI reviewer publication eval/currentness proof 消费后，owner-route 仍从旧 `ai_repair_lifecycle` 和 progress projection 中复活 stale blocker，导致 write route-back 无法继续推进。根因是 MAS owner-route read-model 的 resolved-currentness 清理缺口，不是 OPL queue/provider lifecycle，也不是单篇论文可手工 patch 的内容问题。
+- 影响：这是 MAS owner-route / currentness read-model 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须回到 MAS owner/controller/runtime 路径，并由 AI reviewer-backed eval、write owner delta 和 publication gate 判定。
+
 ## 2026-05-22：request-bound AI reviewer 复评必须绑定 live manuscript digest 与 stale-request currentness proof
 
 - 决策：`request_bound_ai_reviewer_record` workflow 不得把既有 `medical_prose_review` record 直接标为 current；必须复用标准 medical prose currentness 校验，确认 request digest、manuscript ref、manuscript digest 与当前 live manuscript SHA-256 一致后，才允许物化 AI reviewer-backed `publication_eval/latest.json`。

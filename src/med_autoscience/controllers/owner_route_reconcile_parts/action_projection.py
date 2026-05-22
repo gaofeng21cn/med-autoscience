@@ -655,6 +655,14 @@ def why_not_applied(
     if text := _text(lifecycle.get("blocked_reason")):
         if text == "ai_reviewer_assessment_required" and ai_reviewer_assessment.get("missing") is not True:
             return None
+        if text in {
+            ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON,
+            ai_reviewer_actions.RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON,
+        } and (
+            ai_reviewer_assessment.get("present") is True
+            and _text(ai_reviewer_assessment.get("owner")) == "ai_reviewer"
+        ):
+            return None
         if (
             text == "runtime_relaunch_no_live_run_started"
             and runtime_facts.active_run_id(status, progress) is not None
