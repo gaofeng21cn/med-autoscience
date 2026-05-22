@@ -397,6 +397,11 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "refs_only_adapter",
         "code_paths": [
             "src/med_autoscience/controllers/runtime_live_console.py",
+            "src/med_autoscience/runtime_protocol/runtime_live_console_read_model.py",
+            "src/med_autoscience/runtime_protocol/runtime_live_console_read_model_parts/context_projection.py",
+            "src/med_autoscience/runtime_protocol/runtime_live_console_read_model_parts/session_projection.py",
+            "src/med_autoscience/runtime_protocol/runtime_live_console_read_model_parts/stream_projection.py",
+            "src/med_autoscience/runtime_protocol/runtime_live_console_read_model_parts/study_projection.py",
             "src/med_autoscience/controllers/runtime_live_console_ui.py",
             "src/med_autoscience/controllers/runtime_live_console_ui_parts/rendering.py",
         ],
