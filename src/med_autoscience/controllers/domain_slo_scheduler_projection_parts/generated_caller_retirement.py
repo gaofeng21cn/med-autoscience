@@ -288,6 +288,10 @@ def build_physical_retirement_gate_matrix(
                     ),
                     (
                         "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "export_study_projection.py"
+                    ),
+                    (
+                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
                         "dispatch_orchestration.py"
                     ),
                 ],
@@ -323,6 +327,10 @@ def build_physical_retirement_gate_matrix(
                         (
                             "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
                             "export_projection.py"
+                        ),
+                        (
+                            "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                            "export_study_projection.py"
                         ),
                         (
                             "src/med_autoscience/controllers/sidecar_family_adapter_parts/"

@@ -54,6 +54,10 @@ def build_generated_surface_handoff(
                     ),
                     (
                         "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
+                        "export_study_projection.py"
+                    ),
+                    (
+                        "src/med_autoscience/controllers/sidecar_family_adapter_parts/"
                         "dispatch_orchestration.py"
                     ),
                 ],

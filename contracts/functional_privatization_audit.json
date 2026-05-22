@@ -278,6 +278,7 @@
           "src/med_autoscience/controllers/sidecar_family_adapter.py",
           "src/med_autoscience/controllers/sidecar_family_adapter_parts/",
           "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+          "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py",
           "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
         ],
         "current_role": "domain_sidecar_dispatch_adapter",
@@ -370,6 +371,7 @@
           "does_not_claim_physical_delete": true,
           "extracted_paths": [
             "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py",
             "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
           ],
           "facade_path": "src/med_autoscience/controllers/sidecar_family_adapter.py",
@@ -1743,6 +1745,7 @@
           "current_paths": [
             "src/med_autoscience/controllers/sidecar_family_adapter.py",
             "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py",
             "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
           ],
           "current_role": "migration_bridge_export_dispatch_adapter",
@@ -2496,6 +2499,7 @@
           "code_paths": [
             "src/med_autoscience/controllers/sidecar_family_adapter.py",
             "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py",
             "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
           ],
           "delete_gate_status": "blocked_domain_dispatch_adapter_active",
@@ -2511,6 +2515,7 @@
             "does_not_claim_physical_delete": true,
             "extracted_paths": [
               "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py",
+              "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py",
               "src/med_autoscience/controllers/sidecar_family_adapter_parts/dispatch_orchestration.py"
             ],
             "facade_path": "src/med_autoscience/controllers/sidecar_family_adapter.py",

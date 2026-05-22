@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -10,8 +9,6 @@ from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
-from .. import reviewer_refinement_loop
-from .. import stage_knowledge_plane
 from .. import study_domain_transition_table
 from ..domain_slo_scheduler_projection_parts import consumer_migration
 from .authority_boundary import authority_boundary_payload
@@ -19,99 +16,21 @@ from .controller_route_back_tasks import controller_decision_route_back_task
 from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
 from .dispatch_orchestration import ALLOWED_TASK_KINDS
 from .functional_closure import build_sidecar_functional_closure_projection
+from .export_study_projection import (
+    build_study_projection,
+    mapping,
+    study_roots,
+    text,
+    workspace_relative,
+)
 from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_guarded_apply_tasks
 from .owner_route_handoff_tasks import owner_route_handoff_task
 from .owner_source_refs import owner_controller_decision_refs
 from .substrate_adapter import build_opl_substrate_adapter_projection
 
 
-_STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
-    ("runtime_supervision_truth", Path("artifacts/runtime/runtime_supervision/latest.json"), "runtime_supervision"),
-    ("runtime_supervision_truth_legacy_ref", Path("artifacts/runtime_supervision/latest.json"), "runtime_supervision"),
-    ("autonomy_slo_status", Path("artifacts/autonomy/slo_status/latest.json"), "slo_status"),
-    ("worker_lease", Path("artifacts/runtime/worker_lease/latest.json"), "worker_lease"),
-    ("runtime_session", Path("artifacts/runtime/runtime_session/latest.json"), "runtime_session"),
-    ("recovery_intent", Path("artifacts/runtime/recovery_intent/latest.json"), "recovery_intent"),
-    ("safe_reconcile_dry_run", Path("artifacts/supervision/reconcile/latest.json"), "safe_reconcile"),
-    ("controller_receipt", Path("artifacts/runtime/supervisor_dispatch_receipt/latest.json"), "controller_receipt"),
-    ("controller_decisions", Path("artifacts/controller_decisions/latest.json"), "controller_decisions"),
-    ("publication_eval", Path("artifacts/publication_eval/latest.json"), "publication_eval"),
-    ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
-    ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
-)
-_AUTO_CONTINUATION_BLOCKING_DECISIONS = {"stop_loss", "terminal_stop", "completed"}
-
-
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _mapping(value: object) -> Mapping[str, Any]:
-    return value if isinstance(value, Mapping) else {}
-
-
-def _text(value: object) -> str | None:
-    text = str(value or "").strip()
-    return text or None
-
-
-def _read_json_object(path: Path) -> dict[str, Any] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return None
-    return dict(payload) if isinstance(payload, dict) else None
-
-
-def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
-    try:
-        return str(path.relative_to(workspace_root))
-    except ValueError:
-        return str(path)
-
-
-def _source_ref(*, study_root: Path, role: str, relative_path: Path, workspace_root: Path) -> dict[str, Any]:
-    path = study_root / relative_path
-    return {"ref_kind": "repo_path", "role": role, "ref": _workspace_relative(path, workspace_root=workspace_root), "exists": path.exists()}
-
-
-def _study_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
-    source_refs = [
-        _source_ref(
-            study_root=study_root,
-            role=role,
-            relative_path=relative_path,
-            workspace_root=profile.workspace_root,
-        )
-        for role, relative_path, _ in _STUDY_SOURCE_REFS
-    ]
-    payload: dict[str, Any] = {
-        "study_id": study_root.name,
-        "study_root": str(study_root),
-        "domain_owned_source_refs": source_refs,
-    }
-    for _, relative_path, field_name in _STUDY_SOURCE_REFS:
-        if field_name not in payload:
-            payload[field_name] = _read_json_object(study_root / relative_path)
-    payload["paper_autonomy_loop"] = _paper_autonomy_loop_projection(study_root=study_root)
-    payload["publication_aftercare"] = publication_aftercare.build_publication_aftercare_plan(
-        study_root=study_root,
-    )
-    payload["memory_paper_soak_proof"] = _memory_paper_soak_proof_projection(
-        study_root=study_root,
-        profile=profile,
-    )
-    payload["autonomy_continuation"] = _autonomy_continuation_projection(
-        study=payload,
-        profile=profile,
-    )
-    return payload
-
-
-def _study_roots(profile: WorkspaceProfile) -> list[Path]:
-    if not profile.studies_root.is_dir():
-        return []
-    return sorted(path for path in profile.studies_root.iterdir() if path.is_dir())
 
 
 def export_family_sidecar(
@@ -120,7 +39,7 @@ def export_family_sidecar(
     profile_ref: Path,
     opl_production_proof_ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    studies = [_study_projection(study_root=study_root, profile=profile) for study_root in _study_roots(profile)]
+    studies = [build_study_projection(study_root=study_root, profile=profile) for study_root in study_roots(profile)]
     generated_at = _now_iso()
     opl_production_proof = opl_provider_ready_adapter.load_opl_production_proof(opl_production_proof_ref)
     provider_availability = opl_provider_ready_adapter.build_provider_availability_from_opl_proof(
@@ -205,9 +124,9 @@ def export_family_sidecar(
             profile=profile,
             studies=studies,
             authority_boundary_payload=authority_boundary_payload,
-            workspace_relative=lambda path: _workspace_relative(path, workspace_root=profile.workspace_root),
-            text=_text,
-            mapping=_mapping,
+            workspace_relative=lambda path: workspace_relative(path, workspace_root=profile.workspace_root),
+            text=text,
+            mapping=mapping,
         ),
         "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),
         "ars_learning_projection": build_ars_learning_projection(),
@@ -279,146 +198,6 @@ def export_family_sidecar(
     }
 
 
-def _hard_human_gate_required(controller: Mapping[str, Any]) -> bool:
-    if bool(controller.get("requires_human_confirmation")):
-        return True
-    gates = controller.get("family_human_gates")
-    return isinstance(gates, list) and len(gates) > 0
-
-
-def _terminal_controller_decision(controller: Mapping[str, Any]) -> bool:
-    decision_type = _text(controller.get("decision_type"))
-    route_target = _text(controller.get("route_target"))
-    return decision_type in _AUTO_CONTINUATION_BLOCKING_DECISIONS or route_target == "stop"
-
-
-def _continuation_reason(study: Mapping[str, Any]) -> str | None:
-    slo = _mapping(study.get("slo_status"))
-    runtime = _mapping(study.get("runtime_supervision"))
-    recovery = _mapping(study.get("recovery_intent"))
-    controller = _mapping(study.get("controller_decisions"))
-    if _hard_human_gate_required(controller):
-        return None
-    if _terminal_controller_decision(controller):
-        return None
-    if _text(slo.get("state")) == "breach":
-        return _text(slo.get("breach_reason")) or "slo_breach"
-    if _text(runtime.get("runtime_decision")) == "blocked":
-        return _text(runtime.get("runtime_reason")) or "runtime_blocked"
-    if _text(runtime.get("runtime_liveness_status")) == "parked":
-        return _text(runtime.get("runtime_reason")) or "runtime_parked"
-    if _text(recovery.get("current_action")) == "safe_reconcile_ready":
-        return "safe_reconcile_ready"
-    return None
-
-
-def _paper_autonomy_loop_projection(*, study_root: Path) -> dict[str, Any]:
-    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
-    if not publication_eval_path.exists():
-        return {
-            "surface_kind": "mas_paper_autonomy_loop_projection",
-            "status": "missing_publication_eval",
-            "eligible_for_auto_dispatch": False,
-            "reason": None,
-            "repair_work_units": [],
-            "source_refs": [
-                {"role": "publication_eval", "ref": str(publication_eval_path), "exists": False},
-            ],
-        }
-    try:
-        refinement = reviewer_refinement_loop.build_reviewer_refinement_loop_read_model(study_root=study_root)
-    except (OSError, TypeError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
-        return {
-            "surface_kind": "mas_paper_autonomy_loop_projection",
-            "status": "blocked",
-            "eligible_for_auto_dispatch": False,
-            "reason": "reviewer_refinement_loop_unreadable",
-            "blockers": [f"reviewer_refinement_loop_unreadable:{exc.__class__.__name__}"],
-            "repair_work_units": [],
-            "source_refs": [
-                {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
-            ],
-        }
-    accept = _mapping(refinement.get("accept"))
-    repair_loop = _mapping(refinement.get("repair_loop"))
-    repair_plan = _mapping(repair_loop.get("repair_plan"))
-    accepted = accept.get("accepted") is True
-    repair_required = any(
-        repair_plan.get(key) is True
-        for key in (
-            "analysis_repair_required",
-            "text_repair_required",
-            "ai_reviewer_recheck_required",
-        )
-    )
-    work_units = [dict(unit) for unit in refinement.get("repair_work_units") or [] if isinstance(unit, Mapping)]
-    eligible = not accepted and repair_required and bool(work_units)
-    return {
-        "surface_kind": "mas_paper_autonomy_loop_projection",
-        "status": "repair_recheck_ready" if eligible else ("accepted" if accepted else "blocked"),
-        "eligible_for_auto_dispatch": eligible,
-        "reason": "ai_reviewer_repair_recheck_required" if eligible else None,
-        "accept_status": _text(accept.get("status")),
-        "repair_plan": dict(repair_plan),
-        "repair_work_units": work_units,
-        "source_eval_id": _text(_mapping(refinement.get("snapshot")).get("source_eval_id")),
-        "source_refs": [
-            {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
-        ],
-        "authority_boundary": authority_boundary_payload(),
-    }
-
-
-def _memory_paper_soak_proof_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
-    proof_path = stage_knowledge_plane.paper_soak_memory_apply_proof_path(study_root=study_root)
-    proof = _read_json_object(proof_path)
-    if proof is None:
-        return {
-            "surface_kind": "mas_memory_paper_soak_proof_projection",
-            "status": "missing",
-            "proof_ref": _workspace_relative(proof_path, workspace_root=profile.workspace_root),
-            "receipt_refs": [],
-            "authority_boundary": authority_boundary_payload(),
-            "read_only_display_policy": {
-                "consumer": "OPL/Aion",
-                "body_included": False,
-                "can_write_mas_truth": False,
-            },
-        }
-    receipt_refs = [
-        dict(ref)
-        for ref in proof.get("opl_aion_readonly_receipt_refs") or []
-        if isinstance(ref, Mapping)
-    ]
-    return {
-        "surface_kind": "mas_memory_paper_soak_proof_projection",
-        "status": _text(proof.get("status")) or "missing",
-        "proof_ref": _workspace_relative(proof_path, workspace_root=profile.workspace_root),
-        "receipt_refs": receipt_refs,
-        "route_memory_ref_count": len(_mapping(proof.get("stage_entry")).get("publication_route_memory_refs") or []),
-        "router_receipt_ref_count": len(proof.get("mas_router_receipt_refs") or []),
-        "writeback_proposal_ref_count": len(proof.get("typed_closeout_writeback_proposals") or []),
-        "source_fingerprint": _text(proof.get("source_fingerprint")),
-        "authority_boundary": _mapping(proof.get("authority_boundary")) or authority_boundary_payload(),
-        "read_only_display_policy": _mapping(proof.get("read_only_display_policy")),
-    }
-
-
-def _autonomy_continuation_projection(*, study: Mapping[str, Any], profile: WorkspaceProfile) -> dict[str, Any]:
-    controller = _mapping(study.get("controller_decisions"))
-    reason = _continuation_reason(study)
-    return {
-        "surface_kind": "mas_autonomy_continuation_projection",
-        "eligible_for_auto_dispatch": reason is not None,
-        "blocked_by_human_gate": _hard_human_gate_required(controller),
-        "blocked_by_terminal_decision": _terminal_controller_decision(controller),
-        "reason": reason,
-        "recommended_task_kind": "domain_route/reconcile-apply" if reason is not None else None,
-        "recommended_domain_owner": "med-autoscience" if reason is not None else None,
-        "workspace_profile": profile.name,
-    }
-
-
 def _pending_family_tasks(
     *,
     studies: list[Mapping[str, Any]],
@@ -444,7 +223,7 @@ def _pending_family_tasks(
         )
     )
     for study in studies:
-        study_id = _text(study.get("study_id"))
+        study_id = text(study.get("study_id"))
         if study_id is None:
             continue
         tasks.extend(
@@ -467,7 +246,7 @@ def _pending_family_tasks(
                 profile_name=profile.name,
                 profile_ref=profile_ref,
                 study_id=study_id,
-                projection=_mapping(study.get("publication_aftercare")),
+                projection=mapping(study.get("publication_aftercare")),
             )
         )
         handoff_task = owner_route_handoff_task(
@@ -486,11 +265,11 @@ def _pending_family_tasks(
         )
         if controller_task is not None:
             tasks.append(controller_task)
-        continuation = _mapping(study.get("autonomy_continuation"))
+        continuation = mapping(study.get("autonomy_continuation"))
         if not continuation.get("eligible_for_auto_dispatch"):
             continue
-        reason = _text(continuation.get("reason")) or "autonomy_continuation"
-        task_kind = _text(continuation.get("recommended_task_kind")) or "domain_route/reconcile-apply"
+        reason = text(continuation.get("reason")) or "autonomy_continuation"
+        task_kind = text(continuation.get("recommended_task_kind")) or "domain_route/reconcile-apply"
         tasks.append(
             {
                 "domain_id": "medautoscience",
@@ -517,15 +296,15 @@ def _paper_autonomy_tasks(
     profile_ref: Path,
     study_id: str,
 ) -> list[dict[str, Any]]:
-    loop = _mapping(study.get("paper_autonomy_loop"))
+    loop = mapping(study.get("paper_autonomy_loop"))
     if loop.get("eligible_for_auto_dispatch") is not True:
         return []
     tasks: list[dict[str, Any]] = []
     for unit in loop.get("repair_work_units") or []:
         if not isinstance(unit, Mapping):
             continue
-        unit_id = _text(unit.get("unit_id"))
-        idempotency_key = _text(unit.get("idempotency_key"))
+        unit_id = text(unit.get("unit_id"))
+        idempotency_key = text(unit.get("idempotency_key"))
         if unit_id is None or idempotency_key is None:
             continue
         tasks.append(
@@ -539,7 +318,7 @@ def _paper_autonomy_tasks(
                 "payload": {
                     "profile": str(profile_ref),
                     "study_id": study_id,
-                    "paper_autonomy_reason": _text(loop.get("reason")) or "ai_reviewer_repair_recheck_required",
+                    "paper_autonomy_reason": text(loop.get("reason")) or "ai_reviewer_repair_recheck_required",
                     "repair_work_unit": dict(unit),
                     "authority_boundary": "mas_owner_reconcile_only",
                 },
@@ -553,9 +332,9 @@ def _paper_autonomy_tasks(
 
 def _aggregate_slo_state(studies: list[Mapping[str, Any]]) -> str:
     states = {
-        _text(_mapping(study.get("slo_status")).get("state"))
+        text(mapping(study.get("slo_status")).get("state"))
         for study in studies
-        if _mapping(study.get("slo_status"))
+        if mapping(study.get("slo_status"))
     }
     if "breach" in states:
         return "breach"

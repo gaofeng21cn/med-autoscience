@@ -366,6 +366,10 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_projection.py"
         in sidecar_paths
     )
+    assert (
+        "src/med_autoscience/controllers/sidecar_family_adapter_parts/export_study_projection.py"
+        in sidecar_paths
+    )
     sidecar_thinning = cleanup_gates["sidecar_dispatch_adapter"]["latest_thinning_evidence"]
     assert sidecar_thinning["status"] == (
         "sidecar_export_projection_split_to_parts_facade_retained"
