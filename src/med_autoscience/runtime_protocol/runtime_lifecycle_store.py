@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import UTC, datetime
-import hashlib
-import json
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +12,7 @@ from .runtime_lifecycle_contract import (
 from .runtime_lifecycle_store_parts import (
     family_adoption,
     lineage_indexes,
-    report_payloads,
+    runtime_record_indexes,
     sidecar_indexes,
     sqlite_sidecar,
 )
@@ -41,36 +38,15 @@ def record_watch_state(
     payload: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_quest_root = Path(quest_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=quest_lifecycle_store_path(resolved_quest_root))
-    payload_json = _stable_json(payload)
-    updated_at = _text(payload.get("updated_at")) or _utc_now()
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        conn.execute(
-            """
-            INSERT INTO watch_states(
-                quest_root, updated_at, controllers_json, payload_json, payload_sha256
-            ) VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(quest_root) DO UPDATE SET
-                updated_at=excluded.updated_at,
-                controllers_json=excluded.controllers_json,
-                payload_json=excluded.payload_json,
-                payload_sha256=excluded.payload_sha256
-            """,
-            (
-                str(resolved_quest_root),
-                updated_at,
-                _stable_json(payload.get("controllers") if isinstance(payload.get("controllers"), Mapping) else {}),
-                payload_json,
-                _sha256(payload_json),
-            ),
-        )
-    return _index_result(
-        db_path=resolved_db_path,
-        indexed_table="watch_states",
-        indexed_count=1,
-        scope="quest",
+    return runtime_record_indexes.record_watch_state(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        quest_lifecycle_store_path=quest_lifecycle_store_path,
+        index_result=_index_result,
+        quest_root=quest_root,
+        payload=payload,
+        db_path=db_path,
     )
 
 
@@ -84,63 +60,20 @@ def record_runtime_report(
     md_path: Path,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_quest_root = Path(quest_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=quest_lifecycle_store_path(resolved_quest_root))
-    payload_json = _stable_json(report)
-    status = _report_status(report)
-    latest_json_path = Path(json_path).parent / "latest.json"
-    latest_md_path = Path(md_path).parent / "latest.md"
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        conn.execute(
-            """
-            INSERT INTO runtime_reports(
-                quest_root, report_group, timestamp, status, json_path, md_path,
-                latest_json_path, latest_md_path, payload_sha256, payload_json, recorded_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(quest_root, report_group, timestamp) DO UPDATE SET
-                status=excluded.status,
-                json_path=excluded.json_path,
-                md_path=excluded.md_path,
-                latest_json_path=excluded.latest_json_path,
-                latest_md_path=excluded.latest_md_path,
-                payload_sha256=excluded.payload_sha256,
-                payload_json=excluded.payload_json,
-                recorded_at=excluded.recorded_at
-            """,
-            (
-                str(resolved_quest_root),
-                _require_text("report_group", report_group),
-                _require_text("timestamp", timestamp),
-                status,
-                str(Path(json_path).expanduser().resolve()),
-                str(Path(md_path).expanduser().resolve()),
-                str(latest_json_path.expanduser().resolve()),
-                str(latest_md_path.expanduser().resolve()),
-                _sha256(payload_json),
-                payload_json,
-                _utc_now(),
-            ),
-        )
-        _record_report_index_row(
-            conn,
-            object_root=str(resolved_quest_root),
-            object_scope="quest",
-            report_group=_require_text("report_group", report_group),
-            timestamp=_require_text("timestamp", timestamp),
-            status=status,
-            json_path=str(Path(json_path).expanduser().resolve()),
-            md_path=str(Path(md_path).expanduser().resolve()),
-            latest_json_path=str(latest_json_path.expanduser().resolve()),
-            latest_md_path=str(latest_md_path.expanduser().resolve()),
-            payload_json=payload_json,
-            recorded_at=_utc_now(),
-        )
-    return _index_result(
-        db_path=resolved_db_path,
-        indexed_table="runtime_reports",
-        indexed_count=1,
-        scope="quest",
+    return runtime_record_indexes.record_runtime_report(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        quest_lifecycle_store_path=quest_lifecycle_store_path,
+        index_result=_index_result,
+        record_report_index_row=_record_report_index_row,
+        quest_root=quest_root,
+        report_group=report_group,
+        timestamp=timestamp,
+        report=report,
+        json_path=json_path,
+        md_path=md_path,
+        db_path=db_path,
     )
 
 
@@ -152,76 +85,18 @@ def record_workspace_storage_audit(
     latest_report_path: Path,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_workspace_root))
-    summary = _mapping(report.get("summary"))
-    categories = _mapping(report.get("categories"))
-    recorded_at = _require_text("report.recorded_at", report.get("recorded_at"))
-    payload_json = report_payloads.workspace_storage_audit_projection_payload(
+    return runtime_record_indexes.record_workspace_storage_audit(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        record_report_index_row=_record_report_index_row,
+        workspace_root=workspace_root,
         report=report,
         report_path=report_path,
         latest_report_path=latest_report_path,
-    )
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        conn.execute(
-            """
-            INSERT INTO workspace_storage_audits(
-                workspace_root, recorded_at, mode, report_path, latest_report_path,
-                study_count, estimated_release_bytes, actual_release_bytes,
-                runtime_total_bytes, study_artifact_total_bytes,
-                summary_json, categories_json, payload_sha256, payload_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(workspace_root, recorded_at) DO UPDATE SET
-                mode=excluded.mode,
-                report_path=excluded.report_path,
-                latest_report_path=excluded.latest_report_path,
-                study_count=excluded.study_count,
-                estimated_release_bytes=excluded.estimated_release_bytes,
-                actual_release_bytes=excluded.actual_release_bytes,
-                runtime_total_bytes=excluded.runtime_total_bytes,
-                study_artifact_total_bytes=excluded.study_artifact_total_bytes,
-                summary_json=excluded.summary_json,
-                categories_json=excluded.categories_json,
-                payload_sha256=excluded.payload_sha256,
-                payload_json=excluded.payload_json
-            """,
-            (
-                str(resolved_workspace_root),
-                recorded_at,
-                _text(report.get("mode")) or "unknown",
-                str(Path(report_path).expanduser().resolve()),
-                str(Path(latest_report_path).expanduser().resolve()),
-                report_payloads.as_int(summary.get("study_count")),
-                report_payloads.as_int(summary.get("estimated_release_bytes")),
-                report_payloads.as_int(summary.get("actual_release_bytes")),
-                report_payloads.as_int(summary.get("runtime_total_bytes")),
-                report_payloads.as_int(summary.get("study_artifact_total_bytes")),
-                _stable_json(summary),
-                _stable_json(categories),
-                _sha256(payload_json),
-                payload_json,
-            ),
-        )
-        _record_report_index_row(
-            conn,
-            object_root=str(resolved_workspace_root),
-            object_scope="workspace",
-            report_group="workspace_storage_audit",
-            timestamp=recorded_at,
-            status=_text(report.get("mode")) or "unknown",
-            json_path=str(Path(report_path).expanduser().resolve()),
-            md_path=None,
-            latest_json_path=str(Path(latest_report_path).expanduser().resolve()),
-            latest_md_path=None,
-            payload_json=payload_json,
-            recorded_at=recorded_at,
-        )
-    return _index_result(
-        db_path=resolved_db_path,
-        indexed_table="workspace_storage_audits",
-        indexed_count=1,
-        scope="workspace",
+        db_path=db_path,
     )
 
 
@@ -233,62 +108,17 @@ def record_runtime_event(
     latest_path: Path,
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_quest_root = Path(quest_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=quest_lifecycle_store_path(resolved_quest_root))
-    payload_json = _stable_json(event)
-    emitted_at = _require_text("event.emitted_at", event.get("emitted_at"))
-    event_id = _require_text("event.event_id", event.get("event_id"))
-    status_snapshot = _mapping(event.get("status_snapshot"))
-    outer_loop_input = _mapping(event.get("outer_loop_input"))
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        conn.execute(
-            """
-            INSERT INTO runtime_events(
-                quest_root, event_id, quest_id, study_id, emitted_at, event_source,
-                event_kind, status, active_run_id, summary_ref, artifact_path,
-                latest_path, cursor, payload_sha256, payload_json, recorded_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(quest_root, event_id) DO UPDATE SET
-                quest_id=excluded.quest_id,
-                study_id=excluded.study_id,
-                emitted_at=excluded.emitted_at,
-                event_source=excluded.event_source,
-                event_kind=excluded.event_kind,
-                status=excluded.status,
-                active_run_id=excluded.active_run_id,
-                summary_ref=excluded.summary_ref,
-                artifact_path=excluded.artifact_path,
-                latest_path=excluded.latest_path,
-                cursor=excluded.cursor,
-                payload_sha256=excluded.payload_sha256,
-                payload_json=excluded.payload_json,
-                recorded_at=excluded.recorded_at
-            """,
-            (
-                str(resolved_quest_root),
-                event_id,
-                _require_text("event.quest_id", event.get("quest_id")),
-                _text(event.get("study_id")),
-                emitted_at,
-                _require_text("event.event_source", event.get("event_source")),
-                _require_text("event.event_kind", event.get("event_kind")),
-                _event_status(status_snapshot=status_snapshot, outer_loop_input=outer_loop_input),
-                _event_active_run_id(status_snapshot=status_snapshot, outer_loop_input=outer_loop_input),
-                _require_text("event.summary_ref", event.get("summary_ref")),
-                str(Path(artifact_path).expanduser().resolve()),
-                str(Path(latest_path).expanduser().resolve()),
-                _event_cursor(emitted_at=emitted_at, event_id=event_id),
-                _sha256(payload_json),
-                payload_json,
-                _utc_now(),
-            ),
-        )
-    return _index_result(
-        db_path=resolved_db_path,
-        indexed_table="runtime_events",
-        indexed_count=1,
-        scope="quest",
+    return runtime_record_indexes.record_runtime_event(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        quest_lifecycle_store_path=quest_lifecycle_store_path,
+        index_result=_index_result,
+        quest_root=quest_root,
+        event=event,
+        artifact_path=artifact_path,
+        latest_path=latest_path,
+        db_path=db_path,
     )
 
 
@@ -298,57 +128,15 @@ def record_archive_ref(
     archive_ref: Mapping[str, Any],
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    resolved_quest_root = Path(quest_root).expanduser().resolve()
-    resolved_db_path = _resolve_db_path(db_path, default=quest_lifecycle_store_path(resolved_quest_root))
-    archive_id = _require_text("archive_ref.archive_id", archive_ref.get("archive_id"))
-    archive_path = Path(_require_text("archive_ref.archive_path", archive_ref.get("archive_path"))).expanduser().resolve()
-    source_manifest_path = _text(archive_ref.get("source_manifest_path"))
-    restore_proof_path = _text(archive_ref.get("restore_proof_path"))
-    archived_at = _text(archive_ref.get("archived_at")) or _utc_now()
-    payload_json = _stable_json(archive_ref)
-    with _connect(resolved_db_path) as conn:
-        _ensure_schema(conn)
-        conn.execute(
-            """
-            INSERT INTO archive_refs(
-                quest_root, archive_id, archived_at, archive_path, archive_format,
-                sha256, bytes, source_manifest_path, restore_proof_path,
-                source_buckets_json, payload_sha256, payload_json, recorded_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(quest_root, archive_id) DO UPDATE SET
-                archived_at=excluded.archived_at,
-                archive_path=excluded.archive_path,
-                archive_format=excluded.archive_format,
-                sha256=excluded.sha256,
-                bytes=excluded.bytes,
-                source_manifest_path=excluded.source_manifest_path,
-                restore_proof_path=excluded.restore_proof_path,
-                source_buckets_json=excluded.source_buckets_json,
-                payload_sha256=excluded.payload_sha256,
-                payload_json=excluded.payload_json,
-                recorded_at=excluded.recorded_at
-            """,
-            (
-                str(resolved_quest_root),
-                archive_id,
-                archived_at,
-                str(archive_path),
-                _text(archive_ref.get("archive_format")) or "unknown",
-                _require_text("archive_ref.sha256", archive_ref.get("sha256")),
-                report_payloads.as_int(archive_ref.get("bytes")),
-                str(Path(source_manifest_path).expanduser().resolve()) if source_manifest_path else None,
-                str(Path(restore_proof_path).expanduser().resolve()) if restore_proof_path else None,
-                _stable_json(archive_ref.get("source_buckets") if isinstance(archive_ref.get("source_buckets"), list) else []),
-                _sha256(payload_json),
-                payload_json,
-                _utc_now(),
-            ),
-        )
-    return _index_result(
-        db_path=resolved_db_path,
-        indexed_table="archive_refs",
-        indexed_count=1,
-        scope="quest",
+    return runtime_record_indexes.record_archive_ref(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        quest_lifecycle_store_path=quest_lifecycle_store_path,
+        index_result=_index_result,
+        quest_root=quest_root,
+        archive_ref=archive_ref,
+        db_path=db_path,
     )
 
 
@@ -637,62 +425,6 @@ def read_lifecycle_records(db_path: Path, table: str) -> list[dict[str, Any]]:
         db_path=db_path,
         table=table,
     )
-
-
-def _report_status(report: Mapping[str, Any]) -> str:
-    for key in ("status", "quest_status", "state"):
-        value = _text(report.get(key))
-        if value:
-            return value
-    return "unknown"
-
-
-def _event_status(*, status_snapshot: Mapping[str, Any], outer_loop_input: Mapping[str, Any]) -> str:
-    for payload in (status_snapshot, outer_loop_input):
-        for key in ("quest_status", "display_status", "status"):
-            value = _text(payload.get(key))
-            if value:
-                return value
-    return "unknown"
-
-
-def _event_active_run_id(*, status_snapshot: Mapping[str, Any], outer_loop_input: Mapping[str, Any]) -> str | None:
-    for payload in (status_snapshot, outer_loop_input):
-        value = _text(payload.get("active_run_id"))
-        if value:
-            return value
-    return None
-
-
-def _event_cursor(*, emitted_at: str, event_id: str) -> str:
-    return f"{emitted_at}::{event_id}"
-
-
-def _stable_json(payload: object) -> str:
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
-
-
-def _sha256(payload: str) -> str:
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-
-def _utc_now() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
-
-
-def _mapping(value: object) -> Mapping[str, Any]:
-    return value if isinstance(value, Mapping) else {}
-
-
-def _text(value: object) -> str:
-    return value.strip() if isinstance(value, str) else ""
-
-
-def _require_text(label: str, value: object) -> str:
-    text = _text(value)
-    if not text:
-        raise ValueError(f"{label} must be a non-empty string")
-    return text
 
 
 __all__ = [
