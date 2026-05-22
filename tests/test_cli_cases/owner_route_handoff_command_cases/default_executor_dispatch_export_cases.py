@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from .shared import *  # noqa: F403,F401
+from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
+from med_autoscience.profiles import load_profile
 
 
 def _write_default_executor_dispatch(
@@ -269,6 +271,103 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
         "provider_completion_is_domain_ready": False,
         "typed_blocker_is_domain_ready": False,
     }
+
+
+def test_sidecar_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    source_eval_id = "publication-eval::dm003::medical-prose-routeback"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = load_profile(profile_path)
+    current_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "truth_epoch": "truth-event-dm003-medical-prose",
+        "runtime_health_epoch": "runtime-health-event-dm003-medical-prose",
+        "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
+        "source_fingerprint": "truth-source::dm003::medical-prose",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "failure_signature": "quest_waiting_opl_runtime_owner_route",
+        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "blocked_actions": [],
+        "idempotency_key": "owner-route::dm003::medical-prose",
+        "source_refs": {
+            "source_eval_id": source_eval_id,
+            "work_unit_id": "medical_prose_write_repair",
+            "runtime_health_epoch": "runtime-health-event-dm003-medical-prose",
+            "study_truth_epoch": "truth-event-dm003-medical-prose",
+            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+        },
+    }
+    handoff = writer_handoff.build_writer_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        quest_id=study_id,
+        schema_version=1,
+        source_eval_id=source_eval_id,
+        source_eval_artifact_path=str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        source_summary_artifact_path=str(
+            study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+        ),
+        repair_execution_evidence_path=(
+            study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+        ),
+        blocked_repair_reason="manuscript_story_surface_delta_missing",
+        control_plane_route_context={
+            "current_owner_route": current_route,
+            "controller_route_context": {
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
+                "source_eval_id": source_eval_id,
+            },
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_json(dispatch_path, handoff)
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["payload"]["study_id"] == study_id
+    assert task["payload"]["work_unit_id"] == "medical_prose_write_repair"
+    assert task["payload"]["owner_route_currentness_basis"] == {
+        "source_eval_id": source_eval_id,
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
+        "truth_epoch": "truth-event-dm003-medical-prose",
+        "runtime_health_epoch": "runtime-health-event-dm003-medical-prose",
+        "owner_reason": "manuscript_story_surface_delta_missing",
+    }
+    assert task["owner_route_attempt_envelope"]["dispatchable"] is True
+    source_refs_by_role = {ref["role"]: ref for ref in task["source_refs"]}
+    assert source_refs_by_role["owner_route_runtime_health_epoch"]["ref"] == (
+        "runtime-health-event-dm003-medical-prose"
+    )
+    assert source_refs_by_role["owner_route_blocked_reason"]["ref"] == (
+        "manuscript_story_surface_delta_missing"
+    )
 
 
 def test_sidecar_export_skips_bare_default_executor_dispatch_without_owner_currentness(

@@ -44,6 +44,80 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
     assert "exactly one JSON object" in handoff["terminal_output_instruction"]
 
 
+def test_quality_repair_writer_handoff_bridges_runtime_owner_route_currentness(tmp_path: Path) -> None:
+    writer_handoff = importlib.import_module(
+        "med_autoscience.controllers.quality_repair_batch_parts.writer_handoff"
+    )
+    attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    source_eval_id = "publication-eval::dm003::medical-prose-routeback"
+    current_route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    current_route.update(
+        {
+            "truth_epoch": source_eval_id,
+            "runtime_health_epoch": "runtime-health-dm003-write-route",
+            "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
+            "source_fingerprint": "truth-source::dm003::medical-prose",
+            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "source_refs": {
+                "source_eval_id": source_eval_id,
+                "work_unit_id": "medical_prose_write_repair",
+                "runtime_health_epoch": "runtime-health-dm003-write-route",
+                "study_truth_epoch": source_eval_id,
+                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            },
+        }
+    )
+
+    handoff = writer_handoff.build_writer_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        quest_id=f"quest-{study_id}",
+        schema_version=1,
+        source_eval_id=source_eval_id,
+        source_eval_artifact_path="artifacts/publication_eval/latest.json",
+        source_summary_artifact_path="artifacts/eval_hygiene/evaluation_summary/latest.json",
+        repair_execution_evidence_path=(
+            profile.studies_root
+            / study_id
+            / "artifacts/controller/repair_execution_evidence/latest.json"
+        ),
+        blocked_repair_reason="manuscript_story_surface_delta_missing",
+        control_plane_route_context={
+            "current_owner_route": current_route,
+            "controller_route_context": {
+                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
+            },
+        },
+    )
+
+    envelope = attempt_protocol.default_executor_attempt_envelope(dispatch=handoff)
+
+    assert envelope["dispatchable"] is True
+    assert envelope["owner_reason_contract"]["reason"] == "manuscript_story_surface_delta_missing"
+    assert envelope["owner_route_currentness_basis"] == {
+        "source_eval_id": source_eval_id,
+        "work_unit_id": "medical_prose_write_repair",
+        "work_unit_fingerprint": "medical-prose-routeback::write::dm003",
+        "truth_epoch": source_eval_id,
+        "runtime_health_epoch": "runtime-health-dm003-write-route",
+        "owner_reason": "manuscript_story_surface_delta_missing",
+    }
+    assert handoff["owner_route"]["source_refs"]["bridged_from_owner_reason"] == (
+        "quest_waiting_opl_runtime_owner_route"
+    )
+    assert handoff["owner_route"]["source_refs"]["blocked_reason"] == (
+        "manuscript_story_surface_delta_missing"
+    )
+
+
 def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_not_blocked(
     monkeypatch,
     tmp_path: Path,

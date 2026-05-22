@@ -10,9 +10,11 @@ from med_autoscience.controllers.default_executor_closeout_contract import defau
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.study_decision_record import StudyDecisionActionType
+from med_autoscience.controllers.story_surface_work_units import is_story_surface_delta_write_work_unit
 
 
 BLOCKED_REASON = "manuscript_story_surface_delta_missing"
+RUNTIME_OWNER_ROUTE_REASON = "quest_waiting_opl_runtime_owner_route"
 NEXT_OWNER = "write"
 REQUIRED_OUTPUT = (
     "canonical manuscript story-surface delta or "
@@ -155,6 +157,7 @@ def _writer_handoff_owner_route(
     current_route = _current_owner_route_for_writer_handoff(
         study_id=study_id,
         quest_id=quest_id,
+        source_eval_id=source_eval_id,
         blocked_repair_reason=blocked_repair_reason,
         control_plane_route_context=control_plane_route_context,
     )
@@ -200,6 +203,7 @@ def _current_owner_route_for_writer_handoff(
     *,
     study_id: str,
     quest_id: str,
+    source_eval_id: str | None,
     blocked_repair_reason: str,
     control_plane_route_context: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
@@ -216,8 +220,6 @@ def _current_owner_route_for_writer_handoff(
     if _non_empty_text(route.get("next_owner")) != NEXT_OWNER:
         return {}
     route_reason = _non_empty_text(route.get("owner_reason")) or _non_empty_text(route.get("failure_signature"))
-    if route_reason != blocked_repair_reason:
-        return {}
     if not owner_route_part.route_allows_action(
         action={
             "action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
@@ -226,7 +228,105 @@ def _current_owner_route_for_writer_handoff(
         owner_route=route,
     ):
         return {}
-    return route
+    if route_reason == blocked_repair_reason:
+        return route
+    if not _current_route_can_bridge_to_story_surface_handoff(
+        route=route,
+        route_reason=route_reason,
+        blocked_repair_reason=blocked_repair_reason,
+        control_plane_route_context=control_plane_route_context,
+    ):
+        return {}
+    return _bridged_story_surface_owner_route(
+        route=route,
+        source_eval_id=source_eval_id,
+        blocked_repair_reason=blocked_repair_reason,
+        route_reason=route_reason,
+        control_plane_route_context=control_plane_route_context,
+    )
+
+
+def _current_route_can_bridge_to_story_surface_handoff(
+    *,
+    route: Mapping[str, Any],
+    route_reason: str | None,
+    blocked_repair_reason: str,
+    control_plane_route_context: Mapping[str, Any],
+) -> bool:
+    if route_reason != RUNTIME_OWNER_ROUTE_REASON or blocked_repair_reason != BLOCKED_REASON:
+        return False
+    if not is_story_surface_delta_write_work_unit(
+        _controller_work_unit_id(control_plane_route_context=control_plane_route_context, route=route)
+    ):
+        return False
+    return all(
+        _non_empty_text(route.get(field)) is not None
+        for field in (
+            "truth_epoch",
+            "runtime_health_epoch",
+            "work_unit_fingerprint",
+            "source_fingerprint",
+        )
+    )
+
+
+def _bridged_story_surface_owner_route(
+    *,
+    route: Mapping[str, Any],
+    source_eval_id: str | None,
+    blocked_repair_reason: str,
+    route_reason: str | None,
+    control_plane_route_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    bridged = dict(route)
+    source_refs = dict(_mapping(route.get("source_refs")))
+    work_unit_id = _controller_work_unit_id(control_plane_route_context=control_plane_route_context, route=route)
+    if source_eval_id is not None:
+        source_refs["source_eval_id"] = source_eval_id
+    if work_unit_id is not None:
+        source_refs["work_unit_id"] = work_unit_id
+    source_refs.update(
+        {
+            "blocked_reason": blocked_repair_reason,
+            "bridged_from_owner_reason": route_reason,
+            "bridged_from_idempotency_key": _non_empty_text(route.get("idempotency_key")),
+            "bridge_authority": "quality_repair_batch_writer_handoff_currentness_bridge",
+            "runtime_health_epoch": _non_empty_text(route.get("runtime_health_epoch")),
+            "study_truth_epoch": _non_empty_text(route.get("truth_epoch")),
+            "work_unit_fingerprint": _non_empty_text(route.get("work_unit_fingerprint")),
+        }
+    )
+    bridged.update(
+        {
+            "failure_signature": blocked_repair_reason,
+            "owner_reason": blocked_repair_reason,
+            "current_owner": "quality_repair_batch",
+            "route_epoch": (
+                f"quality-repair-writer-handoff::{_non_empty_text(route.get('study_id')) or 'unknown-study'}::"
+                f"{source_eval_id or _non_empty_text(route.get('route_epoch')) or 'latest'}"
+            ),
+            "idempotency_key": (
+                f"quality-repair-writer-handoff::{_non_empty_text(route.get('study_id')) or 'unknown-study'}::"
+                f"{_non_empty_text(route.get('work_unit_fingerprint')) or source_eval_id or 'latest'}"
+            ),
+            "source_refs": {key: value for key, value in source_refs.items() if value is not None},
+        }
+    )
+    return owner_route_part.ensure_owner_route_v2(bridged)
+
+
+def _controller_work_unit_id(
+    *,
+    control_plane_route_context: Mapping[str, Any],
+    route: Mapping[str, Any],
+) -> str | None:
+    controller_context = _mapping(control_plane_route_context.get("controller_route_context"))
+    source_refs = _mapping(route.get("source_refs"))
+    return (
+        _non_empty_text(controller_context.get("work_unit_id"))
+        or _non_empty_text(source_refs.get("work_unit_id"))
+        or _non_empty_text(route.get("work_unit_id"))
+    )
 
 
 def _utc_now() -> str:
