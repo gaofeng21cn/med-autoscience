@@ -15,7 +15,7 @@ def test_lifecycle_store_builds_opl_family_adoption_surface_from_sidecar_refs(tm
     db_path = lifecycle_store.workspace_lifecycle_store_path(workspace_root)
     owner_receipt_path = study_root / "artifacts" / "runtime" / "owner_route" / "latest.json"
     dispatch_receipt_path = quest_root / "artifacts" / "runtime" / "dispatch" / "dispatch-001.json"
-    surface_ref_path = study_root / "artifacts" / "runtime" / "surface_refs" / "runtime_watch.json"
+    surface_ref_path = study_root / "artifacts" / "runtime" / "surface_refs" / "domain_health_diagnostic.json"
     owner_receipt = {
         "surface": "domain_route_owner_route",
         "study_id": "001-risk",
@@ -26,7 +26,7 @@ def test_lifecycle_store_builds_opl_family_adoption_surface_from_sidecar_refs(tm
         "next_owner": "mas_controller",
         "owner_reason": "runtime_controller_redrive_required",
         "allowed_actions": ["runtime-redrive"],
-        "source_refs": {"study_runtime_status": "studies/001-risk/artifacts/runtime/status/latest.json"},
+        "source_refs": {"progress_projection": "studies/001-risk/progress_projection.json"},
     }
     dispatch_receipt = {
         "surface": "domain_owner_action_dispatch_receipt",
@@ -38,11 +38,11 @@ def test_lifecycle_store_builds_opl_family_adoption_surface_from_sidecar_refs(tm
         "status": "dispatched",
     }
     surface_ref = {
-        "surface": "runtime_watch/latest.json",
+        "surface": "domain_health_diagnostic/latest.json",
         "study_id": "001-risk",
         "quest_id": "quest-001",
-        "ref_key": "runtime_watch",
-        "path": str(study_root / "artifacts" / "runtime_watch" / "latest.json"),
+        "ref_key": "domain_health_diagnostic",
+        "path": str(study_root / "artifacts" / "domain_health_diagnostic" / "latest.json"),
         "sha256": "abc123",
         "observed_at": "2026-05-06T00:02:00+00:00",
     }
@@ -112,9 +112,9 @@ def test_lifecycle_store_builds_opl_family_adoption_surface_from_sidecar_refs(tm
     assert surface["payload"]["owner_route"]["current_ticket"]["next_owner"] == "mas_controller"
     assert surface["payload"]["owner_route"]["allowed_actions"] == ["runtime-redrive"]
     assert surface["payload"]["lifecycle"]["dispatch_receipts"][0]["dispatch_id"] == "dispatch-001"
-    assert surface["payload"]["surface_refs"][0]["surface"] == "runtime_watch/latest.json"
+    assert surface["payload"]["surface_refs"][0]["surface"] == "domain_health_diagnostic/latest.json"
     assert surface["payload"]["surface_refs"][0]["target_path"].endswith(
-        "studies/001-risk/artifacts/runtime_watch/latest.json"
+        "studies/001-risk/artifacts/domain_health_diagnostic/latest.json"
     )
     assert "publication_eval/latest.json" not in json.dumps(surface["payload"]["surface_refs"], ensure_ascii=False)
 

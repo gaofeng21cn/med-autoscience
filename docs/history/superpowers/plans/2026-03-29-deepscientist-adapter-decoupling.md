@@ -25,7 +25,7 @@
 - Create: `tests/test_deepscientist_paper_bundle_adapter.py`
 - Modify: `tests/test_publication_gate.py`
 - Modify: `tests/test_medical_publication_surface.py`
-- Modify: `tests/test_runtime_watch.py`
+- Modify: `tests/test_domain_health_diagnostic.py`
 
 ### Task 1: 提取 runtime adapter
 
@@ -159,7 +159,7 @@ Expected: `passed`
 **Files:**
 - Modify: `tests/test_publication_gate.py`
 - Modify: `tests/test_medical_publication_surface.py`
-- Modify: `tests/test_runtime_watch.py`
+- Modify: `tests/test_domain_health_diagnostic.py`
 - Modify: `tests/test_cli.py`
 
 - [ ] **Step 1: 更新现有 controller 测试，断言行为不变但耦合点移到 adapter**

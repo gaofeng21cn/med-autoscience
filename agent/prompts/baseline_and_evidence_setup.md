@@ -20,7 +20,7 @@ If baseline work changes the scientific question, endpoint, cohort, or intended 
 ## Inputs And Refs
 
 - Selected route receipt from `direction_and_route_selection`.
-- Study charter, task intake, controller decisions, and active `study_runtime_status`.
+- Study charter, task intake, controller decisions, and active `progress_projection`.
 - Source readiness refs, source provenance refs, data dictionary or cohort definition refs, and source locator refs.
 - Baseline lineage, comparator definitions, statistical plan refs, run context refs, and evidence ledger refs.
 - Prior failed-route refs, publication-route memory refs, and relevant reviewer pressure refs.

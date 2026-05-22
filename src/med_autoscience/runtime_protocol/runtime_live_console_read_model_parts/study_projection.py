@@ -38,7 +38,7 @@ def study_projection(context: Mapping[str, Any], *, selected_study_id: str | Non
     study_id = str(context["study_id"])
     cockpit_item = _cockpit_study_item(context, study_id=study_id)
     progress = context_projection.surface_payload(context, "study_progress")
-    status = context_projection.surface_payload(context, "study_runtime_status")
+    status = context_projection.surface_payload(context, "progress_projection")
     summary = context_projection.surface_payload(context, "runtime_status_summary")
     health = context_projection.surface_payload(context, "runtime_health")
     supervision = context_projection.surface_payload(context, "runtime_supervision")
@@ -120,7 +120,7 @@ def study_projection(context: Mapping[str, Any], *, selected_study_id: str | Non
 def runs(study_contexts: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     for context in study_contexts:
-        status = context_projection.surface_payload(context, "study_runtime_status")
+        status = context_projection.surface_payload(context, "progress_projection")
         health = context_projection.surface_payload(context, "runtime_health")
         supervision = context_projection.surface_payload(context, "runtime_supervision")
         active_run_id = context_projection.active_run_id(status=status, health=health, supervision=supervision)
@@ -192,7 +192,7 @@ def artifact_refs(context: Mapping[str, Any]) -> list[str]:
 
 def event_refs(context: Mapping[str, Any]) -> list[str]:
     refs: list[str] = []
-    for key in ("study_runtime_status", "study_progress"):
+    for key in ("progress_projection", "study_progress"):
         path = context_projection.surface_path_text(context, key)
         if path:
             refs.append(path)

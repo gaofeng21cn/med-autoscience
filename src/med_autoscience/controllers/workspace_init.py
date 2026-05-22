@@ -423,7 +423,7 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-scan",
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "owner-route-reconcile",
             content=_render_scan_domain_routes_script(),
             executable=True,
         ),

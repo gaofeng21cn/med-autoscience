@@ -67,7 +67,7 @@ def test_control_plane_invalidates_stale_active_run_when_liveness_has_no_worker(
 
 
 def test_same_fingerprint_repeated_turn_stays_stable(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.runtime_watch_parts.managed_wakeup")
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup")
     study_root = tmp_path / "studies" / "001-risk"
     status_payload = fixtures.same_fingerprint_status_payload()
 

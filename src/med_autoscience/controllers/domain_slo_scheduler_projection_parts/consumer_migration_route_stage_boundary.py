@@ -21,7 +21,7 @@ def build_route_stage_residue_boundary(
         active_path_gates,
     )
     sidecar_gate = _active_path_gate_by_id("owner_route_handoff_adapter", active_path_gates)
-    runtime_watch_loop = _module_by_id("runtime_watch_loop_shell", module_inventory)
+    domain_health_diagnostic_loop = _module_by_id("domain_health_diagnostic_loop_shell", module_inventory)
     return {
         "surface_kind": "mas_route_stage_residue_boundary",
         "version": "mas-route-stage-residue-boundary.v1",
@@ -42,7 +42,7 @@ def build_route_stage_residue_boundary(
             sqlite_gate=sqlite_gate,
             status_gate=status_gate,
             sidecar_gate=sidecar_gate,
-            runtime_watch_loop=runtime_watch_loop,
+            domain_health_diagnostic_loop=domain_health_diagnostic_loop,
             module_inventory=module_inventory,
         ),
         "forbidden_claims": [
@@ -63,7 +63,7 @@ def _residual_surfaces(
     sqlite_gate: Mapping[str, Any],
     status_gate: Mapping[str, Any],
     sidecar_gate: Mapping[str, Any],
-    runtime_watch_loop: Mapping[str, Any],
+    domain_health_diagnostic_loop: Mapping[str, Any],
     module_inventory: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     return [
@@ -78,7 +78,7 @@ def _residual_surfaces(
             "physical_delete_permitted": False,
             "opl_consumes_as": "owner_route_refs_for_opl_queue_stage_attempt_hydration",
             "stage_or_queue_owner": "one-person-lab",
-            "gate_ref": "functional_module_inventory.domain_route_scan_materialize_dispatch_shell",
+            "gate_ref": "functional_module_inventory.owner_route_reconcile_materialize_dispatch_shell",
         },
         {
             "surface_id": "progress_projection",
@@ -100,10 +100,10 @@ def _residual_surfaces(
             "owner": "med-autoscience",
             "generic_runtime_owner_claim_allowed": False,
             "physical_retired": True,
-            "long_loop_shell_physical_retired": runtime_watch_loop.get("physical_retired") is True,
-            "active_long_loop_caller_allowed": runtime_watch_loop.get("active_caller_allowed") is True,
+            "long_loop_shell_physical_retired": domain_health_diagnostic_loop.get("physical_retired") is True,
+            "active_long_loop_caller_allowed": domain_health_diagnostic_loop.get("active_caller_allowed") is True,
             "physical_delete_permitted": False,
-            "gate_ref": "functional_module_inventory.runtime_watch_domain_health",
+            "gate_ref": "functional_module_inventory.domain_health_diagnostic",
         },
         {
             "surface_id": "domain_decision_authority",

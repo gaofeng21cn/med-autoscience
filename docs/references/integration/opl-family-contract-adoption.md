@@ -8,8 +8,8 @@
 
 `MAS` 通过以下 domain-owned surface 映射 `opl_family_runtime_attempt_contract.v1`：
 
-- `study_runtime_status`
-- `runtime_watch`
+- `progress_projection`
+- `domain_health_diagnostic`
 - `controller_decisions/latest.json`
 
 这些 surface 可以向 `OPL` 投影 attempt state、attempt count、retry/backoff、workspace boundary、failure reason、reconciliation status 和 last observed projection。2026-05-16 起，MAS adoption contract 还接受 `opl_family_runtime_attempt_contract.v1` 的 stability projection 字段：`control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export`。这些字段只能作为 read-only operator stability projection；它们不能执行 domain action、切换 executor、自动降级、写 study truth / memory body、授权 domain ready 或关闭 quality verdict。`OPL Runtime Manager` 只能读取和索引；study runtime truth、controller decision、workspace write authority 继续由 `MAS` 持有。
@@ -31,7 +31,7 @@ OPL 托管 stage attempt 时也必须保持 executor/reviewer 分离：执行 ag
 
 ## Incident Projection
 
-`MAS` 通过 `runtime_watch`、`artifacts/autonomy/slo_status/latest.json`、`artifacts/autonomy/ai_doctor_requests/*.json`、`artifacts/autonomy/ai_doctor_diagnoses/*.json`、`artifacts/autonomy/repair_actions/*.json`、autonomy incident records 和 `controller_decisions/latest.json` 映射 `opl_family_incident_learning_loop.v1`。真实 incident 必须回流成 guard、test、contract、runbook、taxonomy update 或 operator projection；domain-specific failure 必须有 MAS-owned closure ref。`OPL` 可以消费 runtime_slo_observer、ai_doctor_request 与 repair_action 投影，但不持有 MAS 医学 truth 或 repair closure。
+`MAS` 通过 `domain_health_diagnostic`、`artifacts/autonomy/slo_status/latest.json`、`artifacts/autonomy/ai_doctor_requests/*.json`、`artifacts/autonomy/ai_doctor_diagnoses/*.json`、`artifacts/autonomy/repair_actions/*.json`、autonomy incident records 和 `controller_decisions/latest.json` 映射 `opl_family_incident_learning_loop.v1`。真实 incident 必须回流成 guard、test、contract、runbook、taxonomy update 或 operator projection；domain-specific failure 必须有 MAS-owned closure ref。`OPL` 可以消费 runtime_slo_observer、ai_doctor_request 与 repair_action 投影，但不持有 MAS 医学 truth 或 repair closure。
 
 ## Product Operator Projection
 

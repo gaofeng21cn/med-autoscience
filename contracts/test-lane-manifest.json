@@ -46,9 +46,9 @@
     "domain-route-reconcile": {
       "kind": "focused_domain_route_reconcile_contract_gate",
       "paths": [
-        "tests/test_runtime_watch.py",
+        "tests/test_domain_health_diagnostic.py",
         "tests/test_study_progress.py",
-        "tests/test_runtime_watch_cases/supervisor_and_progress_cases.py"
+        "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases.py"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "scan_consume_execute_rescan_contract"
@@ -132,7 +132,7 @@
         "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_runtime_reconcile_trigger.py",
         "tests/test_recovery_intent_ledger.py",
-        "tests/test_runtime_watch.py",
+        "tests/test_domain_health_diagnostic.py",
         "tests/test_study_progress.py",
         "tests/test_progress_portal.py",
         "tests/test_product_entry.py"
@@ -192,7 +192,7 @@
         "tests/test_autonomy_ai_doctor.py",
         "tests/test_runtime_health_kernel.py",
         "tests/test_domain_slo_scheduler_projection.py",
-        "tests/test_domain_route_scan.py",
+        "tests/test_owner_route_reconcile.py",
         "tests/test_runtime_transport_mas_runtime_core.py",
         "tests/test_recovery_intent_ledger.py"
       ],
@@ -582,7 +582,7 @@
             "surface_id": "status",
             "current_paths": [
               "src/med_autoscience/controllers/product_entry_parts/",
-              "src/med_autoscience/controllers/study_runtime_status.py"
+              "src/med_autoscience/controllers/progress_projection.py"
             ],
             "current_role": "domain_truth_plus_migration_bridge_status_wrapper",
             "target_role": "opl_generated_status_wrapper_over_mas_truth_refs"
@@ -1009,7 +1009,7 @@
         "declarative_pack_generated_surface": [
           "workspace_source_intake_shell",
           "workbench_portal_generic_shell",
-          "domain_route_scan_materialize_dispatch_shell",
+          "owner_route_reconcile_materialize_dispatch_shell",
           "generic_cli_mcp_product_wrappers",
           "generic_daemon_or_scheduler_lifecycle",
           "generic_queue_attempt_retry_dead_letter",
@@ -1025,8 +1025,8 @@
         ],
         "minimal_authority_function": [
           "study_truth",
-          "study_runtime_status",
-          "runtime_watch_domain_health",
+          "progress_projection",
+          "domain_health_diagnostic",
           "publication_quality_verdict",
           "ai_reviewer_workflow",
           "publication_gate",
@@ -1046,7 +1046,7 @@
         ],
         "legacy_cleanup_physical_retired": [
           "local_launchd_scheduler_install_path",
-          "runtime_watch_loop_shell",
+          "domain_health_diagnostic_loop_shell",
           "workspace_local_watch_service_wrappers"
         ]
       },
@@ -1071,7 +1071,7 @@
         "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
         "terminal_attach_transport",
-        "domain_route_scan_materialize_dispatch_shell",
+        "owner_route_reconcile_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -1080,7 +1080,7 @@
         "publication_quality_verdict",
         "artifact_authority",
         "local_launchd_scheduler_install_path",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
         "workspace_local_watch_service_wrappers"
       ],
       "lifecycle_refs_adapter_role": {
@@ -1330,7 +1330,7 @@
         "legacy_cleanup_items_physical_retired": [
           "local_launchd_scheduler_install_path",
           "workspace_local_watch_service_wrappers",
-          "runtime_watch_loop_shell"
+          "domain_health_diagnostic_loop_shell"
         ],
         "legacy_cleanup_items_tombstoned": [
           "mas_generic_workbench_shell",
@@ -1452,7 +1452,7 @@
         "legacy_cleanup_items_physical_retired": [
           "local_launchd_scheduler_install_path",
           "workspace_local_watch_service_wrappers",
-          "runtime_watch_loop_shell"
+          "domain_health_diagnostic_loop_shell"
         ],
         "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
         "legacy_cleanup_item_role": "history_tombstone_provenance_only",
@@ -1554,7 +1554,7 @@
           ],
           "retained_domain_authority": [
             "owner_receipt",
-            "study_runtime_status"
+            "progress_projection"
           ]
         },
         {
@@ -1750,16 +1750,16 @@
             "operator_log_projection"
           ],
           "retained_domain_authority": [
-            "runtime_watch_domain_health",
+            "domain_health_diagnostic",
             "typed_blocker"
           ]
         },
         {
-          "module_id": "domain_route_scan_materialize_dispatch_shell",
+          "module_id": "owner_route_reconcile_materialize_dispatch_shell",
           "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
-            "src/med_autoscience/controllers/domain_route_scan.py",
+            "src/med_autoscience/controllers/owner_route_reconcile.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
             "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
             "src/med_autoscience/controllers/domain_route_reconcile.py"
@@ -1858,7 +1858,7 @@
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
             "src/med_autoscience/runtime_transport/",
-            "src/med_autoscience/controllers/runtime_watch_outer_loop_dispatch.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_outer_loop_dispatch.py",
             "src/med_autoscience/controllers/recovery_intent_ledger.py"
           ],
           "active_callers": [
@@ -1919,7 +1919,7 @@
           "classification": "minimal_authority_function",
           "code_paths": [
             "src/med_autoscience/controllers/study_truth_kernel.py",
-            "src/med_autoscience/controllers/study_runtime_status.py"
+            "src/med_autoscience/controllers/progress_projection.py"
           ],
           "active_callers": [
             "MAS controller owner route",
@@ -1930,7 +1930,7 @@
           "cannot_absorb_reason": "Medical study truth and paper route state are domain facts, not framework runtime state.",
           "retained_domain_authority": [
             "study_truth",
-            "study_runtime_status"
+            "progress_projection"
           ]
         },
         {
@@ -2040,12 +2040,12 @@
       "paths": [
         "tests/test_mds_capability_parity.py",
         "tests/test_study_runtime_execution_evidence_adoption.py",
-        "tests/domain_route_scan_cases/test_evidence_adoption_projection.py",
-        "tests/domain_route_scan_cases/test_control_surface_artifact_delta.py",
+        "tests/owner_route_reconcile_cases/test_evidence_adoption_projection.py",
+        "tests/owner_route_reconcile_cases/test_control_surface_artifact_delta.py",
         "tests/test_domain_owner_action_dispatch.py",
         "tests/test_runtime_reconcile_trigger.py",
         "tests/test_recovery_intent_ledger.py",
-        "tests/test_runtime_watch.py",
+        "tests/test_domain_health_diagnostic.py",
         "tests/test_cli_cases/domain_route_reconcile_command.py",
         "tests/test_paper_autonomy_stability_evidence.py",
         "tests/test_real_workspace_soak_monitor.py",
@@ -2210,8 +2210,8 @@
       "truth_owner": "MedAutoScience",
       "forbidden_authority_writes": [
         "study_truth",
-        "study_runtime_status",
-        "runtime_watch",
+        "progress_projection",
+        "domain_health_diagnostic",
         "publication_eval/latest.json",
         "controller_decisions/latest.json",
         "paper/current_package",

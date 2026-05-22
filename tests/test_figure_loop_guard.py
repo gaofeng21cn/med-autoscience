@@ -335,7 +335,7 @@ def test_run_controller_defers_stop_when_called_from_same_quest(tmp_path: Path, 
     assert result["intervention_enqueued"] is True
     assert result["quest_stop_applied"] is False
     assert result["quest_stop_deferred"] is True
-    assert result["quest_stop_defer_reason"] == "self_owned_runtime_watch"
+    assert result["quest_stop_defer_reason"] == "self_owned_domain_health_diagnostic"
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert len(queue["pending"]) == 1
 

@@ -54,7 +54,7 @@ def test_scan_domain_routes_persists_recovery_intent_for_fresh_controller_redriv
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.domain_route_scan")
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -297,7 +297,7 @@ def test_recovery_intent_projection_is_non_persistent_when_scan_is_projection_on
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    scan = importlib.import_module("med_autoscience.controllers.domain_route_scan")
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"

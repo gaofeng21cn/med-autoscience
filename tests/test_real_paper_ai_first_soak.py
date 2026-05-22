@@ -19,7 +19,7 @@ def _complete_soak_evidence_map() -> dict[str, list[str]]:
         "route_back": ["studies/dpcc-003/artifacts/quality/route_back_trace.json"],
         "stop_loss": ["studies/dpcc-003/runtime_escalation_record.json"],
         "revision_reopen": ["studies/dpcc-003/controller_decisions/latest.json"],
-        "runtime_recovery": ["studies/dpcc-003/study_runtime_status.json"],
+        "runtime_recovery": ["studies/dpcc-003/progress_projection.json"],
         "finalize_rebuild": ["studies/dpcc-003/artifacts/finalize_rebuild/latest.json"],
         "final_pre_submission_audit": [
             "studies/dpcc-003/artifacts/publication_eval/latest.json"

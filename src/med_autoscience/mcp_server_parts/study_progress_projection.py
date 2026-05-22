@@ -677,7 +677,7 @@ def compact_study_runtime_result_for_mcp(payload: dict[str, Any]) -> dict[str, A
     if isinstance(progress_projection, dict):
         compact["progress_projection"] = compact_study_progress_projection(progress_projection)
         compact["mcp_projection"] = {
-            "surface_kind": "mcp_compacted_study_runtime_status",
+            "surface_kind": "mcp_compacted_progress_projection",
             "compacted_progress_projection": True,
         }
     return compact

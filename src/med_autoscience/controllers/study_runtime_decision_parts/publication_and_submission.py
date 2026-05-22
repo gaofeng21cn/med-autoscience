@@ -52,7 +52,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
     StudyRuntimeSummaryAlignment,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
     _LIVE_QUEST_STATUSES,
     _RESUMABLE_QUEST_STATUSES,
 )
@@ -127,7 +127,7 @@ def _router_module():
 
 def _record_existing_controller_work_unit_evidence_adoption(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
 ) -> dict[str, object] | None:
     authorization_context = _load_controller_decision_authorization_context(study_root=study_root)
@@ -190,7 +190,7 @@ def _load_json_dict(path: Path) -> dict[str, object]:
     payload = _read_json_mapping(path)
     return payload if payload is not None else {}
 
-def _supervisor_tick_required(status: StudyRuntimeStatus) -> bool:
+def _supervisor_tick_required(status: ProgressProjectionStatus) -> bool:
     execution = status.execution
     return (
         runtime_backend_contract.is_managed_research_execution(execution)
@@ -200,7 +200,7 @@ def _supervisor_tick_required(status: StudyRuntimeStatus) -> bool:
 
 def _record_supervisor_tick_audit(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
 ) -> None:
     latest_report_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
@@ -715,7 +715,7 @@ def _materialize_publication_eval_from_gate_report(
 
 def _record_quest_runtime_audits(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     quest_runtime: quest_state.QuestRuntimeSnapshot,
 ) -> quest_state.QuestRuntimeLivenessStatus:
     runtime_liveness_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.runtime_liveness_audit or {}))
@@ -725,15 +725,15 @@ def _record_quest_runtime_audits(
     return quest_runtime.runtime_liveness_status
 
 
-def _record_runtime_worker_activity(status: StudyRuntimeStatus) -> None:
+def _record_runtime_worker_activity(status: ProgressProjectionStatus) -> None:
     status["runtime_worker_activity"] = runtime_worker_activity.normalize_activity(status.to_dict())
 
 
-def _record_auto_runtime_parked_projection(status: StudyRuntimeStatus) -> None:
+def _record_auto_runtime_parked_projection(status: ProgressProjectionStatus) -> None:
     _execution_runtime_events.record_auto_runtime_parked_projection(status)
 
 
-def _publication_gate_allows_direct_write(status: StudyRuntimeStatus) -> bool:
+def _publication_gate_allows_direct_write(status: ProgressProjectionStatus) -> bool:
     try:
         return not status.publication_supervisor_state.bundle_tasks_downstream_only
     except KeyError:
@@ -768,7 +768,7 @@ def _publication_supervisor_requests_automated_continuation(
 def _publication_gate_requires_live_runtime_reroute(
     publication_gate_report: dict[str, object] | None,
     *,
-    status: StudyRuntimeStatus | None = None,
+    status: ProgressProjectionStatus | None = None,
 ) -> bool:
     if not isinstance(publication_gate_report, dict):
         return False

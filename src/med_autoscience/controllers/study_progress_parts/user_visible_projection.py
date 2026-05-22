@@ -26,7 +26,7 @@ _EVIDENCE_REF_KEYS = (
     "controller_decision_path",
     "controller_confirmation_summary_path",
     "runtime_supervision_path",
-    "runtime_watch_report_path",
+    "domain_health_diagnostic_report_path",
     "runtime_status_summary_path",
     "evaluation_summary_path",
     "medical_paper_readiness_path",

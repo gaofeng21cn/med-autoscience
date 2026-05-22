@@ -78,7 +78,7 @@ def legacy_watch_runtime_entry_reason(
             and "--runtime-root" in existing_content
         )
         if looks_like_managed_watch:
-            if "run_medautosci runtime watch" not in existing_content:
+            if "run_medautosci runtime domain-health-diagnostic" not in existing_content:
                 return "legacy_watch_runtime_entry"
             if (
                 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' not in existing_content
@@ -101,8 +101,8 @@ def legacy_supervisor_entry_reason(
     _ = path
     supervisor_specs = (
         (
-            ("ops", "medautoscience", "bin", "domain-route-scan"),
-            ("runtime domain-route-scan",),
+            ("ops", "medautoscience", "bin", "owner-route-reconcile"),
+            ("runtime owner-route-reconcile",),
             "legacy_scan_domain_routes_entry",
         ),
         (

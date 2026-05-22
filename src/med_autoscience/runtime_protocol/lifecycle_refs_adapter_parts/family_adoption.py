@@ -98,7 +98,7 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "next_stage_refs": ["manuscript_authoring"],
         "trust_lane": "codex_executor",
         "runtime_event_refs": [
-            "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+            "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
             "runtime_event:evidence_ledger.bounded_analysis_evidence_ready",
         ],
     },
@@ -683,7 +683,7 @@ def _stage_cohort_loop_refs(stage: Mapping[str, Any]) -> dict[str, list[dict[str
         ],
         "monitor_refs": [
             {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "stage_progress_monitor"},
-            {"ref_kind": "json_pointer", "ref": "/study_runtime_status", "role": "runtime_status_monitor"},
+            {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "runtime_status_monitor"},
         ],
         "dashboard_metric_refs": [
             {

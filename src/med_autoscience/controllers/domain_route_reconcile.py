@@ -9,7 +9,7 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 
 from . import outer_supervision_slo, paper_progress_reconciler, domain_action_request_materializer
-from . import domain_owner_action_dispatch, domain_route_scan
+from . import domain_owner_action_dispatch, owner_route_reconcile
 from . import runtime_dispatch_cost
 
 
@@ -174,9 +174,9 @@ def reconcile_domain_routes(
 ) -> dict[str, Any]:
     generated_at = _utc_now()
     requested_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
-    before_scan = domain_route_scan.scan_domain_routes(
+    before_scan = owner_route_reconcile.scan_domain_routes(
         profile=profile,
-        study_ids=requested_study_ids or domain_route_scan.resolve_domain_route_scan_study_ids(profile),
+        study_ids=requested_study_ids or owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile),
         apply_safe_actions=apply,
         apply_runtime_platform_repair=False,
         developer_supervisor_mode=mode,
@@ -202,7 +202,7 @@ def reconcile_domain_routes(
         consumed=consumed,
         executed=executed,
     )
-    after_scan = domain_route_scan.scan_domain_routes(
+    after_scan = owner_route_reconcile.scan_domain_routes(
         profile=profile,
         study_ids=resolved_study_ids,
         apply_safe_actions=apply,

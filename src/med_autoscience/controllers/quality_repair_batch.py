@@ -219,7 +219,7 @@ def _runtime_control_plane_route_context(
     study_root: Path,
     source_eval_id: str | None = None,
 ) -> dict[str, Any] | None:
-    status_payload = study_runtime_router.study_runtime_status(
+    status_payload = study_runtime_router.progress_projection(
         profile=profile,
         study_id=study_id,
         study_root=study_root,

@@ -251,8 +251,8 @@ def test_mcp_compact_projection_carries_study_macro_state() -> None:
     }
 
 
-def test_runtime_watch_managed_study_action_carries_truth_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.controllers.runtime_watch_parts.managed_wakeup")
+def test_domain_health_diagnostic_managed_study_action_carries_truth_snapshot_summary() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup")
 
     action = module._serialize_managed_study_action(
         {
@@ -277,7 +277,7 @@ def test_product_entry_surfaces_expose_medical_writing_quality_artifacts() -> No
         profile=type("Profile", (), {"workspace_root": Path("/tmp/workspace"), "runtime_root": Path("/tmp/runtime")})(),
         progress_projection={},
         product_entry_shell={"launch_study": {"command": "launch"}, "study_progress": {"command": "progress"}},
-        study_runtime_status_command="status",
+        progress_projection_command="status",
     )
 
     file_ids = {item["file_id"] for item in artifact_inventory["supporting_files"]}

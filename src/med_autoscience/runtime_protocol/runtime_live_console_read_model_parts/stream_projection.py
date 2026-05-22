@@ -87,8 +87,8 @@ def events(*, generated_at: str, study_contexts: Iterable[Mapping[str, Any]]) ->
         for topic, status, source_ref in (
             (
                 "study.status",
-                io.first_text(context_projection.surface_payload(context, "study_runtime_status").get("quest_status"), "missing"),
-                context_projection.surface_path_text(context, "study_runtime_status"),
+                io.first_text(context_projection.surface_payload(context, "progress_projection").get("quest_status"), "missing"),
+                context_projection.surface_path_text(context, "progress_projection"),
             ),
             (
                 "runtime.health",

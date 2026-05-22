@@ -4,7 +4,7 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .ownership_and_continuation import *  # noqa: F403
 
 
-def _is_controller_owned_finalize_parking(status: StudyRuntimeStatus) -> bool:
+def _is_controller_owned_finalize_parking(status: ProgressProjectionStatus) -> bool:
     if status.quest_status not in _LIVE_QUEST_STATUSES:
         return False
     try:
@@ -54,7 +54,7 @@ def _evaluation_summary_reports_bundle_only_remaining(*, study_root: Path) -> bo
 
 
 def _is_human_review_milestone_parking(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
 ) -> bool:
@@ -81,7 +81,7 @@ def _is_human_review_milestone_parking(
 
 
 def _is_delivered_human_review_milestone_without_live_worker(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
 ) -> bool:
@@ -101,7 +101,7 @@ def _is_delivered_human_review_milestone_without_live_worker(
 
 
 def _platform_repair_redrive_without_live_worker(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
 ) -> bool:
@@ -129,15 +129,15 @@ def _platform_repair_redrive_without_live_worker(
     authorization = runtime_state.get("last_controller_decision_authorization")
     return (
         isinstance(platform_repair, dict)
-        and str(platform_repair.get("source") or "").strip() == "domain_route_scan_platform_repair"
+        and str(platform_repair.get("source") or "").strip() == "owner_route_reconcile_platform_repair"
     ) or (
         isinstance(authorization, dict)
-        and str(authorization.get("source") or "").strip() == "domain_route_scan_platform_repair"
+        and str(authorization.get("source") or "").strip() == "owner_route_reconcile_platform_repair"
     )
 
 
 def _user_pause_contract_without_live_worker(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
 ) -> bool:
@@ -157,7 +157,7 @@ def _user_pause_contract_without_live_worker(
 
 
 def _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
 ) -> bool:
@@ -183,7 +183,7 @@ def _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
 
 
 def _bare_paused_quest_requires_explicit_wakeup_without_live_worker(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
 ) -> bool:
@@ -227,7 +227,7 @@ def _has_current_human_facing_delivery_manifest(study_root: Path) -> bool:
 
 
 def _should_block_platform_repair_redrive_for_delivered_package(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
 ) -> bool:
@@ -235,7 +235,7 @@ def _should_block_platform_repair_redrive_for_delivered_package(
 
 
 def _should_park_delivered_package_without_live_worker(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
     audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
@@ -254,7 +254,7 @@ def _should_park_delivered_package_without_live_worker(
 
 
 def _should_park_delivered_or_redriven_package_without_live_worker(
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     *,
     study_root: Path,
     audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
@@ -291,17 +291,17 @@ def _controller_decision_requires_human_confirmation(*, study_root: Path) -> boo
     return bool(payload.get("requires_human_confirmation"))
 
 
-def _publication_supervisor_requires_human_confirmation(status: StudyRuntimeStatus) -> bool:
+def _publication_supervisor_requires_human_confirmation(status: ProgressProjectionStatus) -> bool:
     payload = status.extras.get("publication_supervisor_state")
     return _publication_supervisor_current_required_action(payload) == _HUMAN_CONFIRMATION_REQUIRED_ACTION
 
 
-def _runtime_liveness_audit_payload(status: StudyRuntimeStatus) -> dict[str, object]:
+def _runtime_liveness_audit_payload(status: ProgressProjectionStatus) -> dict[str, object]:
     payload = status.extras.get("runtime_liveness_audit")
     return dict(payload) if isinstance(payload, dict) else {}
 
 
-def _stale_progress_without_live_bash_sessions(status: StudyRuntimeStatus) -> bool:
+def _stale_progress_without_live_bash_sessions(status: ProgressProjectionStatus) -> bool:
     runtime_liveness_audit = _runtime_liveness_audit_payload(status)
     if not bool(runtime_liveness_audit.get("stale_progress")):
         return False
@@ -321,7 +321,7 @@ def _stale_progress_without_live_bash_sessions(status: StudyRuntimeStatus) -> bo
         return False
 
 
-def _live_worker_missing_active_run_id(status: StudyRuntimeStatus) -> bool:
+def _live_worker_missing_active_run_id(status: ProgressProjectionStatus) -> bool:
     audit = _runtime_liveness_audit_payload(status)
     if str(audit.get("liveness_guard_reason") or "").strip() != "live_runtime_missing_active_run_id":
         return False
@@ -330,7 +330,7 @@ def _live_worker_missing_active_run_id(status: StudyRuntimeStatus) -> bool:
     return runtime_audit.get("worker_running") is True and not active_run_id
 
 
-def _runtime_overlay_ready_for_resume(status: StudyRuntimeStatus) -> bool:
+def _runtime_overlay_ready_for_resume(status: ProgressProjectionStatus) -> bool:
     payload = status.extras.get("runtime_overlay")
     if not isinstance(payload, dict):
         return True
@@ -342,7 +342,7 @@ def _runtime_overlay_ready_for_resume(status: StudyRuntimeStatus) -> bool:
 
 def _set_running_quest_recovery_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     execution: dict[str, object],
 ) -> None:
     interaction_arbitration = status.extras.get("interaction_arbitration")
@@ -393,7 +393,7 @@ def _set_running_quest_recovery_decision(
         )
 
 
-def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
+def _runtime_event_status_snapshot(status: ProgressProjectionStatus) -> dict[str, object]:
     runtime_liveness_audit = _runtime_liveness_audit_payload(status)
     runtime_audit = (
         dict(runtime_liveness_audit.get("runtime_audit") or {})
@@ -438,7 +438,7 @@ def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, obje
     }
 
 
-def _runtime_event_outer_loop_input(status: StudyRuntimeStatus) -> dict[str, object]:
+def _runtime_event_outer_loop_input(status: ProgressProjectionStatus) -> dict[str, object]:
     snapshot = _runtime_event_status_snapshot(status)
     interaction_arbitration = status.extras.get("interaction_arbitration")
     return {
@@ -466,7 +466,7 @@ def _runtime_event_outer_loop_input(status: StudyRuntimeStatus) -> dict[str, obj
 
 def _status_family_human_gates(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
     event_time: str,
 ) -> list[dict[str, object]]:
@@ -501,8 +501,8 @@ def _status_family_human_gates(
                 gate_id=f"status-waiting-{status.study_id}-{pending_interaction_id}",
                 gate_kind="runtime_pending_user_interaction",
                 requested_at=event_time,
-                request_surface_kind="study_runtime_status",
-                request_surface_id="study_runtime_status",
+                request_surface_kind="progress_projection",
+                request_surface_id="progress_projection",
                 evidence_refs=[
                     {
                         "ref_kind": "repo_path",
@@ -524,8 +524,8 @@ def _status_family_human_gates(
                 gate_id=f"status-human-confirmation-{status.study_id}",
                 gate_kind="controller_human_confirmation",
                 requested_at=event_time,
-                request_surface_kind="study_runtime_status",
-                request_surface_id="study_runtime_status",
+                request_surface_kind="progress_projection",
+                request_surface_id="progress_projection",
                 evidence_refs=[
                     {
                         "ref_kind": "repo_path",

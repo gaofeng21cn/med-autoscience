@@ -81,7 +81,7 @@ def test_ensure_study_runtime_keeps_explicit_rerun_for_reopened_task_intake_afte
     assert result["quest_status"] == "stopped"
 
 
-def test_study_runtime_status_keeps_explicit_rerun_for_manual_takeover_stop_with_invalid_blocking_progress(
+def test_progress_projection_keeps_explicit_rerun_for_manual_takeover_stop_with_invalid_blocking_progress(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -205,7 +205,7 @@ def test_study_runtime_status_keeps_explicit_rerun_for_manual_takeover_stop_with
         raising=False,
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_stopped_requires_explicit_rerun"
@@ -350,7 +350,7 @@ def test_ensure_study_runtime_keeps_explicit_rerun_for_manual_takeover_stop_with
     assert result["quest_status"] == "stopped"
 
 
-def test_study_runtime_status_auto_resumes_controller_owned_stopped_completion_request_when_publication_gate_is_blocked(
+def test_progress_projection_auto_resumes_controller_owned_stopped_completion_request_when_publication_gate_is_blocked(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -474,7 +474,7 @@ def test_study_runtime_status_auto_resumes_controller_owned_stopped_completion_r
         raising=False,
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_completion_requested_before_publication_gate_clear"
@@ -651,7 +651,7 @@ def test_ensure_study_runtime_auto_resumes_controller_owned_stopped_completion_r
     assert runtime_supervision["health_status"] == "recovering"
 
 
-def test_study_runtime_status_auto_resumes_controller_guard_stopped_quest_when_publication_gate_is_blocked(
+def test_progress_projection_auto_resumes_controller_guard_stopped_quest_when_publication_gate_is_blocked(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -718,14 +718,14 @@ def test_study_runtime_status_auto_resumes_controller_guard_stopped_quest_when_p
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_stopped_by_controller_guard"
     assert result["quest_status"] == "stopped"
 
 
-def test_study_runtime_status_auto_resumes_controller_guard_stopped_quest_when_bundle_stage_is_blocked(
+def test_progress_projection_auto_resumes_controller_guard_stopped_quest_when_bundle_stage_is_blocked(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -792,7 +792,7 @@ def test_study_runtime_status_auto_resumes_controller_guard_stopped_quest_when_b
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_stopped_by_controller_guard"

@@ -7,16 +7,16 @@ from typing import Any, Callable
 from med_autoscience.controllers import runtime_supervision as runtime_supervision_controller
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
-from ..study_runtime_status import (
+from ..progress_projection import (
     StudyRuntimeBindingAction,
     StudyRuntimeDaemonStep,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
 )
 
 
-def runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
+def runtime_event_status_snapshot(status: ProgressProjectionStatus) -> dict[str, object]:
     runtime_liveness_audit = (
         dict(status.extras.get("runtime_liveness_audit"))
         if isinstance(status.extras.get("runtime_liveness_audit"), dict)
@@ -67,7 +67,7 @@ def runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, objec
     }
 
 
-def runtime_event_outer_loop_input(status: StudyRuntimeStatus) -> dict[str, object]:
+def runtime_event_outer_loop_input(status: ProgressProjectionStatus) -> dict[str, object]:
     snapshot = runtime_event_status_snapshot(status)
     interaction_arbitration = status.extras.get("interaction_arbitration")
     return {
@@ -95,7 +95,7 @@ def runtime_event_outer_loop_input(status: StudyRuntimeStatus) -> dict[str, obje
 
 def post_transition_quest_status(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     outcome: Any,
 ) -> StudyRuntimeQuestStatus | None:
     if outcome.binding_last_action is StudyRuntimeBindingAction.CREATE_AND_START:
@@ -120,7 +120,7 @@ def post_transition_quest_status(
 
 def record_transition_runtime_event(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
     outcome: Any,
     router_module: Callable[[], Any],
@@ -176,7 +176,7 @@ def runtime_escalation_trigger_source(reason: StudyRuntimeReason | None) -> str:
         return "startup_boundary_gate"
     if reason is StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME:
         return "runtime_reentry_gate"
-    return "study_runtime_status"
+    return "progress_projection"
 
 
 def runtime_escalation_recommended_actions(reason: StudyRuntimeReason | None) -> tuple[str, ...]:
@@ -190,7 +190,7 @@ def runtime_escalation_recommended_actions(reason: StudyRuntimeReason | None) ->
     return ("refresh_startup_hydration", "controller_review_required")
 
 
-def runtime_escalation_evidence_refs(status: StudyRuntimeStatus) -> tuple[str, ...]:
+def runtime_escalation_evidence_refs(status: ProgressProjectionStatus) -> tuple[str, ...]:
     evidence_refs: list[str] = []
     for key in ("startup_hydration", "startup_hydration_validation"):
         payload = status.extras.get(key)
@@ -204,7 +204,7 @@ def runtime_escalation_evidence_refs(status: StudyRuntimeStatus) -> tuple[str, .
 
 def maybe_emit_runtime_escalation_record(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
     emitted_at: str,
 ) -> None:

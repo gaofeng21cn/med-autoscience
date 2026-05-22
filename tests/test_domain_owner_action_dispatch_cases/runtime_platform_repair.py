@@ -13,7 +13,7 @@ from tests.study_runtime_test_helpers import make_profile, write_study
 
 def test_runtime_platform_repair_dispatch_uses_non_persistent_scan(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    scan_module = importlib.import_module("med_autoscience.controllers.domain_route_scan")
+    scan_module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -28,7 +28,7 @@ def test_runtime_platform_repair_dispatch_uses_non_persistent_scan(monkeypatch, 
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "generated_at": "2026-05-05T00:00:00+00:00",
             "studies": [
                 {"study_id": "001-dm-cvd-mortality-risk"},
@@ -53,7 +53,7 @@ def test_runtime_platform_repair_dispatch_uses_non_persistent_scan(monkeypatch, 
         called.update(kwargs)
         assert kwargs["persist_surfaces"] is False
         return {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "studies": [
                 {
                     "study_id": study_id,

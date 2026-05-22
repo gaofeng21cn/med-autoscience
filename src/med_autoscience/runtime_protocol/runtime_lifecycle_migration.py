@@ -704,10 +704,10 @@ def _authority_candidate_paths(workspace_root: Path, study_roots: list[Path], su
         return [workspace_root / "runtime_binding.yaml", workspace_root / "ops" / "medautoscience" / "runtime_binding.yaml"]
     if surface == ".ds/runtime_state.json":
         return [workspace_root / "ops" / "med-deepscientist" / "runtime" / ".ds" / "runtime_state.json"]
-    if surface == "study_runtime_status":
-        return [study / "artifacts" / "runtime" / "study_runtime_status" / "latest.json" for study in study_roots]
-    if surface == "runtime_watch/latest.json":
-        return [study / "artifacts" / "reports" / "runtime_watch" / "latest.json" for study in study_roots]
+    if surface == "progress_projection":
+        return [study / "artifacts" / "runtime" / "progress_projection" / "latest.json" for study in study_roots]
+    if surface == "domain_health_diagnostic/latest.json":
+        return [study / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json" for study in study_roots]
     if surface == "publication_eval/latest.json":
         return [study / "artifacts" / "publication_eval" / "latest.json" for study in study_roots]
     if surface == "controller_decisions/latest.json":

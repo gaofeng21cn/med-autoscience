@@ -80,7 +80,7 @@ def _operator_status_truth_snapshot(
     publication_eval_payload: dict[str, Any] | None,
     controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
-    runtime_watch_payload: dict[str, Any] | None,
+    domain_health_diagnostic_payload: dict[str, Any] | None,
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
 ) -> tuple[str | None, str | None]:
@@ -98,17 +98,17 @@ def _operator_status_truth_snapshot(
         ),
         "paper_surface_refresh_in_progress": (
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
-            ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
+            ("domain_health_diagnostic", _non_empty_text((domain_health_diagnostic_payload or {}).get("scanned_at"))),
             (latest_event_source, latest_event_time),
         ),
         "publication_gate_specificity_required": (
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
-            ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
+            ("domain_health_diagnostic", _non_empty_text((domain_health_diagnostic_payload or {}).get("scanned_at"))),
             (latest_event_source, latest_event_time),
         ),
         "scientific_or_quality_repair_in_progress": (
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
-            ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
+            ("domain_health_diagnostic", _non_empty_text((domain_health_diagnostic_payload or {}).get("scanned_at"))),
             (latest_event_source, latest_event_time),
         ),
         "waiting_user_decision": (
@@ -120,7 +120,7 @@ def _operator_status_truth_snapshot(
         "monitor_only": (
             (latest_event_source, latest_event_time),
             ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
-            ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
+            ("domain_health_diagnostic", _non_empty_text((domain_health_diagnostic_payload or {}).get("scanned_at"))),
         ),
     }
     parked_candidates = parked_truth_candidates(
@@ -269,7 +269,7 @@ def _operator_status_next_confirmation_signal(handling_state: str, intervention_
                 f"看 publication_eval/latest.json 是否把“{route_label}”这条修复线继续收窄，"
                 f"以及“{key_question}”是否已经被关闭。"
             )
-        return "看 publication_eval/latest.json 或 runtime_watch 里的 blocker 是否减少。"
+        return "看 publication_eval/latest.json 或 domain_health_diagnostic 里的 blocker 是否减少。"
     if handling_state == "waiting_user_decision":
         return "看 controller_confirmation_summary 是否清空或变化，或 controller_decisions/latest.json 是否写出人工确认后的下一步。"
     if handling_state == "manual_finishing":
@@ -280,11 +280,11 @@ def _operator_status_next_confirmation_signal(handling_state: str, intervention_
 def _latest_no_op_suppression(
     *,
     study_id: str,
-    runtime_watch_payload: dict[str, Any] | None,
+    domain_health_diagnostic_payload: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     candidates = [
         dict(item)
-        for item in ((runtime_watch_payload or {}).get("managed_study_no_op_suppressions") or [])
+        for item in ((domain_health_diagnostic_payload or {}).get("managed_study_no_op_suppressions") or [])
         if isinstance(item, dict)
     ]
     for item in reversed(candidates):
@@ -351,7 +351,7 @@ def _operator_status_card(
     publication_eval_payload: dict[str, Any] | None,
     controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
-    runtime_watch_payload: dict[str, Any] | None,
+    domain_health_diagnostic_payload: dict[str, Any] | None,
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
@@ -372,14 +372,14 @@ def _operator_status_card(
         publication_eval_payload=publication_eval_payload,
         controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
-        runtime_watch_payload=runtime_watch_payload,
+        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
     )
     human_surface_freshness, human_surface_summary = _operator_status_human_surface_summary(handling_state)
     no_op_suppression = _latest_no_op_suppression(
         study_id=study_id,
-        runtime_watch_payload=runtime_watch_payload,
+        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
     )
     runtime_efficiency_summary, runtime_efficiency_refs, runtime_efficiency_metrics = _runtime_efficiency_summary(
         runtime_efficiency

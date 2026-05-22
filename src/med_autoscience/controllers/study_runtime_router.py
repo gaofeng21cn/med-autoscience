@@ -89,7 +89,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeStartupBoundaryGate,
     StudyRuntimeStartupContextSyncResult,
     StudyRuntimeStartupDataReadinessReport,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
     StudyRuntimeWorkspaceContractsSummary,
     _LIVE_QUEST_STATUSES,
     _RESUMABLE_QUEST_STATUSES,
@@ -187,7 +187,7 @@ def _timestamp_slug() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
-def study_runtime_status(
+def progress_projection(
     *,
     profile: WorkspaceProfile,
     study_id: str | None = None,

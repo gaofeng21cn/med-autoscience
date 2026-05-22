@@ -187,7 +187,7 @@ def _direct_mas_path(profile_ref_text: str) -> dict[str, Any]:
         "profile_ref": profile_ref_text,
         "commands": {
             "read_status": f"medautosci study-progress --profile {profile_ref_text} --format json",
-            "read_runtime": f"medautosci study-runtime-status --profile {profile_ref_text} --study-id <study_id>",
+            "read_runtime": f"medautosci study progress-projection --profile {profile_ref_text} --study-id <study_id>",
             "reconcile": f"medautosci domain-route-reconcile --profile {profile_ref_text} --dry-run",
         },
         "must_converge_with_opl_hosted_path": True,

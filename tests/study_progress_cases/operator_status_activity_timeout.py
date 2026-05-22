@@ -63,7 +63,7 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
             },
         },
     )
-    _write_runtime_watch(quest_root)
+    _write_domain_health_diagnostic(quest_root)
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
@@ -73,7 +73,7 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "002-risk",
@@ -174,7 +174,7 @@ def test_runtime_health_snapshot_recovery_dominates_stale_live_runtime_module_pr
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "002-risk",
@@ -271,7 +271,7 @@ def test_study_progress_does_not_extend_new_run_grace_from_fresh_supervisor_tick
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "003-dpcc",

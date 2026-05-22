@@ -68,12 +68,12 @@ def launch_study(
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "status": (
-            f"{_command_prefix(profile_ref)} study-runtime-status --profile {_profile_arg(profile_ref)} "
+            f"{_command_prefix(profile_ref)} study progress-projection --profile {_profile_arg(profile_ref)} "
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "cockpit": f"{_command_prefix(profile_ref)} workspace-cockpit --profile {_profile_arg(profile_ref)}",
         "supervisor_tick": (
-            f"{_command_prefix(profile_ref)} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+            f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
             f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
         ),
     }

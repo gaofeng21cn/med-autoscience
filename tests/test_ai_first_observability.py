@@ -241,7 +241,7 @@ def test_doctor_observability_summary_exposes_contract_without_runtime_authority
     assert summary["user_view"] == {
         "status": "informational",
         "reason": "doctor report exposes the observability contract without study-specific runtime traces",
-        "next_action": "inspect_study_runtime_status_or_runtime_watch",
+        "next_action": "inspect_progress_projection_or_domain_health_diagnostic",
     }
     assert summary["authority"] == {
         "observability_can_authorize_quality": False,

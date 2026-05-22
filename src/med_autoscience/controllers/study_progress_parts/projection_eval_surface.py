@@ -24,7 +24,7 @@ class ProjectionSurfacePayloads:
     controller_confirmation_summary: dict[str, Any] | None
     runtime_supervision_payload: dict[str, Any] | None
     runtime_escalation_payload: dict[str, Any] | None
-    runtime_watch_payload: dict[str, Any] | None
+    domain_health_diagnostic_payload: dict[str, Any] | None
     gate_clearing_batch_payload: dict[str, Any] | None
     publication_eval_payload: dict[str, Any] | None
     publishability_gate_path: Path | None
@@ -57,8 +57,8 @@ def read_projection_surface_payloads(
         study_root=study_root,
         ref=controller_confirmation_summary_path,
     )
-    runtime_watch_payload = (
-        _read_json_object(paths.runtime_watch_path) if paths.runtime_watch_path is not None else None
+    domain_health_diagnostic_payload = (
+        _read_json_object(paths.domain_health_diagnostic_path) if paths.domain_health_diagnostic_path is not None else None
     )
     publication_eval_payload, publishability_gate_path, publishability_gate_payload = (
         _refresh_publication_surfaces_from_gate_report(
@@ -68,7 +68,7 @@ def read_projection_surface_payloads(
             quest_id=paths.quest_id,
             publication_eval_path=paths.publication_eval_path,
             runtime_escalation_path=paths.runtime_escalation_path,
-            runtime_watch_payload=runtime_watch_payload,
+            domain_health_diagnostic_payload=domain_health_diagnostic_payload,
         )
     )
     return ProjectionSurfacePayloads(
@@ -82,7 +82,7 @@ def read_projection_surface_payloads(
             runtime_health_status=runtime_health_status,
             path=paths.runtime_escalation_path,
         ),
-        runtime_watch_payload=runtime_watch_payload,
+        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
         gate_clearing_batch_payload=_read_json_object(paths.gate_clearing_batch_path),
         publication_eval_payload=publication_eval_payload,
         publishability_gate_path=publishability_gate_path,

@@ -69,8 +69,8 @@ def build_product_entry(
             f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} "
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
-        "study_runtime_status": (
-            f"{_command_prefix(profile_ref)} study-runtime-status --profile {_profile_arg(profile_ref)} "
+        "progress_projection": (
+            f"{_command_prefix(profile_ref)} study progress-projection --profile {_profile_arg(profile_ref)} "
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
     }
@@ -108,7 +108,7 @@ def build_product_entry(
             executor_owner=CONTROLLED_BACKEND_EXECUTOR_OWNER,
             supervision_status_surface="study_progress",
             attention_queue_surface="workspace_cockpit",
-            recovery_contract_surface="study_runtime_status",
+            recovery_contract_surface="progress_projection",
         ),
         "return_surface_contract": {
             "entry_adapter": SERVICE_SAFE_ENTRY_ADAPTER,
@@ -151,7 +151,7 @@ def build_product_entry(
             "research_runtime_control_projection_contract": _build_research_runtime_control_projection(
                 resume_command=commands["launch_study"],
                 check_progress_command=commands["study_progress"],
-                check_runtime_status_command=commands["study_runtime_status"],
+                check_runtime_status_command=commands["progress_projection"],
                 surface_kind="research_runtime_control_projection_contract",
             ),
             "long_line_learning_projection_contract": _build_long_line_learning_projection_contract(),
@@ -161,7 +161,7 @@ def build_product_entry(
             "submit_task_command": commands["submit_study_task"],
             "launch_command": commands["launch_study"],
             "progress_command": commands["study_progress"],
-            "runtime_status_command": commands["study_runtime_status"],
+            "runtime_status_command": commands["progress_projection"],
             "runtime_supervision_path": return_contract.get("runtime_supervision_path"),
             "publication_eval_path": return_contract.get("publication_eval_path"),
             "controller_decision_path": return_contract.get("controller_decision_path"),

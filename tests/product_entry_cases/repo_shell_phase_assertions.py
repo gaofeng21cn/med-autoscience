@@ -27,7 +27,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                         + str(profile_ref.resolve())
                     ),
                     (
-                        "uv run python -m med_autoscience.cli watch --runtime-root "
+                        "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
@@ -74,9 +74,9 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             {
                 "step_id": "refresh_supervision",
                 "title": "刷新 MAS domain runtime projection",
-                "surface_kind": "runtime_watch_refresh",
+                "surface_kind": "domain_health_diagnostic_refresh",
                 "command": (
-                    "uv run python -m med_autoscience.cli watch --runtime-root "
+                    "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                     + str(profile.runtime_root)
                     + " --profile "
                     + str(profile_ref.resolve())
@@ -110,16 +110,16 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                 "command": "uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve()),
             },
             {
-                "surface_kind": "study_runtime_status.autonomous_runtime_notice",
+                "surface_kind": "progress_projection.autonomous_runtime_notice",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                    "uv run python -m med_autoscience.cli study progress-projection --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id>"
                 ),
             },
             {
-                "surface_kind": "runtime_watch",
-                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_watch" / "latest.json"),
+                "surface_kind": "domain_health_diagnostic",
+                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "domain_health_diagnostic" / "latest.json"),
             },
             {
                 "surface_kind": "runtime_supervision",
@@ -359,8 +359,8 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
     }
     assert payload["family_orchestration"]["event_envelope_surface"] == {
         "ref_kind": "workspace_locator",
-        "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
-        "label": "runtime watch event companion",
+        "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
+        "label": "domain health diagnostic event companion",
     }
     assert payload["family_orchestration"]["checkpoint_lineage_surface"] == {
         "ref_kind": "workspace_locator",

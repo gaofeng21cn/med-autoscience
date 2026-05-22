@@ -38,7 +38,7 @@ def test_live_console_read_model_projects_runtime_session_and_stream_refs(tmp_pa
         profile_name="dm-cvd",
         workspace_root=tmp_path,
         study_id="002-dm-china-us-mortality-attribution",
-        study_runtime_status={
+        progress_projection={
             "study_id": "002-dm-china-us-mortality-attribution",
             "quest_id": "quest-002",
             "active_run_id": "run-002",
@@ -114,7 +114,7 @@ def test_live_console_read_model_projects_output_blocker_impact_without_writes()
         profile_name="dm-cvd",
         workspace_root="/workspace",
         study_id="001-risk",
-        study_runtime_status={
+        progress_projection={
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "runtime_liveness_status": "stale",
@@ -182,7 +182,7 @@ def test_live_console_materialization_writes_only_live_console_read_model(tmp_pa
         workspace_root=tmp_path,
         profile_name="dm-cvd",
         study_id="002",
-        study_runtime_status_path=status_path,
+        progress_projection_path=status_path,
         generated_at="2026-05-08T02:05:00+00:00",
     )
 
@@ -235,7 +235,7 @@ def test_runtime_live_console_controller_exposes_cli_snapshot_alias() -> None:
         profile_name="dm-cvd",
         workspace_root="/workspace",
         study_id="002",
-        study_runtime_status={
+        progress_projection={
             "study_id": "002",
             "quest_id": "quest-002",
             "runtime_liveness_status": "live",
@@ -262,7 +262,7 @@ def _write_study_status(
     quest_root = profile.runtime_root / quest_id
     _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
     _write_json(
-        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json",
         {
             "study_id": study_id,
             "quest_id": quest_id,
@@ -725,7 +725,7 @@ def test_conversation_read_model_projects_user_messages_turn_receipts_and_blocke
     quest_root = profile.runtime_root / quest_id
     _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
     _write_json(
-        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json",
         {
             "study_id": study_id,
             "quest_id": quest_id,
@@ -891,7 +891,7 @@ def test_conversation_read_model_fail_closed_missing_fields_without_guessing(tmp
     quest_root = profile.runtime_root / quest_id
     _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
     _write_json(
-        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json",
         {"study_id": study_id, "quest_id": quest_id, "quest_root": str(quest_root)},
     )
     _write_json(
@@ -928,7 +928,7 @@ def test_conversation_read_model_materializes_latest_and_history_without_truth_w
     study_root = profile.studies_root / study_id
     quest_root = profile.runtime_root / quest_id
     _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
-    status_path = study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json"
+    status_path = study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json"
     _write_json(status_path, {"study_id": study_id, "quest_id": quest_id, "quest_root": str(quest_root)})
     before = status_path.stat().st_mtime_ns
 
@@ -962,7 +962,7 @@ def _write_soak_study(
     quest_root = profile.runtime_root / quest_id
     _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
     _write_json(
-        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json",
         {
             "study_id": study_id,
             "quest_id": quest_id,

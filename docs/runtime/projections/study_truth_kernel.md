@@ -2,7 +2,7 @@
 
 ## 目标
 
-`StudyTruthKernel` 是 MAS study 级运行真相的唯一 reducer。它把 task intake、controller decision、runtime event、publication gate、quality review、package authority、delivery sync、human gate、writer lock 等输入归并为一个 `StudyTruthSnapshot`，供 `study_runtime_status`、`study_progress`、`runtime_watch`、workspace cockpit、product entry status 和 MCP compact projection 消费。
+`StudyTruthKernel` 是 MAS study 级运行真相的唯一 reducer。它把 task intake、controller decision、runtime event、publication gate、quality review、package authority、delivery sync、human gate、writer lock 等输入归并为一个 `StudyTruthSnapshot`，供 `progress_projection`、`study_progress`、`domain_health_diagnostic`、workspace cockpit、product entry status 和 MCP compact projection 消费。
 
 该合同采用三条工程原则：
 
@@ -14,7 +14,7 @@
 
 - append-only event log：`studies/<study_id>/artifacts/truth/events.jsonl`
 - materialized snapshot：`studies/<study_id>/artifacts/truth/latest.json`
-- read-model embedding：`study_runtime_status.study_truth_snapshot`
+- read-model embedding：`progress_projection.study_truth_snapshot`
 - user projection embedding：`study_progress.truth_epoch` 与 `study_progress.study_truth_snapshot`
 
 普通 status/progress read 只生成 shadow snapshot，不写 `latest.json`。只有显式 reconcile、controller tick 或调用 `materialize_truth_snapshot(...)` 才能刷新 materialized snapshot。
@@ -25,7 +25,7 @@
 uv run python -m med_autoscience.cli study reconcile-truth --profile <profile> --study-id <study_id>
 ```
 
-该入口先读取当前 `study_runtime_status`，再把 status payload 归一化为 truth events 并刷新 `artifacts/truth/latest.json`。普通 `study progress` 仍保持 pure read 语义。
+该入口先读取当前 `progress_projection`，再把 status payload 归一化为 truth events 并刷新 `artifacts/truth/latest.json`。普通 `study progress` 仍保持 pure read 语义。
 
 ## Dominance Rules
 

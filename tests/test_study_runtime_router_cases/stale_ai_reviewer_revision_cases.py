@@ -1,7 +1,7 @@
 from .shared import *  # noqa: F403
 
 
-def test_study_runtime_status_routes_stale_ai_reviewer_eval_to_recheck_before_closed_gate_lifecycle(
+def test_progress_projection_routes_stale_ai_reviewer_eval_to_recheck_before_closed_gate_lifecycle(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -165,7 +165,7 @@ def test_study_runtime_status_routes_stale_ai_reviewer_eval_to_recheck_before_cl
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,

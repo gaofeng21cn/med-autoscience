@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-_CONTROL_SURFACE_PARTS = frozenset({"reports", "publication_eval", "runtime_supervision", "runtime_watch"})
+_CONTROL_SURFACE_PARTS = frozenset({"reports", "publication_eval", "runtime_supervision", "domain_health_diagnostic"})
 _CONTENT_FILE_NAMES = frozenset(
     {
         "RESULT.json",

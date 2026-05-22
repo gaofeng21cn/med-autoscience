@@ -296,7 +296,7 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": route}],
         },

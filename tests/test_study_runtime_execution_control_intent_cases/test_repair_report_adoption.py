@@ -120,7 +120,7 @@ def test_execute_noop_runtime_decision_adopts_analysis_repair_report_without_rel
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -255,7 +255,7 @@ def test_execute_noop_runtime_decision_adopts_legacy_repair_report_bound_by_curr
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:

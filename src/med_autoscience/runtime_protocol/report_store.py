@@ -19,10 +19,10 @@ def _load_json(path: Path, default: Any = None) -> Any:
 
 
 def _state_dir(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "reports" / "runtime_watch"
+    return quest_root / "artifacts" / "reports" / "domain_health_diagnostic"
 
 
-def load_watch_state(quest_root: Path) -> dict[str, Any]:
+def load_domain_health_diagnostic_state(quest_root: Path) -> dict[str, Any]:
     path = _state_dir(quest_root) / "state.json"
     return _load_json(path, default={"schema_version": 1, "controllers": {}}) or {
         "schema_version": 1,
@@ -30,9 +30,9 @@ def load_watch_state(quest_root: Path) -> dict[str, Any]:
     }
 
 
-def save_watch_state(quest_root: Path, payload: Mapping[str, Any]) -> None:
+def save_domain_health_diagnostic_state(quest_root: Path, payload: Mapping[str, Any]) -> None:
     _dump_json(_state_dir(quest_root) / "state.json", dict(payload))
-    lifecycle_refs_adapter.record_watch_state(quest_root=quest_root, payload=dict(payload))
+    lifecycle_refs_adapter.record_domain_health_diagnostic_state(quest_root=quest_root, payload=dict(payload))
 
 
 def write_timestamped_report(

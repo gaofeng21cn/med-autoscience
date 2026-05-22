@@ -13,7 +13,7 @@ CLEAR_VIOLATION_LINE_LIMIT = 1500
 PART_NEAR_LINE_LIMIT = 900
 SHARED_BASE_BUCKET_LINE_LIMIT = 800
 DEFAULT_BASELINE = {
-    "src/med_autoscience/controllers/runtime_watch.py": 1499,
+    "src/med_autoscience/controllers/domain_health_diagnostic.py": 1499,
     "src/med_autoscience/cli.py": 1475,
     "src/med_autoscience/controllers/gate_clearing_batch.py": 1363,
     "src/med_autoscience/controllers/study_runtime_execution.py": 1346,
@@ -29,7 +29,7 @@ DEFAULT_BASELINE = {
     "tests/test_domain_owner_action_dispatch_cases/ai_reviewer_workflow_dispatch.py": 1110,
     "src/med_autoscience/controllers/time_to_event_direct_migration.py": 1094,
     "tests/study_progress_cases/markdown_and_followthrough_projection.py": 1075,
-    "tests/test_runtime_watch_cases/supervisor_and_progress_cases.py": 1066,
+    "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases.py": 1066,
     "src/med_autoscience/controllers/product_entry_parts/shared_base.py": 1020,
     "tests/test_cli_cases/owner_route_handoff_command.py": 1025,
     "tests/product_entry_cases/action_catalog_parity.py": 1004,

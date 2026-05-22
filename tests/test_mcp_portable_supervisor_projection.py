@@ -18,7 +18,7 @@ def test_study_progress_portable_supervisor_projection_reads_developer_superviso
     _write_json(
         hourly_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "generated_at": "2026-05-04T06:00:00+00:00",
             "developer_supervisor_mode": {
                 "mode": "developer_apply_safe",
@@ -58,7 +58,7 @@ def test_study_progress_portable_supervisor_projection_preserves_string_why_not_
     _write_json(
         hourly_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "generated_at": "2026-05-09T08:54:24+00:00",
             "studies": [
                 {

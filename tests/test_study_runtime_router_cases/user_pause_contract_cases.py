@@ -129,7 +129,7 @@ def test_user_paused_quest_blocks_auto_resume_even_when_auto_resume_is_enabled(
         lambda **kwargs: (_ for _ in ()).throw(AssertionError("user pause must not be auto-resumed")),
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="domain_health_diagnostic")
 
     assert result["quest_status"] == "paused"
     assert result["decision"] == "blocked"
@@ -580,7 +580,7 @@ def test_legacy_human_takeover_escalation_not_treated_as_user_pause(
         or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-after-takeover"}},
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="domain_health_diagnostic")
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
 
     assert result["decision"] == "resume"
@@ -689,7 +689,7 @@ def test_relay_repeats_when_existing_authorization_marker_lacks_target_context(
         ),
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="domain_health_diagnostic")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_opl_runtime_owner_route"
@@ -734,7 +734,7 @@ def test_user_paused_stopped_quest_surfaces_explicit_wakeup_not_generic_rerun(
         lambda **kwargs: (_ for _ in ()).throw(AssertionError("stopped user pause must not be auto-resumed")),
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="domain_health_diagnostic")
 
     assert result["quest_status"] == "stopped"
     assert result["decision"] == "blocked"
@@ -775,7 +775,7 @@ def test_user_paused_active_no_worker_drift_blocks_watch_runtime_recovery(
         lambda **kwargs: (_ for _ in ()).throw(AssertionError("user pause drift must not be auto-resumed")),
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="domain_health_diagnostic")
 
     assert result["quest_status"] == "active"
     assert result["decision"] == "blocked"

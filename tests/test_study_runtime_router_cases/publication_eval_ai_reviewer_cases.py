@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_preserves_current_ai_reviewer_publication_eval(
+def test_progress_projection_preserves_current_ai_reviewer_publication_eval(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -144,7 +144,7 @@ def test_study_runtime_status_preserves_current_ai_reviewer_publication_eval(
         },
     )
 
-    module.study_runtime_status(profile=profile, study_id="001-risk")
+    module.progress_projection(profile=profile, study_id="001-risk")
 
     payload = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
     assert payload["assessment_provenance"]["owner"] == "ai_reviewer"
@@ -154,7 +154,7 @@ def test_study_runtime_status_preserves_current_ai_reviewer_publication_eval(
     assert payload["recommended_actions"][0]["reason"] == "Continue finalize handoff without reopening science."
 
 
-def test_study_runtime_status_refreshes_stale_blocked_ai_reviewer_eval_when_gate_is_clear(
+def test_progress_projection_refreshes_stale_blocked_ai_reviewer_eval_when_gate_is_clear(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -313,7 +313,7 @@ def test_study_runtime_status_refreshes_stale_blocked_ai_reviewer_eval_when_gate
         },
     )
 
-    module.study_runtime_status(profile=profile, study_id="001-risk")
+    module.progress_projection(profile=profile, study_id="001-risk")
 
     payload = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
     assert payload["assessment_provenance"]["owner"] == "mechanical_projection"
@@ -330,7 +330,7 @@ def test_study_runtime_status_refreshes_stale_blocked_ai_reviewer_eval_when_gate
     assert payload["recommended_actions"][0]["next_work_unit"]["lane"] == "review"
 
 
-def test_study_runtime_status_refreshes_publication_eval_when_gate_returns_to_publishability(
+def test_progress_projection_refreshes_publication_eval_when_gate_returns_to_publishability(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -455,7 +455,7 @@ def test_study_runtime_status_refreshes_publication_eval_when_gate_returns_to_pu
         },
     )
 
-    module.study_runtime_status(profile=profile, study_id="001-risk")
+    module.progress_projection(profile=profile, study_id="001-risk")
 
     payload = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
     assert payload["assessment_provenance"]["owner"] == "mechanical_projection"

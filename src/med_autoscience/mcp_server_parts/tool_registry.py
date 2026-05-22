@@ -112,8 +112,8 @@ def build_tool_registry(
         McpToolSpec(
             name="study_runtime",
             description=(
-                "Inspect or control study runtime through one task tool: runtime_watch, "
-                "study_runtime_status, or ensure_study_runtime. "
+                "Inspect or control study runtime through one task tool: domain_health_diagnostic, "
+                "progress_projection, or ensure_study_runtime. "
                 f"{STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION}"
             ),
             metadata=_tool_metadata(metadata_by_tool, "study_runtime"),

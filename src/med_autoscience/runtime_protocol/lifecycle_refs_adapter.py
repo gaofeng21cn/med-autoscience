@@ -35,7 +35,7 @@ def workspace_lifecycle_store_path(workspace_root: Path) -> Path:
     return Path(workspace_root).expanduser().resolve() / "artifacts" / "runtime" / DEFAULT_DB_FILENAME
 
 
-def record_watch_state(
+def record_domain_health_diagnostic_state(
     *,
     quest_root: Path,
     payload: Mapping[str, Any],
@@ -721,7 +721,7 @@ __all__ = [
     "record_runtime_snapshot",
     "record_snapshot_file_ref",
     "record_surface_ref",
-    "record_watch_state",
+    "record_domain_health_diagnostic_state",
     "record_workspace_allocation",
     "record_workspace_storage_audit",
     "workspace_lifecycle_store_path",

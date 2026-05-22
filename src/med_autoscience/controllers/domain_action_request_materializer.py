@@ -11,7 +11,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
     two_layer_ai_repair_policy_payload,
 )
 from med_autoscience.controllers.domain_owner_action_dispatch_parts import output_readiness
-from med_autoscience.controllers.domain_route_scan import SUPERVISION_LATEST_RELATIVE_PATH
+from med_autoscience.controllers.owner_route_reconcile import SUPERVISION_LATEST_RELATIVE_PATH
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part

@@ -28,7 +28,7 @@ def test_study_outer_loop_tick_persists_controller_work_unit_context(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",

@@ -513,7 +513,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert availability["provider_attempt_available"] is True
     assert availability["proof_ref"] == str(proof_ref)
     assert availability["semantics"]["provider_completion_is_paper_closure"] is False
-    assert availability["semantics"]["mas_runtime_watch_role"] == "domain_truth_and_local_diagnostics"
+    assert availability["semantics"]["mas_domain_health_diagnostic_role"] == "domain_truth_and_local_diagnostics"
     managed_state = payload["managed_temporal_state_consistency"]
     assert managed_state["surface_kind"] == "mas_opl_managed_temporal_state_consistency"
     assert managed_state["status"] == "consistent"

@@ -140,8 +140,8 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert lane["truth_owner"] == "MedAutoScience"
     assert set(lane["forbidden_authority_writes"]) >= {
         "study_truth",
-        "study_runtime_status",
-        "runtime_watch",
+        "progress_projection",
+        "domain_health_diagnostic",
         "publication_eval/latest.json",
         "controller_decisions/latest.json",
         "paper/current_package",
@@ -316,7 +316,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert classification["declarative_pack_generated_surface"] == [
         "workspace_source_intake_shell",
         "workbench_portal_generic_shell",
-        "domain_route_scan_materialize_dispatch_shell",
+        "owner_route_reconcile_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -331,8 +331,8 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "terminal_attach_transport",
     ]
     assert set(classification["minimal_authority_function"]) == set(lane["mas_retains"]) | {
-        "study_runtime_status",
-        "runtime_watch_domain_health",
+        "progress_projection",
+        "domain_health_diagnostic",
         "ai_reviewer_workflow",
         "publication_gate",
     }
@@ -345,7 +345,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     }
     assert set(classification["legacy_cleanup_physical_retired"]) == {
         "local_launchd_scheduler_install_path",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
         "workspace_local_watch_service_wrappers",
     }
     assert lane["functional_module_inventory_ref"] == (
@@ -401,14 +401,14 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         assert gate["can_emit_generic_owner_verdict"] is False
         assert "paper_closure_verdict" in gate["must_not_emit"]
         assert "active_caller_count=0" in gate["delete_or_tombstone_after"]
-    assert inventory_by_id["domain_route_scan_materialize_dispatch_shell"]["active_caller_status"] == (
+    assert inventory_by_id["owner_route_reconcile_materialize_dispatch_shell"]["active_caller_status"] == (
         "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active"
     )
     closed_semantic_equivalence_modules = [
         "runtime_storage_maintenance",
         "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
-        "domain_route_scan_materialize_dispatch_shell",
+        "owner_route_reconcile_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_queue_attempt_retry_dead_letter",
     ]
@@ -445,8 +445,8 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "default_caller_count"
     ] == 0
     assert inventory_by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
-    assert inventory_by_id["runtime_watch_loop_shell"]["physical_retired"] is True
-    assert inventory_by_id["runtime_watch_loop_shell"]["no_active_caller_gate"]["replacement_surface"] == (
+    assert inventory_by_id["domain_health_diagnostic_loop_shell"]["physical_retired"] is True
+    assert inventory_by_id["domain_health_diagnostic_loop_shell"]["no_active_caller_gate"]["replacement_surface"] == (
         "opl_provider_runtime_manager"
     )
     assert runtime_boundary["functional_module_inventory_summary"]["classification_counts"] == {
@@ -489,7 +489,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
     ]
     assert followthrough_summary["legacy_cleanup_items_tombstoned"] == [
         "mas_generic_workbench_shell",

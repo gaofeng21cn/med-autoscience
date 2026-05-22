@@ -9,7 +9,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeDecision,
     StudyRuntimeReason,
     StudyRuntimeAuditStatus,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
     _LIVE_QUEST_STATUSES,
 )
 
@@ -25,7 +25,7 @@ def _latest_runtime_health_snapshot(study_root: Path) -> dict[str, object]:
 
 def _runtime_health_requires_explicit_resume(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
     study_id: str,
     quest_id: str,
@@ -56,7 +56,7 @@ def _runtime_health_requires_explicit_resume(
 
 def _runtime_health_requires_live_recovery(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     runtime_health_snapshot: dict[str, object],
 ) -> bool:
     if status.quest_status not in _LIVE_QUEST_STATUSES:
@@ -72,7 +72,7 @@ def _runtime_health_requires_live_recovery(
     return worker_state == "activity_timeout"
 
 
-def _record_autonomy_slo_status_if_present(*, status: StudyRuntimeStatus, study_root: Path) -> None:
+def _record_autonomy_slo_status_if_present(*, status: ProgressProjectionStatus, study_root: Path) -> None:
     from med_autoscience.controllers import autonomy_ai_doctor
 
     payload = autonomy_ai_doctor.read_latest_slo_status(study_root=study_root)
@@ -82,7 +82,7 @@ def _record_autonomy_slo_status_if_present(*, status: StudyRuntimeStatus, study_
 
 def _derive_runtime_health_snapshot_for_status(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
     study_id: str,
     quest_id: str,
@@ -97,7 +97,7 @@ def _derive_runtime_health_snapshot_for_status(
     )
 
 
-def _record_runtime_recovery_lifecycle_if_required(status: StudyRuntimeStatus) -> None:
+def _record_runtime_recovery_lifecycle_if_required(status: ProgressProjectionStatus) -> None:
     reason = status.reason.value if status.reason is not None else ""
     decision = status.decision.value if status.decision is not None else ""
     if reason not in {
@@ -146,7 +146,7 @@ def _record_runtime_recovery_lifecycle_if_required(status: StudyRuntimeStatus) -
 
 def _record_runtime_health_dominance(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
     study_id: str,
     quest_id: str,

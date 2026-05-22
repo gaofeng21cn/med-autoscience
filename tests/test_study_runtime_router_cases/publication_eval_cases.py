@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_materializes_route_back_same_line_for_blocked_bundle_stage(
+def test_progress_projection_materializes_route_back_same_line_for_blocked_bundle_stage(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -103,7 +103,7 @@ def test_study_runtime_status_materializes_route_back_same_line_for_blocked_bund
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     payload = json.loads(latest_eval_path.read_text(encoding="utf-8"))
@@ -141,7 +141,7 @@ def test_study_runtime_status_materializes_route_back_same_line_for_blocked_bund
         ("study_charter_invalid", "{invalid\n", "study_charter_invalid"),
     ],
 )
-def test_study_runtime_status_blocks_when_study_charter_gate_fails(
+def test_progress_projection_blocks_when_study_charter_gate_fails(
     monkeypatch,
     tmp_path: Path,
     charter_status: str,
@@ -237,7 +237,7 @@ def test_study_runtime_status_blocks_when_study_charter_gate_fails(
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == expected_reason
@@ -245,7 +245,7 @@ def test_study_runtime_status_blocks_when_study_charter_gate_fails(
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
-def test_study_runtime_status_publication_eval_keeps_bundle_stage_as_same_line_when_gate_is_clear(
+def test_progress_projection_publication_eval_keeps_bundle_stage_as_same_line_when_gate_is_clear(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -352,7 +352,7 @@ def test_study_runtime_status_publication_eval_keeps_bundle_stage_as_same_line_w
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     assert latest_eval_path.is_file()
@@ -366,7 +366,7 @@ def test_study_runtime_status_publication_eval_keeps_bundle_stage_as_same_line_w
     assert payload["recommended_actions"][0]["requires_controller_decision"] is True
 
 
-def test_study_runtime_status_publication_eval_uses_bounded_analysis_when_write_stage_is_clear(
+def test_progress_projection_publication_eval_uses_bounded_analysis_when_write_stage_is_clear(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -471,7 +471,7 @@ def test_study_runtime_status_publication_eval_uses_bounded_analysis_when_write_
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     assert latest_eval_path.is_file()
@@ -488,7 +488,7 @@ def test_study_runtime_status_publication_eval_uses_bounded_analysis_when_write_
     assert payload["recommended_actions"][0]["requires_controller_decision"] is True
 
 
-def test_study_runtime_status_publication_eval_materializes_same_line_route_back_for_blocked_surface(
+def test_progress_projection_publication_eval_materializes_same_line_route_back_for_blocked_surface(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -597,7 +597,7 @@ def test_study_runtime_status_publication_eval_materializes_same_line_route_back
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     assert latest_eval_path.is_file()
@@ -613,7 +613,7 @@ def test_study_runtime_status_publication_eval_materializes_same_line_route_back
     assert payload["recommended_actions"][0]["requires_controller_decision"] is True
 
 
-def test_study_runtime_status_publication_eval_uses_runtime_paper_surface_when_submission_minimal_is_missing(
+def test_progress_projection_publication_eval_uses_runtime_paper_surface_when_submission_minimal_is_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -717,7 +717,7 @@ def test_study_runtime_status_publication_eval_uses_runtime_paper_surface_when_s
         },
     )
 
-    module.study_runtime_status(profile=profile, study_id="001-risk")
+    module.progress_projection(profile=profile, study_id="001-risk")
 
     latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     payload = json.loads(latest_eval_path.read_text(encoding="utf-8"))
@@ -754,7 +754,7 @@ def test_study_runtime_status_publication_eval_uses_runtime_paper_surface_when_s
     ]
 
 
-def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_quest(
+def test_progress_projection_surfaces_pending_user_interaction_for_waiting_quest(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -843,7 +843,7 @@ def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_ques
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_on_invalid_blocking"

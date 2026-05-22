@@ -28,7 +28,7 @@ def build_sli_summary(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
     live_count = _int(health_counts.get("live"))
     recovery_observations = sum(_int(health_counts.get(status)) for status in ("recovering", "degraded", "escalated"))
     total_observations = live_count + recovery_observations + _int(health_counts.get("inactive"))
-    dedupe_summary = profile_payload.get("runtime_watch_wakeup_dedupe_summary")
+    dedupe_summary = profile_payload.get("domain_health_diagnostic_wakeup_dedupe_summary")
     dedupe_status = (
         str(dedupe_summary.get("status") or "").strip()
         if isinstance(dedupe_summary, Mapping)

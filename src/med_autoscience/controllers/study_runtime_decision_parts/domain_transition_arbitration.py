@@ -7,13 +7,13 @@ from med_autoscience.controllers import (
     study_macro_state,
     study_state_matrix,
 )
-from med_autoscience.controllers.domain_route_scan_parts import hard_methodology_currentness
+from med_autoscience.controllers.owner_route_reconcile_parts import hard_methodology_currentness
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
-from med_autoscience.controllers.study_runtime_status_parts import StudyRuntimeStatus
+from med_autoscience.controllers.progress_projection_parts import ProgressProjectionStatus
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import _load_json_dict
 
 
-def record_domain_transition_if_required(*, status: StudyRuntimeStatus, study_root: Path) -> None:
+def record_domain_transition_if_required(*, status: ProgressProjectionStatus, study_root: Path) -> None:
     status_payload = status.to_dict()
     delivered_package = study_state_matrix._delivered_package_observation(status=status_payload)
     if not _domain_transition_status_candidate(

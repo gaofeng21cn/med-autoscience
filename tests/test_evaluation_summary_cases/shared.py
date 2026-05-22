@@ -220,7 +220,7 @@ def _write_reporting_contract_task_intake(study_root: Path) -> dict[str, object]
             "missing_local_architecture_overview_inputs. Do not reopen manuscript evidence adequacy, "
             "do not expand public data, and do not change scientific claims; align the reporting contract, "
             "display registry, and required shell/input surfaces to the already accepted active display package. "
-            "After the repair, rerun medical_reporting_audit/runtime_watch/publication-gate status so the "
+            "After the repair, rerun medical_reporting_audit/domain_health_diagnostic/publication-gate status so the "
             "study-level progress card no longer reports stale quality-floor blockers."
         ),
         "journal_target": None,

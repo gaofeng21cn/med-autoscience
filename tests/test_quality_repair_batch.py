@@ -420,14 +420,14 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),
             "quest_id": quest_id,
             **route_context,
             "last_controller_decision_authorization": {
-                "source": "domain_route_scan_platform_repair",
+                "source": "owner_route_reconcile_platform_repair",
                 "decision_id": "decision-003-current",
                 "work_unit_id": "submission_minimal_refresh",
                 "work_unit_fingerprint": "publication-blockers::current",
@@ -755,7 +755,7 @@ def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publicati
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),
@@ -899,7 +899,7 @@ def test_study_outer_loop_executes_quality_repair_batch_controller_action(monkey
 
     monkeypatch.setattr(
         outer_loop.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",

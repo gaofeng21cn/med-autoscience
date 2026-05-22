@@ -600,7 +600,7 @@ def _stream_label_for_source(item: Mapping[str, Any]) -> str:
 def _intent_label(value: object) -> str:
     labels = {
         "inspect_progress": "查看进度",
-        "open_study_runtime_status": "打开运行状态",
+        "open_progress_projection": "打开运行状态",
         "request_reconcile": "请求 reconcile",
     }
     text = _text(value) or ""

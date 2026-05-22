@@ -118,11 +118,11 @@ def test_quality_regression_projection_compares_package_versions_without_publica
         "can_replace_ai_reviewer": False,
         "can_replace_publication_eval_latest": False,
         "can_replace_controller_decision_latest": False,
-        "can_replace_study_runtime_status": False,
+        "can_replace_progress_projection": False,
         "can_replace_study_truth": False,
         "publication_authority_surface": "artifacts/publication_eval/latest.json",
         "controller_authority_surface": "artifacts/controller_decisions/latest.json",
-        "runtime_authority_surface": "study_runtime_status",
+        "runtime_authority_surface": "progress_projection",
         "study_truth_authority_surface": "StudyTruthKernel",
         "submission_readiness_authority_surface": "submission readiness",
         "judge_score_role": "calibration_evidence_only",
@@ -237,7 +237,7 @@ def test_quality_regression_projection_exposes_non_authoritative_hierarchical_ru
     assert rubric_tree["role"] == "calibration_evidence_only"
     assert rubric_tree["can_replace_publication_eval_latest"] is False
     assert rubric_tree["can_replace_controller_decision_latest"] is False
-    assert rubric_tree["can_replace_study_runtime_status"] is False
+    assert rubric_tree["can_replace_progress_projection"] is False
     assert rubric_tree["can_replace_study_truth"] is False
     assert rubric_tree["can_authorize_submission_readiness"] is False
     assert rubric_tree["can_authorize_publication_quality"] is False
@@ -390,7 +390,7 @@ def test_quality_regression_projection_normalizes_hostile_authority_claims_to_ob
                 "can_authorize_submission_readiness": True,
                 "replaces_publication_eval_latest": True,
                 "replaces_controller_decision": True,
-                "replaces_study_runtime_status": True,
+                "replaces_progress_projection": True,
                 "replaces_study_truth": True,
             }
         ],
@@ -404,11 +404,11 @@ def test_quality_regression_projection_normalizes_hostile_authority_claims_to_ob
         "can_replace_ai_reviewer": False,
         "can_replace_publication_eval_latest": False,
         "can_replace_controller_decision_latest": False,
-        "can_replace_study_runtime_status": False,
+        "can_replace_progress_projection": False,
         "can_replace_study_truth": False,
         "publication_authority_surface": "artifacts/publication_eval/latest.json",
         "controller_authority_surface": "artifacts/controller_decisions/latest.json",
-        "runtime_authority_surface": "study_runtime_status",
+        "runtime_authority_surface": "progress_projection",
         "study_truth_authority_surface": "StudyTruthKernel",
         "submission_readiness_authority_surface": "submission readiness",
         "judge_score_role": "calibration_evidence_only",
@@ -423,7 +423,7 @@ def test_quality_regression_projection_normalizes_hostile_authority_claims_to_ob
     assert rubric_tree["role"] == "calibration_evidence_only"
     assert rubric_tree["can_replace_publication_eval_latest"] is False
     assert rubric_tree["can_replace_controller_decision_latest"] is False
-    assert rubric_tree["can_replace_study_runtime_status"] is False
+    assert rubric_tree["can_replace_progress_projection"] is False
     assert rubric_tree["can_replace_study_truth"] is False
     assert rubric_tree["can_authorize_submission_readiness"] is False
     rubric_node = rubric_tree["nodes"][0]

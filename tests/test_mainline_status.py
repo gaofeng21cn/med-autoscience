@@ -217,15 +217,15 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
             "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
         },
         {
-            "surface_kind": "study_runtime_status.autonomous_runtime_notice",
+            "surface_kind": "progress_projection.autonomous_runtime_notice",
             "command": (
-                "uv run python -m med_autoscience.cli study-runtime-status --profile <profile> "
+                "uv run python -m med_autoscience.cli study progress-projection --profile <profile> "
                 "--study-id <study_id>"
             ),
         },
         {
-            "surface_kind": "runtime_watch",
-            "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
+            "surface_kind": "domain_health_diagnostic",
+            "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
         },
         {
             "surface_kind": "runtime_supervision",

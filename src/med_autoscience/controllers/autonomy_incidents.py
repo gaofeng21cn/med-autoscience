@@ -50,17 +50,17 @@ _PLATFORM_INCIDENT_LABELS = {
 _PREVENTION_ACTION_BY_INCIDENT = {
     "no_live": {
         "action_type": "runtime_taxonomy",
-        "controller_surface": "runtime_watch",
+        "controller_surface": "domain_health_diagnostic",
         "summary": "Classify no-live runtime loss before any resume or work-unit dispatch.",
     },
     "stalled": {
         "action_type": "guard",
-        "controller_surface": "runtime_watch",
+        "controller_surface": "domain_health_diagnostic",
         "summary": "Guard against stalled turns by requiring a fresh heartbeat/progress observation.",
     },
     "status_drift": {
         "action_type": "contract",
-        "controller_surface": "study_runtime_status",
+        "controller_surface": "progress_projection",
         "summary": "Pin status ownership to the durable runtime status contract before operator claims.",
     },
     "wrong_milestone_claim": {
@@ -80,7 +80,7 @@ _PREVENTION_ACTION_BY_INCIDENT = {
     },
     "runtime_recovery_failure": {
         "action_type": "runbook",
-        "controller_surface": "runtime_watch",
+        "controller_surface": "domain_health_diagnostic",
         "summary": "Escalate repeated recovery failures through a platform runbook before retrying.",
     },
     "surface_ownership_drift": {
@@ -99,7 +99,7 @@ _PREVENTION_ACTION_BY_INCIDENT = {
     },
     "runtime_recovery_churn": {
         "action_type": "runtime_taxonomy",
-        "controller_surface": "runtime_watch",
+        "controller_surface": "domain_health_diagnostic",
         "summary": "Classify recovery churn into the runtime taxonomy before resuming.",
     },
     "repeated_controller_decision": {

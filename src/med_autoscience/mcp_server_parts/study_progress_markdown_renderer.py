@@ -311,7 +311,7 @@ def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
         "publication_eval_path",
         "controller_decision_path",
         "runtime_supervision_path",
-        "runtime_watch_report_path",
+        "domain_health_diagnostic_report_path",
         "evaluation_summary_path",
     ):
         value = str((refs or {}).get(key) or "").strip()

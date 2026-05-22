@@ -303,7 +303,7 @@ def make_progress_projection_payload() -> dict[str, object]:
             "controller_decision_path": "/tmp/studies/001-risk/artifacts/controller_decisions/latest.json",
             "runtime_supervision_path": "/tmp/studies/001-risk/artifacts/runtime/runtime_supervision/latest.json",
             "runtime_escalation_path": None,
-            "runtime_watch_report_path": "/tmp/runtime/quests/quest-001/artifacts/reports/runtime_watch/latest.json",
+            "domain_health_diagnostic_report_path": "/tmp/runtime/quests/quest-001/artifacts/reports/domain_health_diagnostic/latest.json",
             "bash_summary_path": "/tmp/runtime/quests/quest-001/.ds/bash_exec/summary.json",
             "details_projection_path": "/tmp/runtime/quests/quest-001/.ds/projections/details.v1.json",
         },

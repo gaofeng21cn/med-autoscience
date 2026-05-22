@@ -15,8 +15,8 @@ SURFACE_KIND = "runtime_session_read_model"
 
 def build_runtime_session_read_model(
     *,
-    study_runtime_status: Mapping[str, Any] | None = None,
-    study_runtime_status_path: Path | None = None,
+    progress_projection: Mapping[str, Any] | None = None,
+    progress_projection_path: Path | None = None,
     study_root: Path | None = None,
     quest_root: Path | None = None,
     db_path: Path | None = None,
@@ -27,8 +27,8 @@ def build_runtime_session_read_model(
 ) -> dict[str, Any]:
     generated = _text(generated_at) or _utc_now()
     source = _resolve_source(
-        study_runtime_status=study_runtime_status,
-        study_runtime_status_path=study_runtime_status_path,
+        progress_projection=progress_projection,
+        progress_projection_path=progress_projection_path,
         study_root=study_root,
         quest_root=quest_root,
         db_path=db_path,
@@ -58,17 +58,17 @@ def build_run_session_projection(**kwargs: Any) -> dict[str, Any]:
 
 def _resolve_source(
     *,
-    study_runtime_status: Mapping[str, Any] | None,
-    study_runtime_status_path: Path | None,
+    progress_projection: Mapping[str, Any] | None,
+    progress_projection_path: Path | None,
     study_root: Path | None,
     quest_root: Path | None,
     db_path: Path | None,
     historical_fixture: Mapping[str, Any] | None,
     historical_fixture_path: Path | None,
 ) -> dict[str, Any]:
-    status_source = _study_runtime_status_source(
-        study_runtime_status=study_runtime_status,
-        study_runtime_status_path=study_runtime_status_path,
+    status_source = _progress_projection_source(
+        progress_projection=progress_projection,
+        progress_projection_path=progress_projection_path,
     )
     if status_source is not None:
         return status_source
@@ -97,32 +97,30 @@ def _resolve_source(
     }
 
 
-def _study_runtime_status_source(
+def _progress_projection_source(
     *,
-    study_runtime_status: Mapping[str, Any] | None,
-    study_runtime_status_path: Path | None,
+    progress_projection: Mapping[str, Any] | None,
+    progress_projection_path: Path | None,
 ) -> dict[str, Any] | None:
-    if study_runtime_status is not None:
-        payload = dict(study_runtime_status)
+    if progress_projection is not None:
+        payload = dict(progress_projection)
         if payload:
             return {
-                "source_priority": "study_runtime_status",
+                "source_priority": "progress_projection",
                 "payload": payload,
-                "evidence_refs": [{"source": "study_runtime_status"}],
+                "evidence_refs": [{"source": "progress_projection"}],
             }
-    if study_runtime_status_path is None:
-        return None
-    path = Path(study_runtime_status_path).expanduser().resolve()
-    if not path.exists():
-        return None
-    payload = _read_json_mapping(path)
-    if not payload:
-        return None
-    return {
-        "source_priority": "study_runtime_status",
-        "payload": payload,
-        "evidence_refs": [{"source": "study_runtime_status", "path": str(path)}],
-    }
+    if progress_projection_path is not None:
+        path = Path(progress_projection_path).expanduser().resolve()
+        if path.exists():
+            payload = _read_json_mapping(path)
+            if payload:
+                return {
+                    "source_priority": "progress_projection",
+                "payload": payload,
+                "evidence_refs": [{"source": "progress_projection", "path": str(path)}],
+            }
+    return None
 
 
 def _runtime_lifecycle_event_source(*, quest_root: Path | None, db_path: Path | None) -> dict[str, Any] | None:

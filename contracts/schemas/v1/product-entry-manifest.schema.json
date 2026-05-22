@@ -126,7 +126,7 @@
               "product-entry-manifest",
               "skill-catalog",
               "study-progress",
-              "study-runtime-status",
+              "progress-projection",
               "launch-study",
               "submit-study-task",
               "build-product-entry",

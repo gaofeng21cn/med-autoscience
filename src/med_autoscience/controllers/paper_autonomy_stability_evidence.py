@@ -10,7 +10,7 @@ from med_autoscience.controllers import real_workspace_soak_monitor
 from med_autoscience.controllers import domain_action_request_materializer
 from med_autoscience.controllers import domain_owner_action_dispatch
 from med_autoscience.controllers import domain_route_reconcile
-from med_autoscience.controllers import domain_route_scan
+from med_autoscience.controllers import owner_route_reconcile
 from med_autoscience.controllers import workspace_monolith_migration
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
@@ -203,7 +203,7 @@ def _reconcile_domain_routes_dry_run(
     study_ids: Sequence[str],
 ) -> dict[str, Any]:
     try:
-        before_scan = domain_route_scan.scan_domain_routes(
+        before_scan = owner_route_reconcile.scan_domain_routes(
             profile=profile,
             study_ids=study_ids,
             apply_safe_actions=False,
@@ -231,7 +231,7 @@ def _reconcile_domain_routes_dry_run(
             consumed=consumed,
             executed=executed,
         )
-        after_scan = domain_route_scan.scan_domain_routes(
+        after_scan = owner_route_reconcile.scan_domain_routes(
             profile=profile,
             study_ids=resolved,
             apply_safe_actions=False,
@@ -455,7 +455,7 @@ def _resolved_study_ids(
     )
     if from_inventory:
         return from_inventory
-    return domain_route_scan.resolve_domain_route_scan_study_ids(profile)
+    return owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
 
 
 def _stable_blockers(scan_payload: Mapping[str, Any]) -> list[dict[str, str]]:

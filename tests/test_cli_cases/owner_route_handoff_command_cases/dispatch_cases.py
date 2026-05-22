@@ -37,7 +37,7 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
     assert payload["accepted"] is True
     assert payload["will_start_llm_worker"] is False
     assert payload["dispatch"]["action_type"] == "domain_route_recover"
-    assert payload["dispatch"]["recommended_domain_command"].startswith("uv run python -m med_autoscience.cli domain-route-scan")
+    assert payload["dispatch"]["recommended_domain_command"].startswith("uv run python -m med_autoscience.cli owner-route-reconcile")
     assert payload["authority_boundary"]["writes_domain_truth"] is False
     assert payload["authority_boundary"]["writes_artifact_gate"] is False
     assert payload["forbidden_write_guard_proof"]["result"] == "accepted_no_forbidden_writes"

@@ -41,7 +41,7 @@ def test_study_progress_projects_ai_repair_lifecycle_and_mcp_compact_projection(
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -105,7 +105,7 @@ def test_study_progress_suppresses_stale_repair_lifecycle_after_work_unit_eviden
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -178,7 +178,7 @@ def test_study_progress_builds_readonly_ai_repair_lifecycle_from_ready_repair_ac
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",

@@ -202,7 +202,7 @@
 - `uv run pytest tests/test_study_runtime_router.py -q`
 - `uv run pytest tests/test_runtime_transport_med_deepscientist.py -q`
 - `uv run pytest tests/test_runtime_protocol_study_runtime.py -q`
-- `uv run pytest tests/test_runtime_protocol_runtime_watch.py -q`
+- `uv run pytest tests/test_runtime_protocol_domain_health_diagnostic.py -q`
 
 ## 5. 未分类改动的处理
 

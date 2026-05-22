@@ -71,7 +71,7 @@ domain_slo_scheduler_projection = _LazyModuleProxy(lambda: _load_controller("dom
 domain_action_request_materializer = _LazyModuleProxy(lambda: _load_controller("domain_action_request_materializer"))
 domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain_owner_action_dispatch"))
 domain_route_reconcile = _LazyModuleProxy(lambda: _load_controller("domain_route_reconcile"))
-domain_route_scan = _LazyModuleProxy(lambda: _load_controller("domain_route_scan"))
+owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 workspace_legacy_physical_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_legacy_physical_cleanup"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
@@ -113,7 +113,7 @@ publication_aftercare = _LazyModuleProxy(lambda: _load_controller("publication_a
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
-runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
+domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
 owner_route_handoff = _LazyModuleProxy(lambda: _load_controller("owner_route_handoff"))
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
 publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
@@ -176,9 +176,9 @@ def _serialize_study_runtime_result(result: Any) -> dict[str, Any]:
     if isinstance(result, dict):
         return dict(result)
     study_runtime_types = _load_controller("study_runtime_types")
-    if isinstance(result, study_runtime_types.StudyRuntimeStatus):
+    if isinstance(result, study_runtime_types.ProgressProjectionStatus):
         return result.to_dict()
-    raise TypeError("study runtime controller result must be dict or StudyRuntimeStatus")
+    raise TypeError("study runtime controller result must be dict or ProgressProjectionStatus")
 
 
 def _handle_delivery_inspect_command(args: argparse.Namespace) -> int:
@@ -221,7 +221,7 @@ def _resolve_study_and_quest_for_batch_command(
     study_root = Path(args.study_root) if args.study_root else None
     quest_id = str(args.quest_id or "").strip() or None
     if quest_id is None or study_root is None:
-        status = study_runtime_router.study_runtime_status(
+        status = study_runtime_router.progress_projection(
             profile=profile,
             study_id=args.study_id,
             study_root=study_root,
@@ -545,7 +545,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("Specify exactly one of --study-id or --study-root")
         profile = load_profile(args.profile)
         status_payload = _serialize_study_runtime_result(
-            study_runtime_router.study_runtime_status(
+            study_runtime_router.progress_projection(
                 profile=profile,
                 study_id=args.study_id,
                 study_root=Path(args.study_root) if args.study_root else None,
@@ -609,17 +609,17 @@ def main(argv: list[str] | None = None) -> int:
     watch_supervision_result = handle_watch_supervision_command(
         args,
         parser=parser,
-        runtime_watch=runtime_watch,
+        domain_health_diagnostic=domain_health_diagnostic,
         domain_slo_scheduler_projection=domain_slo_scheduler_projection,
         load_profile=load_profile,
     )
     if watch_supervision_result is not None:
         return watch_supervision_result
 
-    if args.command == "domain-route-scan":
+    if args.command == "owner-route-reconcile":
         profile = load_profile(args.profile)
-        study_ids = tuple(args.studies or ()) or domain_route_scan.resolve_domain_route_scan_study_ids(profile)
-        result = domain_route_scan.scan_domain_routes(
+        study_ids = tuple(args.studies or ()) or owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
+        result = owner_route_reconcile.scan_domain_routes(
             profile=profile,
             study_ids=study_ids,
             apply_safe_actions=bool(args.apply_safe_actions),

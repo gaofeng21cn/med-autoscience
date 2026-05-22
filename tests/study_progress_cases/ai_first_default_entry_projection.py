@@ -69,7 +69,7 @@ def test_study_progress_projects_artifact_proof_and_submission_hygiene_truth(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -139,7 +139,7 @@ def test_study_progress_projects_ai_first_action_dispatch_lifecycle(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -238,7 +238,7 @@ def test_study_progress_projects_ai_reviewer_request_lifecycle(
     request_lifecycle.materialize_ai_reviewer_request(study_root=study_root, packet=packet)
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -356,7 +356,7 @@ def test_study_progress_projects_paper_orchestra_operator_read_model_without_new
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -794,7 +794,7 @@ def test_study_progress_operator_projection_integrates_landed_paper_orchestra_su
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",

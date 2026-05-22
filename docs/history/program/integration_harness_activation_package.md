@@ -92,7 +92,7 @@ study_runtime_status / ensure_study_runtime
 
 当前 tranche 的最小 proof surface 固定为：
 
-- `tests/test_runtime_watch.py`
+- `tests/test_domain_health_diagnostic.py`
 - `tests/test_study_delivery_sync.py`
 - `tests/test_publication_gate.py`
 - `tests/test_dev_preflight_contract.py`

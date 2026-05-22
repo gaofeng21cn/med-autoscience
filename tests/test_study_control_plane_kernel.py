@@ -142,9 +142,9 @@ def test_control_plane_snapshot_escalates_when_non_recovery_retry_budget_exhaust
 
 
 def test_control_plane_snapshot_is_embedded_in_status_projection(tmp_path) -> None:
-    status_module = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+    status_module = importlib.import_module("med_autoscience.controllers.progress_projection")
 
-    status = status_module.StudyRuntimeStatus.from_payload(
+    status = status_module.ProgressProjectionStatus.from_payload(
         {
             "schema_version": 1,
             "study_id": "003-dpcc",

@@ -74,7 +74,7 @@ medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_rep
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
-runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
+domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
@@ -153,15 +153,18 @@ def _call_overlay_status(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
-def _call_runtime_watch(arguments: dict[str, Any]) -> dict[str, Any]:
+def _call_domain_health_diagnostic(arguments: dict[str, Any]) -> dict[str, Any]:
     quest_root = arguments.get("quest_root")
     runtime_root = arguments.get("runtime_root")
     if bool(quest_root) == bool(runtime_root):
         raise ValueError("Specify exactly one of quest_root or runtime_root")
     if isinstance(quest_root, str):
-        result = runtime_watch.run_watch_for_quest(quest_root=Path(quest_root), apply=False)
+        result = domain_health_diagnostic.run_domain_health_diagnostic_for_quest(quest_root=Path(quest_root), apply=False)
     else:
-        result = runtime_watch.run_watch_for_runtime(runtime_root=Path(_require_string(arguments, "runtime_root")), apply=False)
+        result = domain_health_diagnostic.run_domain_health_diagnostic_for_runtime(
+            runtime_root=Path(_require_string(arguments, "runtime_root")),
+            apply=False,
+        )
     return _tool_text_result(_json_text(result), structured=result)
 
 
@@ -223,18 +226,18 @@ def _call_backend_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
-def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
-    from med_autoscience.mcp_server_parts.projection_adapters import render_study_runtime_status_result
+def _call_progress_projection(arguments: dict[str, Any]) -> dict[str, Any]:
+    from med_autoscience.mcp_server_parts.projection_adapters import render_progress_projection_result
 
     profile = profiles.load_profile(_require_string(arguments, "profile_path"))
-    result = study_runtime_router.study_runtime_status(
+    result = study_runtime_router.progress_projection(
         profile=profile,
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
         study_root=_optional_path(arguments, "study_root"),
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
         sync_runtime_summary=False,
     )
-    return render_study_runtime_status_result(result)
+    return render_progress_projection_result(result)
 
 
 def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -518,8 +521,8 @@ def _call_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
         tool_name="study_runtime",
         arguments=arguments,
         handlers={
-            "runtime_watch": _call_runtime_watch,
-            "study_runtime_status": _call_study_runtime_status,
+            "domain_health_diagnostic": _call_domain_health_diagnostic,
+            "progress_projection": _call_progress_projection,
             "ensure_study_runtime": _call_ensure_study_runtime,
         },
     )

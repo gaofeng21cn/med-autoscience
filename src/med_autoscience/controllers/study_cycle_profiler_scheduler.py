@@ -6,13 +6,13 @@ from typing import Any, Mapping
 _ACTION_BY_BOTTLENECK = {
     "runtime_recovery_churn": {
         "action_type": "probe_runtime_recovery",
-        "controller_surface": "runtime_watch",
+        "controller_surface": "domain_health_diagnostic",
         "priority": "now",
         "summary": "Run a runtime recovery probe before any blind resume.",
     },
     "repeated_controller_decision": {
         "action_type": "dedupe_controller_dispatch",
-        "controller_surface": "runtime_watch",
+        "controller_surface": "domain_health_diagnostic",
         "priority": "now",
         "summary": "Suppress repeated controller dispatches for the same blocker fingerprint.",
     },

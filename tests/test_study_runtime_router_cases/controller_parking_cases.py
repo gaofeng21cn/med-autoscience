@@ -127,7 +127,7 @@ def test_run_startup_hydration_returns_typed_protocol_reports(monkeypatch, tmp_p
     assert validation_report.status is module.study_runtime_protocol.StartupHydrationValidationStatus.CLEAR
 
 
-def test_study_runtime_status_prefers_study_completion_contract_over_boundary_gate(
+def test_progress_projection_prefers_study_completion_contract_over_boundary_gate(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -191,7 +191,7 @@ def test_study_runtime_status_prefers_study_completion_contract_over_boundary_ga
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "sync_completion"
     assert result["reason"] == "study_completion_ready"
@@ -366,7 +366,7 @@ def test_ensure_study_runtime_keeps_completion_blocked_when_publishability_gate_
     assert result["study_completion_contract"]["ready"] is True
 
 
-def test_study_runtime_status_completed_quest_completion_contract_preempts_stale_gate_and_task_intake(
+def test_progress_projection_completed_quest_completion_contract_preempts_stale_gate_and_task_intake(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -456,7 +456,7 @@ def test_study_runtime_status_completed_quest_completion_contract_preempts_stale
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="002-risk")
+    result = module.progress_projection(profile=profile, study_id="002-risk")
 
     assert result["quest_status"] == "completed"
     assert result["decision"] == "completed"

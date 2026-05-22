@@ -41,7 +41,7 @@ def test_execute_dispatch_runs_current_package_freshness_owner_workflow(monkeypa
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "quest_id": f"quest-{study_id}",
@@ -136,7 +136,7 @@ def test_execute_dispatch_runs_current_package_freshness_when_stalled_and_previo
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -174,7 +174,7 @@ def test_execute_dispatch_runs_current_package_freshness_when_stalled_and_previo
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "quest_id": study_id,
@@ -293,7 +293,7 @@ def test_execute_dispatch_reruns_when_freshness_proof_exists_but_batch_still_blo
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "quest_id": study_id,
@@ -374,7 +374,7 @@ def test_execute_dispatch_reruns_when_freshness_proof_source_eval_is_stale(
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -399,7 +399,7 @@ def test_execute_dispatch_reruns_when_freshness_proof_source_eval_is_stale(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "quest_id": study_id,

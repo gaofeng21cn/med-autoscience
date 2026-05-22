@@ -86,8 +86,8 @@ def test_workspace_cockpit_study_item_carries_runtime_health_snapshot_summary() 
     assert item["runtime_health_snapshot"]["canonical_runtime_action"] == "recover_runtime"
 
 
-def test_runtime_watch_managed_study_action_carries_runtime_health_snapshot_summary() -> None:
-    module = importlib.import_module("med_autoscience.controllers.runtime_watch_parts.managed_wakeup")
+def test_domain_health_diagnostic_managed_study_action_carries_runtime_health_snapshot_summary() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup")
 
     action = module._serialize_managed_study_action(
         {

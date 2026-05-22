@@ -170,7 +170,7 @@ def _controller_events(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(item, Mapping)
     ]
     repeated_dispatch_count = sum(max(_int(item.get("count")) - 1, 0) for item in top_repeats)
-    dedupe_summary = dict(_mapping(profile_payload.get("runtime_watch_wakeup_dedupe_summary")))
+    dedupe_summary = dict(_mapping(profile_payload.get("domain_health_diagnostic_wakeup_dedupe_summary")))
     dedupe_status = _text(dedupe_summary.get("status"))
     duplicate_dispatch_active = bool(top_repeats) and dedupe_status not in {
         "dedupe_confirmed",
@@ -180,7 +180,7 @@ def _controller_events(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
         "repeated_dispatch_count": repeated_dispatch_count,
         "duplicate_dispatch_active": duplicate_dispatch_active,
         "top_repeated_decision": top_repeats[0] if top_repeats else None,
-        "runtime_watch_wakeup_dedupe_summary": dedupe_summary,
+        "domain_health_diagnostic_wakeup_dedupe_summary": dedupe_summary,
     }
 
 
@@ -236,7 +236,7 @@ def _stuck_at(*, gate_assessment: Mapping[str, Any], controller_events: Mapping[
     if primary_gate == "human_gate":
         return "human_or_admin_gate"
     if primary_gate == "runtime_gate":
-        return "runtime_watch"
+        return "domain_health_diagnostic"
     if primary_gate == "quality_gate":
         return "publication_gate"
     if _bool(controller_events.get("duplicate_dispatch_active")):

@@ -115,8 +115,8 @@ def build_live_console_read_model(
     profile_name: str | None = None,
     workspace_root: str | Path | None = None,
     study_id: str | None = None,
-    study_runtime_status: Mapping[str, Any] | None = None,
-    study_runtime_status_path: Path | None = None,
+    progress_projection: Mapping[str, Any] | None = None,
+    progress_projection_path: Path | None = None,
     study_root: Path | None = None,
     quest_root: Path | None = None,
     db_path: Path | None = None,
@@ -133,10 +133,10 @@ def build_live_console_read_model(
 ) -> dict[str, Any]:
     generated = io.text(generated_at) or _utc_now()
     resolved_workspace_root = Path(workspace_root).expanduser().resolve() if workspace_root is not None else None
-    source_status = io.load_payload(study_runtime_status, study_runtime_status_path)
+    source_status = io.load_payload(progress_projection, progress_projection_path)
     session_projection = runtime_session_read_model.build_runtime_session_read_model(
-        study_runtime_status=study_runtime_status,
-        study_runtime_status_path=study_runtime_status_path,
+        progress_projection=progress_projection,
+        progress_projection_path=progress_projection_path,
         study_root=study_root,
         quest_root=quest_root,
         db_path=db_path,

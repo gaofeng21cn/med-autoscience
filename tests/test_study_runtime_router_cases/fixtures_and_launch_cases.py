@@ -579,7 +579,7 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
     monkeypatch.setattr(
         module,
         "_status_state",
-        lambda **kwargs: module.StudyRuntimeStatus.from_payload(
+        lambda **kwargs: module.ProgressProjectionStatus.from_payload(
             {
                 "schema_version": 1,
                 "study_id": "001-risk",
@@ -645,7 +645,7 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
     assert seen["overlay_quest_root"] == protocol_quest_root
     assert "hydration_quest_root" not in seen
 
-def test_study_runtime_status_blocks_stopped_quest_pending_explicit_rerun(monkeypatch, tmp_path: Path) -> None:
+def test_progress_projection_blocks_stopped_quest_pending_explicit_rerun(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -678,7 +678,7 @@ def test_study_runtime_status_blocks_stopped_quest_pending_explicit_rerun(monkey
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_stopped_requires_explicit_rerun"
@@ -730,7 +730,7 @@ def test_ensure_study_runtime_does_not_auto_resume_stopped_quest(monkeypatch, tm
     assert result["quest_status"] == "stopped"
 
 
-def test_study_runtime_status_resumes_stopped_user_stop_auto_continuation_with_pending_messages(
+def test_progress_projection_resumes_stopped_user_stop_auto_continuation_with_pending_messages(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -781,7 +781,7 @@ def test_study_runtime_status_resumes_stopped_user_stop_auto_continuation_with_p
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_on_invalid_blocking"
@@ -857,7 +857,7 @@ def test_ensure_study_runtime_auto_resumes_stopped_user_stop_auto_continuation_w
     assert resumed["quest_id"] == "001-risk"
 
 
-def test_study_runtime_status_auto_resumes_controller_stopped_submission_hardening_with_pending_message(
+def test_progress_projection_auto_resumes_controller_stopped_submission_hardening_with_pending_message(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -927,7 +927,7 @@ def test_study_runtime_status_auto_resumes_controller_stopped_submission_hardeni
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume", result
     assert result["reason"] == "quest_waiting_on_invalid_blocking"

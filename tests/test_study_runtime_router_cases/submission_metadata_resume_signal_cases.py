@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
+def test_progress_projection_auto_resumes_invalid_blocking_waiting_quest(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -89,7 +89,7 @@ def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_on_invalid_blocking"
@@ -110,7 +110,7 @@ def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
         ),
     }
 
-def test_study_runtime_status_marks_finalize_metadata_gap_progress_as_user_decision_signal(
+def test_progress_projection_marks_finalize_metadata_gap_progress_as_user_decision_signal(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -267,14 +267,14 @@ def test_study_runtime_status_marks_finalize_metadata_gap_progress_as_user_decis
         raising=False,
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_parked_on_unchanged_finalize_state"
     assert result["pending_user_interaction"]["guidance_requires_user_decision"] is True
     assert result["interaction_arbitration"]["action"] == "resume"
 
-def test_study_runtime_status_auto_resumes_premature_completion_request_when_publication_gate_is_blocked(
+def test_progress_projection_auto_resumes_premature_completion_request_when_publication_gate_is_blocked(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -385,7 +385,7 @@ def test_study_runtime_status_auto_resumes_premature_completion_request_when_pub
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_completion_requested_before_publication_gate_clear"

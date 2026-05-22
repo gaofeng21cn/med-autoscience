@@ -73,8 +73,8 @@ MAINTAINABILITY_FORBIDDEN_TRUTH_WRITES = frozenset(
         "submission_authority",
         "artifact_authority",
         "controller_decisions/latest.json",
-        "study_runtime_status",
-        "runtime_watch",
+        "progress_projection",
+        "domain_health_diagnostic",
     }
 )
 
@@ -134,7 +134,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         "owner": "MedAutoScience",
         "repo_targets": [
             "src/med_autoscience/controllers/runtime_health_kernel.py",
-            "src/med_autoscience/controllers/runtime_watch.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
             "src/med_autoscience/controllers/study_runtime_router.py",
         ],
@@ -294,7 +294,7 @@ TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
     {
         "boundary_id": "runtime_truth",
         "authority_owner": "RuntimeHealthKernel",
-        "projection_consumers": ["study_runtime_status", "runtime_watch", "mainline-status"],
+        "projection_consumers": ["progress_projection", "domain_health_diagnostic", "mainline-status"],
     },
     {
         "boundary_id": "quality_truth",

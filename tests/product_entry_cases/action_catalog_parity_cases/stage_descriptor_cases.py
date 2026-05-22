@@ -276,7 +276,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
             "runtime_event:evidence_ledger.baseline_evidence_ready",
         ],
         "bounded_analysis_campaign": [
-            "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+            "runtime_event:domain_health_diagnostic.bounded_analysis_evidence_ready",
             "runtime_event:evidence_ledger.bounded_analysis_evidence_ready",
         ],
         "manuscript_authoring": [

@@ -5,7 +5,7 @@ from typing import Any
 from med_autoscience.controllers import control_intent
 from med_autoscience.runtime_protocol import quest_state
 
-from ..study_runtime_status import StudyRuntimeDecision, StudyRuntimeReason, StudyRuntimeStatus, _LIVE_QUEST_STATUSES
+from ..progress_projection import StudyRuntimeDecision, StudyRuntimeReason, ProgressProjectionStatus, _LIVE_QUEST_STATUSES
 from .controller_authorization_context import (
     _WORK_UNIT_TARGET_CONTEXT_KEYS,
     _controller_decision_authorization_identity,
@@ -88,7 +88,7 @@ def _owner_route_ref_already_projected_for_current_authorization(
 
 def _relay_controller_decision_authorization_if_required(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
 ) -> dict[str, Any] | None:
     opl_runtime_owner_route_handoff = (
@@ -253,7 +253,7 @@ def _relay_controller_decision_authorization_if_required(
 
 def adopt_controller_work_unit_evidence_for_current_authorization(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: Any,
 ) -> dict[str, Any] | None:
     authorization_context = _load_controller_decision_authorization_context(study_root=context.study_root)

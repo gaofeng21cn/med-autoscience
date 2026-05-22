@@ -80,7 +80,7 @@ def compact_open_auto_research_soak_for_mcp(
         progress_refs = dict(payload.get("input_refs") or {})
     for key in (
         "open_auto_research_projection_path",
-        "runtime_watch_report_path",
+        "domain_health_diagnostic_report_path",
         "publication_eval_path",
         "controller_decision_path",
     ):

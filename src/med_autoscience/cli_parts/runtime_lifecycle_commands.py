@@ -148,7 +148,7 @@ def _add_surface_args(parser: argparse.ArgumentParser) -> None:
         choices=tuple(sorted(SUPPORTED_SURFACES)),
         required=True,
     )
-    parser.add_argument("--report-group", default="runtime_watch")
+    parser.add_argument("--report-group", default="domain_health_diagnostic")
 
 
 def _scope_kwargs(args: argparse.Namespace) -> dict[str, Path | None]:

@@ -256,7 +256,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert classification["declarative_pack_generated_surface"] == [
         "workspace_source_intake_shell",
         "workbench_portal_generic_shell",
-        "domain_route_scan_materialize_dispatch_shell",
+        "owner_route_reconcile_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
@@ -272,8 +272,8 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     ]
     assert set(classification["minimal_authority_function"]) == {
         "study_truth",
-        "study_runtime_status",
-        "runtime_watch_domain_health",
+        "progress_projection",
+        "domain_health_diagnostic",
         "publication_quality_verdict",
         "ai_reviewer_workflow",
         "publication_gate",
@@ -294,7 +294,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     }
     assert set(classification["legacy_cleanup_physical_retired"]) == {
         "local_launchd_scheduler_install_path",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
         "workspace_local_watch_service_wrappers",
     }
     inventory = boundary["functional_module_inventory"]
@@ -330,7 +330,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",
     }
-    assert by_id["domain_route_scan_materialize_dispatch_shell"]["migration_action"] == (
+    assert by_id["owner_route_reconcile_materialize_dispatch_shell"]["migration_action"] == (
         "declare_domain_route_policy_and_consume_opl_runtime_manager_loop"
     )
     wrapper_item = by_id["generic_cli_mcp_product_wrappers"]
@@ -398,7 +398,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
     ]
     assert followthrough_summary["legacy_cleanup_items_tombstoned"] == [
         "mas_generic_workbench_shell",

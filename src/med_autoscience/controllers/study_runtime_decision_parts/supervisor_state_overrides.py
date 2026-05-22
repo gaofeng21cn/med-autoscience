@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
+from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 
 
 def _task_intake_publication_supervisor_state(task_intake_progress_override: dict[str, object] | None) -> dict[str, object] | None:
@@ -51,7 +51,7 @@ def _task_intake_publication_supervisor_state(task_intake_progress_override: dic
     }
 
 
-def _publication_supervisor_requests_stop_loss(status: StudyRuntimeStatus) -> bool:
+def _publication_supervisor_requests_stop_loss(status: ProgressProjectionStatus) -> bool:
     payload = status.extras.get("publication_supervisor_state")
     if not isinstance(payload, dict):
         return False
@@ -60,7 +60,7 @@ def _publication_supervisor_requests_stop_loss(status: StudyRuntimeStatus) -> bo
     return supervisor_phase == "stop_loss" or current_required_action in {"stop_loss", "stop_runtime"}
 
 
-def _publication_supervisor_requests_manual_hold(status: StudyRuntimeStatus) -> bool:
+def _publication_supervisor_requests_manual_hold(status: ProgressProjectionStatus) -> bool:
     payload = status.extras.get("publication_supervisor_state")
     if not isinstance(payload, dict):
         return False

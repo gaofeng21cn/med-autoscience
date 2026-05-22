@@ -12,7 +12,7 @@ from .shared_base import _mapping_copy, _non_empty_text, _read_json_object
 
 def read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
     try:
-        from med_autoscience.controllers.runtime_watch_parts import autonomy_repair
+        from med_autoscience.controllers.domain_health_diagnostic_parts import autonomy_repair
 
         return autonomy_repair.read_ai_repair_lifecycle(study_root=study_root)
     except Exception:

@@ -55,7 +55,7 @@ def _ready_matrix_payload(study_id: str, archetype: str) -> dict[str, object]:
         "route_action": "continue",
         "durable_refs": [
             f"{study_id}/artifacts/publication_eval/latest.json",
-            f"{study_id}/study_runtime_status.json",
+            f"{study_id}/progress_projection.json",
         ],
     }
 
@@ -216,8 +216,8 @@ def test_real_workspace_soak_monitor_materializer_writes_only_monitor_artifact(
         "writes_runtime_owned_surfaces": False,
         "writable_surfaces": ["real_workspace_soak_monitor"],
         "prohibited_runtime_owned_surfaces": [
-            "study_runtime_status",
-            "runtime_watch",
+            "progress_projection",
+            "domain_health_diagnostic",
             "publication_eval/latest.json",
             "runtime_escalation_record.json",
             "controller_decisions/latest.json",
@@ -226,8 +226,8 @@ def test_real_workspace_soak_monitor_materializer_writes_only_monitor_artifact(
         ],
     }
     assert result["read_only_monitor_contract"] == persisted["read_only_monitor_contract"]
-    assert not (root / "study_runtime_status.json").exists()
-    assert not (root / "runtime_watch.json").exists()
+    assert not (root / "progress_projection.json").exists()
+    assert not (root / "domain_health_diagnostic.json").exists()
     assert not (root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (root / "runtime_escalation_record.json").exists()
     assert not (root / "controller_decisions" / "latest.json").exists()

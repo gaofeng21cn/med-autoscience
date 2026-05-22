@@ -223,7 +223,7 @@ def test_codex_exec_runner_prompt_omits_queued_controller_authorization_when_act
         claimed_user_messages=(
             {
                 "message_id": "msg-stale-review",
-                "source": "runtime_watch",
+                "source": "domain_health_diagnostic",
                 "content": (
                     "MAS controller authorization. `/workspace/studies/001/artifacts/controller_decisions/latest.json` "
                     "is the active MAS authorization for this runtime turn.\n\n"

@@ -95,7 +95,7 @@ def _write_dm002_like_surfaces(study_root: Path, quest_root: Path) -> None:
         },
     )
     _write_json(
-        quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json",
+        quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json",
         {
             "schema_version": 1,
             "study_id": "002-dm-china-us-mortality-attribution",
@@ -215,7 +215,7 @@ def test_open_auto_research_soak_materializes_allowed_read_models_and_guard_repo
     assert guard["next_required_action"]["target_surface"] == "artifacts/publication_eval/latest.json"
     assert guard["authority_surfaces"]["publication_quality"] == "artifacts/publication_eval/latest.json"
     assert guard["authority_surfaces"]["controller_decision"] == "artifacts/controller_decisions/latest.json"
-    assert guard["authority_surfaces"]["study_truth"] == "study_runtime_status"
+    assert guard["authority_surfaces"]["study_truth"] == "progress_projection"
     assert result["authority_guard_results"]["forbidden_surface_unchanged"] is True
     assert result["authority_guard_results"]["authorized_writes_only"] is True
     assert result["authority_guard_results"]["forbidden_surface_hashes"]["changed"] == []

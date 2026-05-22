@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_reroutes_live_write_drift_back_to_publication_gate(
+def test_progress_projection_reroutes_live_write_drift_back_to_publication_gate(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -96,7 +96,7 @@ def test_study_runtime_status_reroutes_live_write_drift_back_to_publication_gate
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_drifting_into_write_without_gate_approval"

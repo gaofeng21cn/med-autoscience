@@ -563,7 +563,7 @@ def test_runtime_lifecycle_ledger_blocks_git_retirement_until_active_path_cutove
             "old_readers_equivalent": True,
             "restore_import_diagnostic_retained": True,
             "default_legacy_reader_removed": False,
-            "default_callers": ["runtime_watch"],
+            "default_callers": ["domain_health_diagnostic"],
         },
     )
 
@@ -632,13 +632,13 @@ def test_legacy_import_retirement_validation_requires_restore_import_diagnostic(
             "old_readers_equivalent": True,
             "restore_import_diagnostic_retained": False,
             "default_legacy_reader_removed": True,
-            "default_callers": ["runtime_watch"],
+            "default_callers": ["domain_health_diagnostic"],
         }
     )
 
     assert result == {
         "allowed": False,
         "missing_true_fields": ["restore_import_diagnostic_retained"],
-        "disallowed_default_callers": ["runtime_watch"],
+        "disallowed_default_callers": ["domain_health_diagnostic"],
         "retained_scope": "legacy_restore_import_diagnostic",
     }

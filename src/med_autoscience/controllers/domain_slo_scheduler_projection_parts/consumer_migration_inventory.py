@@ -8,7 +8,7 @@ from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_
 
 FUNCTIONAL_SURFACE_CLASSIFICATION = {
     "declarative_pack_generated_surface": [
-        "workspace_source_intake_shell", "workbench_portal_generic_shell", "domain_route_scan_materialize_dispatch_shell",
+        "workspace_source_intake_shell", "workbench_portal_generic_shell", "owner_route_reconcile_materialize_dispatch_shell",
         "generic_cli_mcp_product_wrappers", "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter", "generic_transition_runner",
     ],
@@ -19,8 +19,8 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
     ],
     "minimal_authority_function": [
         "study_truth",
-        "study_runtime_status",
-        "runtime_watch_domain_health",
+        "progress_projection",
+        "domain_health_diagnostic",
         "publication_quality_verdict",
         "ai_reviewer_workflow",
         "publication_gate",
@@ -40,7 +40,7 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
     ],
     "legacy_cleanup_physical_retired": [
         "local_launchd_scheduler_install_path",
-        "runtime_watch_loop_shell",
+        "domain_health_diagnostic_loop_shell",
         "workspace_local_watch_service_wrappers",
     ],
 }
@@ -266,7 +266,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "surface_role": "domain_receipt_locator_and_lifecycle_ref_index",
             "history_role": "lifecycle_refs_sqlite_migration_provenance",
             "body_policy": "refs_receipts_blockers_only",
-            "may_emit": ["owner_receipt_ref", "study_runtime_status_ref", "lifecycle_locator_ref"],
+            "may_emit": ["owner_receipt_ref", "progress_projection_ref", "lifecycle_locator_ref"],
             "must_not_emit": ["generic_runtime_verdict", "generic_restore_verdict", "paper_closure_verdict"],
             "generic_owner_claim_allowed": False,
         },
@@ -285,7 +285,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "generic_lifecycle_engine",
             "generic_restore_retention_owner",
         ],
-        "retained_domain_authority": ["owner_receipt", "study_runtime_status"],
+        "retained_domain_authority": ["owner_receipt", "progress_projection"],
     },
     {
         "module_id": "paper_work_unit_outbox_index",
@@ -419,14 +419,14 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "migration_action": "keep_read_only_terminal_refs_adapter_for_opl_operator_workbench",
         "retention_reason": "MAS keeps read-only paper progress facts and domain blocker explanations.",
         "opl_expected_primitives": ["terminal_attach_transport", "operator_log_projection"],
-        "retained_domain_authority": ["runtime_watch_domain_health", "typed_blocker"],
+        "retained_domain_authority": ["domain_health_diagnostic", "typed_blocker"],
     },
     {
-        "module_id": "domain_route_scan_materialize_dispatch_shell",
+        "module_id": "owner_route_reconcile_materialize_dispatch_shell",
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/controllers/domain_route_scan.py", "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/owner_route_reconcile.py", "src/med_autoscience/controllers/domain_action_request_materializer.py",
             "src/med_autoscience/controllers/domain_owner_action_dispatch.py", "src/med_autoscience/controllers/domain_route_reconcile.py",
         ],
         "active_callers": ["watch-runtime one-shot tick", "runtime reconcile", "sidecar dispatch"],
@@ -489,7 +489,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/runtime_transport/", "src/med_autoscience/controllers/runtime_watch_outer_loop_dispatch.py",
+            "src/med_autoscience/runtime_transport/", "src/med_autoscience/controllers/domain_health_diagnostic_outer_loop_dispatch.py",
             "src/med_autoscience/controllers/recovery_intent_ledger.py",
         ],
         "active_callers": ["MAS direct/local runtime", "runtime worker activity", "controller recovery intents"],
@@ -523,13 +523,13 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "minimal_authority_function",
         "code_paths": [
             "src/med_autoscience/controllers/study_truth_kernel.py",
-            "src/med_autoscience/controllers/study_runtime_status.py",
+            "src/med_autoscience/controllers/progress_projection.py",
         ],
         "active_callers": ["MAS controller owner route", "study progress/read models"],
         "active_caller_status": "domain_authority_active",
         "migration_action": "retain_in_mas",
         "cannot_absorb_reason": "Medical study truth and paper route state are domain facts, not framework runtime state.",
-        "retained_domain_authority": ["study_truth", "study_runtime_status"],
+        "retained_domain_authority": ["study_truth", "progress_projection"],
     },
     {
         "module_id": "publication_quality_verdict",
@@ -618,11 +618,11 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         },
     },
     {
-        "module_id": "runtime_watch_loop_shell",
+        "module_id": "domain_health_diagnostic_loop_shell",
         "owner": "none_active",
         "classification": "legacy_cleanup_physical_retired",
         "code_paths": [
-            "src/med_autoscience/controllers/runtime_watch.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "src/med_autoscience/cli_parts/parser.py",
             "src/med_autoscience/controllers/workspace_init_parts/shell_rendering.py",
         ],
@@ -640,7 +640,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "replacement_surface": "opl_provider_runtime_manager",
             "no_compat_alias_allowed": True,
             "focused_test_refs": [
-                "tests/test_runtime_watch_cases/cli_cases.py",
+                "tests/test_domain_health_diagnostic_cases/cli_cases.py",
                 "tests/test_cli_cases/public_entry_commands.py",
                 "tests/test_workspace_init_cases/workspace_creation.py",
                 "tests/test_workspace_init_cases/legacy_entry_upgrades.py",

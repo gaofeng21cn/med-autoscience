@@ -332,7 +332,7 @@ def test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bund
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),
@@ -482,7 +482,7 @@ def test_run_quality_repair_batch_uses_task_intake_override_over_raw_bundle_summ
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),

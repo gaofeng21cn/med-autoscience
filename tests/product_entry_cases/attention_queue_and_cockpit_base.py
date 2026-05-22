@@ -437,9 +437,9 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "summary": "OPL runtime manager 托管监管存在缺口。",
                     "reason_summary": "OPL runtime manager 托管监管存在缺口。",
                     "primary_step_id": "refresh_supervision",
-                    "primary_surface_kind": "runtime_watch_refresh",
+                    "primary_surface_kind": "domain_health_diagnostic_refresh",
                     "primary_command": (
-                        "uv run python -m med_autoscience.cli watch --runtime-root "
+                        "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
@@ -447,7 +447,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     ),
                 },
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli watch --runtime-root "
+                    "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                     + str(profile.runtime_root)
                     + " --profile "
                     + str(profile_ref.resolve())
@@ -457,9 +457,9 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     {
                         "step_id": "refresh_supervision",
                         "title": "刷新 OPL runtime manager domain route tick",
-                        "surface_kind": "runtime_watch_refresh",
+                        "surface_kind": "domain_health_diagnostic_refresh",
                         "command": (
-                            "uv run python -m med_autoscience.cli watch --runtime-root "
+                            "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                             + str(profile.runtime_root)
                             + " --profile "
                             + str(profile_ref.resolve())
@@ -477,9 +477,9 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                         {
                             "step_id": "refresh_supervision",
                             "title": "刷新 OPL runtime manager domain route tick",
-                            "surface_kind": "runtime_watch_refresh",
+                            "surface_kind": "domain_health_diagnostic_refresh",
                             "command": (
-                                "uv run python -m med_autoscience.cli watch --runtime-root "
+                                "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                                 + str(profile.runtime_root)
                                 + " --profile "
                                 + str(profile_ref.resolve())

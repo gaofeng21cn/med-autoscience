@@ -287,7 +287,7 @@ def test_run_quality_repair_batch_prefers_latest_controller_decision_over_stale_
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),
@@ -315,7 +315,7 @@ def test_run_quality_repair_batch_prefers_latest_controller_decision_over_stale_
                 },
             },
             "last_controller_decision_authorization": {
-                "source": "domain_route_scan_platform_repair",
+                "source": "owner_route_reconcile_platform_repair",
                 "decision_id": "decision-003-stale",
                 "work_unit_id": "gate_needs_specificity",
                 "work_unit_fingerprint": "publication-blockers::stale",

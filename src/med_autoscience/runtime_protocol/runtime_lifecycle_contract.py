@@ -36,7 +36,7 @@ MIGRATION_RUN_MODES = (
 
 LIFECYCLE_READER_NAMES = (
     "study_progress",
-    "runtime_watch_latest",
+    "domain_health_diagnostic_latest",
     "storage_audit_status",
     "cli_product_entry",
     "mcp_product_entry",
@@ -47,8 +47,8 @@ LIFECYCLE_READER_NAMES = (
 FILE_AUTHORITY_SURFACES = (
     "runtime_binding.yaml",
     ".ds/runtime_state.json",
-    "study_runtime_status",
-    "runtime_watch/latest.json",
+    "progress_projection",
+    "domain_health_diagnostic/latest.json",
     "publication_eval/latest.json",
     "controller_decisions/latest.json",
     "runtime_escalation_record.json",

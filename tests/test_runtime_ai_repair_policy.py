@@ -36,7 +36,7 @@ def test_two_layer_ai_repair_policy_freezes_intervals_and_escalation_thresholds(
         "hard_coded_study_allowlist_required": False,
     }
     assert payload["developer_supervisor"]["same_tick_actions"] == [
-        "runtime domain-route-scan --apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe",
+        "runtime owner-route-reconcile --apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe",
         "runtime domain-action-request-materialize --mode developer_apply_safe --apply",
         "runtime domain-owner-action-dispatch --mode developer_apply_safe --apply",
     ]

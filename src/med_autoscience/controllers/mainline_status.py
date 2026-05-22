@@ -123,7 +123,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
             {
                 "capability_id": "runtime_recovery",
                 "owner": "MedAutoScience",
-                "truth_surface": "MAS domain runtime receipts / study_runtime_status / runtime_watch",
+                "truth_surface": "MAS domain runtime receipts / progress_projection / domain_health_diagnostic",
                 "summary": (
                     "运行恢复、supervision freshness、worker/session replay 与下一次确认信号由 MAS "
                     "domain owner surface 解释；generic cadence/provider SLO 迁往 OPL runtime manager。"
@@ -214,8 +214,8 @@ def _active_tranche_owner_truth() -> dict[str, Any]:
                     "controller-owned durable surfaces 解释。"
                 ),
                 "truth_surfaces": [
-                    "study_runtime_status",
-                    "runtime_watch",
+                    "progress_projection",
+                    "domain_health_diagnostic",
                     "study-progress.autonomy_contract",
                     "controller_decisions/latest.json",
                 ],
@@ -388,8 +388,8 @@ def _phase_ladder() -> list[dict[str, Any]]:
                     "purpose": "读取 OPL-owned supervision projection 与 legacy runtime tombstone。",
                 },
                 {
-                    "name": "watch",
-                    "command": "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply-supervisor-platform-repair --apply",
+                    "name": "domain_health_diagnostic",
+                    "command": "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply-supervisor-platform-repair --apply",
                     "purpose": "验证 supervisor tick、恢复动作和 runtime reconciliation。",
                 },
             ],

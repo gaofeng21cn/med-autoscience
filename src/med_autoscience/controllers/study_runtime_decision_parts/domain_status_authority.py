@@ -22,7 +22,7 @@ def _status_state(
     entry_mode: str | None,
     sync_runtime_summary: bool = True,
     include_progress_projection: bool = True,
-) -> StudyRuntimeStatus:
+) -> ProgressProjectionStatus:
     router = _router_module()
     execution = router._execution_payload(study_payload, profile=profile)
     explicit_runtime_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution)
@@ -50,7 +50,7 @@ def _status_state(
         execution.setdefault("runtime_engine_id", getattr(managed_runtime_backend, "ENGINE_ID", ""))
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = quest_runtime.quest_exists
-    quest_status = StudyRuntimeStatus._normalize_quest_status_field(quest_runtime.quest_status)
+    quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
     if quest_status in _LIVE_QUEST_STATUSES and managed_runtime_backend is not None:
         runtime_liveness_audit = router._inspect_quest_live_execution(
             runtime_root=runtime_root,
@@ -60,7 +60,7 @@ def _status_state(
         quest_runtime = quest_runtime.with_runtime_liveness_audit(runtime_liveness_audit).with_bash_session_audit(
             dict(runtime_liveness_audit.get("bash_session_audit") or {})
         )
-        quest_status = StudyRuntimeStatus._normalize_quest_status_field(quest_runtime.quest_status)
+        quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
     contracts = router.inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
     startup_boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(
@@ -77,7 +77,7 @@ def _status_state(
         enforce_startup_hydration=quest_status in _LIVE_QUEST_STATUSES,
     )
     completion_state = router._study_completion_state(study_root=study_root)
-    result = StudyRuntimeStatus(
+    result = ProgressProjectionStatus(
         schema_version=1,
         study_id=study_id,
         study_root=str(study_root),
@@ -175,7 +175,7 @@ def _status_state(
         publication_gate_report=publication_gate_report,
     )
 
-    def _finalize_result() -> StudyRuntimeStatus:
+    def _finalize_result() -> ProgressProjectionStatus:
         return finalize_status_projection_shell(
             status=result,
             study_id=study_id,

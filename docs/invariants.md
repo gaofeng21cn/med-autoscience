@@ -14,7 +14,7 @@
 ## OPL 边界与标准 Agent 目标
 
 - `OPL` 是 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架，持有 family-level session/runtime/projection、stage attempt、queue、wakeup、approval/retry/dead-letter 与 shared modules/contracts/indexes；它不把 MAS 改写为内部模块或研究 owner。
-- `OPL Runtime Manager`、native helper 与高频状态索引只能缓存、探测和投影 MAS 已暴露的 durable truth surface；不得成为 MAS scheduler kernel、session store、memory store、study truth、publication gate、artifact authority、concrete executor owner，或替代 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、evidence ledger、review ledger。
+- `OPL Runtime Manager`、native helper 与高频状态索引只能缓存、探测和投影 MAS 已暴露的 durable truth surface；不得成为 MAS scheduler kernel、session store、memory store、study truth、publication gate、artifact authority、concrete executor owner，或替代 `progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、evidence ledger、review ledger。
 - MAS 的目标态高于当前实现分布。当前仓内 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/Skill/product-entry/sidecar/status wrapper 只能作为迁移输入；不得因为已有 active caller 或当前能跑就写成长期合理。
 - MAS 作为标准 OPL Agent 的长期形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。通用 transport、ledger、index、lifecycle、runner、workbench、observability 和 wrapper 必须上收到 OPL primitive / pack compiler / App shell，或收薄成 refs-only adapter / diagnostic cleanup path。
 - 文档和计划必须先设理想态，再找差距；差距不是妥协清单。处理清楚 active caller、替代 surface、provenance 和必要证据后，旧模块、旧接口、旧测试、旧目录、旧文案和兼容面默认删除、archive 或 tombstone。

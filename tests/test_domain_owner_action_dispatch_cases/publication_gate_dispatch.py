@@ -40,7 +40,7 @@ def test_execute_dispatch_runs_publication_gate_owner_surface(monkeypatch, tmp_p
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "study_root": str(study_root),
@@ -198,7 +198,7 @@ def test_execute_dispatch_runs_publication_gate_owner_when_terminal_stall_handof
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -236,7 +236,7 @@ def test_execute_dispatch_runs_publication_gate_owner_when_terminal_stall_handof
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "study_id": study_id,
             "quest_id": study_id,

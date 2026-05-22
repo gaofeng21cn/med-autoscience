@@ -75,7 +75,7 @@ _CODE_PATH_ROLES = [
         "allowed_mas_role": "domain_worker_receipt_ref_adapter",
     },
     {
-        "path": "src/med_autoscience/controllers/domain_route_scan.py",
+        "path": "src/med_autoscience/controllers/owner_route_reconcile.py",
         "current_role": "owner_route_source_ref_projection",
         "long_term_owner": OPL_OWNER,
         "allowed_mas_role": "domain_route_and_blocker_projection",

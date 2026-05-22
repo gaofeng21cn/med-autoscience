@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_stale_task_intake(
+def test_domain_health_diagnostic_outer_loop_routes_startup_freshness_gate_before_stale_task_intake(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -147,9 +147,9 @@ def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_stale_tas
         ],
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -171,7 +171,7 @@ def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_stale_tas
     assert request["next_work_unit"]["unit_id"] in {"submission_minimal_refresh", "submission_delivery_sync_closure"}
 
 
-def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_publication_eval_work_unit(
+def test_domain_health_diagnostic_outer_loop_routes_startup_freshness_gate_before_publication_eval_work_unit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -285,9 +285,9 @@ def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_publicati
         ],
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "002-dm-china-us-mortality-attribution",
@@ -312,7 +312,7 @@ def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_publicati
     assert request["next_work_unit"]["unit_id"] == "submission_minimal_refresh"
 
 
-def test_runtime_watch_outer_loop_routes_bundle_stage_ready_before_stale_task_intake(
+def test_domain_health_diagnostic_outer_loop_routes_bundle_stage_ready_before_stale_task_intake(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -422,7 +422,7 @@ def test_runtime_watch_outer_loop_routes_bundle_stage_ready_before_stale_task_in
         "submission_minimal_authority_status": "current",
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -434,7 +434,7 @@ def test_runtime_watch_outer_loop_routes_bundle_stage_ready_before_stale_task_in
         lambda **_: pytest.fail("clear bundle-stage gate should not dispatch quality repair"),
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "002-dm-china-us-mortality-attribution",
@@ -465,7 +465,7 @@ def test_runtime_watch_outer_loop_routes_bundle_stage_ready_before_stale_task_in
     ]
 
 
-def test_runtime_watch_outer_loop_routes_bundle_ready_eval_review_unit_to_finalize_work_unit(
+def test_domain_health_diagnostic_outer_loop_routes_bundle_ready_eval_review_unit_to_finalize_work_unit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -602,7 +602,7 @@ def test_runtime_watch_outer_loop_routes_bundle_ready_eval_review_unit_to_finali
         "submission_minimal_authority_status": "current",
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -614,7 +614,7 @@ def test_runtime_watch_outer_loop_routes_bundle_ready_eval_review_unit_to_finali
         lambda **_: None,
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "002-dm-china-us-mortality-attribution",
@@ -645,7 +645,7 @@ def test_runtime_watch_outer_loop_routes_bundle_ready_eval_review_unit_to_finali
     ]
 
 
-def test_runtime_watch_outer_loop_routes_bundle_blocked_eval_review_unit_to_finalize_work_unit(
+def test_domain_health_diagnostic_outer_loop_routes_bundle_blocked_eval_review_unit_to_finalize_work_unit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -754,7 +754,7 @@ def test_runtime_watch_outer_loop_routes_bundle_blocked_eval_review_unit_to_fina
         "submission_minimal_authority_source_signature": "source::old",
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -766,7 +766,7 @@ def test_runtime_watch_outer_loop_routes_bundle_blocked_eval_review_unit_to_fina
         lambda **_: None,
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
@@ -791,7 +791,7 @@ def test_runtime_watch_outer_loop_routes_bundle_blocked_eval_review_unit_to_fina
     assert request["work_unit_fingerprint"] != "publication-blockers::review"
 
 
-def test_runtime_watch_outer_loop_keeps_current_write_task_intake_before_clear_bundle_gate(
+def test_domain_health_diagnostic_outer_loop_keeps_current_write_task_intake_before_clear_bundle_gate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -893,9 +893,9 @@ def test_runtime_watch_outer_loop_keeps_current_write_task_intake_before_clear_b
         "current_required_action": "continue_bundle_stage",
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",

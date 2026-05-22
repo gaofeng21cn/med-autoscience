@@ -57,8 +57,8 @@
 - 角色：MAS Runtime OS 下的正式 managed execution handle
 - 典型落点：
   - `runtime_binding.yaml`
-  - `study_runtime_status`
-  - `runtime_watch`
+  - `progress_projection`
+  - `domain_health_diagnostic`
   - `runtime/quests/<quest_id>/`
 - 边界：
   - 它是 study 绑定到受控 runtime 后的正式 handle
@@ -93,12 +93,12 @@
     - `research_engine_id`
     - `runtime_home`
     - `runtime_quests_root`
-- `study_runtime_status`
+- `progress_projection`
   - study 侧状态总表面
   - 必须回显 `study_id`、`quest_id`、`runtime_backend_id`、`research_backend_id`、decision / reason、runtime gate 摘要
-- `runtime_watch`
-  - quest 侧 watch / intervention 表面
-  - 当前默认落在 `runtime/quests/<quest_id>/artifacts/reports/runtime_watch/`
+- `domain_health_diagnostic`
+  - quest 侧 diagnostic / intervention 表面
+  - 当前报告继续写入 legacy namespace `runtime/quests/<quest_id>/artifacts/reports/domain_health_diagnostic/`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
   - study 侧 publication verdict latest surface
 - `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
@@ -114,7 +114,7 @@
 
 1. `runtime_binding.yaml`
    - 先冻结当前 substrate / research-backend 绑定，不允许 hidden authority rewrite
-2. `study_runtime_status`
+2. `progress_projection`
    - 再汇总 workspace contracts、startup data readiness、startup boundary、runtime reentry、completion state
 3. `runtime_escalation_record`
    - 当 runtime 不能诚实继续推进时，把 quest 级升级原因落盘

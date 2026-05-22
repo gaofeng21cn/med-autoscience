@@ -51,7 +51,7 @@ def test_execute_resume_runtime_decision_records_nested_resume_daemon_step(monke
         journal_shortlist=["BMC Medicine"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -197,7 +197,7 @@ def test_execute_resume_runtime_decision_materializes_fresh_domain_transition_be
                 "study_id": study_id,
                 "quest_id": study_id,
                 "emitted_at": "2026-05-21T15:28:06+00:00",
-                "trigger": {"trigger_id": "domain_transition_ai_reviewer_re_eval", "source": "study_runtime_status"},
+                "trigger": {"trigger_id": "domain_transition_ai_reviewer_re_eval", "source": "progress_projection"},
                 "scope": "quest",
                 "severity": "study",
                 "reason": "domain_transition_ai_reviewer_re_eval",
@@ -306,7 +306,7 @@ def test_execute_resume_runtime_decision_materializes_fresh_domain_transition_be
             "study_decision_ref": {"artifact_path": str(controller_decision_path)},
         }
 
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         {
             "schema_version": 1,
             "study_id": study_id,
@@ -357,7 +357,7 @@ def test_execute_resume_runtime_decision_materializes_fresh_domain_transition_be
             },
         },
     )
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
     monkeypatch.setattr(
         outer_loop,
         "materialize_non_dispatching_outer_loop_decision",
@@ -407,7 +407,7 @@ def test_execute_resume_runtime_decision_skips_startup_hydration_for_managed_run
         journal_shortlist=["BMC Medicine"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -487,7 +487,7 @@ def test_execute_resume_runtime_decision_blocks_when_resume_request_has_no_effec
         journal_shortlist=["BMC Medicine"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
-    status = module.StudyRuntimeStatus.from_payload(
+    status = module.ProgressProjectionStatus.from_payload(
         {
             "schema_version": 1,
             "study_id": "001-risk",

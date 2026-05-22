@@ -9,7 +9,7 @@ from med_autoscience.runtime_backend import ManagedRuntimeBackend
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_completion import StudyCompletionState
 
-from ..study_runtime_status import (
+from ..progress_projection import (
     StudyCompletionSyncResult,
     StudyRuntimeBindingAction,
     StudyRuntimeDaemonStep,

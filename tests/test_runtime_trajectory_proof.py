@@ -147,7 +147,7 @@ def test_authority_surface_delta_refs_are_non_replayable_even_with_idempotency_k
                 "artifact_delta_refs": [
                     "artifacts/publication_eval/latest.json",
                     "artifacts/controller_decisions/latest.json",
-                    "study_runtime_status",
+                    "progress_projection",
                     "study_truth",
                     "submission_minimal/readiness",
                 ],
@@ -165,7 +165,7 @@ def test_authority_surface_delta_refs_are_non_replayable_even_with_idempotency_k
         "guarded_refs": [
             "artifacts/publication_eval/latest.json",
             "artifacts/controller_decisions/latest.json",
-            "study_runtime_status",
+            "progress_projection",
             "study_truth",
             "submission readiness",
         ],

@@ -29,7 +29,7 @@ def study_commands(
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "status": (
-            f"{_command_prefix(profile_ref)} study-runtime-status --profile {_profile_arg(profile_ref)} "
+            f"{_command_prefix(profile_ref)} study progress-projection --profile {_profile_arg(profile_ref)} "
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
     }
@@ -45,7 +45,7 @@ def workspace_commands(
         "doctor": f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}",
         "bootstrap": f"{_command_prefix(profile_ref)} bootstrap --profile {_profile_arg(profile_ref)}",
         "supervisor_tick": (
-            f"{_command_prefix(profile_ref)} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+            f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
             f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
         ),
         "service_install": f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",
@@ -72,7 +72,7 @@ def user_loop_commands(
         "launch_study_template": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
         "watch_progress_template": f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>",
         "refresh_supervision": (
-            f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+            f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
             f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
         ),
     }

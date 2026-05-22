@@ -24,7 +24,7 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
     OwnerCallable(
         owner="MAS/controller",
         action_type="runtime_platform_repair",
-        callable_surface="domain_route_scan.scan_domain_routes(apply_runtime_platform_repair=True)",
+        callable_surface="owner_route_reconcile.scan_domain_routes(apply_runtime_platform_repair=True)",
         required_inputs=("owner_route", "runtime_health_snapshot", "controller_decisions/latest.json"),
         required_outputs=("artifacts/supervision/consumer/runtime_platform_repair.json",),
         artifact_delta_predicate="owner_route_advances_or_runtime_repair_receipt",

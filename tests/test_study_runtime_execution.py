@@ -146,7 +146,7 @@ def test_autonomous_runtime_notice_reports_live_runtime_only_when_liveness_is_st
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     _patch_router(monkeypatch, module)
-    status = typed_surface.StudyRuntimeStatus.from_payload(_base_status_payload())
+    status = typed_surface.ProgressProjectionStatus.from_payload(_base_status_payload())
     status.record_runtime_liveness_audit(
         {
             "status": "live",
@@ -180,7 +180,7 @@ def test_autonomous_runtime_notice_does_not_fabricate_api_urls_for_static_progre
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     portal_url = (tmp_path / "workspace" / "ops" / "mas" / "progress" / "index.html").as_uri()
     _patch_router(monkeypatch, module, monitoring_url=portal_url)
-    status = typed_surface.StudyRuntimeStatus.from_payload(_base_status_payload())
+    status = typed_surface.ProgressProjectionStatus.from_payload(_base_status_payload())
     status.record_runtime_liveness_audit(
         {
             "status": "live",
@@ -211,7 +211,7 @@ def test_autonomous_runtime_notice_marks_unhealthy_runtime_without_claiming_live
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     _patch_router(monkeypatch, module)
-    status = typed_surface.StudyRuntimeStatus.from_payload(_base_status_payload())
+    status = typed_surface.ProgressProjectionStatus.from_payload(_base_status_payload())
     status.record_runtime_liveness_audit(
         {
             "status": "unknown",
@@ -245,7 +245,7 @@ def test_autonomous_runtime_notice_does_not_claim_live_without_active_run_id(mon
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     _patch_router(monkeypatch, module)
-    status = typed_surface.StudyRuntimeStatus.from_payload(_base_status_payload())
+    status = typed_surface.ProgressProjectionStatus.from_payload(_base_status_payload())
     status.record_runtime_liveness_audit(
         {
             "status": "none",
@@ -275,7 +275,7 @@ def test_controller_owned_interaction_reply_message_prompts_write_stage_resume(m
     _patch_router(monkeypatch, module)
     payload = _base_status_payload()
     payload["reason"] = "quest_stale_decision_after_write_stage_ready"
-    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+    status = typed_surface.ProgressProjectionStatus.from_payload(payload)
 
     message = module._controller_owned_interaction_reply_message(status=status)
 
@@ -290,7 +290,7 @@ def test_controller_owned_interaction_reply_message_appends_route_context(monkey
     _patch_router(monkeypatch, module)
     payload = _base_status_payload()
     payload["reason"] = "quest_stale_decision_after_write_stage_ready"
-    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+    status = typed_surface.ProgressProjectionStatus.from_payload(payload)
 
     message = module._controller_owned_interaction_reply_message(
         status=status,
@@ -324,7 +324,7 @@ def test_execute_noop_runtime_decision_projects_controller_authorization_for_opl
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -380,7 +380,7 @@ def test_execute_noop_runtime_decision_projects_gate_clearing_controller_authori
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -432,7 +432,7 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_for
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -481,7 +481,7 @@ def test_execute_noop_runtime_decision_does_not_redeliver_controller_authorizati
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -578,7 +578,7 @@ def test_execute_noop_runtime_decision_deduplicates_prior_ledger_authorization_f
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -620,7 +620,7 @@ def test_execute_noop_runtime_decision_never_falls_back_to_private_user_message_
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -631,7 +631,7 @@ def test_execute_noop_runtime_decision_never_falls_back_to_private_user_message_
         quest_root=quest_root,
         runtime_root=tmp_path / "runtime",
         runtime_backend=FakeBackend(),
-        source="runtime_watch",
+        source="domain_health_diagnostic",
     )
 
     outcome = module._execute_runtime_decision(status=status, context=context)
@@ -673,7 +673,7 @@ def test_same_fingerprint_threshold_awaits_artifact_delta_for_live_write_stage_r
     payload["reason"] = "quest_stale_decision_after_write_stage_ready"
     payload["study_root"] = str(study_root)
     payload["quest_root"] = str(quest_root)
-    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+    status = typed_surface.ProgressProjectionStatus.from_payload(payload)
     status.record_runtime_liveness_audit(
         {
             "status": "live",
@@ -742,7 +742,7 @@ def test_same_fingerprint_threshold_awaits_artifact_delta_for_live_write_drift_e
     payload["reason"] = "quest_drifting_into_write_without_gate_approval"
     payload["study_root"] = str(study_root)
     payload["quest_root"] = str(quest_root)
-    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+    status = typed_surface.ProgressProjectionStatus.from_payload(payload)
     status.record_runtime_liveness_audit(
         {
             "status": "live",
@@ -793,7 +793,7 @@ def test_force_restart_for_live_write_drift_is_once_per_unchanged_gate_fingerpri
     payload = _base_status_payload()
     payload["reason"] = "quest_drifting_into_write_without_gate_approval"
     payload["quest_root"] = str(quest_root)
-    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+    status = typed_surface.ProgressProjectionStatus.from_payload(payload)
     status.record_runtime_liveness_audit(
         {
             "status": "live",
@@ -853,7 +853,7 @@ def test_runtime_event_status_snapshot_includes_continuation_anchor(monkeypatch)
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     _patch_router(monkeypatch, module)
-    status = typed_surface.StudyRuntimeStatus.from_payload(_base_status_payload())
+    status = typed_surface.ProgressProjectionStatus.from_payload(_base_status_payload())
     status.record_continuation_state(
         {
             "quest_status": "running",

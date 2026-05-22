@@ -285,7 +285,7 @@ def _target_ready_next_work_unit(next_work_unit: dict[str, Any] | None, target_c
     return sanitized
 
 
-def build_runtime_watch_outer_loop_tick_request(
+def build_domain_health_diagnostic_outer_loop_tick_request(
     *,
     study_root: Path,
     status_payload: dict[str, Any],
@@ -543,13 +543,13 @@ def build_runtime_watch_outer_loop_tick_request(
 
     charter_ref = _build_study_decision_charter_ref(
         study_root=resolved_study_root,
-        missing_message="runtime watch outer-loop wakeup requires stable study charter artifact",
+        missing_message="domain health diagnostic outer-loop wakeup requires stable study charter artifact",
     ).to_dict()
 
     runtime_escalation_payload = status_payload.get("runtime_escalation_ref")
     if runtime_escalation_payload is not None:
         if not isinstance(runtime_escalation_payload, dict):
-            raise ValueError("runtime watch outer-loop wakeup runtime_escalation_ref must be a mapping when present")
+            raise ValueError("domain health diagnostic outer-loop wakeup runtime_escalation_ref must be a mapping when present")
         _resolve_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
 
     publication_eval_ref = StudyDecisionPublicationEvalRef(

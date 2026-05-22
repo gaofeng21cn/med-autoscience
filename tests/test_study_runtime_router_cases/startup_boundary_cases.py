@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_blocks_finalize_parking_when_external_credential_is_required(
+def test_progress_projection_blocks_finalize_parking_when_external_credential_is_required(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -114,7 +114,7 @@ def test_study_runtime_status_blocks_finalize_parking_when_external_credential_i
         raising=False,
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_external_input"
@@ -545,7 +545,7 @@ def test_ensure_study_runtime_blocks_resume_when_startup_boundary_disallows_comp
     assert result["startup_boundary_gate"]["allow_compute_stage"] is False
 
 
-def test_study_runtime_status_requires_evidence_backed_journal_shortlist(monkeypatch, tmp_path: Path) -> None:
+def test_progress_projection_requires_evidence_backed_journal_shortlist(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -573,7 +573,7 @@ def test_study_runtime_status_requires_evidence_backed_journal_shortlist(monkeyp
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_root=study_root,
     )

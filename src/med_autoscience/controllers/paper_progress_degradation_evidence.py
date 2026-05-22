@@ -50,7 +50,7 @@ STUDY_PROGRESS_REFS: tuple[Path, ...] = (
     Path("artifacts/truth/latest.json"),
     Path("artifacts/controller_decisions/latest.json"),
     Path("artifacts/publication_eval/latest.json"),
-    Path("artifacts/runtime/runtime_watch/latest.json"),
+    Path("artifacts/runtime/domain_health_diagnostic/latest.json"),
     Path("artifacts/supervision/requests/ai_reviewer/latest.json"),
 )
 

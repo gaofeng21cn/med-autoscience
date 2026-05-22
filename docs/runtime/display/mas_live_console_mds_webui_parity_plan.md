@@ -48,7 +48,7 @@ Lifecycle note: 当前 Live Console 展示合同从 [MAS Live Console UI Contrac
 
 MAS-owned Live Console session read model：
 
-- 输入：`study_runtime_status/latest.json`、`artifacts/runtime/health/latest.json`、`runtime_supervision/latest.json`、`runtime_status_summary.json`、runtime quest terminal/log summaries、MAS runtime observation refs、owner receipt refs 和 run evidence refs。
+- 输入：`progress_projection/latest.json`、`artifacts/runtime/health/latest.json`、`runtime_supervision/latest.json`、`runtime_status_summary.json`、runtime quest terminal/log summaries、MAS runtime observation refs、owner receipt refs 和 run evidence refs。
 - 输出：`artifacts/runtime/live_console/session_read_model/latest.json`。
 - 字段：workspace、studies、selected_study_id、runs、active_run_id、worker_running、runtime_health_status、supervisor_tick_status、events、log_sources、terminal_sources、artifact_delta、controller action intents。
 - 只读聚合，不重新解释 truth。

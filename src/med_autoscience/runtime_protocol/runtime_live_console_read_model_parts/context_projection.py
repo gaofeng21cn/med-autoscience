@@ -62,9 +62,9 @@ def study_context(*, profile: WorkspaceProfile, study_root: Path) -> dict[str, A
             study_root / "artifacts" / "progress" / "latest.json",
         )
     )
-    runtime_status_path, runtime_status = io.read_first_json(
+    progress_projection_path, progress_projection = io.read_first_json(
         (
-            study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+            study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json",
             study_root / "artifacts" / "runtime" / "status" / "latest.json",
             study_root / "artifacts" / "runtime" / "status.json",
         )
@@ -74,10 +74,10 @@ def study_context(*, profile: WorkspaceProfile, study_root: Path) -> dict[str, A
     supervision_path, supervision = io.read_first_json(
         (study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",)
     )
-    quest_root = quest_root_from_surfaces(profile=profile, runtime_status=runtime_status, summary=summary)
+    quest_root = quest_root_from_surfaces(profile=profile, progress_projection=progress_projection, summary=summary)
     return {
         "study_id": io.first_text(
-            runtime_status.get("study_id"),
+            progress_projection.get("study_id"),
             progress.get("study_id"),
             summary.get("study_id"),
             health.get("study_id"),
@@ -89,7 +89,7 @@ def study_context(*, profile: WorkspaceProfile, study_root: Path) -> dict[str, A
         "surfaces": {
             "workspace_cockpit": {"path": cockpit_path, "payload": cockpit},
             "study_progress": {"path": progress_path, "payload": progress},
-            "study_runtime_status": {"path": runtime_status_path, "payload": runtime_status},
+            "progress_projection": {"path": progress_projection_path, "payload": progress_projection},
             "runtime_status_summary": {"path": summary_path, "payload": summary},
             "runtime_health": {"path": health_path, "payload": health},
             "runtime_supervision": {"path": supervision_path, "payload": supervision},
@@ -102,12 +102,12 @@ def study_context(*, profile: WorkspaceProfile, study_root: Path) -> dict[str, A
 def quest_root_from_surfaces(
     *,
     profile: WorkspaceProfile,
-    runtime_status: Mapping[str, Any],
+    progress_projection: Mapping[str, Any],
     summary: Mapping[str, Any],
 ) -> Path | None:
     for value in (
-        runtime_status.get("quest_root"),
-        runtime_status.get("runtime_artifact_ref"),
+        progress_projection.get("quest_root"),
+        progress_projection.get("runtime_artifact_ref"),
         summary.get("runtime_artifact_ref"),
     ):
         text = io.text(value)
@@ -116,7 +116,7 @@ def quest_root_from_surfaces(
         candidate = Path(text).expanduser().resolve()
         if candidate.is_dir():
             return candidate
-    quest_id = io.first_text(runtime_status.get("quest_id"), summary.get("quest_id"))
+    quest_id = io.first_text(progress_projection.get("quest_id"), summary.get("quest_id"))
     if quest_id is None:
         return None
     return (profile.runtime_root / quest_id).expanduser().resolve()
@@ -161,7 +161,7 @@ def worker_running(*, status: Mapping[str, Any], health: Mapping[str, Any]) -> b
 def study_health_status(context: Mapping[str, Any]) -> str:
     health = surface_payload(context, "runtime_health")
     summary = surface_payload(context, "runtime_status_summary")
-    status = surface_payload(context, "study_runtime_status")
+    status = surface_payload(context, "progress_projection")
     return io.first_text(
         health.get("health_status"),
         health.get("attempt_state"),

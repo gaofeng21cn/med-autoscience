@@ -23,7 +23,7 @@ def test_governor_blocks_external_runtime_failure_before_mas_work() -> None:
                     "steps": [
                         {
                             "action_type": "external_runtime_blocker",
-                            "controller_surface": "runtime_watch",
+                            "controller_surface": "domain_health_diagnostic",
                             "apply_mode": "human_required",
                         }
                     ],
@@ -33,7 +33,7 @@ def test_governor_blocks_external_runtime_failure_before_mas_work() -> None:
             },
             "study_soak_replay_case": {
                 "case_family": "runtime_recovery_taxonomy",
-                "required_truth_surfaces": ["study_runtime_status", "runtime_watch"],
+                "required_truth_surfaces": ["progress_projection", "domain_health_diagnostic"],
             },
         }
     )

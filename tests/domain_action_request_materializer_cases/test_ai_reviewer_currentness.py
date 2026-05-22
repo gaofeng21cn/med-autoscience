@@ -103,7 +103,7 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {

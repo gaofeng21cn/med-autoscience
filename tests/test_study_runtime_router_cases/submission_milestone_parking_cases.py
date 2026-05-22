@@ -161,7 +161,7 @@ def test_ensure_study_runtime_keeps_refreshed_submission_package_milestone_parke
     assert result["continuation_state"]["continuation_reason"] == "unchanged_publication_gate_state"
 
 
-def test_study_runtime_status_keeps_live_labeled_delivered_package_without_worker_parked(
+def test_progress_projection_keeps_live_labeled_delivered_package_without_worker_parked(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -276,7 +276,7 @@ def test_study_runtime_status_keeps_live_labeled_delivered_package_without_worke
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["quest_status"] == "active"
     assert result["decision"] == "blocked"
@@ -292,7 +292,7 @@ def test_study_runtime_status_keeps_live_labeled_delivered_package_without_worke
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] != "recover_runtime"
 
 
-def test_study_runtime_status_keeps_paused_delivered_package_without_worker_parked(
+def test_progress_projection_keeps_paused_delivered_package_without_worker_parked(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -404,7 +404,7 @@ def test_study_runtime_status_keeps_paused_delivered_package_without_worker_park
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["quest_status"] == "paused"
     assert result["decision"] == "blocked"
@@ -543,7 +543,7 @@ def test_mechanical_projection_current_package_does_not_park_abnormal_active_run
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="002-risk")
+    result = module.progress_projection(profile=profile, study_id="002-risk")
 
     assert result["quest_status"] == "active"
     assert result["decision"] == "resume"
@@ -556,7 +556,7 @@ def test_mechanical_projection_current_package_does_not_park_abnormal_active_run
     }
 
 
-def test_study_runtime_status_pauses_live_delivered_package_after_clear_bundle_gate(
+def test_progress_projection_pauses_live_delivered_package_after_clear_bundle_gate(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -689,7 +689,7 @@ def test_study_runtime_status_pauses_live_delivered_package_after_clear_bundle_g
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="002-risk")
+    result = module.progress_projection(profile=profile, study_id="002-risk")
 
     assert result["quest_status"] == "active"
     assert result["decision"] == "pause"

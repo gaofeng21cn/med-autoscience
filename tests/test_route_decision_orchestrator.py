@@ -181,7 +181,7 @@ def test_orchestrator_projects_bounded_candidate_path_graph_without_replacing_co
     assert graph["authority"] == "read_model_only"
     assert graph["replaces_controller_decision"] is False
     assert graph["can_replace_controller_decision_latest"] is False
-    assert graph["can_replace_study_runtime_status"] is False
+    assert graph["can_replace_progress_projection"] is False
     assert graph["replaces_study_truth"] is False
     assert graph["can_replace_study_truth"] is False
     assert graph["can_authorize_submission_readiness"] is False
@@ -216,7 +216,7 @@ def test_candidate_path_graph_normalizes_hostile_authority_claims_to_read_model_
         {
             "decision": "proceed",
             "can_replace_controller_decision_latest": True,
-            "can_replace_study_runtime_status": True,
+            "can_replace_progress_projection": True,
             "can_replace_study_truth": True,
             "can_authorize_submission_readiness": True,
             "can_authorize_publication_quality": True,
@@ -233,7 +233,7 @@ def test_candidate_path_graph_normalizes_hostile_authority_claims_to_read_model_
     assert graph["authority"] == "read_model_only"
     assert graph["decision"] == "proceed"
     assert graph["can_replace_controller_decision_latest"] is False
-    assert graph["can_replace_study_runtime_status"] is False
+    assert graph["can_replace_progress_projection"] is False
     assert graph["can_replace_study_truth"] is False
     assert graph["can_authorize_submission_readiness"] is False
     assert graph["can_authorize_publication_quality"] is False

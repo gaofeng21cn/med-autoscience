@@ -26,7 +26,7 @@
 
 - `artifacts/controller/task_intake/latest.json` 的当前任务意图与输出要求
 - `runtime_supervision/latest.json` 的 `clinician_update`、`summary`、`next_action_summary`
-- `runtime_watch` 的 controller scan 结果
+- `domain_health_diagnostic` 的 controller scan 结果
 - `publication_eval/latest.json` 的 verdict / gap summary
 - `controller_decisions/latest.json` 的正式下一步决定
 - `artifacts/controller/controller_confirmation_summary.json` 的待人工确认摘要
@@ -46,7 +46,7 @@
 
 `study_progress` 的 authority 输入只读下列表面：
 
-- `study_runtime_status`
+- `progress_projection`
 - `studies/<study_id>/artifacts/controller/task_intake/latest.json`
 - `studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json`
 - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
@@ -55,7 +55,7 @@
 - `studies/<study_id>/artifacts/controller/controller_confirmation_summary.json`
 - `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - explicit archive import reference: `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
-- `runtime_watch` 最新 report
+- `domain_health_diagnostic` 最新 report
 
 允许吸收但不赋予 authority 的 enrichment surface：
 
@@ -65,11 +65,11 @@
 这里的关键约束是：
 
 - canonical truth 仍来自 durable surface
-- `study_runtime_status` 内的 `interaction_arbitration` 与 `continuation_state` 属于正式 typed status surface，可直接用于前台判断“这是用户阻塞，还是 MAS 已经仲裁为自动继续”
+- `progress_projection` 内的 `interaction_arbitration` 与 `continuation_state` 属于正式 typed status surface，可直接用于前台判断“这是用户阻塞，还是 MAS 已经仲裁为自动继续”
 - legacy `details` projection 与 `bash_exec` summary 只用于补充“最近完成了什么”“论文建议推进到哪一步”，不得作为 active quest lifecycle 或 publication authority
 - `.ds/codex_history` 原始事件流只保留给审计和调试场景；新 quest 不依赖 `.ds`、MDS Git 或 `.ds/worktrees` 维护前台进度
 - 只要 `runtime_supervision/latest.json` 报告 `recovering / degraded / escalated`，前台就必须优先展示 runtime health，论文阶段在展示顺序上后置
-- 只要 `study_runtime_status.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，并停止使用“持续托管监管”口径
+- 只要 `progress_projection.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，并停止使用“持续托管监管”口径
 - 即使宿主机尚无 external `Hermes` runtime，前台的人话进度也固定来自这些 `MAS` durable surface；外部 runtime substrate 的状态按实际已验证接入情况描述
 
 ## 4. 输出合同
@@ -180,7 +180,7 @@
 - 缺少 v2 `user_visible_projection` 时，入口只允许通过 assembly/read-model 层用 `study_macro_state` 生成；缺 `study_macro_state` 或发现 writer 冲突时必须 fail-closed 为 `inspect/conflict`，提示重新生成 canonical projection。
 - 入口不得回退到 legacy top-level `current_stage/current_blockers/next_system_action` 作为用户状态来源。
 - `user_visible_projection.conditions` 只表达 projection 状态，例如 `macro_state_known`、`package_delivered`、`actual_write_active`、`blocked`、`next_action_known`、`evidence_available`、`user_action_required`、`runtime_supervised`；不得作为 runtime write gate 或 publication quality authority。
-- `evidence.refs` 只保存可审计引用路径；任何质量关闭、投稿授权、runtime 写操作仍回到 `publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status` 和对应 controller surface。
+- `evidence.refs` 只保存可审计引用路径；任何质量关闭、投稿授权、runtime 写操作仍回到 `publication_eval/latest.json`、`controller_decisions/latest.json`、`progress_projection` 和对应 controller surface。
 
 这个形态借鉴两个成熟工程模式：
 

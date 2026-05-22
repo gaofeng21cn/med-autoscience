@@ -13,11 +13,11 @@ def test_audit_compaction_governance_builds_maintainability_read_model(tmp_path:
     module = importlib.import_module("med_autoscience.controllers.audit_compaction_governance")
     boundary = importlib.import_module("med_autoscience.controllers.boundary_fitness")
     repo_root = tmp_path
-    runtime_watch = repo_root / "src/med_autoscience/controllers/runtime_watch.py"
+    domain_health_diagnostic = repo_root / "src/med_autoscience/controllers/domain_health_diagnostic.py"
     gate_clearing = repo_root / "src/med_autoscience/controllers/gate_clearing_batch.py"
     study_progress = repo_root / "src/med_autoscience/controllers/study_progress.py"
-    runtime_watch.parent.mkdir(parents=True)
-    runtime_watch.write_text("\n".join("line" for _ in range(1025)), encoding="utf-8")
+    domain_health_diagnostic.parent.mkdir(parents=True)
+    domain_health_diagnostic.write_text("\n".join("line" for _ in range(1025)), encoding="utf-8")
     gate_clearing.write_text("\n".join("line" for _ in range(1015)), encoding="utf-8")
     study_progress.write_text("line\n", encoding="utf-8")
 
@@ -25,12 +25,12 @@ def test_audit_compaction_governance_builds_maintainability_read_model(tmp_path:
         repo_root,
         tracked_files=[
             "src/med_autoscience/controllers/gate_clearing_batch.py",
-            "src/med_autoscience/controllers/runtime_watch.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "src/med_autoscience/controllers/study_progress.py",
         ],
         baseline={
             "src/med_autoscience/controllers/gate_clearing_batch.py": 1010,
-            "src/med_autoscience/controllers/runtime_watch.py": 1010,
+            "src/med_autoscience/controllers/domain_health_diagnostic.py": 1010,
         },
     )
 
@@ -82,7 +82,7 @@ def test_audit_compaction_governance_builds_maintainability_read_model(tmp_path:
     assert target_list["surface"] == "mas_l5_structure_top_target_list"
     assert target_list["source"] == "Sentrux structure lane + line budget + boundary fitness"
     assert [item["path"] for item in target_list["top_targets"]] == [
-        "src/med_autoscience/controllers/runtime_watch.py",
+        "src/med_autoscience/controllers/domain_health_diagnostic.py",
         "src/med_autoscience/controllers/gate_clearing_batch.py",
     ]
     assert {item["action_kind"] for item in target_list["top_targets"]} == {"natural_boundary_split"}
@@ -176,13 +176,13 @@ def test_audit_compaction_governance_validation_fails_closed_on_authority_cleanu
         ).BoundaryFitnessReport(findings=()),
     )
     report["authority_mode"] = "runtime_authority"
-    report["truth_writes"] = ["study_runtime_status"]
+    report["truth_writes"] = ["progress_projection"]
     report["truth_surfaces_out_of_scope"] = ["study_truth"]
     report["worktree_ownership_audit"]["cleanup_candidates"] = [
         {"path": "/repo/.worktrees/old", "cleanup_allowed": True}
     ]
     report["structure_target_list"]["top_targets"] = [
-        {"path": "src/med_autoscience/controllers/runtime_watch.py", "action_kind": "mechanical_split"}
+        {"path": "src/med_autoscience/controllers/domain_health_diagnostic.py", "action_kind": "mechanical_split"}
     ]
     report["audit_compaction_pre_contract"]["gates"] = [{"gate_id": "restore", "status": "contract_required"}]
     report["compaction_implementation_allowed"] = True

@@ -1,7 +1,7 @@
 from .shared import *  # noqa: F403
 
 
-def test_study_runtime_status_routes_closed_work_unit_lifecycle_to_publication_gate_recheck(
+def test_progress_projection_routes_closed_work_unit_lifecycle_to_publication_gate_recheck(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -185,7 +185,7 @@ def test_study_runtime_status_routes_closed_work_unit_lifecycle_to_publication_g
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -202,7 +202,7 @@ def test_study_runtime_status_routes_closed_work_unit_lifecycle_to_publication_g
     assert result["interaction_arbitration"]["reason_code"] == "domain_transition_publication_gate_blocker"
 
 
-def test_study_runtime_status_does_not_requeue_publication_gate_recheck_lifecycle_to_itself(
+def test_progress_projection_does_not_requeue_publication_gate_recheck_lifecycle_to_itself(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -393,7 +393,7 @@ def test_study_runtime_status_does_not_requeue_publication_gate_recheck_lifecycl
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -406,7 +406,7 @@ def test_study_runtime_status_does_not_requeue_publication_gate_recheck_lifecycl
     assert result["domain_transition"]["next_work_unit"]["unit_id"] != "publication_gate_recheck"
 
 
-def test_study_runtime_status_keeps_write_route_when_story_surface_delta_is_missing(
+def test_progress_projection_keeps_write_route_when_story_surface_delta_is_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -622,7 +622,7 @@ def test_study_runtime_status_keeps_write_route_when_story_surface_delta_is_miss
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -637,7 +637,7 @@ def test_study_runtime_status_keeps_write_route_when_story_surface_delta_is_miss
     assert result["domain_transition"]["next_work_unit"]["unit_id"] == "manuscript_story_repair"
 
 
-def test_study_runtime_status_routes_completed_story_repair_to_ai_reviewer_recheck(
+def test_progress_projection_routes_completed_story_repair_to_ai_reviewer_recheck(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -911,7 +911,7 @@ def test_study_runtime_status_routes_completed_story_repair_to_ai_reviewer_reche
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,

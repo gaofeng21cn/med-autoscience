@@ -7,7 +7,7 @@ def _set_mtime(path: Path, timestamp: int) -> None:
     os.utime(path, (timestamp, timestamp))
 
 
-def test_study_runtime_status_resumes_platform_repair_current_controller_redrive_despite_existing_adoption(
+def test_progress_projection_resumes_platform_repair_current_controller_redrive_despite_existing_adoption(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -42,7 +42,7 @@ def test_study_runtime_status_resumes_platform_repair_current_controller_redrive
                 "continuation_anchor": "decision",
                 "continuation_reason": "controller_work_unit_pending",
                 "last_controller_decision_authorization": {
-                    "source": "domain_route_scan_platform_repair",
+                    "source": "owner_route_reconcile_platform_repair",
                     "work_unit_id": "analysis_claim_evidence_repair",
                     "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
                 },
@@ -198,7 +198,7 @@ def test_study_runtime_status_resumes_platform_repair_current_controller_redrive
     assert "controller_work_unit_evidence_adoption" not in result
 
 
-def test_study_runtime_status_hides_stale_authorization_when_newer_hard_methodology_handoff_exists(
+def test_progress_projection_hides_stale_authorization_when_newer_hard_methodology_handoff_exists(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -453,7 +453,7 @@ def test_study_runtime_status_hides_stale_authorization_when_newer_hard_methodol
         lambda *, workspace_root: _clear_readiness_report(workspace_root, study_id),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id=study_id,
         include_progress_projection=False,

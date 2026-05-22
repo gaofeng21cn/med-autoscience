@@ -299,7 +299,7 @@ def test_paused_submission_metadata_package_routes_to_ai_reviewer_quality_owner(
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -399,7 +399,7 @@ def test_waiting_submission_metadata_package_routes_current_ai_reviewer_write_ro
         ),
     )
 
-    status = module.study_runtime_status(
+    status = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -509,7 +509,7 @@ def test_user_paused_submission_metadata_package_routes_current_ai_reviewer_tran
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -624,7 +624,7 @@ def test_live_submission_metadata_package_keeps_ai_reviewer_quality_owner(
         },
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -733,7 +733,7 @@ def test_live_submission_metadata_package_keeps_current_ai_reviewer_write_routeb
         },
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,
@@ -848,7 +848,7 @@ def test_active_submission_metadata_package_redrives_current_ai_reviewer_write_r
         },
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,

@@ -851,7 +851,7 @@ def build_provider_availability_from_opl_proof(
                 "provider_residency_proven": True,
                 "provider_completion_is_paper_closure": False,
                 "paper_closure_requires_mas_owner_receipt": True,
-                "mas_runtime_watch_role": "domain_truth_and_local_diagnostics",
+                "mas_domain_health_diagnostic_role": "domain_truth_and_local_diagnostics",
             },
         }
     return {

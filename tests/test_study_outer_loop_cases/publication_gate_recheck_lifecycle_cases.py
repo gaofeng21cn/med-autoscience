@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_build_runtime_watch_outer_loop_tick_request_honors_closed_publication_work_unit_lifecycle(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_honors_closed_publication_work_unit_lifecycle(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -109,13 +109,13 @@ def test_build_runtime_watch_outer_loop_tick_request_honors_closed_publication_w
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module(),
+        _domain_health_diagnostic_tick_request_module(),
         "recommended_task_intake_action",
         lambda **_: {
             "action_id": "task-intake::001-risk::write",
@@ -157,7 +157,7 @@ def test_build_runtime_watch_outer_loop_tick_request_honors_closed_publication_w
         },
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",

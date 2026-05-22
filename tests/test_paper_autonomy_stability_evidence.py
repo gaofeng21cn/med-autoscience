@@ -117,7 +117,7 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
         assert kwargs["apply_safe_actions"] is False
         assert kwargs["persist_surfaces"] is False
         return {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "studies": [
                 {
                     "study_id": "001-active",
@@ -132,7 +132,7 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
             "action_queue": [],
         }
 
-    monkeypatch.setattr(module.domain_route_scan, "scan_domain_routes", fake_scan)
+    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan)
     monkeypatch.setattr(
         module.domain_action_request_materializer,
         "materialize_domain_action_requests",
@@ -235,7 +235,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
         suffix = "before" if not fake_scan.seen else "after"
         fake_scan.seen = True
         return {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "studies": [
                 {
                     "study_id": "001-active",
@@ -250,7 +250,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
         }
 
     fake_scan.seen = False
-    monkeypatch.setattr(module.domain_route_scan, "scan_domain_routes", fake_scan)
+    monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan)
     monkeypatch.setattr(
         module.domain_action_request_materializer,
         "materialize_domain_action_requests",

@@ -62,7 +62,7 @@ def test_study_progress_freshness_does_not_treat_control_surface_as_artifact_del
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "002-dm",
@@ -202,7 +202,7 @@ def test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "002-dm",
@@ -306,7 +306,7 @@ def test_study_progress_counts_runtime_closeout_paper_outputs_as_artifact_delta(
     )
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "003-dm",

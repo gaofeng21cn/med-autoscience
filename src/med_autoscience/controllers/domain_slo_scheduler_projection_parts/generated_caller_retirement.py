@@ -219,7 +219,7 @@ def build_physical_retirement_gate_matrix(
                 surface_id="runtime_transport",
                 code_paths=[
                     "src/med_autoscience/runtime_transport/",
-                    "src/med_autoscience/controllers/runtime_watch_outer_loop_dispatch.py",
+                    "src/med_autoscience/controllers/domain_health_diagnostic_outer_loop_dispatch.py",
                     "src/med_autoscience/controllers/recovery_intent_ledger.py",
                 ],
                 active_caller_status="domain_receipt_adapter_active",
@@ -344,18 +344,18 @@ def build_physical_retirement_gate_matrix(
                 surface_id="status_projection",
                 code_paths=[
                     "src/med_autoscience/controllers/product_entry_parts/",
-                    "src/med_autoscience/controllers/study_runtime_status.py",
+                    "src/med_autoscience/controllers/progress_projection.py",
                 ],
                 active_caller_status="domain_truth_status_projection_active",
                 retained_as="domain_truth_status_projection",
                 delete_gate_status="blocked_domain_truth_status_projection_active",
                 gate_results=_not_ready_gate_results(
                     opl_replacement_parity="opl_generated_status_default_required",
-                    mas_owner_receipt_parity="study_runtime_status_truth_refs_required",
+                    mas_owner_receipt_parity="progress_projection_truth_refs_required",
                     tombstone_refs_landed="landed_for_retired_legacy_only",
                 ),
                 active_domain_or_diagnostic_callers=[
-                    "study_runtime_status domain truth projection",
+                    "progress_projection domain truth projection",
                     "product-entry status read model",
                 ],
             ),

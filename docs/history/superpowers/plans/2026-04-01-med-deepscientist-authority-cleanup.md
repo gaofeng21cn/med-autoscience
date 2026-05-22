@@ -57,7 +57,7 @@ Expected: PASS
 - Modify: `/Users/gaofeng/workspace/med-autoscience/tests/test_workspace_init.py`
 - Modify: `/Users/gaofeng/workspace/med-autoscience/tests/test_study_runtime_router.py`
 - Modify: `/Users/gaofeng/workspace/med-autoscience/tests/test_medical_startup_contract_support.py`
-- Modify: `/Users/gaofeng/workspace/med-autoscience/tests/test_runtime_watch.py`
+- Modify: `/Users/gaofeng/workspace/med-autoscience/tests/test_domain_health_diagnostic.py`
 
 - [ ] **Step 1: 先把 contract / init / router 测试改成 `ops/med-deepscientist`**
 
@@ -68,7 +68,7 @@ med_deepscientist_runtime_root: /tmp/workspace/ops/med-deepscientist/runtime
 
 - [ ] **Step 2: 运行 contract / init / router 测试确认失败**
 
-Run: `pytest /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_contracts.py /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_init.py /Users/gaofeng/workspace/med-autoscience/tests/test_study_runtime_router.py /Users/gaofeng/workspace/med-autoscience/tests/test_medical_startup_contract_support.py /Users/gaofeng/workspace/med-autoscience/tests/test_runtime_watch.py -q`
+Run: `pytest /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_contracts.py /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_init.py /Users/gaofeng/workspace/med-autoscience/tests/test_study_runtime_router.py /Users/gaofeng/workspace/med-autoscience/tests/test_medical_startup_contract_support.py /Users/gaofeng/workspace/med-autoscience/tests/test_domain_health_diagnostic.py -q`
 Expected: FAIL，错误集中在旧路径 `ops/deepscientist` 与旧字段名
 
 - [ ] **Step 3: 实现新 contract 与 bootstrap**
@@ -80,7 +80,7 @@ med_deepscientist_ops_root = profile.workspace_root / "ops" / "med-deepscientist
 
 - [ ] **Step 4: 跑回 contract / init / router 测试**
 
-Run: `pytest /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_contracts.py /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_init.py /Users/gaofeng/workspace/med-autoscience/tests/test_study_runtime_router.py /Users/gaofeng/workspace/med-autoscience/tests/test_medical_startup_contract_support.py /Users/gaofeng/workspace/med-autoscience/tests/test_runtime_watch.py -q`
+Run: `pytest /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_contracts.py /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_init.py /Users/gaofeng/workspace/med-autoscience/tests/test_study_runtime_router.py /Users/gaofeng/workspace/med-autoscience/tests/test_medical_startup_contract_support.py /Users/gaofeng/workspace/med-autoscience/tests/test_domain_health_diagnostic.py -q`
 Expected: PASS
 
 ### Task 3: 切换 overlay installer 到 med-deepscientist skill surface
@@ -187,7 +187,7 @@ Expected: 只保留 `med-deepscientist-*` 的医学 overlay 目录
 
 - [ ] **Step 1: 运行本次改动覆盖到的 pytest 子集**
 
-Run: `pytest /Users/gaofeng/workspace/med-autoscience/tests/test_profiles.py /Users/gaofeng/workspace/med-autoscience/tests/test_overlay_installer.py /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_contracts.py /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_init.py /Users/gaofeng/workspace/med-autoscience/tests/test_study_runtime_router.py /Users/gaofeng/workspace/med-autoscience/tests/test_cli.py /Users/gaofeng/workspace/med-autoscience/tests/test_mcp_server.py /Users/gaofeng/workspace/med-autoscience/tests/test_submission_targets.py /Users/gaofeng/workspace/med-autoscience/tests/test_submission_targets_controller.py /Users/gaofeng/workspace/med-autoscience/tests/test_medical_startup_contract_support.py /Users/gaofeng/workspace/med-autoscience/tests/test_runtime_watch.py -q`
+Run: `pytest /Users/gaofeng/workspace/med-autoscience/tests/test_profiles.py /Users/gaofeng/workspace/med-autoscience/tests/test_overlay_installer.py /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_contracts.py /Users/gaofeng/workspace/med-autoscience/tests/test_workspace_init.py /Users/gaofeng/workspace/med-autoscience/tests/test_study_runtime_router.py /Users/gaofeng/workspace/med-autoscience/tests/test_cli.py /Users/gaofeng/workspace/med-autoscience/tests/test_mcp_server.py /Users/gaofeng/workspace/med-autoscience/tests/test_submission_targets.py /Users/gaofeng/workspace/med-autoscience/tests/test_submission_targets_controller.py /Users/gaofeng/workspace/med-autoscience/tests/test_medical_startup_contract_support.py /Users/gaofeng/workspace/med-autoscience/tests/test_domain_health_diagnostic.py -q`
 Expected: PASS
 
 - [ ] **Step 2: 扫描活动控制面残留**

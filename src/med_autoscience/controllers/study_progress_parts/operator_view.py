@@ -42,11 +42,11 @@ def _study_command_surfaces(
     return {
         "workspace_cockpit": f"{prefix} workspace cockpit --profile {profile_arg}",
         "study_progress": f"{prefix} study progress --profile {profile_arg} {selector}",
-        "study_runtime_status": f"{prefix} study-runtime-status --profile {profile_arg} {selector}",
+        "progress_projection": f"{prefix} study progress-projection --profile {profile_arg} {selector}",
         "quality_repair_batch": f"{prefix} study quality-repair-batch --profile {profile_arg} {selector}",
         "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
         "refresh_supervision": (
-            f"{prefix} runtime watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+            f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
             f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
         ),
     }
@@ -77,7 +77,7 @@ def _recovery_contract(
             _recovery_step(
                 step_id="refresh_supervision",
                 title="刷新 OPL runtime manager domain route tick",
-                surface_kind="runtime_watch_refresh",
+                surface_kind="domain_health_diagnostic_refresh",
                 command=commands["refresh_supervision"],
             ),
             _recovery_step(
@@ -89,8 +89,8 @@ def _recovery_contract(
             _recovery_step(
                 step_id="inspect_runtime_status",
                 title="读取结构化运行真相",
-                surface_kind="study_runtime_status",
-                command=commands["study_runtime_status"],
+                surface_kind="progress_projection",
+                command=commands["progress_projection"],
             ),
         ]
         action_mode = "refresh_supervision"
@@ -105,8 +105,8 @@ def _recovery_contract(
             _recovery_step(
                 step_id="inspect_runtime_status",
                 title="读取结构化运行真相",
-                surface_kind="study_runtime_status",
-                command=commands["study_runtime_status"],
+                surface_kind="progress_projection",
+                command=commands["progress_projection"],
             ),
             _recovery_step(
                 step_id="inspect_study_progress",
@@ -166,8 +166,8 @@ def _recovery_contract(
             _recovery_step(
                 step_id="inspect_runtime_status",
                 title="读取结构化运行真相",
-                surface_kind="study_runtime_status",
-                command=commands["study_runtime_status"],
+                surface_kind="progress_projection",
+                command=commands["progress_projection"],
             ),
             _recovery_step(
                 step_id="open_workspace_cockpit",
@@ -188,8 +188,8 @@ def _recovery_contract(
             _recovery_step(
                 step_id="inspect_runtime_status",
                 title="读取结构化运行真相",
-                surface_kind="study_runtime_status",
-                command=commands["study_runtime_status"],
+                surface_kind="progress_projection",
+                command=commands["progress_projection"],
             ),
         ]
         action_mode = "monitor_only"
@@ -253,11 +253,11 @@ def _restore_point(
 def _latest_outer_loop_dispatch(
     *,
     study_id: str,
-    runtime_watch_payload: dict[str, Any] | None,
+    domain_health_diagnostic_payload: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     dispatch_block = (
-        dict((runtime_watch_payload or {}).get("managed_study_outer_loop_dispatch") or {})
-        if isinstance((runtime_watch_payload or {}).get("managed_study_outer_loop_dispatch"), dict)
+        dict((domain_health_diagnostic_payload or {}).get("managed_study_outer_loop_dispatch") or {})
+        if isinstance((domain_health_diagnostic_payload or {}).get("managed_study_outer_loop_dispatch"), dict)
         else {}
     )
     if dispatch_block and _non_empty_text(dispatch_block.get("study_id")) == study_id:
@@ -265,7 +265,7 @@ def _latest_outer_loop_dispatch(
     else:
         dispatches = [
             dict(item)
-            for item in ((runtime_watch_payload or {}).get("managed_study_outer_loop_dispatches") or [])
+            for item in ((domain_health_diagnostic_payload or {}).get("managed_study_outer_loop_dispatches") or [])
             if isinstance(item, dict)
         ]
     for item in reversed(dispatches):
@@ -303,7 +303,7 @@ def _autonomy_contract(
     next_system_action: str,
     continuation_state: dict[str, Any],
     family_checkpoint_lineage: dict[str, Any],
-    runtime_watch_payload: dict[str, Any] | None,
+    domain_health_diagnostic_payload: dict[str, Any] | None,
     needs_physician_decision: bool,
     manual_finish_contract: dict[str, Any] | None,
     auto_runtime_parked: dict[str, Any] | None,
@@ -315,7 +315,7 @@ def _autonomy_contract(
     )
     latest_outer_loop_dispatch = _latest_outer_loop_dispatch(
         study_id=study_id,
-        runtime_watch_payload=runtime_watch_payload,
+        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
     )
     lane_id = _non_empty_text(intervention_lane.get("lane_id")) or "monitor_only"
     if bool((auto_runtime_parked or {}).get("parked")):
@@ -366,7 +366,7 @@ def _autonomy_soak_status(
     *,
     autonomy_contract: dict[str, Any],
     progress_freshness: dict[str, Any],
-    runtime_watch_path: Path | None,
+    domain_health_diagnostic_path: Path | None,
     controller_decision_path: Path,
 ) -> dict[str, Any] | None:
     latest_outer_loop_dispatch = dict(autonomy_contract.get("latest_outer_loop_dispatch") or {})
@@ -386,7 +386,7 @@ def _autonomy_soak_status(
         "proof_refs": [
             ref
             for ref in (
-                str(runtime_watch_path) if runtime_watch_path is not None else None,
+                str(domain_health_diagnostic_path) if domain_health_diagnostic_path is not None else None,
                 str(controller_decision_path),
             )
             if ref is not None
@@ -407,7 +407,7 @@ def _research_runtime_control_projection(
     publication_eval_ref: str,
     controller_decision_ref: str,
     runtime_supervision_ref: str | None,
-    runtime_watch_ref: str | None,
+    domain_health_diagnostic_ref: str | None,
 ) -> dict[str, Any]:
     restore_point = _mapping_copy(autonomy_contract.get("restore_point"))
     interrupt_policy = _non_empty_text(intervention_lane.get("recommended_action_id"))
@@ -416,7 +416,7 @@ def _research_runtime_control_projection(
         publication_eval_ref=publication_eval_ref,
         controller_decision_ref=controller_decision_ref,
         runtime_supervision_ref=runtime_supervision_ref,
-        runtime_watch_ref=runtime_watch_ref,
+        domain_health_diagnostic_ref=domain_health_diagnostic_ref,
     )
     return {
         "surface_kind": "research_runtime_control_projection",
@@ -459,7 +459,7 @@ def _research_runtime_control_projection(
                 "publication_eval_path": publication_eval_ref,
                 "controller_decision_path": controller_decision_ref,
                 "runtime_supervision_path": runtime_supervision_ref,
-                "runtime_watch_report_path": runtime_watch_ref,
+                "domain_health_diagnostic_report_path": domain_health_diagnostic_ref,
             },
         },
         "artifact_pickup_surface": {
@@ -469,14 +469,14 @@ def _research_runtime_control_projection(
                 "refs.publication_eval_path",
                 "refs.controller_decision_path",
                 "refs.runtime_supervision_path",
-                "refs.runtime_watch_report_path",
+                "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs": pickup_refs,
         },
         "command_templates": {
             "resume": _non_empty_text(study_commands.get("launch_study")),
             "check_progress": _non_empty_text(study_commands.get("study_progress")),
-            "check_runtime_status": _non_empty_text(study_commands.get("study_runtime_status")),
+            "check_runtime_status": _non_empty_text(study_commands.get("progress_projection")),
         },
         "research_gate_surface": {
             "surface_kind": "study_progress",
@@ -590,8 +590,8 @@ def _latest_events(
     publication_eval_path: Path,
     controller_decision_payload: dict[str, Any] | None,
     controller_decision_path: Path,
-    runtime_watch_payload: dict[str, Any] | None,
-    runtime_watch_path: Path | None,
+    domain_health_diagnostic_payload: dict[str, Any] | None,
+    domain_health_diagnostic_path: Path | None,
     details_projection_payload: dict[str, Any] | None,
     details_projection_path: Path | None,
     bash_summary_payload: dict[str, Any] | None,
@@ -682,8 +682,8 @@ def _latest_events(
         )
         if item is not None:
             events.append(item)
-    if runtime_watch_payload is not None:
-        publication_gate = ((runtime_watch_payload.get("controllers") or {}).get("publication_gate"))
+    if domain_health_diagnostic_payload is not None:
+        publication_gate = ((domain_health_diagnostic_payload.get("controllers") or {}).get("publication_gate"))
         if not _publication_supervisor_state_conflicts(
             current=publication_supervisor_state,
             candidate=publication_gate if isinstance(publication_gate, dict) else None,
@@ -704,12 +704,12 @@ def _latest_events(
                     if blockers:
                         watch_summary = blockers[0]
             item = _event(
-                timestamp=_non_empty_text(runtime_watch_payload.get("scanned_at")),
-                category="runtime_watch",
+                timestamp=_non_empty_text(domain_health_diagnostic_payload.get("scanned_at")),
+                category="domain_health_diagnostic",
                 title="运行时巡检完成",
                 summary=watch_summary,
-                source="runtime_watch",
-                artifact_path=runtime_watch_path,
+                source="domain_health_diagnostic",
+                artifact_path=domain_health_diagnostic_path,
             )
             if item is not None:
                 events.append(item)

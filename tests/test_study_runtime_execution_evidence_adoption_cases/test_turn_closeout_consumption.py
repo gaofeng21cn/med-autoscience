@@ -60,7 +60,7 @@ def test_execute_noop_runtime_decision_adopts_active_run_completed_turn_closeout
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -135,7 +135,7 @@ def test_execute_noop_runtime_decision_ignores_non_active_turn_closeout(
     status_payload = _base_status_payload()
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -209,7 +209,7 @@ def test_execute_noop_runtime_decision_adopts_prior_delivered_run_closeout_after
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status_payload["active_run_id"] = "run-next"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -340,7 +340,7 @@ def test_execute_noop_runtime_decision_refreshes_prior_adoption_with_newer_deliv
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status_payload["active_run_id"] = "run-next"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -447,7 +447,7 @@ def test_execute_noop_runtime_decision_adopts_post_authorization_story_closeout_
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status_payload["active_run_id"] = "run-next"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -530,7 +530,7 @@ def test_completed_story_repair_adoption_closes_publication_work_unit_lifecycle(
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status_payload["active_run_id"] = "run-next"
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
@@ -651,7 +651,7 @@ def test_existing_completed_adoption_before_decision_refreshes_publication_work_
     status_payload["study_root"] = str(study_root)
     status_payload["quest_root"] = str(quest_root)
     status_payload["active_run_id"] = None
-    status = module.StudyRuntimeStatus.from_payload(status_payload)
+    status = module.ProgressProjectionStatus.from_payload(status_payload)
 
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:

@@ -192,8 +192,8 @@ def build_workbench_status_active_path_gates(
             "residue_class": "status_projection",
             "current_paths": [
                 "src/med_autoscience/controllers/product_entry_parts/",
-                "src/med_autoscience/controllers/study_runtime_status.py",
-                "src/med_autoscience/controllers/study_runtime_status_parts/",
+                "src/med_autoscience/controllers/progress_projection.py",
+                "src/med_autoscience/controllers/progress_projection_parts/",
             ],
             "current_role": "domain_truth_status_projection",
             "active_caller_status": "active_domain_truth_status_projection_caller_present",
@@ -201,15 +201,15 @@ def build_workbench_status_active_path_gates(
             "opl_replacement_parity_status": (
                 "opl_generated_status_default_projected_not_physical_delete_ready"
             ),
-            "domain_receipt_parity_status": "pending_study_runtime_status_truth_ref_parity",
+            "domain_receipt_parity_status": "pending_progress_projection_truth_ref_parity",
             "active_caller_proof_refs": [
                 "physical_retirement_gate_matrix.retirement_candidates.status_projection",
                 "functional_module_inventory.study_truth.active_callers",
             ],
             "focused_test_refs": [
-                "tests/test_study_runtime_status_evidence_adoption.py",
+                "tests/test_progress_projection_evidence_adoption.py",
                 "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-                "tests/test_runtime_watch_cases/runtime_status_cases.py",
+                "tests/test_domain_health_diagnostic_cases/runtime_status_cases.py",
             ],
         },
     )

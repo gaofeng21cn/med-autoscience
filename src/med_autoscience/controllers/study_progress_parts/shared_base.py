@@ -154,7 +154,7 @@ _LATEST_EVENT_DISPLAY_TIERS = {
     "controller_decision": 0,
     "publication_eval": 0,
     "runtime_escalation": 0,
-    "runtime_watch": 1,
+    "domain_health_diagnostic": 1,
     "launch_report": 2,
 }
 _HUMAN_SURFACE_REFRESH_BLOCKER_LABELS = {
@@ -180,7 +180,7 @@ def _status_payload(result: Any) -> dict[str, Any]:
         if not isinstance(payload, dict):
             raise TypeError("study_progress status surface to_dict() must return a mapping")
         return dict(payload)
-    raise TypeError("study_progress requires study_runtime_status to return a mapping-like payload")
+    raise TypeError("study_progress requires progress_projection to return a mapping-like payload")
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:
@@ -237,7 +237,7 @@ def _runtime_control_pickup_refs(
     publication_eval_ref: object = None,
     controller_decision_ref: object = None,
     runtime_supervision_ref: object = None,
-    runtime_watch_ref: object = None,
+    domain_health_diagnostic_ref: object = None,
 ) -> list[str]:
     refs = dict(refs_payload or {})
     candidates = [
@@ -249,8 +249,8 @@ def _runtime_control_pickup_refs(
         _non_empty_text(refs.get("controller_decision_path")),
         _non_empty_text(runtime_supervision_ref),
         _non_empty_text(refs.get("runtime_supervision_path")),
-        _non_empty_text(runtime_watch_ref),
-        _non_empty_text(refs.get("runtime_watch_report_path")),
+        _non_empty_text(domain_health_diagnostic_ref),
+        _non_empty_text(refs.get("domain_health_diagnostic_report_path")),
     ]
     ordered_refs: list[str] = []
     for ref in candidates:
@@ -316,7 +316,7 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
                 "refs.publication_eval_path",
                 "refs.controller_decision_path",
                 "refs.runtime_supervision_path",
-                "refs.runtime_watch_report_path",
+                "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs": pickup_refs,
         },

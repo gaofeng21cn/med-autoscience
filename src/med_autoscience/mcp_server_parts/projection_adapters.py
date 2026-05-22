@@ -21,10 +21,10 @@ def serialize_study_runtime_result(result: dict[str, Any] | Any) -> dict[str, An
         payload = to_dict()
         if isinstance(payload, dict):
             return dict(payload)
-    raise TypeError("study runtime controller result must be dict or StudyRuntimeStatus")
+    raise TypeError("study runtime controller result must be dict or ProgressProjectionStatus")
 
 
-def render_study_runtime_status_result(result: dict[str, Any] | Any) -> dict[str, Any]:
+def render_progress_projection_result(result: dict[str, Any] | Any) -> dict[str, Any]:
     serialized = serialize_study_runtime_result(result)
     progress_projection = serialized.get("progress_projection")
     if isinstance(progress_projection, dict):

@@ -245,7 +245,7 @@ def test_launch_report_write_truncates_stale_tail(tmp_path: Path) -> None:
                 },
             },
         },
-        source="study_runtime_status",
+        source="progress_projection",
         force=False,
         startup_payload_path=None,
         daemon_result=None,

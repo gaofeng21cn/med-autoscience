@@ -17,7 +17,7 @@ def test_runtime_event_record_round_trips_and_writes_latest_alias(tmp_path: Path
         study_id="001-risk",
         quest_id="quest-001",
         emitted_at="2026-04-11T09:00:00+00:00",
-        event_source="study_runtime_status",
+        event_source="progress_projection",
         event_kind="status_observed",
         summary_ref=str(launch_report_path),
         status_snapshot={

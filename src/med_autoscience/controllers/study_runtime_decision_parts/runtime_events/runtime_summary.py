@@ -16,7 +16,7 @@ def _public_executor_source_surface(execution: dict[str, Any]) -> str:
 
 def _record_family_orchestration_companion(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
     runtime_context: study_runtime_protocol.StudyRuntimeContext,
 ) -> None:
@@ -48,9 +48,9 @@ def _record_family_orchestration_companion(
         event_time=event_time,
     )
     family_payload = family_orchestration.build_family_orchestration_companion(
-        surface_kind="study_runtime_status",
-        surface_id="study_runtime_status",
-        event_name=f"study_runtime_status.{runtime_decision or 'observed'}",
+        surface_kind="progress_projection",
+        surface_id="progress_projection",
+        event_name=f"progress_projection.{runtime_decision or 'observed'}",
         source_surface=_public_executor_source_surface(status.execution),
         session_id=f"study-runtime:{status.study_id}",
         program_id=family_orchestration.resolve_program_id(status.execution),
@@ -67,8 +67,8 @@ def _record_family_orchestration_companion(
             "controller_owned_finalize_parking": snapshot.get("controller_owned_finalize_parking"),
         },
         event_time=event_time,
-        checkpoint_id=f"study-runtime-status:{status.study_id}:{runtime_decision or 'unknown'}",
-        checkpoint_label="study_runtime_status snapshot",
+        checkpoint_id=f"progress-projection:{status.study_id}:{runtime_decision or 'unknown'}",
+        checkpoint_label="progress_projection snapshot",
         audit_refs=[
             {
                 "ref_kind": "repo_path",
@@ -86,8 +86,8 @@ def _record_family_orchestration_companion(
             else {},
             {
                 "ref_kind": "repo_path",
-                "ref": str(quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"),
-                "label": "runtime_watch_latest",
+                "ref": str(quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"),
+                "label": "domain_health_diagnostic_latest",
             },
         ],
         state_refs=[
@@ -121,10 +121,10 @@ def _record_family_orchestration_companion(
         if runtime_event_artifact_path
         else [],
         action_graph_id="mas_runtime_orchestration",
-        node_id="study_runtime_status",
+        node_id="progress_projection",
         gate_id=(human_gates[0].get("gate_id") if human_gates else None),
         resume_mode="reenter_human_gate" if human_gates else "resume_from_checkpoint",
-        resume_handle=f"study_runtime_status:{status.study_id}:{runtime_decision or 'unknown'}",
+        resume_handle=f"progress_projection:{status.study_id}:{runtime_decision or 'unknown'}",
         human_gate_required=bool(human_gates),
         human_gates=human_gates,
     )
@@ -155,7 +155,7 @@ def _launch_report_supervisor_tick_status(payload: dict[str, object]) -> str | N
 
 def _record_runtime_event(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     runtime_context: study_runtime_protocol.StudyRuntimeContext,
     runtime_backend=None,
 ) -> None:
@@ -192,7 +192,7 @@ def _record_runtime_event(
 
 def _sync_runtime_summary_if_needed(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     runtime_context: study_runtime_protocol.StudyRuntimeContext,
 ) -> None:
     current_snapshot = _runtime_event_status_snapshot(status)
@@ -266,7 +266,7 @@ def _sync_runtime_summary_if_needed(
             quest_id=status.quest_id if status.quest_exists else None,
             last_action=None,
             status=status.to_dict(),
-            source="study_runtime_status",
+            source="progress_projection",
             force=False,
             startup_payload_path=None,
             daemon_result=None,
@@ -275,7 +275,7 @@ def _sync_runtime_summary_if_needed(
         status_sync_applied = True
     status.record_runtime_summary_alignment(
         StudyRuntimeSummaryAlignment(
-            source_of_truth="study_runtime_status",
+            source_of_truth="progress_projection",
             runtime_state_path=str(_runtime_state_path(runtime_context.quest_root)),
             runtime_state_status=current_quest_status,
             source_active_run_id=current_active_run_id,
@@ -301,7 +301,7 @@ def _sync_runtime_summary_if_needed(
 
 def _should_refresh_runtime_supervision_from_status(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     study_root: Path,
 ) -> bool:
     status_payload = status.to_dict()

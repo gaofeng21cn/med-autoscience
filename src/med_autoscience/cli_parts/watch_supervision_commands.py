@@ -10,11 +10,11 @@ def handle_watch_supervision_command(
     args: argparse.Namespace,
     *,
     parser: argparse.ArgumentParser,
-    runtime_watch: Any,
+    domain_health_diagnostic: Any,
     domain_slo_scheduler_projection: Any,
     load_profile: Any,
 ) -> int | None:
-    if args.command == "watch":
+    if args.command == "domain-health-diagnostic":
         if bool(args.quest_root) == bool(args.runtime_root):
             parser.error("Specify exactly one of --quest-root or --runtime-root")
         if args.quest_root and args.profile:
@@ -30,13 +30,13 @@ def handle_watch_supervision_command(
         if args.apply_supervisor_platform_repair and not args.apply:
             parser.error("--apply-supervisor-platform-repair requires --apply")
         if args.quest_root:
-            result = runtime_watch.run_watch_for_quest(
+            result = domain_health_diagnostic.run_domain_health_diagnostic_for_quest(
                 quest_root=Path(args.quest_root),
                 apply=args.apply,
             )
         else:
             profile = load_profile(args.profile) if args.profile else None
-            result = runtime_watch.run_watch_for_runtime(
+            result = domain_health_diagnostic.run_domain_health_diagnostic_for_runtime(
                 runtime_root=Path(args.runtime_root),
                 apply=args.apply,
                 profile=profile,

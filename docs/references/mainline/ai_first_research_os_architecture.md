@@ -18,7 +18,7 @@
 1. Pre-draft quality runtime：在写作前暴露研究问题、数据资产支撑、reporting guideline、display-to-claim map 和 manuscript-native prose 约束。
 2. AI reviewer workflow：由 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter，再写回 publication-facing 质量判断。
 3. Artifact rebuild proof：manuscript、figures、tables 与 submission package 从 canonical source 重建，交付判断依赖可回放产物链。
-4. Operations state：`study_runtime_status`、`runtime_watch`、`publication_eval/latest.json` 与 `controller_decisions/latest.json` 投影当前阶段、阻塞、恢复点和下一步。
+4. Operations state：`progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json` 与 `controller_decisions/latest.json` 投影当前阶段、阻塞、恢复点和下一步。
 5. Real-paper soak：用真实论文线验证长期自治、质量闭环、AI reviewer 判断、产物重建和 human gate 是否持续成立。
 
 真实论文 soak 仍是主要证据缺口。目标层的 Evaluation OS、Observability OS 或 MDS Deconstruction 不能仅因写入本文就被表述成已经完全落地。

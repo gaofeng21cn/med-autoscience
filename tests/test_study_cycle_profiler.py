@@ -315,7 +315,7 @@ def test_study_cycle_profiler_suppresses_repeated_decision_after_work_unit_dedup
             },
         )
     _write_json(
-        study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json",
+        study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json",
         {
             "recorded_at": "2026-04-25T00:12:00+00:00",
             "outcome": "skipped_matching_work_unit",
@@ -332,7 +332,7 @@ def test_study_cycle_profiler_suppresses_repeated_decision_after_work_unit_dedup
     )
 
     assert profile_payload["controller_decision_fingerprints"]["top_repeats"][0]["count"] == 2
-    assert profile_payload["runtime_watch_wakeup_dedupe_summary"]["status"] == "dedupe_confirmed"
+    assert profile_payload["domain_health_diagnostic_wakeup_dedupe_summary"]["status"] == "dedupe_confirmed"
     assert "repeated_controller_decision" not in {
         item["bottleneck_id"] for item in profile_payload["bottlenecks"]
     }
@@ -360,7 +360,7 @@ def test_study_cycle_profiler_treats_concrete_work_unit_dispatch_as_not_controll
             },
         )
     _write_json(
-        study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json",
+        study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json",
         {
             "recorded_at": "2026-04-25T00:10:54+00:00",
             "outcome": "dispatched",
@@ -377,7 +377,7 @@ def test_study_cycle_profiler_treats_concrete_work_unit_dispatch_as_not_controll
         since="2026-04-25T00:00:00+00:00",
     )
 
-    assert profile_payload["runtime_watch_wakeup_dedupe_summary"]["status"] == "work_unit_dispatched"
+    assert profile_payload["domain_health_diagnostic_wakeup_dedupe_summary"]["status"] == "work_unit_dispatched"
     assert "repeated_controller_decision" not in {
         item["bottleneck_id"] for item in profile_payload["bottlenecks"]
     }
@@ -606,7 +606,7 @@ def test_workspace_cycle_profiler_renders_markdown() -> None:
                     "action_unit_id": "optimization-action::001-risk::runtime_recovery_churn",
                     "study_id": "001-risk",
                     "action_type": "probe_runtime_recovery",
-                    "controller_surface": "runtime_watch",
+                    "controller_surface": "domain_health_diagnostic",
                     "priority": "now",
                 }
             ],
@@ -676,7 +676,7 @@ def test_workspace_cycle_profiler_emits_action_units_and_scheduler_queue(tmp_pat
         "refresh_current_package_after_settle",
     ]
     assert all(item["study_id"] == "001-risk" for item in action_units)
-    assert action_units[0]["controller_surface"] == "runtime_watch"
+    assert action_units[0]["controller_surface"] == "domain_health_diagnostic"
     assert action_units[2]["controller_surface"] == "gate_clearing_batch"
     assert payload["workspace_scheduler"]["ready_action_unit_ids"] == [
         item["action_unit_id"] for item in action_units

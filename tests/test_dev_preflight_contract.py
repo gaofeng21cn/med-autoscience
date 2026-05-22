@@ -260,13 +260,13 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "src/med_autoscience/controllers/study_runtime_decision.py",
             "src/med_autoscience/controllers/study_runtime_resolution.py",
             "src/med_autoscience/controllers/study_runtime_router.py",
-            "src/med_autoscience/controllers/runtime_watch.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic.py",
             "src/med_autoscience/runtime_transport/mas_runtime_core.py",
             "tests/test_profiles.py",
             "tests/test_runtime_backend.py",
             "tests/test_runtime_protocol_layout.py",
             "tests/test_runtime_protocol_study_runtime.py",
-            "tests/test_runtime_watch.py",
+            "tests/test_domain_health_diagnostic.py",
         ]
     )
 
@@ -471,8 +471,8 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
-            "src/med_autoscience/controllers/runtime_watch_parts/control_plane_gate.py",
-            "src/med_autoscience/controllers/runtime_watch_parts/managed_wakeup.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/control_plane_gate.py",
+            "src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_wakeup.py",
             "src/med_autoscience/controllers/study_progress_parts/projection.py",
             "src/med_autoscience/controllers/study_progress_parts/projection_quality_surfaces.py",
             "src/med_autoscience/controllers/study_progress_parts/projection_runtime_surfaces.py",
@@ -741,7 +741,7 @@ def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proo
     assert "scripts/run-pytest-clean.sh tests/test_workspace_init.py -q" in commands
     assert "make test-meta" in commands
     assert "scripts/run-pytest-clean.sh tests/test_work_unit_runtime_contract.py -q" not in commands
-    assert "scripts/run-pytest-clean.sh tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in commands
+    assert "scripts/run-pytest-clean.sh tests/test_domain_health_diagnostic.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in commands
 
 
 def test_plan_commands_for_runtime_contract_surface_include_mas_runtime_proofs() -> None:

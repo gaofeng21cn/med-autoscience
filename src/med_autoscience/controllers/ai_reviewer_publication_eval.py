@@ -86,7 +86,7 @@ def materialize_ai_reviewer_publication_eval_record(
         raise ValueError("Specify exactly one of study_id or study_root")
 
     status_payload = _mapping_payload(
-        study_runtime_router.study_runtime_status(
+        study_runtime_router.progress_projection(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
@@ -131,7 +131,7 @@ def materialize_ai_reviewer_publication_eval(
         raise ValueError("Specify exactly one of study_id or study_root")
 
     status_payload = _mapping_payload(
-        study_runtime_router.study_runtime_status(
+        study_runtime_router.progress_projection(
             profile=profile,
             study_id=study_id,
             study_root=study_root,

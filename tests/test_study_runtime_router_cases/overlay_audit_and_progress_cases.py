@@ -1,5 +1,5 @@
 from .shared import *  # noqa: F403
-def test_study_runtime_status_refreshes_runtime_supervision_when_launch_report_is_already_aligned(
+def test_progress_projection_refreshes_runtime_supervision_when_launch_report_is_already_aligned(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -142,7 +142,7 @@ def test_study_runtime_status_refreshes_runtime_supervision_when_launch_report_i
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["runtime_summary_alignment"]["aligned"] is True
     refreshed_runtime_supervision = json.loads(
@@ -666,7 +666,7 @@ def test_ensure_study_runtime_keeps_live_audit_blocked_even_if_overlay_audit_fai
     assert result["runtime_overlay"]["audit"]["all_roots_ready"] is False
 
 
-def test_study_runtime_status_reports_waiting_for_user_quest_as_blocked(monkeypatch, tmp_path: Path) -> None:
+def test_progress_projection_reports_waiting_for_user_quest_as_blocked(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -699,14 +699,14 @@ def test_study_runtime_status_reports_waiting_for_user_quest_as_blocked(monkeypa
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_user"
     assert result["quest_status"] == "waiting_for_user"
 
 
-def test_study_runtime_status_embeds_progress_projection_by_default(monkeypatch, tmp_path: Path) -> None:
+def test_progress_projection_embeds_progress_projection_by_default(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -760,7 +760,7 @@ def test_study_runtime_status_embeds_progress_projection_by_default(monkeypatch,
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["progress_projection"]["study_id"] == "001-risk"
     assert result["progress_projection"]["current_stage_summary"]
@@ -771,7 +771,7 @@ def test_study_runtime_status_embeds_progress_projection_by_default(monkeypatch,
     assert result["progress_projection"]["next_system_action"]
 
 
-def test_study_runtime_status_materializes_stable_publication_eval_latest(
+def test_progress_projection_materializes_stable_publication_eval_latest(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -872,7 +872,7 @@ def test_study_runtime_status_materializes_stable_publication_eval_latest(
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     assert latest_eval_path.is_file()

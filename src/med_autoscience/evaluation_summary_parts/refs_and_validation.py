@@ -186,7 +186,7 @@ _TASK_INTAKE_NO_PUBLIC_DATA_EXPANSION_HINTS = frozenset(
 _TASK_INTAKE_STATUS_RECHECK_HINTS = frozenset(
     {
         "medical_reporting_audit",
-        "runtime_watch",
+        "domain_health_diagnostic",
         "publication-gate",
         "publication gate",
     }

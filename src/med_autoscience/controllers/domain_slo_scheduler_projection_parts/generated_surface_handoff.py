@@ -68,7 +68,7 @@ def build_generated_surface_handoff(
                 "surface_id": "status",
                 "current_paths": [
                     "src/med_autoscience/controllers/product_entry_parts/",
-                    "src/med_autoscience/controllers/study_runtime_status.py",
+                    "src/med_autoscience/controllers/progress_projection.py",
                 ],
                 "current_role": "domain_truth_plus_migration_bridge_status_wrapper",
                 "target_role": "opl_generated_status_wrapper_over_mas_truth_refs",

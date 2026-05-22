@@ -22,7 +22,7 @@
 1. **质量闭环结构化**
    让 `study_charter`、`paper evidence ledger`、`review ledger` 形成同一条质量总合同与执行记录，覆盖方向锁定后的普通科研推进、论文质量裁决、`bounded_analysis` 边界、reviewer concern 处理与 submission hygiene。
 2. **用户可见真相投影**
-   让 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 形成同一条用户可见、维护可审计的 truth projection，能够解释当前阶段、关键证据、阻塞、下一步、恢复点和 human gate 原因。
+   让 `progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json` 形成同一条用户可见、维护可审计的 truth projection，能够解释当前阶段、关键证据、阻塞、下一步、恢复点和 human gate 原因。
 3. **proof / soak 口径收紧**
    让 proof 直接围绕真实 study 的长期自治、质量裁决与前台 truth 是否一致展开；让 soak 直接围绕长时间运行、停滞恢复、有限补充分析自动收口、投稿前审计前的持续推进是否成立展开。
 

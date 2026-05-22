@@ -47,7 +47,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeDecision,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
     _RESUMABLE_QUEST_STATUSES,
 )
 from med_autoscience.runtime_protocol import quest_state
@@ -62,7 +62,7 @@ _OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS = frozenset(
 )
 
 
-def _stopped_runtime_redrive_reason(result: StudyRuntimeStatus) -> StudyRuntimeReason:
+def _stopped_runtime_redrive_reason(result: ProgressProjectionStatus) -> StudyRuntimeReason:
     interaction_arbitration = result.extras.get("interaction_arbitration")
     reason_code = (
         str(interaction_arbitration.get("reason_code") or "").strip()
@@ -79,7 +79,7 @@ def _stopped_runtime_redrive_reason(result: StudyRuntimeStatus) -> StudyRuntimeR
 
 def _apply_live_quest_status_decision(
     *,
-    result: StudyRuntimeStatus,
+    result: ProgressProjectionStatus,
     router: Any,
     quest_runtime: Any,
     execution: dict[str, object],
@@ -92,8 +92,8 @@ def _apply_live_quest_status_decision(
     task_intake_releases_manual_finish_parking: bool,
     task_intake_yields_to_submission_closeout: bool,
     reviewer_revision_open_blockers_release_manual_finish_parking: bool,
-    finalize_result: Callable[[], StudyRuntimeStatus],
-) -> StudyRuntimeStatus:
+    finalize_result: Callable[[], ProgressProjectionStatus],
+) -> ProgressProjectionStatus:
     audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
     controller_owned_finalize_parking = _is_controller_owned_finalize_parking(result)
     human_review_milestone_parking = _is_human_review_milestone_parking(
@@ -310,8 +310,8 @@ def _apply_live_quest_status_decision(
 
 def _apply_resumable_quest_status_decision(
     *,
-    result: StudyRuntimeStatus,
-    rebuild_status: Callable[[], StudyRuntimeStatus],
+    result: ProgressProjectionStatus,
+    rebuild_status: Callable[[], ProgressProjectionStatus],
     execution: dict[str, object],
     study_root: Path,
     quest_root: Path,
@@ -320,8 +320,8 @@ def _apply_resumable_quest_status_decision(
     task_intake_releases_manual_finish_parking: bool,
     submission_metadata_only_manual_finish: bool,
     bundle_only_manual_finish: bool,
-    finalize_result: Callable[[], StudyRuntimeStatus],
-) -> StudyRuntimeStatus:
+    finalize_result: Callable[[], ProgressProjectionStatus],
+) -> ProgressProjectionStatus:
     if _user_pause_contract_without_live_worker(
         result,
     ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
@@ -432,7 +432,7 @@ def _apply_resumable_quest_status_decision(
 
 def _set_stopped_resume_or_blocked_decision(
     *,
-    result: StudyRuntimeStatus,
+    result: ProgressProjectionStatus,
     execution: dict[str, object],
     resume_reason: StudyRuntimeReason,
     blocked_reason: StudyRuntimeReason,
@@ -466,7 +466,7 @@ def _set_stopped_resume_or_blocked_decision(
 
 def _apply_stopped_or_failed_quest_status_decision(
     *,
-    result: StudyRuntimeStatus,
+    result: ProgressProjectionStatus,
     execution: dict[str, object],
     quest_root: Path,
     quest_status: StudyRuntimeQuestStatus,
@@ -475,8 +475,8 @@ def _apply_stopped_or_failed_quest_status_decision(
     task_intake_yields_to_submission_closeout: bool,
     submission_metadata_only_manual_finish: bool,
     bundle_only_manual_finish: bool,
-    finalize_result: Callable[[], StudyRuntimeStatus],
-) -> StudyRuntimeStatus:
+    finalize_result: Callable[[], ProgressProjectionStatus],
+) -> ProgressProjectionStatus:
     if _user_pause_contract_without_live_worker(
         result,
     ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result):
@@ -615,11 +615,11 @@ def _apply_stopped_or_failed_quest_status_decision(
 
 def _apply_waiting_for_user_status_decision(
     *,
-    result: StudyRuntimeStatus,
+    result: ProgressProjectionStatus,
     submission_metadata_only_wait: bool,
     submission_metadata_only_manual_finish: bool,
-    finalize_result: Callable[[], StudyRuntimeStatus],
-) -> StudyRuntimeStatus:
+    finalize_result: Callable[[], ProgressProjectionStatus],
+) -> ProgressProjectionStatus:
     interaction_arbitration = result.extras.get("interaction_arbitration")
     if isinstance(interaction_arbitration, dict):
         classification = str(interaction_arbitration.get("classification") or "").strip()

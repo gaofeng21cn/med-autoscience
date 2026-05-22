@@ -18,7 +18,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeReentryGate,
     StudyRuntimeStartupBoundaryGate,
     StudyRuntimeStartupContextSyncResult,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
 )
 from med_autoscience.controller_summary import materialize_controller_summary
 from med_autoscience.overlay import installer as overlay_installer
@@ -390,10 +390,10 @@ def _run_startup_hydration(
     validation_result = router.startup_hydration_validation_controller.run_validation(quest_root=quest_root)
     return (
         study_runtime_protocol.StartupHydrationReport.from_payload(
-            StudyRuntimeStatus._require_dict_field("startup_hydration", hydration_result)
+            ProgressProjectionStatus._require_dict_field("startup_hydration", hydration_result)
         ),
         study_runtime_protocol.StartupHydrationValidationReport.from_payload(
-            StudyRuntimeStatus._require_dict_field("startup_hydration_validation", validation_result)
+            ProgressProjectionStatus._require_dict_field("startup_hydration_validation", validation_result)
         ),
     )
 

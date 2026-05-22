@@ -13,7 +13,7 @@ def _managed_runtime_transport(module: object):
     return module.managed_runtime_transport
 
 
-def test_study_runtime_status_projects_active_no_live_stale_tick_as_recovery(
+def test_progress_projection_projects_active_no_live_stale_tick_as_recovery(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -118,7 +118,7 @@ def test_study_runtime_status_projects_active_no_live_stale_tick_as_recovery(
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     _assert_opl_runtime_owner_route_block(result)
     assert result["runtime_health_epoch"]
@@ -249,7 +249,7 @@ def test_persisted_explicit_resume_runtime_health_blocks_active_no_live_recovery
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_stopped_requires_explicit_rerun"
@@ -351,7 +351,7 @@ def test_supervisor_status_preserves_preinspected_liveness_and_worker_activity(
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk", entry_mode="supervisor")
+    result = module.progress_projection(profile=profile, study_id="001-risk", entry_mode="supervisor")
 
     assert result["decision"] == "lightweight"
     assert result["reason"] == "entry_mode_not_managed"
@@ -475,7 +475,7 @@ def test_live_worker_with_stale_artifact_delta_is_recovery_despite_live_audit(mo
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["runtime_liveness_audit"]["status"] == "live"
     assert result["decision"] == "noop"
@@ -551,7 +551,7 @@ def test_live_worker_missing_active_run_id_enters_controlled_recovery(monkeypatc
             },
         },
     )
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_marked_running_but_no_live_session"

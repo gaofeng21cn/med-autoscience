@@ -236,7 +236,7 @@ Expected: 全部 PASS。
 
 - [ ] **Step 1: 跑主回归集合**
 
-Run: `uv run pytest tests/test_profiles.py tests/test_overlay_installer.py tests/test_workspace_contracts.py tests/test_workspace_init.py tests/test_study_runtime_router.py tests/test_runtime_watch.py tests/test_medical_startup_contract_support.py tests/test_runtime_protocol_topology.py tests/test_cli.py tests/test_mcp_server.py tests/test_submission_targets.py tests/test_submission_targets_controller.py tests/test_runtime_transport_med_deepscientist.py tests/test_runtime_protocol_layout.py tests/test_figure_loop_guard.py tests/test_medical_publication_surface.py -q`
+Run: `uv run pytest tests/test_profiles.py tests/test_overlay_installer.py tests/test_workspace_contracts.py tests/test_workspace_init.py tests/test_study_runtime_router.py tests/test_domain_health_diagnostic.py tests/test_medical_startup_contract_support.py tests/test_runtime_protocol_topology.py tests/test_cli.py tests/test_mcp_server.py tests/test_submission_targets.py tests/test_submission_targets_controller.py tests/test_runtime_transport_med_deepscientist.py tests/test_runtime_protocol_layout.py tests/test_figure_loop_guard.py tests/test_medical_publication_surface.py -q`
 
 Expected: 全部 PASS。
 

@@ -185,7 +185,7 @@ def test_study_progress_projects_open_auto_research_capabilities_without_authori
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",
@@ -345,7 +345,7 @@ def test_dm002_like_open_auto_research_soak_matrix_blocks_authority_takeover_and
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "DM002-like",
@@ -419,7 +419,7 @@ def test_dm002_like_open_auto_research_soak_matrix_blocks_authority_takeover_and
     assert guard["authority_surfaces"] == {
         "publication_quality": "artifacts/publication_eval/latest.json",
         "controller_decision": "artifacts/controller_decisions/latest.json",
-        "study_truth": "study_runtime_status",
+        "study_truth": "progress_projection",
     }
     assert result["refs"]["open_auto_research_projection_path"].endswith(
         "artifacts/runtime/open_auto_research_projection/latest.json"

@@ -8,7 +8,7 @@ from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.controllers import domain_transition_currentness
 
-from ..study_runtime_status import (
+from ..progress_projection import (
     StudyCompletionSyncResult,
     StudyRuntimeBindingAction,
     StudyRuntimeDaemonStep,
@@ -17,7 +17,7 @@ from ..study_runtime_status import (
     StudyRuntimePartialQuestRecoveryResult,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
-    StudyRuntimeStatus,
+    ProgressProjectionStatus,
 )
 from . import runtime_events as _runtime_events
 from .controller_authorization import (
@@ -36,13 +36,13 @@ from .decision_relay import (
 from .execution_types import StudyRuntimeExecutionContext, StudyRuntimeExecutionOutcome
 
 
-def _should_run_startup_hydration_for_resume(*, status: StudyRuntimeStatus) -> bool:
+def _should_run_startup_hydration_for_resume(*, status: ProgressProjectionStatus) -> bool:
     return status.runtime_reentry_gate_result.require_startup_hydration
 
 
 def _resume_postcondition_payload(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     resume_result: dict[str, Any],
 ) -> dict[str, Any]:
     snapshot = dict(resume_result.get("snapshot") or {}) if isinstance(resume_result.get("snapshot"), dict) else {}
@@ -87,7 +87,7 @@ def _resume_postcondition_payload(
 
 def _apply_resume_postcondition(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     outcome: StudyRuntimeExecutionOutcome,
 ) -> bool:
     resume_result = outcome.daemon_step(StudyRuntimeDaemonStep.RESUME)
@@ -103,7 +103,7 @@ def _apply_resume_postcondition(
     return False
 
 
-def _restore_explicit_user_wakeup_surface(status: StudyRuntimeStatus, pre_resume_wakeup: Any) -> None:
+def _restore_explicit_user_wakeup_surface(status: ProgressProjectionStatus, pre_resume_wakeup: Any) -> None:
     if "explicit_user_wakeup" in status.extras or not isinstance(pre_resume_wakeup, dict):
         return
     status._record_dict_extra("explicit_user_wakeup", pre_resume_wakeup)
@@ -111,7 +111,7 @@ def _restore_explicit_user_wakeup_surface(status: StudyRuntimeStatus, pre_resume
 
 def _materialize_fresh_domain_transition_controller_decision_if_required(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
 ) -> dict[str, Any] | None:
     if status.reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
@@ -131,7 +131,7 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
         return None
     outer_loop = import_module("med_autoscience.controllers.study_outer_loop")
     status_payload = status.to_dict()
-    tick_request = outer_loop.build_runtime_watch_outer_loop_tick_request(
+    tick_request = outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=context.study_root,
         status_payload=status_payload,
     )
@@ -205,7 +205,7 @@ def _materialize_fresh_domain_transition_controller_decision_if_required(
 
 def _execute_create_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     router_module: Callable[[], Any],
 ) -> StudyRuntimeExecutionOutcome:
@@ -332,7 +332,7 @@ def _execute_create_runtime_decision(
 
 def _execute_resume_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     router_module: Callable[[], Any],
 ) -> StudyRuntimeExecutionOutcome:
@@ -455,7 +455,7 @@ def _execute_resume_runtime_decision(
 
 def _execute_relaunch_stopped_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     router_module: Callable[[], Any],
 ) -> StudyRuntimeExecutionOutcome:
@@ -525,7 +525,7 @@ def _execute_relaunch_stopped_runtime_decision(
 
 def _execute_blocked_refresh_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     router_module: Callable[[], Any],
 ) -> StudyRuntimeExecutionOutcome:
@@ -566,7 +566,7 @@ def _execute_blocked_refresh_runtime_decision(
 
 def _execute_pause_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     router_module: Callable[[], Any],
 ) -> StudyRuntimeExecutionOutcome:
@@ -630,7 +630,7 @@ def _execute_pause_runtime_decision(
 
 def _execute_completion_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     router_module: Callable[[], Any],
 ) -> StudyRuntimeExecutionOutcome:
@@ -671,7 +671,7 @@ def _execute_completion_runtime_decision(
 
 def _execute_runtime_decision(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     context: StudyRuntimeExecutionContext,
     router_module: Callable[[], Any],
 ) -> StudyRuntimeExecutionOutcome:

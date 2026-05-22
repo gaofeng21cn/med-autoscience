@@ -24,20 +24,20 @@
   改为调用 `runtime_protocol.runtime_watch`，不再直接依赖 `adapters.report_store` 与 intervention 状态机细节。
 - `tests/test_runtime_protocol_study_runtime.py`
   锁定 study runtime protocol helper。
-- `tests/test_runtime_protocol_runtime_watch.py`
+- `tests/test_runtime_protocol_domain_health_diagnostic.py`
   锁定 watch protocol helper。
 - `tests/test_study_runtime_router.py`
   锁定 router 改走 protocol helper 后行为不变。
-- `tests/test_runtime_watch.py`
+- `tests/test_domain_health_diagnostic.py`
   锁定 watch 改走 protocol helper 后行为不变。
 
 ### Task 1: 写失败测试，定义新 protocol helper
 
 **Files:**
 - Create: `tests/test_runtime_protocol_study_runtime.py`
-- Create: `tests/test_runtime_protocol_runtime_watch.py`
+- Create: `tests/test_runtime_protocol_domain_health_diagnostic.py`
 - Modify: `tests/test_study_runtime_router.py`
-- Modify: `tests/test_runtime_watch.py`
+- Modify: `tests/test_domain_health_diagnostic.py`
 
 - [ ] **Step 1: 给 study runtime helper 写失败测试**
 
@@ -115,7 +115,7 @@ def test_write_watch_report_uses_runtime_protocol_paths(tmp_path: Path) -> None:
 
 - [ ] **Step 3: 跑定向测试并确认先红**
 
-Run: `uv run pytest tests/test_runtime_protocol_study_runtime.py tests/test_runtime_protocol_runtime_watch.py tests/test_study_runtime_router.py tests/test_runtime_watch.py -q`
+Run: `uv run pytest tests/test_runtime_protocol_study_runtime.py tests/test_runtime_protocol_domain_health_diagnostic.py tests/test_study_runtime_router.py tests/test_domain_health_diagnostic.py -q`
 
 Expected: FAIL，原因是 helper 尚不存在或 controller 仍内联实现协议细节。
 
@@ -177,15 +177,15 @@ study_runtime_protocol.write_launch_report(...)
 ```
 
 ```python
-current_state = runtime_watch_protocol.load_watch_state(quest_root)
-transition = runtime_watch_protocol.plan_controller_intervention(...)
-runtime_watch_protocol.save_watch_state(...)
-runtime_watch_protocol.write_watch_report(...)
+current_state = domain_health_diagnostic_protocol.load_watch_state(quest_root)
+transition = domain_health_diagnostic_protocol.plan_controller_intervention(...)
+domain_health_diagnostic_protocol.save_watch_state(...)
+domain_health_diagnostic_protocol.write_watch_report(...)
 ```
 
 - [ ] **Step 4: 跑定向测试并确认转绿**
 
-Run: `uv run pytest tests/test_runtime_protocol_study_runtime.py tests/test_runtime_protocol_runtime_watch.py tests/test_study_runtime_router.py tests/test_runtime_watch.py -q`
+Run: `uv run pytest tests/test_runtime_protocol_study_runtime.py tests/test_runtime_protocol_domain_health_diagnostic.py tests/test_study_runtime_router.py tests/test_domain_health_diagnostic.py -q`
 
 Expected: 全部 PASS。
 
@@ -196,7 +196,7 @@ Expected: 全部 PASS。
 
 - [ ] **Step 1: 跑主回归集合**
 
-Run: `uv run pytest tests/test_profiles.py tests/test_overlay_installer.py tests/test_workspace_contracts.py tests/test_workspace_init.py tests/test_study_runtime_router.py tests/test_runtime_watch.py tests/test_medical_startup_contract_support.py tests/test_runtime_protocol_topology.py tests/test_cli.py tests/test_mcp_server.py tests/test_submission_targets.py tests/test_submission_targets_controller.py tests/test_runtime_transport_med_deepscientist.py tests/test_runtime_protocol_layout.py tests/test_runtime_protocol_study_runtime.py tests/test_runtime_protocol_runtime_watch.py tests/test_figure_loop_guard.py tests/test_medical_publication_surface.py -q`
+Run: `uv run pytest tests/test_profiles.py tests/test_overlay_installer.py tests/test_workspace_contracts.py tests/test_workspace_init.py tests/test_study_runtime_router.py tests/test_domain_health_diagnostic.py tests/test_medical_startup_contract_support.py tests/test_runtime_protocol_topology.py tests/test_cli.py tests/test_mcp_server.py tests/test_submission_targets.py tests/test_submission_targets_controller.py tests/test_runtime_transport_med_deepscientist.py tests/test_runtime_protocol_layout.py tests/test_runtime_protocol_study_runtime.py tests/test_runtime_protocol_domain_health_diagnostic.py tests/test_figure_loop_guard.py tests/test_medical_publication_surface.py -q`
 
 Expected: 全部 PASS。
 

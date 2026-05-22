@@ -90,7 +90,7 @@
         "mas_target_owner": "Runtime OS",
         "mds_final_role": "external_source_archive_only",
         "cutover_contract": "MAS Runtime OS owns turn lifecycle scheduling, completion normalization, and stale-run recovery; external MDS daemon is not a default dependency.",
-        "owner_boundary": "Runtime Turn Lifecycle Kernel owns per-turn continuation; study_runtime_status/runtime_watch consume MAS-owned runtime truth and act as supervisor/reconcile surfaces.",
+        "owner_boundary": "Runtime Turn Lifecycle Kernel owns per-turn continuation; progress_projection/domain_health_diagnostic consume MAS-owned runtime truth and act as supervisor/reconcile surfaces.",
         "parity_proof": {
           "proof_kind": "turn_lifecycle_kernel",
           "mas_contract": "mas_runtime_core exposes schedule_turn, complete_turn_and_normalize, inspect_turn_lifecycle, and user-message-triggered scheduling.",
@@ -142,7 +142,7 @@
         "mas_target_owner": "Runtime OS",
         "mds_final_role": "external_source_archive_only",
         "cutover_contract": "MAS-owned runner lifecycle exposes worker state, run receipts, leases, idempotency keys, and per-quest serialization without requiring MDS worker processes.",
-        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces; runtime_watch may redrive recovery through schedule_turn but does not become the turn owner.",
+        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces; domain_health_diagnostic may redrive recovery through schedule_turn but does not become the turn owner.",
         "parity_proof": {
           "proof_kind": "worker_runner_receipts",
           "mas_contract": "MasTurnRunner records started/queued/finished receipts, worker leases, claimed user messages, and run ids.",

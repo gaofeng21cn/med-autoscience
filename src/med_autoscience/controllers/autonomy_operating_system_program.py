@@ -15,8 +15,8 @@ QUALITY_AUTHORITY_SURFACES = (
 )
 
 RUNTIME_TRUTH_SURFACES = (
-    "study_runtime_status",
-    "runtime_watch",
+    "progress_projection",
+    "domain_health_diagnostic",
     "runtime_escalation_record.json",
     "artifacts/runtime/autonomy_incidents/",
 )
@@ -39,8 +39,8 @@ PROGRAM_LANES = (
         "owner": "MedAutoScience runtime",
         "stage": "active",
         "primary_surfaces": (
-            "study_runtime_status",
-            "runtime_watch",
+            "progress_projection",
+            "domain_health_diagnostic",
             "autonomy_slo",
             "autonomy_state_machine",
         ),
@@ -169,7 +169,7 @@ LEARNING_SOURCE_TAXONOMY = (
             "handoff",
             "soak_proof",
         ),
-        "landing_surfaces": ("operator_projection", "runtime_watch", "study_progress", "tests"),
+        "landing_surfaces": ("operator_projection", "domain_health_diagnostic", "study_progress", "tests"),
     },
 )
 

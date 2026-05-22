@@ -27,7 +27,7 @@ def test_conversation_read_model_reads_jsonl_as_bounded_tail_without_full_file_s
     quest_root = profile.runtime_root / quest_id
     _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
     _write_json(
-        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json",
         {"study_id": study_id, "quest_id": quest_id, "quest_root": str(quest_root)},
     )
     events_path = quest_root / "artifacts" / "runtime" / "mas_runtime_events.jsonl"

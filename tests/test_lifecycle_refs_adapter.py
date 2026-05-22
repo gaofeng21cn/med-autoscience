@@ -44,17 +44,17 @@ def test_report_store_indexes_watch_state_and_reports_without_changing_file_surf
         "quest_status": "running",
     }
 
-    report_store.save_watch_state(quest_root, state)
+    report_store.save_domain_health_diagnostic_state(quest_root, state)
     json_path, md_path = report_store.write_timestamped_report(
         quest_root=quest_root,
-        report_group="runtime_watch",
+        report_group="domain_health_diagnostic",
         timestamp="2026-05-05T00:00:00+00:00",
         report=report,
         markdown="# Runtime Watch\n",
     )
 
-    assert json.loads((quest_root / "artifacts" / "reports" / "runtime_watch" / "state.json").read_text()) == state
-    assert json.loads((quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json").read_text()) == report
+    assert json.loads((quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "state.json").read_text()) == state
+    assert json.loads((quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").read_text()) == report
     assert md_path.read_text(encoding="utf-8") == "# Runtime Watch\n"
     db_path = lifecycle_store.quest_lifecycle_store_path(quest_root)
     assert db_path.is_file()
@@ -75,7 +75,7 @@ def test_report_store_indexes_watch_state_and_reports_without_changing_file_surf
     assert watch_row[0] == "2026-05-05T00:00:00+00:00"
     assert json.loads(watch_row[1]) == state
     assert report_row == (
-        "runtime_watch",
+        "domain_health_diagnostic",
         "2026-05-05T00:00:00+00:00",
         "running",
         str(json_path.resolve()),
@@ -98,12 +98,12 @@ def test_report_store_indexes_watch_state_and_reports_without_changing_file_surf
 
     assert report_index_row == (
         "quest",
-        "runtime_watch",
+        "domain_health_diagnostic",
         "2026-05-05T00:00:00+00:00",
         "running",
         str(json_path.resolve()),
-        str((quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json").resolve()),
-        str((quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.md").resolve()),
+        str((quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").resolve()),
+        str((quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.md").resolve()),
     )
 
 
@@ -226,7 +226,7 @@ def test_lifecycle_store_fails_closed_when_sqlite_refs_index_is_git_tracked(tmp_
     subprocess.run(["git", "add", str(db_path.relative_to(repo_root))], cwd=repo_root, check=True, text=True)
 
     try:
-        lifecycle_store.record_watch_state(
+        lifecycle_store.record_domain_health_diagnostic_state(
             quest_root=repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "q001",
             payload={"updated_at": "2026-05-05T00:00:00+00:00"},
             db_path=db_path,
@@ -246,7 +246,7 @@ def test_lifecycle_store_allows_ignored_untracked_sqlite_refs_index(tmp_path: Pa
     (repo_root / ".gitignore").write_text("*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n", encoding="utf-8")
     db_path = repo_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
 
-    result = lifecycle_store.record_watch_state(
+    result = lifecycle_store.record_domain_health_diagnostic_state(
         quest_root=repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "q001",
         payload={"updated_at": "2026-05-05T00:00:00+00:00"},
         db_path=db_path,
@@ -278,18 +278,18 @@ def test_runtime_event_record_indexes_event_without_replacing_latest_authority(t
         study_id="001-risk",
         quest_id="quest-001",
         emitted_at="2026-05-05T00:00:00+00:00",
-        event_source="study_runtime_status",
+        event_source="progress_projection",
         event_kind="status_observed",
         summary_ref=str(launch_report_path),
         status_snapshot={
             "quest_status": "running",
             "decision": "continue",
-            "reason": "runtime_watch",
+            "reason": "domain_health_diagnostic",
             "active_run_id": "run-001",
             "runtime_liveness_status": "live",
             "worker_running": True,
             "continuation_policy": "auto",
-            "continuation_reason": "runtime_watch",
+            "continuation_reason": "domain_health_diagnostic",
             "supervisor_tick_status": "fresh",
             "controller_owned_finalize_parking": False,
             "runtime_escalation_ref": None,
@@ -297,7 +297,7 @@ def test_runtime_event_record_indexes_event_without_replacing_latest_authority(t
         outer_loop_input={
             "quest_status": "running",
             "decision": "continue",
-            "reason": "runtime_watch",
+            "reason": "domain_health_diagnostic",
             "active_run_id": "run-001",
             "runtime_liveness_status": "live",
             "worker_running": True,
@@ -332,7 +332,7 @@ def test_runtime_event_record_indexes_event_without_replacing_latest_authority(t
         "quest-001",
         "001-risk",
         "2026-05-05T00:00:00+00:00",
-        "study_runtime_status",
+        "progress_projection",
         "status_observed",
         "running",
         "run-001",
@@ -439,7 +439,7 @@ def test_lifecycle_store_records_q1_lineage_snapshot_allocation_indexes(tmp_path
         "snapshot_id": "snap-001",
         "ref_id": "runtime-watch",
         "ref_kind": "runtime_report",
-        "path": str(workspace_root / "runtime" / "quests" / "quest-001" / "artifacts" / "reports" / "runtime_watch.json"),
+        "path": str(workspace_root / "runtime" / "quests" / "quest-001" / "artifacts" / "reports" / "domain_health_diagnostic.json"),
         "sha256": "abc123",
         "bytes": 12,
     }
@@ -548,7 +548,7 @@ def test_lifecycle_store_records_q1_lineage_snapshot_allocation_indexes(tmp_path
     assert json.loads(snapshot_row[-1]) == snapshot
     assert file_ref_row[:-1] == (
         "runtime_report",
-        str((workspace_root / "runtime" / "quests" / "quest-001" / "artifacts" / "reports" / "runtime_watch.json").resolve()),
+        str((workspace_root / "runtime" / "quests" / "quest-001" / "artifacts" / "reports" / "domain_health_diagnostic.json").resolve()),
         "abc123",
         12,
     )
@@ -869,24 +869,24 @@ def test_lifecycle_read_model_exports_sqlite_runtime_report_without_touching_lat
     }
     report_store.write_timestamped_report(
         quest_root=quest_root,
-        report_group="runtime_watch",
+        report_group="domain_health_diagnostic",
         timestamp="2026-05-05T00:00:00+00:00",
         report=report,
         markdown="# Runtime Watch\n",
     )
-    latest_json = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    latest_json = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     latest_mtime = latest_json.stat().st_mtime_ns
 
     projection = read_model.read_lifecycle_projection(
         surface="runtime_report",
         quest_root=quest_root,
-        report_group="runtime_watch",
+        report_group="domain_health_diagnostic",
     )
-    export_path = tmp_path / "exports" / "runtime_watch_latest.json"
+    export_path = tmp_path / "exports" / "domain_health_diagnostic_latest.json"
     export = read_model.export_lifecycle_projection(
         surface="runtime_report",
         quest_root=quest_root,
-        report_group="runtime_watch",
+        report_group="domain_health_diagnostic",
         export_format="json",
         output_path=export_path,
     )
@@ -906,7 +906,7 @@ def test_lifecycle_read_model_exports_sqlite_runtime_report_without_touching_lat
 def test_lifecycle_read_model_missing_sqlite_does_not_default_to_legacy_restore_import(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
-    legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    legacy_latest = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     legacy_latest.parent.mkdir(parents=True, exist_ok=True)
     legacy_payload = {"schema_version": 1, "quest_status": "stopped"}
     legacy_latest.write_text(json.dumps(legacy_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

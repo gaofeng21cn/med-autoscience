@@ -84,7 +84,7 @@ def _write_native_runtime_event_for_status_test(*, quest_root: Path, quest_id: s
     return payload
 
 
-def test_study_runtime_status_reads_only_runtime_escalation_ref_from_quest_artifact_when_blocked_refresh_is_active(
+def test_progress_projection_reads_only_runtime_escalation_ref_from_quest_artifact_when_blocked_refresh_is_active(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -134,7 +134,7 @@ def test_study_runtime_status_reads_only_runtime_escalation_ref_from_quest_artif
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_initialized_but_auto_resume_disabled"
@@ -146,7 +146,7 @@ def test_study_runtime_status_reads_only_runtime_escalation_ref_from_quest_artif
     assert "recommended_actions" not in serialized_result
 
 
-def test_study_runtime_status_does_not_expose_runtime_escalation_ref_for_non_med_deepscientist_execution(
+def test_progress_projection_does_not_expose_runtime_escalation_ref_for_non_med_deepscientist_execution(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -197,14 +197,14 @@ def test_study_runtime_status_does_not_expose_runtime_escalation_ref_for_non_med
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "lightweight"
     assert result["reason"] == "study_execution_not_managed_runtime_backend"
     assert "runtime_escalation_ref" not in result
 
 
-def test_study_runtime_status_does_not_echo_stale_runtime_escalation_ref_after_block_clears(
+def test_progress_projection_does_not_echo_stale_runtime_escalation_ref_after_block_clears(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -249,14 +249,14 @@ def test_study_runtime_status_does_not_echo_stale_runtime_escalation_ref_after_b
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_initialized_waiting_to_start"
     assert "runtime_escalation_ref" not in result
 
 
-def test_study_runtime_status_uses_profile_default_mas_runtime_core_substrate_without_mds_research_backend(
+def test_progress_projection_uses_profile_default_mas_runtime_core_substrate_without_mds_research_backend(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -294,7 +294,7 @@ def test_study_runtime_status_uses_profile_default_mas_runtime_core_substrate_wi
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["execution"]["runtime_backend_id"] == "mas_runtime_core"
     assert result["execution"]["runtime_backend"] == "mas_runtime_core"
@@ -305,7 +305,7 @@ def test_study_runtime_status_uses_profile_default_mas_runtime_core_substrate_wi
     assert result["reason"] == "quest_initialized_waiting_to_start"
 
 
-def test_study_runtime_status_uses_native_runtime_event_ref_for_managed_runtime(monkeypatch, tmp_path: Path) -> None:
+def test_progress_projection_uses_native_runtime_event_ref_for_managed_runtime(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -368,7 +368,7 @@ def test_study_runtime_status_uses_native_runtime_event_ref_for_managed_runtime(
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_stopped_requires_explicit_rerun"
@@ -471,7 +471,7 @@ def test_ensure_study_runtime_uses_native_runtime_event_ref_after_managed_transi
     assert result["runtime_event"] == native_event
 
 
-def test_study_runtime_status_emits_family_orchestration_companion_fields(monkeypatch, tmp_path: Path) -> None:
+def test_progress_projection_emits_family_orchestration_companion_fields(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -561,7 +561,7 @@ def test_study_runtime_status_emits_family_orchestration_companion_fields(monkey
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     envelope = result["family_event_envelope"]
     checkpoint = result["family_checkpoint_lineage"]
@@ -578,7 +578,7 @@ def test_study_runtime_status_emits_family_orchestration_companion_fields(monkey
     assert result["family_human_gates"] == []
 
 
-def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
+def test_progress_projection_prefers_executor_kind_for_family_source_surface(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -676,7 +676,7 @@ def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     envelope = result["family_event_envelope"]
     assert envelope["session"]["source_surface"] == "hermes_agent"
@@ -713,7 +713,7 @@ def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
         ),
     ],
 )
-def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_mismatch(
+def test_progress_projection_runtime_summary_alignment_detects_runtime_surface_mismatch(
     monkeypatch,
     tmp_path: Path,
     launch_report_overrides: dict[str, object],
@@ -850,7 +850,7 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
         },
     )
 
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    result = module.progress_projection(profile=profile, study_id="001-risk")
 
     assert result["runtime_summary_alignment"]["aligned"] is False
     assert result["runtime_summary_alignment"]["mismatch_reason"] == expected_mismatch_reason

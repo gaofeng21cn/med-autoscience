@@ -45,7 +45,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         ],
         "canonical_surfaces": [
             "study_charter",
-            "study_runtime_status",
+            "progress_projection",
             "StudyTruthKernel",
             "controller_decisions/latest.json",
         ],
@@ -81,9 +81,9 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         ],
         "canonical_surfaces": [
             "RuntimeHealthKernel",
-            "runtime_watch",
+            "domain_health_diagnostic",
             "runtime_escalation_record.json",
-            "study_runtime_status",
+            "progress_projection",
         ],
         "may_replace_authority": True,
     },

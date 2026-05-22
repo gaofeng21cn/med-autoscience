@@ -34,7 +34,7 @@ FORBIDDEN_RELATIVE_PATHS: tuple[Path, ...] = (
     Path("artifacts/publication_eval/latest.json"),
     Path("artifacts/controller_decisions/latest.json"),
     Path("artifacts/truth/latest.json"),
-    Path("artifacts/runtime/study_runtime_status/latest.json"),
+    Path("artifacts/runtime/progress_projection/latest.json"),
     Path("artifacts/runtime/runtime_status_summary.json"),
 )
 
@@ -45,7 +45,7 @@ AUTHORITY = {
     "can_authorize_submission": False,
     "can_replace_publication_eval_latest": False,
     "can_replace_controller_decision_latest": False,
-    "can_replace_study_runtime_status": False,
+    "can_replace_progress_projection": False,
     "can_replace_study_truth": False,
     "can_replay_runtime": False,
     "controller_write_scope": [
@@ -219,7 +219,7 @@ def _runtime_status_payload(
     if runtime_status_payload is not None:
         return dict(runtime_status_payload)
     try:
-        result = study_runtime_router.study_runtime_status(
+        result = study_runtime_router.progress_projection(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
@@ -232,7 +232,7 @@ def _runtime_status_payload(
             "study_id": study_id,
             "study_root": str(study_root),
             "status": "blocked",
-            "reason": "study_runtime_status_unavailable",
+            "reason": "progress_projection_unavailable",
             "error": str(exc),
         }
     to_dict = getattr(result, "to_dict", None)
@@ -454,12 +454,12 @@ def _materialize_runtime_trajectory_proof(
     runtime_status_payload: Mapping[str, Any],
     active_run_id: str,
 ) -> dict[str, Any]:
-    reason = _text(runtime_status_payload.get("reason")) or "study_runtime_status"
+    reason = _text(runtime_status_payload.get("reason")) or "progress_projection"
     steps = [
         {
-            "step_id": "step-study-runtime-status",
+            "step_id": "step-progress-projection",
             "action_type": "read_runtime_status",
-            "action_ref": "study_runtime_status",
+            "action_ref": "progress_projection",
             "observation_ref": str(runtime_status_payload.get("quest_root") or study_root),
             "artifact_delta_refs": [],
             "side_effect_class": "none",

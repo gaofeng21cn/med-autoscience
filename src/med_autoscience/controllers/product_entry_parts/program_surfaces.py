@@ -129,7 +129,7 @@ def _build_phase3_clearance_lane(
     doctor_command = f"{prefix} doctor --profile {profile_arg}"
     supervisor_service_command = f"{prefix} runtime-supervision-status --profile {profile_arg}"
     refresh_supervision_command = (
-        f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
         f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     launch_study_command = f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>"
@@ -182,7 +182,7 @@ def _build_phase3_clearance_lane(
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
                 title="刷新 MAS domain runtime projection",
-                surface_kind="runtime_watch_refresh",
+                surface_kind="domain_health_diagnostic_refresh",
                 command=refresh_supervision_command,
             ),
             _build_shared_product_entry_program_step(
@@ -204,12 +204,12 @@ def _build_phase3_clearance_lane(
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="study_runtime_status.autonomous_runtime_notice",
-                command=f"{prefix} study-runtime-status --profile {profile_arg} --study-id <study_id>",
+                surface_kind="progress_projection.autonomous_runtime_notice",
+                command=f"{prefix} study progress-projection --profile {profile_arg} --study-id <study_id>",
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="runtime_watch",
-                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_watch" / "latest.json"),
+                surface_kind="domain_health_diagnostic",
+                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "domain_health_diagnostic" / "latest.json"),
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="runtime_supervision",
@@ -348,8 +348,8 @@ def _build_runtime_inventory_surface(
         health_status=health_status,
         status_surface={
             "ref_kind": "workspace_locator",
-            "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
-            "label": "runtime watch event companion",
+            "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
+            "label": "domain health diagnostic event companion",
         },
         attention_surface={
             "ref_kind": "json_pointer",
@@ -437,7 +437,7 @@ def _build_session_continuity_surface(
     family_orchestration: Mapping[str, Any],
     product_entry_shell: Mapping[str, Any],
     task_lifecycle: Mapping[str, Any],
-    study_runtime_status_command: str,
+    progress_projection_command: str,
 ) -> dict[str, Any]:
     blocking_check_ids = list(product_entry_preflight.get("blocking_check_ids") or [])
     ready_to_try_now = bool(product_entry_preflight.get("ready_to_try_now")) and not blocking_check_ids
@@ -461,9 +461,9 @@ def _build_session_continuity_surface(
             "locator_fields": ["profile_ref", "study_id"],
         },
         artifact_surface={
-            "surface_kind": "study_runtime_status",
-            "summary": "读取 runtime 恢复合同与运行态，必要时决定接管/重启。",
-            "command": study_runtime_status_command,
+            "surface_kind": "progress_projection",
+            "summary": "读取 progress projection 与运行态恢复合同，必要时决定接管/重启。",
+            "command": progress_projection_command,
             "step_id": "inspect_runtime_status",
             "locator_fields": ["profile_ref", "study_id"],
         },
@@ -494,7 +494,7 @@ def _build_progress_projection_surface(
     family_orchestration: Mapping[str, Any],
     operator_loop_surface: Mapping[str, Any],
     product_entry_shell: Mapping[str, Any],
-    study_runtime_status_command: str,
+    progress_projection_command: str,
 ) -> dict[str, Any]:
     headline = _non_empty_text(product_entry_status.get("summary")) or "MAS 当前保持 repo-owned product entry continuity。"
     next_step = _non_empty_text(operator_loop_surface.get("command")) or "none"
@@ -520,9 +520,9 @@ def _build_progress_projection_surface(
             "locator_fields": ["profile_ref"],
         },
         artifact_surface={
-            "surface_kind": "study_runtime_status",
-            "summary": "按 study_id 读取 runtime 恢复合同与运行态（artifact/restore 辅助指针）。",
-            "command": study_runtime_status_command,
+            "surface_kind": "progress_projection",
+            "summary": "按 study_id 读取 progress projection 与运行态恢复合同（artifact/restore 辅助指针）。",
+            "command": progress_projection_command,
             "step_id": "inspect_runtime_status",
             "locator_fields": ["profile_ref", "study_id"],
         },
@@ -535,7 +535,7 @@ def _build_progress_projection_surface(
             "research_runtime_control_projection": _build_research_runtime_control_projection(
                 resume_command=str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
                 check_progress_command=str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
-                check_runtime_status_command=study_runtime_status_command,
+                check_runtime_status_command=progress_projection_command,
                 surface_kind="research_runtime_control_projection",
             ),
         },
@@ -550,7 +550,7 @@ def _build_artifact_inventory_surface(
     profile: WorkspaceProfile,
     progress_projection: Mapping[str, Any],
     product_entry_shell: Mapping[str, Any],
-    study_runtime_status_command: str,
+    progress_projection_command: str,
 ) -> dict[str, Any]:
     supporting_files = [
         {
@@ -572,10 +572,10 @@ def _build_artifact_inventory_surface(
             "summary": "durable task intake truth (task_id/intent/entry_mode/return_surface_contract).",
         },
         {
-            "file_id": "runtime_watch_latest",
-            "label": "Runtime watch (latest)",
-            "path": "studies/<study_id>/artifacts/runtime_watch/latest.json",
-            "summary": "runtime watch event companion for supervision freshness.",
+            "file_id": "domain_health_diagnostic_latest",
+            "label": "Domain health diagnostic (latest)",
+            "path": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
+            "summary": "domain health diagnostic event companion for supervision freshness.",
         },
         {
             "file_id": "runtime_supervision_latest",
@@ -632,9 +632,9 @@ def _build_artifact_inventory_surface(
         workspace_path=str(profile.workspace_root),
         progress_headline=_non_empty_text(progress_projection.get("headline")) or None,
         artifact_surface={
-            "surface_kind": "study_runtime_status",
-            "summary": "按 study_id 读取 runtime 恢复合同与运行态。",
-            "command": study_runtime_status_command,
+            "surface_kind": "progress_projection",
+            "summary": "按 study_id 读取 progress projection 与运行态恢复合同。",
+            "command": progress_projection_command,
             "step_id": "inspect_runtime_status",
             "locator_fields": ["profile_ref", "study_id"],
         },
@@ -703,8 +703,8 @@ def _build_opl_native_helper_proof_surface() -> dict[str, Any]:
             "helper_owner": "one-person-lab",
             "helper_write_policy": "no_domain_truth_writes",
             "authoritative_truth_refs": [
-                "/study_runtime_status",
-                "/runtime_watch",
+                "/progress_projection",
+                "/domain_health_diagnostic",
                 "/publication_eval/latest.json",
                 "/controller_decisions/latest.json",
             ],

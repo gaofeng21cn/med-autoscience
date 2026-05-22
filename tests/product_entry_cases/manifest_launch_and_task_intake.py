@@ -99,7 +99,7 @@ def test_build_product_entry_status_projects_contract_bundle_from_manifest(
             },
             "launch_study": {
                 "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml",
-                "surface_kind": "study_runtime_status",
+                "surface_kind": "progress_projection",
             },
             "study_progress": {
                 "command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml",
@@ -587,7 +587,7 @@ def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block
         evidence_boundary=("必须补齐外部验证",),
         trusted_inputs=("study.yaml", "数据字典"),
         reference_papers=("PMID:12345678",),
-        first_cycle_outputs=("study-progress", "runtime_watch", "publication_eval/latest.json"),
+        first_cycle_outputs=("study-progress", "domain_health_diagnostic", "publication_eval/latest.json"),
     )
 
     latest_json = Path(payload["artifacts"]["latest_json"])
@@ -701,7 +701,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         entry_mode="full_research",
         journal_target="JAMA Network Open",
         evidence_boundary=("必须保留 publication gate",),
-        first_cycle_outputs=("study-progress", "runtime_watch"),
+        first_cycle_outputs=("study-progress", "domain_health_diagnostic"),
     )
 
     payload = module.build_product_entry(
@@ -848,7 +848,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
                 "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
                 "refs.runtime_supervision_path",
-                "refs.runtime_watch_report_path",
+                "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },
@@ -880,7 +880,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
                 + " --study-id 001-risk --format json"
             ),
             "check_runtime_status": (
-                "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                "uv run python -m med_autoscience.cli study progress-projection --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),

@@ -117,7 +117,7 @@ def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id
     profile_part = f" --profile {profile_ref}" if profile_ref is not None else " --profile <profile>"
     study_part = f" --studies {study_id}" if study_id else ""
     if action_type == "domain_route_recover":
-        return f"uv run python -m med_autoscience.cli domain-route-scan{profile_part}{study_part}"
+        return f"uv run python -m med_autoscience.cli owner-route-reconcile{profile_part}{study_part}"
     if action_type == "safe_reconcile_dry_run":
         return f"uv run python -m med_autoscience.cli domain-route-reconcile{profile_part}{study_part} --mode developer_apply_safe --dry-run"
     if action_type == "domain_route_reconcile_apply":

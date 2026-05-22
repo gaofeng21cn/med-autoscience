@@ -89,7 +89,7 @@ def _int_or_none(value: object) -> int | None:
 
 def _stopped_controller_owned_auto_recovery_context(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     quest_root: Path,
     publication_gate_report: dict[str, object] | None,
 ) -> dict[str, str | None] | None:
@@ -154,7 +154,7 @@ def _task_intake_override_allows_stopped_auto_resume(*, quest_root: Path) -> boo
     stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
     if stop_reason is None:
         return True
-    return _controller_stop_source(stop_reason) == "runtime_watch_outer_loop_wakeup"
+    return _controller_stop_source(stop_reason) == "domain_health_diagnostic_outer_loop_wakeup"
 
 
 def _stopped_invalid_blocking_auto_resume_allowed(
@@ -250,7 +250,7 @@ def _pending_user_interaction_payload(
 
 def _record_pending_user_interaction_if_required(
     *,
-    status: StudyRuntimeStatus,
+    status: ProgressProjectionStatus,
     runtime_root: Path,
     quest_root: Path,
     quest_id: str,

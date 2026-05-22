@@ -52,7 +52,7 @@ Compatibility note:
 - CLI: `medautosci doctor report --profile <profile>`
 - CLI: `medautosci doctor profile --profile <profile>`
 - CLI: `medautosci workspace bootstrap --profile <profile>`
-- CLI: `medautosci runtime watch --runtime-root <runtime-root>`
+- CLI: `medautosci runtime domain-health-diagnostic --runtime-root <runtime-root>`
 - CLI: `medautosci runtime overlay-status --profile <profile>`
 - CLI: `medautosci doctor backend-upgrade --profile <profile> --refresh`
 

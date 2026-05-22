@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_build_runtime_watch_outer_loop_tick_request_stops_live_runtime_after_fast_lane_closeout(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_stops_live_runtime_after_fast_lane_closeout(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -148,11 +148,11 @@ def test_build_runtime_watch_outer_loop_tick_request_stops_live_runtime_after_fa
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
     monkeypatch.setattr(
         module.gate_clearing_batch,
         "build_gate_clearing_batch_recommended_action",
@@ -164,7 +164,7 @@ def test_build_runtime_watch_outer_loop_tick_request_stops_live_runtime_after_fa
         lambda **_: pytest.fail("fast lane closeout should suppress autonomous quality-repair resume"),
     )
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-risk",
@@ -192,7 +192,7 @@ def test_build_runtime_watch_outer_loop_tick_request_stops_live_runtime_after_fa
     ]
 
 
-def test_build_runtime_watch_outer_loop_tick_request_does_not_stop_when_fast_lane_closeout_has_blocked_gate(
+def test_build_domain_health_diagnostic_outer_loop_tick_request_does_not_stop_when_fast_lane_closeout_has_blocked_gate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -339,13 +339,13 @@ def test_build_runtime_watch_outer_loop_tick_request_does_not_stop_when_fast_lan
     }
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
     monkeypatch.setattr(
-        _runtime_watch_tick_request_module().publication_gate_controller,
+        _domain_health_diagnostic_tick_request_module().publication_gate_controller,
         "build_gate_state",
         lambda root: type("GateState", (), {"paper_root": study_root / "paper"})(),
     )
-    monkeypatch.setattr(_runtime_watch_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
+    monkeypatch.setattr(_domain_health_diagnostic_tick_request_module().publication_gate_controller, "build_gate_report", lambda state: gate_report)
 
-    request = module.build_runtime_watch_outer_loop_tick_request(
+    request = module.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload={
             "study_id": "001-dm-cvd-mortality-risk",

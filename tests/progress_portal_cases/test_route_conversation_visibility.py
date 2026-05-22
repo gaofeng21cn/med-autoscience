@@ -286,7 +286,7 @@ def test_progress_portal_materialization_surfaces_selected_study_conversation(tm
     quest_root = profile.runtime_root / quest_id
     write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
     _write_json(
-        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        study_root / "artifacts" / "runtime" / "progress_projection" / "latest.json",
         {"study_id": study_id, "quest_id": quest_id, "quest_root": str(quest_root), "active_run_id": "run-001"},
     )
     _write_json(

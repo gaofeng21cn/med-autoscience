@@ -585,10 +585,10 @@ def test_codex_exec_runner_refreshes_domain_transition_decision_before_prompt(
     }
 
     monkeypatch.setattr(
-        "med_autoscience.controllers.study_runtime_router.study_runtime_status",
+        "med_autoscience.controllers.study_runtime_router.progress_projection",
         lambda **_: dict(status_payload),
     )
-    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: dict(tick_request))
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: dict(tick_request))
 
     def materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
         decision_path.write_text(

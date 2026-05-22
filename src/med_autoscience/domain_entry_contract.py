@@ -50,7 +50,7 @@ SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "product-entry-manifest": DomainEntryCommandSpec(("profile_ref",)),
     "skill-catalog": DomainEntryCommandSpec(("profile_ref",)),
     "study-progress": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
-    "study-runtime-status": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
+    "progress-projection": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
     "launch-study": DomainEntryCommandSpec(
         ("profile_ref", "study_id"),
         ("entry_mode", "allow_stopped_relaunch", "explicit_user_wakeup", "force"),

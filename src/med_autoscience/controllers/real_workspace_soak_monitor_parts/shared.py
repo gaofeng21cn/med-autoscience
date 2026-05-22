@@ -54,8 +54,8 @@ def _read_only_monitor_contract() -> dict[str, Any]:
         "writes_runtime_owned_surfaces": False,
         "writable_surfaces": [SURFACE],
         "prohibited_runtime_owned_surfaces": [
-            "study_runtime_status",
-            "runtime_watch",
+            "progress_projection",
+            "domain_health_diagnostic",
             "publication_eval/latest.json",
             "runtime_escalation_record.json",
             "controller_decisions/latest.json",

@@ -124,7 +124,7 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
                     "authority_surfaces": {
                         "publication_quality": "artifacts/publication_eval/latest.json",
                         "controller_decision": "artifacts/controller_decisions/latest.json",
-                        "study_truth": "study_runtime_status",
+                        "study_truth": "progress_projection",
                     },
                 },
             },

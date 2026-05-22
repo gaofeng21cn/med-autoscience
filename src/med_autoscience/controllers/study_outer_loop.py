@@ -65,12 +65,12 @@ from med_autoscience.controllers.study_outer_loop_parts import tick_request as _
 from med_autoscience.controllers.study_outer_loop_task_intake import recommended_task_intake_action
 
 
-def build_runtime_watch_outer_loop_tick_request(
+def build_domain_health_diagnostic_outer_loop_tick_request(
     *,
     study_root: Path,
     status_payload: dict[str, Any],
 ) -> dict[str, Any] | None:
-    return _tick_request.build_runtime_watch_outer_loop_tick_request(
+    return _tick_request.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=study_root,
         status_payload=status_payload,
         publication_gate_controller_override=publication_gate_controller,
@@ -319,7 +319,7 @@ def study_outer_loop_tick(
         study_id=study_id,
         study_root=study_root,
     )
-    status = study_runtime_router.study_runtime_status(
+    status = study_runtime_router.progress_projection(
         profile=profile,
         study_id=resolved_study_id,
         study_root=resolved_study_root,
@@ -334,7 +334,7 @@ def study_outer_loop_tick(
     )
     quest_id = str(status.get("quest_id") or "").strip()
     if not quest_id:
-        raise ValueError("study_outer_loop_tick requires quest_id from study_runtime_status")
+        raise ValueError("study_outer_loop_tick requires quest_id from progress_projection")
     written_record, confirmation_summary_ref, publication_eval_payload, runtime_status = _materialize_study_decision_record(
         status=status,
         runtime_status=runtime_status,
@@ -434,7 +434,7 @@ def materialize_non_dispatching_outer_loop_decision(
     status = (
         dict(status_payload)
         if isinstance(status_payload, dict)
-        else study_runtime_router.study_runtime_status(
+        else study_runtime_router.progress_projection(
             profile=profile,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
@@ -499,7 +499,7 @@ def refresh_parked_submission_milestone_controller_decision(
     status = (
         dict(status_payload)
         if isinstance(status_payload, dict)
-        else study_runtime_router.study_runtime_status(
+        else study_runtime_router.progress_projection(
             profile=profile,
             study_id=resolved_study_id,
             study_root=resolved_study_root,

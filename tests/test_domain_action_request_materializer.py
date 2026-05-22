@@ -101,7 +101,7 @@ def test_materialize_domain_action_requests_dry_run_projects_runtime_platform_re
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [_runtime_platform_repair_action(study_id, "quest-nf")],
         },
@@ -152,7 +152,7 @@ def test_materialize_domain_action_requests_apply_writes_only_consumer_handoff_s
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [_runtime_platform_repair_action(study_id, "quest-nf")],
         },
@@ -225,7 +225,7 @@ def test_materialize_domain_action_requests_keeps_repeated_ready_dispatch_withou
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -317,7 +317,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [{"study_id": study_id}],
             "action_queue": [],
@@ -361,7 +361,7 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [
                 {
@@ -433,7 +433,7 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [_runtime_platform_repair_action(study_id, "quest-nf")],
         },
@@ -468,7 +468,7 @@ def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [_runtime_platform_repair_action(study_id, "quest-nf")],
         },
@@ -526,7 +526,7 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [
                 {
@@ -721,7 +721,7 @@ def test_materialize_domain_action_requests_request_handoff_requires_owner_route
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "action_queue": [
                 {
@@ -778,7 +778,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     _write_json(
         latest_path,
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {
@@ -938,7 +938,7 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_domain_route_scan",
+            "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
             "studies": [
                 {

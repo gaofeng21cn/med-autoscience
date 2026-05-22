@@ -27,7 +27,7 @@ def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -
             "owner": "med-autoscience",
         },
         "recovery_contract_surface": {
-            "surface_kind": "study_runtime_status",
+            "surface_kind": "progress_projection",
             "owner": "med-autoscience",
         },
         "fail_closed_rules": [
@@ -46,7 +46,9 @@ def _assert_runtime_inventory(*, module, payload, profile, profile_ref) -> None:
     assert payload["runtime_inventory"]["availability"] == "ready"
     assert payload["runtime_inventory"]["health_status"] == "healthy"
     assert payload["runtime_inventory"]["status_surface"]["ref_kind"] == "workspace_locator"
-    assert payload["runtime_inventory"]["status_surface"]["ref"] == "studies/<study_id>/artifacts/runtime_watch/latest.json"
+    assert payload["runtime_inventory"]["status_surface"]["ref"] == (
+        "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json"
+    )
     assert payload["runtime_inventory"]["attention_surface"]["ref_kind"] == "json_pointer"
 
 def _assert_session_and_progress_projection(*, module, payload, profile, profile_ref) -> None:
@@ -62,7 +64,7 @@ def _assert_research_runtime_control_projection(*, module, payload, profile, pro
     assert payload["session_continuity"]["domain_agent_id"] == "mas"
     assert payload["session_continuity"]["restore_surface"]["surface_kind"] == "launch_study"
     assert payload["session_continuity"]["progress_surface"]["surface_kind"] == "study_progress"
-    assert payload["session_continuity"]["artifact_surface"]["surface_kind"] == "study_runtime_status"
+    assert payload["session_continuity"]["artifact_surface"]["surface_kind"] == "progress_projection"
     assert payload["progress_projection"]["surface_kind"] == "progress_projection"
     assert payload["progress_projection"]["progress_surface"]["surface_kind"] == "workspace_cockpit"
     assert "studies/<study_id>/artifacts" in payload["progress_projection"]["inspect_paths"]
@@ -124,7 +126,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
                 "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
                 "refs.runtime_supervision_path",
-                "refs.runtime_watch_report_path",
+                "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
         },
@@ -156,7 +158,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
                 + " --study-id <study_id> --format json"
             ),
             "check_runtime_status": (
-                "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                "uv run python -m med_autoscience.cli study progress-projection --profile "
                 + str(profile_ref.resolve())
                 + " --study-id <study_id> --format json"
             ),

@@ -43,7 +43,7 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
 
     monkeypatch.setattr(
         module.study_runtime_router,
-        "study_runtime_status",
+        "progress_projection",
         lambda **_: {
             "schema_version": 1,
             "study_id": "001-risk",

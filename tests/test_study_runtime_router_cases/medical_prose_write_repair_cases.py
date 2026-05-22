@@ -1,7 +1,7 @@
 from .shared import *  # noqa: F403
 
 
-def test_study_runtime_status_keeps_medical_prose_write_route_when_story_surface_delta_is_missing(
+def test_progress_projection_keeps_medical_prose_write_route_when_story_surface_delta_is_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -207,7 +207,7 @@ def test_study_runtime_status_keeps_medical_prose_write_route_when_story_surface
         lambda *, workspace_root: _clear_readiness_report(workspace_root, study_root.name),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id=study_root.name,
         include_progress_projection=False,
@@ -221,7 +221,7 @@ def test_study_runtime_status_keeps_medical_prose_write_route_when_story_surface
     assert result["domain_transition"]["next_work_unit"]["unit_id"] == "medical_prose_write_repair"
 
 
-def test_study_runtime_status_routes_completed_medical_prose_write_repair_to_ai_reviewer_recheck(
+def test_progress_projection_routes_completed_medical_prose_write_repair_to_ai_reviewer_recheck(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -500,7 +500,7 @@ def test_study_runtime_status_routes_completed_medical_prose_write_repair_to_ai_
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.study_runtime_status(
+    result = module.progress_projection(
         profile=profile,
         study_id="001-risk",
         include_progress_projection=False,

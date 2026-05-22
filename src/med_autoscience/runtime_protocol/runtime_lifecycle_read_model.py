@@ -93,7 +93,7 @@ def read_lifecycle_projection(
     surface: str,
     quest_root: Path | None = None,
     workspace_root: Path | None = None,
-    report_group: str = "runtime_watch",
+    report_group: str = "domain_health_diagnostic",
     db_path: Path | None = None,
     legacy_restore_import_diagnostic: bool = False,
 ) -> dict[str, Any]:
@@ -150,7 +150,7 @@ def read_legacy_restore_import_diagnostic_projection(
     surface: str,
     quest_root: Path | None = None,
     workspace_root: Path | None = None,
-    report_group: str = "runtime_watch",
+    report_group: str = "domain_health_diagnostic",
     db_path: Path | None = None,
 ) -> dict[str, Any]:
     return read_lifecycle_projection(
@@ -169,7 +169,7 @@ def export_lifecycle_projection(
     export_format: str,
     quest_root: Path | None = None,
     workspace_root: Path | None = None,
-    report_group: str = "runtime_watch",
+    report_group: str = "domain_health_diagnostic",
     output_path: Path | None = None,
     db_path: Path | None = None,
     legacy_restore_import_diagnostic: bool = False,
@@ -466,7 +466,7 @@ def _legacy_restore_import_projection(
 ) -> dict[str, Any]:
     if surface == "watch_state":
         root = _require_root("quest_root", quest_root)
-        source_path = root / "artifacts" / "reports" / "runtime_watch" / "state.json"
+        source_path = root / "artifacts" / "reports" / "domain_health_diagnostic" / "state.json"
     elif surface == "runtime_report":
         root = _require_root("quest_root", quest_root)
         source_path = root / "artifacts" / "reports" / _require_text("report_group", report_group) / "latest.json"

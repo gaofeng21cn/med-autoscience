@@ -38,7 +38,7 @@ def materialize_fresh_ai_reviewer_transition_controller_decision_if_required(
         or transition_unit_id is None
     ):
         return None
-    tick_request = outer_loop.build_runtime_watch_outer_loop_tick_request(
+    tick_request = outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
         study_root=resolved_study_root,
         status_payload=dict(status),
     )
@@ -157,7 +157,7 @@ def _status_payload(
     if isinstance(status_payload, Mapping) and status_payload:
         return dict(status_payload)
     router = import_module("med_autoscience.controllers.study_runtime_router")
-    payload = router.study_runtime_status(
+    payload = router.progress_projection(
         profile=profile,
         study_root=study_root,
         sync_runtime_summary=False,
