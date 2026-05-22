@@ -13,6 +13,7 @@ from .generated_caller_retirement import (
     build_generated_default_caller_boundary,
     build_physical_retirement_gate_matrix,
 )
+from .consumer_migration_route_stage_boundary import build_route_stage_residue_boundary
 from .consumer_migration_inventory import (
     ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
     FUNCTIONAL_MODULE_INVENTORY,
@@ -702,6 +703,13 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             ),
         },
         "functional_followthrough_gap_summary": functional_followthrough_gap_summary,
+        "route_stage_residue_boundary": build_route_stage_residue_boundary(
+            active_path_residue_cleanup_gates=ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
+            functional_module_inventory=FUNCTIONAL_MODULE_INVENTORY,
+            physical_delete_requires_all_gates=PHYSICAL_THINNING_EVIDENCE[
+                "physical_delete_requires_all_gates"
+            ],
+        ),
         "physical_thinning_evidence": dict(PHYSICAL_THINNING_EVIDENCE),
         "physical_retirement_gate_matrix": {
             key: [dict(item) if isinstance(item, dict) else item for item in value]

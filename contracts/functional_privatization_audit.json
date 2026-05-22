@@ -2913,6 +2913,157 @@
         ]
       }
     ],
+    "route_stage_residue_boundary": {
+      "all_residual_surfaces_physically_retired": false,
+      "domain_truth_owner": "med-autoscience",
+      "forbidden_claims": [
+        "route_is_stage",
+        "mas_owned_generic_route_scheduler",
+        "mas_owned_generic_stage_attempt_graph",
+        "all_residual_surfaces_physically_retired",
+        "sqlite_lifecycle_sidecar_deleted",
+        "status_projection_deleted",
+        "sidecar_dispatch_adapter_deleted",
+        "status_and_decision_migrated_to_opl"
+      ],
+      "mas_owns_inter_route_scheduler": false,
+      "opl_hydrates_route_refs_to_queue_and_stage_attempts": true,
+      "physical_retirement_gate": [
+        "no_active_caller_proof",
+        "opl_replacement_parity",
+        "domain_receipt_parity",
+        "focused_tests",
+        "no_forbidden_write_proof",
+        "history_tombstone_refs"
+      ],
+      "queue_attempt_owner": "one-person-lab",
+      "residual_surfaces": [
+        {
+          "classification": "declarative_pack_generated_surface",
+          "current_role": "domain_owner_route_projection_and_receipt_guard",
+          "gate_ref": "functional_module_inventory.domain_route_scan_materialize_dispatch_shell",
+          "generic_runtime_owner_claim_allowed": false,
+          "opl_consumes_as": "owner_route_refs_for_opl_queue_stage_attempt_hydration",
+          "owner": "med-autoscience",
+          "physical_delete_permitted": false,
+          "physical_retired": false,
+          "stage_or_queue_owner": "one-person-lab",
+          "surface_id": "domain_route_scan"
+        },
+        {
+          "classification": "minimal_authority_function",
+          "current_role": "domain_truth_status_projection",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_replacement_parity_proven",
+            "domain_receipt_parity_proven",
+            "focused_tests_green",
+            "no_forbidden_write_proof",
+            "history_tombstone_refs_recorded"
+          ],
+          "gate_ref": "active_path_residue_cleanup_gates.status_projection_domain_truth_refs",
+          "generic_runtime_owner_claim_allowed": false,
+          "owner": "med-autoscience",
+          "physical_delete_permitted": false,
+          "physical_retired": false,
+          "surface_id": "study_runtime_status"
+        },
+        {
+          "active_long_loop_caller_allowed": false,
+          "classification": "minimal_authority_function",
+          "current_role": "domain_health_one_shot_diagnostic_not_long_loop_scheduler",
+          "gate_ref": "functional_module_inventory.runtime_watch_domain_health",
+          "generic_runtime_owner_claim_allowed": false,
+          "long_loop_shell_physical_retired": true,
+          "owner": "med-autoscience",
+          "physical_delete_permitted": false,
+          "physical_retired": false,
+          "surface_id": "runtime_watch"
+        },
+        {
+          "classification": "control_plane_thinning_item",
+          "current_role": "domain_decision_authority_with_refs_only_projection_shell",
+          "gate_ref": "docs/runtime/opl_private_implementation_migration_inventory.md#status_and_decision",
+          "generic_runtime_owner_claim_allowed": false,
+          "migration_state": "needs_split_before_opl_status_projection_migration",
+          "owner": "med-autoscience",
+          "physical_delete_permitted": false,
+          "physical_retired": false,
+          "surface_id": "status_and_decision"
+        },
+        {
+          "active_caller_count": 3,
+          "classification": "refs_only_adapter",
+          "current_role": "refs_only_domain_receipt_locator_and_lifecycle_ref_index",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_replacement_parity_proven",
+            "domain_receipt_parity_proven",
+            "focused_tests_green",
+            "no_forbidden_write_proof",
+            "history_tombstone_refs_recorded"
+          ],
+          "gate_ref": "active_path_residue_cleanup_gates.sqlite_lifecycle_sidecar_index",
+          "generic_runtime_owner_claim_allowed": false,
+          "owner": "med-autoscience",
+          "physical_delete_permitted": false,
+          "physical_retired": false,
+          "refs_only_gate": {
+            "active_caller_count": 3,
+            "active_caller_proof": [
+              "study_runtime records runtime events and owner-receipt refs",
+              "runtime lifecycle CLI reads lifecycle refs",
+              "sidecar/product-entry lifecycle projections consume refs only"
+            ],
+            "active_caller_status": "refs_only_domain_sidecar_adapter_active",
+            "can_emit_generic_owner_verdict": false,
+            "can_emit_paper_closure_verdict": false,
+            "classification": "refs_only_adapter",
+            "delete_or_tombstone_after": [
+              "active_caller_count=0",
+              "opl_runtime_lifecycle_index_parity_proven",
+              "domain_owner_receipt_ref_parity_proven",
+              "focused_runtime_lifecycle_projection_tests_green"
+            ],
+            "generic_owner_claim_allowed": false,
+            "module_id": "runtime_lifecycle_sqlite_reference_adapter",
+            "must_not_emit": [
+              "generic_runtime_verdict",
+              "generic_persistence_engine_owner",
+              "paper_closure_verdict"
+            ],
+            "retirement_gate_status": "active_domain_ref_caller_retained_until_opl_lifecycle_index_parity"
+          },
+          "surface_id": "runtime_lifecycle_sqlite_sidecar"
+        },
+        {
+          "active_caller_count": 1,
+          "classification": "retained_owner_route_handoff_adapter",
+          "current_role": "domain_sidecar_dispatch_adapter",
+          "delete_or_tombstone_after": [
+            "active_caller_count=0",
+            "opl_replacement_parity_proven",
+            "domain_receipt_parity_proven",
+            "focused_tests_green",
+            "no_forbidden_write_proof",
+            "history_tombstone_refs_recorded"
+          ],
+          "gate_ref": "active_path_residue_cleanup_gates.sidecar_dispatch_adapter",
+          "generic_runtime_owner_claim_allowed": false,
+          "owner": "med-autoscience",
+          "physical_delete_permitted": false,
+          "physical_retired": false,
+          "surface_id": "sidecar_dispatch_adapter"
+        }
+      ],
+      "route_is_stage": false,
+      "route_semantics_owner": "med-autoscience",
+      "runtime_transition_owner": "one-person-lab",
+      "stage_graph_owner": "one-person-lab",
+      "stage_lifecycle_owner": "one-person-lab",
+      "surface_kind": "mas_route_stage_residue_boundary",
+      "version": "mas-route-stage-residue-boundary.v1"
+    },
     "runtime_lifecycle_sqlite_role": {
       "authority": "refs_only_index_not_generic_persistence_engine",
       "body_policy": "refs_receipts_blockers_only",
