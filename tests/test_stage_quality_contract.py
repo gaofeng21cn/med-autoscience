@@ -97,8 +97,10 @@ def test_journal_family_quality_packs_are_projection_only_clean_room_absorptions
         "data_availability_fair_pack",
         "citation_integrity_pack",
         "figure_evidence_contract_pack",
+        "manuscript_argument_pack",
         "paper_reader_grounding_pack",
         "paper_presentation_pack",
+        "statistical_reporting_pack",
     }
     assert expected_journal_packs <= set(REQUIRED_STAGE_QUALITY_PACK_IDS)
     assert expected_journal_packs <= set(packs)
@@ -163,3 +165,27 @@ def test_journal_family_quality_packs_are_projection_only_clean_room_absorptions
         "export_contract",
         "qa_risks",
     ]
+
+    argument_pack = packs["manuscript_argument_pack"]
+    assert argument_pack["journal_family_patterns"] == [
+        "paper_type_logic",
+        "one_sentence_argument",
+        "section_job_map",
+        "claim_evidence_boundary_map",
+        "paragraph_flow_review",
+        "hedging_and_overclaim_check",
+    ]
+    assert "write" in argument_pack["applies_to"]["stages"]
+    assert "review" in argument_pack["applies_to"]["stages"]
+
+    reporting_pack = packs["statistical_reporting_pack"]
+    assert reporting_pack["journal_family_patterns"] == [
+        "sample_size_and_denominator_trace",
+        "effect_size_confidence_interval_p_value_trace",
+        "missingness_and_exclusion_trace",
+        "model_performance_calibration_external_validation_trace",
+        "multiplicity_sensitivity_subgroup_assumption_trace",
+        "software_version_and_reproducible_analysis_refs",
+    ]
+    assert "analysis-campaign" in reporting_pack["applies_to"]["stages"]
+    assert "journal-resolution" in reporting_pack["applies_to"]["stages"]

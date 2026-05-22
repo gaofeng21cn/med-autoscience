@@ -53,6 +53,49 @@ def test_journal_family_required_reviewer_outputs_are_auditable() -> None:
             assert output["may_authorize_quality_verdict"] is False
 
 
+def test_nature_writing_and_statistical_reporting_are_quality_inputs_only() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+
+    argument_pack = packs["manuscript_argument_pack"]
+    assert argument_pack["clean_room_absorption"]["source_project"] == "nature-skills"
+    assert argument_pack["clean_room_absorption"]["runtime_dependency"] is False
+    assert argument_pack["clean_room_absorption"]["publication_authority"] is False
+    assert {"one_sentence_argument", "paragraph_flow_review", "hedging_and_overclaim_check"} <= set(
+        argument_pack["journal_family_patterns"]
+    )
+    assert {field["field_id"] for field in argument_pack["acceptance_evidence_fields"]} == {
+        "argument_spine_refs",
+        "section_job_map_refs",
+        "claim_boundary_refs",
+    }
+    assert argument_pack["required_reviewer_output"][-1]["output_id"] == "reviewer_record"
+    assert argument_pack["required_reviewer_output"][-1]["may_authorize_quality_verdict"] is False
+
+    reporting_pack = packs["statistical_reporting_pack"]
+    assert reporting_pack["clean_room_absorption"]["source_project"] == "nature-skills"
+    assert reporting_pack["clean_room_absorption"]["vendor_dependency"] is False
+    assert {
+        "effect_size_confidence_interval_p_value_trace",
+        "missingness_and_exclusion_trace",
+        "model_performance_calibration_external_validation_trace",
+        "multiplicity_sensitivity_subgroup_assumption_trace",
+    } <= set(reporting_pack["journal_family_patterns"])
+    assert {field["field_id"] for field in reporting_pack["acceptance_evidence_fields"]} == {
+        "effect_estimate_refs",
+        "denominator_missingness_refs",
+        "model_validation_refs",
+    }
+    assert reporting_pack["required_reviewer_output"][-1]["output_id"] == "owner_receipt_ref"
+    assert reporting_pack["required_reviewer_output"][-1]["may_authorize_publication_readiness"] is False
+
+    for pack in (argument_pack, reporting_pack):
+        assert pack["publication_readiness_authority"] is False
+        assert pack["quality_verdict_authority"] is False
+        assert pack["authority_boundary"]["can_authorize_submission_readiness"] is False
+        assert pack["authority_boundary"]["can_write_domain_truth"] is False
+
+
 def test_journal_family_quality_pack_consumption_is_descriptor_only() -> None:
     contract = build_stage_quality_pack_contract()
     packs = {pack["pack_id"]: pack for pack in contract["packs"]}

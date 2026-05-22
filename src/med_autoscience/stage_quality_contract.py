@@ -18,6 +18,8 @@ REQUIRED_STAGE_QUALITY_PACK_IDS: tuple[str, ...] = (
     "medical_claim_evidence_pack",
     "statistical_analysis_pack",
     "reporting_guideline_pack",
+    "manuscript_argument_pack",
+    "statistical_reporting_pack",
     "display_to_claim_pack",
     "journal_response_pack",
     "data_availability_fair_pack",
@@ -36,8 +38,10 @@ JOURNAL_FAMILY_QUALITY_PACK_IDS: tuple[str, ...] = (
     "data_availability_fair_pack",
     "citation_integrity_pack",
     "figure_evidence_contract_pack",
+    "manuscript_argument_pack",
     "paper_reader_grounding_pack",
     "paper_presentation_pack",
+    "statistical_reporting_pack",
 )
 
 QUALITY_PACK_CONTRACT_SURFACES: tuple[str, ...] = (SURFACE_KIND, PROJECTION_KIND)
@@ -88,6 +92,8 @@ _PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
     "medical_claim_evidence_pack": ("write", "review", "finalize", "decision"),
     "statistical_analysis_pack": ("baseline", "experiment", "analysis-campaign"),
     "reporting_guideline_pack": ("write", "review", "finalize", "journal-resolution"),
+    "manuscript_argument_pack": ("write", "review", "finalize", "decision"),
+    "statistical_reporting_pack": ("analysis-campaign", "write", "review", "finalize", "journal-resolution"),
     "display_to_claim_pack": ("analysis-campaign", "write", "review"),
     "journal_response_pack": ("review", "finalize", "journal-resolution"),
     "data_availability_fair_pack": ("write", "review", "finalize", "journal-resolution"),
@@ -112,6 +118,16 @@ _PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
         "survey_trend_analysis",
     ),
     "reporting_guideline_pack": REPORTING_STUDY_ARCHETYPES,
+    "manuscript_argument_pack": ("all_clinical_manuscripts",),
+    "statistical_reporting_pack": (
+        "observational_or_cohort_or_registry",
+        "diagnostic_or_prognostic_model",
+        "randomized_or_intervention",
+        "systematic_review_or_meta_analysis",
+        "diagnostic_accuracy",
+        "ai_ml_medical_study",
+        "survey_trend_analysis",
+    ),
     "display_to_claim_pack": (
         "clinical_classifier",
         "clinical_subtype_reconstruction",
@@ -385,6 +401,8 @@ _PACK_TITLES = {
     "medical_claim_evidence_pack": "Medical claim evidence pack",
     "statistical_analysis_pack": "Statistical analysis pack",
     "reporting_guideline_pack": "Reporting guideline pack",
+    "manuscript_argument_pack": "Manuscript argument pack",
+    "statistical_reporting_pack": "Statistical reporting pack",
     "display_to_claim_pack": "Display to claim pack",
     "journal_response_pack": "Journal response pack",
     "data_availability_fair_pack": "Data availability and FAIR pack",
@@ -415,6 +433,16 @@ _PACK_OWNER_REFS = {
     "reporting_guideline_pack": [
         _ref("human_doc", "docs/policies/quality/medical_manuscript_first_draft_quality.md", "quality_os_policy"),
         _ref("surface_kind", "publication_profile", "publication_profile_owner"),
+    ],
+    "manuscript_argument_pack": [
+        _ref("surface_kind", "AI reviewer workflow", "manuscript_argument_owner"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "claim_evidence_source"),
+        _ref("workspace_locator", "artifacts/publication_eval/latest.json", "medical_prose_review_source"),
+    ],
+    "statistical_reporting_pack": [
+        _ref("surface_kind", "analysis_contract", "analysis_owner"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "statistical_claim_trace"),
+        _ref("surface_kind", "publication_profile", "journal_statistical_reporting_profile"),
     ],
     "display_to_claim_pack": [
         _ref("surface_kind", "display_contract", "display_owner"),
@@ -482,6 +510,16 @@ _PACK_REQUIRED_REFS = {
     "reporting_guideline_pack": [
         _ref("human_doc", "docs/policies/quality/medical_manuscript_first_draft_quality.md", "required_rubric"),
         _ref("surface_kind", "publication_profile", "guideline_profile"),
+    ],
+    "manuscript_argument_pack": [
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "claim_evidence_boundary_refs"),
+        _ref("surface_kind", "AI reviewer workflow", "argument_and_prose_review_required"),
+        _ref("workspace_locator", "artifacts/publication_eval/latest.json", "medical_prose_quality_trace"),
+    ],
+    "statistical_reporting_pack": [
+        _ref("surface_kind", "analysis_contract", "statistical_methods_and_assumptions"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "reported_estimate_and_denominator_refs"),
+        _ref("surface_kind", "publication_profile", "journal_statistical_reporting_requirements"),
     ],
     "display_to_claim_pack": [
         _ref("surface_kind", "display_contract", "required_rubric"),
@@ -563,6 +601,14 @@ _JOURNAL_FAMILY_PATTERNS: dict[str, tuple[str, ...]] = {
         "export_contract",
         "qa_risks",
     ),
+    "manuscript_argument_pack": (
+        "paper_type_logic",
+        "one_sentence_argument",
+        "section_job_map",
+        "claim_evidence_boundary_map",
+        "paragraph_flow_review",
+        "hedging_and_overclaim_check",
+    ),
     "paper_reader_grounding_pack": (
         "source_map",
         "page_block_anchors",
@@ -574,6 +620,14 @@ _JOURNAL_FAMILY_PATTERNS: dict[str, tuple[str, ...]] = {
         "selected_figure_assets",
         "speaker_notes_context",
         "optional_human_facing_deliverable",
+    ),
+    "statistical_reporting_pack": (
+        "sample_size_and_denominator_trace",
+        "effect_size_confidence_interval_p_value_trace",
+        "missingness_and_exclusion_trace",
+        "model_performance_calibration_external_validation_trace",
+        "multiplicity_sensitivity_subgroup_assumption_trace",
+        "software_version_and_reproducible_analysis_refs",
     ),
 }
 
@@ -598,6 +652,11 @@ _JOURNAL_ACCEPTANCE_EVIDENCE_FIELDS: dict[str, tuple[tuple[str, str], ...]] = {
         ("source_data_refs", "source_data_and_statistics_trace"),
         ("export_contract_refs", "rendered_artifact_trace"),
     ),
+    "manuscript_argument_pack": (
+        ("argument_spine_refs", "paper_type_and_one_sentence_argument_trace"),
+        ("section_job_map_refs", "section_and_paragraph_role_review_trace"),
+        ("claim_boundary_refs", "claim_evidence_boundary_and_overclaim_trace"),
+    ),
     "paper_reader_grounding_pack": (
         ("source_map_refs", "paper_reader_source_anchor_trace"),
         ("page_block_anchor_refs", "reader_visible_block_identity"),
@@ -607,6 +666,11 @@ _JOURNAL_ACCEPTANCE_EVIDENCE_FIELDS: dict[str, tuple[tuple[str, str], ...]] = {
         ("evidence_spine_refs", "presentation_claim_sequence_trace"),
         ("selected_figure_asset_refs", "human_facing_visual_evidence_trace"),
         ("speaker_context_refs", "reader_or_presenter_context_trace"),
+    ),
+    "statistical_reporting_pack": (
+        ("effect_estimate_refs", "effect_size_confidence_interval_p_value_trace"),
+        ("denominator_missingness_refs", "sample_size_missingness_and_exclusion_trace"),
+        ("model_validation_refs", "calibration_external_validation_and_sensitivity_trace"),
     ),
 }
 
@@ -631,6 +695,11 @@ _JOURNAL_REQUIRED_REVIEWER_OUTPUTS: dict[str, tuple[tuple[str, str], ...]] = {
         ("blocker_or_readiness", "figure_evidence_ready_or_blocked"),
         ("owner_receipt_ref", "mas_display_or_artifact_owner_receipt_or_typed_blocker"),
     ),
+    "manuscript_argument_pack": (
+        ("refs", "argument_section_claim_boundary_and_prose_review_refs"),
+        ("blocker_or_readiness", "manuscript_argument_ready_or_blocked"),
+        ("reviewer_record", "independent_argument_and_prose_review_record"),
+    ),
     "paper_reader_grounding_pack": (
         ("refs", "source_map_and_reader_anchor_refs"),
         ("blocker_or_readiness", "reader_grounding_ready_or_blocked"),
@@ -640,6 +709,11 @@ _JOURNAL_REQUIRED_REVIEWER_OUTPUTS: dict[str, tuple[tuple[str, str], ...]] = {
         ("refs", "presentation_source_and_asset_refs"),
         ("blocker_or_readiness", "presentation_ready_or_blocked"),
         ("owner_receipt_ref", "mas_delivery_owner_receipt_or_typed_blocker"),
+    ),
+    "statistical_reporting_pack": (
+        ("refs", "statistical_methods_estimates_denominators_and_validation_refs"),
+        ("blocker_or_readiness", "statistical_reporting_ready_or_blocked"),
+        ("owner_receipt_ref", "mas_analysis_owner_receipt_or_typed_blocker"),
     ),
 }
 
