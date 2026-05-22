@@ -267,13 +267,50 @@ def test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets(
         "mechanism-edit-ref:mas/quality-repair-blocked-evidence-dispatch-rejection"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     )
+    assert "scorer:mas/phenotype-treatment-gap-first-draft-quality" in task["scorer_refs"]
+    assert "scorer:mas/prediction-model-first-draft-quality" not in task["scorer_refs"]
+    assert (
+        "quality_contract_ref:phenotype_treatment_gap_first_draft_quality"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
+    assert (
+        "quality_contract_ref:prediction_model_first_draft_quality"
+        not in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
     assert (
         "regression-suite:mas/medical-prose-write-repair-story-surface-delta"
         in task["promotion_gate"]["regression_suite_refs"]
     )
+    assert (
+        "regression-suite:mas/phenotype-treatment-gap-first-draft-quality"
+        in task["promotion_gate"]["regression_suite_refs"]
+    )
+    assert (
+        "regression-suite:mas/prediction-model-first-draft-quality"
+        not in task["promotion_gate"]["regression_suite_refs"]
+    )
     assert "quality_repair_blocked_evidence_dispatch_rejection" in work_order["required_patch_scopes"]
+    assert "phenotype_treatment_gap_first_draft_quality_contract" in work_order["required_patch_scopes"]
+    assert "prediction_model_first_draft_quality_contract" not in work_order["required_patch_scopes"]
     assert mechanism_work_order["study_quality_targets"] == work_order["study_quality_targets"]
     assert mechanism_work_order["study_quality_target_family"] == work_order["study_quality_target_family"]
+    assert mechanism_work_order["target_editable_surface_refs"] == work_order["target_editable_surface_refs"]
+
+    route_targets = {
+        target["target_id"]: target["route_target"]
+        for target in work_order["study_quality_targets"]
+    }
+    assert route_targets["phenotype_derivation_transparency"] == "analysis-campaign"
+    assert route_targets["recorded_treatment_gap_terminology"] == "write"
+    assert route_targets["bp_and_data_quality_assessment"] == "analysis_harmonization_owner"
+    assert route_targets["baseline_characteristics_table"] == "write"
+    assert route_targets["formal_figures_and_tables"] == "figure-polish"
+    assert route_targets["numeric_abstract_results_with_uncertainty"] == "write"
+    assert route_targets["restrained_discussion_and_prose"] == "review"
+    assert route_targets["reference_and_journal_style"] == "publication-gate"
+    assert route_targets["claim_evidence_alignment_without_runtime_language"] == "write"
+    assert route_targets["route_back_for_method_or_data_errors"] == "controller"
+    assert route_targets["medical_prose_write_repair_requires_story_surface_delta"] == "write"
 
 
 def test_medical_manuscript_quality_agent_lab_suite_projects_opl_consumable_route_refs(

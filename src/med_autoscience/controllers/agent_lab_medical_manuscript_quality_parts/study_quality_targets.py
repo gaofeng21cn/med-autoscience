@@ -11,6 +11,30 @@ def study_quality_target_profile(*, study_id: str) -> dict[str, Any]:
     return _general_high_quality_medical_manuscript_profile()
 
 
+def study_quality_contract_profile(*, study_id: str) -> dict[str, str]:
+    family = study_quality_target_profile(study_id=study_id)["family"]
+    if family == "prediction_model_external_validation":
+        return {
+            "quality_contract_ref": "quality_contract_ref:prediction_model_first_draft_quality",
+            "scorer_ref": "scorer:mas/prediction-model-first-draft-quality",
+            "regression_suite_ref": "regression-suite:mas/prediction-model-first-draft-quality",
+            "required_patch_scope": "prediction_model_first_draft_quality_contract",
+        }
+    if family == "observational_phenotype_treatment_gap":
+        return {
+            "quality_contract_ref": "quality_contract_ref:phenotype_treatment_gap_first_draft_quality",
+            "scorer_ref": "scorer:mas/phenotype-treatment-gap-first-draft-quality",
+            "regression_suite_ref": "regression-suite:mas/phenotype-treatment-gap-first-draft-quality",
+            "required_patch_scope": "phenotype_treatment_gap_first_draft_quality_contract",
+        }
+    return {
+        "quality_contract_ref": "quality_contract_ref:general_medical_manuscript_first_draft_quality",
+        "scorer_ref": "scorer:mas/general-medical-manuscript-first-draft-quality",
+        "regression_suite_ref": "regression-suite:mas/general-medical-manuscript-first-draft-quality",
+        "required_patch_scope": "general_medical_manuscript_first_draft_quality_contract",
+    }
+
+
 def _prediction_model_external_validation_profile() -> dict[str, Any]:
     return {
         "family": "prediction_model_external_validation",

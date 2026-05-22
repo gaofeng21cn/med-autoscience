@@ -8,12 +8,14 @@ from .agent_lab_aris_followup_assurance import build_aris_followup_assurance_sur
 from .agent_lab_medical_manuscript_quality_parts.quality_boundary import (
     AUTHORITY_BOUNDARY,
     CROSS_STAGE_VULNERABILITY_AUDIT,
-    DEVELOPER_PATCH_WORK_ORDER_ID,
     PAPER_STORY_EXCLUSION_POLICY,
     QUALITY_JUDGMENT_BOUNDARY,
-    SELF_EVOLUTION_TARGET_REFS,
     SUITE_RELATIVE_PATH,
     SURFACE_KIND,
+)
+from .agent_lab_medical_manuscript_quality_parts.developer_work_order import (
+    developer_patch_work_order as _developer_patch_work_order,
+    target_editable_surface_refs as _target_editable_surface_refs,
 )
 from .agent_lab_medical_manuscript_quality_parts.route_refs import (
     failure_delta_refs as _failure_delta_refs,
@@ -21,6 +23,7 @@ from .agent_lab_medical_manuscript_quality_parts.route_refs import (
     quality_floor_refs as _quality_floor_refs,
 )
 from .agent_lab_medical_manuscript_quality_parts.study_quality_targets import (
+    study_quality_contract_profile,
     study_quality_target_profile,
 )
 from .agent_lab_medical_manuscript_quality_parts.patch_loop_closeout import (
@@ -75,6 +78,8 @@ def build_medical_manuscript_quality_agent_lab_suite(
     promotion_gate_ref = f"promotion-gate:mas/{study_id}/high-quality-medical-manuscript"
     quality_floor_refs = _quality_floor_refs(study_id=study_id)
     owner_route_refs = _owner_route_refs(study_id=study_id)
+    quality_contract = study_quality_contract_profile(study_id=study_id)
+    target_editable_surface_refs = _target_editable_surface_refs(study_id=study_id)
     failure_delta_refs = _failure_delta_refs(
         study_id=study_id,
         prose_status=prose_status,
@@ -114,7 +119,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
         ],
         "scorer_refs": [
             "scorer:mas/ai-reviewer-medical-publication-critique-v1",
-            "scorer:mas/prediction-model-first-draft-quality",
+            quality_contract["scorer_ref"],
             scorecard_ref,
         ],
         "recovery_probes": [
@@ -165,7 +170,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "target_agent_capability_gap": {
                 "status": "candidate_only",
                 "target_owner": "med-autoscience",
-                "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
+                "target_editable_surface_refs": target_editable_surface_refs,
                 "cannot_authorize_quality_verdict": True,
             },
             "allowed_change_scope": "branch_only",
@@ -179,7 +184,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
             "regression_suite_refs": [
                 "regression-suite:mas/ai-first-quality-boundary",
                 "regression-suite:mas/paper-authority-clean-migration",
-                "regression-suite:mas/prediction-model-first-draft-quality",
+                quality_contract["regression_suite_ref"],
                 "regression-suite:mas/hard-methodology-unit-harmonization-route",
                 "regression-suite:mas/ai-reviewer-output-readiness-currentness",
                 "regression-suite:mas/medical-prose-write-repair-story-surface-delta",
@@ -201,7 +206,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
         task_id=task_id,
         promotion_gate_ref=promotion_gate_ref,
         developer_work_order=developer_work_order,
-        target_editable_surface_refs=list(SELF_EVOLUTION_TARGET_REFS),
+        target_editable_surface_refs=target_editable_surface_refs,
         controller_read_model_feedback_refs=mechanism_inputs["controller_read_model_feedback_refs"],
         forbidden_writes=mechanism_inputs["forbidden_writes"],
     )
@@ -357,7 +362,7 @@ def _mechanism_evolution_inputs(
         "submission_assurance_gate": submission_assurance_surfaces["submission_assurance_gate"],
         "effort_assurance_axes": submission_assurance_surfaces["effort_assurance_axes"],
         "controller_read_model_feedback_refs": controller_read_model_feedback_refs,
-        "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
+        "target_editable_surface_refs": _target_editable_surface_refs(study_id=study_id),
         "developer_patch_work_order": _developer_patch_work_order(
             study_id=study_id,
             evidence_refs=_unique_refs(
@@ -405,53 +410,6 @@ def _mechanism_evolution_inputs(
         ],
     }
 
-
-def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> dict[str, Any]:
-    profile = study_quality_target_profile(study_id=study_id)
-    return {
-        "work_order_id": DEVELOPER_PATCH_WORK_ORDER_ID,
-        "owner_agent": "opl-meta-agent",
-        "role": "developer_direct_repo_patch",
-        "target_repo": "med-autoscience",
-        "status": "blocked_until_repo_patch",
-        "trigger": "agent_lab_blocked_medical_manuscript_quality_suite",
-        "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
-        "required_patch_scopes": [
-            "analysis_harmonization_owner_callable",
-            "source_provenance_owner_recovery",
-            "source_provenance_terminal_blocker_route_back",
-            "methodology_reframe_decision_owner_route",
-            "hard_methodology_unit_harmonization_route",
-            "domain_route_analysis_harmonization_owner_result_consumption",
-            "ai_reviewer_output_readiness_currentness_consumption",
-            "ai_reviewer_record_production_handoff",
-            "ai_native_expert_judgment_first_quality_boundary",
-            "cross_stage_vulnerability_audit_routing",
-            "internal_error_debug_history_paper_story_exclusion",
-            "prediction_model_first_draft_quality_contract",
-            "ai_reviewer_high_quality_medical_manuscript_rubric",
-            "write_stage_pre_draft_prediction_model_reporting",
-            "quality_repair_blocked_evidence_dispatch_rejection",
-            "regression_tests_and_docs",
-        ],
-        "study_quality_target_family": profile["family"],
-        "study_quality_targets": profile["targets"],
-        "quality_judgment_boundary": dict(QUALITY_JUDGMENT_BOUNDARY),
-        "cross_stage_vulnerability_audit": dict(CROSS_STAGE_VULNERABILITY_AUDIT),
-        "paper_story_exclusion_policy": dict(PAPER_STORY_EXCLUSION_POLICY),
-        "evidence_refs": evidence_refs,
-        "forbidden_writes": [
-            "publication_eval/latest.json",
-            "controller_decisions/latest.json",
-            "paper/submission_minimal",
-            "manuscript/current_package",
-            "submission readiness verdict",
-        ],
-        "can_modify_mas_repo": True,
-        "can_write_study_truth": False,
-        "can_authorize_quality_verdict": False,
-        "can_mutate_paper_package": False,
-    }
 
 def _controller_read_model_feedback_refs(*, root: Path, study_id: str) -> list[str]:
     refs = _existing_refs(

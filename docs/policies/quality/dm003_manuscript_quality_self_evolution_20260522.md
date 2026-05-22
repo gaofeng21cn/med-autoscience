@@ -55,6 +55,21 @@ The writer materializer now requires the repaired story surface to include:
 
 This is a MAS write-owner quality requirement. It does not transfer DM003 to data/stat owner unless the writer cannot recover these operational details from existing canonical evidence surfaces.
 
+## 2026-05-22 Family-Specific Agent Lab Contract Landing
+
+The DM003 Agent Lab manuscript-quality suite now projects a phenotype / treatment-gap first-draft quality contract rather than inheriting the prediction-model scorer and contract names. The suite-level scorer, promotion regression ref, developer work-order scope, and editable surface refs are derived from `study_quality_target_family`.
+
+For `observational_phenotype_treatment_gap`, the contract refs are:
+
+- `quality_contract_ref:phenotype_treatment_gap_first_draft_quality`
+- `scorer:mas/phenotype-treatment-gap-first-draft-quality`
+- `regression-suite:mas/phenotype-treatment-gap-first-draft-quality`
+- `phenotype_treatment_gap_first_draft_quality_contract`
+
+The regression now also locks the route target for each DM003 quality target, including phenotype derivation to `analysis-campaign`, BP/data quality to `analysis_harmonization_owner`, figure/table quality to `figure-polish`, journal reference style to `publication-gate`, and manuscript language/table/abstract repairs to `write` or `review` as appropriate.
+
+This is still a refs-only Agent Lab capability. It does not mutate DM003 study truth, write `publication_eval/latest.json`, refresh `manuscript/current_package`, or authorize publication readiness.
+
 ## Regression Receipt
 
 - `tests/test_cli_cases/owner_route_handoff_command.py::test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
