@@ -527,6 +527,11 @@ def _next_system_action(
         and not live_managed_runtime
     ):
         return runtime_next_action
+    domain_transition_repair = _domain_transition_route_repair(status)
+    if domain_transition_repair is not None and not live_managed_runtime:
+        route_summary = _route_repair_summary(domain_transition_repair)
+        if route_summary is not None:
+            return route_summary
     if decision == "blocked":
         if action := completion_next_action_or_reason(
             status,

@@ -19,6 +19,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import evidence_ado
 from med_autoscience.controllers.owner_route_reconcile_parts import hard_methodology_currentness
 from med_autoscience.controllers.owner_route_reconcile_parts import methodology_reframe_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
+from med_autoscience.controllers.owner_route_reconcile_parts import runtime_repair_action
 from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts
 from med_autoscience.controllers.owner_route_reconcile_parts import story_surface_delta_actions
 
@@ -155,6 +156,33 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    if completion_evidence.completed_current_truth(status, progress):
+        return []
+    if parked_truth.current_truth(
+        status,
+        progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
+        return []
+    runtime_action = runtime_repair_action.action(
+        status=status,
+        progress=progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        gate_specificity=gate_specificity,
+    )
+    if runtime_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=runtime_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     if ai_reviewer_assessment.get("missing") is True:
         return [
             decorate_action(
@@ -183,15 +211,6 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
-    if completion_evidence.completed_current_truth(status, progress):
-        return []
-    if parked_truth.current_truth(
-        status,
-        progress,
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    ):
-        return []
     if ai_reviewer_actions.stale_reviewer_revision_required(ai_reviewer_assessment):
         return [
             decorate_action(
@@ -255,14 +274,14 @@ def action_queue(
             study_root=study_root,
             publication_eval_payload=publication_eval_payload,
         )
-        or _external_supervisor_runtime_repair_required(status, progress)
+        or runtime_repair_action.external_supervisor_repair_required(status, progress)
     ):
         actions.append(
             current_truth_owner.runtime_platform_repair_action(
                 study_root=study_root,
                 status=status,
                 publication_eval_payload=publication_eval_payload,
-                default_reason=_external_supervisor_runtime_repair_reason(status, progress)
+                default_reason=runtime_repair_action.external_supervisor_repair_reason(status, progress)
                 or current_truth_owner.runtime_platform_repair_reason(status, progress),
             )
         )
@@ -930,31 +949,6 @@ def _path_mtime(path: Path) -> float | None:
         return Path(path).expanduser().resolve().stat().st_mtime
     except OSError:
         return None
-
-
-def _external_supervisor_runtime_repair_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
-    return _external_supervisor_runtime_repair_reason(status, progress) is not None
-
-
-def _external_supervisor_runtime_repair_reason(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str | None:
-    if runtime_facts.active_run_id(status, progress) is not None and runtime_facts.worker_running(status):
-        return None
-    lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
-    if _text(lifecycle.get("state")) not in {"blocked", "external_supervisor_required"}:
-        return None
-    if lifecycle.get("external_supervisor_required") is not True:
-        return None
-    blocked_reason = _text(lifecycle.get("blocked_reason"))
-    if blocked_reason != "runtime_recovery_not_authorized":
-        return None
-    top_action = _mapping(lifecycle.get("top_action"))
-    if (
-        _text(top_action.get("action_type")) == "controller_repair"
-        and _text(top_action.get("repair_kind")) == "bounded_work_unit_redrive"
-        and top_action.get("auto_apply_allowed") is True
-    ):
-        return blocked_reason
-    return None
 
 
 def _string_items(value: object) -> list[str]:

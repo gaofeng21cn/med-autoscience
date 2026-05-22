@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-22：当前 runtime-redrive route-back 优先于旧 progress active run 和 terminal package handoff
+
+- 决策：当 `domain_transition.decision_type` 属于 `route_back_same_line`、`ai_reviewer_re_eval`、`publication_gate_blocker` 或 `bundle_stage_finalize`，且 status/liveness/truth 没有可靠 live worker 时，`study_macro_state`、`study-progress.user_visible_projection` 和 `owner-route-reconcile` 必须把当前 transition 投影为 owner repair 队列，不得从旧 `progress.supervision.active_run_id` 误判 live，也不得让旧 terminal delivery/package handoff 覆盖当前 route-back。
+- 理由：DM002 暴露出 AI reviewer 已给出当前 write route-back 后，read model 仍可能同时显示 stale active run 或“当前包已经可直接交给用户审阅”，导致用户可见状态和 owner-route 与当前 publication_eval/quality route 不一致。根因是 MAS currentness/read-model precedence，而不是 OPL provider 或单篇稿件内容。
+- 影响：这是 MAS study-progress / owner-route read-model 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文质量仍由当前 write owner delta、AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-22：AI reviewer domain transition 是 turn/resume/refresh currentness 的权威 fallback
 
 - 决策：当 `progress_projection/status_payload.domain_transition` 明确为 `ai_reviewer_re_eval`、`controller_action=return_to_ai_reviewer_workflow`，且 `next_work_unit.unit_id=ai_reviewer_medical_prose_quality_review` 时，MAS 的 runtime turn prompt、resume/relaunch 前 controller-decision currentness、以及 AI reviewer workflow 后的 controller refresh 都必须把该 domain transition 作为权威 fallback。若 generic outer-loop tick request 因旧 `publication_eval`、`quality_repair_batch` 或 stale write route 返回 `medical_prose_write_repair` / `run_quality_repair_batch`，不得让旧 tick 覆盖当前 AI reviewer re-eval。

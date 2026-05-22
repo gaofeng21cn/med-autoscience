@@ -478,6 +478,8 @@ def _apply_terminal_delivery_user_visible_status(payload: dict[str, Any]) -> dic
 
 
 def _terminal_delivery_closed(payload: Mapping[str, Any]) -> bool:
+    if _current_redrive_domain_transition(payload):
+        return False
     user_visible = _mapping_copy(payload.get("user_visible_projection"))
     paper_progress = _mapping_copy(user_visible.get("paper_progress_state"))
     if user_visible.get("package_delivered") is not True:
@@ -495,6 +497,16 @@ def _terminal_delivery_closed(payload: Mapping[str, Any]) -> bool:
         _non_empty_text(followthrough.get("gate_replay_status")) == "clear"
         and int(followthrough.get("failed_unit_count") or 0) == 0
     )
+
+
+def _current_redrive_domain_transition(payload: Mapping[str, Any]) -> bool:
+    transition = _mapping_copy(payload.get("domain_transition"))
+    return _non_empty_text(transition.get("decision_type")) in {
+        "ai_reviewer_re_eval",
+        "bundle_stage_finalize",
+        "publication_gate_blocker",
+        "route_back_same_line",
+    }
 
 
 def _terminal_delivery_operator_status_card(

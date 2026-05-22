@@ -88,6 +88,23 @@ def derive_study_macro_state(
             conditions=[_condition("TruthConflict", "true", "status surfaces disagree on writer ownership")],
         )
 
+    redrive_route = _runtime_redrive_route(status=status)
+    if redrive_route is not None and not _live_status_active_run_id(status=status, truth=truth):
+        return _state(
+            study_id=study_id,
+            writer_state="queued",
+            user_next="repair",
+            reason="quality",
+            details={
+                **details,
+                "decision_type": _text(redrive_route.get("decision_type")),
+                "route_target": _text(redrive_route.get("route_target")),
+                "next_work_unit": _text(_mapping(redrive_route.get("next_work_unit")).get("unit_id")),
+                "route_owner": _text(redrive_route.get("owner")),
+            },
+            conditions=[_condition("DomainTransitionRedrive", "true", "current domain transition names an owner work unit")],
+        )
+
     if active_run_id := _active_run_id(status=status, progress=progress_payload, truth=truth):
         return _state(
             study_id=study_id,
@@ -361,6 +378,8 @@ def _truth_conflict(*, status: Mapping[str, Any], progress: Mapping[str, Any], t
 def _active_run_id(*, status: Mapping[str, Any], progress: Mapping[str, Any], truth: Mapping[str, Any]) -> str | None:
     if _text(status.get("quest_status")) in {"paused", "stopped", "completed"}:
         return None
+    if _runtime_redrive_route(status=status) is not None and not _live_status_active_run_id(status=status, truth=truth):
+        return None
     runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
     liveness = _mapping(status.get("runtime_liveness_audit"))
     if runtime_audit.get("worker_running") is False or liveness.get("worker_running") is False:
@@ -379,6 +398,38 @@ def _active_run_id(*, status: Mapping[str, Any], progress: Mapping[str, Any], tr
         or _text(_mapping(truth.get("execution_owner")).get("active_run_id"))
         or _text(progress.get("active_run_id"))
         or _text(_mapping(progress.get("supervision")).get("active_run_id"))
+    )
+
+
+def _runtime_redrive_route(*, status: Mapping[str, Any]) -> dict[str, Any] | None:
+    transition = _mapping(status.get("domain_transition"))
+    if _text(transition.get("decision_type")) in {
+        "ai_reviewer_re_eval",
+        "bundle_stage_finalize",
+        "publication_gate_blocker",
+        "route_back_same_line",
+    }:
+        return transition
+    return None
+
+
+def _live_status_active_run_id(*, status: Mapping[str, Any], truth: Mapping[str, Any]) -> str | None:
+    if _text(status.get("quest_status")) in {"paused", "stopped", "completed", "waiting_for_user"}:
+        return None
+    runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
+    liveness = _mapping(status.get("runtime_liveness_audit"))
+    if runtime_audit.get("worker_running") is False or liveness.get("worker_running") is False:
+        return None
+    if _text(status.get("runtime_liveness_status")) in {"none", "not_live", "stale", "parked"}:
+        return None
+    health = _mapping(status.get("runtime_health_snapshot"))
+    worker_liveness = _mapping(health.get("worker_liveness_state"))
+    if _text(worker_liveness.get("state")) in {"not_live", "parked", "stale"}:
+        return None
+    return (
+        _text(status.get("active_run_id"))
+        or _text(truth.get("active_run_id"))
+        or _text(_mapping(truth.get("execution_owner")).get("active_run_id"))
     )
 
 

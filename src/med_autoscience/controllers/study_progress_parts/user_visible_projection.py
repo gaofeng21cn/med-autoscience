@@ -44,6 +44,15 @@ _ACTIVE_TOP_LEVEL_STAGES = frozenset(
 
 _QUALITY_REPAIR_LABEL = "质量修复/复审中"
 
+_RUNTIME_REDRIVE_DOMAIN_TRANSITIONS = frozenset(
+    {
+        "ai_reviewer_re_eval",
+        "bundle_stage_finalize",
+        "publication_gate_blocker",
+        "route_back_same_line",
+    }
+)
+
 
 def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     macro_state = _macro_state(payload)
@@ -207,6 +216,8 @@ def _top_level_writer_conflicts(payload: Mapping[str, Any], macro_state: Mapping
     writer_state = _non_empty_text(macro_state.get("writer_state"))
     if writer_state == "conflict":
         return True
+    if _current_runtime_redrive_route(payload) and writer_state != "live":
+        return False
     active_run_id = (
         _non_empty_text(payload.get("active_run_id"))
         or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
@@ -388,6 +399,8 @@ def _user_action_required(*, user_next: str, reason: str, terminal_delivery: boo
 def _quality_owner_pending(*, payload: Mapping[str, Any], terminal_delivery: bool, next_owner: str | None) -> bool:
     if terminal_delivery:
         return False
+    if _current_runtime_redrive_route(payload):
+        return True
     paper_progress = build_paper_progress_state(payload)
     if _non_empty_text(paper_progress.get("state")) in {
         "awaiting_callable_owner",
@@ -518,14 +531,14 @@ def _next_step(
 ) -> str:
     if writer_state == "live":
         return "观察自动运行推进。"
-    if writer_state == "queued":
-        return "等待 MAS 已登记的 owner/action 处理。"
     if user_next == "submit_info" and reason == "external_info":
         missing = _normalized_texts(details.get("missing_external_info"))
         suffix = f": {', '.join(missing)}" if missing else ""
         return f"补齐外部投稿信息{suffix}。"
     if quality_owner_pending:
         return "等待质量修复/复审 owner 完成处理。"
+    if writer_state == "queued":
+        return "等待 MAS 已登记的 owner/action 处理。"
     if terminal_delivery:
         return "投稿包已交付；系统保持自动停驻。"
     if reason == "user_stop":
@@ -558,6 +571,11 @@ def _supervision_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "health_status": _non_empty_text(supervision.get("health_status")),
         "supervisor_tick_status": _non_empty_text(supervision.get("supervisor_tick_status")),
     }
+
+
+def _current_runtime_redrive_route(payload: Mapping[str, Any]) -> bool:
+    transition = _mapping_copy(payload.get("domain_transition"))
+    return _non_empty_text(transition.get("decision_type")) in _RUNTIME_REDRIVE_DOMAIN_TRANSITIONS
 
 
 def _projection_conditions(

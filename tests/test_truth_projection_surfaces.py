@@ -105,6 +105,68 @@ def test_study_progress_compact_payload_derives_macro_state_from_current_payload
     assert payload["study_macro_state"]["reason"] == "external_info"
 
 
+def test_current_write_routeback_overrides_stale_progress_run_and_package_handoff() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    payload = module._normalize_study_progress_payload(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_status": "waiting_for_user",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "active_run_id": None,
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "controller_action": "ensure_study_runtime",
+                "next_work_unit": {
+                    "unit_id": "dm002_same_line_publication_paper_repair",
+                    "lane": "write",
+                    "summary": "Controller-authorized paper repair and package rebuild from latest evidence.",
+                },
+            },
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-dm002-write-route",
+                "source_signature": "truth-source-dm002-write-route",
+            },
+            "current_stage": "managed_runtime_supervision_gap",
+            "paper_stage": "publishability_gate_blocked",
+            "paper_progress_stall": {
+                "state": "blocked_controller_route",
+                "next_owner": "write",
+                "summary": "Current write owner route is open.",
+            },
+            "delivery_inspection": {
+                "status": "current",
+                "freshness": {"delivery_status": "current"},
+            },
+            "gate_clearing_batch_followthrough": {
+                "gate_replay_status": "clear",
+                "failed_unit_count": 0,
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-05-22T10:32:16+00:00",
+                }
+            },
+            "supervision": {
+                "active_run_id": "mas-run-stale-progress-only",
+                "health_status": "stale",
+            },
+        }
+    )
+    payload["user_visible_projection"] = module.build_user_visible_projection(payload)
+
+    assert payload["study_macro_state"]["writer_state"] == "queued"
+    assert payload["study_macro_state"]["user_next"] == "repair"
+    assert payload["study_macro_state"]["reason"] == "quality"
+    assert payload["user_visible_projection"]["next_owner"] == "write"
+    assert payload["user_visible_projection"]["user_action_required"] is False
+    assert "当前包已经可直接交给用户审阅" not in payload["user_visible_projection"]["next_system_action"]
+    assert payload["user_visible_projection"]["next_system_action"] == "等待质量修复/复审 owner 完成处理。"
+
+
 def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
 
