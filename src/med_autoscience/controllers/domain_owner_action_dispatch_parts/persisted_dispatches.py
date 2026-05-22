@@ -60,7 +60,12 @@ def explicit_action_dispatches(
             action_type=action_type,
             dispatch=payload,
         ):
-            continue
+            if not _self_authorized_quality_repair_writer_handoff(
+                study_id=study_id,
+                action_type=action_type,
+                dispatch=payload,
+            ):
+                continue
         key = (str(path), action_type)
         if key in seen:
             continue
@@ -337,6 +342,34 @@ def owner_request_matches_dispatch(
     if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=request_route):
         return False
     return owner_route_part.route_allows_action(action=dispatch, owner_route=request_route)
+
+
+def _self_authorized_quality_repair_writer_handoff(
+    *,
+    study_id: str,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if action_type != "run_quality_repair_batch":
+        return False
+    if _text(dispatch.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
+        return False
+    if _text(dispatch.get("study_id")) != study_id:
+        return False
+    if _text(dispatch.get("next_executable_owner")) != "write":
+        return False
+    source_action = _mapping(dispatch.get("source_action"))
+    if _text(source_action.get("surface")) != "quality_repair_batch":
+        return False
+    if _text(source_action.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
+        return False
+    route = _dispatch_owner_route(dispatch)
+    route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
+    if _text(route.get("next_owner")) != "write":
+        return False
+    if route_reason != "manuscript_story_surface_delta_missing":
+        return False
+    return owner_route_part.route_allows_action(action=dispatch, owner_route=route)
 
 
 def _owner_request_fallback_route(*, action_type: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:

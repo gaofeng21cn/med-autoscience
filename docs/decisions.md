@@ -388,6 +388,13 @@
 - 理由：DM003 暴露出 MAS 工作流可以识别写作质量问题，却没有把反馈实际落成用户可见的正文变化。单靠 revision intake、ledger、AI reviewer request 或 handoff 不能保证初稿质量前移；write owner 必须能在当前 owner-chain 内把 canonical evidence 转成 journal-facing manuscript surface。
 - 影响：这是 MAS manuscript autonomy 能力修复，不是单篇论文手工修稿，也不是质量放行。AI reviewer recheck 和 publication gate 仍负责判断 `medical_journal_prose_quality`、publishability 和 submission-facing readiness；package/current_package 仍需后续 owner 授权刷新。
 
+## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
+
+- 决策：`quality_repair_batch_writer_handoff` 生成 `run_quality_repair_batch` dispatch 时，必须同步物化 `artifacts/supervision/requests/quality_repair_batch/latest.json`，并把 `prompt_contract.request_packet_ref` 指向该 request surface。后续 dispatcher 以 request+dispatch 双面 currentness 为主。
+- 决策：为恢复已存在的半状态，dispatcher 可以限界消费缺 request 的 self-authorized writer handoff；条件必须同时满足 `dispatch_authority=quality_repair_batch_writer_handoff`、`action_type=run_quality_repair_batch`、`next_executable_owner=write`、`source_action.surface=quality_repair_batch`、`blocked_reason=manuscript_story_surface_delta_missing`，且 dispatch 自带 owner route 允许该 action。该恢复路径不适用于其他 action、其他 owner、publication verdict、delivery/package 或 current_package 写入。
+- 理由：DM003 暴露出 writer 已更新 `paper/draft.md` 与 `paper/build/review_manuscript.md` 后，study-local `run_quality_repair_batch.json` 仍在，但缺少 `requests/quality_repair_batch/latest.json`，导致 `domain-owner-action-dispatch` 静默返回 `execution_count=0`，`repair_execution_evidence/latest.json` 仍停在旧稿件指纹。根因是 MAS handoff materialization 缺一面 owner request，而不是 OPL provider、单篇手写稿件或 publication gate 可以绕过的问题。
+- 影响：这是 MAS owner-chain currentness/dispatch 修复。它只让已授权 write owner 继续闭合 canonical story-surface delta，不授权 `publication_eval/latest.json`、`controller_decisions/latest.json`、`manuscript/current_package`、submission package 或 submission-ready verdict。
+
 ## 2026-05-22：stage quality pack contract catalog 按自然边界拆分
 
 - 决策：`stage_quality_contract.py` 继续作为 public contract/API owner，保留 `build_stage_quality_pack_contract`、projection builder、pack id 常量和 `CONTRACT_REF`；静态 pack catalog、promotion evidence、owner refs 与 required refs 迁入 `stage_quality_contract_parts/catalog.py`，由 `stage_quality_contract_parts/__init__.py` 做显式 re-export。

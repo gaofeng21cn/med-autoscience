@@ -36,6 +36,7 @@ ALLOWED_WRITE_SURFACES = [
     "paper/evidence_ledger.json",
     "paper/review/**",
 ]
+REQUEST_PACKET_REF = "artifacts/supervision/requests/quality_repair_batch/latest.json"
 
 
 def should_emit_writer_handoff(blocked_repair_reason: str | None) -> bool:
@@ -87,7 +88,7 @@ def build_writer_worker_handoff(
         "compact_evidence_packet_ref": "artifacts/supervision/compact_evidence_packets/run_quality_repair_batch.json",
         "do_not_repeat": True,
         "repeat_suppression_key": owner_route["work_unit_fingerprint"],
-        "request_packet_ref": "artifacts/supervision/consumer/run_quality_repair_batch.json",
+        "request_packet_ref": REQUEST_PACKET_REF,
         "source_eval_ref": source_eval_artifact_path,
         "source_summary_ref": source_summary_artifact_path,
         "repair_execution_evidence_ref": str(repair_execution_evidence_path),
@@ -133,6 +134,7 @@ def build_writer_worker_handoff(
         },
         "refs": {
             "dispatch_path": str(dispatch_path),
+            "request_path": str((profile.studies_root / study_id / REQUEST_PACKET_REF).resolve()),
             "source_eval_path": source_eval_artifact_path,
             "source_summary_path": source_summary_artifact_path,
             "repair_execution_evidence_path": str(repair_execution_evidence_path),
@@ -143,6 +145,27 @@ def build_writer_worker_handoff(
             "expected_next_effect": "writer owner updates canonical manuscript story surface or emits typed blocker",
         },
         "generated_at": generated_at,
+    }
+
+
+def owner_request_from_handoff(handoff: Mapping[str, Any]) -> dict[str, Any]:
+    source_action = _mapping(handoff.get("source_action"))
+    owner = _non_empty_text(handoff.get("next_executable_owner")) or NEXT_OWNER
+    return {
+        "request_kind": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+        "status": "requested",
+        "study_id": _non_empty_text(handoff.get("study_id")),
+        "quest_id": _non_empty_text(handoff.get("quest_id")),
+        "request_owner": owner,
+        "expected_owner": owner,
+        "next_executable_owner": owner,
+        "action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+        "owner_route": _mapping(handoff.get("owner_route")),
+        "source_action": source_action,
+        "refs": _mapping(handoff.get("refs")),
+        "request_packet_ref": REQUEST_PACKET_REF,
+        "required_output_surface": _non_empty_text(handoff.get("required_output_surface")),
+        "dispatch_authority": _non_empty_text(handoff.get("dispatch_authority")),
     }
 
 
@@ -344,6 +367,8 @@ def _mapping(value: object) -> dict[str, Any]:
 
 __all__ = [
     "NEXT_OWNER",
+    "REQUEST_PACKET_REF",
     "build_writer_worker_handoff",
+    "owner_request_from_handoff",
     "should_emit_writer_handoff",
 ]

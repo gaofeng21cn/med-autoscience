@@ -82,6 +82,12 @@ def _materialize_writer_worker_handoff(handoff: Mapping[str, Any] | None) -> str
         raise ValueError("writer_worker_handoff_missing_dispatch_path")
     dispatch_path = Path(dispatch_path_text).expanduser()
     _write_json(dispatch_path, handoff)
+    request_path_text = _non_empty_text(refs.get("request_path"))
+    if request_path_text is not None:
+        _write_json(
+            Path(request_path_text).expanduser(),
+            writer_handoff.owner_request_from_handoff(handoff),
+        )
     return str(dispatch_path)
 
 

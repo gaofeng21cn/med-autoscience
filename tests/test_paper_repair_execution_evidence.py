@@ -543,6 +543,19 @@ def test_quality_repair_batch_does_not_infer_story_delta_from_unchanged_newer_su
     )
     assert first_result["status"] == "handoff_ready"
     assert first_result["next_owner"] == "write"
+    request = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "requests"
+            / "quality_repair_batch"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert request["request_kind"] == "run_quality_repair_batch"
+    assert request["request_owner"] == "write"
+    assert request["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
 
     second_result = quality_module.run_quality_repair_batch(
         profile=profile,
