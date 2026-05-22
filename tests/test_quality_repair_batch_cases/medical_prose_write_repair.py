@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +13,7 @@ from tests.test_quality_repair_batch_cases.upstream_paper_owner_surface import (
 )
 
 
-def test_medical_prose_write_repair_returns_writer_handoff_for_missing_story_delta(
+def test_medical_prose_write_repair_updates_canonical_story_surface(
     monkeypatch: Any,
     tmp_path: Path,
 ) -> None:
@@ -101,25 +100,14 @@ def test_medical_prose_write_repair_returns_writer_handoff_for_missing_story_del
         control_plane_route_context=_paper_write_supervisor_route_context(),
     )
 
-    evidence = result["repair_execution_evidence"]
     assert result["ok"] is True
-    assert result["status"] == "handoff_ready"
-    assert result["blocked_reason"] is None
-    assert result["next_owner"] == "write"
-    handoff = result["writer_worker_handoff"]
-    assert handoff["surface"] == "default_executor_dispatch_request"
-    assert handoff["dispatch_status"] == "ready"
-    assert handoff["next_executable_owner"] == "write"
-    assert "canonical manuscript story-surface delta" in handoff["required_output_surface"]
-    assert handoff["typed_blocker_if_unresolved"] == "manuscript_story_surface_delta_missing"
-    dispatch_path = Path(handoff["refs"]["dispatch_path"])
-    assert result["writer_worker_handoff_path"] == str(dispatch_path)
-    assert dispatch_path.exists()
-    materialized_dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    assert materialized_dispatch == handoff
-    assert evidence["progress_delta_candidate"] is False
+    assert result["status"] == "executed"
+    assert "writer_worker_handoff" not in result
+    evidence = result["repair_execution_evidence"]
+    assert evidence["status"] == "progress_delta_candidate"
+    assert evidence["progress_delta_candidate"] is True
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_required"] is True
-    assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is False
+    assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is True
     changed_paths = {
         Path(ref["path"]).relative_to(study_root).as_posix()
         for ref in evidence["canonical_artifact_delta"]["artifact_refs"]
@@ -127,7 +115,23 @@ def test_medical_prose_write_repair_returns_writer_handoff_for_missing_story_del
     assert "paper/claim_evidence_map.json" in changed_paths
     assert "paper/evidence_ledger.json" in changed_paths
     assert "paper/review/review_ledger.json" in changed_paths
-    assert "paper/build/review_manuscript.md" not in changed_paths
-    assert not (paper_root / "build" / "review_manuscript.md").exists()
+    assert "paper/draft.md" in changed_paths
+    assert "paper/build/review_manuscript.md" in changed_paths
+    story_text = (paper_root / "draft.md").read_text(encoding="utf-8")
+    assert "Phenotype derivation and assignment" in story_text
+    assert "recorded treatment-review gap" in story_text
+    assert "Data quality assessment" in story_text
+    assert "Baseline characteristics" in story_text
+    forbidden_runtime_terms = (
+        "MAS",
+        "AI reviewer",
+        "verified outputs",
+        "accepted records",
+        "source gaps",
+        "submission readiness",
+        "repair note",
+    )
+    assert not any(term in story_text for term in forbidden_runtime_terms)
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == story_text
     assert not (study_root / "manuscript" / "current_package").exists()
     assert not (paper_root / "submission_minimal").exists()

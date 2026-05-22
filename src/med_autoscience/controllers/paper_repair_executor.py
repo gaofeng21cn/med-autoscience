@@ -870,15 +870,15 @@ def _write_owner_receipt(*, study_root: Path, receipt: Mapping[str, Any]) -> Pat
 
 def _would_write(work_unit_type: str) -> list[str]:
     if work_unit_type == "claim_downgrade":
-        return ["paper/manuscript.md", "paper/evidence_ledger.json", "paper/review/review_ledger.json"]
+        return ["paper/draft.md", "paper/evidence_ledger.json", "paper/review/review_ledger.json"]
     if work_unit_type == "text_repair":
-        return ["paper/manuscript.md", "paper/review/review_ledger.json"]
+        return ["paper/draft.md", "paper/review/review_ledger.json"]
     if work_unit_type == "evidence_ledger_repair":
         return ["paper/evidence_ledger.json"]
     if work_unit_type == "review_ledger_repair":
         return ["paper/review/review_ledger.json"]
     if work_unit_type == "analysis_repair":
-        return ["paper/manuscript.md", "paper/evidence_ledger.json"]
+        return ["paper/draft.md", "paper/evidence_ledger.json"]
     if work_unit_type == "route_decision":
         return ["paper/evidence_ledger.json", "paper/review/review_ledger.json"]
     return []
@@ -896,6 +896,9 @@ def _authority_boundary() -> dict[str, Any]:
 
 
 def _manuscript_path(study_root: Path) -> Path:
+    draft = study_root / "paper" / "draft.md"
+    if draft.exists() or not (study_root / "paper" / "manuscript.md").exists():
+        return draft
     return study_root / "paper" / "manuscript.md"
 
 
@@ -930,8 +933,10 @@ def _work_unit_id(work_unit: Mapping[str, Any]) -> str:
 
 def _artifact_role(path: Path) -> str:
     text = path.as_posix()
+    if text.endswith("draft.md") or text.endswith("build/review_manuscript.md"):
+        return "canonical_manuscript_story_surface"
     if text.endswith("manuscript.md"):
-        return "canonical_manuscript"
+        return "legacy_canonical_manuscript"
     if text.endswith("evidence_ledger.json"):
         return "evidence_ledger"
     if text.endswith("review_ledger.json"):

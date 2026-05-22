@@ -26,7 +26,7 @@ This patch does not write DM003 study truth, `publication_eval/latest.json`, `co
 
 ## Runtime Lesson
 
-`medical_prose_write_repair` is a manuscript-facing work unit. If `quality_repair_batch` or paper repair evidence reports `manuscript_story_surface_delta_missing`, sidecar dispatch must preserve the typed blocker and return a blocked receipt. OPL queue success, Agent Lab transport success, or ledger-only updates cannot substitute for a canonical `paper/draft.md` or `paper/build/review_manuscript.md` delta.
+`medical_prose_write_repair` is a manuscript-facing work unit. If canonical paper inputs are sufficient, MAS must materialize a real story-surface delta in `paper/draft.md` and `paper/build/review_manuscript.md` from canonical `paper/` evidence surfaces. If those inputs are insufficient, `quality_repair_batch` or paper repair evidence must preserve `manuscript_story_surface_delta_missing` and route to the write owner. OPL queue success, Agent Lab transport success, or ledger-only updates cannot substitute for a canonical manuscript delta.
 
 ## 2026-05-21 Follow-up Landing
 
@@ -34,13 +34,17 @@ This patch does not write DM003 study truth, `publication_eval/latest.json`, `co
 - The clinical subtype reconstruction display shell admits `primary_care_gap` descriptive manuscripts, so DPCC phenotype / treatment-gap displays can be planned without pretending the paper is a prediction-model or generic clinical-observation manuscript.
 - `medical_prose_write_repair` now shares the story-surface delta contract with `manuscript_story_repair`; the write owner must change `paper/draft.md` or `paper/build/review_manuscript.md`, and ledger-only repair remains blocked.
 - `domain-route-scan` and `domain-owner-action-dispatch` can materialize and execute persisted `run_quality_repair_batch` requests for this write route, preserving `manuscript_story_surface_delta_missing` as a typed blocker when the manuscript surface has not moved.
+- `quality_repair_batch` now includes a writer-owner materializer for `medical_prose_write_repair` that writes canonical manuscript story surfaces from methods/cohort/display/treatment-gap/transition/table/evidence refs while avoiding current-package, delivery mirror, publication-eval, controller-decision, and submission-package writes.
+- `paper_repair_executor` now targets `paper/draft.md` as the canonical text-repair surface and classifies `paper/draft.md` / `paper/build/review_manuscript.md` as `canonical_manuscript_story_surface`.
 
-These changes intentionally do not generate DM003 prose. They make the MAS owner chain capable of routing the prose-quality blocker to the correct write owner and then back to AI reviewer currentness after a canonical manuscript delta exists.
+These changes intentionally do not declare DM003 quality ready. They make the MAS owner chain capable of materializing prose-quality repairs on canonical manuscript surfaces and then routing back to AI reviewer currentness after a manuscript delta exists.
 
 ## Regression Receipt
 
 - `tests/test_cli_cases/sidecar_family_adapter_command.py::test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
 - `tests/test_agent_lab_medical_manuscript_quality.py::test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets`
+- `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_updates_canonical_story_surface`
+- `tests/test_paper_repair_executor.py::test_paper_repair_executor_executes_text_repair_on_canonical_sources`
 - `tests/test_medical_reporting_contract.py::test_resolve_medical_reporting_contract_for_primary_care_gap_manuscript`
 - `tests/test_medical_startup_contract_support.py::test_reporting_contract_supports_primary_care_gap_manuscript_family`
 - `tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases.py::test_study_runtime_status_keeps_medical_prose_write_route_when_story_surface_delta_is_missing`

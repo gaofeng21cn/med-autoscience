@@ -36,7 +36,7 @@ def _work_unit(work_unit_type: str, *, unit_id: str = "unit-1") -> dict[str, obj
 def test_paper_repair_executor_executes_text_repair_on_canonical_sources(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
-    manuscript = study_root / "paper" / "manuscript.md"
+    manuscript = study_root / "paper" / "draft.md"
     _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-1"})
     manuscript.parent.mkdir(parents=True, exist_ok=True)
     manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
@@ -57,6 +57,7 @@ def test_paper_repair_executor_executes_text_repair_on_canonical_sources(tmp_pat
     assert "Repair note" not in text
     assert result["owner_receipt"]["work_unit_type"] == "text_repair"
     assert result["owner_receipt"]["direct_current_package_write"] is False
+    assert result["owner_receipt"]["canonical_artifact_delta_refs"][0]["artifact_role"] == "canonical_manuscript_story_surface"
     assert result["canonical_artifact_delta"]["meaningful_artifact_delta"] is True
     assert result["repair_execution_evidence"]["progress_delta_candidate"] is True
     assert (study_root / "paper" / "review" / "review_ledger.json").is_file()
@@ -68,7 +69,7 @@ def test_paper_repair_executor_executes_text_repair_on_canonical_sources(tmp_pat
 def test_paper_repair_executor_downgrades_claim_and_updates_evidence_ledger(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
     study_root = tmp_path / "workspace" / "studies" / "002-negative"
-    manuscript = study_root / "paper" / "manuscript.md"
+    manuscript = study_root / "paper" / "draft.md"
     manuscript.parent.mkdir(parents=True, exist_ok=True)
     manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
 
@@ -116,7 +117,7 @@ def test_paper_repair_executor_returns_typed_blocker_for_missing_owner_surface(t
 def test_paper_repair_executor_blocks_unstructured_text_repair(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
     study_root = tmp_path / "workspace" / "studies" / "003b-risk"
-    manuscript = study_root / "paper" / "manuscript.md"
+    manuscript = study_root / "paper" / "draft.md"
     manuscript.parent.mkdir(parents=True, exist_ok=True)
     manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
     work_unit = _work_unit("text_repair")

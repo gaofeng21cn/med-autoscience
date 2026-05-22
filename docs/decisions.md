@@ -175,6 +175,14 @@
 - 理由：DM002/DM003 暴露出 `manuscript_story_surface_delta_missing` 被错误提升为终态 blocked receipt，导致 OPL provider 层反复 retry/dead-letter，而真实缺口是 MAS write owner 还没有接过正文稿面修订。正确边界是 MAS 医学论文 owner-chain 继续交给 writer，不是 OPL queue/runtime 修复，也不是手工 patch 单篇论文。
 - 影响：这是 MAS paper autonomy / owner dispatch / sidecar receipt 语义修复。它只把 same-owner write follow-through 变成可执行 worker handoff，不放宽 AI reviewer 或 publication gate，不授权直接改 DM002 study truth、delivery package、current package、publication eval、controller decision 或 submission readiness。
 
+## 2026-05-22：medical prose writer materializer 产出 canonical 正文 delta
+
+- 决策：`medical_prose_write_repair` 在 canonical paper inputs 足够时，不再停留在 ledger-only repair 或 writer handoff；MAS writer-owner materializer 必须从 `paper/` 下的 methods/cohort/display/treatment-gap/transition/table/evidence surfaces 生成 `paper/draft.md`，并同步 `paper/build/review_manuscript.md`。
+- 决策：该 materializer 必须覆盖 observational phenotype treatment-gap family 的核心质量目标：phenotype derivation transparency、recorded treatment-review gap terminology、BP/data-quality assessment、baseline characteristics table、numeric abstract/results、restrained discussion 和无运行态正文语言。它不得读取或复制 `manuscript/current_package`、delivery mirror、旧 runtime archive、inspection package 或其他非 canonical authority surface。
+- 决策：`paper_repair_executor` 的普通 text/claim repair 默认目标改为 `paper/draft.md`；只有旧 workspace 缺 `draft.md` 且存在 `paper/manuscript.md` 时，才保留 legacy manuscript 作为迁移期输入。`draft.md` 和 `build/review_manuscript.md` 的 artifact role 是 `canonical_manuscript_story_surface`，旧 `paper/manuscript.md` 不再是新路线的主 story surface。
+- 理由：DM003 暴露出 MAS 工作流可以识别写作质量问题，却没有把反馈实际落成用户可见的正文变化。单靠 revision intake、ledger、AI reviewer request 或 handoff 不能保证初稿质量前移；write owner 必须能在当前 owner-chain 内把 canonical evidence 转成 journal-facing manuscript surface。
+- 影响：这是 MAS manuscript autonomy 能力修复，不是单篇论文手工修稿，也不是质量放行。AI reviewer recheck 和 publication gate 仍负责判断 `medical_journal_prose_quality`、publishability 和 submission-facing readiness；package/current_package 仍需后续 owner 授权刷新。
+
 ## 2026-05-21：provenance-limited rebuild handoff 必须覆盖旧 methodology decision
 
 - 决策：当 `artifacts/controller/provenance_limited_harmonization/latest.json` 已产出当前 `unit_harmonized_rerun_required` typed handoff，并明确 `next_owner=analysis_harmonization_owner`、`next_work_unit=unit_harmonized_external_validation_rerun`，且该 owner result 晚于它消费的 source provenance、controller decision 与 rebuild task intake 时，domain-route-scan 必须优先排 `analysis_harmonization_owner`，不能再被旧 `source_provenance/latest.json` terminal blocker 拉回 `methodology_reframe_route_decision`。

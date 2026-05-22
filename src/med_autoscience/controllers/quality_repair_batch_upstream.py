@@ -10,13 +10,11 @@ from med_autoscience.controllers import domain_action_requests
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
+from med_autoscience.controllers.quality_repair_batch_parts import medical_prose_story_surface
 
 
 _REVIEW_LEDGER_RELATIVE_PATH = Path("review") / "review_ledger.json"
-_MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
-    Path("draft.md"),
-    Path("build") / "review_manuscript.md",
-)
+_MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = medical_prose_story_surface.MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
 
 
 def _text(value: object) -> str | None:
@@ -166,6 +164,16 @@ def _update_claim_and_evidence_surfaces(
     return changed_paths
 
 
+def _materialize_medical_prose_story_surfaces(
+    *,
+    paper_root: Path,
+    work_unit_id: str,
+) -> list[str]:
+    return medical_prose_story_surface.materialize_medical_prose_story_surfaces(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+    )
+
 def _materialize_ai_reviewer_request(
     *,
     study_id: str,
@@ -259,6 +267,12 @@ def run_upstream_paper_repair_unit(
         source_fingerprint=source_fingerprint,
     )
     changed_refs = _update_claim_and_evidence_surfaces(paper_root=paper_root, receipt=receipt)
+    changed_refs.extend(
+        _materialize_medical_prose_story_surfaces(
+            paper_root=paper_root,
+            work_unit_id=resolved_work_unit_id,
+        )
+    )
     review_ledger = _materialize_review_ledger(
         paper_root=paper_root,
         receipt=receipt,
