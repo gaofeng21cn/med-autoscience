@@ -66,12 +66,9 @@ def execute_quality_repair_batch(
 def _control_plane_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     source_action = _mapping(dispatch.get("source_action"))
-    next_work_unit = (
-        _mapping(source_action.get("next_work_unit"))
-        or _mapping(dispatch.get("next_work_unit"))
-        or _mapping(prompt_contract.get("next_work_unit"))
-    )
-    work_unit_id = _text(next_work_unit.get("unit_id")) or _text(source_action.get("next_work_unit"))
+    next_work_unit_raw = source_action.get("next_work_unit") or dispatch.get("next_work_unit") or prompt_contract.get("next_work_unit")
+    next_work_unit = _mapping(next_work_unit_raw)
+    work_unit_id = _work_unit_id(next_work_unit_raw)
     return {
         "control_surface": "domain_owner_action_dispatch",
         "controller_action_type": "run_quality_repair_batch",
@@ -90,6 +87,12 @@ def _control_plane_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id"))
+    return _text(value)
 
 
 def _text(value: object) -> str | None:

@@ -129,15 +129,22 @@ def test_execute_quality_repair_batch_from_persisted_dispatch_and_owner_request(
 
 
 @pytest.mark.parametrize(
-    ("failure_signature", "idempotency_key"),
+    ("failure_signature", "idempotency_key", "string_work_unit_payload"),
     (
         (
             "manuscript_story_surface_delta_missing",
             "owner-route::dm003::write::story-surface-delta-missing",
+            False,
         ),
         (
             "quest_waiting_opl_runtime_owner_route",
             "owner-route::dm003::write::quest-waiting-opl-runtime-owner-route",
+            False,
+        ),
+        (
+            "quest_waiting_opl_runtime_owner_route",
+            "owner-route::dm003::write::quest-waiting-opl-runtime-owner-route-string-work-unit",
+            True,
         ),
     ),
 )
@@ -146,6 +153,7 @@ def test_execute_quality_repair_batch_honors_write_owner_route_despite_terminal_
     tmp_path: Path,
     failure_signature: str,
     idempotency_key: str,
+    string_work_unit_payload: bool,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -188,19 +196,22 @@ def test_execute_quality_repair_batch_honors_write_owner_route_despite_terminal_
         ),
         owner_route=route,
     )
-    dispatch_payload["source_action"] = {
-        "action_type": "run_quality_repair_batch",
-        "route_target": "write",
-        "next_work_unit": {
+    if string_work_unit_payload:
+        dispatch_payload["next_work_unit"] = "medical_prose_write_repair"
+    else:
+        dispatch_payload["source_action"] = {
+            "action_type": "run_quality_repair_batch",
+            "route_target": "write",
+            "next_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+            },
+            "work_unit_fingerprint": "medical-prose-routeback::write::sha256-dm003",
+        }
+        dispatch_payload["prompt_contract"]["next_work_unit"] = {
             "unit_id": "medical_prose_write_repair",
             "lane": "write",
-        },
-        "work_unit_fingerprint": "medical-prose-routeback::write::sha256-dm003",
-    }
-    dispatch_payload["prompt_contract"]["next_work_unit"] = {
-        "unit_id": "medical_prose_write_repair",
-        "lane": "write",
-    }
+        }
     dispatch_payload["paper_progress_stall"] = stall
     dispatch_payload["prompt_contract"]["paper_progress_stall"] = stall
     dispatch_path = (

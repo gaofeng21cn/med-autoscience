@@ -58,7 +58,7 @@ def owner_handoff_allowed(
             return False
         if _text(owner_route.get("failure_signature")) == "manuscript_story_surface_delta_missing":
             return True
-        next_work_unit = _mapping(
+        next_work_unit_id = _work_unit_id(
             _mapping(dispatch.get("source_action")).get("next_work_unit")
             or dispatch.get("next_work_unit")
             or _mapping(dispatch.get("prompt_contract")).get("next_work_unit")
@@ -66,7 +66,7 @@ def owner_handoff_allowed(
         )
         return (
             _text(owner_route.get("failure_signature")) == "quest_waiting_opl_runtime_owner_route"
-            and _text(next_work_unit.get("unit_id")) == "medical_prose_write_repair"
+            and next_work_unit_id == "medical_prose_write_repair"
         )
     if action_type == "runtime_platform_repair":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
@@ -96,6 +96,12 @@ def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id"))
+    return _text(value)
 
 
 def _text(value: object) -> str | None:
