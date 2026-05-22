@@ -1,9 +1,19 @@
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 from pathlib import Path
 from typing import Any
+
+
+def _sha256_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -208,7 +218,9 @@ def _write_ai_reviewer_currentness_inputs(
 ) -> None:
     refs = _refs(study_root)
     request_digest = "sha256:" + "a" * 64
-    manuscript_digest = "sha256:" + "c" * 64
+    manuscript_text = "# Current manuscript\n\nEvidence-bound clinical manuscript body.\n"
+    _write_text(Path(refs["manuscript"]), manuscript_text)
+    manuscript_digest = _sha256_text(manuscript_text)
     request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
     review_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"
     _write_json(
@@ -261,7 +273,9 @@ def _write_relative_ai_reviewer_currentness_inputs(
 ) -> None:
     refs = _relative_refs()
     request_digest = "sha256:" + "a" * 64
-    manuscript_digest = "sha256:" + "c" * 64
+    manuscript_text = "# Current manuscript\n\nEvidence-bound clinical manuscript body.\n"
+    _write_text(study_root / refs["manuscript"], manuscript_text)
+    manuscript_digest = _sha256_text(manuscript_text)
     request_ref = "artifacts/publication_eval/medical_prose_review_request.json"
     _write_json(
         study_root / request_ref,
@@ -694,6 +708,43 @@ def test_ai_reviewer_publication_eval_workflow_fails_closed_when_prose_review_pr
         assert "medical_prose_review_request_digest_mismatch" in str(exc)
     else:
         raise AssertionError("workflow accepted stale AI prose review against newer request")
+
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_ai_reviewer_publication_eval_workflow_fails_closed_when_live_manuscript_changed_after_review(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    record["quality_assessment"]["medical_journal_prose_quality"]["evidence_refs"] = [refs["medical_prose_review"]]
+    _write_ai_reviewer_currentness_inputs(study_root)
+    _write_text(
+        Path(refs["manuscript"]),
+        "# Revised manuscript\n\nThis text changed after the AI prose review was produced.\n",
+    )
+
+    try:
+        module.run_ai_reviewer_publication_eval_workflow(
+            study_root=study_root,
+            manuscript_ref=refs["manuscript"],
+            evidence_ref=refs["evidence_ledger"],
+            review_ref=refs["review_ledger"],
+            charter_ref=refs["study_charter"],
+            additional_refs={
+                "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+                "claim_evidence_map": refs["claim_evidence_map"],
+                "medical_prose_review": refs["medical_prose_review"],
+                "publication_gate_projection": refs["publication_gate_projection"],
+            },
+            record=record,
+        )
+    except ValueError as exc:
+        assert "medical_prose_review_live_manuscript_digest_mismatch" in str(exc)
+    else:
+        raise AssertionError("workflow accepted stale AI prose review after live manuscript changed")
 
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 

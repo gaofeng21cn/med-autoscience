@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
@@ -84,6 +85,12 @@ def _refs_match(*, study_root: Path, left: str, right: str) -> bool:
         study_root=study_root,
         ref=right,
     )
+
+
+def _sha256_file(path: Path) -> str:
+    if not path.exists():
+        raise ValueError("medical_prose_review_live_manuscript_missing")
+    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
 def _record_payload(record: PublicationEvalRecord | Mapping[str, Any]) -> dict[str, Any]:
@@ -315,6 +322,9 @@ def _medical_prose_review_currentness(
         right=manuscript_ref,
     ):
         raise ValueError("medical_prose_review_reviewer_os_manuscript_ref_mismatch")
+    live_manuscript_path = _resolve_ref(study_root=study_root, ref=manuscript_input_ref or manuscript_ref)
+    if _sha256_file(live_manuscript_path) != manuscript_digest:
+        raise ValueError("medical_prose_review_live_manuscript_digest_mismatch")
 
     quality = _mapping(prose_payload.get("medical_journal_prose_quality"))
     route_back = _mapping(quality.get("route_back_recommendation"))

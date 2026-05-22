@@ -50,6 +50,8 @@ _MEDICAL_PROSE_REVIEW_CURRENTNESS_ERRORS = frozenset(
         "medical_prose_review_manuscript_ref_mismatch",
         "medical_prose_review_manuscript_digest_mismatch",
         "medical_prose_review_reviewer_os_manuscript_ref_mismatch",
+        "medical_prose_review_live_manuscript_missing",
+        "medical_prose_review_live_manuscript_digest_mismatch",
     }
 )
 
@@ -323,6 +325,7 @@ def _medical_prose_review_currentness_blocker(*, study_root: Path, exc: Exceptio
             "next_owner": "ai_reviewer",
             "next_required_actions": [
                 "materialize_current_medical_prose_review_request",
+                "produce_ai_reviewer_medical_prose_review_against_current_manuscript",
                 "produce_ai_reviewer_medical_prose_review_against_current_request",
                 "return_to_ai_reviewer_workflow",
             ],

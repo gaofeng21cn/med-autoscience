@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-22：medical prose review currentness 必须绑定当前稿件 digest
+
+- 决策：`ai_reviewer_publication_eval_workflow` 消费 `artifacts/publication_eval/medical_prose_review.json` 时，除校验 prose review 与 request 的 `request_digest`、`manuscript_ref` 和 request manuscript digest 一致外，还必须读取当前 `manuscript` input ref 的 live 文件并计算 SHA-256。live manuscript digest 与 prose review provenance 的 `manuscript_digest` 不一致时，必须 fail closed 为 `medical_prose_review_live_manuscript_digest_mismatch`；live manuscript 缺失时必须 fail closed 为 `medical_prose_review_live_manuscript_missing`。
+- 决策：`domain-owner-action-dispatch` 必须把上述错误投影为 `medical_prose_review_request_rehydrate_required` typed blocker，明确 `stale_medical_prose_review_reuse_allowed=false`、`quality_verdict_written=false`，并要求 `materialize_current_medical_prose_review_request` 与 `produce_ai_reviewer_medical_prose_review_against_current_manuscript` 后再回到 `return_to_ai_reviewer_workflow`。
+- 理由：DM003 暴露出 write owner 已更新 canonical `paper/draft.md`，但 `return_to_ai_reviewer_workflow` 仍可把旧 `medical_prose_review.json` 包装成新的 `publication_eval/latest.json`。旧 currentness 只证明 review 和 request 互相一致，没有证明它们覆盖当前稿件，导致 AI reviewer-backed eval 看似刷新、实际复用旧 prose judgment。
+- 影响：这是 MAS AI reviewer / publication-quality owner currentness 修复，不写 DM003 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。后续 DM003 必须先产生针对当前稿件 digest 的 AI prose review，再允许 AI reviewer workflow 写新的 publication eval。
+
 ## 2026-05-22：ready default-executor dispatch 必须作为 refs-only sidecar task 暴露给 OPL
 
 - 决策：当 MAS materialize 出 `artifacts/supervision/consumer/default_executor_dispatches/*.json`，且该文件明确为 `surface=default_executor_dispatch_request`、`dispatch_status=ready`、`executor_kind=codex_cli_default`、`next_executable_owner=write` 时，`sidecar export` 必须生成 `domain_owner/default-executor-dispatch` pending family task。该 task 只携带 `dispatch_ref`、prompt contract ref、action type、dispatch authority、study / quest identity 和 authority boundary，不内联 request body。

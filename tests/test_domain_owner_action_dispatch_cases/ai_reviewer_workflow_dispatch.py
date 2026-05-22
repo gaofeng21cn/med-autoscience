@@ -601,6 +601,84 @@ def test_execute_dispatch_routes_stale_medical_prose_review_request_to_rehydrate
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
+def test_execute_dispatch_routes_stale_live_manuscript_prose_review_to_rehydrate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    input_refs = _complete_ai_reviewer_input_refs(study_root)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": input_refs,
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+            "ai_reviewer_record": _minimal_ai_reviewer_record(
+                study_id,
+                f"quest-{study_id}",
+                "publication-eval::003::quest::2026-05-22T00:00:00+00:00",
+            ),
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+
+    def stale_live_manuscript_review(**_kwargs) -> dict[str, object]:
+        raise ValueError("medical_prose_review_live_manuscript_digest_mismatch")
+
+    monkeypatch.setattr(
+        module.action_execution.ai_reviewer_publication_eval_workflow,
+        "run_ai_reviewer_publication_eval_workflow",
+        stale_live_manuscript_review,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "medical_prose_review_request_rehydrate_required"
+    assert execution["next_owner"] == "ai_reviewer"
+    assert execution["error"] == "medical_prose_review_live_manuscript_digest_mismatch"
+    assert execution["owner_result"]["stale_medical_prose_review_reuse_allowed"] is False
+    assert execution["owner_result"]["quality_verdict_written"] is False
+    assert "produce_ai_reviewer_medical_prose_review_against_current_manuscript" in execution["owner_result"][
+        "next_required_actions"
+    ]
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_execute_dispatch_after_paper_authority_cutover_ignores_archived_latest_and_builds_new_record(
     monkeypatch,
     tmp_path: Path,
