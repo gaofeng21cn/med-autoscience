@@ -283,7 +283,7 @@ def _render_mas_runtime_bridge_shared() -> str:
         '            "workspace_root": profile["workspace_root"],\n'
         '            "runtime_root": profile["runtime_root"],\n'
         '            "managed_runtime_home": profile["managed_runtime_home"],\n'
-        '            "managed_runtime_backend_id": profile["managed_runtime_backend_id"],\n'
+        '            "opl_runtime_ref": profile["opl_runtime_ref"],\n'
         '            "external_mds_runnable_dependency": False,\n'
         '            "default_webui": "mas_progress_portal",\n'
         '            "runtime_contract_ready": contracts["runtime_contract"]["ready"],\n'

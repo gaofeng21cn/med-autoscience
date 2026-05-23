@@ -215,8 +215,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert '--profile "${PROFILE_PATH}"' in watch_runtime_text
     assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
     assert "--ensure-supervisions" not in watch_runtime_text
-    assert "--request-opl-owner-route-reconcile" in watch_runtime_text
-    assert "--apply" in watch_runtime_text
+    assert "--request-opl-owner-route-reconcile" not in watch_runtime_text
+    assert "--apply" not in watch_runtime_text
     assert "--loop" not in watch_runtime_text
     assert 'run_medautosci runtime storage-audit --profile "${PROFILE_PATH}" "$@"' in storage_audit_text
     assert 'run_medautosci progress-portal --profile "${PROFILE_PATH}" "$@"' in progress_portal_text
@@ -229,7 +229,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci data external-research-status "$@"' in external_research_status_text
     assert 'run_medautosci doctor report --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_doctor_text
     assert 'run_medautosci workspace cockpit --profile "${PROFILE_PATH}" --format json "$@"' in runtime_bridge_status_text
-    assert 'run_medautosci study pause-runtime --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_stop_text
+    assert "MAS pause-runtime is retired; use OPL current_control_state / human gate tooling." in runtime_bridge_stop_text
+    assert "run_medautosci study pause-runtime" not in runtime_bridge_stop_text
     assert 'run_medautosci progress-portal --profile "${PROFILE_PATH}" --open "$@"' in runtime_bridge_start_web_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_doctor_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_status_text

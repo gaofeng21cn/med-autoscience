@@ -236,7 +236,7 @@ def _resolve_runtime_escalation_record(
             else ""
         )
         supervisor_tick_payload = status.get("supervisor_tick_audit")
-        runtime_supervision_path = (
+        opl_runtime_owner_handoff_path = (
             str(supervisor_tick_payload.get("latest_report_path") or "").strip()
             if isinstance(supervisor_tick_payload, dict)
             else ""
@@ -245,7 +245,7 @@ def _resolve_runtime_escalation_record(
             path
             for path in (
                 runtime_event_path,
-                runtime_supervision_path,
+                opl_runtime_owner_handoff_path,
                 str(summary_path),
             )
             if path

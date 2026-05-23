@@ -16,10 +16,9 @@ def test_profile_sli_summary_separates_active_duplicate_dispatch_from_history() 
 
     summary = module.build_sli_summary(
         {
-            "runtime_transition_summary": {
+            "opl_runtime_owner_handoff_summary": {
                 "event_count": 10,
-                "health_status_counts": {"live": 8, "recovering": 2},
-                "transition_counts": {"live->recovering": 1, "recovering->live": 1},
+                "status_counts": {"clear": 8, "handoff_required": 2},
             },
             "domain_health_diagnostic_wakeup_dedupe_summary": {
                 "status": "dedupe_confirmed",
@@ -33,8 +32,11 @@ def test_profile_sli_summary_separates_active_duplicate_dispatch_from_history() 
         }
     )
 
-    assert summary["runtime_live_ratio"] == 0.8
-    assert summary["runtime_recovery_observations"] == 2
+    assert summary["opl_runtime_owner_handoff_clear_ratio"] == 0.8
+    assert summary["opl_runtime_owner_handoff_required_count"] == 2
+    assert summary["opl_runtime_owner_handoff_event_count"] == 10
+    assert "runtime_live_ratio" not in summary
+    assert "runtime_recovery_observations" not in summary
     assert summary["duplicate_dispatch_active"] is False
     assert summary["next_work_unit_id"] == "analysis_claim_evidence_repair"
     assert summary["package_stale_is_current_bottleneck"] is False
@@ -176,7 +178,7 @@ def test_opl_runtime_refs_treat_closeout_continuation_as_parked_not_recovery() -
     assert facts.missing_live_session is False
     assert facts.recovery_pending is False
     assert facts.to_domain_activity_ref()["activity_state"] == "parked"
-def test_progress_projection_exposes_runtime_worker_activity(monkeypatch, tmp_path: Path) -> None:
+def test_progress_projection_exposes_opl_domain_activity_ref(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     profile = make_profile(tmp_path)
     write_study(

@@ -268,16 +268,13 @@ def _gate_clearing_timestamp(gate_clearing_batch_payload: Mapping[str, Any]) -> 
 def _latest_runtime_observed_at(
     *,
     status: Mapping[str, Any] | None,
-    opl_runtime_owner_handoff_payload: Mapping[str, Any] | None,
 ) -> str | None:
     status_payload = _mapping_copy(status)
-    supervision_payload = _mapping_copy(opl_runtime_owner_handoff_payload)
-    stable_run_anchor = _stable_runtime_run_anchor(status_payload, supervision_payload)
+    stable_run_anchor = _stable_runtime_run_anchor(status_payload)
     if stable_run_anchor is not None:
         return stable_run_anchor
     status_health = _mapping_copy(status_payload.get("runtime_health_snapshot"))
-    supervision_health = _mapping_copy(supervision_payload.get("runtime_health_snapshot"))
-    runtime_health = supervision_health or status_health
+    runtime_health = status_health
     candidates: list[str] = []
     refs = runtime_health.get("dominant_runtime_refs")
     if isinstance(refs, list):
@@ -349,14 +346,12 @@ def _new_run_activity_grace(
     status: Mapping[str, Any] | None,
     runtime_facts: Any,
     artifact_delta_at: str | None,
-    opl_runtime_owner_handoff_payload: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
     active_run_id = _non_empty_text(getattr(runtime_facts, "active_run_id", None))
     if active_run_id is None:
         return None
     observed_text = _latest_runtime_observed_at(
         status=status,
-        opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
     )
     observed_at = _timestamp_value(observed_text)
     if observed_at is None:
@@ -387,7 +382,6 @@ def _split_progress_freshness(
     gate_clearing_batch_payload: dict[str, Any] | None,
     publication_eval_payload: dict[str, Any] | None,
     runtime_facts: Any,
-    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     quest_root: Path | None = None,
 ) -> dict[str, Any]:
     supervisor_status = _non_empty_text(supervisor_tick_audit.get("status"))
@@ -398,10 +392,6 @@ def _split_progress_freshness(
         "latest_progress_at": _non_empty_text(supervisor_tick_audit.get("latest_recorded_at")),
         "latest_progress_source": "supervisor_tick_audit",
     }
-    if supervisor_tick["latest_progress_at"] is None:
-        supervisor_tick["latest_progress_at"] = _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("recorded_at"))
-        if supervisor_tick["latest_progress_at"] is not None:
-            supervisor_tick["latest_progress_source"] = "opl_runtime_owner_handoff"
     if supervisor_tick["latest_progress_at"] is not None:
         supervisor_tick.update(
             _freshness_from_timestamp(
@@ -489,7 +479,6 @@ def _split_progress_freshness(
         status=status,
         runtime_facts=runtime_facts,
         artifact_delta_at=artifact_delta_at,
-        opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
     )
     if (
         runtime_facts.strict_live

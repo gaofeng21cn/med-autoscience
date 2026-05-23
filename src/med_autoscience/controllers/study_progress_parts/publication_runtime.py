@@ -386,6 +386,12 @@ def _runtime_module_surface(
         dominant_runtime_health_status = "escalated"
     elif runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
         dominant_runtime_health_status = "recovering"
+    elif current_stage == "managed_runtime_recovering":
+        dominant_runtime_health_status = "recovering"
+    elif current_stage == "managed_runtime_degraded":
+        dominant_runtime_health_status = "degraded"
+    elif current_stage == "managed_runtime_escalated":
+        dominant_runtime_health_status = "escalated"
     else:
         dominant_runtime_health_status = None
     runtime_health_status = (
@@ -397,7 +403,6 @@ def _runtime_module_surface(
             _non_empty_text(status.get("runtime_liveness_status")) or "none"
             if manual_finish_active
             else dominant_runtime_health_status
-            or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("health_status"))
             or "unknown"
         )
     )
@@ -406,34 +411,19 @@ def _runtime_module_surface(
         if manual_finish_active or runtime_parked
         else (
             _non_empty_text(execution_owner_guard.get("current_required_action"))
-            or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("next_action"))
         )
     )
     status_summary = (
         current_stage_summary
         if manual_finish_active or runtime_parked
-        else (
-            (
-                None
-                if dominant_runtime_health_status is not None
-                else _display_text((opl_runtime_owner_handoff_payload or {}).get("summary"))
-            )
-            or current_stage_summary
-            or next_system_action
-        )
+        else current_stage_summary
+        or next_system_action
     )
     next_action_summary = (
         next_system_action
         if manual_finish_active or runtime_parked
-        else (
-            (
-                None
-                if dominant_runtime_health_status is not None
-                else _display_text((opl_runtime_owner_handoff_payload or {}).get("next_action_summary"))
-            )
-            or next_system_action
-            or current_stage_summary
-        )
+        else next_system_action
+        or current_stage_summary
     )
     summary = build_runtime_status_summary(
         study_id=study_id,
@@ -461,9 +451,7 @@ def _runtime_module_surface(
         ),
         status_summary=status_summary,
         next_action_summary=next_action_summary,
-        needs_human_intervention=(
-            bool((opl_runtime_owner_handoff_payload or {}).get("needs_human_intervention")) or needs_physician_decision
-        ),
+        needs_human_intervention=needs_physician_decision,
     )
     summary_ref = materialize_runtime_status_summary(study_root=study_root, summary=summary)
     return {

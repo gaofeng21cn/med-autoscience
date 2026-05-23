@@ -423,9 +423,9 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
         "enabled_by_default": True,
         "hosted_runtime_owner": "one-person-lab",
         "hosted_runtime_provider": "temporal",
-        "runtime_substrate": "opl_provider_backed_stage_runtime",
+        "runtime_substrate": "opl_hosted_stage_runtime",
         "persistent_online_control_plane": "opl_temporal",
-        "task_start_handoff": "mas_sidecar_or_domain_entry_to_opl_temporal_attempt",
+        "task_start_handoff": "mas_domain_intent_to_opl_stage_attempt",
         "wakeup_retry_resume_owner": "one-person-lab",
         "codex_app_outer_driver_required": False,
         "mas_daemon_scheduler_attempt_loop_allowed": False,
@@ -665,7 +665,7 @@ def test_sidecar_export_projects_controller_route_back_as_pending_task(
             "requires_human_confirmation": False,
             "controller_actions": [
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 }
             ],

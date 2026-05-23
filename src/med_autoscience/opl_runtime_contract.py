@@ -37,8 +37,7 @@ def explicit_opl_runtime_ref(execution: Mapping[str, Any] | None) -> str | None:
         return None
     return (
         _non_empty_text(execution.get("opl_runtime_ref"))
-        or _non_empty_text(execution.get("runtime_backend_id"))
-        or _non_empty_text(execution.get("runtime_backend"))
+        or _non_empty_text(execution.get("runtime_ref"))
     )
 
 
@@ -51,19 +50,13 @@ def is_opl_hosted_research_execution(execution: Mapping[str, Any] | None) -> boo
     runtime_ref = explicit_opl_runtime_ref(execution)
     if runtime_ref is None:
         return True
-    return runtime_ref in {
-        OPL_HOSTED_STAGE_RUNTIME_ID,
-        "opl_provider_backed_stage_runtime",
-        "opl-provider-backed-stage-runtime",
-    }
+    return runtime_ref == OPL_HOSTED_STAGE_RUNTIME_ID
 
 
 def engine_id_for_runtime_ref(runtime_ref: str | None) -> str:
     normalized = _non_empty_text(runtime_ref)
-    if normalized in {None, OPL_HOSTED_STAGE_RUNTIME_ID, "opl_provider_backed_stage_runtime"}:
+    if normalized in {None, OPL_HOSTED_STAGE_RUNTIME_ID}:
         return "opl-hosted-stage-runtime"
-    if normalized == "opl-provider-backed-stage-runtime":
-        return normalized
     raise ValueError(f"unsupported MAS runtime ref; OPL owns runtime hydration: {normalized}")
 
 

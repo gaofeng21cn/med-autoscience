@@ -38,9 +38,10 @@ def test_watch_runtime_projects_live_worker_stale_artifact_delta_as_recovering(
         "quest_root": str(quest_root),
         "quest_status": "running",
         "execution": {
-            "engine": "opl-provider-backed-stage-runtime",
-                "runtime_backend_id": "opl_provider_backed_stage_runtime",
-                "runtime_engine_id": "opl-provider-backed-stage-runtime",
+            "engine": "opl-hosted-stage-runtime",
+                "opl_runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_engine_id": "opl-hosted-stage-runtime",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "quest-001",
             "auto_resume": True,

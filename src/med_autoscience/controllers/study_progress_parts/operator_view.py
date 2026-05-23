@@ -602,16 +602,14 @@ def _latest_events(
     events: list[dict[str, Any]] = []
     task_override_summary = _task_intake_override_event_summary(task_intake_progress_override)
     if opl_runtime_owner_handoff_payload is not None:
-        runtime_health_status = _non_empty_text(opl_runtime_owner_handoff_payload.get("health_status")) or "runtime"
         runtime_summary = (
             _non_empty_text(opl_runtime_owner_handoff_payload.get("summary"))
-            or _non_empty_text(opl_runtime_owner_handoff_payload.get("clinician_update"))
-            or "运行健康状态已刷新。"
+            or "OPL runtime owner handoff was recorded as a refs-only boundary artifact."
         )
         item = _event(
             timestamp=_non_empty_text(opl_runtime_owner_handoff_payload.get("recorded_at")),
             category="opl_runtime_owner_handoff",
-            title=f"托管运行监管状态更新（{runtime_health_status}）",
+            title="OPL runtime owner handoff recorded",
             summary=runtime_summary,
             source="opl_runtime_owner_handoff",
             artifact_path=opl_runtime_owner_handoff_path,

@@ -16,11 +16,12 @@ def test_autonomy_incident_candidates_are_structured_and_writable(tmp_path: Path
     profile_payload = {
         "study_id": "003-dpcc",
         "bottlenecks": [
-            {"bottleneck_id": "runtime_recovery_churn", "severity": "high"},
+            {"bottleneck_id": "opl_runtime_owner_handoff_required", "severity": "high"},
             {"bottleneck_id": "publication_gate_blocked", "severity": "high"},
         ],
         "sli_summary": {
-            "runtime_live_ratio": 0.75,
+            "opl_runtime_owner_handoff_clear_ratio": 0.75,
+            "opl_runtime_owner_handoff_required_count": 2,
             "duplicate_dispatch_active": False,
         },
         "gate_blocker_summary": {
@@ -36,7 +37,7 @@ def test_autonomy_incident_candidates_are_structured_and_writable(tmp_path: Path
     )
 
     assert [candidate["incident_type"] for candidate in candidates] == [
-        "runtime_recovery_churn",
+        "opl_runtime_owner_handoff_required",
         "publication_gate_blocked",
     ]
     assert written.exists()
@@ -51,13 +52,12 @@ def test_autonomy_slo_signals_prioritize_recovery_without_relaxing_quality_gate(
             "study_id": "003-dpcc",
             "quest_id": "quest-003",
             "sli_summary": {
-                "runtime_live_ratio": 0.75,
-                "runtime_recovery_observations": 2,
-                "runtime_flapping_transitions": 1,
+                "opl_runtime_owner_handoff_clear_ratio": 0.75,
+                "opl_runtime_owner_handoff_required_count": 2,
                 "duplicate_dispatch_active": False,
                 "next_work_unit_id": "analysis_claim_evidence_repair",
             },
-            "runtime_worker_activity": {
+            "opl_domain_activity_ref": {
                 "activity_state": "recovering",
                 "heartbeat_state": "missing_live_session",
             },
@@ -67,13 +67,13 @@ def test_autonomy_slo_signals_prioritize_recovery_without_relaxing_quality_gate(
                 "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
             },
             "bottlenecks": [
-                {"bottleneck_id": "runtime_recovery_churn", "severity": "high"},
+                {"bottleneck_id": "opl_runtime_owner_handoff_required", "severity": "high"},
                 {"bottleneck_id": "publication_gate_blocked", "severity": "high"},
             ],
             "autonomy_incident_candidates": [
                 {
                     "incident_id": "incident-runtime",
-                    "incident_type": "runtime_recovery_churn",
+                    "incident_type": "opl_runtime_owner_handoff_required",
                     "severity": "high",
                     "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
                 }
@@ -83,7 +83,7 @@ def test_autonomy_slo_signals_prioritize_recovery_without_relaxing_quality_gate(
 
     assert payload["surface"] == "autonomy_slo"
     assert payload["long_run_health"]["state"] == "breach"
-    assert payload["incident_loop"]["top_action_type"] == "probe_runtime_recovery"
+    assert payload["incident_loop"]["top_action_type"] == "request_opl_handoff_hydration"
     assert payload["recovery_actions"][0]["quality_gate_relaxation_allowed"] is False
     assert payload["quality_constraint"]["gate_relaxation_allowed"] is False
     assert "publication_eval/latest.json" in payload["quality_constraint"]["must_preserve_authority_surfaces"]
@@ -94,9 +94,8 @@ def test_autonomy_slo_signals_block_fast_lane_for_non_actionable_gate() -> None:
         {
             "study_id": "004-pituitary",
             "sli_summary": {
-                "runtime_live_ratio": 1.0,
-                "runtime_recovery_observations": 0,
-                "runtime_flapping_transitions": 0,
+                "opl_runtime_owner_handoff_clear_ratio": 1.0,
+                "opl_runtime_owner_handoff_required_count": 0,
                 "duplicate_dispatch_active": False,
             },
             "gate_blocker_summary": {
@@ -120,9 +119,8 @@ def test_autonomy_slo_consumes_mds_failure_taxonomy_before_auto_recovery() -> No
             "study_id": "003-dpcc",
             "quest_id": "quest-003",
             "sli_summary": {
-                "runtime_live_ratio": 0.5,
-                "runtime_recovery_observations": 2,
-                "runtime_flapping_transitions": 1,
+                "opl_runtime_owner_handoff_clear_ratio": 0.5,
+                "opl_runtime_owner_handoff_required_count": 2,
                 "next_work_unit_id": "analysis_claim_evidence_repair",
             },
             "mds_failure_diagnosis": {
@@ -138,7 +136,7 @@ def test_autonomy_slo_consumes_mds_failure_taxonomy_before_auto_recovery() -> No
             "autonomy_incident_candidates": [
                 {
                     "incident_id": "incident-runtime",
-                    "incident_type": "runtime_recovery_churn",
+                    "incident_type": "opl_runtime_owner_handoff_required",
                     "severity": "high",
                     "next_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
                 }
@@ -234,9 +232,8 @@ def test_autonomy_slo_execution_plan_prioritizes_controller_actions_without_qual
         {
             "study_id": "004-pituitary",
             "sli_summary": {
-                "runtime_live_ratio": 0.98,
-                "runtime_recovery_observations": 0,
-                "runtime_flapping_transitions": 0,
+                "opl_runtime_owner_handoff_clear_ratio": 0.98,
+                "opl_runtime_owner_handoff_required_count": 0,
                 "next_work_unit_id": "repair_paper_live_paths",
             },
             "gate_blocker_summary": {

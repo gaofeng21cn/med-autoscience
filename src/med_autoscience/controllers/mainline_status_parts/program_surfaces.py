@@ -390,8 +390,8 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
                 ref="studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="runtime_supervision",
-                ref="studies/<study_id>/artifacts/runtime_supervision/latest.json",
+                surface_kind="opl_runtime_owner_handoff",
+                ref="studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="controller_decisions",
@@ -429,7 +429,7 @@ def build_phase4_backend_deconstruction() -> dict[str, Any]:
         ],
         current_backend_chain=[
             "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
-            "generic runtime/provider context -> OPL runtime manager handoff refs",
+            "generic runtime/provider context -> OPL current_control_state refs-only handoff",
             "historical med_deepscientist fixture/provenance refs only",
         ],
         optional_executor_proofs=[

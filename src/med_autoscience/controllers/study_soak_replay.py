@@ -55,11 +55,12 @@ def build_study_soak_replay_case(profile_payload: Mapping[str, Any]) -> dict[str
     runtime_action_mode = _text(runtime_failure.get("action_mode"))
     blockers = _current_blockers(profile_payload)
     if runtime_action_mode in {"external_fix_required", "provider_backoff_and_recheck"} or (
-        "runtime_recovery_churn" in bottleneck_ids
+        "opl_runtime_owner_handoff_required" in bottleneck_ids
     ):
-        case_family = "runtime_recovery_taxonomy"
+        case_family = "opl_runtime_owner_handoff_hydration"
         must_assert = [
             "external_runtime_blocker_is_not_retried_as_mas_work",
+            "opl_current_control_state_hydrates_owner_handoff",
             "quality_gate_relaxation_allowed_false",
             "same_study_progress_truth_surfaces_present",
         ]

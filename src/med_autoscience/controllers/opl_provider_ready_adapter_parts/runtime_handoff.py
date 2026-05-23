@@ -136,7 +136,7 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
             "default_provider": "temporal",
             "opl_temporal_hosted_autonomy_enabled_by_default": True,
             "persistent_online_control_plane": "opl_temporal",
-            "task_start_handoff": "mas_sidecar_or_domain_entry_to_opl_temporal_attempt",
+            "task_start_handoff": "mas_domain_intent_to_opl_stage_attempt",
             "wakeup_retry_resume_owner": OPL_OWNER,
             "codex_app_outer_driver_required": False,
             "mas_default_scheduler_allowed": False,

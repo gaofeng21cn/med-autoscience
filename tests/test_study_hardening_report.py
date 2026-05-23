@@ -50,7 +50,7 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
                 "latest_event_path": "/tmp/publication_eval/latest.json",
             },
         },
-        "runtime_transition_summary": {"health_status_counts": {"live": 4}},
+        "opl_runtime_owner_handoff_summary": {"status_counts": {"owner_receipt_written": 4}},
         "controller_decision_fingerprints": {
             "top_repeats": [
                 {
@@ -123,7 +123,7 @@ def test_study_hardening_report_answers_quality_gate_timing_and_replay_manifest(
     assert report["answers"]["where_stuck"]["primary_gate"] == "quality_gate"
     assert report["answers"]["where_stuck"]["stuck_at"] == "publication_gate"
     assert report["answers"]["gate_assessment"] == {
-        "runtime_gate": False,
+        "opl_handoff_gate": False,
         "provider_gate": False,
         "human_gate": False,
         "quality_gate": True,
@@ -159,15 +159,15 @@ def test_study_hardening_report_classifies_external_provider_and_human_gate() ->
             "study_id": "002-provider",
             "quest_id": "quest-002",
             "profiling_window": {"since": None, "until": None, "event_count": 1},
-            "runtime_transition_summary": {"health_status_counts": {"recovering": 1}},
+            "opl_runtime_owner_handoff_summary": {"status_counts": {"handoff_required": 1}},
             "gate_blocker_summary": {"current_blockers": []},
             "package_currentness": {"status": "fresh", "stale_seconds": 0},
             "eta_confidence_band": {
-                "classification": "runtime_recovering",
-                "label": "runtime recovering",
+                "classification": "opl_handoff_required",
+                "label": "OPL handoff required",
                 "confidence": "medium",
             },
-            "bottlenecks": [{"bottleneck_id": "runtime_recovery_churn", "severity": "high"}],
+            "bottlenecks": [{"bottleneck_id": "opl_runtime_owner_handoff_required", "severity": "high"}],
             "autonomy_slo": {
                 "runtime_failure_classification": {
                     "diagnosis_code": "provider_env_missing",
@@ -179,7 +179,7 @@ def test_study_hardening_report_classifies_external_provider_and_human_gate() ->
                 "slo_execution_plan": {"state": "blocked_by_external_runtime"},
             },
             "study_soak_replay_case": {
-                "case_id": "study-soak-replay::002-provider::runtime_recovery_taxonomy",
+                "case_id": "study-soak-replay::002-provider::opl_runtime_owner_handoff_hydration",
                 "required_truth_surfaces": ["domain_health_diagnostic"],
                 "must_assert": ["external_runtime_blocker_is_not_retried_as_mas_work"],
                 "gate_relaxation_allowed": False,
@@ -190,7 +190,7 @@ def test_study_hardening_report_classifies_external_provider_and_human_gate() ->
 
     assert report["answers"]["where_stuck"]["primary_gate"] == "provider_gate"
     assert report["answers"]["where_stuck"]["stuck_at"] == "external_provider"
-    assert report["answers"]["gate_assessment"]["runtime_gate"] is True
+    assert report["answers"]["gate_assessment"]["opl_handoff_gate"] is True
     assert report["answers"]["gate_assessment"]["provider_gate"] is True
     assert report["answers"]["gate_assessment"]["human_gate"] is True
     assert report["answers"]["gate_assessment"]["quality_gate"] is False

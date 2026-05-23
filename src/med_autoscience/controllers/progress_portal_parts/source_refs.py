@@ -24,7 +24,7 @@ def display_source_refs(value: object) -> list[str]:
     refs = _string_list(value)
     priority_tokens = (
         "/artifacts/runtime/health/",
-        "/artifacts/runtime/runtime_supervision/",
+        "/artifacts/supervision/opl_runtime_owner_handoff/",
         "/artifacts/controller_decisions/",
         "/artifacts/publication_eval/",
         "/artifacts/truth/",

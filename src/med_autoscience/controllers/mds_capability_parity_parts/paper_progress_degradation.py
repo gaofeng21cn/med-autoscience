@@ -25,7 +25,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": True,
         "production_path": "outer_supervision_recovery_latency",
         "rationale": "Scheduled supervision can delay stale-run detection and recovery, but MAS turn continuation no longer depends on resident MDS.",
-        "required_guard_surface": "domain_health_diagnostic/runtime_supervision freshness",
+        "required_guard_surface": "OPL current_control_state plus MAS owner receipt/typed blocker",
     },
     "supervision_cadence": {
         "classification": "production_risk",

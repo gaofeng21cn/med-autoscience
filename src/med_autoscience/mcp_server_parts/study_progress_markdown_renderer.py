@@ -310,7 +310,7 @@ def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
         "launch_report_path",
         "publication_eval_path",
         "controller_decision_path",
-        "runtime_supervision_path",
+        "opl_runtime_owner_handoff_path",
         "domain_health_diagnostic_report_path",
         "evaluation_summary_path",
     ):
@@ -318,4 +318,3 @@ def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
         if value:
             lines.append(f"- {key}: `{value}`")
     return lines
-

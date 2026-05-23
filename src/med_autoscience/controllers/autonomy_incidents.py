@@ -30,7 +30,7 @@ PREVENTION_ACTION_TYPES: tuple[str, ...] = (
 
 _INCIDENT_BOTTLENECKS = frozenset(
     {
-        "runtime_recovery_churn",
+        "opl_runtime_owner_handoff_required",
         "repeated_controller_decision",
         "publication_gate_blocked",
         "non_actionable_gate",
@@ -97,10 +97,10 @@ _PREVENTION_ACTION_BY_INCIDENT = {
         ),
         "required_artifacts": ["reducer_rule", "fixture_test", "runbook_entry"],
     },
-    "runtime_recovery_churn": {
-        "action_type": "runtime_taxonomy",
+    "opl_runtime_owner_handoff_required": {
+        "action_type": "contract",
         "controller_surface": "domain_health_diagnostic",
-        "summary": "Classify recovery churn into the runtime taxonomy before resuming.",
+        "summary": "Keep OPL current_control_state hydration as the only stage attempt path.",
     },
     "repeated_controller_decision": {
         "action_type": "guard",
@@ -258,10 +258,8 @@ def _derived_platform_incidents(profile_payload: Mapping[str, Any]) -> list[str]
     if diagnosis_code == "daemon_stalled_live_turn":
         incidents.append("stalled")
     current_state_summary = _mapping(profile_payload.get("current_state_summary"))
-    if _text(current_state_summary.get("runtime_health_status")) == "escalated":
-        incidents.append("runtime_recovery_failure")
-    if _text(current_state_summary.get("runtime_reason")) == "quest_marked_running_but_no_live_session":
-        incidents.append("no_live")
+    if _text(current_state_summary.get("state")) == "opl_runtime_owner_handoff_required":
+        incidents.append("surface_ownership_drift")
     publication_eval = _mapping(profile_payload.get("publication_eval"))
     gate_status = _text(publication_eval.get("gate_status") or publication_eval.get("status"))
     if gate_status in {"blocked", "failed", "gate_failed"}:

@@ -49,9 +49,10 @@ def test_watch_runtime_does_not_auto_recover_package_ready_handoff(
             "quest_root": str(quest_root),
             "quest_status": "active",
             "execution": {
-                "engine": "opl-provider-backed-stage-runtime",
-                "runtime_backend_id": "opl_provider_backed_stage_runtime",
-                "runtime_engine_id": "opl-provider-backed-stage-runtime",
+                "engine": "opl-hosted-stage-runtime",
+                "opl_runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_engine_id": "opl-hosted-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "001-risk",
                 "auto_resume": True,

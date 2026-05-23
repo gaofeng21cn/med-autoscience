@@ -332,7 +332,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
         "affects_automatic_paper_production": True,
         "production_path": "outer_supervision_recovery_latency",
         "rationale": "Scheduled supervision can delay stale-run detection and recovery, but MAS turn continuation no longer depends on resident MDS.",
-        "required_guard_surface": "domain_health_diagnostic/runtime_supervision freshness",
+        "required_guard_surface": "OPL current_control_state plus MAS owner receipt/typed blocker",
     }
     assert by_surface["daemon_residency"]["behavior_difference"] == "MAS default supervision is scheduled ticks, not a resident HTTP/WebSocket daemon."
     assert by_surface["supervision_cadence"]["mas_behavior"]["interval_seconds"] == 300

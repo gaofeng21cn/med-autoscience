@@ -44,7 +44,7 @@ READ_ONLY_CONTRACT = {
 
 STUDY_PROGRESS_REFS: tuple[Path, ...] = (
     Path("artifacts/runtime/runtime_status_summary.json"),
-    Path("artifacts/runtime/runtime_supervision/latest.json"),
+    Path("artifacts/supervision/opl_runtime_owner_handoff/latest.json"),
     Path("artifacts/runtime/study_macro_state/latest.json"),
     Path("artifacts/truth/latest.json"),
     Path("artifacts/controller_decisions/latest.json"),

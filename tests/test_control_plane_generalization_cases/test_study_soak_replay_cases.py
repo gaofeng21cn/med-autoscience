@@ -17,7 +17,7 @@ def test_study_soak_replay_case_captures_recent_003_and_004_failure_patterns() -
     diabetes_case = module.build_study_soak_replay_case(
         {
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "bottlenecks": [{"bottleneck_id": "runtime_recovery_churn"}],
+            "bottlenecks": [{"bottleneck_id": "opl_runtime_owner_handoff_required"}],
             "runtime_failure_classification": {
                 "blocker_class": "external_provider_account_blocker",
                 "action_mode": "external_fix_required",
@@ -35,9 +35,10 @@ def test_study_soak_replay_case_captures_recent_003_and_004_failure_patterns() -
         }
     )
 
-    assert diabetes_case["case_family"] == "runtime_recovery_taxonomy"
+    assert diabetes_case["case_family"] == "opl_runtime_owner_handoff_hydration"
     assert diabetes_case["must_assert"] == [
         "external_runtime_blocker_is_not_retried_as_mas_work",
+        "opl_current_control_state_hydrates_owner_handoff",
         "quality_gate_relaxation_allowed_false",
         "same_study_progress_truth_surfaces_present",
     ]

@@ -139,10 +139,11 @@ def _runtime_binding_opl_metadata(status: dict[str, Any]) -> tuple[str, str]:
         opl_runtime_contract.explicit_opl_runtime_ref(execution_mapping)
         or opl_runtime_contract.OPL_HOSTED_STAGE_RUNTIME_ID
     )
+    expected_runtime_engine_id = opl_runtime_contract.engine_id_for_runtime_ref(runtime_ref)
     runtime_engine_id = str(
         (execution_mapping or {}).get("runtime_engine_id")
         or (execution_mapping or {}).get("engine")
-        or opl_runtime_contract.engine_id_for_runtime_ref(runtime_ref)
+        or expected_runtime_engine_id
     ).strip()
     if not runtime_engine_id:
         raise ValueError(f"OPL runtime ref `{runtime_ref}` is missing runtime_engine_id")

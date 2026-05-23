@@ -640,7 +640,7 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
 
     assert "tests/test_real_paper_autonomy_soak_inventory.py" in focused_lanes["control-plane-autonomy"]["paths"]
     assert "tests/test_real_paper_autonomy_soak_inventory.py" in focused_lanes["workspace-monolith-migration"]["paths"]
-    assert "tests/test_opl_current_control_state_projection.py" in focused_lanes["outer-supervision-slo"]["paths"]
+    assert "tests/test_opl_runtime_contract.py" in focused_lanes["outer-supervision-slo"]["paths"]
     assert "tests/test_paper_autonomy_stability_evidence.py" in focused_lanes["paper-autonomy-stability-evidence"]["paths"]
     assert focused_lanes["outer-supervision-slo"]["resident_daemon_allowed"] is False
     assert focused_lanes["outer-supervision-slo"]["active_path_role"] == (
@@ -650,7 +650,7 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
         "physical_retired_tombstone_provenance_only"
     )
     assert focused_lanes["outer-supervision-slo"]["replacement_owner_surface"] == (
-        "opl_provider_runtime_manager"
+        "opl_current_control_state_refs_only"
     )
     assert focused_lanes["outer-supervision-slo"]["legacy_local_ensure_action"] == "retired_physical_tombstone"
     assert focused_lanes["outer-supervision-slo"]["legacy_local_install_allowed"] is False
@@ -665,7 +665,7 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     assert focused_lanes["outer-supervision-slo"]["retirement_proof_required"] == [
         "opl_replacement_contract_available",
         "replacement_proof",
-        "no_active_caller_proof",
+        "no_resurrection_proof",
         "no_forbidden_write",
         "focused_cli_status_tests",
         "git_diff_check",

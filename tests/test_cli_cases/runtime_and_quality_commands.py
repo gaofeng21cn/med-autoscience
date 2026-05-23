@@ -417,7 +417,7 @@ def test_study_profile_cycle_command_dispatches_profiler(monkeypatch, tmp_path: 
             "quest_root": str(profile.runtime_root / "quest-001"),
             "profiling_window": {"since": since},
             "category_windows": {},
-            "runtime_transition_summary": {},
+            "opl_runtime_owner_handoff_summary": {},
             "controller_decision_fingerprints": {"top_repeats": []},
             "gate_blocker_summary": {"current_blockers": []},
             "package_currentness": {"status": "fresh"},
@@ -526,8 +526,7 @@ def test_workspace_profile_cycles_command_dispatches_profiler(monkeypatch, tmp_p
             "study_count": 0,
             "workspace_totals": {
                 "repeated_controller_dispatch_count": 0,
-                "runtime_recovery_churn_count": 0,
-                "runtime_flapping_transition_count": 0,
+                "opl_runtime_owner_handoff_required_count": 0,
                 "package_stale_seconds": 0,
             },
             "studies": [],

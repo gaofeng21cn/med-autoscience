@@ -486,7 +486,7 @@ def _route_source_refs(progress_refs: Mapping[str, Any]) -> list[str]:
         "controller_decision_path",
         "controller_decisions_path",
         "route_decision_path",
-        "runtime_supervision_path",
+        "opl_runtime_owner_handoff_path",
         "runtime_status_summary_path",
         "study_truth_snapshot_path",
     ):

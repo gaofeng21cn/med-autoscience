@@ -46,7 +46,6 @@ from .projection_payload_assembly import (
 )
 from .projection_quality_surfaces import build_quality_projection_surfaces as _quality_projection_surfaces
 from .projection_runtime_surfaces import (
-    status_absorbing_live_runtime_surfaces as _status_absorbing_live_runtime_surfaces,
     supervision_health_status as _supervision_health_status,
 )
 from .projection_status_context import build_projection_status_context
@@ -149,12 +148,6 @@ def build_study_progress_projection(
     )
     if cutover_publication_eval is not None:
         publication_eval_payload = cutover_publication_eval
-    status = _status_absorbing_live_runtime_surfaces(
-        status=status,
-        study_id=resolved_study_id,
-        opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
-        launch_report_payload=launch_report_payload,
-    )
     gate_specificity_request_path, gate_specificity_request = _read_gate_specificity_request(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
