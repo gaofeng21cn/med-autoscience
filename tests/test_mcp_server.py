@@ -590,7 +590,8 @@ def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tm
     assert candidates["owner_route_handoff"]["physical_delete_permitted"] is False
     assert candidates["owner_route_handoff"]["no_resurrection_proof"]["physical_delete_allowed"] is False
     assert candidates["status_projection"]["mas_role"] == "domain_truth_status_projection"
-    assert manifest["runtime_transport_handoff_projection"]["generated_default_caller_boundary"] == (
+    assert "runtime_transport_handoff_projection" not in manifest
+    assert manifest["opl_unique_control_plane_handoff"]["generated_default_caller_boundary"] == (
         generated_default
     )
 

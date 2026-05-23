@@ -113,10 +113,10 @@ _CODE_PATH_ROLES = [
 ]
 
 
-def build_runtime_transport_handoff_projection() -> dict[str, Any]:
+def build_opl_unique_control_plane_handoff() -> dict[str, Any]:
     return {
-        "surface_kind": "mas_runtime_transport_handoff_projection",
-        "version": "mas-runtime-transport-handoff.v1",
+        "surface_kind": "mas_opl_unique_control_plane_handoff",
+        "version": "mas-opl-unique-control-plane-handoff.v1",
         "target_domain_id": TARGET_DOMAIN_ID,
         "status": "opl_generic_runtime_owner_mas_domain_bridge_only",
         "generic_runtime_owner": OPL_OWNER,
@@ -148,6 +148,7 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
             "mas_default_transition_runner_allowed": False,
             "mas_default_persistence_engine_allowed": False,
             "mas_runtime_transport_active_as_generic_provider": False,
+            "mas_runtime_transport_active_contract_surface": False,
         },
         "physical_retirement_gate_matrix": build_physical_retirement_gate_matrix(
             schema_version=SCHEMA_VERSION,
@@ -174,6 +175,7 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
         },
         "authority_boundary": {
             "opl_owns_runtime_transport": True,
+            "opl_owns_unique_control_plane": True,
             "opl_writes_domain_truth": False,
             "opl_authorizes_publication_quality": False,
             "opl_writes_artifact_body": False,
@@ -184,4 +186,4 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
     }
 
 
-__all__ = ["build_runtime_transport_handoff_projection"]
+__all__ = ["build_opl_unique_control_plane_handoff"]

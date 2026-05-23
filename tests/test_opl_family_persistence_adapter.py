@@ -131,9 +131,11 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert provider["provider_topology"]["provider_attempt_owner"] == "one-person-lab"
     assert provider["provider_topology"]["domain_action_owner"] == "med-autoscience"
     assert provider["provider_topology"]["provider_attempt_is_truth"] is False
-    runtime_handoff = payload["runtime_transport_handoff_projection"]
-    assert runtime_handoff == provider["runtime_transport_handoff_projection"]
-    assert runtime_handoff["surface_kind"] == "mas_runtime_transport_handoff_projection"
+    runtime_handoff = payload["opl_unique_control_plane_handoff"]
+    assert "runtime_transport_handoff_projection" not in payload
+    assert "runtime_transport_handoff_projection" not in provider
+    assert runtime_handoff == provider["opl_unique_control_plane_handoff"]
+    assert runtime_handoff["surface_kind"] == "mas_opl_unique_control_plane_handoff"
     assert runtime_handoff["generic_runtime_owner"] == "one-person-lab"
     assert runtime_handoff["domain_owner"] == "med-autoscience"
     assert runtime_handoff["domain_intent_adapter_role"] == (
@@ -160,6 +162,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "mas_default_transition_runner_allowed": False,
         "mas_default_persistence_engine_allowed": False,
         "mas_runtime_transport_active_as_generic_provider": False,
+        "mas_runtime_transport_active_contract_surface": False,
     }
     assert runtime_handoff["generated_default_caller_boundary"] == payload[
         "functional_consumer_boundary"
