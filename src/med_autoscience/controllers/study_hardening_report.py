@@ -115,9 +115,9 @@ def _gate_assessment(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
     blocker_class = _text(runtime_failure.get("blocker_class")) or ""
     external_blocker = _bool(runtime_failure.get("external_blocker"))
     requires_human_gate = _bool(runtime_failure.get("requires_human_gate"))
-    runtime_gate = (
-        "runtime_recovery_churn" in bottleneck_ids
-        or eta_classification == "runtime_recovering"
+    opl_handoff_gate = (
+        "opl_runtime_owner_handoff_required" in bottleneck_ids
+        or eta_classification == "opl_handoff_required"
         or action_mode in _RUNTIME_ACTION_MODES
         or "runtime" in blocker_class
         or "platform_protocol" in blocker_class
@@ -145,7 +145,7 @@ def _gate_assessment(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
     for gate_name, active in (
         ("provider_gate", provider_gate),
         ("human_gate", human_gate),
-        ("runtime_gate", runtime_gate),
+        ("opl_handoff_gate", opl_handoff_gate),
         ("quality_gate", quality_gate),
         ("delivery_gate", delivery_gate),
     ):
@@ -153,7 +153,7 @@ def _gate_assessment(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
             primary_gate = gate_name
             break
     return {
-        "runtime_gate": runtime_gate,
+        "opl_handoff_gate": opl_handoff_gate,
         "provider_gate": provider_gate,
         "human_gate": human_gate,
         "quality_gate": quality_gate,
@@ -235,7 +235,7 @@ def _stuck_at(*, gate_assessment: Mapping[str, Any], controller_events: Mapping[
         return "external_provider"
     if primary_gate == "human_gate":
         return "human_or_admin_gate"
-    if primary_gate == "runtime_gate":
+    if primary_gate == "opl_handoff_gate":
         return "domain_health_diagnostic"
     if primary_gate == "quality_gate":
         return "publication_gate"
@@ -320,8 +320,8 @@ def build_study_hardening_report(profile_payload: Mapping[str, Any]) -> dict[str
         "evidence": {
             "profiling_window": dict(_mapping(profile_payload.get("profiling_window"))),
             "category_windows": dict(_mapping(profile_payload.get("category_windows"))),
-            "runtime_transition_summary": dict(
-                _mapping(profile_payload.get("runtime_transition_summary"))
+            "opl_runtime_owner_handoff_summary": dict(
+                _mapping(profile_payload.get("opl_runtime_owner_handoff_summary"))
             ),
             "gate_blocker_summary": dict(_mapping(profile_payload.get("gate_blocker_summary"))),
             "package_currentness": dict(_mapping(profile_payload.get("package_currentness"))),

@@ -107,8 +107,8 @@ def build_readonly_ai_repair_lifecycle_projection(
     }
 
 
-def portable_supervisor_hourly_path(*, profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+def opl_current_control_state_handoff_path(*, profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
 
 
 def _copy_mapping_keys(value: object, keys: tuple[str, ...]) -> dict[str, Any]:
@@ -137,7 +137,7 @@ def _string_list(value: object) -> list[str]:
     ]
 
 
-def _portable_supervisor_mode_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _opl_current_control_state_mode_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
     scheduler_contract = _mapping_copy(payload.get("scheduler_contract"))
     developer_supervisor = _mapping_copy(payload.get("developer_supervisor"))
     developer_supervisor_mode = _mapping_copy(payload.get("developer_supervisor_mode"))
@@ -177,13 +177,13 @@ def _portable_supervisor_mode_fields(payload: Mapping[str, Any]) -> dict[str, An
     return projection
 
 
-def portable_supervisor_study_projection(
+def opl_current_control_state_study_handoff_projection(
     *,
     profile: WorkspaceProfile,
     study_id: str,
 ) -> dict[str, Any] | None:
-    hourly_path = portable_supervisor_hourly_path(profile=profile)
-    payload = _read_json_object(hourly_path)
+    handoff_path = opl_current_control_state_handoff_path(profile=profile)
+    payload = _read_json_object(handoff_path)
     if payload is None:
         return None
     matching = None
@@ -216,10 +216,10 @@ def portable_supervisor_study_projection(
     ]
     why_not_applied = _string_list(matching.get("why_not_applied"))
     projection = {
-        "surface_kind": "portable_supervisor_study_queue_dashboard",
-        "read_model": "workspace_hourly_supervision_projection",
+        "surface_kind": "opl_current_control_state_study_handoff",
+        "read_model": "study_opl_current_control_state_handoff_projection",
         "authority": "observability_only",
-        "source_path": str(hourly_path),
+        "source_path": str(handoff_path),
         "generated_at": _non_empty_text(payload.get("generated_at")),
         "study_id": study_id,
         "quest_status": _non_empty_text(matching.get("quest_status")),
@@ -258,5 +258,5 @@ def portable_supervisor_study_projection(
         "external_supervisor_required": bool(matching.get("external_supervisor_required")),
         "blocked_reason": _non_empty_text(matching.get("blocked_reason")),
     }
-    projection.update(_portable_supervisor_mode_fields(payload))
+    projection.update(_opl_current_control_state_mode_fields(payload))
     return projection

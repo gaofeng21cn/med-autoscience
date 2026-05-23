@@ -168,8 +168,7 @@ def test_study_progress_projects_output_blocker_impact_from_runtime_continuity(
     assert impact["next_owner"] == "mas_controller"
     assert impact["why_not_running"] == "stale worker blocks paper artifact generation"
     assert impact["same_fingerprint_or_handoff"] == "same_fingerprint"
-    assert impact["will_start_llm"] is False
-    assert impact["safe_reconcile_command"].endswith("--studies 001-risk --mode developer_apply_safe --dry-run")
+    assert "safe_reconcile_command" not in impact
     assert impact["route"]["source_fingerprint"] == "runtime-continuity-001"
     assert impact["authority"]["writes_authority_surface"] is False
 
@@ -280,6 +279,93 @@ def test_study_progress_ignores_retired_runtime_supervision_currentness(
     assert result["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "missing_live_session"
     assert result["progress_freshness"]["worker_liveness_freshness"]["status"] == "recovering"
     assert result["progress_freshness"]["worker_liveness_freshness"]["active_run_id"] is None
-    assert result["refs"]["runtime_supervision_path"] is None
+    assert "runtime_supervision_path" not in result["refs"]
     assert all(item["category"] != "runtime_supervision" for item in result["latest_events"])
     assert "runtime_recovery_retry_budget_exhausted" in result["paper_progress_stall"]["stall_reasons"]
+
+
+def test_study_progress_treats_opl_runtime_owner_handoff_as_refs_only(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    handoff_path.parent.mkdir(parents=True, exist_ok=True)
+    handoff_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "surface_kind": "opl_runtime_owner_handoff",
+                "recorded_at": "2026-05-13T07:52:30+00:00",
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "health_status": "live",
+                "summary": "stale OPL handoff says the provider is live.",
+                "next_action": "continue_supervising_runtime",
+                "next_action_summary": "stale handoff says keep waiting for live runtime.",
+                "mas_materializes_runtime_supervision": False,
+                "mas_runtime_read_model_retired": True,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: module.datetime.fromisoformat("2026-05-13T08:00:00+00:00"),
+    )
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_marked_running_but_no_live_session",
+            "runtime_liveness_status": "none",
+            "active_run_id": None,
+            "worker_running": False,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-stale-001",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "worker_liveness_state": {"state": "missing_live_session"},
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "supervisor tick fresh",
+                "latest_recorded_at": "2026-05-13T07:52:10+00:00",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["refs"]["opl_runtime_owner_handoff_path"] == str(handoff_path)
+    assert result["current_stage"] == "managed_runtime_escalated"
+    assert result["module_surfaces"]["runtime"]["health_status"] == "escalated"
+    assert result["progress_freshness"]["worker_liveness_freshness"]["status"] == "recovering"
+    assert result["operator_status_card"]["latest_truth_source"] != "opl_runtime_owner_handoff"
+    assert "health_status" not in result["operator_status_card"]["next_confirmation_signal"]
+    assert result["latest_events"][0]["title"] == "OPL runtime owner handoff recorded"

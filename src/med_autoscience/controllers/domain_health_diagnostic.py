@@ -333,20 +333,6 @@ def run_domain_health_diagnostic_for_runtime(
     return report
 
 
-def run_managed_supervisor_tick(
-    *,
-    profile: WorkspaceProfile,
-    apply: bool,
-) -> dict[str, Any]:
-    return run_domain_health_diagnostic_for_runtime(
-        runtime_root=profile.runtime_root,
-        apply=apply,
-        profile=profile,
-        request_opl_stage_attempts=True,
-        request_opl_owner_route_reconcile=True,
-    )
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--quest-root", type=Path)

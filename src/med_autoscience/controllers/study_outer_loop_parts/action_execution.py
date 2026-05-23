@@ -23,7 +23,6 @@ def execute_controller_action(
     study_root: Path,
     quest_id: str,
     source: str,
-    ensure_study_runtime_fn: Callable[..., dict[str, Any]] | None = None,
     execution_payload_fn: RuntimeExecutionPayload,
     load_yaml_dict_fn: Callable[[Path], dict[str, Any]],
     run_gate_clearing_batch_fn: RunGateClearingBatch,

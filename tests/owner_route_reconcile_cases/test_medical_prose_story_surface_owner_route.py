@@ -93,7 +93,7 @@ def test_scan_routes_medical_prose_write_repair_despite_stale_opl_owner_lifecycl
             "study_id": study_id,
             "decision_type": "route_back_same_line",
             "route_target": "write",
-            "controller_action": "ensure_study_runtime",
+            "controller_action": "request_opl_stage_attempt",
             "owner": "write",
             "next_work_unit": {
                 "unit_id": "medical_prose_write_repair",

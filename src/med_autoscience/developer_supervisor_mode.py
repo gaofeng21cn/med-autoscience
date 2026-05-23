@@ -267,7 +267,7 @@ def resolve_developer_supervisor_mode(
     profile: object | None = None,
     requested_mode: str | None = None,
     apply_safe_actions: bool = False,
-    scheduler_owner: str = "portable_supervisor",
+    scheduler_owner: str = "opl_current_control_state",
 ) -> DeveloperSupervisorMode:
     if requested_mode is not None:
         requested = validate_developer_supervisor_mode(requested_mode)

@@ -103,7 +103,6 @@ def _execute_controller_action(
         study_root=study_root,
         quest_id=quest_id,
         source=source,
-        ensure_study_runtime_fn=None,
         execution_payload_fn=domain_status_projection._execution_payload,
         load_yaml_dict_fn=domain_status_projection._load_yaml_dict,
         run_gate_clearing_batch_fn=gate_clearing_batch.run_gate_clearing_batch,

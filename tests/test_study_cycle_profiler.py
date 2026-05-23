@@ -20,6 +20,30 @@ def _touch(path: Path, timestamp: int) -> None:
     os.utime(path, (timestamp, timestamp))
 
 
+def _write_opl_handoff(path: Path, *, recorded_at: str, status: str = "owner_receipt_written") -> None:
+    _write_json(
+        path,
+        {
+            "surface_kind": "mas_opl_runtime_owner_handoff",
+            "schema_version": 1,
+            "recorded_at": recorded_at,
+            "status": status,
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "provider_completion_is_domain_completion": False,
+            "queue_succeeded_is_domain_completion": False,
+            "mas_materializes_runtime_supervision": False,
+            "mas_runtime_read_model_retired": True,
+            "reason": "opl_current_control_state_required",
+            "typed_blocker": {
+                "blocker_type": "opl_runtime_owner_handoff_required",
+                "owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+            },
+        },
+    )
+
+
 def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     profile_path = tmp_path / "profile.local.toml"
@@ -50,28 +74,25 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
             "task_intent": "revision intake",
         },
     )
-    _write_json(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T000000Z.json",
-        {
-            "recorded_at": "2026-04-25T00:00:00+00:00",
-            "health_status": "recovering",
-            "runtime_reason": "quest_marked_running_but_no_live_session",
-        },
+    _write_opl_handoff(
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "20260425T000000Z.json",
+        recorded_at="2026-04-25T00:00:00+00:00",
     )
-    _write_json(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T001000Z.json",
-        {
-            "recorded_at": "2026-04-25T00:10:00+00:00",
-            "health_status": "live",
-            "runtime_reason": "quest_already_running",
-        },
+    _write_opl_handoff(
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "20260425T001000Z.json",
+        recorded_at="2026-04-25T00:10:00+00:00",
+    )
+    _write_opl_handoff(
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json",
+        recorded_at="2026-04-25T00:10:00+00:00",
+        status="handoff_required",
     )
     _write_json(
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
         {
             "recorded_at": "2026-04-25T00:10:00+00:00",
-            "health_status": "live",
-            "runtime_reason": "quest_already_running",
+            "health_status": "escalated",
+            "runtime_reason": "retired_surface_must_be_ignored",
         },
     )
     for index in range(2):
@@ -118,10 +139,10 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
 
     assert profile_payload["study_id"] == "001-risk"
     assert profile_payload["quest_id"] == "quest-001"
-    assert profile_payload["category_windows"]["runtime_supervision"]["event_count"] == 2
-    assert profile_payload["runtime_transition_summary"]["health_status_counts"] == {
-        "live": 1,
-        "recovering": 1,
+    assert "runtime_supervision" not in profile_payload["category_windows"]
+    assert profile_payload["category_windows"]["opl_runtime_owner_handoff"]["event_count"] == 2
+    assert profile_payload["opl_runtime_owner_handoff_summary"]["status_counts"] == {
+        "owner_receipt_written": 2,
     }
     assert profile_payload["controller_decision_fingerprints"]["top_repeats"][0]["count"] == 2
     assert profile_payload["gate_blocker_summary"]["current_blockers"] == ["claim_evidence_consistency_failed"]
@@ -129,16 +150,15 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
     assert profile_payload["step_latest_times"]["task_intake"] == "2026-04-24T23:55:00+00:00"
     assert profile_payload["step_timings"][0] == {
         "from_step": "task_intake",
-        "to_step": "run_start",
+        "to_step": "opl_runtime_owner_handoff",
         "from_at": "2026-04-24T23:55:00+00:00",
         "to_at": "2026-04-25T00:00:00+00:00",
         "duration_seconds": 300,
     }
-    assert profile_payload["current_state_summary"]["runtime_health_status"] == "live"
     assert profile_payload["eta_confidence_band"]["classification"] == "claim_evidence"
-    assert profile_payload["sli_summary"]["runtime_live_ratio"] == 0.5
+    assert profile_payload["sli_summary"]["opl_runtime_owner_handoff_clear_ratio"] == 1.0
     assert profile_payload["sli_summary"]["next_work_unit_id"] == "analysis_claim_evidence_repair"
-    assert profile_payload["cycle_observability"]["flow_metrics"]["task_intake_to_run_start_seconds"] == 300
+    assert profile_payload["cycle_observability"]["flow_metrics"]["task_intake_to_opl_handoff_seconds"] == 300
     assert profile_payload["cycle_observability"]["stability_metrics"]["repeated_controller_dispatch_count"] == 1
     assert profile_payload["cycle_observability"]["quality_preservation"]["gate_relaxation_allowed"] is False
     assert profile_payload["cycle_observability"]["acceleration_readiness"] == {
@@ -147,9 +167,7 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
         "requires_quality_gate_preservation": True,
         "next_work_unit_id": "analysis_claim_evidence_repair",
     }
-    assert profile_payload["autonomy_incident_candidates"][0]["incident_type"] == "runtime_recovery_churn"
     assert [item["bottleneck_id"] for item in profile_payload["bottlenecks"]] == [
-        "runtime_recovery_churn",
         "repeated_controller_decision",
         "publication_gate_blocked",
     ]
@@ -177,20 +195,12 @@ def test_study_cycle_profiler_uses_current_manual_finishing_state_over_window_ch
         encoding="utf-8",
     )
     _write_json(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T000000Z.json",
-        {
-            "recorded_at": "2026-04-25T00:00:00+00:00",
-            "health_status": "recovering",
-            "runtime_reason": "quest_marked_running_but_no_live_session",
-        },
-    )
-    _write_json(
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
         {
             "recorded_at": "2026-04-25T00:20:00+00:00",
             "health_status": "inactive",
             "runtime_decision": "blocked",
-            "runtime_reason": "quest_waiting_for_submission_metadata",
+            "runtime_reason": "retired_surface_must_be_ignored",
         },
     )
     _write_json(
@@ -214,6 +224,7 @@ def test_study_cycle_profiler_uses_current_manual_finishing_state_over_window_ch
             "blockers": [],
             "supervisor_phase": "bundle_stage_ready",
             "current_required_action": "continue_bundle_stage",
+            "external_submission_metadata_pending": True,
         },
     )
     _touch(study_root / "paper" / "manuscript.md", 1_777_000_000)
@@ -474,7 +485,7 @@ def test_study_cycle_profiler_renders_markdown(tmp_path: Path) -> None:
             "quest_root": str(tmp_path / "quest"),
             "profiling_window": {"since": None, "until": "2026-04-25T00:00:00+00:00", "event_count": 0},
             "category_windows": {},
-            "runtime_transition_summary": {"health_status_counts": {}},
+            "opl_runtime_owner_handoff_summary": {"status_counts": {}},
             "controller_decision_fingerprints": {"top_repeats": []},
             "gate_blocker_summary": {"current_blockers": []},
             "package_currentness": {"status": "fresh"},
@@ -505,14 +516,15 @@ def test_workspace_cycle_profiler_profiles_active_studies_and_sorts_bottlenecks(
     (active_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
     (quieter_root / "study.yaml").write_text("study_id: 002-followup\n", encoding="utf-8")
 
-    for index, status in enumerate(("live", "recovering", "live", "degraded")):
-        _write_json(
-            active_root / "artifacts" / "runtime" / "runtime_supervision" / f"20260425T000{index}00Z.json",
-            {
-                "recorded_at": f"2026-04-25T00:0{index}:00+00:00",
-                "health_status": status,
-                "runtime_reason": "runtime_flap" if status != "live" else "quest_already_running",
-            },
+    for index in range(2):
+        _write_opl_handoff(
+            active_root
+            / "artifacts"
+            / "supervision"
+            / "opl_runtime_owner_handoff"
+            / f"20260425T000{index}00Z.json",
+            recorded_at=f"2026-04-25T00:0{index}:00+00:00",
+            status="handoff_required",
         )
     for index in range(3):
         _write_json(
@@ -542,9 +554,9 @@ def test_workspace_cycle_profiler_profiles_active_studies_and_sorts_bottlenecks(
     _touch(active_root / "paper" / "manuscript.md", 1_777_000_000)
     _touch(active_root / "manuscript" / "current_package" / "manuscript.docx", 1_776_999_900)
 
-    _write_json(
-        quieter_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T000000Z.json",
-        {"recorded_at": "2026-04-25T00:00:00+00:00", "health_status": "live"},
+    _write_opl_handoff(
+        quieter_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "20260425T000000Z.json",
+        recorded_at="2026-04-25T00:00:00+00:00",
     )
     _touch(quieter_root / "paper" / "manuscript.md", 1_777_000_000)
     _touch(quieter_root / "manuscript" / "current_package" / "manuscript.docx", 1_777_000_000)
@@ -559,13 +571,11 @@ def test_workspace_cycle_profiler_profiles_active_studies_and_sorts_bottlenecks(
     assert [item["study_id"] for item in payload["studies"]] == ["001-risk", "002-followup"]
     active_summary = payload["studies"][0]["cycle_summary"]
     assert active_summary["repeated_controller_dispatch_count"] == 2
-    assert active_summary["runtime_recovery_churn_count"] == 2
-    assert active_summary["runtime_flapping_transition_count"] == 3
+    assert active_summary["opl_runtime_owner_handoff_required_count"] == 2
     assert active_summary["package_stale_seconds"] == 100
     assert payload["workspace_totals"] == {
         "repeated_controller_dispatch_count": 2,
-        "runtime_recovery_churn_count": 2,
-        "runtime_flapping_transition_count": 3,
+        "opl_runtime_owner_handoff_required_count": 2,
         "package_stale_seconds": 100,
         "non_actionable_gate_count": 0,
     }
@@ -581,8 +591,7 @@ def test_workspace_cycle_profiler_renders_markdown() -> None:
             "study_count": 1,
             "workspace_totals": {
                 "repeated_controller_dispatch_count": 2,
-                "runtime_recovery_churn_count": 1,
-                "runtime_flapping_transition_count": 3,
+                "opl_runtime_owner_handoff_required_count": 1,
                 "package_stale_seconds": 100,
                 "non_actionable_gate_count": 0,
             },
@@ -592,27 +601,26 @@ def test_workspace_cycle_profiler_renders_markdown() -> None:
                     "bottleneck_score": 10,
                     "cycle_summary": {
                         "repeated_controller_dispatch_count": 2,
-                        "runtime_recovery_churn_count": 1,
-                        "runtime_flapping_transition_count": 3,
+                        "opl_runtime_owner_handoff_required_count": 1,
                         "package_stale_seconds": 100,
                         "non_actionable_gate_count": 0,
                     },
-                    "eta_confidence_band": {"classification": "runtime_recovering", "label": "runtime recovering"},
-                    "bottlenecks": [{"bottleneck_id": "runtime_recovery_churn"}],
+                    "eta_confidence_band": {"classification": "opl_handoff_required", "label": "OPL handoff required"},
+                    "bottlenecks": [{"bottleneck_id": "opl_runtime_owner_handoff_required"}],
                 }
             ],
             "optimization_action_units": [
                 {
-                    "action_unit_id": "optimization-action::001-risk::runtime_recovery_churn",
+                    "action_unit_id": "optimization-action::001-risk::opl_runtime_owner_handoff_required",
                     "study_id": "001-risk",
-                    "action_type": "probe_runtime_recovery",
+                    "action_type": "request_opl_handoff_hydration",
                     "controller_surface": "domain_health_diagnostic",
                     "priority": "now",
                 }
             ],
             "workspace_scheduler": {
                 "ready_count": 1,
-                "ready_action_unit_ids": ["optimization-action::001-risk::runtime_recovery_churn"],
+                "ready_action_unit_ids": ["optimization-action::001-risk::opl_runtime_owner_handoff_required"],
             },
         }
     )
@@ -621,7 +629,7 @@ def test_workspace_cycle_profiler_renders_markdown() -> None:
     assert "001-risk" in rendered
     assert "repeated dispatch: 2" in rendered
     assert "Optimization Action Queue" in rendered
-    assert "probe_runtime_recovery" in rendered
+    assert "request_opl_handoff_hydration" in rendered
 
 
 def test_workspace_cycle_profiler_emits_action_units_and_scheduler_queue(tmp_path: Path) -> None:
@@ -633,13 +641,10 @@ def test_workspace_cycle_profiler_emits_action_units_and_scheduler_queue(tmp_pat
     study_root = workspace_root / "studies" / "001-risk"
     study_root.mkdir(parents=True)
     (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
-    _write_json(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "20260425T000000Z.json",
-        {
-            "recorded_at": "2026-04-25T00:00:00+00:00",
-            "health_status": "recovering",
-            "runtime_reason": "quest_marked_running_but_no_live_session",
-        },
+    _write_opl_handoff(
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "20260425T000000Z.json",
+        recorded_at="2026-04-25T00:00:00+00:00",
+        status="handoff_required",
     )
     _write_json(
         study_root / "artifacts" / "controller_decisions" / "20260425T001000Z.json",
@@ -670,7 +675,7 @@ def test_workspace_cycle_profiler_emits_action_units_and_scheduler_queue(tmp_pat
 
     action_units = payload["optimization_action_units"]
     assert [item["action_type"] for item in action_units] == [
-        "probe_runtime_recovery",
+        "request_opl_handoff_hydration",
         "dedupe_controller_dispatch",
         "run_publication_work_unit",
         "refresh_current_package_after_settle",
@@ -723,7 +728,7 @@ def test_eta_classifies_submission_minimal_authority_as_delivery_not_human_admin
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler_eta")
 
     band = module.eta_confidence_band(
-        runtime_transition_summary={"health_status_counts": {"live": 3}},
+        opl_runtime_owner_handoff_summary={"status_counts": {}},
         gate_blocker_summary={
             "current_blockers": [
                 "stale_submission_minimal_authority",
@@ -737,33 +742,31 @@ def test_eta_classifies_submission_minimal_authority_as_delivery_not_human_admin
     assert band["classification"] == "delivery_only"
 
 
-def test_eta_keeps_runtime_recovering_when_latest_runtime_is_not_live() -> None:
+def test_eta_blocks_on_opl_handoff_required() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler_eta")
 
     band = module.eta_confidence_band(
-        runtime_transition_summary={"health_status_counts": {"live": 3, "recovering": 1}},
+        opl_runtime_owner_handoff_summary={"status_counts": {"handoff_required": 1}},
         gate_blocker_summary={
             "current_blockers": ["claim_evidence_consistency_failed"],
             "actionability_status": "actionable",
         },
         package_currentness={"status": "fresh"},
-        current_state_summary={"state": "active_or_unresolved", "runtime_health_status": "recovering"},
     )
 
-    assert band["classification"] == "runtime_recovering"
+    assert band["classification"] == "opl_handoff_required"
 
 
 def test_eta_uses_claim_evidence_when_latest_runtime_is_live_despite_window_churn() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler_eta")
 
     band = module.eta_confidence_band(
-        runtime_transition_summary={"health_status_counts": {"live": 3, "recovering": 1, "degraded": 1}},
+        opl_runtime_owner_handoff_summary={"status_counts": {"owner_receipt_written": 3}},
         gate_blocker_summary={
             "current_blockers": ["claim_evidence_consistency_failed"],
             "actionability_status": "actionable",
         },
         package_currentness={"status": "fresh"},
-        current_state_summary={"state": "active_or_unresolved", "runtime_health_status": "live"},
     )
 
     assert band["classification"] == "claim_evidence"

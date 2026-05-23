@@ -45,7 +45,7 @@ BIOCONDUCTOR_R_ANALYSIS_BUNDLE_PACKAGES = ("ComplexHeatmap",)
 def _ensure_analysis_bundle_in_current_runtime(*, before: dict[str, Any]) -> dict[str, Any]:
     python_result = ensure_python_environment_contract(requirements=CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS)
     r_result = ensure_r_analysis_bundle()
-    after = inspect_study_runtime_analysis_bundle()
+    after = inspect_analysis_bundle()
     return {
         "action": "ensure_bundle",
         "before": before,
@@ -218,7 +218,7 @@ def ensure_r_analysis_bundle(*, packages: tuple[str, ...] | list[str] | None = N
     }
 
 
-def inspect_study_runtime_analysis_bundle() -> dict[str, Any]:
+def inspect_analysis_bundle() -> dict[str, Any]:
     python = inspect_python_environment_contract(requirements=CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS)
     r = _inspect_r_packages()
     return {
@@ -228,8 +228,8 @@ def inspect_study_runtime_analysis_bundle() -> dict[str, Any]:
     }
 
 
-def ensure_study_runtime_analysis_bundle() -> dict[str, Any]:
-    before = inspect_study_runtime_analysis_bundle()
+def ensure_analysis_bundle() -> dict[str, Any]:
+    before = inspect_analysis_bundle()
     if before["ready"]:
         return {"action": "already_ready", "before": before, "after": before, "ready": True}
     return _ensure_analysis_bundle_in_current_runtime(before=before)

@@ -27,7 +27,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     ]
     assert all(item["owner"].startswith("MAS") for item in payload["active_tranche_owner_truth"]["lanes"])
     assert payload["ideal_state"]["runtime_topology"]["runtime_owner"] == "one-person-lab"
-    assert payload["ideal_state"]["runtime_topology"]["runtime_substrate"] == "opl_provider_backed_stage_runtime"
+    assert payload["ideal_state"]["runtime_topology"]["runtime_substrate"] == "opl_hosted_stage_runtime"
     assert payload["ideal_state"]["runtime_topology"]["research_backend"] == (
         "MAS domain owner receipts / artifact authority refs / quality verdict refs; "
         "generic runtime lifecycle handoff to OPL"
@@ -161,7 +161,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     )
     assert [item["boundary_id"] for item in payload["unified_enhancement_program"]["module_boundary_audit"]["boundaries"]] == [
         "study_truth",
-        "runtime_truth",
+        "runtime_authority_refs",
         "quality_truth",
         "delivery_truth",
         "maintainability_truth",
@@ -206,11 +206,11 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         },
     ]
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
-    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_runtime_contract"
+    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_domain_refs_boundary"
     assert payload["phase3_clearance_lane"]["recommended_command"] == (
         "uv run python -m med_autoscience.cli doctor --profile <profile>"
     )
-    assert payload["phase3_clearance_lane"]["clearance_targets"][0]["target_id"] == "mas_runtime_contract"
+    assert payload["phase3_clearance_lane"]["clearance_targets"][0]["target_id"] == "mas_domain_refs_boundary"
     assert payload["phase3_clearance_lane"]["proof_surfaces"] == [
         {
             "surface_kind": "doctor.runtime_contract",
@@ -228,15 +228,15 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
             "ref": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
         },
         {
-            "surface_kind": "runtime_supervision",
-            "ref": "studies/<study_id>/artifacts/runtime_supervision/latest.json",
+            "surface_kind": "opl_runtime_owner_handoff",
+            "ref": "studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         },
         {
             "surface_kind": "controller_decisions",
             "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
         },
     ]
-    assert payload["phase3_clearance_lane"]["clearance_loop"][0]["step_id"] == "mas_runtime_contract"
+    assert payload["phase3_clearance_lane"]["clearance_loop"][0]["step_id"] == "mas_domain_refs_boundary"
     assert payload["phase3_clearance_lane"]["clearance_loop"][2]["step_id"] == "refresh_supervision"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["substrate_targets"][0]["capability_id"] == "session_run_watch_recovery"
@@ -456,7 +456,7 @@ def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:
     payload = module._phase3_clearance_lane()
 
     assert payload["surface_kind"] == "phase3_host_clearance_lane"
-    assert captured["recommended_step_id"] == "mas_runtime_contract"
+    assert captured["recommended_step_id"] == "mas_domain_refs_boundary"
     assert len(captured["clearance_targets"]) == 3
     assert len(captured["proof_surfaces"]) == 5
 

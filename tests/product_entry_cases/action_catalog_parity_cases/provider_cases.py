@@ -399,7 +399,7 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     assert tombstone["tombstone_refs"] == tombstone["physical_tombstone_refs"]
     assert tombstone["history_refs"] == [
         "docs/active/opl_temporal_mas_runtime_retirement_program.md",
-        "docs/decisions.md#2026-05-16默认-domain-slo-scheduler-projection-owner-迁到-opl-replacement",
+        "docs/decisions.md#2026-05-16-opl-unique-control-plane-boundary-retirement",
     ]
     assert "legacy_active_path_tombstones_landed" in tombstone["removal_policy"]["history_actions"]
     assert tombstone["authority_boundary"]["can_authorize_submission_readiness"] is False
@@ -418,7 +418,7 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
         "tombstone_refs_landed",
     ]
     assert tombstone["removal_policy"]["current_action"] == (
-        "retain_domain_receipt_adapter_refs_only_adapter_diagnostic_or_tombstone_until_gate_closes"
+        "physical_retired_no_alias_keep_domain_authority_refs_or_tombstone_provenance_only"
     )
 
 
@@ -527,7 +527,7 @@ def test_product_entry_manifest_omits_retired_legacy_residue_audit_surface(
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_without_active_caller",
+        "scheduler_legacy_residue_tombstone_provenance",
     }
     assert all(item["active_caller_count"] == 0 for item in tombstones)
     assert all(item["current_role"] == "history_tombstone_provenance_only" for item in tombstones)

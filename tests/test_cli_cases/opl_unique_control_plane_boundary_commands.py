@@ -39,7 +39,7 @@ def test_runtime_supervision_flat_commands_are_not_public_aliases(tmp_path: Path
         assert excinfo.value.code == 2
 
 
-def test_cli_has_no_domain_slo_scheduler_projection_runtime_callable() -> None:
+def test_cli_has_no_opl_unique_control_plane_boundary_runtime_callable() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
-    assert not hasattr(cli, "domain_slo_scheduler_projection")
+    assert not hasattr(cli, "opl_unique_control_plane_boundary")

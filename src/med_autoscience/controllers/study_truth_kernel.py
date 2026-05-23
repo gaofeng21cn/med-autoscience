@@ -15,7 +15,7 @@ TRUTH_EVENT_TYPES = frozenset(
         "task_intake",
         "controller_decision",
         "runtime_native_event",
-        "runtime_supervision_tick",
+        "opl_runtime_owner_handoff",
         "publication_gate_eval",
         "quality_review_eval",
         "package_authority_eval",
@@ -29,24 +29,20 @@ TRUTH_EVENT_TYPES = frozenset(
 )
 
 _BASE_ALLOWED_ACTIONS = (
-    "read_runtime_status",
-    "notify_user_runtime_is_live",
-    "open_monitoring_entry",
-    "resume_runtime",
-    "pause_runtime",
-    "stop_runtime",
-    "record_user_decision",
-    "direct_study_execution",
-    "direct_runtime_owned_write",
-    "direct_paper_line_write",
-    "direct_bundle_build",
-    "direct_compiled_bundle_proofing",
+        "read_opl_current_control_state",
+        "open_monitoring_entry",
+        "stop_runtime",
+        "request_opl_handoff_hydration",
+        "record_user_decision",
+        "direct_study_execution",
+        "direct_paper_line_write",
+        "direct_bundle_build",
+        "direct_compiled_bundle_proofing",
 )
 
 _SUPERVISOR_ONLY_FORBIDDEN_ACTIONS = frozenset(
     {
         "direct_study_execution",
-        "direct_runtime_owned_write",
         "direct_paper_line_write",
         "direct_bundle_build",
         "direct_compiled_bundle_proofing",
@@ -60,7 +56,7 @@ _DOWNSTREAM_BUNDLE_FORBIDDEN_ACTIONS = frozenset(
     }
 )
 
-_VOLATILE_SUPERVISOR_TICK_AUDIT_KEYS = frozenset(
+_VOLATILE_OPL_HANDOFF_AUDIT_KEYS = frozenset(
     {
         "age_seconds",
         "checked_at",
@@ -190,11 +186,11 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
-def _stable_supervisor_tick_audit(value: object) -> dict[str, Any]:
+def _stable_opl_handoff_audit(value: object) -> dict[str, Any]:
     return {
         key: item
         for key, item in _mapping(value).items()
-        if key not in _VOLATILE_SUPERVISOR_TICK_AUDIT_KEYS
+        if key not in _VOLATILE_OPL_HANDOFF_AUDIT_KEYS
     }
 
 
@@ -363,7 +359,7 @@ def _package_state(events: list[dict[str, Any]], writer_state: Mapping[str, Any]
 
 
 def _execution_owner_and_state(events: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any]]:
-    owner = {"owner": "mas", "supervisor_only": False, "active_run_id": None}
+    owner = {"owner": "mas", "runtime_control_owner": "one-person-lab", "active_run_id": None}
     state = {"state": "unknown", "quest_status": None, "reason": None}
     for event in events:
         payload = _mapping(event.get("payload"))
@@ -373,17 +369,19 @@ def _execution_owner_and_state(events: list[dict[str, Any]]) -> tuple[dict[str, 
                 "quest_status": _text(payload.get("quest_status")),
                 "reason": _text(payload.get("reason")),
             }
-        elif event.get("event_type") == "runtime_supervision_tick":
+        elif event.get("event_type") == "opl_runtime_owner_handoff":
             guard = _mapping(payload.get("execution_owner_guard"))
             supervisor_state = _mapping(payload.get("publication_supervisor_state"))
             if guard.get("supervisor_only") is True:
                 owner = {
-                    "owner": "managed_runtime",
-                    "supervisor_only": True,
+                    "owner": "one-person-lab",
+                    "runtime_control_owner": "one-person-lab",
+                    "stage_attempt_owner": "one-person-lab",
+                    "mas_role": "domain_authority_refs_only",
                     "active_run_id": _text(guard.get("active_run_id")) or _text(payload.get("active_run_id")),
                 }
                 state = {
-                    "state": "live_supervisor_only",
+                    "state": "opl_handoff_required",
                     "quest_status": _text(payload.get("quest_status")) or "running",
                     "reason": _text(supervisor_state.get("current_required_action")),
                 }
@@ -431,7 +429,7 @@ def _dominant_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
         guard = _mapping(payload.get("execution_owner_guard"))
         supervisor = _mapping(payload.get("publication_supervisor_state"))
         if (
-            event.get("event_type") == "runtime_supervision_tick"
+            event.get("event_type") == "opl_runtime_owner_handoff"
             and (guard.get("supervisor_only") is True or supervisor.get("bundle_tasks_downstream_only") is True)
         ):
             return event
@@ -453,10 +451,10 @@ def _canonical_next_action(dominant_event: dict[str, Any] | None) -> str:
         return "stop_runtime"
     if event_type in {"task_intake", "explicit_resume"}:
         return _text(payload.get("current_required_action")) or "resume_same_study_line"
-    if event_type == "runtime_supervision_tick":
+    if event_type == "opl_runtime_owner_handoff":
         guard = _mapping(payload.get("execution_owner_guard"))
         if guard.get("supervisor_only") is True:
-            return "supervise_runtime"
+            return "request_opl_handoff_hydration"
     if event_type == "publication_gate_eval":
         provenance = _mapping(payload.get("assessment_provenance"))
         owner = _text(provenance.get("owner"))
@@ -474,11 +472,11 @@ def _canonical_next_action(dominant_event: dict[str, Any] | None) -> str:
 
 def _blocking_reasons(events: list[dict[str, Any]]) -> list[str]:
     reasons: list[str] = []
-    supervision = _last_payload(events, "runtime_supervision_tick")
+    supervision = _last_payload(events, "opl_runtime_owner_handoff")
     guard = _mapping(supervision.get("execution_owner_guard"))
     supervisor = _mapping(supervision.get("publication_supervisor_state"))
     if guard.get("supervisor_only") is True:
-        reasons.append("execution_owner_guard.supervisor_only")
+        reasons.append("opl_current_control_state.handoff_required")
     if supervisor.get("bundle_tasks_downstream_only") is True:
         reasons.append("publication_supervisor_state.bundle_tasks_downstream_only")
     if _latest_event(events, "stop_loss") is not None:
@@ -499,7 +497,7 @@ def _blocking_reasons(events: list[dict[str, Any]]) -> list[str]:
 
 def _allowed_controller_actions(events: list[dict[str, Any]]) -> list[str]:
     allowed = list(_BASE_ALLOWED_ACTIONS)
-    supervision = _last_payload(events, "runtime_supervision_tick")
+    supervision = _last_payload(events, "opl_runtime_owner_handoff")
     guard = _mapping(supervision.get("execution_owner_guard"))
     supervisor = _mapping(supervision.get("publication_supervisor_state"))
     forbidden: set[str] = set()
@@ -535,7 +533,7 @@ def _projection_invalidations(events: list[dict[str, Any]], dominant_event: dict
             "delivery_sync",
             "runtime_native_event",
         },
-        "runtime_supervision_tick": {
+        "opl_runtime_owner_handoff": {
             "package_authority_eval",
             "delivery_sync",
         },
@@ -657,18 +655,22 @@ def _status_payload_truth_events(
         )
     execution_owner_guard = _mapping(status_payload.get("execution_owner_guard"))
     publication_supervisor_state = _mapping(status_payload.get("publication_supervisor_state"))
-    supervisor_tick_audit = _stable_supervisor_tick_audit(status_payload.get("supervisor_tick_audit"))
+    opl_handoff_audit = _stable_opl_handoff_audit(
+        status_payload.get("opl_runtime_owner_handoff")
+        or status_payload.get("opl_current_control_state_handoff")
+        or status_payload.get("supervisor_tick_audit")
+    )
     active_run_id = active_run_id or _text(execution_owner_guard.get("active_run_id"))
-    if execution_owner_guard or publication_supervisor_state or supervisor_tick_audit:
+    if execution_owner_guard or publication_supervisor_state or opl_handoff_audit:
         sequence += 1
         events.append(
             _transient_event(
                 study_id=study_id,
-                event_type="runtime_supervision_tick",
+                event_type="opl_runtime_owner_handoff",
                 payload={
                     "execution_owner_guard": execution_owner_guard,
                     "publication_supervisor_state": publication_supervisor_state,
-                    "supervisor_tick_audit": supervisor_tick_audit,
+                    "opl_handoff_audit": opl_handoff_audit,
                     "quest_status": quest_status,
                 },
                 recorded_at=recorded_at,

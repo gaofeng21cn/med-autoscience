@@ -69,11 +69,7 @@ def build_runtime_workbench_projection(
         "studies": studies,
         "terminal": _workbench_terminal_projection(
             study_id=study_id,
-            active_run_id=(
-                _non_empty_text(_mapping(study_workbench.get("runtime")).get("active_run_id"))
-                or _non_empty_text(_mapping(progress.get("supervision")).get("active_run_id"))
-                or _non_empty_text(runtime.get("active_run_id"))
-            ),
+            active_run_id=_opl_active_run_id(study_workbench=study_workbench, progress=progress, runtime=runtime),
         ),
         "authority": {
             "opl_role": "projection_consumer_and_action_transport_only",
@@ -154,11 +150,7 @@ def _selected_workbench_study(
     study_workbench: Mapping[str, Any],
 ) -> dict[str, Any]:
     runtime_projection = _mapping(study_workbench.get("runtime"))
-    active_run_id = (
-        _non_empty_text(runtime_projection.get("active_run_id"))
-        or _non_empty_text(_mapping(progress.get("supervision")).get("active_run_id"))
-        or _non_empty_text(runtime.get("active_run_id"))
-    )
+    active_run_id = _opl_active_run_id(study_workbench=study_workbench, progress=progress, runtime=runtime)
     stage_review = runtime_stage_review_summary(_mapping(study_workbench.get("stage_review_index")))
     reference_projection = _reference_projection(
         progress=progress,
@@ -548,6 +540,23 @@ def _workbench_actions() -> dict[str, dict[str, Any]]:
         }
         for action in ("pause", "resume", "stop", "reconcile_dry_run", "reconcile_apply")
     }
+
+
+def _opl_active_run_id(
+    *,
+    study_workbench: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    runtime: Mapping[str, Any],
+) -> str | None:
+    runtime_projection = _mapping(study_workbench.get("runtime"))
+    progress_opl_control = _mapping(progress.get("opl_current_control_state")) or _mapping(progress.get("current_control_state"))
+    runtime_opl_control = _mapping(runtime.get("opl_current_control_state")) or _mapping(runtime.get("current_control_state"))
+    return (
+        _non_empty_text(runtime_projection.get("active_run_id"))
+        or _non_empty_text(runtime_opl_control.get("active_run_id"))
+        or _non_empty_text(progress_opl_control.get("active_run_id"))
+        or _non_empty_text(runtime.get("active_run_id"))
+    )
 
 
 def _workbench_terminal_projection(

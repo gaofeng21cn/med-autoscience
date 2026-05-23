@@ -11,7 +11,7 @@ from .boundary_surfaces import (
 )
 from .manifest_projection_compaction import (
     _manifest_open_auto_research_projection,
-    _manifest_portable_supervisor_queue_dashboard,
+    _manifest_opl_current_control_state_handoff_dashboard,
 )
 from .shared_base import _gate_clearing_followthrough_summary
 from .shared_labels import _non_empty_text
@@ -241,8 +241,8 @@ def build_product_entry_status_payload(
             workspace_cockpit
         ),
         "workspace_delivery_inspection": _workspace_delivery_inspection_manifest(workspace_cockpit),
-        "workspace_portable_supervisor_queue_dashboard": _manifest_portable_supervisor_queue_dashboard(
-            workspace_cockpit.get("portable_supervisor_queue_dashboard")
+        "workspace_opl_current_control_state_handoff_dashboard": _manifest_opl_current_control_state_handoff_dashboard(
+            workspace_cockpit.get("opl_current_control_state_handoff_dashboard")
         ),
         "workspace_ai_first_feedback_state": {
             "surface_kind": "workspace_ai_first_feedback_state",

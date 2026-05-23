@@ -10,7 +10,7 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 目标不是把 `study_runtime_router` 的每个内部 helper 都文档化，而是说明：
 
 - 哪些入口是正式依赖面
-- `progress_projection` / `ensure_study_runtime` 如何读取 MAS domain refs 并交给 OPL runtime-control owner
+- `progress_projection` / `request_opl_stage_attempt` 如何读取 MAS domain refs 并交给 OPL runtime-control owner
 - 哪些 typed surface 可以视为稳定机器接口
 - 哪些内容仍属于实现细节，不应被其他模块或 Agent 当成正式 contract
 
@@ -61,7 +61,7 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 当前历史实现曾分成八个层次；本 physical-retirement lane 只把它们作为 provenance、diagnostic reader 或 domain-authority refs 来源读取：
 
 - [`src/med_autoscience/controllers/study_runtime_router.py`](../../../src/med_autoscience/controllers/study_runtime_router.py)
-  - 作为 historical diagnostic reader，保留 `progress_projection(...)` / `ensure_study_runtime(...)` 的读取和 owner-route refs 投影语义
+  - 作为 historical diagnostic reader，保留 `progress_projection(...)` / `request_opl_stage_attempt(...)` 的读取和 owner-route refs 投影语义
   - 不再是 MAS 私有 provider、queue、attempt、resume/relaunch 或 lifecycle 控制面
 - [`src/med_autoscience/controllers/study_runtime_types.py`](../../../src/med_autoscience/controllers/study_runtime_types.py)
   - 负责 typed surface：decision / reason / quest status enums，status object，以及 execution outcome wrappers
@@ -162,7 +162,7 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 
 - `progress_projection(...)`
   - 只读，返回序列化后的 `ProgressProjectionStatus`，不得写 OPL runtime truth
-- `ensure_study_runtime(...)`
+- `request_opl_stage_attempt(...)`
   - 读状态、跑 MAS domain preflight，输出 controller authorization、owner-route handoff、owner receipt 或 typed blocker；不得直接执行 provider resume/relaunch、queue hydration、attempt retry 或 MAS 私有 lifecycle mutation
 
 两者都接受：
@@ -171,14 +171,14 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 - `study_id` 或 `study_root` 之一
 - 可选 `entry_mode`
 
-`ensure_study_runtime(...)` 额外接受：
+`request_opl_stage_attempt(...)` 额外接受：
 
 - `force`
 - `source`
 
 正式调用方应把这两个入口视为 MAS domain refs contract，而不是直接拼 transport payload、直接调用 managed runtime backend，或把历史 transport helper 当当前控制面。旧 `MedDeepScientist` runtime 只作为 frozen source archive、historical fixture、explicit archive import、backend audit 或 parity oracle reference 出现。
 
-2026-05-21 owner-route 边界补充：`ensure_study_runtime(...)` 仍是 MAS direct diagnostic / controller contract，但不能被新的 domain-route repair 当成 MAS 私有 provider resume、queue hydration、attempt retry 或 relaunch owner。stopped / failed / no-live / waiting-owner 这类通用运行恢复，现在由 MAS 写出 controller authorization、owner-route handoff、owner receipt 或 typed blocker，再交给 OPL runtime manager 承担 generic liveness、queue、attempt、retry/dead-letter 和 provider resume/relaunch；OPL dispatch 回 MAS 后，MAS 再执行 domain owner callable 或签收 blocker。
+2026-05-21 owner-route 边界补充：`request_opl_stage_attempt(...)` 仍是 MAS direct diagnostic / controller contract，但不能被新的 domain-route repair 当成 MAS 私有 provider resume、queue hydration、attempt retry 或 relaunch owner。stopped / failed / no-live / waiting-owner 这类通用运行恢复，现在由 MAS 写出 controller authorization、owner-route handoff、owner receipt 或 typed blocker，再交给 OPL runtime manager 承担 generic liveness、queue、attempt、retry/dead-letter 和 provider resume/relaunch；OPL dispatch 回 MAS 后，MAS 再执行 domain owner callable 或签收 blocker。
 
 ## 稳定 typed surface
 
@@ -464,12 +464,12 @@ workspace teardown 必须满足：
   - `failed` 终态按同一 terminal relaunch 边界处理
   - `progress_projection(...)` 必须返回 `BLOCKED`
   - reason 固定为 `quest_stopped_requires_explicit_rerun`
-  - `ensure_study_runtime(...)` 不得自动把 stopped quest 当成 resumable 状态
+  - `request_opl_stage_attempt(...)` 不得自动把 stopped quest 当成 resumable 状态
   - 只有显式 `allow_stopped_relaunch=true` 才允许把它改写为 `RELAUNCH_STOPPED`
 
 ## Preflight / Handoff Contract
 
-`ensure_study_runtime(...)` 在输出 owner-route handoff、owner receipt 或 typed blocker 前，会先跑 MAS domain preflight。
+`request_opl_stage_attempt(...)` 在输出 owner-route handoff、owner receipt 或 typed blocker 前，会先跑 MAS domain preflight。
 这条 preflight 链当前只证明 MAS domain refs 是否足够；它不授权 MAS 私有 transport mutation。
 
 当前最小稳定 preflight 规则：
@@ -483,7 +483,7 @@ workspace teardown 必须满足：
   - 对 live quest，如果 overlay audit 失败，会把 decision 改写为 `PAUSE`
 
 这意味着 `progress_projection(...)` 给出的 decision 只是 domain refs projection；
-`ensure_study_runtime(...)` 可以在 preflight 后把 decision 收窄成更保守的 owner-route handoff 或 typed blocker。
+`request_opl_stage_attempt(...)` 可以在 preflight 后把 decision 收窄成更保守的 owner-route handoff 或 typed blocker。
 
 ## Retired Execution Provenance
 
@@ -514,7 +514,7 @@ workspace teardown 必须满足：
 
 ## Artifact / Receipt Persistence Contract
 
-`ensure_study_runtime(...)` 在 domain preflight / handoff 结束后，只能写 MAS owner receipt、typed blocker、domain refs 或 diagnostic artifact；OPL runtime truth artifact 归 OPL current-control-state。
+`request_opl_stage_attempt(...)` 在 domain preflight / handoff 结束后，只能写 MAS owner receipt、typed blocker、domain refs 或 diagnostic artifact；OPL runtime truth artifact 归 OPL current-control-state。
 
 这一步属于稳定 contract，因为上层依赖这些 artifact 作为可审计真相，包括：
 

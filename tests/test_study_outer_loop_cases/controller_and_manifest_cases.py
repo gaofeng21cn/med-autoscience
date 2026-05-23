@@ -29,7 +29,6 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     charter_ref = _write_charter(study_root)
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
-    seen: dict[str, object] = {}
 
     monkeypatch.setattr(
         module.domain_status_projection,
@@ -42,17 +41,6 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "ensure_study_runtime",
-        lambda **kwargs: (
-            seen.setdefault("ensure_kwargs", kwargs),
-            {
-                "decision": "resume",
-                "reason": "quest_paused",
-            },
-        )[1],
-    )
 
     result = module.study_outer_loop_tick(
         profile=profile,
@@ -63,7 +51,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
         requires_human_confirmation=False,
         controller_actions=[
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -72,13 +60,6 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
         recorded_at="2026-04-05T06:00:00+00:00",
     )
 
-    assert seen["ensure_kwargs"] == {
-        "profile": profile,
-        "study_id": "001-risk",
-        "study_root": study_root,
-        "force": False,
-        "source": "test-source",
-    }
     assert result["study_id"] == "001-risk"
     assert result["quest_id"] == "quest-001"
     assert result["runtime_status"] == {
@@ -87,11 +68,12 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     }
     assert result["runtime_escalation_ref"] == runtime_escalation_ref
     assert result["controller_confirmation_summary_ref"] is None
-    assert result["executed_controller_action"]["action_type"] == "ensure_study_runtime"
-    assert result["executed_controller_action"]["result"] == {
-        "decision": "resume",
-        "reason": "quest_paused",
-    }
+    executed = result["executed_controller_action"]
+    assert executed["action_type"] == "request_opl_stage_attempt"
+    assert executed["result"]["status"] == "opl_stage_attempt_admission_required"
+    assert executed["result"]["runtime_owner"] == "one-person-lab"
+    assert executed["result"]["mas_executes_runtime_attempt"] is False
+    assert executed["result"]["typed_blocker"]["blocker_type"] == "opl_stage_attempt_admission_required"
 
     artifact_path = Path(result["study_decision_ref"]["artifact_path"])
     payload = json.loads(artifact_path.read_text(encoding="utf-8"))
@@ -102,7 +84,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     assert payload["decision_type"] == "continue_same_line"
     assert payload["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "request_opl_stage_attempt",
             "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
         }
     ]
@@ -143,22 +125,15 @@ def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_ru
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "execution": {
-                "engine": "opl-provider-backed-stage-runtime",
-                "runtime_backend_id": "opl_provider_backed_stage_runtime",
-                "runtime_engine_id": "opl-provider-backed-stage-runtime",
+                "engine": "opl-hosted-stage-runtime",
+                "opl_runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_engine_id": "opl-hosted-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
             "decision": "blocked",
             "reason": "startup_boundary_not_ready_for_resume",
-        },
-    )
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "ensure_study_runtime",
-        lambda **_: {
-            "decision": "resume",
-            "reason": "quest_paused",
         },
     )
 
@@ -172,7 +147,7 @@ def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_ru
             requires_human_confirmation=False,
             controller_actions=[
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 }
             ],
@@ -213,21 +188,14 @@ def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_c
             "quest_id": "quest-001",
             "quest_root": str(quest_root),
             "execution": {
-                "engine": "opl-provider-backed-stage-runtime",
-                "runtime_backend_id": "opl_provider_backed_stage_runtime",
-                "runtime_engine_id": "opl-provider-backed-stage-runtime",
+                "engine": "opl-hosted-stage-runtime",
+                "opl_runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_engine_id": "opl-hosted-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
             "runtime_event_ref": runtime_event_ref,
-        },
-    )
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "ensure_study_runtime",
-        lambda **_: {
-            "decision": "resume",
-            "reason": "quest_paused",
         },
     )
 
@@ -240,7 +208,7 @@ def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_c
         requires_human_confirmation=False,
         controller_actions=[
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -281,20 +249,13 @@ def test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_r
             "decision": "resume",
             "reason": "publication_quality_gap",
             "execution": {
-                "engine": "opl-provider-backed-stage-runtime",
-                "runtime_backend_id": "opl_provider_backed_stage_runtime",
-                "runtime_engine_id": "opl-provider-backed-stage-runtime",
+                "engine": "opl-hosted-stage-runtime",
+                "opl_runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_engine_id": "opl-hosted-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
-        },
-    )
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "ensure_study_runtime",
-        lambda **_: {
-            "decision": "resume",
-            "reason": "quest_paused",
         },
     )
 
@@ -307,7 +268,7 @@ def test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_r
         requires_human_confirmation=False,
         controller_actions=[
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -355,9 +316,10 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mi
             "quest_id": "quest-001",
             "quest_root": str(quest_root),
             "execution": {
-                "engine": "opl-provider-backed-stage-runtime",
-                "runtime_backend_id": "opl_provider_backed_stage_runtime",
-                "runtime_engine_id": "opl-provider-backed-stage-runtime",
+                "engine": "opl-hosted-stage-runtime",
+                "opl_runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_engine_id": "opl-hosted-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -376,7 +338,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mi
             requires_human_confirmation=False,
             controller_actions=[
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 }
             ],
@@ -418,9 +380,10 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_supervisor_tick_i
             "quest_id": "quest-001",
             "quest_root": str(quest_root),
             "execution": {
-                "engine": "opl-provider-backed-stage-runtime",
-                "runtime_backend_id": "opl_provider_backed_stage_runtime",
-                "runtime_engine_id": "opl-provider-backed-stage-runtime",
+                "engine": "opl-hosted-stage-runtime",
+                "opl_runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_ref": "opl_hosted_stage_runtime",
+                "runtime_engine_id": "opl-hosted-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -439,7 +402,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_supervisor_tick_i
             requires_human_confirmation=False,
             controller_actions=[
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 }
             ],
@@ -491,7 +454,7 @@ def test_study_outer_loop_tick_rejects_publication_eval_ref_outside_eval_owned_l
             requires_human_confirmation=False,
             controller_actions=[
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 }
             ],
@@ -520,7 +483,6 @@ def test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_l
     current_publication_eval_ref = _write_publication_eval(study_root, quest_root)
     stale_publication_eval_ref = dict(current_publication_eval_ref)
     stale_publication_eval_ref["eval_id"] = "publication-eval::001-risk::quest-001::stale"
-    seen: dict[str, object] = {}
 
     monkeypatch.setattr(
         module.domain_status_projection,
@@ -533,17 +495,6 @@ def test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_l
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "ensure_study_runtime",
-        lambda **kwargs: (
-            seen.setdefault("ensure_kwargs", kwargs),
-            {
-                "decision": "resume",
-                "reason": "quest_paused",
-            },
-        )[1],
-    )
 
     result = module.study_outer_loop_tick(
         profile=profile,
@@ -554,7 +505,7 @@ def test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_l
         requires_human_confirmation=False,
         controller_actions=[
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -565,7 +516,8 @@ def test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_l
 
     payload = json.loads(Path(result["study_decision_ref"]["artifact_path"]).read_text(encoding="utf-8"))
     assert payload["publication_eval_ref"] == current_publication_eval_ref
-    assert seen["ensure_kwargs"]["study_id"] == "001-risk"
+    assert result["executed_controller_action"]["action_type"] == "request_opl_stage_attempt"
+    assert result["executed_controller_action"]["result"]["typed_blocker"]["owner"] == "one-person-lab"
 def test_study_outer_loop_tick_fails_closed_when_runtime_escalation_artifact_mismatches_status_ref(
     monkeypatch,
     tmp_path: Path,
@@ -611,7 +563,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_escalation_artifact_mis
             requires_human_confirmation=False,
             controller_actions=[
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 }
             ],
@@ -768,11 +720,6 @@ def test_study_outer_loop_tick_rejects_human_gate_for_autonomous_scientific_deci
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "ensure_study_runtime",
-        lambda **kwargs: pytest.fail("ordinary scientific decisions must stay autonomous"),
-    )
 
     with pytest.raises(ValueError, match="major direction pivots"):
         module.study_outer_loop_tick(
@@ -784,7 +731,7 @@ def test_study_outer_loop_tick_rejects_human_gate_for_autonomous_scientific_deci
             requires_human_confirmation=True,
             controller_actions=[
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 }
             ],

@@ -10,7 +10,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
 from .. import study_domain_transition_table
-from ..domain_slo_scheduler_projection_parts import consumer_migration
+from ..opl_unique_control_plane_boundary_parts import consumer_migration
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
 from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
@@ -158,14 +158,14 @@ def export_family_sidecar(
         "mas_functional_closure_status_projection": (
             functional_closure["functional_closure_status_projection"]
         ),
-        "family_runtime_supervision": {
-            "surface_kind": "family_runtime_supervision",
-            "version": "family-runtime-supervision.v1",
+        "family_opl_current_control_state_handoff": {
+            "surface_kind": "family_opl_current_control_state_handoff",
+            "version": "family-opl-current-control-state-handoff.v1",
             "target_domain_id": "medautoscience",
-            "supervision_id": f"{profile.name}_mas_family_runtime_supervision",
+            "handoff_id": f"{profile.name}_mas_family_opl_current_control_state_handoff",
             "adapter_id": "opl_family_runtime_provider_wakeup_to_mas_sidecar",
             "cadence": {"interval_seconds": 60},
-            "lease_freshness": {"state": "unknown", "observed_at": generated_at, "max_age_seconds": 180},
+            "current_control_state_freshness": {"state": "unknown", "observed_at": generated_at, "max_age_seconds": 180},
             "slo_state": {
                 "state": _aggregate_slo_state(studies),
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",

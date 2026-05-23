@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .human_gates import *  # noqa: F403
 

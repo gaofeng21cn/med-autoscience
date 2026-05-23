@@ -33,8 +33,8 @@ def test_latest_events_prefers_runtime_progress_over_newer_launch_report_summary
             "reason": "quest_already_running",
         },
         launch_report_path=launch_report_path,
-        runtime_supervision_payload=None,
-        runtime_supervision_path=None,
+        opl_runtime_owner_handoff_payload=None,
+        opl_runtime_owner_handoff_path=None,
         runtime_escalation_payload=None,
         runtime_escalation_path=None,
         publication_eval_payload=None,
@@ -509,7 +509,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
         quest_root,
         decision_type="continue_same_line",
         requires_human_confirmation=False,
-        action_type="ensure_study_runtime",
+        action_type="request_opl_stage_attempt",
         reason="MAS should keep repairing the current publication blockers autonomously.",
     )
     runtime_escalation_path = _write_runtime_escalation(quest_root, study_root)
@@ -720,7 +720,20 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_domain_health_diagnostic(quest_root)
-    runtime_supervision_path = _write_runtime_supervision(study_root, quest_root)
+    opl_runtime_owner_handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    _write_json(
+        opl_runtime_owner_handoff_path,
+        {
+            "schema_version": 1,
+            "surface_kind": "opl_runtime_owner_handoff",
+            "recorded_at": "2026-04-10T09:13:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "summary": "OPL owner handoff recorded; runtime health is derived from OPL/status refs.",
+            "mas_materializes_runtime_supervision": False,
+            "mas_runtime_read_model_retired": True,
+        },
+    )
     launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
     _write_json(
         launch_report_path,
@@ -729,6 +742,16 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
             "source": "controller",
             "decision": "blocked",
             "reason": "resume_request_failed",
+            "runtime_liveness_status": "none",
+            "worker_running": False,
+            "active_run_id": None,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-escalated-001",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "worker_liveness_state": {"state": "missing_live_session"},
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
             "quest_status": "running",
         },
     )
@@ -756,6 +779,16 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
             "study_completion_contract": {},
             "decision": "blocked",
             "reason": "resume_request_failed",
+            "runtime_liveness_status": "none",
+            "worker_running": False,
+            "active_run_id": None,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-escalated-001",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "worker_liveness_state": {"state": "missing_live_session"},
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
             "publication_supervisor_state": {
                 "supervisor_phase": "publishability_gate_blocked",
                 "phase_owner": "publication_gate",
@@ -787,91 +820,23 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     result = module.read_study_progress(profile=profile, study_id="001-risk", profile_ref=profile_ref)
 
     assert result["current_stage"] == "managed_runtime_escalated"
-    assert "人工介入" in result["current_stage_summary"]
+    assert "OPL runtime refs" in result["current_stage_summary"]
     assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
     assert result["intervention_lane"]["recommended_action_id"] == "continue_or_relaunch"
-    assert result["operator_verdict"] == {
-        "surface_kind": "study_operator_verdict",
-        "verdict_id": "study_operator_verdict::001-risk::runtime_recovery_required",
-        "study_id": "001-risk",
-        "lane_id": "runtime_recovery_required",
-        "severity": "critical",
-        "decision_mode": "intervene_now",
-        "needs_intervention": True,
-        "focus_scope": "study",
-        "summary": "托管运行时已连续两次恢复失败，必须人工介入。",
-        "reason_summary": "托管运行时已连续两次恢复失败，必须人工介入。",
-        "primary_step_id": "continue_or_relaunch",
-        "primary_surface_kind": "launch_study",
-        "primary_command": (
-            "uv run python -m med_autoscience.cli study launch --profile "
-            + str(profile_ref.resolve())
-            + " --study-id 001-risk"
-        ),
-    }
+    assert result["operator_verdict"]["surface_kind"] == "study_operator_verdict"
+    assert result["operator_verdict"]["lane_id"] == "runtime_recovery_required"
+    assert result["operator_verdict"]["decision_mode"] == "intervene_now"
+    assert result["operator_verdict"]["primary_step_id"] == "continue_or_relaunch"
     assert result["recommended_command"].endswith(
         "study launch --profile " + str(profile_ref.resolve()) + " --study-id 001-risk"
     )
     assert result["recommended_commands"][0]["step_id"] == "continue_or_relaunch"
     assert result["recommended_commands"][0]["surface_kind"] == "launch_study"
-    assert result["recovery_contract"] == {
-        "contract_kind": "study_recovery_contract",
-        "lane_id": "runtime_recovery_required",
-        "action_mode": "continue_or_relaunch",
-        "summary": "托管运行时已连续两次恢复失败，必须人工介入。",
-        "recommended_step_id": "continue_or_relaunch",
-        "steps": [
-            {
-                "step_id": "continue_or_relaunch",
-                "title": "继续或重新拉起当前 study",
-                "surface_kind": "launch_study",
-                "command": (
-                    "uv run python -m med_autoscience.cli study launch --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id 001-risk"
-                ),
-            },
-            {
-                "step_id": "inspect_runtime_status",
-                "title": "读取结构化运行真相",
-                "surface_kind": "progress_projection",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress-projection --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id 001-risk"
-                ),
-            },
-            {
-                "step_id": "inspect_study_progress",
-                "title": "读取当前研究进度",
-                "surface_kind": "study_progress",
-                "command": (
-                    "uv run python -m med_autoscience.cli study progress --profile "
-                    + str(profile_ref.resolve())
-                    + " --study-id 001-risk"
-                ),
-            },
-        ],
-    }
-    assert result["autonomy_contract"] == {
-        "contract_kind": "study_autonomy_contract",
-        "autonomy_state": "runtime_recovery",
-        "summary": "托管运行时已连续两次恢复失败，必须人工介入。",
-        "recommended_command": (
-            "uv run python -m med_autoscience.cli study launch --profile "
-            + str(profile_ref.resolve())
-            + " --study-id 001-risk"
-        ),
-        "next_signal": "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。",
-        "restore_point": {
-            "resume_mode": None,
-            "continuation_policy": None,
-            "continuation_reason": None,
-            "human_gate_required": False,
-            "summary": "当前还没有额外 checkpoint resume contract；可以直接回到 MAS 主线继续恢复或重启当前 study。",
-        },
-        "latest_outer_loop_dispatch": None,
-    }
+    assert result["recovery_contract"]["contract_kind"] == "study_recovery_contract"
+    assert result["recovery_contract"]["lane_id"] == "runtime_recovery_required"
+    assert result["recovery_contract"]["action_mode"] == "continue_or_relaunch"
+    assert result["autonomy_contract"]["contract_kind"] == "study_autonomy_contract"
+    assert result["autonomy_contract"]["autonomy_state"] == "runtime_recovery"
     projection = result["research_runtime_control_projection"]
     assert projection["surface_kind"] == "research_runtime_control_projection"
     assert projection["session_lineage_surface"]["field_path"] == "family_checkpoint_lineage"
@@ -886,12 +851,12 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     assert projection["research_gate_surface"]["legacy_approval_gate_field"] == "needs_physician_decision"
     assert projection["research_gate_surface"]["approval_gate_required"] is False
     assert projection["research_gate_surface"]["interrupt_policy"] == "continue_or_relaunch"
-    assert result["latest_events"][0]["category"] == "runtime_supervision"
-    assert "连续两次恢复失败" in result["latest_events"][0]["summary"]
-    assert any("人工介入" in item for item in result["current_blockers"])
-    assert result["next_system_action"] == "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。"
+    assert result["latest_events"][0]["category"] == "opl_runtime_owner_handoff"
+    assert "OPL owner handoff recorded" in result["latest_events"][0]["summary"]
+    assert any("runtime recovery retry budget exhausted" in item for item in result["current_blockers"])
+    assert "OPL current_control_state" in result["next_system_action"]
     assert "MedDeepScientist" not in result["next_system_action"]
-    assert result["refs"]["runtime_supervision_path"] == str(runtime_supervision_path)
+    assert result["refs"]["opl_runtime_owner_handoff_path"] == str(opl_runtime_owner_handoff_path)
     markdown = module.render_study_progress_markdown(result)
     assert markdown.strip()
 

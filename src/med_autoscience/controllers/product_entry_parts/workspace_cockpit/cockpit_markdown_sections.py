@@ -18,8 +18,8 @@ from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_m
 from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_queue import (
     append_attention_queue,
     append_commands,
+    append_opl_current_control_state_handoff_dashboard,
     append_phase2_user_loop,
-    append_portable_supervisor_queue_dashboard,
     append_user_loop,
     append_workspace_alerts,
 )
@@ -37,8 +37,8 @@ __all__ = [
     "append_medical_paper_readiness_state",
     "append_medical_paper_research_loop_state",
     "append_medical_paper_v4_operations_state",
+    "append_opl_current_control_state_handoff_dashboard",
     "append_phase2_user_loop",
-    "append_portable_supervisor_queue_dashboard",
     "append_studies",
     "append_user_loop",
     "append_workspace_alerts",

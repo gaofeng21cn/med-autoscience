@@ -4,7 +4,7 @@ import importlib
 from pathlib import Path
 
 
-def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_path: Path) -> None:
+def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "legacy-workspace"
 
@@ -17,6 +17,8 @@ def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_
 
     shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
+    progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
+    domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
 
     shared.write_text(
@@ -79,24 +81,30 @@ def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_
     )
 
     assert str(shared) in result["upgraded_files"]
-    assert str(watch_runtime) in result["upgraded_files"]
+    assert str(watch_runtime) in result["removed_files"]
     assert str(install_service) in result["removed_files"]
+    assert not watch_runtime.exists()
     assert not install_service.exists()
+    assert progress_projection.is_file()
+    assert domain_health_diagnostic.is_file()
 
     shared_text = shared.read_text(encoding="utf-8")
-    watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
+    progress_projection_text = progress_projection.read_text(encoding="utf-8")
+    domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
     assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"' in shared_text
     assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in shared_text
     assert "command -v uv" not in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
-    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in watch_runtime_text
-    assert 'run_medautosci runtime domain-health-diagnostic \\' in watch_runtime_text
-    assert '--ensure-supervisions' not in watch_runtime_text
-    assert '--request-opl-owner-route-reconcile' in watch_runtime_text
-    assert '--apply' in watch_runtime_text
-    assert '--loop' not in watch_runtime_text
+    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in progress_projection_text
+    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
+    assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
+    assert '--request-opl-stage-attempts' not in domain_health_diagnostic_text
+    assert '--request-opl-owner-route-reconcile' not in domain_health_diagnostic_text
+    assert '--apply' not in domain_health_diagnostic_text
+    assert '--loop' not in domain_health_diagnostic_text
 
-def test_init_workspace_upgrades_flat_watch_runtime_entry_even_when_current_flags_are_present(tmp_path: Path) -> None:
+
+def test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags_are_present(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "legacy-watch-runtime"
 
@@ -108,6 +116,7 @@ def test_init_workspace_upgrades_flat_watch_runtime_entry_even_when_current_flag
     )
 
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
+    domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     watch_runtime.write_text(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
@@ -130,11 +139,13 @@ def test_init_workspace_upgrades_flat_watch_runtime_entry_even_when_current_flag
         force=False,
     )
 
-    assert str(watch_runtime) in result["upgraded_files"]
-    watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
-    assert 'run_medautosci runtime domain-health-diagnostic \\' in watch_runtime_text
-    assert '--request-opl-owner-route-reconcile' in watch_runtime_text
-    assert '--loop' not in watch_runtime_text
+    assert str(watch_runtime) in result["removed_files"]
+    assert not watch_runtime.exists()
+    assert domain_health_diagnostic.is_file()
+    domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
+    assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
+    assert '--request-opl-owner-route-reconcile' not in domain_health_diagnostic_text
+    assert '--loop' not in domain_health_diagnostic_text
 
 
 def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp_path: Path) -> None:
@@ -152,6 +163,7 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
     study_runtime_status = workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status"
+    progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
     publication_gate = workspace_root / "ops" / "medautoscience" / "bin" / "publication-gate"
     resolve_submission_targets = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-submission-targets"
     init_portfolio_memory = workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory"
@@ -244,8 +256,6 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
     for path in (
         bootstrap,
         show_profile,
-        enter_study,
-        study_runtime_status,
         publication_gate,
         resolve_submission_targets,
         init_portfolio_memory,
@@ -253,13 +263,16 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
         sync_delivery,
     ):
         assert str(path) in result["upgraded_files"]
+    assert str(study_runtime_status) in result["removed_files"]
+    assert not study_runtime_status.exists()
+    assert progress_projection.is_file()
 
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap.read_text(encoding="utf-8")
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile.read_text(encoding="utf-8")
-    assert 'run_medautosci study ensure-runtime --profile "${PROFILE_PATH}" "$@"' in enter_study.read_text(encoding="utf-8")
-    study_runtime_status_text = study_runtime_status.read_text(encoding="utf-8")
-    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in study_runtime_status_text
-    assert '--study-id "${study_id}"' in study_runtime_status_text
+    assert 'run_medautosci launch-study --profile "${PROFILE_PATH}" "$@"' in enter_study.read_text(encoding="utf-8")
+    progress_projection_text = progress_projection.read_text(encoding="utf-8")
+    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in progress_projection_text
+    assert '--study-id "${study_id}"' in progress_projection_text
     assert 'run_medautosci publication gate "$@"' in publication_gate.read_text(encoding="utf-8")
     resolve_targets_text = resolve_submission_targets.read_text(encoding="utf-8")
     assert 'run_medautosci publication resolve-targets "${args[@]}"' in resolve_targets_text

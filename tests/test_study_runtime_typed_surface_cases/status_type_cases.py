@@ -68,7 +68,7 @@ def test_domain_status_projection_reexports_typed_surface_from_study_runtime_typ
     assert not hasattr(router, "StudyRuntimeDaemonStep")
     assert not hasattr(router, "StudyRuntimeExecutionContext")
     assert not hasattr(router, "StudyRuntimeExecutionOutcome")
-    assert not hasattr(router, "ensure_study_runtime")
+    assert not hasattr(router, "request_opl_stage_attempt")
 def test_study_runtime_types_excludes_retired_execution_aggregate() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_module = importlib.import_module("med_autoscience.controllers.progress_projection")
@@ -98,7 +98,7 @@ def test_opl_runtime_owner_handoff_materialization_is_required_for_recovering_ta
                 "status": "handoff_required",
                 "runtime_owner": "one-person-lab",
                 "domain_owner": "med-autoscience",
-                "mas_materializes_opl_runtime_owner_handoff": False,
+                "mas_materializes_runtime_supervision": False,
                 "mas_runtime_read_model_retired": True,
                 "provider_completion_is_domain_completion": False,
                 "queue_succeeded_is_domain_completion": False,
@@ -146,7 +146,7 @@ def test_opl_runtime_owner_handoff_materialization_uses_runtime_health_recovery_
                 "status": "handoff_required",
                 "runtime_owner": "one-person-lab",
                 "domain_owner": "med-autoscience",
-                "mas_materializes_opl_runtime_owner_handoff": False,
+                "mas_materializes_runtime_supervision": False,
                 "mas_runtime_read_model_retired": True,
                 "provider_completion_is_domain_completion": False,
                 "queue_succeeded_is_domain_completion": False,

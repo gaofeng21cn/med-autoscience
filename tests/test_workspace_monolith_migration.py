@@ -222,7 +222,7 @@ def test_workspace_monolith_migration_dry_run_discovers_dynamic_studies_and_lega
     assert report["target_topology"]["runtime_home"] == str(workspace_root / "runtime")
     assert report["target_topology"]["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
     assert {item["study_id"] for item in report["migrated"]} == {"010-alpha-dynamic"}
-    assert report["migrated"][0]["reason"] == "legacy_binding_to_mas_runtime_os"
+    assert report["migrated"][0]["reason"] == "legacy_binding_to_opl_provider_stage_runtime_and_mas_domain_refs"
     assert report["migrated"][0]["old_quest_root"].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
     )
@@ -274,9 +274,9 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert alpha_binding["runtime_home"] == str(workspace_root / "runtime")
     assert alpha_binding["runtime_root"] == str(workspace_root / "runtime" / "quests")
     assert alpha_binding["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
-    assert alpha_binding["runtime_backend_id"] == "opl_provider_backed_stage_runtime"
-    assert alpha_binding["runtime_backend"] == "opl_provider_backed_stage_runtime"
-    assert alpha_binding["runtime_engine_id"] == "opl-provider-backed-stage-runtime"
+    assert alpha_binding["runtime_backend_id"] == "med_deepscientist"
+    assert alpha_binding["runtime_backend"] == "med_deepscientist"
+    assert alpha_binding["runtime_engine_id"] == "opl-hosted-stage-runtime"
     assert alpha_binding["research_backend_id"] == "mas_domain_intent_adapter"
     assert alpha_binding["research_backend"] == "mas_domain_intent_adapter"
     assert alpha_binding["research_engine_id"] == "mas-domain-intent-adapter"
@@ -289,7 +289,12 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert alpha_binding["historical_fixture_ref"]["old_runtime_root"].endswith("ops/med-deepscientist/runtime")
     migrated_quest_root = workspace_root / "runtime" / "quests" / "quest-alpha-dynamic"
     migrated_quest = yaml.safe_load((migrated_quest_root / "quest.yaml").read_text(encoding="utf-8"))
-    migrated_runtime_state = json.loads((migrated_quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    migrated_runtime_handoff = json.loads(
+        (migrated_quest_root / "artifacts" / "runtime" / "opl_runtime_state_migration_handoff.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert not (migrated_quest_root / ".ds" / "runtime_state.json").exists()
     assert migrated_quest["quest_id"] == "quest-alpha-dynamic"
     assert migrated_quest["study_id"] == "010-alpha-dynamic"
     assert migrated_quest["quest_root"] == str(migrated_quest_root)
@@ -315,11 +320,15 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     ].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic/baselines/imported/baseline-001/json/metric_contract.json"
     )
-    assert migrated_runtime_state["status"] == "completed"
-    assert migrated_runtime_state["active_run_id"] is None
-    assert migrated_runtime_state["worker_running"] is False
-    assert migrated_runtime_state["historical_fixture_ref"]["read_only"] is True
-    assert migrated_runtime_state["historical_fixture_ref"]["old_quest_root"].endswith(
+    assert migrated_runtime_handoff["surface_kind"] == "opl_runtime_state_migration_handoff"
+    assert migrated_runtime_handoff["effect"] == "refs_only"
+    assert migrated_runtime_handoff["queue_owner"] == "one-person-lab"
+    assert migrated_runtime_handoff["mas_writes_runtime_state"] is False
+    assert migrated_runtime_handoff["status"] == "completed"
+    assert migrated_runtime_handoff["active_run_id"] is None
+    assert migrated_runtime_handoff["worker_running"] is False
+    assert migrated_runtime_handoff["historical_fixture_ref"]["read_only"] is True
+    assert migrated_runtime_handoff["historical_fixture_ref"]["old_quest_root"].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
     )
     mas_bin_root = workspace_root / "ops" / "mas" / "bin"

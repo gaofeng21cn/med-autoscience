@@ -13,7 +13,7 @@ def test_control_intent_lifecycle_is_run_scoped_for_live_delivery(tmp_path: Path
         route_target="analysis-campaign",
         work_unit_id="analysis_claim_evidence_repair",
         blocker_authority_fingerprint="publication-blockers::cf23017195411212",
-        controller_actions=("ensure_study_runtime",),
+        controller_actions=("request_opl_stage_attempt",),
         source_kind="controller_decision_authorization",
     )
     module.append_event(

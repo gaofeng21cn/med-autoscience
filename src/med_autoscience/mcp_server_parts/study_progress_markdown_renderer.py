@@ -9,7 +9,7 @@ from med_autoscience.controllers.medical_paper_v3_action_truth import (
 )
 from med_autoscience.controllers.medical_paper_research_loop import research_loop_markdown_lines
 from med_autoscience.mcp_server_parts.open_auto_research_projection import render_mcp_open_auto_research_soak_markdown
-from med_autoscience.mcp_server_parts.portable_supervisor_projection import render_mcp_progress_portable_supervisor_dashboard
+from med_autoscience.mcp_server_parts.opl_current_control_state_handoff_projection import render_mcp_progress_opl_current_control_state_handoff
 from med_autoscience.mcp_server_parts.study_progress_markdown_sections import render_mcp_progress_stage
 
 
@@ -310,7 +310,7 @@ def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
         "launch_report_path",
         "publication_eval_path",
         "controller_decision_path",
-        "runtime_supervision_path",
+        "opl_runtime_owner_handoff_path",
         "domain_health_diagnostic_report_path",
         "evaluation_summary_path",
     ):
@@ -318,4 +318,3 @@ def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
         if value:
             lines.append(f"- {key}: `{value}`")
     return lines
-

@@ -523,7 +523,7 @@ def test_user_visible_projection_projects_supervisor_only_live_quality_repair_ow
             },
             "execution_owner_guard": {"supervisor_only": True},
             "publication_supervisor_state": {"bundle_tasks_downstream_only": True},
-            "portable_supervisor_dashboard": {
+            "opl_current_control_state_handoff": {
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": False,
             },
@@ -573,7 +573,7 @@ def test_user_visible_projection_does_not_call_runtime_health_recovery_actual_wr
                     "same_fingerprint_loop",
                 ],
             },
-            "portable_supervisor_dashboard": {
+            "opl_current_control_state_handoff": {
                 "artifact_delta": {
                     "status": "not_observed",
                     "summary": "No meaningful artifact delta observed by supervisor scan.",

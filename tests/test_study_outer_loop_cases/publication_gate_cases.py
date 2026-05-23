@@ -484,7 +484,7 @@ def test_build_domain_health_diagnostic_outer_loop_tick_request_routes_active_wr
     assert request["route_target"] == "write"
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "request_opl_stage_attempt",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
@@ -870,7 +870,7 @@ def test_build_domain_health_diagnostic_outer_loop_tick_request_prefers_quality_
     assert request["reason"] == "发起下一轮 MAS quality re-review，确认当前 blocking issues 是否已真正闭环。"
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime_relaunch_stopped",
+            "action_type": "request_opl_stage_attempt_relaunch",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]

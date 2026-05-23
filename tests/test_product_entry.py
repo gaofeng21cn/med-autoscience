@@ -9,7 +9,7 @@ from tests.product_entry_cases.product_entry_preflight_and_task_submission impor
 from tests.product_entry_cases.product_entry_markdown_and_skill_catalog import *
 from tests.product_entry_cases.paper_orchestra_operator_projection import *
 from tests.product_entry_cases.open_auto_research_projection import *
-from tests.product_entry_cases.portable_supervisor_dashboard_projection import *
+from tests.product_entry_cases.opl_current_control_state_handoff_projection import *
 from tests.product_entry_cases.delivery_inspection_visibility import *
 from tests.product_entry_cases.action_catalog_parity import *
 from tests.product_entry_cases.functional_consumer_boundary import *

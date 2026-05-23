@@ -73,7 +73,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
     assert profile.hermes_agent_repo_root == Path("/Users/gaofeng/workspace/_external/hermes-agent")
     assert profile.hermes_home_root == Path.home() / ".hermes"
-    assert profile.managed_runtime_backend_id == "opl_provider_backed_stage_runtime"
+    assert profile.opl_runtime_ref == "opl_hosted_stage_runtime"
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
     assert profile.enable_medical_overlay is True
@@ -148,7 +148,7 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.med_deepscientist_repo_root is None
     assert profile.hermes_agent_repo_root is None
     assert profile.hermes_home_root == Path.home() / ".hermes"
-    assert profile.managed_runtime_backend_id == "opl_provider_backed_stage_runtime"
+    assert profile.opl_runtime_ref == "opl_hosted_stage_runtime"
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "workspace"
     assert profile.medical_overlay_skills == (
@@ -266,21 +266,21 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     }
     assert contract["hermes_agent_repo_root"] == str(profile.hermes_agent_repo_root)
     assert contract["hermes_home_root"] == str(profile.hermes_home_root)
-    assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
-    assert contract["runtime_backend_contract"] == {
+    assert contract["opl_runtime_ref"] == profile.opl_runtime_ref
+    assert contract["opl_runtime_contract"] == {
         "runtime_owner": "one-person-lab",
-        "runtime_substrate": "opl_provider_backed_stage_runtime",
-        "runtime_backend_id": "opl_provider_backed_stage_runtime",
-        "runtime_engine_id": "opl-provider-backed-stage-runtime",
+        "runtime_substrate": "opl_hosted_stage_runtime",
+        "runtime_ref": "opl_hosted_stage_runtime",
+        "runtime_engine_id": "opl-hosted-stage-runtime",
         "runtime_backend_role": "mas_domain_owner_receipt_adapter",
         "runtime_backend_is_generic_owner": False,
         "default_autonomous_runtime": {
             "enabled_by_default": True,
             "hosted_runtime_owner": "one-person-lab",
             "hosted_runtime_provider": "temporal",
-            "runtime_substrate": "opl_provider_backed_stage_runtime",
+            "runtime_substrate": "opl_hosted_stage_runtime",
             "persistent_online_control_plane": "opl_temporal",
-            "task_start_handoff": "mas_sidecar_or_domain_entry_to_opl_temporal_attempt",
+            "task_start_handoff": "mas_domain_intent_to_opl_stage_attempt",
             "wakeup_retry_resume_owner": "one-person-lab",
             "codex_app_outer_driver_required": False,
             "mas_daemon_scheduler_attempt_loop_allowed": False,
@@ -291,7 +291,7 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
         "domain_runtime_adapter_id": "mas_domain_intent_adapter",
         "domain_runtime_adapter_role": "mas_domain_owner_receipt_adapter",
         "generic_runtime_owner": "one-person-lab",
-        "generic_runtime_substrate": "opl_provider_backed_stage_runtime",
+        "generic_runtime_substrate": "opl_hosted_stage_runtime",
         "domain_truth_owner": "med-autoscience",
         "domain_authority_retained": [
             "study_truth",
@@ -300,6 +300,15 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
             "memory_accept_reject_receipt",
             "owner_receipt",
             "typed_blocker",
+        ],
+        "mas_runtime_backend_registry_retired": True,
+        "provider_attempt_owner": "one-person-lab",
+        "provider_completion_is_domain_completion": False,
+        "domain_progression_requires": [
+            "mas_owner_receipt",
+            "mas_typed_blocker",
+            "ai_reviewer_backed_verdict",
+            "publication_gate_receipt",
         ],
         "runtime_backend_retirement_gate": {
             "no_active_default_caller_required": True,
@@ -635,7 +644,7 @@ def test_load_profile_rejects_med_deepscientist_as_default_managed_backend(tmp_p
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
                 'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
-                'managed_runtime_backend_id = "med_deepscientist"',
+                'opl_runtime_ref = "med_deepscientist"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
             ]

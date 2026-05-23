@@ -117,7 +117,7 @@ PROGRAM_BOUNDARIES = (
     {
         "boundary_id": "opl_stage_runtime_handoff",
         "owner": "OPL",
-        "path_markers": ("runtime_transport/opl_provider_backed_stage_runtime", "runtime_transport/"),
+        "path_markers": ("opl_runtime_contract", "runtime_protocol/study_runtime"),
         "recommended_split_direction": (
             "Keep MAS-side code limited to refs-only DomainIntent handoff, typed blocker projection, "
             "and terminal attach gate calls; queue, attempt, retry, worker residency, and lifecycle control stay with OPL."

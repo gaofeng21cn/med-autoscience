@@ -130,7 +130,7 @@ def test_build_domain_health_diagnostic_outer_loop_tick_request_routes_quality_r
             "route_key_question": "Which claim-evidence repair is still blocking publishability?",
             "route_rationale": "The paper needs bounded analysis repair.",
             "requires_controller_decision": True,
-            "controller_action_type": "ensure_study_runtime",
+            "controller_action_type": "request_opl_stage_attempt",
             "next_work_unit": {
                 "unit_id": "analysis_claim_evidence_repair",
                 "lane": "analysis-campaign",

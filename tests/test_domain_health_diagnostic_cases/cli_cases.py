@@ -8,129 +8,10 @@ globals().update({
     if not name.startswith('__')
 })
 
-def test_watch_runtime_sends_recovery_resolution_after_previous_manual_intervention_alert(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
+def test_watch_runtime_alert_delivery_backend_contract_is_not_exposed() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    helpers = importlib.import_module("tests.study_runtime_test_helpers")
-    profile = helpers.make_profile(tmp_path)
-    study_root = profile.studies_root / "001-risk"
-    study_root.mkdir(parents=True, exist_ok=True)
-    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
-    quest_root = profile.runtime_root / "001-risk"
-    interactions: list[dict[str, object]] = []
-
-    previous_alert_path = study_root / "artifacts" / "runtime" / "runtime_alert_delivery" / "latest.json"
-    dump_json(
-        previous_alert_path,
-        {
-            "schema_version": 1,
-            "delivered_at": "2026-04-18T00:50:00+00:00",
-            "study_id": "001-risk",
-            "quest_id": "001-risk",
-            "health_status": "escalated",
-            "notification_state": "manual_intervention_required",
-            "delivery_status": "delivered",
-            "alert_fingerprint": "prior-alert",
-        },
-    )
-
-    live_status = {
-        "schema_version": 1,
-        "study_id": "001-risk",
-        "study_root": str(study_root),
-        "entry_mode": "full_research",
-        "execution": {
-            "engine": "hermes",
-            "runtime_backend_id": "hermes",
-            "auto_entry": "on_managed_research_intent",
-            "quest_id": "001-risk",
-            "auto_resume": True,
-        },
-        "quest_id": "001-risk",
-        "quest_root": str(quest_root),
-        "quest_exists": True,
-        "quest_status": "running",
-        "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-        "runtime_binding_exists": True,
-        "study_completion_contract": {},
-        "decision": "noop",
-        "reason": "quest_already_running",
-        "runtime_liveness_audit": {
-            "status": "live",
-            "active_run_id": "run-live",
-            "runtime_audit": {
-                "status": "live",
-                "active_run_id": "run-live",
-                "worker_running": True,
-                "worker_pending": False,
-                "stop_requested": False,
-            },
-        },
-        "autonomous_runtime_notice": {
-            "active_run_id": "run-live",
-        },
-        "execution_owner_guard": {
-            "active_run_id": "run-live",
-        },
-    }
-
-    class FakeBackend:
-        BACKEND_ID = "med_deepscientist"
-
-        def artifact_interact(self, *, runtime_root: Path, quest_id: str, payload: dict[str, object]) -> dict[str, object]:
-            interactions.append(
-                {
-                    "runtime_root": str(runtime_root),
-                    "quest_id": quest_id,
-                    "payload": dict(payload),
-                }
-            )
-            return {"status": "ok", "interaction_id": "interaction-recovered"}
-
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "progress_projection",
-        lambda *, profile, study_root: live_status,
-    )
-    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
-    monkeypatch.setattr(
-        module.runtime_backend_contract,
-        "resolve_managed_runtime_backend",
-        lambda execution: FakeBackend(),
-    )
-    monkeypatch.setattr(
-        module.runtime_backend_contract,
-        "controlled_research_backend_metadata_for_backend_id",
-        lambda backend_id: ("med_deepscientist", "med-deepscientist"),
-    )
-    monkeypatch.setattr(
-        module.runtime_backend_contract,
-        "get_managed_runtime_backend",
-        lambda backend_id: FakeBackend(),
-    )
-
-    result = module.run_domain_health_diagnostic_for_runtime(
-        runtime_root=profile.runtime_root,
-        controller_runners={},
-        apply=True,
-        profile=profile,
-        request_opl_stage_attempts=True,
-    )
-
-    latest_alert = json.loads(previous_alert_path.read_text(encoding="utf-8"))
-
-    handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
-    assert handoff["status"] == "handoff_required"
-    assert handoff["runtime_owner"] == "one-person-lab"
-    assert handoff["mas_runtime_read_model_retired"] is True
-    assert handoff["typed_blocker"]["owner"] == "one-person-lab"
-    assert len(interactions) == 1
-    assert interactions[0]["payload"]["kind"] == "milestone"
-    assert "已恢复在线" in str(interactions[0]["payload"]["message"])
-    assert latest_alert["notification_state"] == "recovered"
-    assert latest_alert["delivery_status"] == "delivered"
+    assert not hasattr(module, "runtime_backend_contract")
+    assert not hasattr(module, "deliver_alert")
 def test_suppresses_duplicate_data_asset_gate_blocker(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     quest_root = make_quest(tmp_path, "q001", status="running")
@@ -235,56 +116,9 @@ def test_domain_health_diagnostic_no_longer_exports_repo_local_loop() -> None:
 
     assert not hasattr(module, "run_watch_loop")
     assert not hasattr(module, "run_managed_supervisor_loop")
-def test_run_managed_supervisor_tick_uses_profile_runtime_root_and_always_enables_study_runtime_ensure(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
+
+
+def test_domain_health_diagnostic_no_longer_exports_managed_supervisor_tick_alias() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    profiles = importlib.import_module("med_autoscience.profiles")
-    profile = profiles.WorkspaceProfile(
-        name="glioma",
-        workspace_root=tmp_path / "workspace",
-        runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests",
-        studies_root=tmp_path / "workspace" / "studies",
-        portfolio_root=tmp_path / "workspace" / "portfolio",
-        med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
-        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
-        default_publication_profile="general_medical_journal",
-        default_citation_style="AMA",
-        enable_medical_overlay=True,
-        medical_overlay_scope="workspace",
-        medical_overlay_skills=("intake-audit", "baseline"),
-        research_route_bias_policy="high_plasticity_medical",
-        preferred_study_archetypes=("clinical_classifier",),
-        default_submission_targets=(),
-    )
-    called: dict[str, object] = {}
 
-    def fake_run_domain_health_diagnostic_for_runtime(
-        *,
-        runtime_root: Path,
-        controller_runners=None,
-        apply: bool,
-        profile,
-        request_opl_stage_attempts: bool = False,
-        request_opl_owner_route_reconcile: bool = False,
-    ) -> dict[str, object]:
-        called["runtime_root"] = runtime_root
-        called["apply"] = apply
-        called["profile"] = profile
-        called["request_opl_stage_attempts"] = request_opl_stage_attempts
-        called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
-        return {"mode": "managed_supervisor_tick"}
-
-    monkeypatch.setattr(module, "run_domain_health_diagnostic_for_runtime", fake_run_domain_health_diagnostic_for_runtime)
-
-    result = module.run_managed_supervisor_tick(profile=profile, apply=True)
-
-    assert result == {"mode": "managed_supervisor_tick"}
-    assert called == {
-        "runtime_root": profile.runtime_root,
-        "apply": True,
-        "profile": profile,
-        "request_opl_stage_attempts": True,
-        "request_opl_owner_route_reconcile": True,
-    }
+    assert not hasattr(module, "run_managed_supervisor_tick")

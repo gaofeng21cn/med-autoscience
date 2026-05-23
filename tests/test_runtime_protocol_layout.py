@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+import pytest
+
 
 def make_profile(tmp_path: Path):
     profiles = importlib.import_module("med_autoscience.profiles")
@@ -95,35 +97,30 @@ def test_workspace_runtime_layout_for_profile_accepts_mas_first_runtime_root(tmp
     assert layout.bin_root == workspace_root / "ops" / "mas" / "bin"
 
 
-def test_workspace_runtime_layout_follows_profile_runtime_root_for_hermes_substrate(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_protocol.layout")
+def test_workspace_runtime_layout_rejects_hermes_active_runtime_ref(tmp_path: Path) -> None:
     profiles = importlib.import_module("med_autoscience.profiles")
-    workspace_root = tmp_path / "workspace"
-    profile = profiles.WorkspaceProfile(
-        name="pituitary",
-        workspace_root=workspace_root,
-        runtime_root=workspace_root / "ops" / "hermes" / "runtime" / "quests",
-        studies_root=workspace_root / "studies",
-        portfolio_root=workspace_root / "portfolio",
-        med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
-        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
-        default_publication_profile="general_medical_journal",
-        default_citation_style="AMA",
-        enable_medical_overlay=True,
-        medical_overlay_scope="workspace",
-        medical_overlay_skills=("intake-audit", "baseline", "write"),
-        research_route_bias_policy="high_plasticity_medical",
-        preferred_study_archetypes=("clinical_classifier",),
-        default_submission_targets=(),
-        managed_runtime_backend_id="hermes",
+    profile_path = tmp_path / "hermes-runtime.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "pituitary"',
+                'workspace_root = "workspace"',
+                'runtime_root = "workspace/ops/hermes/runtime/quests"',
+                'studies_root = "workspace/studies"',
+                'portfolio_root = "workspace/portfolio"',
+                'med_deepscientist_runtime_root = "workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_repo_root = "med-deepscientist"',
+                'opl_runtime_ref = "hermes"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
-    layout = module.build_workspace_runtime_layout_for_profile(profile)
-
-    assert layout.ops_root == workspace_root / "ops" / "hermes"
-    assert layout.runtime_root == workspace_root / "ops" / "hermes" / "runtime"
-    assert layout.quests_root == workspace_root / "ops" / "hermes" / "runtime" / "quests"
-    assert layout.behavior_gate_path == workspace_root / "ops" / "hermes" / "behavior_equivalence_gate.yaml"
+    with pytest.raises(ValueError, match="OPL owns runtime hydration"):
+        profiles.load_profile(profile_path)
 
 
 def test_resolve_runtime_root_from_quest_root_returns_workspace_runtime_root(tmp_path: Path) -> None:

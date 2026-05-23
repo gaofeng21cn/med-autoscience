@@ -124,7 +124,7 @@ Machine boundary: 本文是 MAS 仓内的人读 integration reference。当前�
 
 - 三层角色命名与 owner truth
 - supervision status shape
-- default scheduler projection、Temporal provider readiness 与 explicit executor/proof lane invariants
+- default `current_control_state` projection、Temporal provider readiness 与 explicit executor/proof lane invariants
 - domain supervision 不得越过 runtime 的 fail-closed 规则
 - 单一 MAS app skill 下的 product/entry_status/cockpit 内部 command contract 术语
 

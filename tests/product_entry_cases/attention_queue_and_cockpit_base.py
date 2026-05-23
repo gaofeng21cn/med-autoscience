@@ -382,7 +382,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         if resolved_study_id == "001-risk":
             return {
                 "study_id": resolved_study_id,
-                "current_stage": "managed_runtime_supervision_gap",
+                "current_stage": "managed_opl_runtime_owner_handoff_gap",
                 "current_stage_summary": "OPL runtime manager 托管监管存在缺口。",
                 "current_blockers": ["OPL runtime manager 托管监管存在缺口。"],
                 "next_system_action": "先刷新 domain route tick，再继续托管推进。",

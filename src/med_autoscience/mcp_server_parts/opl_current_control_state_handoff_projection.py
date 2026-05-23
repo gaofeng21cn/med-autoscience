@@ -29,7 +29,7 @@ def _compact_string_list(value: Any, *, limit: int = 12) -> list[str]:
     return items
 
 
-def compact_portable_supervisor_dashboard(value: object) -> dict[str, Any] | None:
+def compact_opl_current_control_state_handoff(value: object) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
     compact = _compact_record(
@@ -94,8 +94,8 @@ def compact_portable_supervisor_dashboard(value: object) -> dict[str, Any] | Non
     return compact
 
 
-def render_mcp_progress_portable_supervisor_dashboard(compact: dict[str, Any]) -> list[str]:
-    dashboard = compact.get("portable_supervisor_dashboard")
+def render_mcp_progress_opl_current_control_state_handoff(compact: dict[str, Any]) -> list[str]:
+    dashboard = compact.get("opl_current_control_state_handoff")
     if not isinstance(dashboard, dict):
         return []
     runtime_health = dashboard.get("runtime_health") if isinstance(dashboard.get("runtime_health"), dict) else {}
@@ -104,7 +104,7 @@ def render_mcp_progress_portable_supervisor_dashboard(compact: dict[str, Any]) -
     ai_reviewer = dashboard.get("ai_reviewer_status") if isinstance(dashboard.get("ai_reviewer_status"), dict) else {}
     lines = [
         "",
-        "## Portable Supervisor Queue",
+        "## OPL Current Control State Handoff",
         (
             f"- developer supervisor mode: `{dashboard.get('mode') or 'unknown'}`"
             f" ({dashboard.get('mode_label') or 'unlabeled'})；"
@@ -135,7 +135,7 @@ def render_mcp_progress_portable_supervisor_dashboard(compact: dict[str, Any]) -
         if not isinstance(action, dict):
             continue
         lines.append(
-            f"- queue action: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
+            f"- OPL action ref: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
             f"{action.get('summary') or ''}".rstrip()
         )
         owner_pickup = action.get("owner_pickup") if isinstance(action.get("owner_pickup"), dict) else {}

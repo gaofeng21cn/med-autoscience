@@ -201,12 +201,14 @@ def _record_supervisor_tick_audit(
     status: ProgressProjectionStatus,
     study_root: Path,
 ) -> None:
-    latest_report_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    latest_report_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
     required = _supervisor_tick_required(status)
     payload: dict[str, object] = {
         "required": required,
         "expected_interval_seconds": _SUPERVISOR_TICK_EXPECTED_INTERVAL_SECONDS,
         "stale_after_seconds": _SUPERVISOR_TICK_STALE_AFTER_SECONDS,
+        "owner": "one-person-lab",
+        "surface_kind": "opl_current_control_state_handoff",
         "latest_report_path": str(latest_report_path),
     }
     if not required:
@@ -226,9 +228,9 @@ def _record_supervisor_tick_audit(
         payload.update(
             {
                 "status": "missing",
-                "reason": "supervisor_tick_report_missing",
-                "summary": "OPL runtime manager 托管监管心跳缺失，当前不能保证及时发现掉线并自动恢复。",
-                "next_action_summary": "需要刷新 OPL runtime manager domain route tick，再继续托管监管与自动恢复。",
+                "reason": "opl_runtime_owner_handoff_missing",
+                "summary": "OPL current_control_state handoff 缺失，当前不能确认 stage/runtime owner 已接管。",
+                "next_action_summary": "需要刷新 OPL current_control_state handoff，再继续 stage/runtime owner 监管。",
                 "latest_recorded_at": None,
                 "seconds_since_latest_recorded_at": None,
                 "last_known_health_status": None,
@@ -237,15 +239,15 @@ def _record_supervisor_tick_audit(
         status.record_supervisor_tick_audit(payload)
         return
 
-    payload["last_known_health_status"] = str(latest_report.get("health_status") or "").strip() or None
+    payload["last_known_health_status"] = str(latest_report.get("status") or "").strip() or None
     recorded_at = _normalize_timestamp(latest_report.get("recorded_at"))
     if recorded_at is None:
         payload.update(
             {
                 "status": "invalid",
-                "reason": "supervisor_tick_report_timestamp_invalid",
-                "summary": "最近一次 OPL runtime manager 监管记录缺少可解析时间戳，当前不能确认监管心跳是否仍然新鲜。",
-                "next_action_summary": "需要刷新 domain route tick durable surface，然后重新确认托管监管状态。",
+                "reason": "opl_runtime_owner_handoff_timestamp_invalid",
+                "summary": "最近一次 OPL current_control_state handoff 缺少可解析时间戳，当前不能确认 owner handoff 是否仍然新鲜。",
+                "next_action_summary": "需要刷新 OPL current_control_state handoff durable surface，然后重新确认 owner handoff 状态。",
                 "latest_recorded_at": str(latest_report.get("recorded_at") or "").strip() or None,
                 "seconds_since_latest_recorded_at": None,
             }
@@ -261,9 +263,9 @@ def _record_supervisor_tick_audit(
         payload.update(
             {
                 "status": "stale",
-                "reason": "supervisor_tick_report_stale",
-                "summary": "OPL runtime manager 托管监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
-                "next_action_summary": "需要先刷新 OPL runtime manager domain route tick，再继续托管监管与自动恢复。",
+                "reason": "opl_runtime_owner_handoff_stale",
+                "summary": "OPL current_control_state handoff 已陈旧，当前不能确认 stage/runtime owner 仍在接管。",
+                "next_action_summary": "需要先刷新 OPL current_control_state handoff，再继续 stage/runtime owner 监管。",
             }
         )
         status.record_supervisor_tick_audit(payload)
@@ -272,9 +274,9 @@ def _record_supervisor_tick_audit(
     payload.update(
         {
             "status": "fresh",
-            "reason": "supervisor_tick_report_fresh",
-            "summary": "OPL runtime manager 托管监管心跳新鲜，当前仍在按合同持续监管。",
-            "next_action_summary": "继续按 OPL provider cadence 监管当前托管运行。",
+            "reason": "opl_runtime_owner_handoff_fresh",
+            "summary": "OPL current_control_state handoff 新鲜，当前 stage/runtime owner 仍由 OPL 接管。",
+            "next_action_summary": "继续按 OPL current_control_state 监管当前 stage/runtime lifecycle。",
         }
     )
     status.record_supervisor_tick_audit(payload)

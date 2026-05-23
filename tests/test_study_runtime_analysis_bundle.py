@@ -113,7 +113,7 @@ def test_inspect_r_packages_honors_explicit_rscript_env_when_path_is_missing(
     assert result["package_status"] == {"pROC": True}
 
 
-def test_ensure_study_runtime_analysis_bundle_repairs_current_runtime(monkeypatch) -> None:
+def test_ensure_analysis_bundle_repairs_current_process(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
     before_state = {
         "ready": False,
@@ -135,7 +135,7 @@ def test_ensure_study_runtime_analysis_bundle_repairs_current_runtime(monkeypatc
             return before_state if self.calls == 1 else after_state
 
     inspector = Inspector()
-    monkeypatch.setattr(module, "inspect_study_runtime_analysis_bundle", inspector)
+    monkeypatch.setattr(module, "inspect_analysis_bundle", inspector)
 
     python_result = {"action": "uv_pip_install", "after": after_state["python"]}
     r_result = {"action": "already_ready", "after": after_state["r"]}
@@ -146,11 +146,11 @@ def test_ensure_study_runtime_analysis_bundle_repairs_current_runtime(monkeypatc
         subprocess,
         "run",
         lambda *args, **kwargs: (_ for _ in ()).throw(
-            AssertionError("current runtime repair should not spawn a repo Python delegate")
+            AssertionError("current process bundle repair should not spawn a repo Python delegate")
         ),
     )
 
-    result = module.ensure_study_runtime_analysis_bundle()
+    result = module.ensure_analysis_bundle()
 
     assert result["action"] == "ensure_bundle"
     assert result["before"] == before_state

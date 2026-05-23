@@ -11,7 +11,7 @@ CONTROLLED_ENGINE_IDS = frozenset({"medicaldeepscientist", "med-deepscientist"})
 CONTROLLED_ENGINE_FAMILIES = frozenset({"MedicalDeepScientist", "MedDeepScientist"})
 MDS_ALLOWED_TRUTH_EVENT_TYPES = (
     "runtime_native_event",
-    "runtime_supervision_tick",
+    "opl_runtime_owner_handoff",
     "quality_review_eval",
 )
 MDS_ALLOWED_RUNTIME_HEALTH_EVENT_TYPES = (

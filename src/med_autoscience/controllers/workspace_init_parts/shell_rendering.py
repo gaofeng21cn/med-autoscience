@@ -114,7 +114,7 @@ def _render_profile_optional_forward_script(command: str) -> str:
     )
 
 
-def _render_study_runtime_status_script() -> str:
+def _render_progress_projection_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
@@ -139,7 +139,7 @@ def _render_progress_portal_start_web_script() -> str:
     )
 
 
-def _render_watch_runtime_script(*, workspace_root: Path, runtime_quests_root: Path) -> str:
+def _render_domain_health_diagnostic_script(*, workspace_root: Path, runtime_quests_root: Path) -> str:
     relative_runtime_root = runtime_quests_root.relative_to(workspace_root).as_posix()
     return (
         "#!/usr/bin/env bash\n"
@@ -283,7 +283,7 @@ def _render_mas_runtime_bridge_shared() -> str:
         '            "workspace_root": profile["workspace_root"],\n'
         '            "runtime_root": profile["runtime_root"],\n'
         '            "managed_runtime_home": profile["managed_runtime_home"],\n'
-        '            "managed_runtime_backend_id": profile["managed_runtime_backend_id"],\n'
+        '            "opl_runtime_ref": profile["opl_runtime_ref"],\n'
         '            "external_mds_runnable_dependency": False,\n'
         '            "default_webui": "mas_progress_portal",\n'
         '            "runtime_contract_ready": contracts["runtime_contract"]["ready"],\n'

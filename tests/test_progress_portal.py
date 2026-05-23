@@ -94,7 +94,7 @@ def _progress_payload(study_id: str = "001-risk") -> dict[str, object]:
                     }
                 ],
                 "refs": [
-                    "studies/001-risk/artifacts/runtime/runtime_supervision/latest.json",
+                    "studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
                 ],
             },
             "evidence_refs": [
@@ -125,7 +125,12 @@ def _progress_payload(study_id: str = "001-risk") -> dict[str, object]:
             }
         },
         "supervision": {
+            "browser_url": "http://127.0.0.1:20999",
+            "health_status": "refs_only",
+        },
+        "opl_current_control_state": {
             "active_run_id": "run-001",
+            "status": "provider_admitted",
             "supervisor_tick_status": "fresh",
         },
         "outer_supervision_slo": {
@@ -174,7 +179,7 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert payload["study"]["next_system_action"] == "补充 subgroup 分析并更新 review ledger。"
     assert payload["freshness"]["status"] == "stale"
     assert payload["conditions"]["stale"] == ["progress_freshness"]
-    assert "domain_route_tick" in payload["conditions"]["missing"]
+    assert "domain_route_tick" not in payload["conditions"]["missing"]
     assert payload["conditions"]["conflict"] == ["cockpit_study_id_mismatch", "package_study_id_mismatch"]
     assert "studies/001-risk/artifacts/publication_eval/latest.json" in payload["source_refs"]
     assert payload["quality"]["summary"] == "证据链仍需补强。"
@@ -611,7 +616,11 @@ def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_withou
         profile_ref="/workspace/ops/medautoscience/profiles/diabetes.toml",
         study_id="001-risk",
         progress_payload=_progress_payload(),
-        runtime_payload={"study_id": "001-risk", "active_run_id": "run-runtime-001"},
+        runtime_payload={
+            "study_id": "001-risk",
+            "active_run_id": "run-runtime-001",
+            "opl_current_control_state": {"active_run_id": "run-opl-001", "status": "attempt_running"},
+        },
         generated_at="2026-05-08T01:05:00+00:00",
     )
 
@@ -630,7 +639,7 @@ def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_withou
     assert projection["studies"][0]["actions"]["pause"]["owner"] == "one-person-lab"
     assert projection["studies"][0]["actions"]["stop"]["confirmation_required"] is True
     assert projection["terminal"]["mode"] == "external_control_plane_required"
-    assert projection["terminal"]["active_run_id"] == "run-001"
+    assert projection["terminal"]["active_run_id"] == "run-opl-001"
     assert projection["terminal"]["token_required"] is True
     assert projection["terminal"]["lease_required"] is True
     assert projection["authority"]["opl_role"] == "projection_consumer_and_action_transport_only"
@@ -781,6 +790,7 @@ def test_progress_portal_html_source_refs_are_bounded_and_do_not_render_legacy_m
         "/workspace/ops/med-deepscientist/runtime/quests/001-risk/.ds/worktrees/paper",
         "/workspace/studies/001-risk/artifacts/runtime/health/latest.json",
         "/workspace/studies/001-risk/artifacts/runtime/runtime_supervision/latest.json",
+        "/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         "/workspace/studies/001-risk/artifacts/controller_decisions/latest.json",
         "/workspace/studies/001-risk/artifacts/publication_eval/latest.json",
         "not/a/selected/source/ref",
@@ -790,9 +800,11 @@ def test_progress_portal_html_source_refs_are_bounded_and_do_not_render_legacy_m
 
     assert "/workspace/studies/001-risk/artifacts/runtime/health/latest.json" in html
     assert "/workspace/studies/001-risk/artifacts/controller_decisions/latest.json" in html
+    assert "/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json" in html
+    assert "/workspace/studies/001-risk/artifacts/runtime/runtime_supervision/latest.json" not in html
     assert "med-deepscientist" not in html
     assert "not/a/selected/source/ref" not in html
-    assert "数据来源 (4/46)" in html
+    assert "数据来源 (4/47)" in html
 
 
 def test_progress_portal_payload_source_refs_filter_legacy_runtime_paths() -> None:

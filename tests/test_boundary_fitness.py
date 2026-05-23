@@ -129,7 +129,7 @@ def test_current_repo_boundary_guard_has_no_blocking_findings() -> None:
 def test_program_boundary_map_prioritizes_natural_mas_mds_boundaries() -> None:
     module = _boundary_fitness_module()
     gate_path = "src/med_autoscience/controllers/gate_clearing_batch.py"
-    runtime_path = "src/med_autoscience/runtime_transport/opl_provider_backed_stage_runtime.py"
+    runtime_path = "src/med_autoscience/opl_runtime_contract.py"
     observability_path = "src/med_autoscience/controllers/study_cycle_profiler.py"
 
     boundary_map = module.build_program_boundary_map(

@@ -3,7 +3,7 @@ from __future__ import annotations
 from med_autoscience.controllers.ai_first_private_authority import (
     validate_ai_first_private_authority_gate,
 )
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration import (
     build_functional_consumer_boundary,
 )
 
@@ -23,7 +23,6 @@ def test_private_authority_manifest_classifies_judgment_modes() -> None:
         "ai_first_stage_gate",
         "ai_first_record_validator",
         "mechanical_guard",
-        "refs_only_adapter",
     ]
     assert authority["verdict_function_model_retired"] is True
     assert authority["gate_validator_ref"] == (

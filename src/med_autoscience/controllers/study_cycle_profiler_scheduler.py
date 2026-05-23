@@ -4,11 +4,11 @@ from typing import Any, Mapping
 
 
 _ACTION_BY_BOTTLENECK = {
-    "runtime_recovery_churn": {
-        "action_type": "probe_runtime_recovery",
+    "opl_runtime_owner_handoff_required": {
+        "action_type": "request_opl_handoff_hydration",
         "controller_surface": "domain_health_diagnostic",
         "priority": "now",
-        "summary": "Run a runtime recovery probe before any blind resume.",
+        "summary": "Require OPL current_control_state to hydrate the MAS owner handoff.",
     },
     "repeated_controller_decision": {
         "action_type": "dedupe_controller_dispatch",

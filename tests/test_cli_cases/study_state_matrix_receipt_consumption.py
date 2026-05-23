@@ -62,7 +62,7 @@ def test_study_state_matrix_consumes_bundle_stage_package_closure_receipt(
             "study_id": study_id,
             "quest_id": quest_id,
             "requires_human_confirmation": False,
-            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
             "route_target": "finalize",
             "work_unit_fingerprint": work_unit_fingerprint,
             "next_work_unit": {
@@ -620,7 +620,7 @@ def test_study_state_matrix_consumes_human_gate_resume_receipt(
             "route_target": "runtime",
             "requires_human_confirmation": True,
             "family_human_gates": [{"gate_id": f"controller-human-confirmation-{study_id}"}],
-            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
         },
     )
     _write_json(
@@ -642,7 +642,7 @@ def test_study_state_matrix_consumes_human_gate_resume_receipt(
             "request_reason": "用户确认恢复当前研究线。",
             "question_for_user": "请确认是否允许 MAS 继续托管推进当前研究。",
             "allowed_responses": ["approve", "request_changes", "reject"],
-            "controller_action_types": ["ensure_study_runtime"],
+            "controller_action_types": ["request_opl_stage_attempt"],
             "next_action_if_approved": "继续托管推进当前研究运行",
         },
     )
@@ -682,7 +682,7 @@ def test_study_state_matrix_consumes_human_gate_resume_receipt(
         "decision_status": "approved",
         "receipt_ref": "artifacts/controller/controller_confirmation_summary.json",
         "decision_ref": "artifacts/controller_decisions/latest.json",
-        "controller_action_types": ["ensure_study_runtime"],
+        "controller_action_types": ["request_opl_stage_attempt"],
         "next_action": "honor_human_gate_resume_receipt",
     }
     assert set(packet) == {

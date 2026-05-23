@@ -37,7 +37,7 @@ def _ready_report() -> SimpleNamespace:
     )
 
 
-def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_dashboard(
+def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_handoff_dashboard(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -45,9 +45,9 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
-    hourly_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
-    hourly_payload = {
-        "surface": "portable_supervisor_hourly_projection",
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    handoff_payload = {
+        "surface": "opl_current_control_state_handoff_projection",
         "schema_version": 1,
         "generated_at": "2026-05-04T06:00:00+00:00",
         "authority": "observability_only",
@@ -102,7 +102,7 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
             }
         ],
     }
-    _write_json(hourly_path, hourly_payload)
+    _write_json(handoff_path, handoff_payload)
 
     monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_report())
     monkeypatch.setattr(
@@ -122,7 +122,7 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
         "read_mainline_status",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
-            "current_stage": {"id": "portable_supervisor_v2", "status": "in_progress"},
+            "current_stage": {"id": "opl_current_control_state_handoff", "status": "in_progress"},
         },
     )
     monkeypatch.setattr(
@@ -133,10 +133,10 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
             "current_stage": "publication_supervision",
             "current_stage_summary": "Queue is blocked by runtime recovery.",
             "current_blockers": [],
-            "next_system_action": "Inspect supervisor queue action.",
-            "portable_supervisor_dashboard": {
-                **dict(hourly_payload["studies"][0]),
-                **dict(hourly_payload["developer_supervisor_mode"]),
+            "next_system_action": "Inspect supervisor OPL action ref.",
+                "opl_current_control_state_handoff": {
+                **dict(handoff_payload["studies"][0]),
+                **dict(handoff_payload["developer_supervisor_mode"]),
             },
             "supervision": {"active_run_id": "run-001", "health_status": "external_supervisor_required"},
             "recommended_command": (
@@ -191,9 +191,9 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
                 "summary": "summary",
                 "mas_owned_capabilities": [
                     {
-                        "capability_id": "portable_supervisor_dashboard",
+                        "capability_id": "opl_current_control_state_handoff",
                         "owner": "MedAutoScience",
-                        "truth_surface": "artifacts/supervision/hourly/latest.json",
+                        "truth_surface": "artifacts/supervision/opl_current_control_state/latest.json",
                         "summary": "Supervisor queue dashboard projection.",
                     }
                 ],
@@ -220,10 +220,10 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
     cockpit_markdown = module.render_workspace_cockpit_markdown(cockpit)
     entry_status_markdown = module.render_product_entry_status_markdown(entry_status)
 
-    dashboard = cockpit["portable_supervisor_queue_dashboard"]
-    assert dashboard["surface_kind"] == "portable_supervisor_queue_dashboard"
+    dashboard = cockpit["opl_current_control_state_handoff_dashboard"]
+    assert dashboard["surface_kind"] == "opl_current_control_state_handoff_dashboard"
     assert dashboard["authority"] == "observability_only"
-    assert dashboard["source_path"] == str(hourly_path)
+    assert dashboard["source_path"] == str(handoff_path)
     assert dashboard["supervisor_mode"] == {
         "mode": "developer_apply_safe",
         "mode_label": "Developer Supervisor Mode",
@@ -240,19 +240,19 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
     assert dashboard["studies"][0]["action_queue"][0]["action_type"] == "publication_gate_specificity_required"
     assert dashboard["studies"][0]["queue_slo"]["developer_supervisor_attention_required_count"] == 1
     assert dashboard["studies"][0]["action_queue"][0]["owner_pickup"]["state"] == "overdue"
-    assert entry_status["workspace_portable_supervisor_queue_dashboard"]["studies"][0]["why_not_applied"] == [
+    assert entry_status["workspace_opl_current_control_state_handoff_dashboard"]["studies"][0]["why_not_applied"] == [
         "runtime_recovery_retry_budget_exhausted"
     ]
-    assert entry_status["workspace_portable_supervisor_queue_dashboard"]["supervisor_mode"]["mode"] == "developer_apply_safe"
-    assert "Portable Supervisor Queue" in cockpit_markdown
+    assert entry_status["workspace_opl_current_control_state_handoff_dashboard"]["supervisor_mode"]["mode"] == "developer_apply_safe"
+    assert "OPL Current Control State Handoff" in cockpit_markdown
     assert "developer supervisor mode: `developer_apply_safe`" in cockpit_markdown
-    assert "Codex App heartbeat is an outer developer supervisor signal" in cockpit_markdown
+    assert "queue, stage attempts, provider lifecycle, retry and dead-letter are owned by OPL current_control_state" in cockpit_markdown
     assert "publication_gate_specificity_required" in cockpit_markdown
     assert "owner_pickup `overdue`" in cockpit_markdown
     assert "developer_supervisor_attention_required `True`" in cockpit_markdown
     assert "runtime_recovery_not_authorized" in cockpit_markdown
-    assert "Portable Supervisor Queue" in entry_status_markdown
+    assert "OPL Current Control State Handoff" in entry_status_markdown
     assert "developer supervisor mode: `developer_apply_safe`" in entry_status_markdown
-    assert "Codex App heartbeat is an outer developer supervisor signal" in entry_status_markdown
+    assert "queue, stage attempts, provider lifecycle, retry and dead-letter are owned by OPL current_control_state" in entry_status_markdown
     assert "owner_pickup `overdue`" in entry_status_markdown
     assert "runtime_recovery_retry_budget_exhausted" in entry_status_markdown

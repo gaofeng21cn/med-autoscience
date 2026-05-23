@@ -104,7 +104,7 @@ def test_dm_cvd_live_supervisor_only_blocks_downstream_bundle_actions(tmp_path: 
     module.append_truth_event(
         study_root=study_root,
         study_id="003-dpcc-primary-care-phenotype-treatment-gap",
-        event_type="runtime_supervision_tick",
+        event_type="opl_runtime_owner_handoff",
         payload={
             "execution_owner_guard": {"supervisor_only": True, "active_run_id": "run-e52f5574"},
             "publication_supervisor_state": {
@@ -120,7 +120,7 @@ def test_dm_cvd_live_supervisor_only_blocks_downstream_bundle_actions(tmp_path: 
         study_id="003-dpcc-primary-care-phenotype-treatment-gap",
     )
 
-    assert snapshot["canonical_next_action"] == "supervise_runtime"
+    assert snapshot["canonical_next_action"] == "request_opl_handoff_hydration"
     assert "direct_paper_line_write" not in snapshot["allowed_controller_actions"]
     assert "direct_bundle_build" not in snapshot["allowed_controller_actions"]
 

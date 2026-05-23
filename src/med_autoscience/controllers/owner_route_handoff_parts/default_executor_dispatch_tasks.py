@@ -188,7 +188,7 @@ def _project_dispatch_refs(*, refs: Mapping[str, Any], workspace_root: Path) -> 
         "source_eval_path": "source_publication_eval_currentness",
         "source_summary_path": "quality_repair_source_summary",
         "repair_execution_evidence_path": "repair_execution_evidence_currentness",
-        "scan_latest": "runtime_supervision_scan_currentness",
+        "scan_latest": "opl_current_control_state_scan_currentness",
     }
     projected: list[dict[str, Any]] = []
     for key, role in role_by_key.items():

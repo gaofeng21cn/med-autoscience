@@ -87,7 +87,7 @@ def build_cycle_observability(profile_payload: Mapping[str, Any]) -> dict[str, A
     category_windows = _mapping(profile_payload.get("category_windows"))
     first_event_at, latest_event_at = _window_bounds(category_windows)
     step_timings = profile_payload.get("step_timings")
-    runtime_summary = _mapping(profile_payload.get("runtime_transition_summary"))
+    handoff_summary = _mapping(profile_payload.get("opl_runtime_owner_handoff_summary"))
     controller_fingerprints = _mapping(profile_payload.get("controller_decision_fingerprints"))
     sli_summary = _mapping(profile_payload.get("sli_summary"))
     gate_summary = _mapping(profile_payload.get("gate_blocker_summary"))
@@ -96,15 +96,14 @@ def build_cycle_observability(profile_payload: Mapping[str, Any]) -> dict[str, A
     quality_constraint = _mapping(autonomy_slo.get("quality_constraint"))
 
     repeated_dispatch_count = _repeated_dispatch_count(controller_fingerprints)
-    runtime_recovery_observations = _int(sli_summary.get("runtime_recovery_observations"))
-    runtime_flapping_transitions = _int(sli_summary.get("runtime_flapping_transitions"))
+    handoff_required_count = _int(sli_summary.get("opl_runtime_owner_handoff_required_count"))
     open_blockers = [
         str(item)
         for item in _list(gate_summary.get("current_blockers"))
         if str(item or "").strip()
     ]
     blocker_state = "open_quality_gate" if open_blockers else "no_open_quality_gate"
-    no_progress_signal = bool(repeated_dispatch_count or runtime_recovery_observations or runtime_flapping_transitions)
+    no_progress_signal = bool(repeated_dispatch_count or handoff_required_count)
     trace_identity = paper_line_delivery_metrics.normalize_trace_identity(profile_payload)
 
     payload = {
@@ -118,23 +117,24 @@ def build_cycle_observability(profile_payload: Mapping[str, Any]) -> dict[str, A
             "first_observed_at": first_event_at.isoformat() if first_event_at is not None else None,
             "latest_observed_at": latest_event_at.isoformat() if latest_event_at is not None else None,
             "observed_lead_time_seconds": _duration_seconds(first_event_at, latest_event_at),
-            "task_intake_to_run_start_seconds": _step_duration(
+            "task_intake_to_opl_handoff_seconds": _step_duration(
                 step_timings,
                 from_step="task_intake",
-                to_step="run_start",
+                to_step="opl_runtime_owner_handoff",
             ),
-            "run_start_to_latest_eval_seconds": _step_duration(
+            "opl_handoff_to_latest_eval_seconds": _step_duration(
                 step_timings,
-                from_step="run_start",
+                from_step="opl_runtime_owner_handoff",
                 to_step="publication_eval",
             ),
         },
         "stability_metrics": {
-            "runtime_live_ratio": _float(sli_summary.get("runtime_live_ratio")),
-            "runtime_recovery_observations": runtime_recovery_observations,
-            "runtime_flapping_transitions": runtime_flapping_transitions,
+            "opl_runtime_owner_handoff_clear_ratio": _float(
+                sli_summary.get("opl_runtime_owner_handoff_clear_ratio")
+            ),
+            "opl_runtime_owner_handoff_required_count": handoff_required_count,
             "repeated_controller_dispatch_count": repeated_dispatch_count,
-            "runtime_health_status_counts": dict(_mapping(runtime_summary.get("health_status_counts"))),
+            "opl_runtime_owner_handoff_status_counts": dict(_mapping(handoff_summary.get("status_counts"))),
             "long_run_health_state": _text(long_run_health.get("state")),
         },
         "quality_preservation": {

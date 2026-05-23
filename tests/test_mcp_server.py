@@ -216,9 +216,9 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
                 "execution:",
                 "  auto_entry: on_managed_research_intent",
                 "  quest_id: quest-001",
-                "  runtime_backend_id: opl_provider_backed_stage_runtime",
-                "  runtime_backend: opl_provider_backed_stage_runtime",
-                "  runtime_engine_id: opl-provider-backed-stage-runtime",
+                "  opl_runtime_ref: opl_hosted_stage_runtime",
+                "  runtime_ref: opl_hosted_stage_runtime",
+                "  runtime_engine_id: opl-hosted-stage-runtime",
                 "  research_backend_id: mas_domain_intent_adapter",
                 "  research_backend: mas_domain_intent_adapter",
                 "  research_engine_id: mas-domain-intent-adapter",
@@ -278,7 +278,7 @@ def test_mcp_server_rejects_study_runtime_tool_calls(tmp_path: Path) -> None:
     result = module.call_tool(
         "study_runtime",
         {
-            "mode": "ensure_study_runtime",
+            "mode": "request_opl_stage_attempt",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
             "entry_mode": "full_research",
@@ -299,7 +299,7 @@ def test_mcp_server_rejects_ensure_study_runtime_mode_on_retired_mcp_tool(tmp_pa
     result = module.call_tool(
         "study_runtime",
         {
-            "mode": "ensure_study_runtime",
+            "mode": "request_opl_stage_attempt",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },

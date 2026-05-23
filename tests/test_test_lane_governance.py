@@ -258,7 +258,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "opl_generated_harness_consumer_over_mas_pack"
     )
     consumer_migration = importlib.import_module(
-        "med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration"
+        "med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration"
     )
     runtime_boundary = consumer_migration.build_functional_consumer_boundary()
     minimal_authority = runtime_boundary["minimal_authority_function_manifest"]
@@ -680,7 +680,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "sidecar_export.functional_consumer_boundary.declarative_pack_compiler_input",
         "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
         "sidecar_export.functional_consumer_boundary.minimal_authority_function_manifest",
-        "domain_slo_scheduler_projection.consumer_migration.functional_consumer_boundary",
+        "opl_unique_control_plane_boundary.consumer_migration.functional_consumer_boundary",
         "family_contract_adoption.runtime_observability_export",
     ]
     coverage = lane["opl_functional_harness_consumer_coverage"]

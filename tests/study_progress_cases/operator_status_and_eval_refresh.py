@@ -454,7 +454,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
                         "details to the unit-harmonized external validation."
                     ),
                 },
-                "controller_action": "ensure_study_runtime",
+                "controller_action": "request_opl_stage_attempt",
                 "owner": "analysis-campaign",
                 "typed_blocker": None,
             },
@@ -517,21 +517,16 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
     quest_root = profile.managed_runtime_home / "quests" / study_id
     _write_publication_eval(study_root, quest_root)
     _write_json(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json",
         {
             "schema_version": 1,
+            "surface_kind": "opl_runtime_owner_handoff",
             "recorded_at": "2026-05-20T22:16:03+00:00",
             "study_id": study_id,
             "quest_id": study_id,
-            "health_status": "recovering",
-            "runtime_liveness_status": "live",
-            "worker_running": True,
-            "active_run_id": "stale-run-before-current-routeback",
-            "summary": (
-                "live worker 已超过 meaningful artifact delta 活动窗口；监管心跳新鲜只能证明监控新鲜，"
-                "不能证明论文正常推进。"
-            ),
-            "next_action_summary": "等待 runtime supervision 的 health_status 回到 live，再确认研究继续推进。",
+            "summary": "OPL owner handoff recorded before the current route-back.",
+            "mas_materializes_runtime_supervision": False,
+            "mas_runtime_read_model_retired": True,
         },
     )
 
@@ -581,7 +576,7 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
                         "details to the unit-harmonized external validation."
                     ),
                 },
-                "controller_action": "ensure_study_runtime",
+                "controller_action": "request_opl_stage_attempt",
                 "owner": "analysis-campaign",
                 "typed_blocker": None,
             },
@@ -605,7 +600,7 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
-    assert result["current_stage"] == "managed_runtime_recovering"
+    assert result["current_stage"] == "runtime_blocked"
     assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
     assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
     assert result["operator_status_card"]["latest_truth_source"] == "publication_eval"
@@ -631,16 +626,16 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_json(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json",
         {
             "schema_version": 1,
+            "surface_kind": "opl_runtime_owner_handoff",
             "recorded_at": "2026-04-12T10:00:00+00:00",
             "study_id": "001-risk",
             "quest_id": "quest-001",
-            "health_status": "recovering",
-            "summary": "Hermes 正在尝试恢复掉线的研究运行。",
-            "next_action_summary": "等待 runtime supervision 的 health_status 回到 live，再确认研究继续推进。",
-            "active_run_id": "run-001",
+            "summary": "OPL owner handoff recorded; recovery is derived from current status refs.",
+            "mas_materializes_runtime_supervision": False,
+            "mas_runtime_read_model_retired": True,
         },
     )
 
@@ -659,6 +654,9 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
             "study_completion_contract": {},
             "decision": "resume",
             "reason": "quest_marked_running_but_no_live_session",
+            "runtime_liveness_status": "none",
+            "active_run_id": None,
+            "worker_running": False,
             "publication_supervisor_state": {
                 "supervisor_phase": "publishability_gate_blocked",
                 "phase_owner": "publication_gate",
@@ -678,7 +676,6 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
             "execution_owner_guard": {
                 "owner": "managed_runtime",
                 "supervisor_only": True,
-                "active_run_id": "run-001",
                 "current_required_action": "supervise_runtime_only",
                 "publication_gate_allows_direct_write": False,
             },
@@ -695,9 +692,9 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
 
     assert result["operator_status_card"]["surface_kind"] == "study_operator_status_card"
     assert result["operator_status_card"]["handling_state"] == "runtime_recovering"
-    assert result["operator_status_card"]["latest_truth_source"] == "runtime_supervision"
+    assert result["operator_status_card"]["latest_truth_source"] == "supervisor_tick_audit"
     assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在处理 runtime recovery，当前 study 仍处在受管修复中。"
-    assert "health_status 回到 live" in result["operator_status_card"]["next_confirmation_signal"]
+    assert "current_control_state" in result["operator_status_card"]["next_confirmation_signal"]
 
 
 def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_gap(

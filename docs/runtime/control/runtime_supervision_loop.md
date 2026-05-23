@@ -1,11 +1,11 @@
 # Runtime Supervision Loop
 
 Owner: `MedAutoScience`
-Purpose: `domain_supervision_read_model_and_owner_receipt_contract`
-State: `active_runtime_control_support`
-Machine boundary: 本文解释 MAS domain supervision / read-model / owner receipt 语义。机器真相继续归 MAS contracts、schema、CLI/MCP/API payload、`progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json`、sidecar receipt 和真实 workspace artifact。通用 provider workflow、queue、attempt ledger、retry/dead-letter、operator projection、memory/artifact locator 与 App/workbench shell 归 OPL Framework / shared family layer。
+Purpose: `legacy_domain_supervision_tombstone_and_owner_receipt_provenance`
+State: `legacy_tombstone_reference`
+Machine boundary: 本文只保留旧 MAS supervision loop 的 provenance、退役门和 no-resurrection 约束。当前机器真相继续归 MAS contracts、schema、CLI/MCP/API payload、`progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json`、sidecar receipt、owner receipt / typed blocker 和真实 workspace artifact。通用 provider workflow、queue、attempt ledger、retry/dead-letter、operator projection、memory/artifact locator 与 App/workbench shell 归 OPL Framework / shared family layer。
 
-这份文档冻结 `MedAutoScience` 的 domain supervision 合同，也就是 MAS 如何读取 study/runtime-facing truth、判断 blocker、写出 supervision projection 和 owner receipt。它不再描述 MAS 自建 generic scheduler / queue / runtime platform 的计划。
+这份文档冻结旧 `MedAutoScience` domain supervision 面的退役合同，也就是哪些历史 surface 只能作为 provenance / migration input 读取，以及哪些语义不得复活。当前 active 合同是 OPL `current_control_state` / provider attempt projection 承担 runtime/stage 控制面，MAS 只输出 DomainIntent、owner route refs、owner receipt、typed blocker、artifact/source/quality refs 和 diagnostic explanation。
 
 一句话结论：
 
@@ -15,7 +15,7 @@ Machine boundary: 本文解释 MAS domain supervision / read-model / owner recei
 - 当前 MAS domain tick contract 依序调用 `runtime domain-health-diagnostic --apply`、`owner-route-reconcile --apply-safe-actions`、`supervisor-consume`、`supervisor-execute-dispatch`；默认由 OPL provider/runtime manager 唤醒，Hermes / local 只作为 retired provenance 读取，不生成脚本
 - 该 outer loop 不拥有 runner completion 后的连续科研主循环，也不维护 generic runtime kernel；内层 `turn completion -> next turn` 由 OPL provider 承载，MAS 只提供 domain owner route、authorization、receipt、typed blocker 与 artifact/publication authority refs
 - 旧 workspace-local `systemd` / `cron` / `launchd` / `docker` service manager 已退役；检测到它们时只作为 cleanup evidence，不作为 active scheduler 选项
-- 这个 loop 的职责是发现掉线或 stale truth、执行 MAS-authorized reconciliation、写出 durable supervision surface / owner receipt，并把结果翻译成前台可见的人话
+- 旧 loop 的历史职责只保留为退役背景；当前前台只显示 OPL current_control_state next action、MAS owner receipt / typed blocker 与 domain progress refs
 
 ## 1. 总目标
 
@@ -86,14 +86,14 @@ Machine boundary: 本文解释 MAS domain supervision / read-model / owner recei
 
 `domain-health-diagnostic` 这一步每次至少做四件事：
 
-1. 以只读 / refs mode 读取 managed study 的 `progress_projection` 或 `ensure_study_runtime`
+1. 以只读 / refs mode 读取 managed study 的 `progress_projection` 与 OPL current-control-state handoff refs
 2. 扫描 live quest 的 `domain_health_diagnostic`
 3. 生成 MAS domain supervision refs / typed blocker artifact
 4. 必要时写出或刷新 `runtime_escalation_record.json`
 
 随后 `supervisor-scan` / `supervisor-consume` / `supervisor-execute-dispatch` 负责把 workspace-level action refs、default executor dispatch request 和 dispatch receipt 收成同一轮证据。也就是说，外环的核心不是“循环本身”，而是同一轮 tick 的 MAS controller contract；generic queue、attempt、retry/dead-letter 与 provider resume 始终归 OPL。
 
-真实 workspace 可能仍保留旧 Hermes job script，只调用单步 legacy `watch-runtime` wrapper。这类状态不是新 contract；默认 operator 入口应先读取 OPL projection；Hermes 相关材料只能作为 retired provenance / drift evidence 读取，不能触发 cleanup adapter 或旧 job/script 管理动作。runtime supervision status 的职责是暴露 job、script、latest session 与 drift，而不是把旧 script 解释成新的 desired behavior。
+真实 workspace 可能仍保留旧 Hermes job script 或 legacy `watch-runtime` wrapper。这类状态不是新 contract；默认 operator 入口应先读取 OPL projection；Hermes 相关材料只能作为 retired provenance / drift evidence 读取，不能触发 cleanup adapter 或旧 job/script 管理动作。MAS 不再提供 runtime supervision status active CLI；旧 job、script、latest session 与 drift 只能进入 provenance/diagnostic refs，不能解释成新的 desired behavior。
 
 跨 study 的巡检入口是 supervisor scan：
 
@@ -105,7 +105,7 @@ medautosci owner-route-reconcile \
   --developer-supervisor-mode developer_apply_safe
 ```
 
-该入口写出 workspace-level `artifacts/supervision/hourly/latest.json`，只消费 MAS durable truth surfaces：`progress_projection`、`study_progress`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 AI repair lifecycle。它的职责是形成 `action_queue`、`why_not_applied`、owner-visible request packet、typed blocker、owner receipt ref 与 `external_supervisor_required`，而不是直接修改 paper/current_package，也不是维护 generic OPL queue。
+该入口当前写出 workspace-level `artifacts/supervision/opl_current_control_state/latest.json` refs-only handoff projection，只消费 MAS durable truth surfaces：`progress_projection`、`study_progress`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 AI repair lifecycle。它的职责是形成 OPL-consumable owner route refs、why-not-applied explanation、owner-visible request packet、typed blocker、owner receipt ref 与 `external_supervisor_required`，而不是直接修改 paper/current_package，也不是维护 generic queue、attempt、retry/dead-letter 或 provider liveness。
 
 2026-05-23 runtime continuity 口径改为 OPL 唯一控制面 + MAS domain authority refs：
 
@@ -120,9 +120,9 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 
 - `outer_supervision_slo` read model 固定字段包括 `last_tick_at` / `latest_scheduler_run_at`、`last_reconcile_at` / `latest_supervisor_reconcile_at`、`next_due_at` 等价阈值、`tick_age_seconds` / `age_seconds`、`state=fresh|due|stale|missing|blocked`、dedupe fingerprint、authority flags 与 canonical `owner-route-reconcile --developer-supervisor-mode external_observe` 推荐命令。
 - `fresh` 表示最新 OPL provider tick / current-control-state reconcile 仍在 freshness window 内；`due` 表示可以请求 OPL 重新 hydrate/reconcile；`stale` 表示外环监管已经陈旧；`missing` 表示缺 OPL control state 或 MAS owner refs；`blocked` 表示 OPL scheduler/provider、旧 service drift 或 MAS domain blocker 本身阻塞。
-- 该 read model 投影到 `runtime-supervision-status`、`owner-route-reconcile` receipt、`runtime_reconcile_trigger`、`study_progress`、workspace cockpit、Product Entry 和 Progress Portal。
+- 该 read model 投影到 OPL `current_control_state` handoff refs、`owner-route-reconcile` receipt、`runtime_reconcile_trigger`、`study_progress`、workspace cockpit、Product Entry 和 Progress Portal；不再投影到 MAS runtime-supervision CLI。
 - 它只允许页面或 CLI 显示推荐命令，或由已有 controller/supervisor safe surface 做 dry-run/apply；读入口刷新不能直接 relaunch worker、写 runtime truth、写 paper/current_package、写 `publication_eval/latest.json` 或写 `controller_decisions/latest.json`。
-- 它不改变当前 owner 分工：默认 scheduler owner 是 OPL provider/runtime manager；`local` 和 Hermes 只属于 retired tombstone/provenance refs；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。OPL-hosted production wakeup 由 OPL provider 持有；MAS 只保留 domain SLO explanation、owner receipt、typed blocker 和 refs-only projection，以 [Domain SLO Scheduler Projection Contract](./domain_slo_scheduler_projection_contract.md) 为准。
+- 它不改变当前 owner 分工：默认 scheduler owner 是 OPL provider/runtime manager；`local` 和 Hermes 只属于 retired tombstone/provenance refs；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。OPL-hosted production wakeup 由 OPL provider 持有；MAS 只保留 domain SLO explanation、owner receipt、typed blocker 和 refs-only projection，以 [OPL Unique Control Plane Boundary Contract](./opl_unique_control_plane_boundary_contract.md) 为准。
 
 这条外环和内层 attempt lifecycle 的分界是固定的：attempt start/query、worker liveness、typed closeout、retry/dead-letter、human gate transport 和 continuation 都由 OPL stage runtime 处理。MAS 只在 closeout refs 回来后签 owner receipt、typed blocker、route-back 或 artifact/source/quality authority refs；它不再维护 per-turn scheduler、worker lease 或 runtime session owner。
 
@@ -157,7 +157,7 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - `worker_running=true`、`active_run_id` 存在、controller 写出 repair packet、gate audit 刷新，都只是中间信号；用户可见 progress 只有在 canonical manuscript/table/figure/result 变化、submission source/current package freshness proof、AI reviewer judgement 更新，或 publication gate replay 后 owner 前进时，才显示 `meaningful_artifact_delta=true`。
 - live worker 超过 grace window 仍无论文产物级增量时，投影为 `live_no_paper_delta` / `paper_progress_stall`，并进入 controller-owned redrive 或 owner handoff；repeat suppression 只能压住重复 dispatch，不得压住 handoff、gate replay 或 next owner。
 - 每个 paper work unit 必须能解释 `owner`、`callable_surface`、`required_inputs`、`required_outputs`、`artifact_delta_predicate`、`gate_replay_target`、`idempotency_key` 与 `source_fingerprint`。terminal success 需要 owner receipt、required output、artifact delta 或 gate replay result 同时成立。
-- `owner_callable_registry` 是 callable owner 的机器锚点，当前注册 `MAS/controller`、`analysis_harmonization_owner`、`source_provenance_owner`、`provenance_limited_harmonization_owner`、`ai_reviewer`、`publication_gate`、`quality_repair_batch`、`gate_clearing_batch` 与 `delivery_sync`。`owner_callable_surface_missing` 是 controller-consumable blocker 或 repo-level callable gap；当 `requires_user_input=false` 时，不得把它投影成真实 `waiting_for_user`。当 controller decision 用 `ensure_study_runtime` 重新拉起 `unit_harmonized_validation_uncertainty_and_grouped_calibration` 这类 hard-methodology work unit 时，managed worker 必须投到 `analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`，不能把缺少 generic runtime action 当成用户等待或 MAS 私有 control-plane 需求。
+- `owner_callable_registry` 是 callable owner 的机器锚点，当前注册 `MAS/controller`、`analysis_harmonization_owner`、`source_provenance_owner`、`provenance_limited_harmonization_owner`、`ai_reviewer`、`publication_gate`、`quality_repair_batch`、`gate_clearing_batch` 与 `delivery_sync`。`owner_callable_surface_missing` 是 controller-consumable blocker 或 repo-level callable gap；当 `requires_user_input=false` 时，不得把它投影成真实 `waiting_for_user`。当 controller decision 用 `request_opl_stage_attempt` 重新拉起 `unit_harmonized_validation_uncertainty_and_grouped_calibration` 这类 hard-methodology work unit 时，managed worker 必须投到 `analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`，不能把缺少 generic runtime action 当成用户等待或 MAS 私有 control-plane 需求。
 - submission authority / delivery closure 必须在同一个 work-unit transaction 中完成 source freshness proof、delivery sync 和 gate replay。来自旧 MDS worktree 的绝对 `paper/...` 路径只可规范到当前 paper root 的同后缀 source ref，不能作为 current source blocker。
 - DM002、DM003 和 Obesity 的 read-only validation 要把 `actual_write_active`、`package_delivered`、`meaningful_artifact_delta`、`next_owner`、`why_not_progressing` 同时展示；只要 publishability / AI reviewer / submission QC 未放行，就不得把 downstream package missing 写成论文进度。
 - control-plane authorization 必须区分前台人工接管和 MAS managed worker：`foreground_paper_write_allowed=false` 只阻止 Codex App / manual agent 绕过 MAS 直接改论文；`managed_worker_paper_write_allowed=true` 表示当前 MAS controller work unit 可授权 worker 修改 canonical `paper/` 修订面。`publication_gate.allow_write=false` 只阻止 bundle/submission/current_package/proofing 写面，不能阻止上游 analysis-campaign/write stage 的 canonical paper 修订。
@@ -533,7 +533,7 @@ MAS direct/local legacy diagnostic 不再定义外部 scheduler 或 MAS-owned su
 - quest-level `domain_health_diagnostic` latest report in legacy `domain_health_diagnostic` namespace
 - study-level `studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json`
 - study-level `studies/<study_id>/artifacts/autonomy/repair_lifecycle/latest.json`
-- workspace-level `artifacts/supervision/hourly/latest.json`
+- workspace-level `artifacts/supervision/opl_current_control_state/latest.json`
 - workspace-level `artifacts/supervision/consumer/latest.json`
 - workspace-level `artifacts/supervision/consumer/history.jsonl`
 - study-level `studies/<study_id>/artifacts/supervision/consumer/<action_type>.json`
@@ -550,9 +550,9 @@ MAS direct/local legacy diagnostic 不再定义外部 scheduler 或 MAS-owned su
 
 - `domain_health_diagnostic` 负责 quest controller scan truth；当前文件路径仍可落在 legacy `domain_health_diagnostic` namespace
 - `artifacts/runtime/health/latest.json` 负责 reducer-owned runtime health truth
-- `runtime_supervision/latest.json` 负责 outer-loop supervision read model，并携带 `runtime_health_epoch`
+- `runtime_supervision/latest.json` 只作为 retired provenance / legacy fixture 读取；当前 runtime live state、attempt 和 provider terminal truth 来自 OPL current_control_state / provider attempt projection
 - `repair_lifecycle/latest.json` 负责投影 AI doctor repair 从 request、diagnosis、repair action 到 apply attempt 的生命周期
-- `artifacts/supervision/hourly/latest.json` 负责跨 study 巡检 action queue 与 why-not-applied 投影
+- `artifacts/supervision/opl_current_control_state/latest.json` 负责跨 study MAS refs-only handoff 与 why-not-applied 投影；OPL 负责把这些 refs hydrate 成 queue/stage attempt/conflict envelope
 - `artifacts/supervision/consumer/latest.json` 与 study-level consumer packets 负责把外层 queue 消费成 request-owner handoff task
 - `default_executor_dispatches/*` 负责把未被 owner 接手的 queue 转成默认 Codex CLI 执行器派单，不承担 publication/AI reviewer output authority
 - `default_executor_execution/latest.json` 负责记录 ready dispatch 的执行尝试、owner callable surface、blocked reason 与 written execution ledger

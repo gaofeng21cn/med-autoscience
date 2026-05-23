@@ -119,16 +119,20 @@ def _flapping_circuit_breaker_report(*, study_root: Path) -> dict[str, Any] | No
     latest_path = (
         Path(study_root).expanduser().resolve()
         / "artifacts"
-        / "runtime"
-        / "runtime_supervision"
+        / "supervision"
+        / "opl_runtime_owner_handoff"
         / "latest.json"
     )
     latest = _read_json_object(latest_path)
     if not latest:
         return None
-    if latest.get("flapping_circuit_breaker") is not True:
+    typed_blocker = latest.get("typed_blocker") if isinstance(latest.get("typed_blocker"), dict) else {}
+    if latest.get("flapping_circuit_breaker") is not True and typed_blocker.get("blocker_type") != "opl_runtime_owner_handoff_required":
         return None
-    if _non_empty_text(latest.get("runtime_stability_status")) != "flapping":
+    if (
+        _non_empty_text(latest.get("runtime_stability_status")) != "flapping"
+        and _non_empty_text(latest.get("status")) != "handoff_required"
+    ):
         return None
     return latest
 

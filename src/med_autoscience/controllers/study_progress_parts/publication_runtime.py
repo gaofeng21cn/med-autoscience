@@ -302,6 +302,31 @@ def _publication_eval_has_closed_ai_reviewer_authority(payload: dict[str, Any] |
     )
 
 
+def _publication_eval_has_ai_reviewer_owner_authority(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, dict):
+        return False
+    if _non_empty_text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    if _non_empty_text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
+        return False
+    if provenance.get("ai_reviewer_required") is not False:
+        return False
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, dict):
+        return False
+    provenance_checks = reviewer_os.get("provenance_checks")
+    if not isinstance(provenance_checks, dict):
+        return False
+    return (
+        _non_empty_text(provenance_checks.get("assessment_owner")) == "ai_reviewer"
+        and provenance_checks.get("ai_reviewer_required") is False
+        and provenance_checks.get("mechanical_projection_used_as_quality_authority") is False
+    )
+
+
 def _gate_report_is_clear_progress_projection(payload: dict[str, Any] | None) -> bool:
     if not isinstance(payload, dict):
         return False
@@ -386,6 +411,12 @@ def _runtime_module_surface(
         dominant_runtime_health_status = "escalated"
     elif runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
         dominant_runtime_health_status = "recovering"
+    elif current_stage == "managed_runtime_recovering":
+        dominant_runtime_health_status = "recovering"
+    elif current_stage == "managed_runtime_degraded":
+        dominant_runtime_health_status = "degraded"
+    elif current_stage == "managed_runtime_escalated":
+        dominant_runtime_health_status = "escalated"
     else:
         dominant_runtime_health_status = None
     runtime_health_status = (
@@ -397,7 +428,6 @@ def _runtime_module_surface(
             _non_empty_text(status.get("runtime_liveness_status")) or "none"
             if manual_finish_active
             else dominant_runtime_health_status
-            or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("health_status"))
             or "unknown"
         )
     )
@@ -406,34 +436,19 @@ def _runtime_module_surface(
         if manual_finish_active or runtime_parked
         else (
             _non_empty_text(execution_owner_guard.get("current_required_action"))
-            or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("next_action"))
         )
     )
     status_summary = (
         current_stage_summary
         if manual_finish_active or runtime_parked
-        else (
-            (
-                None
-                if dominant_runtime_health_status is not None
-                else _display_text((opl_runtime_owner_handoff_payload or {}).get("summary"))
-            )
-            or current_stage_summary
-            or next_system_action
-        )
+        else current_stage_summary
+        or next_system_action
     )
     next_action_summary = (
         next_system_action
         if manual_finish_active or runtime_parked
-        else (
-            (
-                None
-                if dominant_runtime_health_status is not None
-                else _display_text((opl_runtime_owner_handoff_payload or {}).get("next_action_summary"))
-            )
-            or next_system_action
-            or current_stage_summary
-        )
+        else next_system_action
+        or current_stage_summary
     )
     summary = build_runtime_status_summary(
         study_id=study_id,
@@ -461,9 +476,7 @@ def _runtime_module_surface(
         ),
         status_summary=status_summary,
         next_action_summary=next_action_summary,
-        needs_human_intervention=(
-            bool((opl_runtime_owner_handoff_payload or {}).get("needs_human_intervention")) or needs_physician_decision
-        ),
+        needs_human_intervention=needs_physician_decision,
     )
     summary_ref = materialize_runtime_status_summary(study_root=study_root, summary=summary)
     return {
@@ -549,7 +562,7 @@ def _refresh_publication_surfaces_from_gate_report(
         and _non_empty_text(publishability_gate_payload.get("gate_kind")) == "publishability_control"
         and not (
             _gate_report_is_clear_progress_projection(publishability_gate_payload)
-            and _publication_eval_has_closed_ai_reviewer_authority(publication_eval_payload)
+            and _publication_eval_has_ai_reviewer_owner_authority(publication_eval_payload)
         )
         and (
             _timestamp_is_newer(gate_generated_at, eval_emitted_at)

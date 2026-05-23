@@ -17,7 +17,7 @@ def _has_human_admin_marker(blocker: str) -> bool:
 
 def eta_confidence_band(
     *,
-    runtime_transition_summary: Mapping[str, Any],
+    opl_runtime_owner_handoff_summary: Mapping[str, Any],
     gate_blocker_summary: Mapping[str, Any],
     package_currentness: Mapping[str, Any],
     current_state_summary: Mapping[str, Any] | None = None,
@@ -35,22 +35,15 @@ def eta_confidence_band(
             "max_seconds": None,
             "reason": "The study is parked at an auto-runtime handoff state; historical runtime churn in the window should not drive an autonomous completion ETA.",
         }
-    current_runtime_health_status = (
-        str(current_state_summary.get("runtime_health_status") or "").strip()
-        if isinstance(current_state_summary, Mapping)
-        else ""
-    )
-    health_counts = runtime_transition_summary.get("health_status_counts")
-    if current_runtime_health_status != "live" and isinstance(health_counts, Mapping) and any(
-        int(health_counts.get(status) or 0) > 0 for status in ("recovering", "degraded", "escalated")
-    ):
+    status_counts = opl_runtime_owner_handoff_summary.get("status_counts")
+    if isinstance(status_counts, Mapping) and int(status_counts.get("handoff_required") or 0) > 0:
         return {
-            "classification": "runtime_recovering",
-            "label": "runtime recovering",
-            "confidence": "medium",
-            "min_seconds": 1800,
-            "max_seconds": 3600,
-            "reason": "Runtime needs a live confirmation before downstream controller dispatch is reliable.",
+            "classification": "opl_handoff_required",
+            "label": "OPL handoff required",
+            "confidence": "blocked",
+            "min_seconds": None,
+            "max_seconds": None,
+            "reason": "MAS has emitted a refs-only owner handoff; OPL current_control_state must hydrate the next stage attempt, typed blocker, or human gate.",
         }
     if gate_blocker_summary.get("actionability_status") == "blocked_by_non_actionable_gate":
         return {

@@ -102,7 +102,7 @@ def test_supervisor_only_and_downstream_bundle_block_define_allowed_actions(tmp_
     module.append_truth_event(
         study_root=study_root,
         study_id="003-dpcc",
-        event_type="runtime_supervision_tick",
+        event_type="opl_runtime_owner_handoff",
         payload={
             "execution_owner_guard": {
                 "supervisor_only": True,
@@ -128,13 +128,14 @@ def test_supervisor_only_and_downstream_bundle_block_define_allowed_actions(tmp_
 
     snapshot = module.rebuild_truth_snapshot(study_root=study_root, study_id="003-dpcc")
 
-    assert snapshot["execution_owner"]["owner"] == "managed_runtime"
-    assert snapshot["execution_owner"]["supervisor_only"] is True
-    assert snapshot["canonical_next_action"] == "supervise_runtime"
+    assert snapshot["execution_owner"]["owner"] == "one-person-lab"
+    assert snapshot["execution_owner"]["runtime_control_owner"] == "one-person-lab"
+    assert snapshot["execution_owner"]["mas_role"] == "domain_authority_refs_only"
+    assert snapshot["canonical_next_action"] == "request_opl_handoff_hydration"
     assert "direct_paper_line_write" not in snapshot["allowed_controller_actions"]
     assert "direct_bundle_build" not in snapshot["allowed_controller_actions"]
     assert snapshot["blocking_reasons"] == [
-        "execution_owner_guard.supervisor_only",
+        "opl_current_control_state.handoff_required",
         "publication_supervisor_state.bundle_tasks_downstream_only",
     ]
 
@@ -249,7 +250,7 @@ def test_status_payload_can_derive_shadow_truth_snapshot_without_writing_latest(
         recorded_at="2026-05-01T00:00:00+00:00",
     )
 
-    assert snapshot["canonical_next_action"] == "supervise_runtime"
+    assert snapshot["canonical_next_action"] == "request_opl_handoff_hydration"
     assert snapshot["truth_epoch"] == snapshot["authority_epoch"]
     assert snapshot["event_count"] == 3
     assert snapshot["writer_epoch"] == "writer::run-d80c4a5e"
@@ -299,12 +300,12 @@ def test_reconcile_materializes_status_events_once_per_source_signature(tmp_path
     assert second["appended_event_count"] == 0
     assert event_types == [
         "runtime_native_event",
-        "runtime_supervision_tick",
+        "opl_runtime_owner_handoff",
         "writer_lock_acquired",
         "package_authority_eval",
     ]
     assert all(event.get("source_signature") for event in events)
-    assert first["snapshot"]["canonical_next_action"] == "supervise_runtime"
+    assert first["snapshot"]["canonical_next_action"] == "request_opl_handoff_hydration"
     assert first["snapshot"]["package_state"]["authority_state"] == "provisionally_current_for_epoch"
     assert first["snapshot"]["writer_epoch"] == "writer::run-e52f5574"
     assert Path(first["snapshot_path"]).exists()
@@ -350,7 +351,7 @@ def test_supervisor_tick_source_signature_ignores_read_time_age(tmp_path: Path) 
     assert second["appended_event_count"] == 0
     assert [event["event_type"] for event in module.read_truth_events(study_root=study_root)] == [
         "runtime_native_event",
-        "runtime_supervision_tick",
+        "opl_runtime_owner_handoff",
     ]
 
 
@@ -425,7 +426,7 @@ def test_legacy_reviewer_revision_task_intake_dominates_runtime_tick(tmp_path: P
 
     assert [event["event_type"] for event in module.read_truth_events(study_root=study_root)] == [
         "runtime_native_event",
-        "runtime_supervision_tick",
+        "opl_runtime_owner_handoff",
         "task_intake",
     ]
     assert result["snapshot"]["canonical_next_action"] == "resume_same_study_line"

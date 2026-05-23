@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -13,16 +12,22 @@ def _text_list(value: object) -> list[str]:
     return [text for item in value if (text := str(item or "").strip())]
 
 
-def _read_json_mapping(path: Path) -> dict[str, Any] | None:
-    if not path.exists():
-        return None
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8")) or {}
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(payload, dict):
-        return None
-    return dict(payload)
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _external_submission_metadata_pending(payload: Mapping[str, Any] | None) -> bool:
+    if not isinstance(payload, Mapping):
+        return False
+    state = _text(
+        payload.get("submission_metadata_state")
+        or payload.get("external_submission_metadata_state")
+        or payload.get("metadata_state")
+    )
+    if state in {"pending", "required", "missing", "external_metadata_pending"}:
+        return True
+    return payload.get("external_submission_metadata_pending") is True
 
 
 def publishability_gate_is_clear(payload: Mapping[str, Any] | None) -> bool:
@@ -38,24 +43,6 @@ def current_state_summary(
     study_root: Path,
     publishability_gate_latest: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    latest_runtime_supervision = _read_json_mapping(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
-    )
-    runtime_reason = (
-        str((latest_runtime_supervision or {}).get("runtime_reason") or "").strip()
-        if isinstance(latest_runtime_supervision, Mapping)
-        else ""
-    )
-    runtime_health_status = (
-        str((latest_runtime_supervision or {}).get("health_status") or "").strip()
-        if isinstance(latest_runtime_supervision, Mapping)
-        else ""
-    )
-    runtime_decision = (
-        str((latest_runtime_supervision or {}).get("runtime_decision") or "").strip()
-        if isinstance(latest_runtime_supervision, Mapping)
-        else ""
-    )
     supervisor_phase = (
         str((publishability_gate_latest or {}).get("supervisor_phase") or "").strip()
         if isinstance(publishability_gate_latest, Mapping)
@@ -67,36 +54,29 @@ def current_state_summary(
         else ""
     )
     if (
-        runtime_reason == "quest_waiting_for_submission_metadata"
-        and runtime_decision in {"blocked", "pause", ""}
-        and publishability_gate_is_clear(publishability_gate_latest)
+        publishability_gate_is_clear(publishability_gate_latest)
         and supervisor_phase == "bundle_stage_ready"
         and current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}
+        and _external_submission_metadata_pending(publishability_gate_latest)
     ):
+        domain_reason = "quest_waiting_for_submission_metadata"
+        domain_decision = "blocked"
         parked = auto_runtime_parking.build_auto_runtime_parked_projection(
             {
-                "reason": runtime_reason,
-                "decision": runtime_decision,
-                "runtime_reason": runtime_reason,
-                "runtime_decision": runtime_decision,
+                "reason": domain_reason,
+                "decision": domain_decision,
             }
         )
         return {
             "state": "auto_runtime_parked",
             "auto_runtime_parked": parked,
             "parked_state": parked.get("parked_state"),
-            "runtime_health_status": runtime_health_status or None,
-            "runtime_reason": runtime_reason,
-            "runtime_decision": runtime_decision or None,
             "supervisor_phase": supervisor_phase,
             "current_required_action": current_required_action,
             "summary": parked.get("summary") or "Current status is parked at a submission handoff state.",
         }
     return {
         "state": "active_or_unresolved",
-        "runtime_health_status": runtime_health_status or None,
-        "runtime_reason": runtime_reason or None,
-        "runtime_decision": runtime_decision or None,
         "supervisor_phase": supervisor_phase or None,
         "current_required_action": current_required_action or None,
     }

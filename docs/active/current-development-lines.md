@@ -112,7 +112,7 @@ OPL 层面的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/docs/ac
 | Runtime lifecycle Git-era cleanup 作为活跃大迁移 | 已落地。新发现问题按 P3a drift/maintenance 处理，除非证明有 live writer regression。 |
 | Local Portal / Live Console 作为最终主产品面 | OPL App workbench 成为主用户面后，local Portal / Live Console 降级为 diagnostic/debug/evidence。 |
 | 依赖 Markdown wording 的测试或脚本 | 方向无效。机器接口应使用 schema、JSON、CLI/API payload、manifest 或 durable semantic ID。 |
-| Workspace-local `install/watch/uninstall-watch-runtime-service` wrapper | 已退役。新 workspace 不生成，旧 workspace 重跑 `init-workspace` 时删除旧生成物；scheduler 生命周期只走 canonical runtime CLI。 |
+| Workspace-local `install/watch/uninstall-watch-runtime-service` wrapper | 已退役。新 workspace 不生成，旧 workspace 重跑 `init-workspace` 时删除旧生成物；scheduler 生命周期只读 OPL `current_control_state` / provider attempt ledger，MAS 不再保留 runtime-supervision compatibility CLI。 |
 
 ## 合并与吸收规则
 

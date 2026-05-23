@@ -57,9 +57,10 @@
     "outer-supervision-slo": {
       "kind": "focused_outer_supervision_slo_contract_gate",
       "paths": [
-        "tests/test_domain_slo_scheduler_projection.py",
+        "tests/test_opl_unique_control_plane_boundary.py",
         "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_opl_runtime_contract.py",
+        "tests/test_runtime_supervision.py",
         "tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py",
         "tests/test_domain_health_diagnostic.py",
         "tests/test_study_progress.py",
@@ -120,7 +121,7 @@
       "paths": [
         "tests/test_autonomy_ai_doctor.py",
         "tests/test_runtime_health_kernel.py",
-        "tests/test_domain_slo_scheduler_projection.py",
+        "tests/test_opl_unique_control_plane_boundary.py",
         "tests/test_owner_route_reconcile.py",
         "tests/test_opl_runtime_contract.py",
         "tests/test_opl_runtime_contract_no_provider_backend.py"
@@ -254,7 +255,7 @@
       "kind": "focused_mas_functional_consumer_boundary_gate",
       "paths": [
         "tests/test_test_lane_governance.py",
-        "tests/test_domain_slo_scheduler_projection.py",
+        "tests/test_opl_unique_control_plane_boundary.py",
         "tests/test_product_entry.py",
         "tests/test_cli_cases/owner_route_handoff_command.py"
       ],
@@ -1006,7 +1007,7 @@
         "sidecar_export.functional_consumer_boundary.declarative_pack_compiler_input",
         "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
         "sidecar_export.functional_consumer_boundary.minimal_authority_function_manifest",
-        "domain_slo_scheduler_projection.consumer_migration.functional_consumer_boundary",
+        "opl_unique_control_plane_boundary.consumer_migration.functional_consumer_boundary",
         "family_contract_adoption.runtime_observability_export"
       ],
       "opl_functional_harness_consumer_coverage": {
@@ -1640,8 +1641,8 @@
           "owner": "med-autoscience",
           "classification": "declarative_pack_generated_surface",
           "code_paths": [
-            "src/med_autoscience/controllers/domain_slo_scheduler_projection.py",
-            "src/med_autoscience/controllers/domain_slo_scheduler_projection_parts/"
+            "src/med_autoscience/controllers/opl_unique_control_plane_boundary.py",
+            "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
           ],
           "domain_ref_consumers": [
             "OPL current_control_state refs-only read model"
@@ -1846,9 +1847,12 @@
       "kind": "focused_paper_progress_degradation_closeout_gate",
       "paths": [
         "tests/test_mds_capability_parity.py",
+        "tests/test_study_runtime_execution_evidence_adoption_cases/test_no_resurrection_boundary.py",
+        "tests/owner_route_reconcile_cases/test_non_persistent_projection.py",
         "tests/owner_route_reconcile_cases/test_control_surface_artifact_delta.py",
         "tests/test_domain_owner_action_dispatch.py",
-        "tests/test_study_runtime_execution_evidence_adoption_cases/test_no_resurrection_boundary.py",
+        "tests/test_opl_runtime_contract.py",
+        "tests/test_runtime_supervision.py",
         "tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py",
         "tests/test_domain_health_diagnostic.py",
         "tests/test_cli_cases/owner_route_reconcile_command.py",

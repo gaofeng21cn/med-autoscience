@@ -26,7 +26,7 @@ from med_autoscience.cli_parts.product_entry_commands import handle_product_entr
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
-from med_autoscience.cli_parts.watch_supervision_commands import handle_watch_supervision_command
+from med_autoscience.cli_parts.domain_health_diagnostic_commands import handle_domain_health_diagnostic_command
 from med_autoscience.cli_parts.workbench_commands import handle_workbench_command
 from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
 
@@ -545,14 +545,14 @@ def main(argv: list[str] | None = None) -> int:
     if product_entry_result is not None:
         return product_entry_result
 
-    watch_supervision_result = handle_watch_supervision_command(
+    domain_health_diagnostic_result = handle_domain_health_diagnostic_command(
         args,
         parser=parser,
         domain_health_diagnostic=domain_health_diagnostic,
         load_profile=load_profile,
     )
-    if watch_supervision_result is not None:
-        return watch_supervision_result
+    if domain_health_diagnostic_result is not None:
+        return domain_health_diagnostic_result
 
     if args.command == "owner-route-reconcile":
         profile = load_profile(args.profile)
@@ -633,6 +633,11 @@ def main(argv: list[str] | None = None) -> int:
             profile_paths=tuple(args.profiles or ()),
             study_ids=tuple(args.studies or ()),
         )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "ensure-analysis-bundle":
+        result = analysis_bundle_controller.ensure_analysis_bundle()
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

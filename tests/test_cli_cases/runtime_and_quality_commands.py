@@ -110,39 +110,48 @@ def test_removed_flat_backend_audit_old_name_is_removed(capsys) -> None:
     assert excinfo.value.code == 2
     assert "invalid choice" in captured.err
     assert removed_command in captured.err
-def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_removed_grouped_ensure_runtime_command_is_removed(tmp_path: Path) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `study`\.$"):
+        cli.main(["study", "ensure-runtime", "--profile", str(profile_path), "--study-id", "001-risk"])
+
+
+def test_launch_study_command_dispatches_product_entry(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_ensure(
+    def fake_launch_study(
         *,
         profile,
+        profile_ref: Path,
         study_id: str | None,
         study_root: Path | None,
         entry_mode: str | None,
         allow_stopped_relaunch: bool,
         explicit_user_wakeup: bool,
         force: bool,
-        source: str,
     ) -> dict:
         called["profile"] = profile
+        called["profile_ref"] = profile_ref
         called["study_id"] = study_id
         called["study_root"] = study_root
         called["entry_mode"] = entry_mode
         called["allow_stopped_relaunch"] = allow_stopped_relaunch
         called["explicit_user_wakeup"] = explicit_user_wakeup
         called["force"] = force
-        called["source"] = source
-        return {"decision": "create_and_start", "study_id": study_id, "quest_id": study_id}
+        return {"surface": "launch_study", "study_id": study_id, "quest_id": study_id}
 
-    monkeypatch.setattr(cli.domain_status_projection, "ensure_study_runtime", fake_ensure)
+    monkeypatch.setattr(cli.product_entry, "launch_study", fake_launch_study)
+    monkeypatch.setattr(cli.product_entry, "render_launch_study_markdown", lambda payload: json.dumps(payload))
 
     exit_code = cli.main(
         [
-            "study",
-            "ensure-runtime",
+            "launch-study",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -151,64 +160,22 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
             "full_research",
             "--allow-stopped-relaunch",
             "--force",
+            "--format",
+            "json",
         ]
     )
     captured = capsys.readouterr()
 
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == profile_path
     assert called["study_id"] == "001-risk"
     assert called["study_root"] is None
     assert called["entry_mode"] == "full_research"
     assert called["allow_stopped_relaunch"] is True
     assert called["explicit_user_wakeup"] is False
     assert called["force"] is True
-    assert called["source"] == "cli"
-    assert '"decision": "create_and_start"' in captured.out
-def test_ensure_study_runtime_command_serializes_typed_controller_result(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-
-    monkeypatch.setattr(
-        cli.domain_status_projection,
-        "ensure_study_runtime",
-        lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
-            {
-                "schema_version": 1,
-                "study_id": "001-risk",
-                "study_root": "/tmp/studies/001-risk",
-                "entry_mode": "full_research",
-                "execution": {"quest_id": "001-risk", "auto_resume": True},
-                "quest_id": "001-risk",
-                "quest_root": "/tmp/runtime/quests/001-risk",
-                "quest_exists": True,
-                "quest_status": "created",
-                "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
-                "runtime_binding_exists": True,
-                "study_completion_contract": {},
-                "decision": "create_and_start",
-                "reason": "quest_missing",
-            }
-        ),
-    )
-
-    exit_code = cli.main(
-        [
-            "study",
-            "ensure-runtime",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            "001-risk",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert '"decision": "create_and_start"' in captured.out
-    assert '"study_id": "001-risk"' in captured.out
+    assert '"surface": "launch_study"' in captured.out
 def test_progress_projection_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -417,7 +384,7 @@ def test_study_profile_cycle_command_dispatches_profiler(monkeypatch, tmp_path: 
             "quest_root": str(profile.runtime_root / "quest-001"),
             "profiling_window": {"since": since},
             "category_windows": {},
-            "runtime_transition_summary": {},
+            "opl_runtime_owner_handoff_summary": {},
             "controller_decision_fingerprints": {"top_repeats": []},
             "gate_blocker_summary": {"current_blockers": []},
             "package_currentness": {"status": "fresh"},
@@ -526,8 +493,7 @@ def test_workspace_profile_cycles_command_dispatches_profiler(monkeypatch, tmp_p
             "study_count": 0,
             "workspace_totals": {
                 "repeated_controller_dispatch_count": 0,
-                "runtime_recovery_churn_count": 0,
-                "runtime_flapping_transition_count": 0,
+                "opl_runtime_owner_handoff_required_count": 0,
                 "package_stale_seconds": 0,
             },
             "studies": [],

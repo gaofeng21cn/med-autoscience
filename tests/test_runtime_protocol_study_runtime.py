@@ -115,10 +115,13 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
     assert payload == {
         "schema_version": 1,
-        "engine": "opl-provider-backed-stage-runtime",
-        "runtime_backend_id": "opl_provider_backed_stage_runtime",
-        "runtime_backend": "opl_provider_backed_stage_runtime",
-        "runtime_engine_id": "opl-provider-backed-stage-runtime",
+        "engine": "opl-hosted-stage-runtime",
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "runtime_substrate": "opl_hosted_stage_runtime",
+        "opl_runtime_ref": "opl_hosted_stage_runtime",
+        "runtime_ref": "opl_hosted_stage_runtime",
+        "runtime_engine_id": "opl-hosted-stage-runtime",
         "research_backend_id": "mas_domain_intent_adapter",
         "research_backend": "mas_domain_intent_adapter",
         "research_engine_id": "mas-domain-intent-adapter",
@@ -145,7 +148,7 @@ def test_write_runtime_binding_rejects_retired_mas_runtime_core_backend_metadata
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     binding_path = study_root / "runtime_binding.yaml"
 
-    with pytest.raises(ValueError, match="unknown managed runtime backend in binding request: mas_runtime_core"):
+    with pytest.raises(ValueError, match="OPL owns runtime hydration"):
         module.write_runtime_binding(
             runtime_binding_path=binding_path,
             runtime_root=runtime_root,
@@ -155,8 +158,7 @@ def test_write_runtime_binding_rejects_retired_mas_runtime_core_backend_metadata
             last_action="resume",
             source="test-source",
             recorded_at="2026-04-11T12:00:00+00:00",
-            runtime_backend_id="mas_runtime_core",
-            runtime_engine_id="mas-runtime-core",
+            opl_runtime_ref="mas_runtime_core",
         )
 
 
@@ -180,22 +182,24 @@ def test_write_runtime_binding_records_domain_intent_adapter_metadata_for_opl_pr
     )
 
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
-    assert payload["runtime_backend_id"] == "opl_provider_backed_stage_runtime"
-    assert payload["runtime_backend"] == "opl_provider_backed_stage_runtime"
-    assert payload["runtime_engine_id"] == "opl-provider-backed-stage-runtime"
+    assert payload["opl_runtime_ref"] == "opl_hosted_stage_runtime"
+    assert payload["runtime_ref"] == "opl_hosted_stage_runtime"
+    assert payload["runtime_engine_id"] == "opl-hosted-stage-runtime"
+    assert "runtime_backend_id" not in payload
+    assert "runtime_backend" not in payload
     assert payload["research_backend_id"] == "mas_domain_intent_adapter"
     assert payload["research_backend"] == "mas_domain_intent_adapter"
     assert payload["research_engine_id"] == "mas-domain-intent-adapter"
 
 
-def test_runtime_binding_backend_metadata_rejects_explicit_mas_runtime_core_backend() -> None:
+def test_runtime_binding_opl_metadata_rejects_explicit_mas_runtime_core_backend() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
-    with pytest.raises(ValueError, match="unknown managed runtime backend in status execution: mas_runtime_core"):
-        module._runtime_binding_backend_metadata(
+    with pytest.raises(ValueError, match="OPL owns runtime hydration"):
+        module._runtime_binding_opl_metadata(
             {
                 "execution": {
-                    "runtime_backend_id": "mas_runtime_core",
+                    "opl_runtime_ref": "mas_runtime_core",
                     "runtime_engine_id": "mas-runtime-core",
                     "auto_entry": "on_managed_research_intent",
                 }
@@ -203,15 +207,15 @@ def test_runtime_binding_backend_metadata_rejects_explicit_mas_runtime_core_back
         )
 
 
-def test_runtime_binding_backend_metadata_rejects_retired_hermes_substrate_for_legacy_med_deepscientist_execution() -> None:
+def test_runtime_binding_opl_metadata_rejects_retired_hermes_substrate_for_legacy_med_deepscientist_execution() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
-    with pytest.raises(ValueError, match="unknown managed runtime backend in status execution: hermes"):
-        module._runtime_binding_backend_metadata(
+    with pytest.raises(ValueError, match="OPL owns runtime hydration"):
+        module._runtime_binding_opl_metadata(
             {
                 "execution": {
                     "engine": "med-deepscientist",
-                    "runtime_backend_id": "hermes",
+                    "opl_runtime_ref": "hermes",
                     "runtime_engine_id": "hermes",
                     "research_backend_id": "med_deepscientist",
                     "research_engine_id": "med-deepscientist",
@@ -670,7 +674,7 @@ def test_write_study_decision_record_persists_study_local_artifact_and_latest_po
             requires_human_confirmation=False,
             controller_actions=(
                 decision_module.StudyDecisionControllerAction(
-                    action_type="ensure_study_runtime",
+                    action_type="request_opl_stage_attempt",
                     payload_ref=str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 ),
             ),

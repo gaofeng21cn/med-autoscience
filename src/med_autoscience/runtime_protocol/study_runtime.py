@@ -89,9 +89,20 @@ def _launch_report_runtime_projection(status: dict[str, Any]) -> dict[str, Any]:
         else {}
     )
     supervisor_tick_audit = status.get("supervisor_tick_audit")
+    opl_control = (
+        dict(status.get("opl_current_control_state"))
+        if isinstance(status.get("opl_current_control_state"), dict)
+        else (
+            dict(status.get("current_control_state"))
+            if isinstance(status.get("current_control_state"), dict)
+            else {}
+        )
+    )
     runtime_liveness_status = (
         str(
-            status.get("runtime_liveness_status")
+            opl_control.get("status")
+            or opl_control.get("state")
+            or status.get("runtime_liveness_status")
             or (runtime_liveness_audit.get("status") if isinstance(runtime_liveness_audit, dict) else None)
             or ""
         ).strip()
@@ -99,7 +110,8 @@ def _launch_report_runtime_projection(status: dict[str, Any]) -> dict[str, Any]:
     )
     observed_active_run_id = (
         str(
-            status.get("active_run_id")
+            opl_control.get("active_run_id")
+            or status.get("active_run_id")
             or (runtime_liveness_audit.get("active_run_id") if isinstance(runtime_liveness_audit, dict) else None)
             or runtime_audit.get("active_run_id")
             or ""
@@ -114,7 +126,20 @@ def _launch_report_runtime_projection(status: dict[str, Any]) -> dict[str, Any]:
     )
     strict_live_active_run_id = (
         observed_active_run_id
-        if runtime_liveness_status == "live" and observed_active_run_id is not None and worker_running is True
+        if (
+            (
+                bool(opl_control)
+                and runtime_liveness_status
+                in {"attempt_running", "provider_admitted", "running", "live"}
+                and observed_active_run_id is not None
+            )
+            or (
+                not opl_control
+                and runtime_liveness_status == "live"
+                and observed_active_run_id is not None
+                and worker_running is True
+            )
+        )
         else None
     )
     return {
@@ -139,10 +164,11 @@ def _runtime_binding_opl_metadata(status: dict[str, Any]) -> tuple[str, str]:
         opl_runtime_contract.explicit_opl_runtime_ref(execution_mapping)
         or opl_runtime_contract.OPL_HOSTED_STAGE_RUNTIME_ID
     )
+    expected_runtime_engine_id = opl_runtime_contract.engine_id_for_runtime_ref(runtime_ref)
     runtime_engine_id = str(
         (execution_mapping or {}).get("runtime_engine_id")
         or (execution_mapping or {}).get("engine")
-        or opl_runtime_contract.engine_id_for_runtime_ref(runtime_ref)
+        or expected_runtime_engine_id
     ).strip()
     if not runtime_engine_id:
         raise ValueError(f"OPL runtime ref `{runtime_ref}` is missing runtime_engine_id")

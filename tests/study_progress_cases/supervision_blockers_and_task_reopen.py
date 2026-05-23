@@ -81,7 +81,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
 
     result = module.read_study_progress(profile=profile, study_id="001-risk", profile_ref=profile_ref)
 
-    assert result["current_stage"] == "managed_runtime_supervision_gap"
+    assert result["current_stage"] == "managed_opl_runtime_owner_handoff_gap"
     assert result["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
     assert result["intervention_lane"]["recommended_action_id"] == "refresh_supervision"
     assert result["operator_verdict"] == {
@@ -102,7 +102,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
             + str(profile.runtime_root)
             + " --profile "
             + str(profile_ref.resolve())
-            + " --ensure-supervisions --request-opl-owner-route-reconcile --apply"
+            + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
         ),
     }
     assert result["recommended_command"].endswith(
@@ -110,7 +110,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         + str(profile.runtime_root)
         + " --profile "
         + str(profile_ref.resolve())
-        + " --ensure-supervisions --request-opl-owner-route-reconcile --apply"
+        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
     )
     assert result["recommended_commands"][0]["step_id"] == "refresh_supervision"
     assert result["recovery_contract"]["action_mode"] == "refresh_supervision"

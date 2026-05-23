@@ -42,7 +42,7 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
     )
     monkeypatch.setattr(
         module.domain_status_projection,
-        "ensure_study_runtime",
+        "request_opl_stage_attempt",
         lambda **kwargs: (
             seen.setdefault("ensure_kwargs", kwargs),
             {
@@ -62,7 +62,7 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
         requires_human_confirmation=False,
         controller_actions=[
             {
-                "action_type": "ensure_study_runtime_relaunch_stopped",
+                "action_type": "request_opl_stage_attempt_relaunch",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -79,7 +79,7 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
         "source": "test-source",
         "allow_stopped_relaunch": True,
     }
-    assert result["executed_controller_action"]["action_type"] == "ensure_study_runtime_relaunch_stopped"
+    assert result["executed_controller_action"]["action_type"] == "request_opl_stage_attempt_relaunch"
     assert result["executed_controller_action"]["result"] == {
         "decision": "relaunch_stopped",
         "reason": "quest_stopped_explicit_relaunch_requested",
@@ -172,7 +172,7 @@ def test_build_domain_health_diagnostic_outer_loop_tick_request_materializes_bou
     assert request["requires_human_confirmation"] is False
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime_relaunch_stopped",
+            "action_type": "request_opl_stage_attempt_relaunch",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
@@ -294,7 +294,7 @@ def test_domain_health_diagnostic_outer_loop_prefers_active_task_intake_analysis
     assert request["route_key_question"] == "价格顾虑有/无分层的生物制剂使用结构比较表与统计检验结果。"
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "request_opl_stage_attempt",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
@@ -570,8 +570,8 @@ def test_domain_health_diagnostic_outer_loop_routes_deterministic_closeout_befor
 @pytest.mark.parametrize(
     ("status_reason", "expected_action_type"),
     [
-        ("publication_quality_gap", "ensure_study_runtime"),
-        ("quest_stopped_requires_explicit_rerun", "ensure_study_runtime_relaunch_stopped"),
+        ("publication_quality_gap", "request_opl_stage_attempt"),
+        ("quest_stopped_requires_explicit_rerun", "request_opl_stage_attempt_relaunch"),
     ],
 )
 def test_build_domain_health_diagnostic_outer_loop_tick_request_materializes_route_back_same_line(
@@ -735,7 +735,7 @@ def test_build_domain_health_diagnostic_outer_loop_tick_request_falls_back_to_qu
     assert request["decision_type"] == "route_back_same_line"
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "request_opl_stage_attempt",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]

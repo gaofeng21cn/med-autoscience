@@ -9,19 +9,19 @@ def _truth_snapshot() -> dict[str, object]:
         "surface": "study_truth_snapshot",
         "truth_epoch": "truth-event-000004-live",
         "authority_epoch": "truth-event-000004-live",
-        "canonical_next_action": "supervise_runtime",
+        "canonical_next_action": "request_opl_handoff_hydration",
         "blocking_reasons": [
-            "execution_owner_guard.supervisor_only",
+            "opl_current_control_state.handoff_required",
             "publication_supervisor_state.bundle_tasks_downstream_only",
         ],
         "dominant_authority_refs": [
             {
                 "event_id": "truth-event-000004-live",
-                "event_type": "runtime_supervision_tick",
+                "event_type": "opl_runtime_owner_handoff",
                 "recorded_at": "2026-05-01T00:00:00+00:00",
             }
         ],
-        "allowed_controller_actions": ["read_runtime_status", "open_monitoring_entry"],
+        "allowed_controller_actions": ["read_opl_current_control_state", "open_monitoring_entry"],
         "package_state": {
             "authority_state": "provisionally_current_for_epoch",
             "writer_epoch": "writer::run-e52f5574",
@@ -35,24 +35,24 @@ def _truth_snapshot() -> dict[str, object]:
 def _authority_snapshot() -> dict[str, object]:
     return {
         "surface": "authority_snapshot",
-        "control_state": "supervisor_gated",
-        "canonical_next_action": "supervise_runtime",
-        "canonical_runtime_action": "continue_supervising_runtime",
+        "control_state": "opl_handoff_required",
+        "canonical_next_action": "request_opl_handoff_hydration",
+        "canonical_runtime_action": "request_opl_handoff_hydration",
         "dispatch_gate": {
             "state": "blocked",
             "dispatch_allowed": False,
-            "blocking_reasons": ["execution_owner_guard.supervisor_only"],
+            "blocking_reasons": ["opl_current_control_state.handoff_required"],
         },
         "route_authorization": {
             "authorized": False,
             "paper_write_allowed": False,
             "bundle_build_allowed": False,
         },
-        "blocking_reasons": ["execution_owner_guard.supervisor_only"],
-        "allowed_controller_actions": ["read_runtime_status", "open_monitoring_entry"],
+        "blocking_reasons": ["opl_current_control_state.handoff_required"],
+        "allowed_controller_actions": ["read_opl_current_control_state", "open_monitoring_entry"],
         "authority_refs": {
             "study_truth": {"epoch": "truth-event-000004-live"},
-            "runtime_health": {"epoch": "runtime-health-event-000004-live"},
+            "opl_current_control_state": {"epoch": "opl-current-control-state-event-000004-live"},
         },
     }
 
@@ -118,7 +118,7 @@ def test_current_write_routeback_overrides_stale_progress_run_and_package_handof
                 "decision_type": "route_back_same_line",
                 "route_target": "write",
                 "owner": "write",
-                "controller_action": "ensure_study_runtime",
+                "controller_action": "request_opl_stage_attempt",
                 "next_work_unit": {
                     "unit_id": "dm002_same_line_publication_paper_repair",
                     "lane": "write",
@@ -129,7 +129,7 @@ def test_current_write_routeback_overrides_stale_progress_run_and_package_handof
                 "truth_epoch": "truth-event-dm002-write-route",
                 "source_signature": "truth-source-dm002-write-route",
             },
-            "current_stage": "managed_runtime_supervision_gap",
+            "current_stage": "opl_current_control_state_handoff_required",
             "paper_stage": "publishability_gate_blocked",
             "paper_progress_stall": {
                 "state": "blocked_controller_route",
@@ -174,7 +174,7 @@ def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> Non
         {
             "study_id": "003-dpcc",
             "truth_epoch": "truth-event-000004-live",
-            "current_stage": "runtime_supervision",
+            "current_stage": "opl_current_control_state_handoff",
             "study_truth_snapshot": _truth_snapshot(),
             "authority_snapshot": _authority_snapshot(),
             "refs": {"study_truth_snapshot_path": "/workspace/studies/003/artifacts/truth/latest.json"},
@@ -185,19 +185,19 @@ def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> Non
     assert compact["study_truth_snapshot"] == {
         "truth_epoch": "truth-event-000004-live",
         "authority_epoch": "truth-event-000004-live",
-        "canonical_next_action": "supervise_runtime",
+        "canonical_next_action": "request_opl_handoff_hydration",
         "blocking_reasons": [
-            "execution_owner_guard.supervisor_only",
+            "opl_current_control_state.handoff_required",
             "publication_supervisor_state.bundle_tasks_downstream_only",
         ],
         "dominant_authority_refs": [
             {
                 "event_id": "truth-event-000004-live",
-                "event_type": "runtime_supervision_tick",
+                "event_type": "opl_runtime_owner_handoff",
                 "recorded_at": "2026-05-01T00:00:00+00:00",
             }
         ],
-        "allowed_controller_actions": ["read_runtime_status", "open_monitoring_entry"],
+        "allowed_controller_actions": ["read_opl_current_control_state", "open_monitoring_entry"],
         "package_state": {
             "authority_state": "provisionally_current_for_epoch",
             "writer_epoch": "writer::run-e52f5574",
@@ -206,7 +206,7 @@ def test_mcp_progress_compact_projection_carries_truth_snapshot_summary() -> Non
         "writer_epoch": "writer::run-e52f5574",
         "source_signature": "truth-snapshot::abc",
     }
-    assert compact["authority_snapshot"]["control_state"] == "supervisor_gated"
+    assert compact["authority_snapshot"]["control_state"] == "opl_handoff_required"
     assert compact["authority_snapshot"]["dispatch_gate"]["state"] == "blocked"
 
 
@@ -267,8 +267,8 @@ def test_workspace_cockpit_study_item_carries_truth_snapshot_summary() -> None:
     )
 
     assert item["truth_epoch"] == "truth-event-000004-live"
-    assert item["authority_snapshot"]["control_state"] == "supervisor_gated"
-    assert item["study_truth_snapshot"]["canonical_next_action"] == "supervise_runtime"
+    assert item["authority_snapshot"]["control_state"] == "opl_handoff_required"
+    assert item["study_truth_snapshot"]["canonical_next_action"] == "request_opl_handoff_hydration"
     assert item["study_truth_snapshot"]["package_state"]["authority_state"] == "provisionally_current_for_epoch"
     assert item["study_macro_state"]["writer_state"] == "live"
     assert item["study_macro_state"]["user_next"] == "watch"
@@ -326,9 +326,9 @@ def test_domain_health_diagnostic_managed_study_action_carries_truth_snapshot_su
     )
 
     assert action["truth_epoch"] == "truth-event-000004-live"
-    assert action["study_truth_snapshot"]["canonical_next_action"] == "supervise_runtime"
+    assert action["study_truth_snapshot"]["canonical_next_action"] == "request_opl_handoff_hydration"
     assert action["study_truth_snapshot"]["allowed_controller_actions"] == [
-        "read_runtime_status",
+        "read_opl_current_control_state",
         "open_monitoring_entry",
     ]
 

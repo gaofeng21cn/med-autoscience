@@ -120,7 +120,7 @@ def _study_item(
     product_recommended_flow = dict(progress_payload.get("product_recommended_flow") or {})
     paper_orchestra_operator_projection = dict(progress_payload.get("paper_orchestra_operator_projection") or {})
     open_auto_research_state = dict(progress_payload.get("open_auto_research_projection") or {})
-    portable_supervisor_dashboard = dict(progress_payload.get("portable_supervisor_dashboard") or {})
+    opl_current_control_state_handoff = dict(progress_payload.get("opl_current_control_state_handoff") or {})
     pi_action_projection = _normalized_pi_action_projection(progress_payload)
     medical_paper_readiness_surface = _normalized_medical_paper_readiness_projection(
         progress_payload.get("medical_paper_readiness")
@@ -236,7 +236,7 @@ def _study_item(
         "product_recommended_flow": product_recommended_flow or None,
         "paper_orchestra_operator_projection": paper_orchestra_operator_projection or None,
         "open_auto_research_projection": open_auto_research_state or None,
-        "portable_supervisor_dashboard": portable_supervisor_dashboard or None,
+        "opl_current_control_state_handoff": opl_current_control_state_handoff or None,
         "pi_action_projection": pi_action_projection,
         "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
@@ -264,7 +264,7 @@ from .readiness_and_delivery import (
     _read_medical_paper_readiness_projection,
     _workspace_delivery_inspection_state,
     _workspace_medical_paper_readiness_state,
-    _workspace_portable_supervisor_queue_dashboard,
+    _workspace_opl_current_control_state_handoff_dashboard,
 )
 
 
@@ -546,7 +546,7 @@ def read_workspace_cockpit(
         ],
         "paper_orchestra_operator_projection": health_cards["paper_orchestra_operator_projection"],
         "open_auto_research_projection": health_cards["open_auto_research_projection"],
-        "portable_supervisor_queue_dashboard": health_cards["portable_supervisor_queue_dashboard"],
+        "opl_current_control_state_handoff_dashboard": health_cards["opl_current_control_state_handoff_dashboard"],
         "delivery_inspection_state": health_cards["delivery_inspection_state"],
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,

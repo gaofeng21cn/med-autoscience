@@ -98,7 +98,7 @@ def test_owner_route_reconcile_keeps_writer_handoff_blocker_after_quality_batch_
         "study_root": str(study_root),
         "quest_id": quest_id,
         "quest_root": str(quest_root),
-        "current_stage": "managed_runtime_supervision_gap",
+        "current_stage": "managed_opl_runtime_owner_handoff_gap",
         "paper_stage": "publishability_gate_blocked",
         "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
         "study_completion_contract": {"ready": True, "status": "resolved"},

@@ -242,16 +242,13 @@ def _state_from_current_summary(current_state: Mapping[str, Any]) -> str | None:
 
 
 def _state_from_sli(sli_summary: Mapping[str, Any]) -> str | None:
-    recovery_observations = int(sli_summary.get("runtime_recovery_observations") or 0)
-    flapping_transitions = int(sli_summary.get("runtime_flapping_transitions") or 0)
-    if flapping_transitions > 0:
-        return "stalled"
-    if recovery_observations > 0:
+    handoff_required_count = int(sli_summary.get("opl_runtime_owner_handoff_required_count") or 0)
+    if handoff_required_count > 0:
         return "recovering"
-    live_ratio = sli_summary.get("runtime_live_ratio")
-    if live_ratio is not None:
+    clear_ratio = sli_summary.get("opl_runtime_owner_handoff_clear_ratio")
+    if clear_ratio is not None:
         try:
-            if float(live_ratio) >= 1.0:
+            if float(clear_ratio) >= 1.0:
                 return "live"
         except (TypeError, ValueError):
             return None

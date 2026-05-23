@@ -250,28 +250,30 @@ def _runtime_projection(
     tick_audit = _mapping(runtime.get("supervisor_tick_audit"))
     monitoring = _mapping(cockpit_study.get("monitoring"))
     runtime_health = _mapping(cockpit_study.get("runtime_health_snapshot"))
-    opl_control = _mapping(cockpit_study.get("opl_current_control_state")) or _mapping(
-        cockpit_study.get("current_control_state")
+    opl_control = (
+        _mapping(cockpit_study.get("opl_current_control_state"))
+        or _mapping(cockpit_study.get("current_control_state"))
+        or _mapping(runtime.get("opl_current_control_state"))
+        or _mapping(progress.get("opl_current_control_state"))
     )
     supervisor_state = _mapping(runtime_health.get("supervisor_state"))
     return {
         "active_run_id": _first_text(
-            supervision.get("active_run_id"),
+            opl_control.get("active_run_id"),
             runtime.get("active_run_id"),
             monitoring.get("active_run_id"),
-            opl_control.get("active_run_id"),
         ),
         "health_status": _first_text(
-            supervision.get("health_status"),
-            runtime.get("health_status"),
-            monitoring.get("health_status"),
             opl_control.get("state"),
             opl_control.get("status"),
+            runtime.get("health_status"),
+            monitoring.get("health_status"),
             runtime_health.get("attempt_state"),
+            supervision.get("health_status"),
         ),
         "supervisor_tick_status": _first_text(
+            opl_control.get("supervisor_tick_status"),
             tick_audit.get("status"),
-            supervision.get("supervisor_tick_status"),
             monitoring.get("supervisor_tick_status"),
             supervisor_state.get("status"),
         ),

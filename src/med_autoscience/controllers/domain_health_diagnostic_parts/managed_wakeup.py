@@ -310,7 +310,7 @@ def _artifact_fingerprint(path: Path | None) -> dict[str, Any]:
     }
 
 
-def _runtime_supervision_artifact_fingerprint(path: Path) -> dict[str, Any]:
+def _opl_runtime_owner_handoff_fingerprint(path: Path) -> dict[str, Any]:
     resolved = Path(path).expanduser().resolve()
     if not resolved.exists() or not resolved.is_file():
         return {
@@ -321,12 +321,12 @@ def _runtime_supervision_artifact_fingerprint(path: Path) -> dict[str, Any]:
     stable_payload = {
         "study_id": _non_empty_text(payload.get("study_id")),
         "quest_id": _non_empty_text(payload.get("quest_id")),
-        "health_status": _non_empty_text(payload.get("health_status")),
-        "runtime_reason": _non_empty_text(payload.get("runtime_reason")),
-        "next_action": _non_empty_text(payload.get("next_action")),
-        "active_run_id": _non_empty_text(payload.get("active_run_id")),
-        "needs_human_intervention": bool(payload.get("needs_human_intervention")),
-        "supervisor_tick_status": _non_empty_text(payload.get("supervisor_tick_status")),
+        "status": _non_empty_text(payload.get("status")),
+        "reason": _non_empty_text(payload.get("reason")),
+        "runtime_owner": _non_empty_text(payload.get("runtime_owner")),
+        "domain_owner": _non_empty_text(payload.get("domain_owner")),
+        "mas_runtime_read_model_retired": bool(payload.get("mas_runtime_read_model_retired")),
+        "mas_materializes_runtime_supervision": bool(payload.get("mas_materializes_runtime_supervision")),
     }
     canonical = json.dumps(stable_payload, ensure_ascii=False, sort_keys=True)
     return {
@@ -390,8 +390,8 @@ def _managed_outer_loop_wakeup_fingerprint(
                 / "publication_work_unit_lifecycle"
                 / "latest.json"
             ),
-            "runtime_supervision_latest": _runtime_supervision_artifact_fingerprint(
-                resolved_study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+            "opl_runtime_owner_handoff_latest": _opl_runtime_owner_handoff_fingerprint(
+                resolved_study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
             ),
             "publication_gate_latest": _artifact_fingerprint(
                 (quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")

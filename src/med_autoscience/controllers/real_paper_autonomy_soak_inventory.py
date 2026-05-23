@@ -48,7 +48,7 @@ SOAK_EVIDENCE_STATES = set(SOAK_ACCEPTED_STATES) - {"unknown"}
 
 STATUS_SURFACE_REFS: tuple[str, ...] = (
     "artifacts/runtime/runtime_status_summary.json",
-    "artifacts/runtime/runtime_supervision/latest.json",
+    "artifacts/supervision/opl_runtime_owner_handoff/latest.json",
     "artifacts/runtime/study_macro_state/latest.json",
     "artifacts/truth/latest.json",
     "artifacts/controller_decisions/latest.json",

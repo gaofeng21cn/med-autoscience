@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts.active_path_workbench_status_gates import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.active_path_workbench_status_gates import (
     build_workbench_status_active_path_gates,
 )
 
@@ -194,8 +194,8 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
             "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
         ],
         "focused_test_refs": [
-            "tests/test_cli_cases/domain_slo_scheduler_projection_commands.py",
-            "tests/test_domain_slo_scheduler_projection.py",
+            "tests/test_cli_cases/opl_unique_control_plane_boundary_commands.py",
+            "tests/test_opl_unique_control_plane_boundary.py",
         ],
         "resurrection_alias_or_wrapper_allowed": False,
         "must_not_emit": list(_ACTIVE_PATH_MUST_NOT_EMIT),

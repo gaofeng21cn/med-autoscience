@@ -649,8 +649,8 @@ from .runtime_storage_commands import (
     test_runtime_storage_audit_command_dispatches_controller,
 )
 
-from .domain_slo_scheduler_projection_commands import (
-    test_cli_has_no_domain_slo_scheduler_projection_runtime_callable,
+from .opl_unique_control_plane_boundary_commands import (
+    test_cli_has_no_opl_unique_control_plane_boundary_runtime_callable,
     test_runtime_supervision_flat_commands_are_not_public_aliases,
     test_runtime_supervision_grouped_commands_are_not_public_aliases,
 )

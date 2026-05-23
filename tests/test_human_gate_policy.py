@@ -12,11 +12,11 @@ def test_controller_human_gate_policy_allows_only_major_boundaries() -> None:
     )
     reroute = controller_human_gate_policy(
         decision_type="reroute_study",
-        controller_action_types=["ensure_study_runtime"],
+        controller_action_types=["request_opl_stage_attempt"],
     )
     final_audit = controller_human_gate_policy(
         decision_type="promote_to_delivery",
-        controller_action_types=["ensure_study_runtime"],
+        controller_action_types=["request_opl_stage_attempt"],
     )
 
     assert stop_loss.allowed is True
@@ -32,15 +32,15 @@ def test_controller_human_gate_policy_keeps_ordinary_research_decisions_autonomo
 
     continue_line = controller_human_gate_policy(
         decision_type="continue_same_line",
-        controller_action_types=["ensure_study_runtime"],
+        controller_action_types=["request_opl_stage_attempt"],
     )
     bounded_analysis = controller_human_gate_policy(
         decision_type="bounded_analysis",
-        controller_action_types=["ensure_study_runtime"],
+        controller_action_types=["request_opl_stage_attempt"],
     )
     relaunch = controller_human_gate_policy(
         decision_type="relaunch_branch",
-        controller_action_types=["ensure_study_runtime_relaunch_stopped"],
+        controller_action_types=["request_opl_stage_attempt_relaunch"],
     )
 
     assert continue_line.allowed is False
@@ -56,7 +56,7 @@ def test_controller_human_gate_policy_keeps_route_back_same_line_autonomous() ->
 
     route_back = controller_human_gate_policy(
         decision_type="route_back_same_line",
-        controller_action_types=["ensure_study_runtime"],
+        controller_action_types=["request_opl_stage_attempt"],
     )
 
     assert route_back.allowed is False
@@ -70,5 +70,5 @@ def test_require_controller_human_gate_allowed_rejects_autonomous_decisions() ->
     with pytest.raises(ValueError, match="major direction pivots"):
         require_controller_human_gate_allowed(
             decision_type="continue_same_line",
-            controller_action_types=["ensure_study_runtime"],
+            controller_action_types=["request_opl_stage_attempt"],
         )

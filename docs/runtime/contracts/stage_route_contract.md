@@ -14,7 +14,7 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 - default_runtime_mode: managed
 - lightweight_scope: none
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: (none)
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -26,7 +26,7 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 - default_runtime_mode: lightweight
 - lightweight_scope: early evidence framing
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: scout
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -38,7 +38,7 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 - default_runtime_mode: lightweight
 - lightweight_scope: route selection and study framing
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: idea | decision
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -50,7 +50,7 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 - default_runtime_mode: lightweight
 - lightweight_scope: pathway adjustment and stop-loss
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: decision
 - managed_routes: scout | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -62,7 +62,7 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 - default_runtime_mode: lightweight
 - lightweight_scope: manuscript and delivery packaging
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
 - lightweight_routes: write
 - managed_routes: write | finalize
 - startup_boundary_gated_routes: (none)

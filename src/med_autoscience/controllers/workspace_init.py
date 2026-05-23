@@ -29,10 +29,10 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_progress_portal_start_web_script,
     _render_profile_optional_forward_script,
     _render_materialize_domain_action_requests_script,
-    _render_study_runtime_status_script,
+    _render_progress_projection_script,
     _render_supervisor_execute_dispatch_script,
     _render_scan_domain_routes_script,
-    _render_watch_runtime_script,
+    _render_domain_health_diagnostic_script,
 )
 from med_autoscience.controllers.workspace_init_parts.retired_entries import (
     retired_file_cleanup_reason,
@@ -200,7 +200,7 @@ def _render_workspace_rules() -> str:
         "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
         "- 必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口。\n"
         "- 一旦检测到 live managed runtime，前台必须立即进入 supervisor-only 监管态。\n"
-        "- live managed runtime 的默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载；`ops/medautoscience/bin/watch-runtime` 只是 MAS one-shot domain tick 入口；`local` 已物理退役为 tombstone/provenance-only。Hermes gateway cron 只在显式 status/remove 时作为 legacy diagnostic cleanup adapter。\n"
+        "- live managed runtime 的默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载；MAS 只暴露 `ops/medautoscience/bin/domain-health-diagnostic` 这种 one-shot domain diagnostic 入口；`local` 已物理退役为 tombstone/provenance-only。Hermes gateway cron 只在显式 status/remove 时作为 legacy diagnostic cleanup adapter。\n"
         "- 不得直接写入 runtime-owned 的 study / quest / paper surface；如需人工接管，先显式暂停 runtime。\n"
         "- 只要 `publication_supervisor_state.bundle_tasks_downstream_only = true`，就把 bundle/build/proofing 视为硬阻断，不得抢跑。\n"
         f"- {automation_ready_summary}\n"
@@ -407,17 +407,17 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "enter-study",
-            content=_render_forward_script("study ensure-runtime", with_profile=True),
+            content=_render_forward_script("launch-study", with_profile=True),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status",
-            content=_render_study_runtime_status_script(),
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection",
+            content=_render_progress_projection_script(),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime",
-            content=_render_watch_runtime_script(workspace_root=workspace_root, runtime_quests_root=layout.quests_root),
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic",
+            content=_render_domain_health_diagnostic_script(workspace_root=workspace_root, runtime_quests_root=layout.quests_root),
             executable=True,
         ),
         RenderedFile(

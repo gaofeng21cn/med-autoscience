@@ -8,7 +8,6 @@ def legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) ->
     for detector in (
         legacy_mas_bridge_entry_reason,
         legacy_medautoscience_shared_entry_reason,
-        legacy_watch_runtime_entry_reason,
         legacy_supervisor_entry_reason,
         legacy_workspace_command_entry_reason,
     ):
@@ -65,33 +64,6 @@ def legacy_medautoscience_shared_entry_reason(
     return None
 
 
-def legacy_watch_runtime_entry_reason(
-    *,
-    path: Path,
-    suffix: tuple[str, ...],
-    existing_content: str,
-) -> str | None:
-    _ = path
-    if suffix == ("ops", "medautoscience", "bin", "watch-runtime"):
-        looks_like_managed_watch = (
-            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in existing_content
-            and "--runtime-root" in existing_content
-        )
-        if looks_like_managed_watch:
-            if "run_medautosci runtime domain-health-diagnostic" not in existing_content:
-                return "legacy_watch_runtime_entry"
-            if (
-                'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' not in existing_content
-                or '--profile "${PROFILE_PATH}"' not in existing_content
-                or "--request-opl-stage-attempts" in existing_content
-                or "--request-opl-owner-route-reconcile" in existing_content
-                or "--apply" in existing_content
-                or "--loop" in existing_content
-            ):
-                return "legacy_watch_runtime_entry"
-    return None
-
-
 def legacy_supervisor_entry_reason(
     *,
     path: Path,
@@ -133,13 +105,8 @@ def legacy_workspace_command_entry_reason(
     command_specs = (
         ("bootstrap", "workspace bootstrap", "run_medautosci bootstrap", "legacy_workspace_bootstrap_entry"),
         ("show-profile", "doctor profile", "run_medautosci show-profile", "legacy_show_profile_entry"),
-        ("enter-study", "study ensure-runtime", "run_medautosci ensure-study-runtime", "legacy_enter_study_entry"),
-        (
-            "study-runtime-status",
-            "progress-projection",
-            "run_medautosci study-runtime-status",
-            "legacy_study_runtime_status_entry",
-        ),
+        ("enter-study", "launch-study", "run_medautosci ensure-study-runtime", "legacy_enter_study_entry"),
+        ("enter-study", "launch-study", "run_medautosci study ensure-runtime", "legacy_enter_study_entry"),
         ("publication-gate", "publication gate", "run_medautosci publication-gate", "legacy_publication_gate_entry"),
         (
             "medical-surface",

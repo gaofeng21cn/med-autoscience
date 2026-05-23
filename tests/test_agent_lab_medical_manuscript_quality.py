@@ -849,9 +849,9 @@ def test_medical_manuscript_quality_agent_lab_suite_records_controller_read_mode
         },
     )
     _write_json(
-        study_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        study_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "opl_current_control_state_handoff",
             "studies": [
                 {
                     "study_id": study_root.name,
@@ -867,7 +867,7 @@ def test_medical_manuscript_quality_agent_lab_suite_records_controller_read_mode
     refs = inputs["controller_read_model_feedback_refs"]
 
     assert any("analysis_harmonization/latest.json" in ref for ref in refs)
-    assert any("supervision/hourly/latest.json" in ref for ref in refs)
+    assert any("supervision/opl_current_control_state/latest.json" in ref for ref in refs)
     assert any("analysis-harmonization-result-requeued" in ref for ref in refs)
     assert refs[-1].startswith("mechanism-defect-ref:mas/002-dm-china-us-mortality-attribution/")
     work_order = inputs["developer_patch_work_order"]

@@ -81,7 +81,7 @@ def test_cycle_observability_embeds_trace_identity_and_delivery_metrics() -> Non
             "trace_identity": {"run_id": "run-004", "work_unit_id": "submission_minimal_refresh"},
             "profiling_window": {"event_count": 0},
             "category_windows": {},
-            "runtime_transition_summary": {},
+            "opl_runtime_owner_handoff_summary": {},
             "controller_decision_fingerprints": {},
             "gate_blocker_summary": {},
             "step_timings": [],

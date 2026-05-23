@@ -513,7 +513,7 @@ def test_execute_dispatch_routes_terminal_source_provenance_blocker_to_decision_
     assert execution["owner_result"]["route_decision"] == "bounded_analysis"
     assert execution["owner_result"]["selected_route_option"] == "provenance_limited_harmonization_audit"
     assert execution["owner_result"]["selected_next_work_unit"]["unit_id"] == "provenance_limited_harmonization_audit"
-    assert decision["controller_actions"][0]["action_type"] == "ensure_study_runtime"
+    assert decision["controller_actions"][0]["action_type"] == "request_opl_stage_attempt"
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "paper").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
@@ -575,7 +575,7 @@ def test_execute_dispatch_materializes_provenance_limited_harmonization_audit(
             "decision_type": "bounded_analysis",
             "requires_human_confirmation": False,
             "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
-            "controller_actions": [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt", "payload_ref": str(decision_path)}],
             "next_work_unit": {
                 "unit_id": "provenance_limited_harmonization_audit",
                 "lane": "analysis-campaign",

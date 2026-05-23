@@ -96,7 +96,7 @@ def test_scan_reopens_hard_methodology_handoff_when_newer_quality_batch_supersed
                 "lane": "analysis-campaign",
                 "summary": "Reframe the invalid transported-model claim.",
             },
-            "controller_actions": [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt", "payload_ref": str(decision_path)}],
         },
     )
     _write_json(

@@ -7,7 +7,7 @@ from med_autoscience.controllers import autonomy_state_machine
 from med_autoscience.controllers import runtime_failure_taxonomy
 
 
-_RUNTIME_LIVE_RATIO_TARGET = 0.95
+_OPL_HANDOFF_CLEAR_RATIO_TARGET = 1.0
 _QUALITY_AUTHORITY_SURFACES = [
     "study_charter",
     "evidence_ledger",
@@ -17,11 +17,11 @@ _QUALITY_AUTHORITY_SURFACES = [
 ]
 
 _ACTION_BY_INCIDENT = {
-    "runtime_recovery_churn": {
-        "action_type": "probe_runtime_recovery",
+    "opl_runtime_owner_handoff_required": {
+        "action_type": "request_opl_handoff_hydration",
         "controller_surface": "domain_health_diagnostic",
         "priority": "now",
-        "summary": "Confirm runtime liveness before any blind resume.",
+        "summary": "Require OPL current_control_state to hydrate the MAS owner handoff.",
     },
     "repeated_controller_decision": {
         "action_type": "dedupe_controller_dispatch",
@@ -116,31 +116,29 @@ def _long_run_health(
     runtime_activity: Mapping[str, Any],
     incident_types: list[str],
 ) -> dict[str, Any]:
-    live_ratio = _float(sli_summary.get("runtime_live_ratio"))
-    recovery_observations = _int(sli_summary.get("runtime_recovery_observations"))
-    flapping_transitions = _int(sli_summary.get("runtime_flapping_transitions"))
+    handoff_clear_ratio = _float(sli_summary.get("opl_runtime_owner_handoff_clear_ratio"))
+    handoff_required_count = _int(sli_summary.get("opl_runtime_owner_handoff_required_count"))
     activity_state = _text(runtime_activity.get("activity_state"))
     heartbeat_state = _text(runtime_activity.get("heartbeat_state"))
     if (
-        "runtime_recovery_churn" in incident_types
+        "opl_runtime_owner_handoff_required" in incident_types
         or activity_state == "recovering"
         or heartbeat_state == "missing_live_session"
     ):
         state = "breach"
-    elif live_ratio is None:
+    elif handoff_clear_ratio is None:
         state = "unknown"
-    elif live_ratio >= _RUNTIME_LIVE_RATIO_TARGET and recovery_observations == 0 and flapping_transitions == 0:
+    elif handoff_clear_ratio >= _OPL_HANDOFF_CLEAR_RATIO_TARGET and handoff_required_count == 0:
         state = "met"
-    elif live_ratio >= _RUNTIME_LIVE_RATIO_TARGET:
+    elif handoff_clear_ratio >= _OPL_HANDOFF_CLEAR_RATIO_TARGET:
         state = "watch"
     else:
         state = "breach"
     return {
         "state": state,
-        "runtime_live_ratio": live_ratio,
-        "runtime_live_ratio_target": _RUNTIME_LIVE_RATIO_TARGET,
-        "runtime_recovery_observations": recovery_observations,
-        "runtime_flapping_transitions": flapping_transitions,
+        "opl_runtime_owner_handoff_clear_ratio": handoff_clear_ratio,
+        "opl_runtime_owner_handoff_clear_ratio_target": _OPL_HANDOFF_CLEAR_RATIO_TARGET,
+        "opl_runtime_owner_handoff_required_count": handoff_required_count,
         "worker_activity_state": activity_state,
         "worker_heartbeat_state": heartbeat_state,
     }
@@ -157,8 +155,8 @@ def _progress_health(
     no_progress_reasons: list[str] = []
     if duplicate_dispatch_active or "repeated_controller_decision" in incident_types:
         no_progress_reasons.append("repeated_controller_dispatch")
-    if "runtime_recovery_churn" in incident_types:
-        no_progress_reasons.append("runtime_recovery_churn")
+    if "opl_runtime_owner_handoff_required" in incident_types:
+        no_progress_reasons.append("opl_runtime_owner_handoff_required")
     if "non_actionable_gate" in incident_types or "non_actionable_gate" in bottleneck_types:
         no_progress_reasons.append("non_actionable_gate")
     blockers = _current_blockers(gate_summary)
@@ -371,19 +369,19 @@ def _efficiency_signals(
     long_run_health: Mapping[str, Any],
     state_machine: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    live_ratio = _float(sli_summary.get("runtime_live_ratio"))
+    handoff_clear_ratio = _float(sli_summary.get("opl_runtime_owner_handoff_clear_ratio"))
+    handoff_required_count = _int(sli_summary.get("opl_runtime_owner_handoff_required_count"))
     duplicate_dispatch_active = bool(sli_summary.get("duplicate_dispatch_active"))
     package_stale = bool(sli_summary.get("package_stale_is_current_bottleneck"))
-    flapping_transitions = _int(sli_summary.get("runtime_flapping_transitions"))
     heartbeat_state = _text(runtime_activity.get("heartbeat_state"))
     autonomy_state = _text(state_machine.get("current_state"))
     signals = [
         {
-            "signal_id": "runtime_live_ratio",
+            "signal_id": "opl_handoff_clear_ratio",
             "source": "profile_sli",
             "state": long_run_health.get("state"),
-            "value": live_ratio,
-            "target": f">={_RUNTIME_LIVE_RATIO_TARGET}",
+            "value": handoff_clear_ratio,
+            "target": f">={_OPL_HANDOFF_CLEAR_RATIO_TARGET}",
         },
         {
             "signal_id": "controller_duplicate_dispatch",
@@ -393,10 +391,10 @@ def _efficiency_signals(
             "target": False,
         },
         {
-            "signal_id": "runtime_flapping_transitions",
+            "signal_id": "opl_handoff_required",
             "source": "profile_sli",
-            "state": "breach" if flapping_transitions > 0 else "met",
-            "value": flapping_transitions,
+            "state": "breach" if handoff_required_count > 0 else "met",
+            "value": handoff_required_count,
             "target": 0,
         },
         {
@@ -496,8 +494,8 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
         "study_id": _text(profile_payload.get("study_id")),
         "quest_id": _text(profile_payload.get("quest_id")),
         "slo_targets": {
-            "runtime_live_ratio_min": _RUNTIME_LIVE_RATIO_TARGET,
-            "runtime_flapping_transitions_max": 0,
+            "opl_runtime_owner_handoff_clear_ratio_min": _OPL_HANDOFF_CLEAR_RATIO_TARGET,
+            "opl_runtime_owner_handoff_required_max": 0,
             "duplicate_dispatch_allowed": False,
             "quality_gate_relaxation_allowed": False,
         },

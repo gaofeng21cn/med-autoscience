@@ -10,8 +10,6 @@ from typing import Any
 
 _QUALITY_CLEAR_STATUSES = frozenset({"clear", "passed", "ready", "submission_ready"})
 _QUALITY_BLOCKED_STATUSES = frozenset({"blocked", "failed", "needs_repair"})
-_RUNTIME_BLOCKED_STATUSES = frozenset({"recovering", "degraded", "escalated", "inactive", "blocked"})
-_RUNTIME_RECOVERED_STATUSES = frozenset({"live", "recovered"})
 _FAST_LANE_SUCCESS_STATUSES = frozenset({"success", "succeeded", "executed", "skipped_duplicate_eval"})
 _FAST_LANE_FAILURE_STATUSES = frozenset({"failed", "error", "blocked"})
 _COARSE_SECONDS = 900
@@ -164,24 +162,6 @@ def _manual_gate_count(events: Sequence[Mapping[str, Any]], blockers: Sequence[s
     return explicit_gates + blocker_gates
 
 
-def _runtime_recovery_durations(events: Sequence[Mapping[str, Any]]) -> list[int]:
-    durations: list[int] = []
-    blocked_at: datetime | None = None
-    for event in sorted(events, key=lambda item: _timestamp(item) or datetime.max.replace(tzinfo=timezone.utc)):
-        if _text(event.get("event_type")) != "runtime_supervision":
-            continue
-        status = _text(event.get("status"))
-        timestamp = _timestamp(event)
-        if timestamp is None:
-            continue
-        if status in _RUNTIME_BLOCKED_STATUSES:
-            blocked_at = timestamp
-        elif status in _RUNTIME_RECOVERED_STATUSES and blocked_at is not None:
-            durations.append(max(0, int((timestamp - blocked_at).total_seconds())))
-            blocked_at = None
-    return durations
-
-
 def _quality_reopen_rate(events: Sequence[Mapping[str, Any]]) -> float | None:
     clear_count = 0
     reopen_count = 0
@@ -215,14 +195,6 @@ def _fast_lane_success_rate(events: Sequence[Mapping[str, Any]]) -> float | None
     return _ratio(success, total)
 
 
-def _summary(values: Sequence[int]) -> dict[str, int | None]:
-    return {
-        "count": len(values),
-        "min_seconds": min(values) if values else None,
-        "max_seconds": max(values) if values else None,
-    }
-
-
 def _blocker_class(gate_summary: Mapping[str, Any]) -> str:
     blockers = [
         blocker
@@ -253,12 +225,10 @@ def _eta_interval(
     *,
     blocker_class: str,
     lead_times: Mapping[str, int | None],
-    recovery_durations: Sequence[int],
 ) -> dict[str, Any]:
     samples_by_class = {
         "claim_evidence": ("draft_to_quality_close_seconds",),
         "delivery_only": ("quality_close_to_package_seconds",),
-        "runtime_recovering": ("blocked_to_recovered_seconds",),
     }
     if blocker_class in {"human_admin_missing", "non_actionable_gate"}:
         return {
@@ -278,8 +248,6 @@ def _eta_interval(
         for key in duration_keys
         if isinstance(lead_times.get(key), int) and int(lead_times[key]) >= 0
     ]
-    if blocker_class == "runtime_recovering":
-        samples.extend(recovery_durations)
     if samples:
         lower, upper = _coarse_interval(samples)
         source = "observed_stage_duration"
@@ -287,7 +255,6 @@ def _eta_interval(
         priors = {
             "claim_evidence": (7200, 21600),
             "delivery_only": (1800, 7200),
-            "runtime_recovering": (1800, 5400),
         }
         lower, upper = priors.get(blocker_class, priors["delivery_only"])
         source = "blocker_type_prior"
@@ -330,7 +297,6 @@ def build_paper_line_delivery_metrics(profile_payload: Mapping[str, Any]) -> dic
         "draft_to_quality_close_seconds": _duration_seconds(first_draft_at, quality_close_at),
         "quality_close_to_package_seconds": _duration_seconds(final_quality_close_at, package_at),
     }
-    recovery_durations = _runtime_recovery_durations(events)
     blocker_class = _blocker_class(gate_summary)
     return {
         "surface": "paper_line_delivery_metrics",
@@ -341,7 +307,6 @@ def build_paper_line_delivery_metrics(profile_payload: Mapping[str, Any]) -> dic
         "event_count": len(events),
         "delivery_dora_metrics": {
             "lead_times": lead_times,
-            "recovery": {"blocked_to_recovered_seconds": _summary(recovery_durations)},
             "manual_gate_count": _manual_gate_count(events, blockers),
             "quality_reopen_rate": _quality_reopen_rate(events),
             "fast_lane_success_rate": _fast_lane_success_rate(events),
@@ -349,7 +314,6 @@ def build_paper_line_delivery_metrics(profile_payload: Mapping[str, Any]) -> dic
         "eta_interval": _eta_interval(
             blocker_class=blocker_class,
             lead_times=lead_times,
-            recovery_durations=recovery_durations,
         ),
     }
 
@@ -400,10 +364,13 @@ def events_from_cycle_profile(
             continue
         if category == "task_intake":
             record = _event_record("task_intake", timestamp, **_event_identity(payload))
-        elif category == "runtime_supervision":
-            health = _text(payload.get("health_status"))
-            status = "recovered" if health in _RUNTIME_RECOVERED_STATUSES else "blocked" if health in _RUNTIME_BLOCKED_STATUSES else health
-            record = _event_record("runtime_supervision", timestamp, status=status, **_event_identity(payload))
+        elif category == "opl_runtime_owner_handoff":
+            record = _event_record(
+                "opl_runtime_owner_handoff",
+                timestamp,
+                status=_text(payload.get("status")),
+                **_event_identity(payload),
+            )
         elif category in {"publication_eval", "publishability_gate"}:
             record = _quality_event_from_payload(payload, timestamp)
         elif category in {"gate_clearing_batch", "quality_repair_batch"}:

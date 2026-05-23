@@ -151,7 +151,7 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_clearance_target(
                 target_id="supervisor_service",
-                title="Inspect OPL-owned supervision projection",
+                title="Inspect OPL current-control-state refs through MAS progress",
                 commands=[
                     supervisor_service_command,
                     refresh_supervision_command,
@@ -176,7 +176,7 @@ def _build_phase3_clearance_lane(
             _build_shared_product_entry_program_step(
                 step_id="supervisor_service",
                 title="确认 OPL replacement 与 MAS domain projection 在线",
-                surface_kind="workspace_supervisor_service",
+                surface_kind="opl_current_control_state_handoff",
                 command=supervisor_service_command,
             ),
             _build_shared_product_entry_program_step(

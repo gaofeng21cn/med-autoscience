@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 
-def handle_watch_supervision_command(
+def handle_domain_health_diagnostic_command(
     args: argparse.Namespace,
     *,
     parser: argparse.ArgumentParser,
@@ -52,4 +52,4 @@ def _print_json(payload: object) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
-__all__ = ["handle_watch_supervision_command"]
+__all__ = ["handle_domain_health_diagnostic_command"]

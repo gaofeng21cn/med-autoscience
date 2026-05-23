@@ -30,7 +30,6 @@ def test_owner_route_reconcile_command_dispatches_controller(monkeypatch, tmp_pa
 
     exit_code = cli.main(
         [
-            "runtime",
             "owner-route-reconcile",
             "--profile",
             str(profile_path),
@@ -84,7 +83,6 @@ def test_owner_route_reconcile_command_discovers_studies_when_not_explicit(
 
     exit_code = cli.main(
         [
-            "runtime",
             "owner-route-reconcile",
             "--profile",
             str(profile_path),

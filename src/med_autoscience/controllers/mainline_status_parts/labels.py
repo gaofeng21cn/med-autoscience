@@ -17,7 +17,7 @@ _ENTRY_POINT_LABELS = {
     "submit_study_task": "提交 study 任务",
     "launch_study": "启动或续跑 study",
     "doctor": "运行 doctor",
-    "runtime_supervision_status": "查看 runtime 监管状态",
+    "opl_runtime_owner_handoff": "查看 OPL current_control_state handoff",
     "watch": "刷新监管与恢复",
 }
 

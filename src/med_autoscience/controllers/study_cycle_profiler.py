@@ -197,7 +197,7 @@ def _resolve_quest_root(*, profile: WorkspaceProfile, study_root: Path, study_id
 def _category_roots(*, study_root: Path, quest_root: Path | None) -> tuple[tuple[str, Path], ...]:
     roots: list[tuple[str, Path]] = [
         ("task_intake", study_root / "artifacts" / "controller" / "task_intake"),
-        ("runtime_supervision", study_root / "artifacts" / "runtime" / "runtime_supervision"),
+        ("opl_runtime_owner_handoff", study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff"),
         ("controller_decision", study_root / "artifacts" / "controller_decisions"),
         ("publication_eval", study_root / "artifacts" / "publication_eval"),
         ("gate_clearing_batch", study_root / "artifacts" / "controller" / "gate_clearing_batch"),
@@ -232,30 +232,34 @@ def _category_windows(events: tuple[_CycleEvent, ...]) -> dict[str, dict[str, An
     return windows
 
 
-def _runtime_transition_summary(events: tuple[_CycleEvent, ...]) -> dict[str, Any]:
-    runtime_events = sorted(
-        (event for event in events if event.category == "runtime_supervision"),
+def _opl_runtime_owner_handoff_summary(events: tuple[_CycleEvent, ...]) -> dict[str, Any]:
+    handoff_events = sorted(
+        (event for event in events if event.category == "opl_runtime_owner_handoff"),
         key=lambda event: event.timestamp,
     )
-    health_statuses = [
-        str(event.payload.get("health_status") or "").strip()
-        for event in runtime_events
-        if str(event.payload.get("health_status") or "").strip()
+    statuses = [
+        str(event.payload.get("status") or "").strip()
+        for event in handoff_events
+        if str(event.payload.get("status") or "").strip()
     ]
     reasons = [
-        str(event.payload.get("runtime_reason") or "").strip()
-        for event in runtime_events
-        if str(event.payload.get("runtime_reason") or "").strip()
+        str(event.payload.get("reason") or "").strip()
+        for event in handoff_events
+        if str(event.payload.get("reason") or "").strip()
     ]
-    transitions: Counter[str] = Counter()
-    for previous, current in zip(health_statuses, health_statuses[1:]):
-        if previous != current:
-            transitions[f"{previous}->{current}"] += 1
+    blocker_types = [
+        str((event.payload.get("typed_blocker") or {}).get("blocker_type") or "").strip()
+        for event in handoff_events
+        if isinstance(event.payload.get("typed_blocker"), Mapping)
+        and str((event.payload.get("typed_blocker") or {}).get("blocker_type") or "").strip()
+    ]
     return {
-        "event_count": len(runtime_events),
-        "health_status_counts": dict(sorted(Counter(health_statuses).items())),
-        "runtime_reason_counts": dict(sorted(Counter(reasons).items())),
-        "transition_counts": dict(sorted(transitions.items())),
+        "event_count": len(handoff_events),
+        "status_counts": dict(sorted(Counter(statuses).items())),
+        "reason_counts": dict(sorted(Counter(reasons).items())),
+        "typed_blocker_counts": dict(sorted(Counter(blocker_types).items())),
+        "refs_only": True,
+        "drives_stage_attempt_state": False,
     }
 
 
@@ -452,7 +456,7 @@ def _step_latest_times(
     step_times = {
         "task_intake": _latest_dt_from_window(category_windows, "task_intake"),
         "controller_decision": _latest_dt_from_window(category_windows, "controller_decision"),
-        "run_start": _first_dt_from_window(category_windows, "runtime_supervision"),
+        "opl_runtime_owner_handoff": _first_dt_from_window(category_windows, "opl_runtime_owner_handoff"),
         "durable_artifact": _max_dt(
             _latest_dt_from_window(category_windows, "gate_clearing_batch"),
             _latest_dt_from_window(category_windows, "quality_repair_batch"),
@@ -499,7 +503,7 @@ def _step_timings(step_latest_times: Mapping[str, str]) -> list[dict[str, Any]]:
 
 def _bottlenecks(
     *,
-    runtime_transition_summary: Mapping[str, Any],
+    opl_runtime_owner_handoff_summary: Mapping[str, Any],
     controller_decision_fingerprints: Mapping[str, Any],
     domain_health_diagnostic_wakeup_dedupe_summary: Mapping[str, Any],
     gate_blocker_summary: Mapping[str, Any],
@@ -512,15 +516,13 @@ def _bottlenecks(
     }:
         return []
     bottlenecks: list[dict[str, Any]] = []
-    health_counts = runtime_transition_summary.get("health_status_counts")
-    if isinstance(health_counts, Mapping) and any(
-        int(health_counts.get(status) or 0) > 0 for status in ("recovering", "degraded", "escalated")
-    ):
+    handoff_status_counts = opl_runtime_owner_handoff_summary.get("status_counts")
+    if isinstance(handoff_status_counts, Mapping) and int(handoff_status_counts.get("handoff_required") or 0) > 0:
         bottlenecks.append(
             {
-                "bottleneck_id": "runtime_recovery_churn",
+                "bottleneck_id": "opl_runtime_owner_handoff_required",
                 "severity": "high",
-                "summary": "Runtime supervision contains recovery or dropout states in the profiling window.",
+                "summary": "MAS emitted refs-only owner handoff; OPL current_control_state must hydrate it into a stage attempt, typed blocker, or human gate.",
             }
         )
     top_repeats = controller_decision_fingerprints.get("top_repeats")
@@ -577,11 +579,11 @@ def _bottlenecks(
 
 def _optimization_recommendations(bottlenecks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     recommendation_by_bottleneck = {
-        "runtime_recovery_churn": {
-            "recommendation_id": "stabilize-runtime-observations",
+        "opl_runtime_owner_handoff_required": {
+            "recommendation_id": "hydrate-opl-owner-handoff",
             "priority": "now",
-            "summary": "Require consecutive live observations before calling the runtime stable, and flag live-to-recovery flapping.",
-            "expected_effect": "Reduces false confidence and makes no-live-session failures actionable at MAS control level.",
+            "summary": "Require OPL current_control_state to consume the MAS owner handoff as a stage attempt, typed blocker, or human gate.",
+            "expected_effect": "Prevents MAS from reinterpreting provider/runtime state and keeps stage attempt ownership in OPL.",
         },
         "repeated_controller_decision": {
             "recommendation_id": "dedupe-controller-dispatch",
@@ -639,13 +641,13 @@ def _cycle_summary(payload: Mapping[str, Any]) -> dict[str, int]:
         for item in top_repeats:
             if isinstance(item, Mapping):
                 repeated_dispatch_count += max(int(item.get("count") or 0) - 1, 0)
-    runtime_summary = payload.get("runtime_transition_summary")
-    health_counts = runtime_summary.get("health_status_counts") if isinstance(runtime_summary, Mapping) else None
-    recovery_churn_count = 0
-    if isinstance(health_counts, Mapping):
-        recovery_churn_count = sum(int(health_counts.get(status) or 0) for status in ("recovering", "degraded", "escalated"))
-    transition_counts = runtime_summary.get("transition_counts") if isinstance(runtime_summary, Mapping) else None
-    flapping_transition_count = sum(int(count or 0) for count in transition_counts.values()) if isinstance(transition_counts, Mapping) else 0
+    handoff_summary = payload.get("opl_runtime_owner_handoff_summary")
+    status_counts = handoff_summary.get("status_counts") if isinstance(handoff_summary, Mapping) else None
+    handoff_required_count = (
+        int(status_counts.get("handoff_required") or 0)
+        if isinstance(status_counts, Mapping)
+        else 0
+    )
     package_currentness = payload.get("package_currentness")
     package_stale_seconds = (
         int(package_currentness.get("stale_seconds") or 0)
@@ -661,8 +663,7 @@ def _cycle_summary(payload: Mapping[str, Any]) -> dict[str, int]:
     )
     return {
         "repeated_controller_dispatch_count": repeated_dispatch_count,
-        "runtime_recovery_churn_count": recovery_churn_count,
-        "runtime_flapping_transition_count": flapping_transition_count,
+        "opl_runtime_owner_handoff_required_count": handoff_required_count,
         "package_stale_seconds": package_stale_seconds,
         "non_actionable_gate_count": non_actionable_gate_count,
     }
@@ -676,8 +677,7 @@ def _bottleneck_score(*, bottlenecks: object, cycle_summary: Mapping[str, int]) 
             if isinstance(bottleneck, Mapping):
                 score += severity_score.get(str(bottleneck.get("severity") or ""), 1)
     score += int(cycle_summary.get("repeated_controller_dispatch_count") or 0)
-    score += int(cycle_summary.get("runtime_recovery_churn_count") or 0)
-    score += int(cycle_summary.get("runtime_flapping_transition_count") or 0)
+    score += int(cycle_summary.get("opl_runtime_owner_handoff_required_count") or 0)
     if int(cycle_summary.get("package_stale_seconds") or 0) > 0:
         score += 1
     return score
@@ -686,8 +686,7 @@ def _bottleneck_score(*, bottlenecks: object, cycle_summary: Mapping[str, int]) 
 def _workspace_totals(studies: Iterable[Mapping[str, Any]]) -> dict[str, int]:
     totals = {
         "repeated_controller_dispatch_count": 0,
-        "runtime_recovery_churn_count": 0,
-        "runtime_flapping_transition_count": 0,
+        "opl_runtime_owner_handoff_required_count": 0,
         "package_stale_seconds": 0,
         "non_actionable_gate_count": 0,
     }
@@ -718,7 +717,7 @@ def profile_study_cycle(
     )
     ordered_events = sorted(events, key=lambda event: event.timestamp)
     category_windows = _category_windows(tuple(ordered_events))
-    runtime_summary = _runtime_transition_summary(tuple(ordered_events))
+    opl_handoff_summary = _opl_runtime_owner_handoff_summary(tuple(ordered_events))
     decision_fingerprints = _controller_decision_fingerprints(tuple(ordered_events))
     publication_eval_latest, publishability_gate_latest = _latest_current_payloads(
         study_root=resolved_study_root,
@@ -752,7 +751,7 @@ def profile_study_cycle(
         package_currentness=package_currentness,
     )
     bottlenecks = _bottlenecks(
-        runtime_transition_summary=runtime_summary,
+        opl_runtime_owner_handoff_summary=opl_handoff_summary,
         controller_decision_fingerprints=decision_fingerprints,
         domain_health_diagnostic_wakeup_dedupe_summary=domain_health_diagnostic_wakeup_dedupe,
         gate_blocker_summary=gate_summary,
@@ -760,14 +759,14 @@ def profile_study_cycle(
         current_state_summary=current_state,
     )
     eta_band = eta_confidence_band(
-        runtime_transition_summary=runtime_summary,
+        opl_runtime_owner_handoff_summary=opl_handoff_summary,
         gate_blocker_summary=gate_summary,
         package_currentness=package_currentness,
         current_state_summary=current_state,
     )
     sli_summary = profile_sli.build_sli_summary(
         {
-            "runtime_transition_summary": runtime_summary,
+            "opl_runtime_owner_handoff_summary": opl_handoff_summary,
             "domain_health_diagnostic_wakeup_dedupe_summary": domain_health_diagnostic_wakeup_dedupe,
             "gate_blocker_summary": gate_summary,
             "package_currentness": package_currentness,
@@ -809,7 +808,7 @@ def profile_study_cycle(
         {
             "study_id": resolved_study_id,
             "quest_id": quest_id,
-            "runtime_transition_summary": runtime_summary,
+            "opl_runtime_owner_handoff_summary": opl_handoff_summary,
             "domain_health_diagnostic_wakeup_dedupe_summary": domain_health_diagnostic_wakeup_dedupe,
             "gate_blocker_summary": gate_summary,
             "package_currentness": package_currentness,
@@ -830,7 +829,7 @@ def profile_study_cycle(
                 "event_count": len(ordered_events),
             },
             "category_windows": category_windows,
-            "runtime_transition_summary": runtime_summary,
+            "opl_runtime_owner_handoff_summary": opl_handoff_summary,
             "controller_decision_fingerprints": decision_fingerprints,
             "gate_blocker_summary": gate_summary,
             "trace_identity": trace_identity,
@@ -855,7 +854,7 @@ def profile_study_cycle(
             "study_id": resolved_study_id,
             "quest_id": quest_id,
             "category_windows": category_windows,
-            "runtime_transition_summary": runtime_summary,
+            "opl_runtime_owner_handoff_summary": opl_handoff_summary,
             "domain_health_diagnostic_wakeup_dedupe_summary": domain_health_diagnostic_wakeup_dedupe,
             "work_unit_lifecycle_summary": work_unit_lifecycle,
             "publication_eval_replay_lag": publication_eval_lag,
@@ -882,7 +881,7 @@ def profile_study_cycle(
             "event_count": len(ordered_events),
         },
         "category_windows": category_windows,
-        "runtime_transition_summary": runtime_summary,
+        "opl_runtime_owner_handoff_summary": opl_handoff_summary,
         "controller_decision_fingerprints": decision_fingerprints,
         "domain_health_diagnostic_wakeup_dedupe_summary": domain_health_diagnostic_wakeup_dedupe,
         "work_unit_lifecycle_summary": work_unit_lifecycle,

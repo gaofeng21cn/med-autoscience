@@ -53,8 +53,7 @@ def render_workspace_cycle_profile_markdown(payload: Mapping[str, Any]) -> str:
         (
             "- Totals: "
             f"repeated dispatch: {totals.get('repeated_controller_dispatch_count', 0)}, "
-            f"runtime recovery churn: {totals.get('runtime_recovery_churn_count', 0)}, "
-            f"runtime flapping transitions: {totals.get('runtime_flapping_transition_count', 0)}, "
+            f"OPL handoff required: {totals.get('opl_runtime_owner_handoff_required_count', 0)}, "
             f"package stale seconds: {totals.get('package_stale_seconds', 0)}"
         ),
         "",
@@ -82,8 +81,7 @@ def render_workspace_cycle_profile_markdown(payload: Mapping[str, Any]) -> str:
                 f"(score {study.get('bottleneck_score')}): "
                 f"autonomy SLO: {dict(study.get('autonomy_slo') or {}).get('surface', 'unknown')}, "
                 f"repeated dispatch: {summary.get('repeated_controller_dispatch_count', 0)}, "
-                f"runtime recovery churn: {summary.get('runtime_recovery_churn_count', 0)}, "
-                f"runtime flapping transitions: {summary.get('runtime_flapping_transition_count', 0)}, "
+                f"OPL handoff required: {summary.get('opl_runtime_owner_handoff_required_count', 0)}, "
                 f"package stale seconds: {summary.get('package_stale_seconds', 0)}, "
                 f"bottlenecks: {', '.join(bottleneck_ids) if bottleneck_ids else 'none'}"
             )

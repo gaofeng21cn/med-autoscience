@@ -187,7 +187,7 @@ def _meaningful_artifact_delta(payload: Mapping[str, Any], *, visible_progress: 
         return True
     if _scan_artifact_delta_present(payload):
         return True
-    for key in ("paper_progress_stall", "portable_supervisor_dashboard", "runtime_health_snapshot"):
+    for key in ("paper_progress_stall", "opl_current_control_state_handoff", "runtime_health_snapshot"):
         value = _mapping(payload.get(key))
         if value.get("meaningful_artifact_delta") is True:
             return True
@@ -230,7 +230,7 @@ def _next_owner(payload: Mapping[str, Any], details: Mapping[str, Any]) -> str |
     owner_route = _mapping(payload.get("owner_route"))
     production_impact = _mapping(payload.get("production_blocker_impact"))
     paper_progress_stall = _mapping(payload.get("paper_progress_stall"))
-    portable_supervisor = _mapping(payload.get("portable_supervisor_dashboard"))
+    opl_handoff = _mapping(payload.get("opl_current_control_state_handoff"))
     ai_repair_lifecycle = _mapping(payload.get("ai_repair_lifecycle"))
     control_plane = _mapping(payload.get("authority_snapshot"))
     if _supervisor_only_live_quality_repair(payload):
@@ -241,7 +241,7 @@ def _next_owner(payload: Mapping[str, Any], details: Mapping[str, Any]) -> str |
         or _text(production_impact.get("next_owner"))
         or _text(details.get("decision_owner"))
         or _text(paper_progress_stall.get("next_owner"))
-        or _text(portable_supervisor.get("next_owner"))
+        or _text(opl_handoff.get("next_owner"))
         or _text(ai_repair_lifecycle.get("next_owner"))
         or _text(control_plane.get("next_owner"))
     )

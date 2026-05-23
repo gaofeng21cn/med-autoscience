@@ -381,7 +381,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
         "route_key_question": "旧 manuscript revision work unit。",
         "route_rationale": "Old write task intake residue.",
         "requires_controller_decision": True,
-        "controller_action_type": "ensure_study_runtime",
+        "controller_action_type": "request_opl_stage_attempt",
         "next_work_unit": {
             "unit_id": "manuscript_story_repair",
             "lane": "write",
@@ -443,7 +443,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
                 "route_key_question": "paper/rebuttal/review_matrix.md and action_plan.md coverage closeout",
                 "route_rationale": "Old analysis-campaign route residue.",
                 "requires_controller_decision": True,
-                "controller_action_type": "ensure_study_runtime",
+                "controller_action_type": "request_opl_stage_attempt",
                 "next_work_unit": {
                     "unit_id": "rebuttal_coverage_closeout",
                     "lane": "analysis-campaign",
@@ -453,7 +453,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             },
             expected_decision_type="continue_same_line",
             expected_route_target="finalize",
-            expected_controller_action_type="ensure_study_runtime",
+            expected_controller_action_type="request_opl_stage_attempt",
             expected_unit_id="submission_authority_sync_closure",
         ),
         lambda study_root: OuterLoopTransitionCase(
@@ -615,7 +615,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
                 ),
                 "route_rationale": "Latest reviewer_revision intake is a methodology correction, not prose polish.",
                 "requires_controller_decision": True,
-                "controller_action_type": "ensure_study_runtime",
+                "controller_action_type": "request_opl_stage_attempt",
                 "work_unit_fingerprint": (
                     "domain-transition::ai_reviewer_re_eval::medical_prose_quality_route_back_analysis"
                 ),
@@ -649,7 +649,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             },
             expected_decision_type="bounded_analysis",
             expected_route_target="analysis-campaign",
-            expected_controller_action_type="ensure_study_runtime",
+            expected_controller_action_type="request_opl_stage_attempt",
             expected_unit_id="medical_prose_quality_analysis_source_documentation_repair",
         ),
         lambda study_root: OuterLoopTransitionCase(
@@ -702,7 +702,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             },
             expected_decision_type="route_back_same_line",
             expected_route_target="write",
-            expected_controller_action_type="ensure_study_runtime",
+            expected_controller_action_type="request_opl_stage_attempt",
             expected_unit_id="manuscript_story_repair",
         ),
         lambda study_root: OuterLoopTransitionCase(
@@ -766,7 +766,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             task_intake_action=_stale_write_task_intake_action(),
             expected_decision_type="continue_same_line",
             expected_route_target="finalize",
-            expected_controller_action_type="ensure_study_runtime",
+            expected_controller_action_type="request_opl_stage_attempt",
             expected_unit_id="submission_authority_sync_closure",
         ),
         lambda study_root: OuterLoopTransitionCase(
@@ -792,7 +792,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             task_intake_action=_stale_write_task_intake_action(),
             expected_decision_type="continue_same_line",
             expected_route_target="finalize",
-            expected_controller_action_type="ensure_study_runtime",
+            expected_controller_action_type="request_opl_stage_attempt",
             expected_unit_id="submission_authority_sync_closure",
         ),
         lambda study_root: OuterLoopTransitionCase(
@@ -818,7 +818,7 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             },
             expected_decision_type="bounded_analysis",
             expected_route_target="analysis-campaign",
-            expected_controller_action_type="ensure_study_runtime",
+            expected_controller_action_type="request_opl_stage_attempt",
             expected_unit_id="analysis_claim_evidence_repair",
         ),
     ),
@@ -936,7 +936,7 @@ def test_domain_transition_arbitration_candidates_ai_reviewer_prose_quality_gap(
             "entry_mode": "full_research",
             "execution": {
                 "engine": "med-deepscientist",
-                "runtime_backend": "opl_provider_backed_stage_runtime",
+                "opl_runtime_ref": "opl_hosted_stage_runtime",
                 "decision_policy": "autonomous",
             },
             "quest_id": "quest-001",

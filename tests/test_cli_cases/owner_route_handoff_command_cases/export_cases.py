@@ -239,7 +239,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert "generic_worker_residency_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "legacy_provider" not in provider["provider_topology"]
     assert "legacy_provider_classification" not in provider["provider_topology"]
-    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_resurrection_proof_recorded"
+    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_active_default_caller_proven"
     assert provider["executor_requirements"] == {
         "adapter_owner": "one-person-lab",
         "generic_executor_adapter_owner": "one-person-lab",
@@ -261,25 +261,27 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert payload["dispatch"]["receipt_refs"]["dispatch_receipt_root"] == (
         "artifacts/runtime/opl_family_sidecar/dispatch_receipts"
     )
-    family_supervision = payload["family_runtime_supervision"]
-    assert family_supervision["repair_command"] == (
+    assert "family_runtime_supervision" not in payload
+    family_handoff = payload["family_opl_current_control_state_handoff"]
+    assert family_handoff["surface_kind"] == "family_opl_current_control_state_handoff"
+    assert family_handoff["repair_command"] == (
         f"medautosci owner-route-reconcile --profile {profile_path} "
         "--developer-supervisor-mode developer_apply_safe"
     )
-    assert family_supervision["local_scheduler_tombstone_ref"] == (
+    assert family_handoff["local_scheduler_tombstone_ref"] == (
         "contracts/runtime/legacy-active-path-tombstones.json#mas-local-scheduler"
     )
-    assert family_supervision["consumer_migration"]["active_path_role"] == (
+    assert family_handoff["consumer_migration"]["active_path_role"] == (
         "opl_replacement_default"
     )
-    assert family_supervision["consumer_migration"]["replacement_owner"] == "one-person-lab"
-    assert family_supervision["consumer_migration"]["replacement_owner_surface"] == (
+    assert family_handoff["consumer_migration"]["replacement_owner"] == "one-person-lab"
+    assert family_handoff["consumer_migration"]["replacement_owner_surface"] == (
         "opl_provider_runtime_manager"
     )
-    assert family_supervision["read_only_authority_boundary"]["runtime_owner"] == "one-person-lab"
-    assert family_supervision["read_only_authority_boundary"]["scheduler_owner"] == "one-person-lab"
-    assert family_supervision["read_only_authority_boundary"]["domain_owner"] == "med-autoscience"
-    assert family_supervision["read_only_authority_boundary"]["mas_local_scheduler_role"] == (
+    assert family_handoff["read_only_authority_boundary"]["runtime_owner"] == "one-person-lab"
+    assert family_handoff["read_only_authority_boundary"]["scheduler_owner"] == "one-person-lab"
+    assert family_handoff["read_only_authority_boundary"]["domain_owner"] == "med-autoscience"
+    assert family_handoff["read_only_authority_boundary"]["mas_local_scheduler_role"] == (
         "physical_retired_tombstone_provenance_only"
     )
     study_projection = payload["studies"][0]
@@ -443,7 +445,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert managed_state["authority_boundary"]["can_write_domain_truth"] is False
     tombstone = payload["legacy_retirement_tombstone_proof"]
     assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
-    assert tombstone["status"] == "no_resurrection_proof_recorded"
+    assert tombstone["status"] == "no_active_default_caller_proven"
     assert tombstone["active_default_callers"] == []
     assert {item["surface_id"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
         "hermes_agent_executor_adapter",
@@ -682,7 +684,7 @@ def test_sidecar_export_projects_controller_route_back_as_pending_task(
             "requires_human_confirmation": False,
             "controller_actions": [
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
                 }
             ],

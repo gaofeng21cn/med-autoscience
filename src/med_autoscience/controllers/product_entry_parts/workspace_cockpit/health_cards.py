@@ -14,7 +14,7 @@ from med_autoscience.controllers.product_entry_parts.paper_orchestra_operator im
 from med_autoscience.controllers.product_entry_parts.workspace_cockpit.readiness_and_delivery import (
     _workspace_delivery_inspection_state,
     _workspace_medical_paper_readiness_state,
-    _workspace_portable_supervisor_queue_dashboard,
+    _workspace_opl_current_control_state_handoff_dashboard,
 )
 from med_autoscience.controllers.product_entry_parts.workspace_cockpit.state_and_study_items import (
     _workspace_ai_first_cross_study_completion_projection,
@@ -48,7 +48,7 @@ def workspace_health_cards(
         "open_auto_research_projection": open_auto_research_projection.build_workspace_open_auto_research_projection(
             studies=studies,
         ),
-        "portable_supervisor_queue_dashboard": _workspace_portable_supervisor_queue_dashboard(
+        "opl_current_control_state_handoff_dashboard": _workspace_opl_current_control_state_handoff_dashboard(
             profile=profile,
             studies=studies,
         ),

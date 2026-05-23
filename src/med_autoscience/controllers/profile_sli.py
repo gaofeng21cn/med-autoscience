@@ -17,17 +17,20 @@ def _ratio(numerator: int, denominator: int) -> float | None:
 
 
 def build_sli_summary(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
-    runtime_summary = profile_payload.get("runtime_transition_summary")
-    health_counts = (
-        runtime_summary.get("health_status_counts")
-        if isinstance(runtime_summary, Mapping)
+    handoff_summary = profile_payload.get("opl_runtime_owner_handoff_summary")
+    status_counts = (
+        handoff_summary.get("status_counts")
+        if isinstance(handoff_summary, Mapping)
         else {}
     )
-    if not isinstance(health_counts, Mapping):
-        health_counts = {}
-    live_count = _int(health_counts.get("live"))
-    recovery_observations = sum(_int(health_counts.get(status)) for status in ("recovering", "degraded", "escalated"))
-    total_observations = live_count + recovery_observations + _int(health_counts.get("inactive"))
+    if not isinstance(status_counts, Mapping):
+        status_counts = {}
+    handoff_required_count = _int(status_counts.get("handoff_required"))
+    handoff_event_count = (
+        _int(handoff_summary.get("event_count"))
+        if isinstance(handoff_summary, Mapping)
+        else 0
+    )
     dedupe_summary = profile_payload.get("domain_health_diagnostic_wakeup_dedupe_summary")
     dedupe_status = (
         str(dedupe_summary.get("status") or "").strip()
@@ -51,16 +54,11 @@ def build_sli_summary(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
         for blocker in blockers
     )
     return {
-        "runtime_live_ratio": _ratio(live_count, total_observations),
-        "runtime_recovery_observations": recovery_observations,
-        "runtime_flapping_transitions": sum(
-            _int(value)
-            for value in (
-                runtime_summary.get("transition_counts", {}).values()
-                if isinstance(runtime_summary, Mapping)
-                and isinstance(runtime_summary.get("transition_counts"), Mapping)
-                else []
-            )
+        "opl_runtime_owner_handoff_required_count": handoff_required_count,
+        "opl_runtime_owner_handoff_event_count": handoff_event_count,
+        "opl_runtime_owner_handoff_clear_ratio": _ratio(
+            max(handoff_event_count - handoff_required_count, 0),
+            handoff_event_count,
         ),
         "duplicate_dispatch_active": dedupe_status not in {"dedupe_confirmed", "work_unit_dispatched"},
         "next_work_unit_id": (

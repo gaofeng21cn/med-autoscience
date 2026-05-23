@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import runtime_dispatch_cost
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts import consumer_migration
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts import consumer_migration
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -111,7 +111,7 @@ def build_outer_supervision_slo_projection(
         "blocked_reasons": list(dict.fromkeys(blocked_reasons)),
         "missing_reasons": list(dict.fromkeys(missing_reasons)),
         "refs": {
-        "supervision_status": "opl_current_control_state",
+            "supervision_status": "opl_current_control_state",
             "reconcile_latest": str(profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH),
         },
         "handoff": {
@@ -195,7 +195,7 @@ def _blocked_reasons(supervision: Mapping[str, Any]) -> list[str]:
 def _missing_reasons(*, supervision: Mapping[str, Any], latest_event_at: str | None) -> list[str]:
     reasons: list[str] = []
     if not supervision:
-        reasons.append("runtime_supervision_status_missing")
+        reasons.append("opl_current_control_state_missing")
     elif not latest_event_at:
         reasons.append("outer_supervision_event_missing")
     return reasons
