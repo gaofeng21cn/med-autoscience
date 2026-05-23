@@ -343,3 +343,34 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     assert "current_package_body" in payload["forbidden_payload_fields"]
     assert "study_truth_body" in payload["forbidden_payload_fields"]
     assert "MEMORY_BODY_SHOULD_NOT_APPEAR" not in rendered
+
+
+def test_domain_dispatch_evidence_payload_can_bind_stage_level_target_without_fake_study() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
+
+    payload = module.build_domain_dispatch_evidence_record_payload(
+        task_kind="baseline_and_evidence_setup",
+        stage_id="baseline_and_evidence_setup",
+        reason="stage_owner_receipt_or_live_paper_line_closeout_pending",
+        evidence_refs=[
+            "agent/prompts/baseline_and_evidence_setup.md",
+            "agent/stages/baseline_and_evidence_setup.yaml",
+            "agent/quality_gates/medical_research_quality_gate.yaml",
+        ],
+    )
+
+    assert "study_id" not in payload
+    assert "study_id" not in payload["record_payload"]
+    assert payload["stage_id"] == "baseline_and_evidence_setup"
+    assert payload["record_payload"]["stage_id"] == "baseline_and_evidence_setup"
+    assert payload["identity_binding"]["payload_identity"] == {
+        "domain_id": "medautoscience",
+        "stage_id": "baseline_and_evidence_setup",
+        "task_kind": "baseline_and_evidence_setup",
+    }
+    assert "stage_id" in payload["identity_binding"]["match_fields"]
+    assert payload["record_payload"]["typed_blocker_refs"] == [
+        "mas-domain-dispatch-typed-blocker:medautoscience:"
+        "baseline_and_evidence_setup:stage_owner_receipt_or_live_paper_line_closeout_pending:"
+        "owner-receipt-or-live-paper-line-closeout-pending"
+    ]
