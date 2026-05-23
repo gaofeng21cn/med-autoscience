@@ -1,0 +1,528 @@
+{
+  "surface_kind": "opl_unique_control_plane_canary_registry",
+  "schema_version": 1,
+  "registry_id": "opl-unique-control-plane-canary-registry-dm002-dm003-v1",
+  "owner": "MedAutoScience",
+  "updated_at": "2026-05-23",
+  "target_studies": [
+    "DM002",
+    "DM003"
+  ],
+  "migration_semantics": {
+    "program": "mas_duplicate_runtime_retirement",
+    "canonical_control_plane_owner": "OPL",
+    "domain_owner": "MedAutoScience",
+    "duplicate_mas_runtime_claimed": false
+  },
+  "canaries": [
+    {
+      "canary_id": "opl-unique-control-plane-canary:dm002-currentness",
+      "category": "currentness",
+      "target_studies": [
+        "DM002"
+      ],
+      "semantic_role": "mas_duplicate_runtime_retirement_regression",
+      "failure_class": "currentness_duplicate_runtime_retirement_canary",
+      "migration_boundary": {
+        "canonical_control_plane_owner": "OPL",
+        "mas_role": "domain_truth_quality_and_owner_receipt_authority",
+        "registry_must_not_recreate_duplicate_mas_runtime": true
+      },
+      "mas_fixture_refs": [
+        "tests/test_ai_reviewer_publication_eval_workflow.py",
+        "tests/fixtures/dm002_ai_first_observation.py"
+      ],
+      "opl_transport_fixture_refs": [
+        "opl:agent-lab/transport/currentness-basis",
+        "contracts/agent_lab_handoff.json"
+      ],
+      "owner_route_regression_refs": [
+        "tests/test_paper_progress_state.py",
+        "regression-suite:mas/owner-route/currentness"
+      ],
+      "no_forbidden_write_proof_refs": [
+        "tests/test_unique_control_plane_canary_registry.py",
+        "no-forbidden-write:mas/dm002/currentness"
+      ],
+      "work_order_refs": [
+        "work-order:opl/unique-control-plane-canary/dm002-currentness"
+      ],
+      "agent_lab_regression_loop": {
+        "output_mode": "executable_regression_work_order",
+        "executable": true,
+        "suite_ref": "agent-lab-suite:opl/unique-control-plane-canary/dm002-currentness",
+        "work_order_ref": "work-order:opl/unique-control-plane-canary/dm002-currentness",
+        "developer_patch_work_order": {
+          "work_order_id": "oma_developer_patch_work_order_opl_ucp_canary_dm002_currentness",
+          "owner_agent": "opl-meta-agent",
+          "role": "developer_direct_repo_patch",
+          "can_modify_mas_repo": true,
+          "can_write_study_truth": false,
+          "can_authorize_quality_verdict": false,
+          "executable": true,
+          "canary_id": "opl-unique-control-plane-canary:dm002-currentness",
+          "category": "currentness",
+          "allowed_patch_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "contracts/unique_control_plane_canary_registry.json",
+            "docs/active/unique_control_plane_canary_registry.md",
+            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py"
+          ],
+          "forbidden_patch_refs": [
+            "src/med_autoscience/controllers/runtime_control/owner_route.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          ],
+          "target_test_refs": [
+            "tests/test_paper_progress_state.py",
+            "regression-suite:mas/owner-route/currentness",
+            "tests/test_unique_control_plane_canary_registry.py"
+          ],
+          "mas_fixture_refs": [
+            "tests/test_ai_reviewer_publication_eval_workflow.py",
+            "tests/fixtures/dm002_ai_first_observation.py"
+          ],
+          "opl_transport_fixture_refs": [
+            "opl:agent-lab/transport/currentness-basis",
+            "contracts/agent_lab_handoff.json"
+          ],
+          "no_forbidden_write_proof_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "no-forbidden-write:mas/dm002/currentness"
+          ],
+          "verification_command_refs": [
+            "scripts/run-pytest-clean.sh tests/test_unique_control_plane_canary_registry.py -q",
+            "opl agent-lab run --suite agent-lab-suite:opl/unique-control-plane-canary/dm002-currentness --json"
+          ]
+        }
+      }
+    },
+    {
+      "canary_id": "opl-unique-control-plane-canary:dm002-stale-dispatch",
+      "category": "stale_dispatch",
+      "target_studies": [
+        "DM002"
+      ],
+      "semantic_role": "mas_duplicate_runtime_retirement_regression",
+      "failure_class": "stale_dispatch_duplicate_runtime_retirement_canary",
+      "migration_boundary": {
+        "canonical_control_plane_owner": "OPL",
+        "mas_role": "domain_truth_quality_and_owner_receipt_authority",
+        "registry_must_not_recreate_duplicate_mas_runtime": true
+      },
+      "mas_fixture_refs": [
+        "tests/test_paper_repair_executor.py",
+        "tests/test_quality_repair_batch_cases/medical_prose_write_repair.py"
+      ],
+      "opl_transport_fixture_refs": [
+        "opl:agent-lab/transport/default-executor-dispatch",
+        "contracts/generated_surface_handoff.json"
+      ],
+      "owner_route_regression_refs": [
+        "tests/test_domain_owner_action_dispatch_cases/quality_repair_owner_route_cases.py",
+        "regression-suite:mas/owner-route/stale-dispatch"
+      ],
+      "no_forbidden_write_proof_refs": [
+        "tests/test_unique_control_plane_canary_registry.py",
+        "no-forbidden-write:mas/dm002/stale-dispatch"
+      ],
+      "work_order_refs": [
+        "work-order:opl/unique-control-plane-canary/dm002-stale-dispatch"
+      ],
+      "agent_lab_regression_loop": {
+        "output_mode": "executable_regression_work_order",
+        "executable": true,
+        "suite_ref": "agent-lab-suite:opl/unique-control-plane-canary/dm002-stale-dispatch",
+        "work_order_ref": "work-order:opl/unique-control-plane-canary/dm002-stale-dispatch",
+        "developer_patch_work_order": {
+          "work_order_id": "oma_developer_patch_work_order_opl_ucp_canary_dm002_stale_dispatch",
+          "owner_agent": "opl-meta-agent",
+          "role": "developer_direct_repo_patch",
+          "can_modify_mas_repo": true,
+          "can_write_study_truth": false,
+          "can_authorize_quality_verdict": false,
+          "executable": true,
+          "canary_id": "opl-unique-control-plane-canary:dm002-stale-dispatch",
+          "category": "stale_dispatch",
+          "allowed_patch_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "contracts/unique_control_plane_canary_registry.json",
+            "docs/active/unique_control_plane_canary_registry.md",
+            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py"
+          ],
+          "forbidden_patch_refs": [
+            "src/med_autoscience/controllers/runtime_control/owner_route.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          ],
+          "target_test_refs": [
+            "tests/test_domain_owner_action_dispatch_cases/quality_repair_owner_route_cases.py",
+            "regression-suite:mas/owner-route/stale-dispatch",
+            "tests/test_unique_control_plane_canary_registry.py"
+          ],
+          "mas_fixture_refs": [
+            "tests/test_paper_repair_executor.py",
+            "tests/test_quality_repair_batch_cases/medical_prose_write_repair.py"
+          ],
+          "opl_transport_fixture_refs": [
+            "opl:agent-lab/transport/default-executor-dispatch",
+            "contracts/generated_surface_handoff.json"
+          ],
+          "no_forbidden_write_proof_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "no-forbidden-write:mas/dm002/stale-dispatch"
+          ],
+          "verification_command_refs": [
+            "scripts/run-pytest-clean.sh tests/test_unique_control_plane_canary_registry.py -q",
+            "opl agent-lab run --suite agent-lab-suite:opl/unique-control-plane-canary/dm002-stale-dispatch --json"
+          ]
+        }
+      }
+    },
+    {
+      "canary_id": "opl-unique-control-plane-canary:dm003-provider-terminal-sync",
+      "category": "provider_terminal_sync",
+      "target_studies": [
+        "DM003"
+      ],
+      "semantic_role": "mas_duplicate_runtime_retirement_regression",
+      "failure_class": "provider_terminal_sync_duplicate_runtime_retirement_canary",
+      "migration_boundary": {
+        "canonical_control_plane_owner": "OPL",
+        "mas_role": "domain_truth_quality_and_owner_receipt_authority",
+        "registry_must_not_recreate_duplicate_mas_runtime": true
+      },
+      "mas_fixture_refs": [
+        "tests/test_real_paper_autonomy_soak_inventory_cases/test_canary_body_free_packets.py",
+        "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py"
+      ],
+      "opl_transport_fixture_refs": [
+        "opl:agent-lab/transport/provider-terminal-sync",
+        "opl:temporal-provider/typed-closeout"
+      ],
+      "owner_route_regression_refs": [
+        "tests/test_opl_agent_lab_longline_migration.py",
+        "regression-suite:mas/provider-terminal-sync"
+      ],
+      "no_forbidden_write_proof_refs": [
+        "tests/test_real_paper_autonomy_soak_inventory_cases/test_canary_body_free_packets.py",
+        "no-forbidden-write:mas/dm003/provider-terminal-sync"
+      ],
+      "work_order_refs": [
+        "work-order:opl/unique-control-plane-canary/dm003-provider-terminal-sync"
+      ],
+      "agent_lab_regression_loop": {
+        "output_mode": "executable_regression_work_order",
+        "executable": true,
+        "suite_ref": "agent-lab-suite:opl/unique-control-plane-canary/dm003-provider-terminal-sync",
+        "work_order_ref": "work-order:opl/unique-control-plane-canary/dm003-provider-terminal-sync",
+        "developer_patch_work_order": {
+          "work_order_id": "oma_developer_patch_work_order_opl_ucp_canary_dm003_provider_terminal_sync",
+          "owner_agent": "opl-meta-agent",
+          "role": "developer_direct_repo_patch",
+          "can_modify_mas_repo": true,
+          "can_write_study_truth": false,
+          "can_authorize_quality_verdict": false,
+          "executable": true,
+          "canary_id": "opl-unique-control-plane-canary:dm003-provider-terminal-sync",
+          "category": "provider_terminal_sync",
+          "allowed_patch_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "contracts/unique_control_plane_canary_registry.json",
+            "docs/active/unique_control_plane_canary_registry.md",
+            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py"
+          ],
+          "forbidden_patch_refs": [
+            "src/med_autoscience/controllers/runtime_control/owner_route.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          ],
+          "target_test_refs": [
+            "tests/test_opl_agent_lab_longline_migration.py",
+            "regression-suite:mas/provider-terminal-sync",
+            "tests/test_unique_control_plane_canary_registry.py"
+          ],
+          "mas_fixture_refs": [
+            "tests/test_real_paper_autonomy_soak_inventory_cases/test_canary_body_free_packets.py",
+            "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py"
+          ],
+          "opl_transport_fixture_refs": [
+            "opl:agent-lab/transport/provider-terminal-sync",
+            "opl:temporal-provider/typed-closeout"
+          ],
+          "no_forbidden_write_proof_refs": [
+            "tests/test_real_paper_autonomy_soak_inventory_cases/test_canary_body_free_packets.py",
+            "no-forbidden-write:mas/dm003/provider-terminal-sync"
+          ],
+          "verification_command_refs": [
+            "scripts/run-pytest-clean.sh tests/test_unique_control_plane_canary_registry.py -q",
+            "opl agent-lab run --suite agent-lab-suite:opl/unique-control-plane-canary/dm003-provider-terminal-sync --json"
+          ]
+        }
+      }
+    },
+    {
+      "canary_id": "opl-unique-control-plane-canary:dm003-owner-precedence",
+      "category": "owner_precedence",
+      "target_studies": [
+        "DM003"
+      ],
+      "semantic_role": "mas_duplicate_runtime_retirement_regression",
+      "failure_class": "owner_precedence_duplicate_runtime_retirement_canary",
+      "migration_boundary": {
+        "canonical_control_plane_owner": "OPL",
+        "mas_role": "domain_truth_quality_and_owner_receipt_authority",
+        "registry_must_not_recreate_duplicate_mas_runtime": true
+      },
+      "mas_fixture_refs": [
+        "tests/test_study_outer_loop_cases/quality_repair_priority_cases.py",
+        "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py"
+      ],
+      "opl_transport_fixture_refs": [
+        "opl:agent-lab/transport/owner-route-precedence",
+        "contracts/owner_receipt_contract.json"
+      ],
+      "owner_route_regression_refs": [
+        "tests/test_gate_clearing_batch_cases/quality_repair_route_context.py",
+        "regression-suite:mas/owner-route/owner-precedence"
+      ],
+      "no_forbidden_write_proof_refs": [
+        "tests/test_unique_control_plane_canary_registry.py",
+        "no-forbidden-write:mas/dm003/owner-precedence"
+      ],
+      "work_order_refs": [
+        "work-order:opl/unique-control-plane-canary/dm003-owner-precedence"
+      ],
+      "agent_lab_regression_loop": {
+        "output_mode": "executable_regression_work_order",
+        "executable": true,
+        "suite_ref": "agent-lab-suite:opl/unique-control-plane-canary/dm003-owner-precedence",
+        "work_order_ref": "work-order:opl/unique-control-plane-canary/dm003-owner-precedence",
+        "developer_patch_work_order": {
+          "work_order_id": "oma_developer_patch_work_order_opl_ucp_canary_dm003_owner_precedence",
+          "owner_agent": "opl-meta-agent",
+          "role": "developer_direct_repo_patch",
+          "can_modify_mas_repo": true,
+          "can_write_study_truth": false,
+          "can_authorize_quality_verdict": false,
+          "executable": true,
+          "canary_id": "opl-unique-control-plane-canary:dm003-owner-precedence",
+          "category": "owner_precedence",
+          "allowed_patch_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "contracts/unique_control_plane_canary_registry.json",
+            "docs/active/unique_control_plane_canary_registry.md",
+            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py"
+          ],
+          "forbidden_patch_refs": [
+            "src/med_autoscience/controllers/runtime_control/owner_route.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          ],
+          "target_test_refs": [
+            "tests/test_gate_clearing_batch_cases/quality_repair_route_context.py",
+            "regression-suite:mas/owner-route/owner-precedence",
+            "tests/test_unique_control_plane_canary_registry.py"
+          ],
+          "mas_fixture_refs": [
+            "tests/test_study_outer_loop_cases/quality_repair_priority_cases.py",
+            "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_live_work_unit_autonomy_repair.py"
+          ],
+          "opl_transport_fixture_refs": [
+            "opl:agent-lab/transport/owner-route-precedence",
+            "contracts/owner_receipt_contract.json"
+          ],
+          "no_forbidden_write_proof_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "no-forbidden-write:mas/dm003/owner-precedence"
+          ],
+          "verification_command_refs": [
+            "scripts/run-pytest-clean.sh tests/test_unique_control_plane_canary_registry.py -q",
+            "opl agent-lab run --suite agent-lab-suite:opl/unique-control-plane-canary/dm003-owner-precedence --json"
+          ]
+        }
+      }
+    },
+    {
+      "canary_id": "opl-unique-control-plane-canary:dm002-dm003-paper-delta-missing",
+      "category": "paper_delta_missing",
+      "target_studies": [
+        "DM002",
+        "DM003"
+      ],
+      "semantic_role": "mas_duplicate_runtime_retirement_regression",
+      "failure_class": "paper_delta_missing_duplicate_runtime_retirement_canary",
+      "migration_boundary": {
+        "canonical_control_plane_owner": "OPL",
+        "mas_role": "domain_truth_quality_and_owner_receipt_authority",
+        "registry_must_not_recreate_duplicate_mas_runtime": true
+      },
+      "mas_fixture_refs": [
+        "tests/test_paper_repair_execution_evidence.py",
+        "tests/test_paper_repair_execution_evidence_cases/story_surface_delta_cases.py"
+      ],
+      "opl_transport_fixture_refs": [
+        "opl:agent-lab/transport/typed-closeout-paper-delta",
+        "opl:agent-lab/work-order/artifact-delta-ref"
+      ],
+      "owner_route_regression_refs": [
+        "tests/test_paper_work_unit_lifecycle_contract.py",
+        "regression-suite:mas/work-unit/paper-delta-adoption"
+      ],
+      "no_forbidden_write_proof_refs": [
+        "tests/test_unique_control_plane_canary_registry.py",
+        "no-forbidden-write:mas/paper-delta-missing"
+      ],
+      "work_order_refs": [
+        "work-order:opl/unique-control-plane-canary/dm002-dm003-paper-delta-missing"
+      ],
+      "agent_lab_regression_loop": {
+        "output_mode": "executable_regression_work_order",
+        "executable": true,
+        "suite_ref": "agent-lab-suite:opl/unique-control-plane-canary/dm002-dm003-paper-delta-missing",
+        "work_order_ref": "work-order:opl/unique-control-plane-canary/dm002-dm003-paper-delta-missing",
+        "developer_patch_work_order": {
+          "work_order_id": "oma_developer_patch_work_order_opl_ucp_canary_dm002_dm003_paper_delta_missing",
+          "owner_agent": "opl-meta-agent",
+          "role": "developer_direct_repo_patch",
+          "can_modify_mas_repo": true,
+          "can_write_study_truth": false,
+          "can_authorize_quality_verdict": false,
+          "executable": true,
+          "canary_id": "opl-unique-control-plane-canary:dm002-dm003-paper-delta-missing",
+          "category": "paper_delta_missing",
+          "allowed_patch_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "contracts/unique_control_plane_canary_registry.json",
+            "docs/active/unique_control_plane_canary_registry.md",
+            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py"
+          ],
+          "forbidden_patch_refs": [
+            "src/med_autoscience/controllers/runtime_control/owner_route.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          ],
+          "target_test_refs": [
+            "tests/test_paper_work_unit_lifecycle_contract.py",
+            "regression-suite:mas/work-unit/paper-delta-adoption",
+            "tests/test_unique_control_plane_canary_registry.py"
+          ],
+          "mas_fixture_refs": [
+            "tests/test_paper_repair_execution_evidence.py",
+            "tests/test_paper_repair_execution_evidence_cases/story_surface_delta_cases.py"
+          ],
+          "opl_transport_fixture_refs": [
+            "opl:agent-lab/transport/typed-closeout-paper-delta",
+            "opl:agent-lab/work-order/artifact-delta-ref"
+          ],
+          "no_forbidden_write_proof_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "no-forbidden-write:mas/paper-delta-missing"
+          ],
+          "verification_command_refs": [
+            "scripts/run-pytest-clean.sh tests/test_unique_control_plane_canary_registry.py -q",
+            "opl agent-lab run --suite agent-lab-suite:opl/unique-control-plane-canary/dm002-dm003-paper-delta-missing --json"
+          ]
+        }
+      }
+    },
+    {
+      "canary_id": "opl-unique-control-plane-canary:dm002-dm003-quality-authority-stale",
+      "category": "quality_authority_stale",
+      "target_studies": [
+        "DM002",
+        "DM003"
+      ],
+      "semantic_role": "mas_duplicate_runtime_retirement_regression",
+      "failure_class": "quality_authority_stale_duplicate_runtime_retirement_canary",
+      "migration_boundary": {
+        "canonical_control_plane_owner": "OPL",
+        "mas_role": "domain_truth_quality_and_owner_receipt_authority",
+        "registry_must_not_recreate_duplicate_mas_runtime": true
+      },
+      "mas_fixture_refs": [
+        "tests/test_agent_lab_medical_manuscript_quality.py",
+        "tests/test_ai_reviewer_publication_eval_workflow.py"
+      ],
+      "opl_transport_fixture_refs": [
+        "opl:agent-lab/transport/quality-authority-stale",
+        "contracts/agent_lab_handoff.json"
+      ],
+      "owner_route_regression_refs": [
+        "tests/test_gate_clearing_batch_cases/submission_authority_sync.py",
+        "regression-suite:mas/quality-authority/currentness"
+      ],
+      "no_forbidden_write_proof_refs": [
+        "tests/test_unique_control_plane_canary_registry.py",
+        "no-forbidden-write:mas/quality-authority-stale"
+      ],
+      "work_order_refs": [
+        "work-order:opl/unique-control-plane-canary/dm002-dm003-quality-authority-stale"
+      ],
+      "agent_lab_regression_loop": {
+        "output_mode": "executable_regression_work_order",
+        "executable": true,
+        "suite_ref": "agent-lab-suite:opl/unique-control-plane-canary/dm002-dm003-quality-authority-stale",
+        "work_order_ref": "work-order:opl/unique-control-plane-canary/dm002-dm003-quality-authority-stale",
+        "developer_patch_work_order": {
+          "work_order_id": "oma_developer_patch_work_order_opl_ucp_canary_dm002_dm003_quality_authority_stale",
+          "owner_agent": "opl-meta-agent",
+          "role": "developer_direct_repo_patch",
+          "can_modify_mas_repo": true,
+          "can_write_study_truth": false,
+          "can_authorize_quality_verdict": false,
+          "executable": true,
+          "canary_id": "opl-unique-control-plane-canary:dm002-dm003-quality-authority-stale",
+          "category": "quality_authority_stale",
+          "allowed_patch_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "contracts/unique_control_plane_canary_registry.json",
+            "docs/active/unique_control_plane_canary_registry.md",
+            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py"
+          ],
+          "forbidden_patch_refs": [
+            "src/med_autoscience/controllers/runtime_control/owner_route.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          ],
+          "target_test_refs": [
+            "tests/test_gate_clearing_batch_cases/submission_authority_sync.py",
+            "regression-suite:mas/quality-authority/currentness",
+            "tests/test_unique_control_plane_canary_registry.py"
+          ],
+          "mas_fixture_refs": [
+            "tests/test_agent_lab_medical_manuscript_quality.py",
+            "tests/test_ai_reviewer_publication_eval_workflow.py"
+          ],
+          "opl_transport_fixture_refs": [
+            "opl:agent-lab/transport/quality-authority-stale",
+            "contracts/agent_lab_handoff.json"
+          ],
+          "no_forbidden_write_proof_refs": [
+            "tests/test_unique_control_plane_canary_registry.py",
+            "no-forbidden-write:mas/quality-authority-stale"
+          ],
+          "verification_command_refs": [
+            "scripts/run-pytest-clean.sh tests/test_unique_control_plane_canary_registry.py -q",
+            "opl agent-lab run --suite agent-lab-suite:opl/unique-control-plane-canary/dm002-dm003-quality-authority-stale --json"
+          ]
+        }
+      }
+    }
+  ],
+  "coverage_proof": {
+    "covers_mas_fixture_refs": true,
+    "covers_opl_transport_fixture_refs": true,
+    "covers_owner_route_regression_refs": true,
+    "covers_no_forbidden_write_proof_refs": true,
+    "required_ref_groups": [
+      "mas_fixture_refs",
+      "opl_transport_fixture_refs",
+      "owner_route_regression_refs",
+      "no_forbidden_write_proof_refs"
+    ],
+    "contract_refs": [
+      "contracts/unique_control_plane_canary_registry.json"
+    ]
+  }
+}
