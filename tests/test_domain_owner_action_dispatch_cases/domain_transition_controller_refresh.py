@@ -114,7 +114,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
             },
         }
 
-    def fail_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+    def fail_request_opl_stage_attempt(**kwargs: object) -> dict[str, object]:
         ensure_calls.append(dict(kwargs))
         raise AssertionError("MAS must not resume OPL-owned runtime workers")
 
@@ -123,7 +123,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -220,7 +220,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -260,7 +260,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
             },
         }
 
-    def fail_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+    def fail_request_opl_stage_attempt(**kwargs: object) -> dict[str, object]:
         ensure_calls.append(dict(kwargs))
         raise AssertionError("MAS must hand off bundle-stage runtime routing to OPL")
 
@@ -269,7 +269,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -288,7 +288,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
     assert current_authorization["written"] is False
     assert current_authorization["runtime_state_mutated"] is False
     assert current_authorization["decision_id"] == "fresh-domain-transition-bundle-stage-decision"
-    assert current_authorization["controller_actions"] == ["ensure_study_runtime"]
+    assert current_authorization["controller_actions"] == ["request_opl_stage_attempt"]
     assert current_authorization["work_unit_id"] == "submission_authority_sync_closure"
     assert current_authorization["proposed_runtime_state"]["last_controller_decision_authorization"]["decision_id"] == (
         "fresh-domain-transition-bundle-stage-decision"
@@ -371,7 +371,7 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -415,7 +415,7 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
         calls.append("pause")
         raise AssertionError("MAS must not pause OPL-owned live workers")
 
-    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
+    def fake_request_opl_stage_attempt(**_: object) -> dict[str, object]:
         calls.append("resume")
         raise AssertionError("MAS must not resume OPL-owned live workers")
 
@@ -425,7 +425,7 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
         fake_materialize_non_dispatching_outer_loop_decision,
     )
     monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime)
-    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fake_request_opl_stage_attempt)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -516,7 +516,7 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -559,9 +559,9 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
     def fail_pause_study_runtime(**_: object) -> dict[str, object]:
         raise AssertionError("aligned live prompt must not be paused")
 
-    def fail_ensure_study_runtime(**_: object) -> dict[str, object]:
+    def fail_request_opl_stage_attempt(**_: object) -> dict[str, object]:
         calls.append("resume")
-        raise AssertionError("MAS must not call ensure_study_runtime for aligned live prompts")
+        raise AssertionError("MAS must not call request_opl_stage_attempt for aligned live prompts")
 
     monkeypatch.setattr(
         outer_loop,
@@ -569,7 +569,7 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
         fake_materialize_non_dispatching_outer_loop_decision,
     )
     monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime)
-    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,

@@ -46,7 +46,7 @@ def _manifest_open_auto_research_projection(value: object) -> dict[str, Any]:
     }
 
 
-def _manifest_portable_supervisor_queue_dashboard(value: object) -> dict[str, Any]:
+def _manifest_opl_current_control_state_handoff_dashboard(value: object) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
     projection = dict(value)
@@ -106,8 +106,8 @@ def _manifest_portable_supervisor_queue_dashboard(value: object) -> dict[str, An
             ][:6]
         studies.append(study)
     return {
-        "surface_kind": projection.get("surface_kind") or "portable_supervisor_queue_dashboard",
-        "read_model": "workspace_hourly_supervision_projection",
+        "surface_kind": projection.get("surface_kind") or "opl_current_control_state_handoff_dashboard",
+        "read_model": "workspace_opl_current_control_state_handoff_projection",
         "authority": "observability_only",
         "status": projection.get("status"),
         "summary": projection.get("summary"),
@@ -116,5 +116,4 @@ def _manifest_portable_supervisor_queue_dashboard(value: object) -> dict[str, An
         "counts": dict(projection.get("counts") or {}),
         "studies": studies,
     }
-
 

@@ -154,7 +154,8 @@ repo-side 可以规定必须做的受控热身命令与观察项：
 uv run --python 3.14 python -m med_autoscience.cli doctor --profile <profile>
 uv run --python 3.14 python -m med_autoscience.cli doctor hermes-runtime --profile <profile>
 uv run --python 3.14 python -m med_autoscience.cli doctor backend-audit --profile <profile> --refresh
-uv run --python 3.14 python -m med_autoscience.cli study ensure-runtime --profile <profile> --study-id <study_id>
+uv run --python 3.14 python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>
+uv run --python 3.14 python -m med_autoscience.cli study progress-projection --profile <profile> --study-id <study_id>
 uv run --python 3.14 python -m med_autoscience.cli publication gate --quest-root <quest_root> --apply
 uv run --python 3.14 python -m med_autoscience.cli runtime domain-health-diagnostic --quest-root <quest_root> --apply
 ```

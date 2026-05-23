@@ -816,7 +816,7 @@ def test_scan_does_not_requeue_methodology_reframe_after_controller_decision_mat
             "requires_human_confirmation": False,
             "controller_actions": [
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(study_root / "artifacts" / "supervision" / "requests" / "decision" / "latest.json"),
                 }
             ],

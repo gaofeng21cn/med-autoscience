@@ -310,7 +310,7 @@ def test_obesity_supervisor_only_live_delta_projects_precise_owner() -> None:
             },
             "execution_owner_guard": {"supervisor_only": True},
             "publication_supervisor_state": {"bundle_tasks_downstream_only": True},
-            "portable_supervisor_dashboard": {
+            "opl_current_control_state_handoff": {
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": False,
             },
@@ -354,7 +354,7 @@ def test_obesity_supervisor_only_live_delta_reads_control_plane_truth() -> None:
                     ]
                 }
             },
-            "portable_supervisor_dashboard": {
+            "opl_current_control_state_handoff": {
                 "next_owner": "external_supervisor",
                 "external_supervisor_required": False,
             },

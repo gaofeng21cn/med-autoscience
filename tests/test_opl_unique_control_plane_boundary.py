@@ -4,13 +4,13 @@ import importlib
 
 import pytest
 
-import med_autoscience.controllers.domain_slo_scheduler_projection_parts.functional_followthrough_gaps as followthrough_gaps
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts import consumer_migration
+import med_autoscience.controllers.opl_unique_control_plane_boundary_parts.functional_followthrough_gaps as followthrough_gaps
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts import consumer_migration
 
 
-def test_domain_slo_scheduler_projection_top_level_callable_is_retired() -> None:
+def test_opl_unique_control_plane_boundary_top_level_callable_is_retired() -> None:
     with pytest.raises(ModuleNotFoundError):
-        importlib.import_module("med_autoscience.controllers.domain_slo_scheduler_projection")
+        importlib.import_module("med_autoscience.controllers.opl_unique_control_plane_boundary")
 
 
 def test_consumer_migration_contract_is_tombstone_and_pack_input_only() -> None:
@@ -31,9 +31,9 @@ def test_consumer_migration_contract_is_tombstone_and_pack_input_only() -> None:
     assert boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
     assert boundary["no_resurrection_proof"]["cleanup_only_commands"] == []
     assert boundary["no_resurrection_proof"]["forbidden_explicit_callers"] == [
-        "retired:runtime-supervision-status --profile <profile> --manager local",
-        "retired:runtime-ensure-supervision --profile <profile> --manager local",
-        "retired:runtime-remove-supervision --profile <profile> --manager local",
+        "runtime-supervision-status --profile <profile> --manager local",
+        "runtime-ensure-supervision --profile <profile> --manager local",
+        "runtime-remove-supervision --profile <profile> --manager local",
     ]
 
 

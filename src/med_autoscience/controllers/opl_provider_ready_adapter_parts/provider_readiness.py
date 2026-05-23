@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts.generated_caller_retirement import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.generated_caller_retirement import (
     build_generated_default_caller_boundary,
     build_physical_retirement_gate_matrix,
 )
@@ -716,7 +716,7 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         "surface_kind": "mas_legacy_retirement_tombstone_proof",
         "version": "mas-legacy-retirement-tombstone-proof.v1",
         "target_domain_id": TARGET_DOMAIN_ID,
-        "status": "no_resurrection_proof_recorded",
+        "status": "no_active_default_caller_proven",
         "active_default_callers": [],
         "generated_default_caller_boundary": build_generated_default_caller_boundary(
             schema_version=SCHEMA_VERSION,
@@ -744,7 +744,7 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         ],
         "history_refs": [
             "docs/active/opl_temporal_mas_runtime_retirement_program.md",
-            "docs/decisions.md#2026-05-16默认-domain-slo-scheduler-projection-owner-迁到-opl-replacement",
+            "docs/decisions.md#2026-05-16-opl-unique-control-plane-boundary-retirement",
         ],
         "physical_tombstone_refs": [
             "contracts/runtime/legacy-active-path-tombstones.json",
@@ -753,14 +753,14 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         "removal_policy": {
             "delete_or_tombstone_when": [
                 "generated_default_caller_boundary_proven",
-                "stale_surface_scan_clean",
+                "active_caller_count=0",
                 "opl_replacement_parity",
                 "mas_owner_receipt_parity",
                 "focused_tests_green",
                 "tombstone_refs_landed",
             ],
             "current_action": (
-                "keep_domain_authority_refs_or_tombstone_only_until_no_resurrection_gate_closes"
+                "physical_retired_no_alias_keep_domain_authority_refs_or_tombstone_provenance_only"
             ),
             "history_actions": ["legacy_active_path_tombstones_landed"],
         },

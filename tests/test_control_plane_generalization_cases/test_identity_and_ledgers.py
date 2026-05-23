@@ -90,7 +90,7 @@ def test_control_intent_identity_excludes_delivery_attempt_metadata() -> None:
         route_target="analysis-campaign",
         work_unit_id="revision checklist mapping",
         blocker_authority_fingerprint="runtime_escalation:fp-1",
-        controller_actions=("ensure_study_runtime",),
+        controller_actions=("request_opl_stage_attempt",),
         source_kind="controller_decision_authorization",
     )
     replay = module.build_control_intent_identity(
@@ -99,7 +99,7 @@ def test_control_intent_identity_excludes_delivery_attempt_metadata() -> None:
         route_target="analysis-campaign",
         work_unit_id="revision checklist mapping",
         blocker_authority_fingerprint="runtime_escalation:fp-1",
-        controller_actions=("ensure_study_runtime",),
+        controller_actions=("request_opl_stage_attempt",),
         source_kind="controller_decision_authorization",
     )
     superseding_feedback = module.build_control_intent_identity(
@@ -108,7 +108,7 @@ def test_control_intent_identity_excludes_delivery_attempt_metadata() -> None:
         route_target="analysis-campaign",
         work_unit_id="new reviewer feedback mapping",
         blocker_authority_fingerprint="runtime_escalation:fp-2",
-        controller_actions=("ensure_study_runtime",),
+        controller_actions=("request_opl_stage_attempt",),
         source_kind="controller_decision_authorization",
     )
 
@@ -157,7 +157,7 @@ def test_control_intent_lifecycle_blocks_same_fingerprint_without_artifact_delta
         route_target="analysis-campaign",
         work_unit_id="revision checklist mapping",
         blocker_authority_fingerprint="publication-gate::fp-1",
-        controller_actions=("ensure_study_runtime",),
+        controller_actions=("request_opl_stage_attempt",),
         source_kind="controller_decision_authorization",
     )
 
@@ -199,7 +199,7 @@ def test_control_intent_lifecycle_blocks_terminal_platform_work_unit_states(tmp_
             route_target="analysis-campaign",
             work_unit_id=f"analysis_claim_evidence_repair_{index}",
             blocker_authority_fingerprint="publication-blockers::497d1260db522f01",
-            controller_actions=("ensure_study_runtime",),
+            controller_actions=("request_opl_stage_attempt",),
             source_kind="controller_decision_authorization",
         )
         module.append_event(
@@ -309,7 +309,7 @@ def test_control_intent_lifecycle_supersedes_prior_fingerprint_and_resets_series
         route_target="analysis-campaign",
         work_unit_id="revision checklist mapping",
         blocker_authority_fingerprint="publication-gate::source-a",
-        controller_actions=("ensure_study_runtime",),
+        controller_actions=("request_opl_stage_attempt",),
         source_kind="controller_decision_authorization",
     )
     source_signature_changed = module.build_control_intent_identity(
@@ -318,7 +318,7 @@ def test_control_intent_lifecycle_supersedes_prior_fingerprint_and_resets_series
         route_target="analysis-campaign",
         work_unit_id="revision checklist mapping",
         blocker_authority_fingerprint="publication-gate::source-b",
-        controller_actions=("ensure_study_runtime",),
+        controller_actions=("request_opl_stage_attempt",),
         source_kind="controller_decision_authorization",
     )
 

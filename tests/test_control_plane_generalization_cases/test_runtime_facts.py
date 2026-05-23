@@ -46,6 +46,11 @@ def test_opl_runtime_refs_normalizes_domain_activity() -> None:
     live = module.resolve_opl_runtime_refs(
         {
             "quest_status": "running",
+            "opl_current_control_state": {
+                "status": "attempt_running",
+                "active_run_id": "run-opl-123",
+                "supervisor_tick_status": "fresh",
+            },
             "runtime_liveness_audit": {
                 "status": "live",
                 "active_run_id": "run-123",
@@ -65,8 +70,8 @@ def test_opl_runtime_refs_normalizes_domain_activity() -> None:
     assert live["provider_owner"] == "one-person-lab"
     assert live["source"] == "opl_runtime_refs"
     assert live["activity_state"] == "running"
-    assert live["heartbeat_state"] == "live"
-    assert live["active_run_id"] == "run-123"
+    assert live["heartbeat_state"] == "attempt_running"
+    assert live["active_run_id"] == "run-opl-123"
     assert live["monitoring_url"] == "http://127.0.0.1:20999"
     assert recovering["activity_state"] == "recovering"
     assert recovering["heartbeat_state"] == "missing_live_session"

@@ -44,7 +44,7 @@ def test_current_controller_route_stays_open_for_unsettled_authority_lifecycle(t
             "study_id": study_id,
             "quest_id": quest_id,
             "requires_human_confirmation": False,
-            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
             "route_target": "finalize",
             "work_unit_fingerprint": work_unit_fingerprint,
             "next_work_unit": {
@@ -222,7 +222,7 @@ def test_current_controller_route_accepts_bundle_stage_domain_transition_without
             "study_id": study_id,
             "quest_id": quest_id,
             "requires_human_confirmation": False,
-            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
             "route_target": "finalize",
             "work_unit_fingerprint": work_unit_fingerprint,
             "next_work_unit": {
@@ -276,7 +276,7 @@ def test_current_controller_route_ignores_successfully_closed_publication_work_u
             "study_id": study_id,
             "quest_id": quest_id,
             "requires_human_confirmation": False,
-            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
             "route_target": "finalize",
             "work_unit_fingerprint": work_unit_fingerprint,
             "next_work_unit": {
@@ -346,7 +346,7 @@ def test_current_controller_route_closes_bundle_stage_work_unit_from_package_clo
             "study_id": study_id,
             "quest_id": quest_id,
             "requires_human_confirmation": False,
-            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
             "route_target": "finalize",
             "work_unit_fingerprint": work_unit_fingerprint,
             "next_work_unit": {

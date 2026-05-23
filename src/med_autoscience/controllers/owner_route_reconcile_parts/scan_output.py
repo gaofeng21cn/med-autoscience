@@ -21,7 +21,7 @@ def build_scan_domain_routes_payload(
     history_path: Path,
 ) -> dict[str, Any]:
     return {
-        "surface": "portable_owner_route_reconcile",
+        "surface": "opl_current_control_state_handoff",
         "schema_version": schema_version,
         "generated_at": generated_at,
         "workspace_root": str(workspace_root),
@@ -36,9 +36,8 @@ def build_scan_domain_routes_payload(
             "tick_contract": {
                 "command": "opl family-runtime provider-slo tick --provider temporal",
                 "cadence_owner": "opl_provider_runtime_manager",
-                "legacy_local_command": (
-                    "ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1"
-                ),
+                "legacy_local_command": None,
+                "domain_diagnostic_command": "ops/medautoscience/bin/domain-health-diagnostic",
                 "legacy_local_cadence_seconds": 300,
                 "resident_daemon": False,
             },

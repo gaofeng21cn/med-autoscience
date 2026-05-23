@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration_inventory import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration_inventory import (
     ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
     PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT,
 )
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts.generated_caller_retirement import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.generated_caller_retirement import (
     build_generated_default_caller_boundary,
     build_physical_retirement_gate_matrix,
 )

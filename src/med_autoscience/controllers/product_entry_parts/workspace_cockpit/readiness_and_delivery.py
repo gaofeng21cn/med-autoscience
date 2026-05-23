@@ -430,16 +430,16 @@ def _workspace_delivery_inspection_state(*, studies: list[dict[str, Any]]) -> di
     }
 
 
-def _workspace_portable_supervisor_queue_dashboard(
+def _workspace_opl_current_control_state_handoff_dashboard(
     *,
     profile: WorkspaceProfile,
     studies: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    source_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    source_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     projected_studies = [
-        dict(item.get("portable_supervisor_dashboard") or {})
+        dict(item.get("opl_current_control_state_handoff") or {})
         for item in studies
-        if isinstance(item.get("portable_supervisor_dashboard"), Mapping)
+        if isinstance(item.get("opl_current_control_state_handoff"), Mapping)
     ]
     counts = {
         "study_count": len(studies),
@@ -473,17 +473,17 @@ def _workspace_portable_supervisor_queue_dashboard(
             if key in item and key not in supervisor_mode:
                 supervisor_mode[key] = item[key]
     summary = (
-        "当前还没有 portable supervisor hourly projection。"
+        "当前还没有 OPL current_control_state handoff projection。"
         if not projected_studies
         else (
-            f"{counts['projection_count']} 个 study 有 hourly supervisor queue projection；"
-            f"{counts['queued_action_count']} 个 queue action；"
+            f"{counts['projection_count']} 个 study 有 OPL current_control_state handoff projection；"
+            f"{counts['queued_action_count']} 个 OPL action ref；"
             f"{counts['external_supervisor_required']} 个需要 external supervisor。"
         )
     )
     return {
-        "surface_kind": "portable_supervisor_queue_dashboard",
-        "read_model": "workspace_hourly_supervision_projection",
+        "surface_kind": "opl_current_control_state_handoff_dashboard",
+        "read_model": "workspace_opl_current_control_state_handoff_projection",
         "authority": "observability_only",
         "status": status,
         "summary": summary,

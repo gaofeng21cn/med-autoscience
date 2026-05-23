@@ -114,7 +114,7 @@ class OplRuntimeRefs:
     def to_domain_activity_ref(self) -> dict[str, Any]:
         if self.strict_live:
             activity_state = "running"
-            heartbeat_state = "live"
+            heartbeat_state = self.runtime_liveness_status or "live"
         elif self.runtime_liveness_status == "parked":
             activity_state = "parked"
             heartbeat_state = "parked"
@@ -144,6 +144,9 @@ def resolve_opl_runtime_refs(
     *,
     supervisor_tick_audit: Mapping[str, Any] | None = None,
 ) -> OplRuntimeRefs:
+    opl_control = _mapping(status_payload.get("opl_current_control_state")) or _mapping(
+        status_payload.get("current_control_state")
+    )
     runtime_liveness_audit = _mapping(status_payload.get("runtime_liveness_audit"))
     runtime_audit = _mapping(runtime_liveness_audit.get("runtime_audit"))
     autonomous_runtime_notice = _mapping(status_payload.get("autonomous_runtime_notice"))
@@ -153,6 +156,7 @@ def resolve_opl_runtime_refs(
     supervisor_tick = _mapping(supervisor_tick_audit)
 
     active_run_id, active_run_id_source = _first_text_source(
+        ("opl_current_control_state.active_run_id", opl_control.get("active_run_id")),
         ("status.active_run_id", status_payload.get("active_run_id")),
         ("execution_owner_guard.active_run_id", execution_owner_guard.get("active_run_id")),
         ("autonomous_runtime_notice.active_run_id", autonomous_runtime_notice.get("active_run_id")),
@@ -162,7 +166,9 @@ def resolve_opl_runtime_refs(
         ("execution.active_run_id", execution.get("active_run_id")),
     )
     runtime_liveness_status = (
-        _text(status_payload.get("runtime_liveness_status"))
+        _text(opl_control.get("status"))
+        or _text(opl_control.get("state"))
+        or _text(status_payload.get("runtime_liveness_status"))
         or _text(runtime_liveness_audit.get("status"))
         or _text(runtime_audit.get("status"))
         or "unknown"
@@ -175,8 +181,11 @@ def resolve_opl_runtime_refs(
     quest_status = _text(status_payload.get("quest_status")) or _text(continuation_state.get("quest_status"))
     decision = _text(status_payload.get("decision"))
     reason = _text(status_payload.get("reason")) or _text(status_payload.get("runtime_reason"))
+    opl_control_present = bool(opl_control)
     liveness_source_present = bool(runtime_liveness_audit)
     if (
+        not opl_control_present
+        and
         liveness_source_present
         and active_run_id is not None
         and (runtime_liveness_status != "live" or worker_running is not True)
@@ -203,8 +212,21 @@ def resolve_opl_runtime_refs(
         active_run_id = None
         active_run_id_source = "continuation_state.parked_closeout"
         reason = parked_closeout_reason
-    strict_live = runtime_liveness_status == "live" and active_run_id is not None and worker_running is True
-    supervisor_tick_status = _text(supervisor_tick.get("status"))
+    strict_live = (
+        active_run_id is not None
+        and (
+            (
+                opl_control_present
+                and runtime_liveness_status in {"attempt_running", "provider_admitted", "running", "live"}
+            )
+            or (
+                not opl_control_present
+                and runtime_liveness_status == "live"
+                and worker_running is True
+            )
+        )
+    )
+    supervisor_tick_status = _text(opl_control.get("supervisor_tick_status")) or _text(supervisor_tick.get("status"))
     trusted_active_run_for_recovery = active_run_id_source in {
         "status.active_run_id",
         "execution_owner_guard.active_run_id",

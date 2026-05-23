@@ -74,7 +74,7 @@ def test_scan_domain_routes_parks_submission_milestone_instead_of_platform_repai
                 "decision_id": "old-finalize",
                 "route_target": "finalize",
                 "work_unit_id": "Complete final bundle proofing and administrative metadata",
-                "controller_actions": ["ensure_study_runtime"],
+                "controller_actions": ["request_opl_stage_attempt"],
                 "active_run_id": "run-stale",
             },
         },
@@ -166,10 +166,7 @@ def test_scan_domain_routes_parks_submission_milestone_instead_of_platform_repai
         },
     )
 
-    def fail_if_called(**_: object) -> object:
-        raise AssertionError("submission milestone parking must route runtime stop to OPL owner")
-
-    monkeypatch.setattr(module.domain_status_projection, "_managed_runtime_backend_for_execution", fail_if_called)
+    assert not hasattr(module.domain_status_projection, "_managed_runtime_backend_for_execution")
 
     def fake_runtime_status(**_: object) -> dict[str, object]:
         runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))

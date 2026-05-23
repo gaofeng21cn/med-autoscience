@@ -29,13 +29,14 @@ def display_source_refs(value: object) -> list[str]:
         "/artifacts/publication_eval/",
         "/artifacts/truth/",
         "/artifacts/runtime/progress_portal/",
-        "/artifacts/supervision/hourly/",
+        "/artifacts/supervision/opl_current_control_state/",
         "/runtime/quests/",
     )
     blocked_tokens = (
         "/ops/med-deepscientist/",
         "med-deepscientist",
         ".ds/worktrees",
+        "/artifacts/runtime/runtime_supervision/",
     )
     selected: list[str] = []
     for ref in refs:

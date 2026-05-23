@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 from .shared import write_profile
 
 
@@ -30,7 +32,6 @@ def test_domain_action_request_materializer_command_dispatches_controller(monkey
 
     exit_code = cli.main(
         [
-            "runtime",
             "domain-action-request-materialize",
             "--profile",
             str(profile_path),
@@ -78,7 +79,6 @@ def test_domain_action_request_materializer_command_apply_dispatches_controller(
 
     exit_code = cli.main(
         [
-            "runtime",
             "domain-action-request-materialize",
             "--profile",
             str(profile_path),
@@ -132,7 +132,6 @@ def test_domain_owner_action_dispatch_command_dispatches_controller(monkeypatch,
 
     exit_code = cli.main(
         [
-            "runtime",
             "domain-owner-action-dispatch",
             "--profile",
             str(profile_path),
@@ -191,25 +190,25 @@ def test_domain_owner_action_dispatch_command_rejects_retired_worker_flag(
     )
 
     retired_worker_flag = "--" + "managed-runtime" + "-worker"
-    exit_code = cli.main(
-        [
-            "runtime",
-            "domain-owner-action-dispatch",
-            "--profile",
-            str(profile_path),
-            "--studies",
-            "DM003",
-            "--action-types",
-            "return_to_ai_reviewer_workflow",
-            "--mode",
-            "developer_apply_safe",
-            "--apply",
-            retired_worker_flag,
-        ]
-    )
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "domain-owner-action-dispatch",
+                "--profile",
+                str(profile_path),
+                "--studies",
+                "DM003",
+                "--action-types",
+                "return_to_ai_reviewer_workflow",
+                "--mode",
+                "developer_apply_safe",
+                "--apply",
+                retired_worker_flag,
+            ]
+        )
     err = capsys.readouterr().err
 
-    assert exit_code == 2
+    assert excinfo.value.code == 2
     assert called == {}
     assert retired_worker_flag in err
 
@@ -248,7 +247,6 @@ def test_domain_owner_refresh_controller_decisions_command_dispatches_controller
 
     exit_code = cli.main(
         [
-            "runtime",
             "domain-owner-action-refresh-controller-decisions",
             "--profile",
             str(profile_path),

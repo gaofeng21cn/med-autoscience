@@ -415,7 +415,7 @@ def _mechanism_evolution_inputs(
 def _controller_read_model_feedback_refs(*, root: Path, study_id: str) -> list[str]:
     refs = _existing_refs(
         root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json",
-        root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         root
         / "artifacts"
         / "supervision"

@@ -320,7 +320,7 @@ def _runtime_health_requires_artifact_delta_recovery(payload: Mapping[str, Any])
     if blocking_reasons.intersection({"live_worker_meaningful_artifact_delta_timeout", "same_fingerprint_loop"}):
         return True
 
-    dashboard = _mapping_copy(payload.get("portable_supervisor_dashboard"))
+    dashboard = _mapping_copy(payload.get("opl_current_control_state_handoff"))
     artifact_delta = _mapping_copy(dashboard.get("artifact_delta"))
     if _non_empty_text(artifact_delta.get("status")) in {"missing", "not_observed", "stale"}:
         return True
@@ -345,7 +345,7 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
     owner_route = _mapping_copy(payload.get("owner_route"))
     paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
     interaction_arbitration = _mapping_copy(payload.get("interaction_arbitration"))
-    portable_supervisor = _mapping_copy(payload.get("portable_supervisor_dashboard"))
+    opl_handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
     ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
     return (
         _non_empty_text(impact.get("next_owner"))
@@ -353,7 +353,7 @@ def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> st
         or _non_empty_text(details.get("decision_owner"))
         or _non_empty_text(paper_progress_stall.get("next_owner"))
         or _non_empty_text(interaction_arbitration.get("next_owner"))
-        or _non_empty_text(portable_supervisor.get("next_owner"))
+        or _non_empty_text(opl_handoff.get("next_owner"))
         or _non_empty_text(ai_repair_lifecycle.get("next_owner"))
     )
 
@@ -373,11 +373,11 @@ def _why_not_progressing(
     artifact_delta_freshness = _mapping_copy(progress_freshness.get("meaningful_artifact_delta_freshness"))
     paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
     interaction_arbitration = _mapping_copy(payload.get("interaction_arbitration"))
-    portable_supervisor = _mapping_copy(payload.get("portable_supervisor_dashboard"))
+    opl_handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
     ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
     return (
         _non_empty_text(interaction_arbitration.get("blocked_reason"))
-        or _non_empty_text(portable_supervisor.get("blocked_reason"))
+        or _non_empty_text(opl_handoff.get("blocked_reason"))
         or _non_empty_text(ai_repair_lifecycle.get("blocked_reason"))
         or _non_empty_text(impact.get("why_not_running"))
         or _non_empty_text(paper_progress_stall.get("why_not_running"))

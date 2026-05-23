@@ -133,8 +133,8 @@
 对每个准备切换的真实项目，至少要做一次受控热身：
 
 1. 选一个非最关键、可回滚的 study
-2. 运行 `ensure-study-runtime`
-3. 验证 quest create / resume / pause 正常
+2. 通过 `launch-study` 进入受控 stage attempt，并读取 OPL `current_control_state`
+3. 验证 quest create / resume / pause 只经 OPL attempt / MAS owner receipt 或 typed blocker 闭环
 4. 验证 `publication_gate`、`data_asset_gate`、`figure_loop_guard`、`medical_publication_surface` 都能正常落盘
 5. 验证 paper bundle / submission minimal / user message queue 不丢状态
 

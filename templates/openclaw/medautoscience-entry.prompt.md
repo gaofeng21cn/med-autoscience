@@ -8,7 +8,7 @@ Runtime modes: lightweight, managed
 ## Mode Contract
 - full_research: runtime=managed, scope=none
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
   lightweight_routes: (none)
   managed_routes: scout | idea | write | finalize
   startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -17,7 +17,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: (none)
 - literature_scout: runtime=lightweight, scope=early evidence framing
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
   lightweight_routes: scout
   managed_routes: scout | idea | write | finalize
   startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -26,7 +26,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: hypothesis viability confirmed
 - idea_exploration: runtime=lightweight, scope=route selection and study framing
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
   lightweight_routes: idea | decision
   managed_routes: scout | idea | write | finalize
   startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -35,7 +35,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: experiment execution approved
 - project_optimization: runtime=lightweight, scope=pathway adjustment and stop-loss
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
   lightweight_routes: decision
   managed_routes: scout | write | finalize
   startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -44,7 +44,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: major direction change approved
 - writing_delivery: runtime=lightweight, scope=manuscript and delivery packaging
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | ensure-study-runtime
+  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
   lightweight_routes: write
   managed_routes: write | finalize
   startup_boundary_gated_routes: (none)

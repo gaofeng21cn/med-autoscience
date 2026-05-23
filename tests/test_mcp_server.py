@@ -278,7 +278,7 @@ def test_mcp_server_rejects_study_runtime_tool_calls(tmp_path: Path) -> None:
     result = module.call_tool(
         "study_runtime",
         {
-            "mode": "ensure_study_runtime",
+            "mode": "request_opl_stage_attempt",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
             "entry_mode": "full_research",
@@ -299,7 +299,7 @@ def test_mcp_server_rejects_ensure_study_runtime_mode_on_retired_mcp_tool(tmp_pa
     result = module.call_tool(
         "study_runtime",
         {
-            "mode": "ensure_study_runtime",
+            "mode": "request_opl_stage_attempt",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },

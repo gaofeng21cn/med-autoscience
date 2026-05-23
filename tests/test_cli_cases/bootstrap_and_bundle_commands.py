@@ -78,7 +78,7 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     )
     monkeypatch.setattr(
         cli.analysis_bundle_controller,
-        "ensure_study_runtime_analysis_bundle",
+        "ensure_analysis_bundle",
         lambda: {"action": "already_ready", "ready": True},
     )
     monkeypatch.setattr(
@@ -107,13 +107,13 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert '"manager": "opl"' in captured.out
     assert '"trigger_now": false' in captured.out
     assert not install_service.exists()
-def test_ensure_study_runtime_analysis_bundle_command_prints_controller_payload(monkeypatch, capsys) -> None:
+def test_ensure_analysis_bundle_command_prints_controller_payload(monkeypatch, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     payload = {"action": "already_ready", "ready": True}
 
     monkeypatch.setattr(
         cli.analysis_bundle_controller,
-        "ensure_study_runtime_analysis_bundle",
+        "ensure_analysis_bundle",
         lambda: payload,
     )
 

@@ -239,7 +239,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert "generic_worker_residency_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "legacy_provider" not in provider["provider_topology"]
     assert "legacy_provider_classification" not in provider["provider_topology"]
-    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_resurrection_proof_recorded"
+    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_active_default_caller_proven"
     assert provider["executor_requirements"] == {
         "adapter_owner": "one-person-lab",
         "generic_executor_adapter_owner": "one-person-lab",
@@ -445,7 +445,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert managed_state["authority_boundary"]["can_write_domain_truth"] is False
     tombstone = payload["legacy_retirement_tombstone_proof"]
     assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
-    assert tombstone["status"] == "no_resurrection_proof_recorded"
+    assert tombstone["status"] == "no_active_default_caller_proven"
     assert tombstone["active_default_callers"] == []
     assert {item["surface_id"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
         "hermes_agent_executor_adapter",

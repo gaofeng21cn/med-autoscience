@@ -10,7 +10,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
 from .. import study_domain_transition_table
-from ..domain_slo_scheduler_projection_parts import consumer_migration
+from ..opl_unique_control_plane_boundary_parts import consumer_migration
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
 from .default_executor_dispatch_tasks import default_executor_dispatch_tasks

@@ -510,8 +510,8 @@
         "delete_or_tombstone_after": [],
         "domain_receipt_parity_status": "not_required_for_tombstone_provenance_ref",
         "focused_test_refs": [
-          "tests/test_cli_cases/domain_slo_scheduler_projection_commands.py",
-          "tests/test_domain_slo_scheduler_projection.py"
+          "tests/test_cli_cases/opl_unique_control_plane_boundary_commands.py",
+          "tests/test_opl_unique_control_plane_boundary.py"
         ],
         "must_not_emit": [
           "generic_scheduler_owner",
@@ -1624,7 +1624,7 @@
       {
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/controllers/domain_slo_scheduler_projection_parts/"
+          "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/"
         ],
         "current_ref_status": "opl_replacement_default_local_tombstone_only",
         "domain_ref_consumers": [
@@ -2656,9 +2656,9 @@
         "mcp_local_scheduler_install"
       ],
       "forbidden_explicit_callers": [
-        "retired:runtime-supervision-status --profile <profile> --manager local",
-        "retired:runtime-ensure-supervision --profile <profile> --manager local",
-        "retired:runtime-remove-supervision --profile <profile> --manager local"
+        "runtime-supervision-status --profile <profile> --manager local",
+        "runtime-ensure-supervision --profile <profile> --manager local",
+        "runtime-remove-supervision --profile <profile> --manager local"
       ],
       "legacy_local_install_path_role": "physical_retired_tombstone_provenance_only",
       "proof_items": [
@@ -3108,6 +3108,7 @@
     ],
     "retired_legacy_residue_tombstones": [
       {
+        "active_caller_count": 0,
         "current_role": "history_tombstone_provenance_only",
         "default_entry_allowed": false,
         "domain_ref_consumer_count": 0,
@@ -3125,6 +3126,7 @@
         ]
       },
       {
+        "active_caller_count": 0,
         "current_role": "history_tombstone_provenance_only",
         "default_entry_allowed": false,
         "domain_ref_consumer_count": 0,
@@ -3142,6 +3144,7 @@
         ]
       },
       {
+        "active_caller_count": 0,
         "current_role": "history_tombstone_provenance_only",
         "default_entry_allowed": false,
         "domain_ref_consumer_count": 0,
@@ -3159,6 +3162,7 @@
         ]
       },
       {
+        "active_caller_count": 0,
         "current_role": "history_tombstone_provenance_only",
         "default_entry_allowed": false,
         "domain_ref_consumer_count": 0,

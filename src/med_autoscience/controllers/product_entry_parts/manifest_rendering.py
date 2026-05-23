@@ -168,8 +168,8 @@ def render_product_entry_status_markdown(payload: dict[str, Any]) -> str:
         payload.get("workspace_medical_paper_ops_health") or {}
     )
     workspace_delivery_inspection = _workspace_delivery_inspection_payload(payload)
-    workspace_portable_supervisor_queue_dashboard = dict(
-        payload.get("workspace_portable_supervisor_queue_dashboard") or {}
+    workspace_opl_current_control_state_handoff_dashboard = dict(
+        payload.get("workspace_opl_current_control_state_handoff_dashboard") or {}
     )
     lines = _product_entry_status_header_lines(payload, user_interaction_contract)
     lines.extend(_product_entry_operator_brief_lines(operator_brief))
@@ -189,7 +189,7 @@ def render_product_entry_status_markdown(payload: dict[str, Any]) -> str:
     )
     lines.extend(render_paper_orchestra_operator_projection_lines(workspace_paper_orchestra_operator_projection))
     lines.extend(_render_open_auto_research_projection_lines(workspace_open_auto_research_projection))
-    lines.extend(_render_portable_supervisor_queue_dashboard_lines(workspace_portable_supervisor_queue_dashboard))
+    lines.extend(_render_opl_current_control_state_handoff_dashboard_lines(workspace_opl_current_control_state_handoff_dashboard))
     lines.extend(_workspace_attention_preview_lines(payload.get("workspace_attention_queue_preview") or []))
     lines.extend(_status_phase2_user_loop_lines(phase2_user_product_loop))
     lines.extend(_status_guardrail_lines(product_entry_guardrails))
@@ -555,22 +555,22 @@ def _render_open_auto_research_action_lines(actions: object) -> list[str]:
     return lines
 
 
-def _render_portable_supervisor_queue_dashboard_lines(projection: Mapping[str, Any]) -> list[str]:
+def _render_opl_current_control_state_handoff_dashboard_lines(projection: Mapping[str, Any]) -> list[str]:
     if not projection:
         return []
     counts = dict(projection.get("counts") or {})
     lines = [
         "",
-        "## Portable Supervisor Queue",
+        "## OPL Current Control State Handoff",
         "",
-        "- surface: read-only hourly supervisor projection",
+        "- surface: read-only OPL current_control_state handoff projection",
         f"- authority: `{projection.get('authority') or 'observability_only'}`",
-        "- runtime boundary: Codex App heartbeat is an outer developer supervisor signal, not a MAS architecture dependency.",
+        "- runtime boundary: queue, stage attempts, provider lifecycle, retry and dead-letter are owned by OPL current_control_state.",
         f"- 当前摘要: {projection.get('summary') or 'none'}",
         (
             "- 当前计数: "
             f"study {counts.get('projection_count', 0)}；"
-            f"queue action {counts.get('queued_action_count', 0)}；"
+            f"OPL action refs {counts.get('queued_action_count', 0)}；"
             f"blocked {counts.get('blocked', 0)}；"
             f"external supervisor {counts.get('external_supervisor_required', 0)}"
         ),
@@ -593,7 +593,7 @@ def _render_portable_supervisor_queue_dashboard_lines(projection: Mapping[str, A
         runtime_health = dict(study.get("runtime_health") or {})
         gate_specificity = dict(study.get("gate_specificity") or {})
         lines.append(
-            f"- `{study.get('study_id') or 'unknown-study'}` queue: "
+            f"- `{study.get('study_id') or 'unknown-study'}` OPL handoff: "
             f"quest `{study.get('quest_status') or 'unknown'}`；"
             f"run `{study.get('active_run_id') or 'none'}`；"
             f"health `{runtime_health.get('health_status') or 'unknown'}`"
@@ -604,7 +604,7 @@ def _render_portable_supervisor_queue_dashboard_lines(projection: Mapping[str, A
         )
         if blocked_reason:
             lines.append(f"  blocked_reason: `{blocked_reason}`")
-        lines.extend(_render_portable_supervisor_action_lines(study.get("action_queue") or []))
+        lines.extend(_render_opl_current_control_state_action_lines(study.get("action_queue") or []))
         why_not_applied = [
             text for item in study.get("why_not_applied") or [] if (text := _non_empty_text(item)) is not None
         ]
@@ -618,13 +618,13 @@ def _render_portable_supervisor_queue_dashboard_lines(projection: Mapping[str, A
     return lines
 
 
-def _render_portable_supervisor_action_lines(actions: object) -> list[str]:
+def _render_opl_current_control_state_action_lines(actions: object) -> list[str]:
     lines: list[str] = []
     for action in actions if isinstance(actions, list) else []:
         if not isinstance(action, Mapping):
             continue
         lines.append(
-            f"  queue action: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
+            f"  OPL action ref: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
             f"{action.get('summary') or ''}".rstrip()
         )
         owner_pickup = action.get("owner_pickup") if isinstance(action.get("owner_pickup"), Mapping) else {}

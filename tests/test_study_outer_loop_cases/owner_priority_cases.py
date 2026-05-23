@@ -459,7 +459,7 @@ def test_domain_health_diagnostic_outer_loop_routes_bundle_stage_ready_before_st
     assert request["work_unit_fingerprint"] == "domain-transition::bundle_stage_finalize::submission_authority_sync_closure"
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "request_opl_stage_attempt",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
@@ -912,7 +912,7 @@ def test_domain_health_diagnostic_outer_loop_keeps_current_write_task_intake_bef
     assert request["route_target"] == "write"
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "request_opl_stage_attempt",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]

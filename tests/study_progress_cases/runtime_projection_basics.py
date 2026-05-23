@@ -509,7 +509,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
         quest_root,
         decision_type="continue_same_line",
         requires_human_confirmation=False,
-        action_type="ensure_study_runtime",
+        action_type="request_opl_stage_attempt",
         reason="MAS should keep repairing the current publication blockers autonomously.",
     )
     runtime_escalation_path = _write_runtime_escalation(quest_root, study_root)

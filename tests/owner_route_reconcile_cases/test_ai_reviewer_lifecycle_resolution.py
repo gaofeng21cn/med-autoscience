@@ -200,7 +200,7 @@ def test_scan_domain_routes_clears_stale_record_lifecycle_after_current_ai_revie
             "study_root": str(study_root),
             "quest_id": study_id,
             "quest_root": str(profile.runtime_root / study_id),
-            "current_stage": "managed_runtime_supervision_gap",
+            "current_stage": "managed_opl_runtime_owner_handoff_gap",
             "paper_stage": "publishability_gate_blocked",
             "refs": {"publication_eval_path": str(publication_eval_path)},
             "supervision": {"active_run_id": None, "health_status": "parked"},
@@ -410,7 +410,7 @@ def test_scan_domain_routes_reads_stable_ai_reviewer_request_before_old_write_ro
                 "decision_type": "route_back_same_line",
                 "route_target": "write",
                 "owner": "write",
-                "controller_action": "ensure_study_runtime",
+                "controller_action": "request_opl_stage_attempt",
                 "next_work_unit": {
                     "unit_id": "dm002_same_line_publication_paper_repair",
                     "lane": "write",
@@ -434,7 +434,7 @@ def test_scan_domain_routes_reads_stable_ai_reviewer_request_before_old_write_ro
         "read_study_progress",
         lambda **_: {
             "study_id": study_id,
-            "current_stage": "managed_runtime_supervision_gap",
+            "current_stage": "managed_opl_runtime_owner_handoff_gap",
             "paper_stage": "publishability_gate_blocked",
             "refs": {"publication_eval_path": str(publication_eval_path)},
             "supervision": {"active_run_id": None, "health_status": "parked"},

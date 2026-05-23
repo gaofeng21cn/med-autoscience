@@ -36,7 +36,7 @@ def _minimal_payload() -> dict[str, object]:
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": "/tmp/workspace/studies/001-risk/artifacts/controller_decisions/latest.json",
             }
         ],
@@ -73,7 +73,7 @@ def test_study_decision_record_from_payload_round_trips_minimal_shape() -> None:
         requires_human_confirmation=False,
         controller_actions=(
             module.StudyDecisionControllerAction(
-                action_type="ensure_study_runtime",
+                action_type="request_opl_stage_attempt",
                 payload_ref="/tmp/workspace/studies/001-risk/artifacts/controller_decisions/latest.json",
             ),
         ),

@@ -147,7 +147,9 @@ def handle_workspace_data_command(
         supervision_bootstrap = {
             "surface_kind": "opl_current_control_state_handoff",
             "owner": "one-person-lab",
+            "manager": "opl",
             "effect": "refs_only",
+            "trigger_now": False,
             "mas_runtime_supervision_command_removed": True,
             "reason": "mas_runtime_scheduler_not_active_callable",
         }
@@ -156,7 +158,7 @@ def handle_workspace_data_command(
         overlay_install = None
         overlay_status = None
         overlay_bootstrap = None
-        analysis_bundle = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
+        analysis_bundle = analysis_bundle_controller.ensure_analysis_bundle()
         if profile.enable_medical_overlay:
             overlay_request = doctor.overlay_request_from_profile(profile)
             overlay_bootstrap = overlay_installer.ensure_medical_overlay(

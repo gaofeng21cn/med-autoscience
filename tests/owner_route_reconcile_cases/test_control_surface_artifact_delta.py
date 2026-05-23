@@ -71,9 +71,9 @@ def test_scan_domain_routes_does_not_count_control_surface_progress_as_artifact_
         "idempotency_key": "owner-route::control-only",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": previous_route, "meaningful_artifact_delta": False}],
             "action_queue": [],

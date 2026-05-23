@@ -24,11 +24,11 @@ from .parked_projection import (
     projected_current_stage,
 )
 from .markdown_projection import render_study_progress_markdown
-from .supervisor_projection import (
+from .opl_current_control_state_handoff import (
     build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection,
     current_status_publication_gate_stationary as _current_status_publication_gate_stationary,
     current_status_suppresses_ai_repair_lifecycle as _current_status_suppresses_ai_repair_lifecycle,
-    portable_supervisor_study_projection as _portable_supervisor_study_projection,
+    opl_current_control_state_study_handoff_projection as _opl_current_control_state_study_handoff_projection,
     read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
 )
 from .projection_sources import (
@@ -496,7 +496,7 @@ def build_study_progress_projection(
             status_payload=status,
         )
     )
-    portable_supervisor_dashboard = _portable_supervisor_study_projection(
+    opl_current_control_state_handoff = _opl_current_control_state_study_handoff_projection(
         profile=profile,
         study_id=resolved_study_id,
     )
@@ -725,7 +725,7 @@ def build_study_progress_projection(
         bash_summary_path=bash_summary_path,
         details_projection_path=details_projection_path,
         ai_first_observability_snapshots=ai_first_observability_snapshots,
-        portable_supervisor_dashboard=portable_supervisor_dashboard,
+        opl_current_control_state_handoff=opl_current_control_state_handoff,
     )
     refs["ai_reviewer_request_lifecycle_path"] = (
         str(
@@ -789,7 +789,7 @@ def build_study_progress_projection(
         research_runtime_control_projection=research_runtime_control_projection,
         open_auto_research_state=open_auto_research_state,
         ai_reviewer_request_lifecycle=ai_reviewer_request_lifecycle,
-        portable_supervisor_dashboard=portable_supervisor_dashboard,
+        opl_current_control_state_handoff=opl_current_control_state_handoff,
         gate_specificity_request=gate_specificity_request,
         ai_first_default_entry_state=ai_first_default_entry_state,
         paper_orchestra_operator_projection=paper_orchestra_operator_projection,

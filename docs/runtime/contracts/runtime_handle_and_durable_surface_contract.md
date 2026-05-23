@@ -123,7 +123,7 @@
 5. `controller_decisions/latest.json`
    - outer loop 基于 publication eval 与 runtime escalation 形成下一步决策
 6. controller action
-   - 只允许走 `ensure_study_runtime`、`pause_runtime`、`stop_runtime` 等受控 surface
+   - 只允许走 `request_opl_stage_attempt`、`pause_runtime`、`stop_runtime` 等受控 surface
 
 这条链路里：
 

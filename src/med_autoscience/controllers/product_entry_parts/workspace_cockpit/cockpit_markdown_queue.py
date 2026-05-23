@@ -14,50 +14,50 @@ from med_autoscience.controllers.product_entry_parts.shared_base import (
 from med_autoscience.controllers.product_entry_parts.shared_labels import _non_empty_text
 
 
-def append_portable_supervisor_queue_dashboard(lines: list[str], projection: object) -> None:
+def append_opl_current_control_state_handoff_dashboard(lines: list[str], projection: object) -> None:
     if not isinstance(projection, Mapping) or not projection:
         return
     counts = dict(projection.get("counts") or {})
     lines.extend(
         [
             "",
-            "## Portable Supervisor Queue",
+            "## OPL Current Control State Handoff",
             "",
-            "- surface: read-only hourly supervisor projection",
+            "- surface: read-only OPL current_control_state handoff projection",
             f"- authority: `{projection.get('authority') or 'observability_only'}`",
-            "- runtime boundary: Codex App heartbeat is an outer developer supervisor signal, not a MAS architecture dependency.",
+            "- runtime boundary: queue, stage attempts, provider lifecycle, retry and dead-letter are owned by OPL current_control_state.",
             f"- 当前摘要: {projection.get('summary') or 'none'}",
             (
                 "- 当前计数: "
                 f"study {counts.get('projection_count', 0)}；"
-                f"queue action {counts.get('queued_action_count', 0)}；"
+                f"OPL action refs {counts.get('queued_action_count', 0)}；"
                 f"blocked {counts.get('blocked', 0)}；"
                 f"external supervisor {counts.get('external_supervisor_required', 0)}"
             ),
         ]
     )
-    _append_portable_supervisor_mode(lines, projection)
+    _append_opl_current_control_state_mode(lines, projection)
     for study in projection.get("studies") or []:
         if isinstance(study, Mapping):
-            _append_portable_supervisor_study(lines, study)
+            _append_opl_current_control_state_study(lines, study)
 
 
-def _append_portable_supervisor_study(lines: list[str], study: Mapping[str, Any]) -> None:
+def _append_opl_current_control_state_study(lines: list[str], study: Mapping[str, Any]) -> None:
     gate_specificity = dict(study.get("gate_specificity") or {})
-    lines.append(_portable_supervisor_study_summary(study))
-    _append_portable_blocked_reason(lines, study, gate_specificity)
-    _append_portable_action_queue(lines, study)
-    _append_portable_why_not_applied(lines, study)
-    _append_portable_next_owner(lines, study)
+    lines.append(_opl_current_control_state_study_summary(study))
+    _append_opl_current_control_blocked_reason(lines, study, gate_specificity)
+    _append_opl_current_control_action_refs(lines, study)
+    _append_opl_current_control_why_not_applied(lines, study)
+    _append_opl_current_control_next_owner(lines, study)
 
 
-def _portable_supervisor_study_summary(study: Mapping[str, Any]) -> str:
+def _opl_current_control_state_study_summary(study: Mapping[str, Any]) -> str:
     runtime_health = dict(study.get("runtime_health") or {})
     artifact_delta = dict(study.get("artifact_delta") or {})
     gate_specificity = dict(study.get("gate_specificity") or {})
     ai_reviewer = dict(study.get("ai_reviewer_status") or {})
     return (
-        f"- `{study.get('study_id') or 'unknown-study'}` queue: "
+        f"- `{study.get('study_id') or 'unknown-study'}` OPL handoff: "
         f"quest `{study.get('quest_status') or 'unknown'}`；"
         f"run `{study.get('active_run_id') or 'none'}`；"
         f"health `{runtime_health.get('health_status') or 'unknown'}`；"
@@ -67,7 +67,7 @@ def _portable_supervisor_study_summary(study: Mapping[str, Any]) -> str:
     )
 
 
-def _append_portable_blocked_reason(
+def _append_opl_current_control_blocked_reason(
     lines: list[str],
     study: Mapping[str, Any],
     gate_specificity: Mapping[str, Any],
@@ -77,12 +77,12 @@ def _append_portable_blocked_reason(
         lines.append(f"  blocked_reason: `{blocked_reason}`")
 
 
-def _append_portable_action_queue(lines: list[str], study: Mapping[str, Any]) -> None:
+def _append_opl_current_control_action_refs(lines: list[str], study: Mapping[str, Any]) -> None:
     for action in study.get("action_queue") or []:
         if not isinstance(action, Mapping):
             continue
         lines.append(
-            f"  queue action: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
+            f"  OPL action ref: `{action.get('action_type') or action.get('action_id') or 'unknown_action'}` "
             f"{action.get('summary') or ''}".rstrip()
         )
         owner_pickup = action.get("owner_pickup") if isinstance(action.get("owner_pickup"), Mapping) else {}
@@ -96,7 +96,7 @@ def _append_portable_action_queue(lines: list[str], study: Mapping[str, Any]) ->
             )
 
 
-def _append_portable_supervisor_mode(lines: list[str], projection: Mapping[str, Any]) -> None:
+def _append_opl_current_control_state_mode(lines: list[str], projection: Mapping[str, Any]) -> None:
     supervisor_mode = dict(projection.get("supervisor_mode") or {})
     if not supervisor_mode:
         return
@@ -112,7 +112,7 @@ def _append_portable_supervisor_mode(lines: list[str], projection: Mapping[str, 
     )
 
 
-def _append_portable_why_not_applied(lines: list[str], study: Mapping[str, Any]) -> None:
+def _append_opl_current_control_why_not_applied(lines: list[str], study: Mapping[str, Any]) -> None:
     why_not_applied = [
         text for item in study.get("why_not_applied") or [] if (text := _non_empty_text(item)) is not None
     ]
@@ -120,7 +120,7 @@ def _append_portable_why_not_applied(lines: list[str], study: Mapping[str, Any])
         lines.append("  why_not_applied: " + "；".join(f"`{item}`" for item in why_not_applied))
 
 
-def _append_portable_next_owner(lines: list[str], study: Mapping[str, Any]) -> None:
+def _append_opl_current_control_next_owner(lines: list[str], study: Mapping[str, Any]) -> None:
     if study.get("next_owner") or study.get("external_supervisor_required") is not None:
         lines.append(
             f"  next_owner: `{study.get('next_owner') or 'unknown'}`；"

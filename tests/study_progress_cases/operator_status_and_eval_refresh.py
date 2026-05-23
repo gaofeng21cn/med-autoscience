@@ -454,7 +454,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
                         "details to the unit-harmonized external validation."
                     ),
                 },
-                "controller_action": "ensure_study_runtime",
+                "controller_action": "request_opl_stage_attempt",
                 "owner": "analysis-campaign",
                 "typed_blocker": None,
             },
@@ -576,7 +576,7 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
                         "details to the unit-harmonized external validation."
                     ),
                 },
-                "controller_action": "ensure_study_runtime",
+                "controller_action": "request_opl_stage_attempt",
                 "owner": "analysis-campaign",
                 "typed_blocker": None,
             },

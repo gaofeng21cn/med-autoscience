@@ -186,7 +186,7 @@ def _progress_publication_and_runtime_fields(
     research_runtime_control_projection: dict[str, Any],
     open_auto_research_state: dict[str, Any],
     ai_reviewer_request_lifecycle: dict[str, Any] | None,
-    portable_supervisor_dashboard: dict[str, Any] | None,
+    opl_current_control_state_handoff: dict[str, Any] | None,
     gate_specificity_request: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
@@ -200,7 +200,7 @@ def _progress_publication_and_runtime_fields(
         "research_runtime_control_projection": research_runtime_control_projection,
         "open_auto_research_projection": open_auto_research_state,
         "ai_reviewer_request_lifecycle": ai_reviewer_request_lifecycle,
-        "portable_supervisor_dashboard": portable_supervisor_dashboard,
+        "opl_current_control_state_handoff": opl_current_control_state_handoff,
         "publication_gate_specificity_request": gate_specificity_request,
     }
 
@@ -297,7 +297,7 @@ def assemble_study_progress_payload(
     research_runtime_control_projection: dict[str, Any],
     open_auto_research_state: dict[str, Any],
     ai_reviewer_request_lifecycle: dict[str, Any] | None,
-    portable_supervisor_dashboard: dict[str, Any] | None,
+    opl_current_control_state_handoff: dict[str, Any] | None,
     gate_specificity_request: dict[str, Any] | None,
     ai_first_default_entry_state: dict[str, Any],
     paper_orchestra_operator_projection: dict[str, Any],
@@ -384,7 +384,7 @@ def assemble_study_progress_payload(
             research_runtime_control_projection=research_runtime_control_projection,
             open_auto_research_state=open_auto_research_state,
             ai_reviewer_request_lifecycle=ai_reviewer_request_lifecycle,
-            portable_supervisor_dashboard=portable_supervisor_dashboard,
+            opl_current_control_state_handoff=opl_current_control_state_handoff,
             gate_specificity_request=gate_specificity_request,
         ),
         **_progress_ai_first_and_snapshot_fields(
@@ -563,7 +563,7 @@ def build_projection_refs(
     bash_summary_path: Path | None,
     details_projection_path: Path | None,
     ai_first_observability_snapshots: dict[str, Any],
-    portable_supervisor_dashboard: dict[str, Any] | None,
+    opl_current_control_state_handoff: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
         "launch_report_path": str(launch_report_path),
@@ -607,8 +607,8 @@ def build_projection_refs(
         "open_auto_research_projection_path": str(
             open_auto_research_projection.stable_open_auto_research_projection_path(study_root=study_root)
         ),
-        "portable_supervisor_hourly_path": (
-            portable_supervisor_dashboard.get("source_path") if portable_supervisor_dashboard is not None else None
+        "opl_current_control_state_handoff_path": (
+            opl_current_control_state_handoff.get("source_path") if opl_current_control_state_handoff is not None else None
         ),
         "publication_gate_specificity_request_path": (
             str(gate_specificity_request_path) if gate_specificity_request is not None else None

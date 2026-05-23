@@ -137,13 +137,13 @@ workspace alerts 必须保留解释层。每条可见告警或降级诊断都要
 - 用途：这条信息用来提醒运行、进度、质量还是诊断缺口。
 - 当前输出：原始 read-model 当前给出的文本或状态。
 - 期望输出：恢复后应该看到的具体状态或更具体 blocker。
-- 修复/查看命令：如果已有受控 CLI，例如 `runtime-ensure-supervision` 或 `doctor --profile`，应显示命令；没有命令时保持为空。
+- 修复/查看命令：如果已有受控 CLI，例如 `domain-health-diagnostic`、`owner-route-reconcile` 或 `doctor --profile`，应显示命令；没有命令时保持为空。
 
 `Supervisor scheduler 尚未注册。`、`MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。` 这类旧 local scheduler 文案只应作为 tombstone/provenance 诊断展示，不得指向可执行 `--manager local` 命令；默认 scheduler owner 是 OPL provider/runtime manager。诊断必须同时显示当前 `adapter_id`（默认 `opl_family_runtime_provider`，显式 Hermes 为 `hermes_gateway_cron`），不能把 Hermes-hosted 或 local LaunchAgent 文案当成默认架构事实。`状态需要检查。` 这类泛化旧文案应标为低信息诊断，由具体 study 行和 runtime health blocker 取代。
 
-Portal 只读投影，不自动安装或修复 scheduler。默认 OPL replacement 状态由 `runtime-supervision-status --profile <profile>` 投影；发现 legacy local scheduler 缺失或漂移时，Portal 必须展示 `workspace_supervision.service.summary`、用途、期望状态和 tombstone/provenance refs，不输出 local cleanup command。
+Portal 只读投影，不自动安装或修复 scheduler。默认 runtime 状态由 OPL `current_control_state` / provider attempt ledger 投影；MAS 只显示 domain refs、owner receipt、typed blocker、safe action refs 和 tombstone/provenance refs。发现 legacy local scheduler 缺失或漂移时，Portal 必须展示 `workspace_supervision.service.summary`、用途、期望状态和 tombstone/provenance refs，不输出 local cleanup command。
 
-如果 `runtime-supervision-status --profile <profile>` 显示 `status=loaded`、`job_exists=true`、`script_exists=true` 且最近一次运行成功，Portal 不应继续把 “supervision 尚未注册” 当作当前问题展示。若旧 Hermes-hosted 文案仍从 `workspace_cockpit.workspace_alerts` 传入，只能落入诊断表并携带来源/修复命令；若现场 supervision 已在线且具体 study 行已经给出 runtime health blocker，`状态需要检查。` 应完全隐藏，避免医生/PI 把低信息历史诊断误认为待处理任务。
+如果 OPL `current_control_state` / provider attempt ledger 显示 runtime handoff 新鲜且具体 study 行已经给出 runtime health blocker，Portal 不应继续把 “supervision 尚未注册” 当作当前问题展示。若旧 Hermes-hosted 文案仍从 `workspace_cockpit.workspace_alerts` 传入，只能落入诊断表并携带来源/修复命令；若现场 supervision 已在线且具体 study 行已经给出 runtime health blocker，`状态需要检查。` 应完全隐藏，避免医生/PI 把低信息历史诊断误认为待处理任务。
 
 当前 UI 采用简洁的 operational dashboard 形态：状态用 chip/tag 呈现，表格负责多 study 区分，告警表负责来源/用途/期望/命令。设计参考原则来自 `awesome-design-md` / GetDesign.md 一类 design-context-first 方法，以及 Material / Carbon / Atlassian 的状态 chip、tag、lozenge 和 data-table 模式：少装饰、强对齐、可扫描、状态含义不只靠颜色表达。
 

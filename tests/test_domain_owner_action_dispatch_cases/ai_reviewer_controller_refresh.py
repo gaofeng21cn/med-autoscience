@@ -63,7 +63,7 @@ def test_refresh_controller_decisions_for_current_publication_eval_materializes_
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -246,12 +246,12 @@ def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
             },
         }
 
-    def fail_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+    def fail_request_opl_stage_attempt(**kwargs: object) -> dict[str, object]:
         ensure_calls.append(dict(kwargs))
         raise AssertionError("MAS must not resume OPL-owned runtime workers")
 
     monkeypatch.setattr(outer_loop, "materialize_non_dispatching_outer_loop_decision", fake_materialize_non_dispatching_outer_loop_decision)
-    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -421,7 +421,7 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
             },
         }
 
-    def fail_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+    def fail_request_opl_stage_attempt(**kwargs: object) -> dict[str, object]:
         ensure_calls.append(dict(kwargs))
         raise AssertionError("MAS must not redrive pending user messages through provider runtime")
 
@@ -430,7 +430,7 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -572,12 +572,12 @@ def test_refresh_controller_decision_preserves_live_worker_state(
             },
         }
 
-    def fail_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+    def fail_request_opl_stage_attempt(**kwargs: object) -> dict[str, object]:
         ensure_calls.append(dict(kwargs))
         raise AssertionError("MAS must not touch a live OPL-owned worker")
 
     monkeypatch.setattr(outer_loop, "materialize_non_dispatching_outer_loop_decision", fake_materialize_non_dispatching_outer_loop_decision)
-    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -773,7 +773,7 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],

@@ -130,14 +130,22 @@ def _delivery_summary(
 def _supervision(progress: Mapping[str, Any], runtime: Mapping[str, Any]) -> dict[str, Any]:
     supervision = _mapping(progress.get("supervision"))
     tick_audit = _mapping(runtime.get("supervisor_tick_audit"))
+    opl_control = _mapping(runtime.get("opl_current_control_state")) or _mapping(
+        progress.get("opl_current_control_state")
+    )
     return {
         "browser_url": _non_empty_text(supervision.get("browser_url")),
         "quest_session_api_url": _non_empty_text(supervision.get("quest_session_api_url")),
-        "active_run_id": _non_empty_text(supervision.get("active_run_id")) or _non_empty_text(runtime.get("active_run_id")),
-        "health_status": _non_empty_text(supervision.get("health_status")) or _non_empty_text(runtime.get("health_status")),
+        "active_run_id": _non_empty_text(opl_control.get("active_run_id")) or _non_empty_text(runtime.get("active_run_id")),
+        "health_status": (
+            _non_empty_text(opl_control.get("state"))
+            or _non_empty_text(opl_control.get("status"))
+            or _non_empty_text(runtime.get("health_status"))
+            or _non_empty_text(supervision.get("health_status"))
+        ),
         "supervisor_tick_status": (
-            _non_empty_text(tick_audit.get("status"))
-            or _non_empty_text(supervision.get("supervisor_tick_status"))
+            _non_empty_text(opl_control.get("supervisor_tick_status"))
+            or _non_empty_text(tick_audit.get("status"))
         ),
     }
 
@@ -193,7 +201,10 @@ def _conditions(
         conflict.append("outer_supervision_slo_blocked")
     if delivery.get("status") == "missing":
         missing.append("current_package")
-    tick_status = _non_empty_text(_mapping(runtime.get("supervisor_tick_audit")).get("status"))
+    opl_control = _mapping(runtime.get("opl_current_control_state")) or _mapping(progress.get("opl_current_control_state"))
+    tick_status = _non_empty_text(opl_control.get("supervisor_tick_status")) or _non_empty_text(
+        _mapping(runtime.get("supervisor_tick_audit")).get("status")
+    )
     if tick_status in {"missing", "invalid"}:
         missing.append("domain_route_tick")
     elif tick_status == "stale":

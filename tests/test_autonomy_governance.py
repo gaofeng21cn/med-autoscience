@@ -14,7 +14,7 @@ def test_direction_locked_bounded_analysis_is_autonomous_with_stable_scope() -> 
 
     contract = module.build_autonomy_governance_contract(
         decision_type="bounded_analysis",
-        controller_action_types=["ensure_study_runtime_relaunch_stopped"],
+        controller_action_types=["request_opl_stage_attempt_relaunch"],
         route_target="analysis-campaign",
         requires_human_confirmation=False,
         direction_locked=True,
@@ -27,7 +27,7 @@ def test_direction_locked_bounded_analysis_is_autonomous_with_stable_scope() -> 
         "next_stage": "analysis-campaign",
         "human_gate_class": "none",
         "requires_human_confirmation": False,
-        "controller_action_types": ["ensure_study_runtime_relaunch_stopped"],
+        "controller_action_types": ["request_opl_stage_attempt_relaunch"],
         "decision_type": "bounded_analysis",
         "reason_code": "direction_locked_bounded_analysis_stays_autonomous",
     }
@@ -38,7 +38,7 @@ def test_runtime_recovery_after_direction_lock_stays_autonomous() -> None:
 
     contract = module.build_autonomy_governance_contract(
         decision_type="relaunch_branch",
-        controller_action_types=["ensure_study_runtime_relaunch_stopped"],
+        controller_action_types=["request_opl_stage_attempt_relaunch"],
         requires_human_confirmation=False,
         direction_locked=True,
     )
@@ -55,7 +55,7 @@ def test_final_audit_is_a_narrow_human_gate_class() -> None:
 
     contract = module.build_autonomy_governance_contract(
         decision_type="promote_to_delivery",
-        controller_action_types=["ensure_study_runtime"],
+        controller_action_types=["request_opl_stage_attempt"],
         route_target="submission",
         requires_human_confirmation=True,
         direction_locked=True,
@@ -73,7 +73,7 @@ def test_explicit_human_override_can_gate_an_otherwise_autonomous_decision() -> 
 
     contract = module.build_autonomy_governance_contract(
         decision_type="continue_same_line",
-        controller_action_types=["ensure_study_runtime"],
+        controller_action_types=["request_opl_stage_attempt"],
         requires_human_confirmation=True,
         direction_locked=True,
         explicit_human_override=True,
@@ -91,7 +91,7 @@ def test_autonomous_scientific_decisions_cannot_claim_human_gate() -> None:
     with pytest.raises(ValueError, match="autonomous MAS decision cannot require human confirmation"):
         module.build_autonomy_governance_contract(
             decision_type="continue_same_line",
-            controller_action_types=["ensure_study_runtime"],
+            controller_action_types=["request_opl_stage_attempt"],
             route_target="write",
             requires_human_confirmation=True,
             direction_locked=True,
@@ -120,7 +120,7 @@ def test_direction_unlocked_decision_requires_human_gate_class() -> None:
 
     contract = module.build_autonomy_governance_contract(
         decision_type="continue_same_line",
-        controller_action_types=["ensure_study_runtime"],
+        controller_action_types=["request_opl_stage_attempt"],
         route_target="write",
         requires_human_confirmation=True,
         direction_locked=False,
@@ -158,7 +158,7 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
     )
     monkeypatch.setattr(
         outer_loop.domain_status_projection,
-        "ensure_study_runtime",
+        "request_opl_stage_attempt",
         lambda **_: {"decision": "relaunch_stopped", "reason": "quest_stopped_requires_explicit_rerun"},
     )
 
@@ -174,7 +174,7 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
         requires_human_confirmation=False,
         controller_actions=[
             {
-                "action_type": "ensure_study_runtime_relaunch_stopped",
+                "action_type": "request_opl_stage_attempt_relaunch",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],
@@ -191,7 +191,7 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
         "next_stage": "analysis-campaign",
         "human_gate_class": "none",
         "requires_human_confirmation": False,
-        "controller_action_types": ["ensure_study_runtime_relaunch_stopped"],
+        "controller_action_types": ["request_opl_stage_attempt_relaunch"],
         "decision_type": "bounded_analysis",
         "reason_code": "direction_locked_bounded_analysis_stays_autonomous",
     }

@@ -302,6 +302,31 @@ def _publication_eval_has_closed_ai_reviewer_authority(payload: dict[str, Any] |
     )
 
 
+def _publication_eval_has_ai_reviewer_owner_authority(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, dict):
+        return False
+    if _non_empty_text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    if _non_empty_text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
+        return False
+    if provenance.get("ai_reviewer_required") is not False:
+        return False
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, dict):
+        return False
+    provenance_checks = reviewer_os.get("provenance_checks")
+    if not isinstance(provenance_checks, dict):
+        return False
+    return (
+        _non_empty_text(provenance_checks.get("assessment_owner")) == "ai_reviewer"
+        and provenance_checks.get("ai_reviewer_required") is False
+        and provenance_checks.get("mechanical_projection_used_as_quality_authority") is False
+    )
+
+
 def _gate_report_is_clear_progress_projection(payload: dict[str, Any] | None) -> bool:
     if not isinstance(payload, dict):
         return False
@@ -537,7 +562,7 @@ def _refresh_publication_surfaces_from_gate_report(
         and _non_empty_text(publishability_gate_payload.get("gate_kind")) == "publishability_control"
         and not (
             _gate_report_is_clear_progress_projection(publishability_gate_payload)
-            and _publication_eval_has_closed_ai_reviewer_authority(publication_eval_payload)
+            and _publication_eval_has_ai_reviewer_owner_authority(publication_eval_payload)
         )
         and (
             _timestamp_is_newer(gate_generated_at, eval_emitted_at)

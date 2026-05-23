@@ -127,7 +127,7 @@
    - eval-owned `publication_eval latest`
 5. outer-loop durable 写 `study_decision_record`
 6. downstream controller 只允许在冻结动作面内继续：
-   - `ensure_study_runtime`
+   - `request_opl_stage_attempt`
    - `pause_runtime`
    - `stop_runtime`
 7. delivery/publication plane 继续消费 controller-authorized delivery source：

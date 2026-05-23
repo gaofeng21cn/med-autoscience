@@ -24,11 +24,11 @@ def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dpcc")
     quest_root = profile.runtime_root / "quest-dpcc"
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "opl_current_control_state_handoff",
             "generated_at": "2026-05-05T00:00:00+00:00",
             "studies": [
                 {"study_id": "001-dm-cvd-mortality-risk"},

@@ -445,7 +445,7 @@ def test_completed_unit_harmonized_rerun_clears_prior_provenance_limited_rerun_b
             "schema_version": 1,
             "decision_type": "bounded_analysis",
             "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
-            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
             "next_work_unit": {
                 "unit_id": "unit_harmonized_external_validation_rerun",
                 "hard_methodology": True,

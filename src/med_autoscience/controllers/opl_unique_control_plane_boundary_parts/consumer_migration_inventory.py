@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration_active_path_inventory import (
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration_active_path_inventory import (
     ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
     PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT,
     PHYSICAL_THINNING_EVIDENCE,
@@ -149,6 +149,7 @@ RETIRED_LEGACY_RESIDUE_TOMBSTONES = (
         "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
         "current_role": "history_tombstone_provenance_only",
         "domain_ref_consumer_count": 0,
+        "active_caller_count": 0,
         "resurrection_allowed": False,
         "default_entry_allowed": False,
         "tombstone_refs": [
@@ -163,6 +164,7 @@ RETIRED_LEGACY_RESIDUE_TOMBSTONES = (
         "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
         "current_role": "history_tombstone_provenance_only",
         "domain_ref_consumer_count": 0,
+        "active_caller_count": 0,
         "resurrection_allowed": False,
         "default_entry_allowed": False,
         "tombstone_refs": [
@@ -177,6 +179,7 @@ RETIRED_LEGACY_RESIDUE_TOMBSTONES = (
         "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
         "current_role": "history_tombstone_provenance_only",
         "domain_ref_consumer_count": 0,
+        "active_caller_count": 0,
         "resurrection_allowed": False,
         "default_entry_allowed": False,
         "tombstone_refs": [
@@ -191,6 +194,7 @@ RETIRED_LEGACY_RESIDUE_TOMBSTONES = (
         "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
         "current_role": "history_tombstone_provenance_only",
         "domain_ref_consumer_count": 0,
+        "active_caller_count": 0,
         "resurrection_allowed": False,
         "default_entry_allowed": False,
         "tombstone_refs": [
@@ -562,7 +566,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/controllers/domain_slo_scheduler_projection_parts/",
+            "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/",
         ],
         "domain_ref_consumers": ["opl_current_control_state owner refs"],
         "current_ref_status": "opl_replacement_default_local_tombstone_only",

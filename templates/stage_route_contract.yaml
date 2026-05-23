@@ -574,7 +574,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
-  - ensure-study-runtime
+  - request-opl-stage-attempt
   lightweight_routes: []
   managed_routes:
   - scout
@@ -600,7 +600,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
-  - ensure-study-runtime
+  - request-opl-stage-attempt
   lightweight_routes:
   - scout
   managed_routes:
@@ -627,7 +627,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
-  - ensure-study-runtime
+  - request-opl-stage-attempt
   lightweight_routes:
   - idea
   - decision
@@ -655,7 +655,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
-  - ensure-study-runtime
+  - request-opl-stage-attempt
   lightweight_routes:
   - decision
   managed_routes:
@@ -681,7 +681,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
-  - ensure-study-runtime
+  - request-opl-stage-attempt
   lightweight_routes:
   - write
   managed_routes:

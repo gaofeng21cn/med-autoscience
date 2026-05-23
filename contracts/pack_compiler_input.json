@@ -131,7 +131,7 @@
   "source_refs": {
     "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
     "canonical_agent_pack_root": "agent/",
-    "functional_audit": "src/med_autoscience/controllers/domain_slo_scheduler_projection_parts/consumer_migration.py::build_functional_consumer_boundary",
+    "functional_audit": "src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/consumer_migration.py::build_functional_consumer_boundary",
     "memory_descriptor": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor",
     "required_domain_pack_paths": [
       "agent/stages/stage_route_contract.yaml",

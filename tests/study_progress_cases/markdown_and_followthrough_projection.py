@@ -353,7 +353,7 @@ def test_study_progress_surfaces_figure_loop_guard_blockers_from_domain_health_d
         quest_root,
         decision_type="continue_same_line",
         requires_human_confirmation=False,
-        action_type="ensure_study_runtime",
+        action_type="request_opl_stage_attempt",
         reason="MAS should keep repairing the current publication blockers autonomously.",
     )
     _write_runtime_escalation(quest_root, study_root)

@@ -34,7 +34,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-22：owner dispatch currentness 必须同时消费 scan action_queue route 与同路径 dispatch 版本
 
-- 决策：`domain-owner-action-dispatch` 解析当前 owner route 时，不能只读取 `artifacts/supervision/hourly/latest.json` 的 `studies[*].owner_route`。当当前 scan 将可执行 route 写在同一 study 的 `action_queue[*].owner_route` 上，且该 route 与 dispatch 的 idempotency/source/currentness basis 匹配并允许对应 action 时，必须作为 current owner route 执行。
+- 决策：`domain-owner-action-dispatch` 解析当前 owner route 时，不能只读取旧 `artifacts/supervision/hourly/latest.json` 的 `studies[*].owner_route`。当前 surface 是 OPL current-control-state handoff projection `artifacts/supervision/opl_current_control_state/latest.json`；当当前 scan 将可执行 route 写在同一 study 的 `action_queue[*].owner_route` 上，且该 route 与 dispatch 的 idempotency/source/currentness basis 匹配并允许对应 action 时，必须作为 current owner route 执行。旧 hourly path 只保留为历史 provenance，不作为 active read model。
 - 决策：显式 `--action-types` 执行遇到同一 `refs.dispatch_path` 同 action 的 workspace consumer inline dispatch 与 study-level persisted dispatch 不一致时，选择规则必须按当前 scan owner route 和 paper-progress stall fingerprint 判定 currentness。当前版本优先于存储位置；不能固定“consumer latest 优先”或“persisted 文件优先”。
 - 决策：managed-runtime 授权生成的 `unit_harmonized_external_validation_rerun` owner route 是合法 hard-methodology dispatch reason，必须在 owner reason registry 中保持可 dispatch，不得因 action-type alias 缺失把 `allowed_actions` 清空。
 - 理由：DM003 暴露出 owner-route reconcile 正确投影 `return_to_ai_reviewer_workflow`，materializer 也物化了 dispatch，但 dispatcher 只看 study-level `owner_route`，忽略 `action_queue[*].owner_route`，导致合法 AI reviewer workflow 被 `current_owner_route_missing` 阻断。同期 DM002 覆盖了相反形态：consumer inline 可能旧、persisted 文件可能新；DM003 又覆盖了 persisted 文件旧、consumer inline 新。共同根因是 dispatcher 按存储位置判断 currentness，而不是按当前 scan/owner-route 证据判断。
@@ -42,7 +42,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-22：AI reviewer stage-knowledge 缺 study reference context 时必须走 startup hydration 重建
 
-- 决策：`ensure-study-runtime` 在 `quest_waiting_opl_runtime_owner_route` blocked 状态下，若当前 AI reviewer request 的 `stage_knowledge_packet` 指向 `artifacts/stage_knowledge/review/latest.json` 且 `missing_reasons` 包含 `missing_ref:study_reference_context`，必须触发受控 startup hydration refresh，物化 `studies/<study_id>/artifacts/reference_context/latest.json`，再让后续 request materializer / AI reviewer workflow 重新生成 review stage knowledge。
+- 决策：OPL stage-attempt handoff 在 `quest_waiting_opl_runtime_owner_route` blocked 状态下，若当前 AI reviewer request 的 `stage_knowledge_packet` 指向 `artifacts/stage_knowledge/review/latest.json` 且 `missing_reasons` 包含 `missing_ref:study_reference_context`，必须触发受控 startup hydration refresh，物化 `studies/<study_id>/artifacts/reference_context/latest.json`，再让后续 request materializer / AI reviewer workflow 重新生成 review stage knowledge。
 - 决策：该规则只覆盖 AI reviewer review-stage knowledge 的 study reference context 缺口；缺其他 refs、非 review stage、非 owner-route blocked 状态或普通 OPL/provider/queue 阻塞不触发 hydration 刷新。
 - 理由：DM002 暴露出旧 study 在引入 stage-knowledge contract 前已存在 quest 和 publication surfaces，但缺 study-owned reference context；`return_to_ai_reviewer_workflow` 因此生成 requested AI reviewer packet 后自标记 input contract missing，而 runtime blocked 分支不再运行 startup hydration，形成 owner-route 死锁。根因是 MAS 旧线重入 hydration/currentness 缺口，不是 OPL queue/provider lifecycle，也不是单篇 study 可手工 patch 的论文内容问题。
 - 影响：这是 MAS runtime/stage-knowledge owner path 修复。它只通过 startup hydration owner 重建 study reference context 与 quest hydration refs，不写 canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`；论文质量仍由 AI reviewer-backed publication eval、write owner delta 与 publication gate 判定。
@@ -114,8 +114,8 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-22：workspace helper wrappers 必须绑定当前扁平 MAS CLI 入口
 
-- 决策：workspace 初始化/升级生成的 `ops/medautoscience/bin/study-runtime-status` 必须直接调用当前 `progress-projection`，并把首个非 option 位置参数映射为 `--study-id`；`ops/medautoscience/bin/progress-portal` 与 `ops/mas/bin/start-web` 必须直接调用当前 `progress-portal`。workspace helper 不能依赖旧 `study-runtime-status` 命令或 grouped alias 作为稳定执行面。
-- 理由：DM003 supervisor fresh check 暴露出 workspace helper 仍生成 `run_medautosci study-runtime-status` / `workspace progress-portal`，而当前实际 CLI 公共面已收敛为扁平命令。入口漂移会让前台监督误以为 MAS 没有可用状态面，进而退回手工命令或反复巡检。
+- 决策：workspace 初始化/升级不再生成 `ops/medautoscience/bin/study-runtime-status` 或 `ops/medautoscience/bin/watch-runtime`；新 helper 固定生成 `progress-projection` 与 `domain-health-diagnostic`，旧同名 wrapper 作为 retired workspace service entry 在 `init-workspace` 时删除。`ops/medautoscience/bin/progress-portal` 与 `ops/mas/bin/start-web` 直接调用当前 `progress-portal`。
+- 理由：DM003 supervisor fresh check 暴露出 workspace helper 仍生成 `run_medautosci study-runtime-status` / `workspace progress-portal`，而当前实际 CLI 公共面已收敛为 MAS domain refs projection 加 OPL current_control_state handoff。入口漂移会让前台监督误以为 MAS 仍有私有 runtime status 面，进而退回手工命令或反复巡检。
 - 影响：这是 MAS workspace entry surface 修复，不改变 study truth、runtime ownership、publication quality verdict 或 paper/package authority。Grouped commands 可继续作为 CLI public alias 存在，但 workspace helper 生成物要绑定可验证的当前命令。
 
 ## 2026-05-22：live managed lease 不能被 logical closeout 误清，medical prose closeout 要闭合 work-unit lifecycle
@@ -375,7 +375,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-21：controller refresh 只能产出 OPL runtime-owner handoff
 
-- 决策：`refresh_controller_decisions_for_current_publication_eval` 在物化 current controller decision 后，不再调用 `ensure_study_runtime`、不 pause/resume live worker、不写 `last_controller_decision_authorization` 到 `.ds/runtime_state.json`，也不向 `.ds/events.jsonl` 追加 runtime event。它只能返回 refs-only `runtime_owner_handoff`，其中包括 current work unit、fingerprint、proposed runtime-state delta、`queue_owner=one-person-lab` 与 authority boundary。
+- 决策：`refresh_controller_decisions_for_current_publication_eval` 在物化 current controller decision 后，不再调用 `request_opl_stage_attempt`、不 pause/resume live worker、不写 `last_controller_decision_authorization` 到 `.ds/runtime_state.json`，也不向 `.ds/events.jsonl` 追加 runtime event。它只能返回 refs-only `runtime_owner_handoff`，其中包括 current work unit、fingerprint、proposed runtime-state delta、`queue_owner=one-person-lab` 与 authority boundary。
 - 理由：AI reviewer route-back、publication aftercare、domain transition 和 bundle-stage closeout 都是 MAS domain truth / owner-route refs；真正的 queue hydration、provider attempt、retry/dead-letter、pending user message redrive、live prompt refresh 与 worker lifecycle 是 OPL generic runtime 职责。继续由 MAS 写 authorization 或触发 provider resume，会把 MAS 重新变成私有 runtime/control-plane owner。
 - 影响：旧测试中“MAS 写 authorization 后请求 resume”的断言已改为“MAS 不调用 provider lifecycle API、不改 runtime state、只交给 OPL owner route”。`authorization_status` 使用 `owner_handoff_ready` / `pending_user_message_owner_handoff_ready`，`runtime_resume_status=owner_route_required`。论文、publication eval、controller decisions、current package 与 submission package 的权威仍由对应 MAS owner surface 决定。
 
@@ -819,11 +819,11 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：MAS 历史 runtime transport 与 lifecycle refs SQLite 仍有 tracked physical code 和 focused tests。直接按文件存在与否判断会误导审计：这些文件既不能继续被理解为 MAS 私有 runtime 基座，也不能在 domain direct path、receipt parity 和 OPL replacement parity 未证明时盲删。
 - 影响：当前 default online runtime owner 仍是 OPL / Temporal provider；MAS 只保留 domain receipt、typed blocker、artifact/publication authority 和 diagnostic bridge。后续物理删除、archive 或 tombstone 必须满足 no-active-default-caller、OPL replacement parity、domain receipt parity 和 history tombstone gate；未满足前，tracked 文件的存在不构成 MAS generic runtime owner claim。
 
-## 2026-05-16：默认 domain SLO scheduler projection owner 迁到 OPL replacement
+## 2026-05-16：OPL unique control plane boundary 退役为 OPL current_control_state handoff 输入
 
-- 决策：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 的默认 `--manager` 是 `opl`，输出 `scheduler_owner=opl_provider_runtime_manager` 与 `adapter_id=opl_family_runtime_provider`。默认入口只投影或委托 OPL `family_scheduler_replacement`，不安装、不刷新、不触发 MAS-owned LaunchAgent。MAS 保留 `outer_supervision_slo` 的 paper-progress 解释、owner receipt、typed blocker、safe action refs 和 no-forbidden-write evidence。
+- 决策：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 不再是 MAS active CLI / MCP / product-entry / workspace 入口。旧 `opl_unique_control_plane_boundary` 只作为 tombstone/provenance 与 no-resurrection proof 的 contract fixture；当前运行入口是 OPL `current_control_state` / provider attempt ledger 加 MAS `domain-health-diagnostic`、`owner-route-reconcile`、owner receipt、typed blocker 和 refs-only handoff。
 - 理由：OPL 已提供 runtime manager / provider SLO / family queue / intake / attempt ledger replacement surface；MAS 长期应收窄为 medical research authority pack + thin program surface。继续把本机 LaunchAgent 写成默认 scheduler owner 会让 MAS 持有通用 cadence、job registry 和 scheduler lifecycle，和 OPL-led family framework 分层冲突。
-- 影响：`local` 已从公开 CLI manager choices 移除，只保留 tombstone/provenance refs；显式 Hermes 只保留 status/remove cleanup，不再作为 ensure/create/refresh/trigger scheduler path。workspace bootstrap 改为默认委托 OPL replacement，不再安装 MAS local scheduler。`no_resurrection_proof.default_caller_count=0` 是当前退役门槛：默认 CLI、workspace bootstrap、product-entry、sidecar 和 MCP 都不得再调用 local install path；local adapter 不允许 install、status、remove、trigger、loaded-state 或 install-proof 输出；Hermes adapter 不允许 install、refresh、trigger 或写 tick script。该迁移不等于真实 Temporal long soak、paper-line closure、artifact mutation 授权或 publication-ready。
+- 影响：`local` 已从公开 CLI manager choices 移除，只保留 tombstone/provenance refs；显式 Hermes 不再作为 status/remove/ensure cleanup adapter 暴露。workspace bootstrap 不安装 MAS local scheduler，也不生成 compatibility wrapper。`no_resurrection_proof.default_caller_count=0` 是当前退役门槛：默认 CLI、workspace bootstrap、product-entry、sidecar 和 MCP 都不得再调用 local install path；local adapter 不允许 install、status、remove、trigger、loaded-state 或 install-proof 输出；Hermes adapter 不允许 install、refresh、trigger 或写 tick script。该迁移不等于真实 Temporal long soak、paper-line closure、artifact mutation 授权或 publication-ready。
 
 ## 2026-05-17：MAS functional privatization 分类进入机器边界
 
@@ -908,7 +908,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-05：Supervisor request ownership 与 submission milestone parking 收口到 request-only / controller-stop 边界
 
-- 决策：portable supervisor scan 可以生成外层可消费的 request packet，但 `publication_gate_specificity_required` 的 owner 固定为 `publication_gate`，`return_to_ai_reviewer_workflow` 的 owner 固定为 `ai_reviewer`，supervisor consumer 只写 owner handoff task、consumer packet 和 default executor dispatch。第三步 `domain-route-execute-dispatch` 只能在 prompt contract 与 forbidden surfaces 完整时调用 owner-authorized repo surface，或写明 blocked reason。对 stopped submission/finalize milestone，supervisor 只能刷新 controller-owned parked decision、确认或停止 runtime 资源，并把 repair lifecycle 写成 `state=parked` / `authority=controller_stop`。
+- 决策：OPL current-control-state handoff scan 可以生成外层可消费的 request packet，但 `publication_gate_specificity_required` 的 owner 固定为 `publication_gate`，`return_to_ai_reviewer_workflow` 的 owner 固定为 `ai_reviewer`，consumer 只写 owner handoff task、consumer packet 和 default executor dispatch。第三步 `domain-route-execute-dispatch` 只能在 prompt contract 与 forbidden surfaces 完整时调用 owner-authorized repo surface，或写明 blocked reason。对 stopped submission/finalize milestone，MAS 只能刷新 controller-owned parked decision、确认或停止 domain resource refs，并把 repair lifecycle 写成 `state=parked` / `authority=controller_stop`；runtime worker/session truth 归 OPL current_control_state。
 - 理由：近期 supervisor parking 与 request queue 修复证明，如果外层 scan/consumer 直接推断 publication quality、AI reviewer judgement 或 paper package 状态，会重新制造第二 owner。外层工程代理需要的是清晰的 request owner、required output surface 和 forbidden surface，而不是替代 MAS quality/publication authority。
 - 影响：`domain-route-consume`、`artifacts/supervision/consumer/*` 与 `artifacts/supervision/requests/*` 都是 handoff/request/dispatch surface；它们不得修改 `paper/current_package` 或 `manuscript/current_package`，不得放宽 quality/publication gate。`domain-route-execute-dispatch` 可以调用 `publication_gate` owner surface 物化 gate-owned `publication_eval/latest.json`，但不能合成 AI reviewer judgement；AI reviewer output 仍必须来自结构化 reviewer workflow。submission milestone parking 不授权人工 patch；后续稿件反馈仍必须走 durable revision intake 与 MAS-controlled relaunch/resume。
 

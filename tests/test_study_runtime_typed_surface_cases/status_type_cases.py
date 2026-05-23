@@ -68,7 +68,7 @@ def test_domain_status_projection_reexports_typed_surface_from_study_runtime_typ
     assert not hasattr(router, "StudyRuntimeDaemonStep")
     assert not hasattr(router, "StudyRuntimeExecutionContext")
     assert not hasattr(router, "StudyRuntimeExecutionOutcome")
-    assert not hasattr(router, "ensure_study_runtime")
+    assert not hasattr(router, "request_opl_stage_attempt")
 def test_study_runtime_types_excludes_retired_execution_aggregate() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_module = importlib.import_module("med_autoscience.controllers.progress_projection")

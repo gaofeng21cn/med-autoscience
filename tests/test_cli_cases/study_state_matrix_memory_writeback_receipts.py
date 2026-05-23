@@ -434,7 +434,7 @@ def test_study_state_matrix_memory_writeback_receipt_does_not_override_human_gat
             "study_id": study_id,
             "requires_human_confirmation": True,
             "family_human_gates": [{"gate_id": f"controller-human-confirmation-{study_id}"}],
-            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "controller_actions": [{"action_type": "request_opl_stage_attempt"}],
         },
     )
     _write_memory_router_receipt(

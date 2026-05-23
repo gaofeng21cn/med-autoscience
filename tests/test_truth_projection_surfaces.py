@@ -118,7 +118,7 @@ def test_current_write_routeback_overrides_stale_progress_run_and_package_handof
                 "decision_type": "route_back_same_line",
                 "route_target": "write",
                 "owner": "write",
-                "controller_action": "ensure_study_runtime",
+                "controller_action": "request_opl_stage_attempt",
                 "next_work_unit": {
                     "unit_id": "dm002_same_line_publication_paper_repair",
                     "lane": "write",

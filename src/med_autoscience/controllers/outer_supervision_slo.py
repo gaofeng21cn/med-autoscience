@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import runtime_dispatch_cost
-from med_autoscience.controllers.domain_slo_scheduler_projection_parts import consumer_migration
+from med_autoscience.controllers.opl_unique_control_plane_boundary_parts import consumer_migration
 from med_autoscience.profiles import WorkspaceProfile
 
 

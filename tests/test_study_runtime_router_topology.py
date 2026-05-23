@@ -20,7 +20,7 @@ def test_router_does_not_reexport_retired_private_runtime_bindings() -> None:
     retired_bindings = {
         "StudyRuntimeExecutionContext",
         "StudyRuntimeExecutionOutcome",
-        "ensure_study_runtime",
+        "request_opl_stage_attempt",
         "pause_study_runtime",
         "_managed_runtime_backend_for_execution",
         "_execute_runtime_decision",

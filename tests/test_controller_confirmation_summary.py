@@ -111,7 +111,7 @@ def test_materialize_controller_confirmation_summary_removes_stale_surface_when_
     assert module.materialize_controller_confirmation_summary(study_root=study_root) is not None
     assert summary_path.exists()
 
-    _write_controller_decision(study_root, requires_human_confirmation=False, action_type="ensure_study_runtime")
+    _write_controller_decision(study_root, requires_human_confirmation=False, action_type="request_opl_stage_attempt")
 
     written_ref = module.materialize_controller_confirmation_summary(study_root=study_root)
 
@@ -124,7 +124,7 @@ def test_materialize_controller_confirmation_summary_rejects_autonomous_scientif
 ) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
-    _write_controller_decision(study_root, requires_human_confirmation=True, action_type="ensure_study_runtime")
+    _write_controller_decision(study_root, requires_human_confirmation=True, action_type="request_opl_stage_attempt")
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     payload = json.loads(decision_path.read_text(encoding="utf-8"))
     payload["decision_type"] = "continue_same_line"

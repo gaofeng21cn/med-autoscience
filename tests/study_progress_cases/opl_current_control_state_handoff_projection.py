@@ -12,7 +12,7 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
-def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_markdown(
+def test_study_progress_projects_opl_current_control_state_handoff_and_mcp_markdown(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -21,11 +21,11 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
-    hourly_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
-        hourly_path,
+        handoff_path,
         {
-            "surface": "portable_supervisor_hourly_projection",
+            "surface": "opl_current_control_state_handoff_projection",
             "schema_version": 1,
             "generated_at": "2026-05-04T06:00:00+00:00",
             "authority": "observability_only",
@@ -115,8 +115,8 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
     compact = mcp_projection.compact_study_progress_projection(result)
     markdown = mcp_projection.render_mcp_study_progress_markdown(result)
 
-    dashboard = result["portable_supervisor_dashboard"]
-    assert dashboard["source_path"] == str(hourly_path)
+    dashboard = result["opl_current_control_state_handoff"]
+    assert dashboard["source_path"] == str(handoff_path)
     assert dashboard["authority"] == "observability_only"
     assert dashboard["quest_status"] == "running"
     assert dashboard["active_run_id"] == "run-001"
@@ -142,14 +142,14 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
     ]
     assert dashboard["next_owner"] == "external_supervisor"
     assert dashboard["external_supervisor_required"] is True
-    assert result["refs"]["portable_supervisor_hourly_path"] == str(hourly_path)
-    assert compact["portable_supervisor_dashboard"]["blocked_reason"] == "runtime_recovery_not_authorized"
-    assert compact["portable_supervisor_dashboard"]["queue_slo"]["owner_pickup_overdue_count"] == 1
-    assert compact["portable_supervisor_dashboard"]["action_queue"][0]["queue_age_hours"] == 6.0
-    assert compact["portable_supervisor_dashboard"]["action_queue"][0]["action_type"] == (
+    assert result["refs"]["opl_current_control_state_handoff_path"] == str(handoff_path)
+    assert compact["opl_current_control_state_handoff"]["blocked_reason"] == "runtime_recovery_not_authorized"
+    assert compact["opl_current_control_state_handoff"]["queue_slo"]["owner_pickup_overdue_count"] == 1
+    assert compact["opl_current_control_state_handoff"]["action_queue"][0]["queue_age_hours"] == 6.0
+    assert compact["opl_current_control_state_handoff"]["action_queue"][0]["action_type"] == (
         "publication_gate_specificity_required"
     )
-    assert "Portable Supervisor Queue" in markdown
+    assert "OPL Current Control State Handoff" in markdown
     assert "publication_gate_specificity_required" in markdown
     assert "owner_pickup: `overdue`" in markdown
     assert "developer_supervisor_attention_required: `True`" in markdown

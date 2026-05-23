@@ -570,7 +570,7 @@ def _materialized_decision(*, study_id: str, quest_id: str, decision_path: Path)
         "quest_id": quest_id,
         "decision_type": "bounded_analysis",
         "requires_human_confirmation": False,
-        "controller_actions": [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}],
+        "controller_actions": [{"action_type": "request_opl_stage_attempt", "payload_ref": str(decision_path)}],
         "route_target": "analysis-campaign",
         "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
         "next_work_unit": {
@@ -592,7 +592,7 @@ def _materialized_clean_rebuild_decision(*, study_id: str, quest_id: str) -> dic
         "quest_id": quest_id,
         "decision_type": "bounded_analysis",
         "requires_human_confirmation": False,
-        "controller_actions": [{"action_type": "ensure_study_runtime", "payload_ref": "decision-request"}],
+        "controller_actions": [{"action_type": "request_opl_stage_attempt", "payload_ref": "decision-request"}],
         "route_target": "analysis-campaign",
         "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
         "next_work_unit": {

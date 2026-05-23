@@ -116,56 +116,9 @@ def test_domain_health_diagnostic_no_longer_exports_repo_local_loop() -> None:
 
     assert not hasattr(module, "run_watch_loop")
     assert not hasattr(module, "run_managed_supervisor_loop")
-def test_run_managed_supervisor_tick_uses_profile_runtime_root_and_always_enables_study_runtime_ensure(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
+
+
+def test_domain_health_diagnostic_no_longer_exports_managed_supervisor_tick_alias() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
-    profiles = importlib.import_module("med_autoscience.profiles")
-    profile = profiles.WorkspaceProfile(
-        name="glioma",
-        workspace_root=tmp_path / "workspace",
-        runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests",
-        studies_root=tmp_path / "workspace" / "studies",
-        portfolio_root=tmp_path / "workspace" / "portfolio",
-        med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
-        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
-        default_publication_profile="general_medical_journal",
-        default_citation_style="AMA",
-        enable_medical_overlay=True,
-        medical_overlay_scope="workspace",
-        medical_overlay_skills=("intake-audit", "baseline"),
-        research_route_bias_policy="high_plasticity_medical",
-        preferred_study_archetypes=("clinical_classifier",),
-        default_submission_targets=(),
-    )
-    called: dict[str, object] = {}
 
-    def fake_run_domain_health_diagnostic_for_runtime(
-        *,
-        runtime_root: Path,
-        controller_runners=None,
-        apply: bool,
-        profile,
-        request_opl_stage_attempts: bool = False,
-        request_opl_owner_route_reconcile: bool = False,
-    ) -> dict[str, object]:
-        called["runtime_root"] = runtime_root
-        called["apply"] = apply
-        called["profile"] = profile
-        called["request_opl_stage_attempts"] = request_opl_stage_attempts
-        called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
-        return {"mode": "managed_supervisor_tick"}
-
-    monkeypatch.setattr(module, "run_domain_health_diagnostic_for_runtime", fake_run_domain_health_diagnostic_for_runtime)
-
-    result = module.run_managed_supervisor_tick(profile=profile, apply=True)
-
-    assert result == {"mode": "managed_supervisor_tick"}
-    assert called == {
-        "runtime_root": profile.runtime_root,
-        "apply": True,
-        "profile": profile,
-        "request_opl_stage_attempts": True,
-        "request_opl_owner_route_reconcile": True,
-    }
+    assert not hasattr(module, "run_managed_supervisor_tick")

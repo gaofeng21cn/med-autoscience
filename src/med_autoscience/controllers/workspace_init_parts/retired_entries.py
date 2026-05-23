@@ -4,6 +4,8 @@ from pathlib import Path
 
 
 RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES: tuple[tuple[str, ...], ...] = (
+    ("ops", "medautoscience", "bin", "study-runtime-status"),
+    ("ops", "medautoscience", "bin", "watch-runtime"),
     ("ops", "medautoscience", "bin", "install-watch-runtime-service"),
     ("ops", "medautoscience", "bin", "watch-runtime-service-status"),
     ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"),
@@ -34,6 +36,11 @@ def retired_workspace_service_entry_reason(*, path: Path, existing_content: str)
         return None
     generated_or_legacy_markers = (
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"',
+        "run_medautosci progress-projection",
+        "run_medautosci study-runtime-status",
+        "run_medautosci runtime domain-health-diagnostic",
+        "run_medautosci watch",
+        "--runtime-root",
         "WATCH_RUNTIME_RUNNER",
         "watch-runtime-service-runner",
         "runtime ensure-supervision",

@@ -123,7 +123,7 @@ def test_methodology_reframe_decision_exposes_current_controller_runtime_route(t
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     decision = _materialized_methodology_decision(study_id=study_id, quest_id=quest_id)
-    decision["controller_actions"] = [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}]
+    decision["controller_actions"] = [{"action_type": "request_opl_stage_attempt", "payload_ref": str(decision_path)}]
     decision["next_work_unit"].update(
         {
             "hard_methodology": True,
@@ -146,7 +146,7 @@ def test_methodology_reframe_decision_exposes_current_controller_runtime_route(t
     assert route is not None
     assert route["work_unit_id"] == "provenance_limited_harmonization_audit"
     assert route["work_unit_fingerprint"] == "decision::methodology_reframe_route_decision"
-    assert route["controller_actions"] == ["ensure_study_runtime"]
+    assert route["controller_actions"] == ["request_opl_stage_attempt"]
 
 
 def test_clean_rebuild_methodology_decision_exposes_current_controller_runtime_route(tmp_path: Path) -> None:
@@ -159,7 +159,7 @@ def test_clean_rebuild_methodology_decision_exposes_current_controller_runtime_r
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     decision = _materialized_methodology_decision(study_id=study_id, quest_id=quest_id)
-    decision["controller_actions"] = [{"action_type": "ensure_study_runtime", "payload_ref": str(decision_path)}]
+    decision["controller_actions"] = [{"action_type": "request_opl_stage_attempt", "payload_ref": str(decision_path)}]
     decision["next_work_unit"] = {
         "unit_id": "unit_harmonized_external_validation_rerun",
         "lane": "analysis-campaign",
@@ -186,7 +186,7 @@ def test_clean_rebuild_methodology_decision_exposes_current_controller_runtime_r
     assert route is not None
     assert route["work_unit_id"] == "unit_harmonized_external_validation_rerun"
     assert route["work_unit_fingerprint"] == "decision::methodology_reframe_route_decision"
-    assert route["controller_actions"] == ["ensure_study_runtime"]
+    assert route["controller_actions"] == ["request_opl_stage_attempt"]
 
 
 def _publication_eval(*, study_id: str, quest_id: str, eval_suffix: str) -> dict:

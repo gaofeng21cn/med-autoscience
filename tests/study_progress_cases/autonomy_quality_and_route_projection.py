@@ -38,7 +38,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
                     "decision_type": "continue_same_line",
                     "route_target": "write",
                     "route_key_question": "当前同线稿件还差哪一步最窄修订？",
-                    "controller_action_type": "ensure_study_runtime_relaunch_stopped",
+                    "controller_action_type": "request_opl_stage_attempt_relaunch",
                     "dispatch_status": "executed",
                     "source": "domain_health_diagnostic_outer_loop_wakeup",
                 }
@@ -596,7 +596,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
             "requires_human_confirmation": False,
             "controller_actions": [
                 {
-                    "action_type": "ensure_study_runtime",
+                    "action_type": "request_opl_stage_attempt",
                     "payload_ref": str(controller_decision_path),
                 }
             ],
@@ -724,7 +724,7 @@ def test_study_progress_does_not_project_autonomous_controller_gate_as_physician
         quest_root,
         decision_type="continue_same_line",
         requires_human_confirmation=True,
-        action_type="ensure_study_runtime",
+        action_type="request_opl_stage_attempt",
         reason="MAS should decide the current evidence repair line autonomously.",
     )
 
@@ -793,7 +793,7 @@ def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
         quest_root,
         decision_type="bounded_analysis",
         requires_human_confirmation=False,
-        action_type="ensure_study_runtime",
+        action_type="request_opl_stage_attempt",
         reason="MAS 将先完成一轮有限补充分析，再继续当前论文主线。",
     )
 

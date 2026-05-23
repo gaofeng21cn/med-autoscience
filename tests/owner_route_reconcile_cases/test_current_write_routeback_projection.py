@@ -37,7 +37,7 @@ def test_scan_projects_current_write_routeback_despite_stale_progress_active_run
             "decision_type": "route_back_same_line",
             "route_target": "write",
             "owner": "write",
-            "controller_action": "ensure_study_runtime",
+            "controller_action": "request_opl_stage_attempt",
             "next_work_unit": {
                 "unit_id": "dm002_same_line_publication_paper_repair",
                 "lane": "write",
@@ -55,7 +55,7 @@ def test_scan_projects_current_write_routeback_despite_stale_progress_active_run
         "study_id": study_id,
         "quest_id": quest_id,
         "quest_root": str(quest_root),
-        "current_stage": "managed_runtime_supervision_gap",
+        "current_stage": "managed_opl_runtime_owner_handoff_gap",
         "paper_stage": "publishability_gate_blocked",
         "active_run_id": "mas-run-stale-progress-only",
         "supervision": {"active_run_id": "mas-run-stale-progress-only", "health_status": "stale"},

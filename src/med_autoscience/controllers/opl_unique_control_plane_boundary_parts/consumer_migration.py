@@ -109,9 +109,9 @@ NO_RESURRECTION_PROOF = {
         "mcp_local_scheduler_install",
     ],
     "forbidden_explicit_callers": [
-        "retired:runtime-supervision-status --profile <profile> --manager local",
-        "retired:runtime-ensure-supervision --profile <profile> --manager local",
-        "retired:runtime-remove-supervision --profile <profile> --manager local",
+        "runtime-supervision-status --profile <profile> --manager local",
+        "runtime-ensure-supervision --profile <profile> --manager local",
+        "runtime-remove-supervision --profile <profile> --manager local",
     ],
     "proof_items": [
         "cli_default_manager_is_opl",

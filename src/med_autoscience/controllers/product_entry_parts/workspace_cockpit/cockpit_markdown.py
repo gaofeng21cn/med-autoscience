@@ -16,7 +16,7 @@ from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_m
     append_medical_paper_research_loop_state,
     append_medical_paper_v4_operations_state,
     append_phase2_user_loop,
-    append_portable_supervisor_queue_dashboard,
+    append_opl_current_control_state_handoff_dashboard,
     append_studies,
     append_user_loop,
     append_workspace_alerts,
@@ -37,7 +37,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     append_ai_first_operations_state(lines, payload)
     append_ai_first_cross_study_completion(lines, payload)
     lines.extend(render_paper_orchestra_operator_projection_lines(payload.get("paper_orchestra_operator_projection") or {}))
-    append_portable_supervisor_queue_dashboard(lines, payload.get("portable_supervisor_queue_dashboard") or {})
+    append_opl_current_control_state_handoff_dashboard(lines, payload.get("opl_current_control_state_handoff_dashboard") or {})
     append_workspace_alerts(lines, payload)
     append_attention_queue(lines, payload)
     append_user_loop(lines, payload)

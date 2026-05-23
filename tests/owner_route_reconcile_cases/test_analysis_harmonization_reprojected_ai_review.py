@@ -147,7 +147,7 @@ def test_completed_unit_harmonized_rerun_rejects_reprojected_old_ai_reviewer_eva
         "study_id": study_id,
         "quest_id": quest_id,
         "quest_root": str(quest_root),
-        "current_stage": "managed_runtime_supervision_gap",
+        "current_stage": "managed_opl_runtime_owner_handoff_gap",
         "paper_stage": "publishability_gate_blocked",
         "supervision": {"active_run_id": None, "health_status": "parked"},
         "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},

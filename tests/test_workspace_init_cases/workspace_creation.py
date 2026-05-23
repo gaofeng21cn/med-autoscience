@@ -125,6 +125,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
     bootstrap = workspace_root / "ops" / "medautoscience" / "bin" / "bootstrap"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
+    progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
+    domain_health_diagnostic = workspace_root / "ops" / "medautoscience" / "bin" / "domain-health-diagnostic"
     study_runtime_status = workspace_root / "ops" / "medautoscience" / "bin" / "study-runtime-status"
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
     maintain_runtime_storage = workspace_root / "ops" / "medautoscience" / "bin" / "maintain-runtime-storage"
@@ -147,8 +149,10 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert bootstrap.is_file()
     assert show_profile.is_file()
     assert enter_study.is_file()
-    assert study_runtime_status.is_file()
-    assert watch_runtime.is_file()
+    assert progress_projection.is_file()
+    assert domain_health_diagnostic.is_file()
+    assert not study_runtime_status.exists()
+    assert not watch_runtime.exists()
     assert maintain_runtime_storage.is_file()
     assert storage_audit.is_file()
     assert progress_portal.is_file()
@@ -170,8 +174,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(bootstrap, os.X_OK)
     assert os.access(show_profile, os.X_OK)
     assert os.access(enter_study, os.X_OK)
-    assert os.access(study_runtime_status, os.X_OK)
-    assert os.access(watch_runtime, os.X_OK)
+    assert os.access(progress_projection, os.X_OK)
+    assert os.access(domain_health_diagnostic, os.X_OK)
     assert os.access(maintain_runtime_storage, os.X_OK)
     assert os.access(storage_audit, os.X_OK)
     assert os.access(progress_portal, os.X_OK)
@@ -186,14 +190,14 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(runtime_bridge_status, os.X_OK)
     assert os.access(runtime_bridge_stop, os.X_OK)
     assert os.access(runtime_bridge_start_web, os.X_OK)
-    watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
+    progress_projection_text = progress_projection.read_text(encoding="utf-8")
+    domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
     storage_audit_text = storage_audit.read_text(encoding="utf-8")
     progress_portal_text = progress_portal.read_text(encoding="utf-8")
     bootstrap_text = bootstrap.read_text(encoding="utf-8")
     show_profile_text = show_profile.read_text(encoding="utf-8")
     enter_study_text = enter_study.read_text(encoding="utf-8")
-    study_runtime_status_text = study_runtime_status.read_text(encoding="utf-8")
     resolve_journal_shortlist_text = resolve_journal_shortlist.read_text(encoding="utf-8")
     init_portfolio_memory_text = init_portfolio_memory.read_text(encoding="utf-8")
     portfolio_memory_status_text = portfolio_memory_status.read_text(encoding="utf-8")
@@ -209,15 +213,15 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "PYTHONDONTWRITEBYTECODE=1" in shared_text
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
-    assert 'run_medautosci study ensure-runtime --profile "${PROFILE_PATH}" "$@"' in enter_study_text
-    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in study_runtime_status_text
-    assert '--study-id "${study_id}"' in study_runtime_status_text
-    assert '--profile "${PROFILE_PATH}"' in watch_runtime_text
+    assert 'run_medautosci launch-study --profile "${PROFILE_PATH}" "$@"' in enter_study_text
+    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in progress_projection_text
+    assert '--study-id "${study_id}"' in progress_projection_text
+    assert '--profile "${PROFILE_PATH}"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
-    assert "--ensure-supervisions" not in watch_runtime_text
-    assert "--request-opl-owner-route-reconcile" not in watch_runtime_text
-    assert "--apply" not in watch_runtime_text
-    assert "--loop" not in watch_runtime_text
+    assert "--request-opl-stage-attempts" not in domain_health_diagnostic_text
+    assert "--request-opl-owner-route-reconcile" not in domain_health_diagnostic_text
+    assert "--apply" not in domain_health_diagnostic_text
+    assert "--loop" not in domain_health_diagnostic_text
     assert 'run_medautosci runtime storage-audit --profile "${PROFILE_PATH}" "$@"' in storage_audit_text
     assert 'run_medautosci progress-portal --profile "${PROFILE_PATH}" "$@"' in progress_portal_text
     assert 'run_medautosci publication resolve-journal-shortlist "$@"' in resolve_journal_shortlist_text
@@ -318,11 +322,11 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "portfolio-memory-status" in workspace_rules_text
     assert "prepare-external-research" in workspace_rules_text
 
-    watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
-    assert 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in watch_runtime_text
-    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in watch_runtime_text
-    assert 'run_medautosci runtime domain-health-diagnostic \\' in watch_runtime_text
-    assert "ops/med-deepscientist" not in watch_runtime_text
+    domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
+    assert 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in domain_health_diagnostic_text
+    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
+    assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
+    assert "ops/med-deepscientist" not in domain_health_diagnostic_text
 
 
 def test_init_workspace_records_detected_github_username_in_profile(monkeypatch, tmp_path: Path) -> None:

@@ -357,9 +357,9 @@ def test_scan_domain_routes_suppresses_repeated_owner_route_without_meaningful_a
         "idempotency_key": "owner-route::previous",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": previous_route, "meaningful_artifact_delta": False}],
             "action_queue": [
@@ -447,9 +447,9 @@ def test_materialize_domain_action_requests_preserves_owner_route_in_dispatch(mo
         "idempotency_key": "owner-route::dm002::truth-epoch-dm002::ai_reviewer::ai_reviewer_assessment_required::abc123",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "opl_current_control_state_handoff",
             "schema_version": 1,
             "action_queue": [
                 {
@@ -584,9 +584,9 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
-            "surface": "portable_owner_route_reconcile",
+            "surface": "opl_current_control_state_handoff",
             "studies": [
                 {
                     "study_id": study_id,

@@ -39,7 +39,7 @@ def test_study_outer_loop_tick_persists_controller_work_unit_context(
     )
     monkeypatch.setattr(
         module.domain_status_projection,
-        "ensure_study_runtime",
+        "request_opl_stage_attempt",
         lambda **_: {"decision": "noop", "reason": "quest_already_running"},
     )
 
@@ -68,7 +68,7 @@ def test_study_outer_loop_tick_persists_controller_work_unit_context(
         requires_human_confirmation=False,
         controller_actions=[
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
             }
         ],

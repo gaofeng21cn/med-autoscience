@@ -32,9 +32,8 @@ from med_autoscience.mcp_server_parts.open_auto_research_projection import (
     compact_open_auto_research_soak_for_mcp,
     render_mcp_open_auto_research_soak_markdown,
 )
-from med_autoscience.mcp_server_parts.portable_supervisor_projection import (
-    compact_portable_supervisor_dashboard,
-    render_mcp_progress_portable_supervisor_dashboard,
+from med_autoscience.mcp_server_parts.opl_current_control_state_handoff_projection import (
+    compact_opl_current_control_state_handoff,
 )
 from med_autoscience.mcp_server_parts.study_progress_markdown_sections import render_mcp_progress_stage
 
@@ -570,7 +569,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "pi_action_projection": compact_pi_action_projection,
         "delivery_inspection": compact_delivery_inspection_projection,
         "open_auto_research_projection": compact_open_auto_research_projection,
-        "portable_supervisor_dashboard": compact_portable_supervisor_dashboard,
+        "opl_current_control_state_handoff": compact_opl_current_control_state_handoff,
         "study_truth_snapshot": _compact_study_truth_snapshot,
         "runtime_health_snapshot": _compact_runtime_health_snapshot,
         "authority_snapshot": _compact_authority_snapshot,
@@ -692,6 +691,7 @@ from med_autoscience.mcp_server_parts.study_progress_markdown_renderer import (
     _render_mcp_progress_medical_paper_readiness,
     _render_mcp_progress_open_auto_research,
     _render_mcp_progress_refs,
+    render_mcp_progress_opl_current_control_state_handoff,
 )
 
 
@@ -712,6 +712,6 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
         )
     )
     lines.extend(_render_mcp_progress_open_auto_research(compact))
-    lines.extend(render_mcp_progress_portable_supervisor_dashboard(compact))
+    lines.extend(render_mcp_progress_opl_current_control_state_handoff(compact))
     lines.extend(_render_mcp_progress_refs(compact))
     return "\n".join(lines) + "\n"

@@ -705,7 +705,7 @@ def scan_domain_routes(
         profile=profile,
         requested_mode=developer_supervisor_mode,
         apply_safe_actions=apply_safe_actions,
-        scheduler_owner="portable_supervisor",
+        scheduler_owner="opl_current_control_state",
     )
     latest_path = _latest_path(profile)
     history_path = _history_path(profile)

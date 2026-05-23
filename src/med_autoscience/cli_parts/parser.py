@@ -208,6 +208,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     paper_autonomy_stability_evidence_parser.add_argument("--profiles", nargs="+")
     paper_autonomy_stability_evidence_parser.add_argument("--studies", nargs="+")
 
+    subparsers.add_parser("ensure-analysis-bundle")
+
     study_state_matrix_parser = subparsers.add_parser("study-state-matrix")
     study_state_matrix_parser.add_argument("--profile", required=True)
     study_state_matrix_parser.add_argument("--studies", nargs="+")
