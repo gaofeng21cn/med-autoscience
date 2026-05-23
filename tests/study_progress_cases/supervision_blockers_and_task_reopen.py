@@ -290,7 +290,7 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
 
     assert result["current_stage"] == "auto_runtime_parked"
     assert result["parked_state"] == "explicit_resume_pending"
-    assert result["legacy_current_stage"] is None
+    assert "legacy_current_stage" not in result
     assert not any("发表门控" in item for item in result["current_blockers"])
     assert "显式" in result["next_system_action"]
 
@@ -531,7 +531,7 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
 
     assert result["current_stage"] == "auto_runtime_parked"
     assert result["parked_state"] == "package_ready_handoff"
-    assert result["legacy_current_stage"] == "manual_finishing"
+    assert "legacy_current_stage" not in result
     assert "投稿包/人审包" in result["current_stage_summary"]
     assert "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。" not in result["current_blockers"]
 
@@ -906,7 +906,7 @@ def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeou
     assert result["manual_finish_contract"] is not None
     assert result["current_stage"] == "auto_runtime_parked"
     assert result["parked_state"] == "package_ready_handoff"
-    assert result["legacy_current_stage"] == "manual_finishing"
+    assert "legacy_current_stage" not in result
     assert result["quality_closure_truth"]["state"] == "bundle_only_remaining"
     assert result["same_line_route_truth"]["route_target"] == "finalize"
     assert not any("待修订状态" in item for item in result["current_blockers"])

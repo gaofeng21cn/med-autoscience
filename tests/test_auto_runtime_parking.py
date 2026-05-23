@@ -24,7 +24,7 @@ def test_auto_runtime_parking_maps_package_ready_handoff() -> None:
     assert projection["resource_release_expected"] is True
     assert projection["awaiting_explicit_wakeup"] is True
     assert projection["auto_execution_complete"] is True
-    assert projection["legacy_current_stage"] == "manual_finishing"
+    assert "legacy_current_stage" not in projection
     assert projection["reopen_policy"] == "user_feedback_first"
 
 

@@ -108,7 +108,7 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
 
     assert result["current_stage"] == "auto_runtime_parked"
     assert result["parked_state"] == "package_ready_handoff"
-    assert result["legacy_current_stage"] == "manual_finishing"
+    assert "legacy_current_stage" not in result
     assert result["intervention_lane"]["lane_id"] == "auto_runtime_parked"
     assert result["intervention_lane"]["parked_state"] == "package_ready_handoff"
     assert all("恢复失败" not in item for item in result["current_blockers"])

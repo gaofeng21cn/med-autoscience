@@ -373,7 +373,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
 
     assert result["current_stage"] == "auto_runtime_parked"
     assert result["parked_state"] == "external_metadata_pending"
-    assert result["legacy_current_stage"] == "manual_finishing"
+    assert "legacy_current_stage" not in result
     assert result["needs_physician_decision"] is False
     assert result["needs_user_decision"] is False
     assert result["physician_decision_summary"] is None

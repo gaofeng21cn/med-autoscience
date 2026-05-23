@@ -101,7 +101,7 @@ def test_package_handoff_parked_projection() -> None:
     assert projection["parked_owner"] == "user"
     assert projection["resource_release_expected"] is True
     assert projection["auto_execution_complete"] is True
-    assert projection["legacy_current_stage"] == "manual_finishing"
+    assert "legacy_current_stage" not in projection
 
 
 def test_external_upstream_parked_projection() -> None:

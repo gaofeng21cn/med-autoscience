@@ -853,7 +853,6 @@ def record_auto_runtime_parked_projection(status: ProgressProjectionStatus) -> N
         "awaiting_explicit_wakeup",
         "auto_execution_complete",
         "reopen_policy",
-        "legacy_current_stage",
     ):
         status[field_name] = projection.get(field_name)
 

@@ -27,3 +27,13 @@ def test_legacy_deepscientist_adapter_modules_are_removed() -> None:
     assert not (ADAPTER_ROOT / "mailbox.py").exists()
     assert not (ADAPTER_ROOT / "runtime.py").exists()
     assert not (ADAPTER_ROOT / "paper_bundle.py").exists()
+
+
+def test_legacy_manual_finishing_projection_field_is_not_resurrected() -> None:
+    violations: list[str] = []
+    for path in sorted(SRC_ROOT.rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        if "legacy_current_stage" in text:
+            violations.append(str(path.relative_to(REPO_ROOT)))
+
+    assert violations == []

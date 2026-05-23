@@ -213,7 +213,6 @@ def _study_item(
         "awaiting_explicit_wakeup": progress_payload.get("awaiting_explicit_wakeup"),
         "auto_execution_complete": progress_payload.get("auto_execution_complete"),
         "reopen_policy": progress_payload.get("reopen_policy"),
-        "legacy_current_stage": progress_payload.get("legacy_current_stage"),
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
         "autonomy_contract": autonomy_contract or None,

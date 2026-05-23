@@ -113,5 +113,4 @@ def parked_progress_fields(parked_projection: Mapping[str, Any]) -> dict[str, An
         "awaiting_explicit_wakeup": parked_projection.get("awaiting_explicit_wakeup"),
         "auto_execution_complete": parked_projection.get("auto_execution_complete"),
         "reopen_policy": parked_projection.get("reopen_policy"),
-        "legacy_current_stage": parked_projection.get("legacy_current_stage"),
     }

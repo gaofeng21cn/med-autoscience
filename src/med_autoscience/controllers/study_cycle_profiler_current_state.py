@@ -83,7 +83,6 @@ def current_state_summary(
         )
         return {
             "state": "auto_runtime_parked",
-            "legacy_current_stage": "manual_finishing",
             "auto_runtime_parked": parked,
             "parked_state": parked.get("parked_state"),
             "runtime_health_status": runtime_health_status or None,
