@@ -356,6 +356,21 @@ def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer
     assert latest["reviewer_operating_system"]["currentness_checks"]["current_package_freshness"][
         "source_eval_id"
     ] == latest["eval_id"]
+    quality_readiness = latest["reviewer_operating_system"]["publication_quality_readiness"]
+    prose_currentness = latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
+    assert quality_readiness == {
+        "surface_kind": "publication_quality_authority_kernel_v1",
+        "status": "ready",
+        "current_manuscript_digest": prose_currentness["manuscript_digest"],
+        "review_request_digest": prose_currentness["request_digest"],
+        "evidence_ledger_digest": quality_readiness["evidence_ledger_digest"],
+        "rubric_version": "medical_publication_critique_v1",
+        "owner_attempt_id": quality_readiness["owner_attempt_id"],
+        "fail_closed_when_missing": True,
+        "missing_required_fields": [],
+    }
+    assert quality_readiness["evidence_ledger_digest"].startswith("sha256:")
+    assert quality_readiness["owner_attempt_id"].startswith("ai-reviewer-publication-eval::")
     assert latest["reviewer_operating_system"]["route_back_decision"] == {
         "recommended_action": "continue_same_line",
         "rationale": "Proceed to first full draft.",
@@ -842,6 +857,25 @@ def test_ai_reviewer_publication_eval_latest_rejects_trace_without_currentness_c
         assert "currentness_checks" in str(exc)
     else:
         raise AssertionError("publication eval latest accepted AI reviewer trace without currentness checks")
+
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_ai_reviewer_publication_eval_latest_rejects_ready_without_quality_readiness_kernel(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.publication_eval_latest import materialize_ai_reviewer_publication_eval_latest
+
+    study_root = tmp_path / "study"
+    record = _publication_eval_record(study_root)
+    record["reviewer_operating_system"] = _reviewer_operating_system(study_root)
+
+    try:
+        materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=record)
+    except ValueError as exc:
+        assert "publication_quality_readiness" in str(exc)
+    else:
+        raise AssertionError("publication eval latest accepted ready AI reviewer trace without quality readiness kernel")
 
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 

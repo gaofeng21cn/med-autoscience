@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-05-22**
+**更新时间：2026-05-23**
 
 Owner: `MedAutoScience`
 Purpose: `current_truth_summary`
@@ -86,7 +86,7 @@ MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain
 - artifact lifecycle receipt scaleout：真实 workspace 产生 artifact mutation permission、cleanup/restore/retention guarded receipt 和 rebuild/freshness proof。
 - human gate / resume：approval、pause、human takeover、explicit wakeup 和 resume 操作链进入 MAS owner route，并证明不会越过 publication gate、AI reviewer gate 或 artifact authority。
 - provider SLO long soak：长时 provider-hosted run、restart/re-query、retry/dead-letter、no-forbidden-write 和 App/workbench drilldown 在真实 domain activity 中持续成立。
-- 状态转移 focused proof：stopped / waiting / paused / live 等 runtime 状态与 controller authorization、domain transition、submission metadata handoff 的组合路径需要继续用 focused tests 锁定。2026-05-21 已补 `stopped controller_work_unit_pending` 不被 metadata parking 覆盖的回归测试；后续真实 paper-line canary 仍需证明对应 redrive 能产出 owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker。
+- 状态转移 focused proof：stopped / waiting / paused / live 等 runtime 状态与 controller authorization、domain transition、submission metadata handoff 的组合路径需要继续用 focused tests 锁定。`stopped controller_work_unit_pending` 不得被 metadata parking 覆盖；后续真实 paper-line canary 仍需证明对应 redrive 能产出 owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker。
 - family transition materialization proof：`study_state_matrix` action 与 OPL generic matrix runner 已有 focused proof；后续真实 paper-line canary 仍需证明 matrix route/work-unit 能进入 MAS owner chain，并产出 owner receipt、typed blocker、progress delta、gate replay、human gate 或 stop-loss。
 - stage graph / route-as-transition proof：OPL 已有承载 route-as-transition 的 stage graph / transition runner / provider attempt 基础面；MAS 仍需用真实 paper-line 与指定 journal 格式整理 canary 回填 owner receipt、artifact authority receipt、independent reviewer/auditor record、human gate 或 stable typed blocker。该 proof 是 production evidence tail，不回写成 MAS 私有 runtime 或 publication-ready 结论。
 

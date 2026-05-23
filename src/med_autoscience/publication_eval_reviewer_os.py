@@ -15,6 +15,7 @@ _ALLOWED_REVIEWER_OS_FIELDS = frozenset(
         "rubric_scores",
         "decision_matrix",
         "currentness_checks",
+        "publication_quality_readiness",
         "future_facing_limitations_plan",
         "provenance_checks",
         "route_back_decision",
@@ -159,6 +160,42 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     elif not _text(package_freshness.get("source_eval_id")):
         errors.append(
             "reviewer_operating_system.currentness_checks.current_package_freshness.source_eval_id must be non-empty"
+        )
+
+    readiness = _mapping(payload.get("publication_quality_readiness"))
+    if readiness.get("surface_kind") != "publication_quality_authority_kernel_v1":
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.surface_kind must be publication_quality_authority_kernel_v1"
+        )
+    if _text(readiness.get("status")) != "ready":
+        errors.append("reviewer_operating_system.publication_quality_readiness.status must be ready")
+    if not _text(readiness.get("current_manuscript_digest")):
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.current_manuscript_digest must be non-empty"
+        )
+    if not _text(readiness.get("review_request_digest")):
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.review_request_digest must be non-empty"
+        )
+    if not _text(readiness.get("evidence_ledger_digest")):
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.evidence_ledger_digest must be non-empty"
+        )
+    if _text(readiness.get("rubric_version")) != DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]:
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.rubric_version must be medical_publication_critique_v1"
+        )
+    if not _text(readiness.get("owner_attempt_id")):
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.owner_attempt_id must be non-empty"
+        )
+    if readiness.get("fail_closed_when_missing") is not True:
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.fail_closed_when_missing must be true"
+        )
+    if readiness.get("missing_required_fields") not in ([], ()):
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.missing_required_fields must be empty"
         )
 
     future_limitations_plan = _list_of_mappings(payload.get("future_facing_limitations_plan"))

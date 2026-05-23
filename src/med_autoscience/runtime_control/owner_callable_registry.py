@@ -179,6 +179,94 @@ def owner_callable_for_action(action_type: str) -> dict[str, Any] | None:
     return None
 
 
+def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
+    return {
+        "surface_kind": "paper_work_unit_lifecycle_contract",
+        "work_units": {
+            "run_quality_repair_batch": {
+                "owner": "quality_repair_batch",
+                "allowed_writes": [
+                    "paper/draft.md",
+                    "paper/build/review_manuscript.md",
+                    "paper/claim_evidence_map.json",
+                    "paper/evidence_ledger.json",
+                    "artifacts/controller/quality_repair_batch/latest.json",
+                    "artifacts/controller/repair_execution_evidence/latest.json",
+                    "artifacts/supervision/requests/ai_reviewer/latest.json",
+                    "artifacts/controller/gate_replay_requests/latest.json",
+                ],
+                "forbidden_writes": [
+                    "artifacts/publication_eval/latest.json",
+                    "controller_decisions/latest.json",
+                    "paper/submission_minimal/**",
+                    "manuscript/current_package/**",
+                ],
+                "required_input_refs": [
+                    "controller_decisions/latest.json",
+                    "publication_eval/latest.json",
+                    "paper_root",
+                ],
+                "required_output_refs": [
+                    "paper/*",
+                    "artifacts/controller/quality_repair_batch/latest.json",
+                ],
+                "completion_proof": {
+                    "requires_owner_receipt_or_typed_blocker": True,
+                    "required_refs": [
+                        "owner_receipt_ref",
+                        "required_output_ref",
+                        "artifact_delta_ref_or_gate_replay_ref_or_typed_blocker_ref",
+                    ],
+                },
+                "next_owner_rules": {
+                    "on_completed": [
+                        "ai_reviewer",
+                        "publication_gate",
+                        "delivery_sync",
+                        "controller_stop",
+                    ],
+                    "on_blocked": [
+                        "write",
+                        "analysis_harmonization_owner",
+                        "source_provenance_owner",
+                        "decision",
+                        "awaiting_human",
+                    ],
+                },
+            },
+            "return_to_ai_reviewer_workflow": {
+                "owner": "ai_reviewer",
+                "allowed_writes": ["artifacts/publication_eval/latest.json"],
+                "forbidden_writes": [
+                    "paper/**",
+                    "manuscript/current_package/**",
+                    "controller_decisions/latest.json",
+                ],
+                "required_input_refs": [
+                    "manuscript",
+                    "evidence_ledger",
+                    "review_ledger",
+                    "study_charter",
+                    "artifacts/supervision/requests/ai_reviewer/latest.json",
+                ],
+                "required_output_refs": ["artifacts/publication_eval/latest.json"],
+                "completion_proof": {
+                    "requires_owner_receipt_or_typed_blocker": True,
+                    "currentness_required": True,
+                },
+                "next_owner_rules": {
+                    "on_completed": ["write", "publication_gate", "delivery_sync", "controller_stop"],
+                    "on_blocked": ["ai_reviewer", "write", "awaiting_human"],
+                },
+            },
+        },
+    }
+
+
+def paper_work_unit_lifecycle_for_action(action_type: str) -> dict[str, Any] | None:
+    return paper_work_unit_lifecycle_contract()["work_units"].get(str(action_type or "").strip())
+
+
 def callable_owner_names() -> tuple[str, ...]:
     return tuple(item.owner for item in _OWNER_CALLABLES)
 
@@ -188,4 +276,6 @@ __all__ = [
     "callable_owner_names",
     "owner_callable_for_action",
     "owner_callable_registry",
+    "paper_work_unit_lifecycle_contract",
+    "paper_work_unit_lifecycle_for_action",
 ]

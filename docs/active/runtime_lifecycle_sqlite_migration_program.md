@@ -19,7 +19,7 @@ Machine boundary: 本文是人读 owner / provenance guard。机器真相继续�
 - paper / study / publication / artifact truth 留在 MAS file authority 与 controller authority surfaces；
 - root Git 和 quest Git 不回到默认 MAS workspace/runtime lifecycle；
 - restore-proof archive、migration ledger、lifecycle export 和 explicit archive import 规则继续保留；
-- 新 drift 通过 fresh inventory、archive、restore proof 和 verification 处理。
+- 新 drift 通过 current inventory、archive、restore proof 和 verification 处理。
 
 ## 当前状态
 
@@ -52,7 +52,7 @@ Files and archives remain authoritative for:
 
 When a current or legacy workspace shows new `.ds`, quest `.git`, root `.git`, old MDS path, runtime payload, or legacy restore import diagnostic drift, the handling order is:
 
-1. Fresh inventory: identify state, active run, worker liveness, owner, path class, file/byte counts, remotes/locks/worktrees when Git exists, and authority surfaces touched.
+1. Current inventory: identify state, active run, worker liveness, owner, path class, file/byte counts, remotes/locks/worktrees when Git exists, and authority surfaces touched.
 2. Safety gate: live/running/unknown-owner paths are audit-only unless a controller-authorized or operator-confirmed safe window exists.
 3. Archive and restore proof: produce archive, manifest, sha256, restore command, source path list, and verification result before removal.
 4. Lifecycle export: preserve explicit read/restore diagnostics when needed.

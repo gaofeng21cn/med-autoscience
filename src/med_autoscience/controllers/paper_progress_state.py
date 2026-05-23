@@ -26,9 +26,18 @@ _DOWNSTREAM_ONLY = "publication_supervisor_state.bundle_tasks_downstream_only"
 def build_paper_progress_state(payload: Mapping[str, Any]) -> dict[str, Any]:
     macro_state = _study_macro_state(payload)
     details = _mapping(macro_state.get("details"))
-    actual_write_active = _actual_write_active(payload)
+    paper_facing_progress_slo = _paper_facing_progress_slo(payload)
+    visible_paper_progress = bool(paper_facing_progress_slo["visible_as_progressing"])
+    visible_progress = visible_paper_progress or _generic_artifact_delta_visible(payload)
+    actual_write_active = _actual_write_active(
+        payload,
+        visible_progress=visible_progress,
+    )
     package_delivered = _package_delivered(payload, details)
-    meaningful_artifact_delta = _meaningful_artifact_delta(payload)
+    meaningful_artifact_delta = _meaningful_artifact_delta(
+        payload,
+        visible_progress=visible_progress,
+    )
     next_owner = _next_owner(payload, details)
     requires_user_input = _requires_user_input(payload)
     blocking_reasons = _blocking_reasons(payload)
@@ -60,6 +69,7 @@ def build_paper_progress_state(payload: Mapping[str, Any]) -> dict[str, Any]:
         "actual_write_active": actual_write_active,
         "package_delivered": package_delivered,
         "meaningful_artifact_delta": meaningful_artifact_delta,
+        "paper_facing_progress_slo": paper_facing_progress_slo,
         "next_owner": next_owner,
         "requires_user_input": requires_user_input,
         "why_not_progressing": why_not_progressing,
@@ -101,12 +111,50 @@ def _paper_state(
     return "blocked_controller_route"
 
 
-def _actual_write_active(payload: Mapping[str, Any]) -> bool:
+_PAPER_FACING_DELTA_CLASSES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("canonical_manuscript", ("paper/draft.md", "paper/manuscript.md", "paper/build/review_manuscript.md")),
+    ("figure_table", ("paper/figures/", "paper/tables/", "figures/", "tables/")),
+    ("claim_evidence", ("paper/claim_evidence_map.json", "paper/evidence_ledger.json")),
+    ("review_ledger", ("paper/review/", "review_ledger")),
+    ("gate_replay", ("artifacts/controller/gate_replay_requests/", "gate_replay")),
+    ("ai_reviewer_request", ("artifacts/supervision/requests/ai_reviewer/", "ai_reviewer/latest.json")),
+    ("typed_blocker", ("typed-blocker:", "typed_blocker", "typed-blocker")),
+)
+
+
+def _paper_facing_progress_slo(payload: Mapping[str, Any]) -> dict[str, Any]:
+    changed_refs = _paper_delta_changed_refs(payload)
+    satisfied: list[str] = []
+    for delta_class, markers in _PAPER_FACING_DELTA_CLASSES:
+        if any(marker in ref for marker in markers for ref in changed_refs):
+            satisfied.append(delta_class)
+    missing = [delta_class for delta_class, _markers in _PAPER_FACING_DELTA_CLASSES if delta_class not in satisfied]
+    return {
+        "surface_kind": "paper_facing_progress_slo",
+        "visible_as_progressing": bool(satisfied),
+        "satisfied_delta_classes": satisfied,
+        "missing_required_delta_classes": missing,
+        "changed_refs": changed_refs,
+    }
+
+
+def _paper_delta_changed_refs(payload: Mapping[str, Any]) -> list[str]:
+    progress_freshness = _mapping(payload.get("progress_freshness"))
+    artifact_delta = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
+    refs = _string_items(artifact_delta.get("changed_refs"))
+    refs.extend(_string_items(artifact_delta.get("evidence_refs")))
+    scan_delta = _mapping(payload.get("artifact_delta"))
+    refs.extend(_string_items(scan_delta.get("changed_refs")))
+    refs.extend(_string_items(scan_delta.get("evidence_refs")))
+    return _dedupe(refs)
+
+
+def _actual_write_active(payload: Mapping[str, Any], *, visible_progress: bool) -> bool:
     macro_state = _study_macro_state(payload)
     writer_state = _text(macro_state.get("writer_state"))
     if writer_state != "live":
         return False
-    if not _fresh_artifact_delta_present(payload):
+    if not visible_progress:
         return False
     return bool(
         _text(_mapping(macro_state.get("details")).get("active_run_id"))
@@ -130,7 +178,9 @@ def _package_delivered(payload: Mapping[str, Any], details: Mapping[str, Any]) -
     return package_state in {"delivered", "current_package_delivered", "terminal_delivered"}
 
 
-def _meaningful_artifact_delta(payload: Mapping[str, Any]) -> bool:
+def _meaningful_artifact_delta(payload: Mapping[str, Any], *, visible_progress: bool) -> bool:
+    if not visible_progress:
+        return False
     if _fresh_artifact_delta_present(payload):
         return True
     if _scan_artifact_delta_present(payload):
@@ -152,6 +202,16 @@ def _fresh_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
         _text(artifact_delta.get("status")) == "fresh"
         and _text(artifact_delta.get("latest_progress_at")) is not None
     ) or _scan_artifact_delta_present(payload)
+
+
+def _generic_artifact_delta_visible(payload: Mapping[str, Any]) -> bool:
+    progress_freshness = _mapping(payload.get("progress_freshness"))
+    artifact_delta = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
+    if not _fresh_artifact_delta_present(payload):
+        return False
+    if _text(artifact_delta.get("surface_kind")) == "runtime_log_delta":
+        return False
+    return not _string_items(artifact_delta.get("changed_refs"))
 
 
 def _scan_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
@@ -214,6 +274,8 @@ def _why_not_progressing(
         return _DOWNSTREAM_ONLY
     if state == "awaiting_controller_redrive":
         return _RUNTIME_RETRY_EXHAUSTED
+    if not meaningful_artifact_delta and _paper_delta_changed_refs(payload):
+        return "paper_facing_progress_delta_or_typed_blocker_missing"
     interaction = _mapping(payload.get("interaction_arbitration"))
     for value in (
         interaction.get("blocked_reason"),
@@ -276,7 +338,7 @@ def _is_downstream_only(payload: Mapping[str, Any], blocking_reasons: list[str])
     supervisor = _mapping(payload.get("publication_supervisor_state"))
     if supervisor.get("bundle_tasks_downstream_only") is True or _DOWNSTREAM_ONLY in blocking_reasons:
         return True
-    if not _meaningful_artifact_delta(payload):
+    if not _paper_facing_progress_slo(payload)["visible_as_progressing"]:
         return False
     next_owner = _text(payload.get("next_owner")) or _text(_mapping(payload.get("owner_route")).get("next_owner"))
     return next_owner == "supervisor_only/live_quality_repair"

@@ -71,6 +71,17 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
                 "source_eval_id": eval_id,
             },
         },
+        "publication_quality_readiness": {
+            "surface_kind": "publication_quality_authority_kernel_v1",
+            "status": "ready",
+            "current_manuscript_digest": manuscript_digest,
+            "review_request_digest": request_digest,
+            "evidence_ledger_digest": "sha256:" + ("d" * 64),
+            "rubric_version": "medical_publication_critique_v1",
+            "owner_attempt_id": f"ai-reviewer-publication-eval::{eval_id}",
+            "fail_closed_when_missing": True,
+            "missing_required_fields": [],
+        },
         "future_facing_limitations_plan": [
             {
                 "limitation": "Finalize authorization is scoped to the reviewed paper snapshot.",

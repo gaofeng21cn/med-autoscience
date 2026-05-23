@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import paper_work_unit_lifecycle_for_action
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
@@ -813,6 +814,7 @@ def _dispatch_execution_payload(
     execution: Mapping[str, Any],
     managed_authorization: Mapping[str, Any],
 ) -> dict[str, Any]:
+    paper_work_unit_lifecycle = paper_work_unit_lifecycle_for_action(action_type)
     return {
         "surface": "default_executor_dispatch_execution",
         "schema_version": SCHEMA_VERSION,
@@ -840,6 +842,7 @@ def _dispatch_execution_payload(
         or None,
         "current_paper_progress_stall": _current_scan_stall(profile, study_id) or None,
         "paper_progress_stall_handoff_allowed": bool(stall_handoff_allowed),
+        "paper_work_unit_lifecycle": paper_work_unit_lifecycle,
         "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
         "repeat_suppression_key": repeat_guard["repeat_suppression_key"],
         "repeat_suppression": repeat_guard,

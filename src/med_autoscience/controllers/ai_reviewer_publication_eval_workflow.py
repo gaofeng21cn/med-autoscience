@@ -242,6 +242,42 @@ def _record_route_target(record_payload: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _publication_quality_readiness(
+    *,
+    record_payload: Mapping[str, Any],
+    trace: Mapping[str, Any],
+) -> dict[str, Any]:
+    currentness = _mapping(trace.get("currentness_checks"))
+    prose_currentness = _mapping(currentness.get("medical_prose_review"))
+    evidence_ledger = _mapping(record_payload.get("quality_assessment"))
+    evidence_digest = "sha256:" + hashlib.sha256(
+        json.dumps(evidence_ledger, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    eval_id = _text(record_payload.get("eval_id")) or "unknown-eval"
+    manuscript_digest = _text(prose_currentness.get("manuscript_digest"))
+    request_digest = _text(prose_currentness.get("request_digest"))
+    missing = [
+        field
+        for field, value in (
+            ("current_manuscript_digest", manuscript_digest),
+            ("review_request_digest", request_digest),
+            ("evidence_ledger_digest", evidence_digest),
+        )
+        if not value
+    ]
+    return {
+        "surface_kind": "publication_quality_authority_kernel_v1",
+        "status": "ready" if not missing else "blocked",
+        "current_manuscript_digest": manuscript_digest,
+        "review_request_digest": request_digest,
+        "evidence_ledger_digest": evidence_digest,
+        "rubric_version": DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"],
+        "owner_attempt_id": f"ai-reviewer-publication-eval::{eval_id}",
+        "fail_closed_when_missing": True,
+        "missing_required_fields": missing,
+    }
+
+
 def _future_facing_limitations_plan(record_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     raw_plan = record_payload.get("future_facing_limitations_plan")
     if not isinstance(raw_plan, list) or not raw_plan:
@@ -556,6 +592,10 @@ def build_ai_reviewer_publication_eval_workflow_trace(
         },
         "route_back_decision": _route_back_decision(record_payload),
     }
+    trace["publication_quality_readiness"] = _publication_quality_readiness(
+        record_payload=record_payload,
+        trace=trace,
+    )
     errors = validate_ai_reviewer_operating_system_trace(trace)
     if errors:
         raise ValueError("AI reviewer publication eval workflow reviewer OS trace invalid: " + "; ".join(errors))

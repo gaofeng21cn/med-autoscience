@@ -5,6 +5,8 @@ from .owner_callable_registry import (
     callable_owner_names,
     owner_callable_for_action,
     owner_callable_registry,
+    paper_work_unit_lifecycle_contract,
+    paper_work_unit_lifecycle_for_action,
 )
 
 __all__ = [
@@ -12,4 +14,6 @@ __all__ = [
     "callable_owner_names",
     "owner_callable_for_action",
     "owner_callable_registry",
+    "paper_work_unit_lifecycle_contract",
+    "paper_work_unit_lifecycle_for_action",
 ]
