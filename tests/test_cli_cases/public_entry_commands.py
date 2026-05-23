@@ -95,7 +95,7 @@ def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, cap
     assert payload["explicit_archive_import_ref"]["read_only"] is True
     assert payload["publication"]["default_publication_profile"] == "general_medical_journal"
     assert payload["publication"]["default_citation_style"] == "AMA"
-    assert payload["publication"]["default_submission_targets"][0]["publication_profile"] == "frontiers_family_harvard"
+    assert payload["publication"]["default_submission_targets"][0]["exporter_profile"] == "frontiers_family_harvard"
     assert payload["overlay"]["enable_medical_overlay"] is True
     assert payload["overlay"]["medical_overlay_scope"] == "workspace"
     assert payload["overlay"]["medical_overlay_skills"][0] == "scout"

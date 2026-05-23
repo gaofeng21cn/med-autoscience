@@ -66,7 +66,7 @@ def _load_yaml_dict(path: Path) -> dict[str, Any]:
 
 def _target_key(
     *,
-    publication_profile: str | None,
+    exporter_profile: str | None,
     journal_name: str | None,
     official_guidelines_url: str | None,
     decision_kind: str | None,
@@ -75,11 +75,11 @@ def _target_key(
         return f"journal:{journal_name.strip().lower()}"
     if official_guidelines_url:
         return f"url:{official_guidelines_url.strip()}"
-    if publication_profile:
-        return f"profile:{normalize_publication_profile(publication_profile)}"
+    if exporter_profile:
+        return f"profile:{normalize_publication_profile(exporter_profile)}"
     if decision_kind:
         return f"decision:{decision_kind.strip().lower()}"
-    raise ValueError("submission target requires publication_profile, journal_name, official_guidelines_url, or decision_kind")
+    raise ValueError("submission target requires exporter_profile, journal_name, official_guidelines_url, or decision_kind")
 
 
 def _optional_text(value: object) -> str | None:
@@ -125,38 +125,25 @@ def _resolve_exporter_status(
 
 
 def _normalize_target(
-    raw_target: str | dict[str, Any],
+    raw_target: dict[str, Any],
     *,
     source: str,
     default_citation_style: str | None,
 ) -> SubmissionTarget:
-    if isinstance(raw_target, str):
-        payload: dict[str, Any] = {"publication_profile": raw_target}
-    elif isinstance(raw_target, dict):
-        payload = raw_target
-    else:
+    if not isinstance(raw_target, dict):
         raise ValueError(f"unsupported submission target payload from {source}: {raw_target!r}")
+    payload = raw_target
+    if "publication_profile" in payload:
+        raise ValueError("submission target publication_profile input is retired; use exporter_profile")
 
-    legacy_publication_profile_raw = payload.get("publication_profile")
-    legacy_publication_profile = (
-        normalize_publication_profile(str(legacy_publication_profile_raw))
-        if isinstance(legacy_publication_profile_raw, str) and legacy_publication_profile_raw.strip()
-        else None
-    )
     exporter_profile_raw = payload.get("exporter_profile")
     exporter_profile = (
         normalize_publication_profile(str(exporter_profile_raw))
         if isinstance(exporter_profile_raw, str) and exporter_profile_raw.strip()
-        else legacy_publication_profile
+        else None
     )
-    if (
-        legacy_publication_profile is not None
-        and exporter_profile is not None
-        and legacy_publication_profile != exporter_profile
-    ):
-        raise ValueError("publication_profile legacy alias must match exporter_profile when both are present")
 
-    publication_profile = legacy_publication_profile or exporter_profile
+    publication_profile = exporter_profile
     decision_kind = _optional_text(payload.get("decision_kind"))
     decision_source = _optional_text(payload.get("decision_source"))
     journal_name = _optional_text(payload.get("journal_name"))
@@ -212,7 +199,7 @@ def _normalize_target(
         decision_kind=decision_kind,
         decision_source=decision_source,
         target_key=_target_key(
-            publication_profile=exporter_profile,
+            exporter_profile=exporter_profile,
             journal_name=journal_name,
             official_guidelines_url=official_guidelines_url,
             decision_kind=decision_kind,
@@ -436,10 +423,10 @@ def render_submission_target_overlay_block(
     if raw_defaults:
         resolved_lines.append("Workspace default submission targets baked into this overlay:")
         for item in raw_defaults:
-            publication_profile = str(item.get("publication_profile") or "").strip() or "<unresolved>"
+            exporter_profile = str(item.get("exporter_profile") or item.get("journal_name") or "").strip() or "<unresolved>"
             story_surface = str(item.get("story_surface") or "").strip() or "unspecified"
             primary = " [primary]" if bool(item.get("primary")) else ""
-            resolved_lines.append(f"- `{publication_profile}`{primary}; story_surface=`{story_surface}`")
+            resolved_lines.append(f"- `{exporter_profile}`{primary}; story_surface=`{story_surface}`")
     else:
         resolved_lines.append(
             "No explicit workspace default submission targets were injected into this overlay."
@@ -462,7 +449,7 @@ def render_submission_target_overlay_block(
         "Use the primary target to shape title framing, abstract emphasis, result section ordering, discussion emphasis, "
         "figure legends, and journal-facing terminology.\n\n"
         "If the research is still deciding which journals are realistic, first use the journal shortlist evidence workflow rather than this contract.\n\n"
-        "If a target does not already map to a supported `publication_profile`, open `journal-resolution/SKILL.md`, use "
+        "If a target does not already map to a supported `exporter_profile`, open `journal-resolution/SKILL.md`, use "
         "only official journal sources, and write both:\n"
         "- `paper/submission_target_resolution.md`\n"
         "- `paper/submission_targets.resolved.json`\n\n"
@@ -470,7 +457,7 @@ def render_submission_target_overlay_block(
         "Package-root contract:\n"
         "- Do not invent ad-hoc package roots such as `paper/submission_<journal>`.\n"
         "- Generic package roots are limited to `paper/submission_minimal`.\n"
-        "- Venue-specific package roots are limited to `paper/journal_submissions/<publication_profile>`.\n"
+        "- Venue-specific package roots are limited to `paper/journal_submissions/<exporter_profile>`.\n"
         "- If journal resolution is still unresolved, keep the output as research state and do not treat it as a user-facing delivery surface.\n"
         "- The runtime quest tree is the build surface. The user-facing audit surface is `studies/<study-id>/manuscript` after delivery sync.\n\n"
         + "\n".join(resolved_lines)

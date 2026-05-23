@@ -53,7 +53,7 @@ def write_profile(
                 'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
                 "",
                 "[[default_submission_targets]]",
-                'publication_profile = "frontiers_family_harvard"',
+                'exporter_profile = "frontiers_family_harvard"',
                 "primary = true",
                 "package_required = true",
                 'story_surface = "general_medical_journal"',

@@ -74,7 +74,7 @@ def test_analysis_contract_for_study_uses_primary_submission_target_contract(tmp
         tmp_path,
         default_submission_targets=(
             {
-                "publication_profile": "frontiers_family_harvard",
+                "exporter_profile": "frontiers_family_harvard",
                 "primary": True,
                 "package_required": True,
                 "story_surface": "general_medical_journal",
@@ -110,7 +110,7 @@ def test_analysis_contract_for_study_accepts_jacs_submission_profile(tmp_path: P
         default_citation_style="ACS",
         default_submission_targets=(
             {
-                "publication_profile": "jacs",
+                "exporter_profile": "jacs",
                 "primary": True,
                 "package_required": True,
                 "story_surface": "general_medical_journal",
@@ -144,7 +144,7 @@ def test_analysis_contract_for_study_rejects_unresolved_primary_publication_prof
         tmp_path,
         default_submission_targets=(
             {
-                "publication_profile": "unsupported_profile",
+                "exporter_profile": "unsupported_profile",
                 "primary": True,
                 "package_required": True,
                 "story_surface": "general_medical_journal",

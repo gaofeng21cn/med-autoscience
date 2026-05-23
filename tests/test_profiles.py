@@ -32,7 +32,7 @@ PROFILE_LINES = [
     'mas_developer_github_usernames = ["gaofeng21cn"]',
     "",
     "[[default_submission_targets]]",
-    'publication_profile = "frontiers_family_harvard"',
+    'exporter_profile = "frontiers_family_harvard"',
     "primary = true",
     "package_required = true",
     'story_surface = "general_medical_journal"',
@@ -98,7 +98,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.github_username == "gaofeng21cn"
     assert profile.mas_developer_github_usernames == ("gaofeng21cn",)
     assert len(profile.default_submission_targets) == 1
-    assert profile.default_submission_targets[0]["publication_profile"] == "frontiers_family_harvard"
+    assert profile.default_submission_targets[0]["exporter_profile"] == "frontiers_family_harvard"
     assert profile.default_submission_targets[0]["primary"] is True
 
 
@@ -319,7 +319,7 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert publication["default_publication_profile"] == profile.default_publication_profile
     assert publication["default_citation_style"] == profile.default_citation_style
     assert isinstance(publication["default_submission_targets"], list)
-    assert publication["default_submission_targets"][0]["publication_profile"] == "frontiers_family_harvard"
+    assert publication["default_submission_targets"][0]["exporter_profile"] == "frontiers_family_harvard"
 
     overlay = contract["overlay"]
     assert overlay["enable_medical_overlay"] is True

@@ -1,6 +1,6 @@
 ---
 name: journal-resolution
-description: Use when a submission target does not already map to a supported publication profile and the journal requirements must be resolved from official sources.
+description: Use when a submission target does not already map to a supported exporter profile and the journal requirements must be resolved from official sources.
 ---
 
 # Journal Resolution
@@ -26,7 +26,7 @@ This skill exists to stop venue-specific drafting from drifting into guesswork.
 This is not a venue-selection workflow.
 Only use this skill after a primary journal target has already been chosen from an evidence-backed shortlist.
 
-If a target journal is not already represented by a supported `publication_profile`, do not improvise the package format, reference style, section order, or template requirements from memory.
+If a target journal is not already represented by a supported `exporter_profile`, do not improvise the package format, reference style, section order, or template requirements from memory.
 
 Resolve the journal only from official sources, then write the result back into durable quest files.
 
@@ -70,7 +70,7 @@ Leave behind both:
 At minimum, the resolved target must make explicit:
 
 - `journal_name`
-- `publication_profile` when a supported one exists
+- `exporter_profile` when a supported one exists
 - `citation_style`
 - `template_source`
 - `official_guidelines_url`
@@ -79,7 +79,7 @@ At minimum, the resolved target must make explicit:
 
 ## Resolution policy
 
-- If the official evidence cleanly maps to an existing supported `publication_profile`, use that profile.
+- If the official evidence cleanly maps to an existing supported `exporter_profile`, use that profile.
 - If no supported profile exists yet, record a blocked resolution result instead of fabricating one.
 - If the journal belongs to a known family with shared templates but distinct citation branches, record the family and the citation branch separately.
 
@@ -97,5 +97,5 @@ It records venue requirements that downstream writing and finalize stages must e
 
 This skill is complete only when downstream writing and export can say one of two precise things:
 
-1. the journal target is now mapped to a supported `publication_profile`; or
+1. the journal target is now mapped to a supported `exporter_profile`; or
 2. the journal target remains blocked because the official requirements do not yet map to a supported exporter profile.

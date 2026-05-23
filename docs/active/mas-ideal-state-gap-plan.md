@@ -13,6 +13,8 @@ Date: `2026-05-23`
 - 差距按目标态判断，不按当前 MAS 代码是否仍可运行判断。通用 runtime、runner、queue、session、lifecycle refs SQLite、workspace/source intake、memory/artifact transport、workbench、observability、CLI/MCP/Skill/product-entry/sidecar/status wrapper 必须进入 OPL 上收、generated surface 替换、refs-only 收薄或退役分类。
 - `minimal authority` 只表示 MAS 持有医学 stage 质控、publication quality、artifact mutation authorization、publication-route memory accept/reject、source readiness、owner receipt 和 typed blocker 等领域裁决边界；它不表示 MAS 应继续维护通用运行平台。
 - 过时模块、接口、测试、fixture、CLI alias、wrapper、facade 和 docs 入口不做兼容保留。MDS/DeepScientist、local scheduler、LaunchAgent、supervisor 默认面、旧 runtime_transport / lifecycle refs SQLite generic owner 读法等，一旦 active caller 已迁出且 OPL parity / MAS receipt parity / no-active-caller proof 成立，直接删除、archive 或 tombstone；测试同步改成禁止复活旧面，而不是维护旧调用路径。
+- T2E reporting / display legacy alias 已按 direct retirement 执行：`kaplan_meier_grouped -> time_to_event_risk_group_summary` requirement key rewrite 和 `cumulative_incidence_grouped` payload 在 risk-group summary binding 下的 materialization fallback 都已删除；当前路径必须由 `time_to_event_direct_migration` 重新物化 canonical input，旧 payload 进入 fail-closed / typed blocker。
+- submission-target `publication_profile` 输入 alias 已退役：workspace profile / study / quest / resolved target 输入必须使用 `exporter_profile`，不再把 `publication_profile` fallback 成 exporter profile；`publication_profile` 只保留为已解析 package/export profile 输出字段与 submission manifest 领域字段。
 - 当前 source scan 确认：`runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease、`lifecycle_refs_adapter.py`、`product_entry_parts/workspace_cockpit/`、`owner_route_handoff*` 和若干 managed / legacy / compatibility tests 仍在 active source 中可见。它们当前只能按 `retained_adapter_with_delete_gate`、`diagnostic_or_regression_oracle_with_no_default_caller` 或 `history_tombstone_provenance_only` 读取；文件边界继续收薄只是降低迁移风险，不是长期保留理由。后续计划必须优先关闭 active caller 和 replacement parity，满足门槛后直接删除或 tombstone 这些旧壳。
 
 ## 当前定位
@@ -168,6 +170,8 @@ Family transition materialization 当前通过 read-only `study_state_matrix` ac
 | `lifecycle_refs_adapter.py` 与 lifecycle refs SQLite parts | refs-only lifecycle refs index，仍有 active caller。 | OPL lifecycle index / artifact locator parity 与 MAS receipt parity 成立后 archive/tombstone；不保留 MAS generic persistence engine。 |
 | `product_entry_parts/workspace_cockpit/`、status/progress/workbench projections | direct MAS path / OPL handoff 输入仍可见。 | OPL generated product/status/workbench 成为 default caller 后，只保留 MAS truth refs；删除旧 cockpit/workbench shell 和只保护旧字段的测试。 |
 | `owner_route_handoff*` | active dispatch/export owner-route adapter，当前 `active_caller_count=1`。 | OPL generated sidecar default caller parity、真实 owner receipt 或 stable typed blocker parity 成立后，保留 domain action handlers，删除旧 export/dispatch wrapper。 |
+| T2E legacy reporting/display aliases | requirement key rewrite 与 legacy grouped payload fallback 已退役；当前只允许 canonical `time_to_event_risk_group_summary` input 或 fail-closed blocker。 | 不恢复 alias / normalizer；旧 workspace 通过 `time_to_event_direct_migration` 重物化 canonical input。 |
+| submission-target `publication_profile` 输入 alias | profile/study/quest/resolved-target 输入不再接受 `publication_profile` 作为 exporter fallback；当前 canonical 输入为 `exporter_profile`。 | `publication_profile` 只保留在 package/export output 和 submission manifest 领域字段；旧输入 fail closed，不恢复 conflict normalizer 或兼容测试。 |
 | managed / legacy / compatibility tests | 部分仍验证旧 runtime/managed/legacy 行为。 | 改为 no-resurrection、fail-closed、current contract 或 tombstone tests；删除只维护旧调用路径的兼容测试。 |
 
 ## 当前测试/证据差距

@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+import pytest
+
 
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -14,7 +16,7 @@ def write_resolved_target(
     *,
     primary_target_block: str = """{
     "journal_name": "Diabetes Research and Clinical Practice",
-    "publication_profile": "general_medical_journal",
+    "exporter_profile": "general_medical_journal",
     "citation_style": "numeric_square_brackets",
     "official_guidelines_url": "https://example.org/drcp-guide",
     "package_required": true,
@@ -54,7 +56,7 @@ def write_profile(path: Path) -> None:
                 'default_citation_style = "AMA"',
                 "",
                 "[[default_submission_targets]]",
-                'publication_profile = "general_medical_journal"',
+                'exporter_profile = "general_medical_journal"',
                 "primary = true",
                 "package_required = true",
                 'story_surface = "general_medical_journal"',
@@ -83,6 +85,29 @@ def test_resolve_submission_targets_uses_profile_default_target_when_study_and_q
     assert contract.export_publication_profiles == ("general_medical_journal",)
 
 
+def test_resolve_submission_targets_rejects_retired_publication_profile_input_alias(tmp_path: Path) -> None:
+    profiles = importlib.import_module("med_autoscience.profiles")
+    module = importlib.import_module("med_autoscience.submission_targets")
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = tmp_path / "workspace" / "studies" / "retired-alias"
+    write_profile(profile_path)
+    write_text(
+        study_root / "study.yaml",
+        """study_id: retired-alias
+submission_targets:
+  - publication_profile: frontiers_family_harvard
+    primary: true
+    package_required: true
+""",
+    )
+
+    with pytest.raises(ValueError, match="publication_profile input is retired"):
+        module.resolve_submission_target_contract(
+            profile=profiles.load_profile(profile_path),
+            study_root=study_root,
+        )
+
+
 def test_resolve_submission_targets_accepts_jacs_workspace_profile(tmp_path: Path) -> None:
     profiles = importlib.import_module("med_autoscience.profiles")
     module = importlib.import_module("med_autoscience.submission_targets")
@@ -92,7 +117,7 @@ def test_resolve_submission_targets_accepts_jacs_workspace_profile(tmp_path: Pat
     profile_path.write_text(
         profile_text.replace('default_publication_profile = "general_medical_journal"', 'default_publication_profile = "jacs"')
         .replace('default_citation_style = "AMA"', 'default_citation_style = "ACS"')
-        .replace('publication_profile = "general_medical_journal"', 'publication_profile = "jacs"'),
+        .replace('exporter_profile = "general_medical_journal"', 'exporter_profile = "jacs"'),
         encoding="utf-8",
     )
 
@@ -117,7 +142,7 @@ def test_resolve_submission_targets_merges_profile_study_and_quest_targets(tmp_p
         study_root / "study.yaml",
         """study_id: 002-early-residual-risk
 submission_targets:
-  - publication_profile: frontiers_family_harvard
+  - exporter_profile: frontiers_family_harvard
     primary: true
     package_required: true
     story_surface: specialty_medical
@@ -170,7 +195,7 @@ def test_resolve_submission_targets_replace_mode_drops_workspace_defaults(tmp_pa
         """study_id: 002-early-residual-risk
 submission_targets_mode: replace
 submission_targets:
-  - publication_profile: frontiers_family_harvard
+  - exporter_profile: frontiers_family_harvard
     primary: true
     package_required: true
 """,

@@ -55,9 +55,6 @@ SUPPORTED_STUDY_ARCHETYPES = (
 )
 SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event", "descriptive")
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
-_LEGACY_REQUIREMENT_KEY_ALIASES: dict[str, tuple[str, ...]] = {
-    "time_to_event_risk_group_summary": ("kaplan_meier_grouped",),
-}
 _STUDY_SETUP_REQUIREMENT_KEYS = frozenset(
     {
         "cohort_flow_figure",
@@ -85,37 +82,7 @@ def normalize_requirement_key(requirement_key: object) -> str:
     normalized = str(requirement_key or "").strip()
     if "::" in normalized:
         normalized = normalized.rsplit("::", 1)[-1]
-    for canonical_key, aliases in _LEGACY_REQUIREMENT_KEY_ALIASES.items():
-        if normalized in aliases:
-            return canonical_key
     return normalized
-
-
-def normalize_legacy_requirement_keys(payload: object) -> bool:
-    if not isinstance(payload, dict):
-        raise ValueError("medical_reporting_contract payload must be a JSON object")
-
-    updated = False
-    for key in ("figure_shell_requirements", "required_evidence_templates"):
-        values = payload.get(key)
-        if not isinstance(values, list):
-            continue
-        normalized_values = [normalize_requirement_key(value) for value in values]
-        if normalized_values != values:
-            payload[key] = normalized_values
-            updated = True
-
-    display_shell_plan = payload.get("display_shell_plan")
-    if isinstance(display_shell_plan, list):
-        for item in display_shell_plan:
-            if not isinstance(item, dict):
-                continue
-            normalized_requirement_key = normalize_requirement_key(item.get("requirement_key"))
-            if normalized_requirement_key and normalized_requirement_key != item.get("requirement_key"):
-                item["requirement_key"] = normalized_requirement_key
-                updated = True
-
-    return updated
 
 
 def display_story_role_for_requirement_key(requirement_key: object) -> str:

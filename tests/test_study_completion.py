@@ -101,7 +101,7 @@ def test_resolve_study_completion_contract_accepts_profile_named_submission_pack
             [
                 "study_id: 002-risk",
                 "submission_targets:",
-                "  - publication_profile: frontiers_family_harvard",
+                "  - exporter_profile: frontiers_family_harvard",
                 "    primary: true",
                 "    package_required: true",
                 "study_completion:",
