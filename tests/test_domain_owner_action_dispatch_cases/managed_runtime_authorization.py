@@ -137,6 +137,9 @@ def test_managed_runtime_worker_synthesizes_dispatch_when_consumer_latest_is_emp
             "quest_id": study_id,
             "active_run_id": run_id,
             "worker_running": True,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-event-fresh-ai-reviewer",
+            },
             "current_controller_authorization": {
                 "decision_id": "fresh-ai-reviewer-decision",
                 "authorization_basis": "controller_domain_transition",
@@ -196,6 +199,8 @@ def test_managed_runtime_worker_synthesizes_dispatch_when_consumer_latest_is_emp
     assert execution["managed_runtime_authorization"]["status"] == "authorized"
     assert execution["managed_runtime_authorization"]["work_unit_fingerprint"] == fresh_fingerprint
     assert execution["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert execution["owner_route"]["runtime_health_epoch"] == "runtime-health-event-fresh-ai-reviewer"
+    assert execution["owner_route"]["currentness_contract"]["missing_required_fields"] == []
     assert execution["repeat_suppression_key"] == fresh_fingerprint
 
 

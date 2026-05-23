@@ -73,7 +73,7 @@ def execute_owner_dispatch_action(
             "blocked_reason": "unsupported_action_type",
             "owner_callable_surface": None,
         }
-    return executor(profile=profile, study_id=study_id, apply=apply)
+    return executor(profile=profile, study_id=study_id, apply=apply, dispatch=dispatch)
 
 
 __all__ = ["execute_owner_dispatch_action"]

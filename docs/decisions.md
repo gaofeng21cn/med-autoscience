@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-23：AI reviewer default-executor handoff 必须保留 runtime-health currentness basis
+
+- 决策：`paper_repair_executor` 生成 `return_to_ai_reviewer_workflow` default-executor handoff 时，必须把 controller route context / current owner route 中的 `runtime_health_epoch` 写入 owner route 和 `source_refs`；managed-runtime controller authorization 合成 dispatch 时，也必须从 runtime authorization 或 runtime health snapshot 继承同一 currentness basis。
+- 决策：`sidecar export` 与 Owner-Route Attempt Protocol 的 fail-closed 规则不放宽。缺 `runtime_health_epoch`、truth epoch、work-unit fingerprint 或 source fingerprint 的 AI reviewer dispatch 仍不得进入 OPL `domain_owner/default-executor-dispatch` pending task。
+- 理由：DM002 暴露出 AI reviewer record-production handoff 已由 MAS 生成，但 `paper_repair_executor_inline_owner_dispatch` 和 managed-runtime authorization 重建 owner route 时丢失 runtime-health epoch，导致 live-shaped dispatch 在 export/dispatch 阶段被正确 fail-closed，却无法交给 OPL/Codex default executor 产出 current AI reviewer record。根因是 MAS owner-route currentness basis 传播缺口，不是 OPL queue/provider lifecycle，也不是 study truth 可手工修补的问题。
+- 影响：这是 MAS owner-route / default-executor handoff 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只保证已有授权的 AI reviewer record-production request 能以完整 currentness basis 进入 OPL transport；论文质量、publishability 和 package freshness 仍由 AI reviewer-backed eval、publication gate 与后续 owner receipts 判定。
+
 ## 2026-05-23：pending AI reviewer request 可作为 retry-exhausted scan route 的 currentness anchor
 
 - 决策：当 `return_to_ai_reviewer_workflow` 的 ready dispatch 自身携带完整、可 dispatch 的 AI reviewer owner route，且 `artifacts/supervision/requests/ai_reviewer/latest.json` 是同一 action 的 requested/pending owner request 时，`domain-owner-action-dispatch` 可把该 request 的 fallback owner route 作为 currentness anchor。这个 fallback 只适用于 AI reviewer request 与 dispatch 已通过 `owner_request_matches_dispatch` 的路径；不放宽其他 action，也不允许凭 stale `publication_eval/latest.json` 或无 request 的持久 dispatch 执行。

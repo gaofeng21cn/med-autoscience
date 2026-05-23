@@ -127,6 +127,7 @@ def resolve_managed_runtime_authorization(
         "quest_root": str(quest_root),
         "quest_id": quest_id,
         "run_id": run_id,
+        "runtime_health_epoch": _runtime_health_epoch(runtime_state=runtime_state, authorization=authorization),
         "decision_id": _text(authorization.get("decision_id")),
         "authorization_basis": _text(authorization.get("authorization_basis")),
         "route_target": _text(authorization.get("route_target")),
@@ -149,6 +150,9 @@ def runtime_authorized_dispatch(
     quest_id = _text(authorization.get("quest_id")) or _text(dispatch.get("quest_id")) or study_id
     work_unit_fingerprint = _text(authorization.get("work_unit_fingerprint")) or "unknown-work-unit"
     decision_id = _text(authorization.get("decision_id")) or work_unit_fingerprint
+    runtime_health_epoch = _text(dispatch.get("runtime_health_epoch")) or _text(
+        authorization.get("runtime_health_epoch")
+    )
     owner_route = owner_route_part.ensure_owner_route_v2(
         {
             "surface": "domain_route_owner_route",
@@ -156,7 +160,7 @@ def runtime_authorized_dispatch(
             "study_id": study_id,
             "quest_id": quest_id,
             "truth_epoch": decision_id,
-            "runtime_health_epoch": _text(dispatch.get("runtime_health_epoch")),
+            "runtime_health_epoch": runtime_health_epoch,
             "work_unit_fingerprint": work_unit_fingerprint,
             "failure_signature": action_type,
             "route_epoch": decision_id,
@@ -172,6 +176,7 @@ def runtime_authorized_dispatch(
                 "controller_decision_id": decision_id,
                 "authorization_basis": _text(authorization.get("authorization_basis")),
                 "quest_root": _text(authorization.get("quest_root")),
+                "runtime_health_epoch": runtime_health_epoch,
             },
         }
     )
@@ -247,6 +252,19 @@ def _managed_home_status(*, env: Mapping[str, str], quest_root: Path, run_id: st
             "expected_codex_home": str(expected_codex_home),
         }
     return {"valid": True, "home": str(home), "codex_home": str(codex_home)}
+
+
+def _runtime_health_epoch(
+    *,
+    runtime_state: Mapping[str, Any],
+    authorization: Mapping[str, Any],
+) -> str | None:
+    return (
+        _text(authorization.get("runtime_health_epoch"))
+        or _text(_mapping(authorization.get("runtime_health_snapshot")).get("runtime_health_epoch"))
+        or _text(runtime_state.get("runtime_health_epoch"))
+        or _text(_mapping(runtime_state.get("runtime_health_snapshot")).get("runtime_health_epoch"))
+    )
 
 
 def _runtime_authorized_owner_for_action(action_type: str) -> str:
