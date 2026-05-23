@@ -1,5 +1,10 @@
 # 项目概览
 
+Owner: `MedAutoScience`
+Purpose: `project_current_truth`
+State: `active_current_truth`
+Machine boundary: 本文是人读项目角色与边界概览。机器真相继续归 `agent/` pack、`contracts/`、CLI/MCP/API 行为、product-entry manifest、sidecar receipts、runtime/controller durable surfaces、真实 workspace artifact 与 owner receipts。
+
 `Med Auto Science` 是可被通用 agent 直接调用的独立 medical research domain agent，外层由单一 MAS app skill 承接稳定 callable surface。它也可以作为 `OPL` 完整智能体运行框架中的 admitted domain agent 被托管、唤醒和投影；OPL 是 stage-led 的外层框架，`Stage` 表示大型任务步骤，Agent executor 是 stage 内最小执行单位，`Codex CLI` 是当前第一公民 executor。医学研究 stage、质量判断、study truth 和论文交付 authority 始终由 MAS 持有。它把研究问题、工作区语境、证据推进、人话进度和论文相关文件放在同一条研究线上，帮助团队把真实研究持续推进到可交付状态。
 
 ## 当前结构

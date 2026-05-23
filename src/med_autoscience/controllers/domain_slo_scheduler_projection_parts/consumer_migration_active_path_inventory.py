@@ -52,7 +52,8 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
             "runtime_backend.no_lazy_mas_runtime_core_backend",
         ],
         "focused_test_refs": [
-            "tests/test_runtime_transport_opl_provider_defaults.py",
+            "tests/test_opl_runtime_contract.py",
+            "tests/test_opl_runtime_contract_no_provider_backend.py",
             "tests/test_adapter_retirement_boundary.py",
         ],
         "resurrection_alias_or_wrapper_allowed": False,
@@ -86,7 +87,7 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
             "study_runtime_execution_parts.controller_authorization_receipts",
         ],
         "focused_test_refs": [
-            "tests/test_study_runtime_execution_evidence_adoption_cases/test_turn_closeout_consumption.py",
+            "tests/test_study_runtime_execution_evidence_adoption_cases/test_no_resurrection_boundary.py",
             "tests/test_adapter_retirement_boundary.py",
         ],
         "resurrection_alias_or_wrapper_allowed": False,
@@ -158,6 +159,8 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         ],
         "focused_test_refs": [
             "tests/test_opl_family_persistence_adapter.py",
+            "tests/test_cli_cases/runtime_storage_commands.py",
+            "tests/test_paper_work_unit_lifecycle_contract.py",
             "tests/test_adapter_retirement_boundary.py",
         ],
         "resurrection_alias_or_wrapper_allowed": False,

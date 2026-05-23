@@ -61,9 +61,9 @@
 
 | 投入 | 更合理的落点 | 理由 |
 | --- | --- | --- |
-| 独立 operator frontdoor、独立日常入口文档 | `MedAutoScience` | 未来单项目开发和运维需要统一入口 |
+| 独立 operator entry、独立日常入口文档 | `MedAutoScience` | 单项目开发和运维入口必须回到 MAS current owner surface；MDS 只保留 historical / parity / provenance 参考 |
 | 独立医学论文质量治理面 | `MedAutoScience` | 研究设计、claim gate、publication hygiene 需要和 study authority 同源 |
-| 独立长时间自治治理面 | `MedAutoScience` | 恢复、接管、升级、停机、人工决策都属于 outer-loop owner |
+| 独立长时间自治治理面 | `MedAutoScience` + `OPL` 分层 | 医学 owner route、human gate 语义和 receipt 留在 MAS；generic provider、queue、retry/dead-letter、resume 和 worker residency 归 OPL/Temporal |
 | 独立 progress / watch / status 汇报面 | `MedAutoScience` | 用户和维护者需要一套统一可见性真相 |
 | 独立长期主线文档与 onboarding | `MedAutoScience` | 文档入口需要直接描述目标主线，并仅保留 historical source / fixture / diagnostic 说明 |
 | 独立 feature polish 只为维持日常使用舒适度 | `MedAutoScience` | 这类投入会产生重复维护与再次迁移成本 |

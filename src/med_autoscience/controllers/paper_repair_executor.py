@@ -104,6 +104,8 @@ def dispatch_repair_work_unit(
             study_root=resolved_study_root,
             work_unit=work_unit,
             generated_at=generated_at,
+            control_plane_route_context=authority_route_context,
+            route_context=route_context,
         )
 
     preflight_blocker = _preflight_blocker(work_unit=work_unit, work_unit_type=work_unit_type)
@@ -254,6 +256,8 @@ def _dispatch_ai_reviewer_callable(
     study_root: Path,
     work_unit: Mapping[str, Any],
     generated_at: str,
+    control_plane_route_context: Mapping[str, Any] | None = None,
+    route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if profile is None:
         return _blocked_result(
@@ -277,6 +281,8 @@ def _dispatch_ai_reviewer_callable(
             study_root=study_root,
             work_unit=work_unit,
             generated_at=generated_at,
+            control_plane_route_context=control_plane_route_context,
+            route_context=route_context,
         ),
     )
     return _owner_callable_result(
@@ -298,6 +304,8 @@ def _ai_reviewer_owner_consumer_payload(
     study_root: Path,
     work_unit: Mapping[str, Any],
     generated_at: str,
+    control_plane_route_context: Mapping[str, Any] | None = None,
+    route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     action_type = "return_to_ai_reviewer_workflow"
     owner_route = _ai_reviewer_owner_route(
@@ -305,6 +313,7 @@ def _ai_reviewer_owner_consumer_payload(
         quest_id=quest_id,
         work_unit=work_unit,
         action_type=action_type,
+        route_context=control_plane_route_context or route_context,
     )
     request = _write_ai_reviewer_recheck_request(
         study_root=study_root,
@@ -340,12 +349,28 @@ def _ai_reviewer_owner_route(
     quest_id: str,
     work_unit: Mapping[str, Any],
     action_type: str,
+    route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    route_context_mapping = _mapping(route_context)
+    controller_context = _mapping(route_context_mapping.get("controller_route_context"))
+    current_owner_route = _mapping(route_context_mapping.get("current_owner_route"))
     fingerprint = (
-        _text(work_unit.get("source_fingerprint"))
+        _text(controller_context.get("work_unit_fingerprint"))
+        or _text(current_owner_route.get("work_unit_fingerprint"))
+        or _text(work_unit.get("source_fingerprint"))
         or hashlib.sha256(_work_unit_id(work_unit).encode("utf-8")).hexdigest()
     )
-    route_epoch = f"paper-repair::{study_id}::{_work_unit_id(work_unit)}"
+    runtime_health_epoch = (
+        _text(controller_context.get("runtime_health_epoch"))
+        or _text(current_owner_route.get("runtime_health_epoch"))
+        or _text(work_unit.get("runtime_health_epoch"))
+    )
+    route_epoch = (
+        _text(current_owner_route.get("truth_epoch"))
+        or _text(controller_context.get("truth_epoch"))
+        or f"paper-repair::{study_id}::{_work_unit_id(work_unit)}"
+    )
+    work_unit_id = _text(controller_context.get("work_unit_id")) or _work_unit_id(work_unit)
     return owner_route_part.ensure_owner_route_v2(
         {
             "surface": "domain_route_owner_route",
@@ -353,7 +378,7 @@ def _ai_reviewer_owner_route(
             "study_id": study_id,
             "quest_id": quest_id,
             "truth_epoch": route_epoch,
-            "runtime_health_epoch": None,
+            "runtime_health_epoch": runtime_health_epoch,
             "work_unit_fingerprint": fingerprint,
             "failure_signature": action_type,
             "route_epoch": route_epoch,
@@ -372,6 +397,8 @@ def _ai_reviewer_owner_route(
             "idempotency_key": f"paper-repair::{study_id}::{action_type}::{fingerprint}",
             "source_refs": {
                 "paper_repair_work_unit": _work_unit_id(work_unit),
+                "work_unit_id": work_unit_id,
+                "runtime_health_epoch": runtime_health_epoch,
                 "callable_surface": AI_REVIEWER_PUBLICATION_EVAL_CALLABLE,
             },
         }

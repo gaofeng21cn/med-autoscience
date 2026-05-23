@@ -230,6 +230,21 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     assert execution["action_class"] == "codex_worker_dispatch"
     assert execution["will_start_llm"] is True
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
+    assert execution["paper_work_unit_lifecycle"]["owner"] == "quality_repair_batch"
+    assert execution["paper_work_unit_lifecycle"]["allowed_writes"] == [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "artifacts/controller/quality_repair_batch/latest.json",
+        "artifacts/controller/repair_execution_evidence/latest.json",
+        "artifacts/supervision/requests/ai_reviewer/latest.json",
+        "artifacts/controller/gate_replay_requests/latest.json",
+    ]
+    assert "artifacts/publication_eval/latest.json" in execution["paper_work_unit_lifecycle"]["forbidden_writes"]
+    assert execution["paper_work_unit_lifecycle"]["completion_proof"][
+        "requires_owner_receipt_or_typed_blocker"
+    ] is True
     assert execution["writer_worker_handoff"]["next_executable_owner"] == "write"
     closeout_contract = execution["writer_worker_handoff"]["required_closeout_packet"]
     assert closeout_contract["typed_closeout_required_for_completion"] is True

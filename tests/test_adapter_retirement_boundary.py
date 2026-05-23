@@ -120,7 +120,7 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     }
     assert inventory["compatibility_alias_policy"] == {
         "new_alias_allowed": False,
-        "retained_adapter_can_claim_mas_owner": False,
+        "active_adapter_can_claim_mas_owner": False,
     }
 
     surfaces = {item["surface_id"]: item for item in inventory["surfaces"]}

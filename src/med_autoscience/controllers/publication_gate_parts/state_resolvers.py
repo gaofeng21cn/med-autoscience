@@ -200,7 +200,7 @@ def resolve_primary_journal_target(*, paper_root: Path | None) -> dict[str, Any]
         "journal_name": journal_name,
         "journal_slug": journal_slug,
         "official_guidelines_url": official_guidelines_url,
-        "publication_profile": _non_empty_text(primary.get("publication_profile")),
+        "publication_profile": _non_empty_text(primary.get("exporter_profile")),
         "citation_style": _non_empty_text(primary.get("citation_style")),
         "package_required": bool(primary.get("package_required", True)),
         "resolution_status": _non_empty_text(primary.get("resolution_status")),

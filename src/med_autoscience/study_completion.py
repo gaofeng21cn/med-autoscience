@@ -207,7 +207,7 @@ def _primary_publication_profiles(payload: dict[str, Any]) -> tuple[str, ...]:
     for item in raw_targets:
         if not isinstance(item, dict) or item.get("package_required") is False:
             continue
-        profile = normalize_publication_profile(str(item.get("publication_profile") or ""))
+        profile = normalize_publication_profile(str(item.get("exporter_profile") or ""))
         if profile and is_supported_publication_profile(profile):
             if item.get("primary") is True:
                 profiles.insert(0, profile)

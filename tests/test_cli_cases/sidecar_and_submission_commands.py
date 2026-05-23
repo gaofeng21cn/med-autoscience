@@ -693,7 +693,7 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
     )
     assert called["default_submission_targets"] == (
         {
-            "publication_profile": "frontiers_family_harvard",
+            "exporter_profile": "frontiers_family_harvard",
             "primary": True,
             "package_required": True,
             "story_surface": "general_medical_journal",
@@ -785,7 +785,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     )
     assert calls["ensure_default_submission_targets"] == (
         {
-            "publication_profile": "frontiers_family_harvard",
+            "exporter_profile": "frontiers_family_harvard",
             "primary": True,
             "package_required": True,
             "story_surface": "general_medical_journal",

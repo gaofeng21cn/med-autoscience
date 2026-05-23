@@ -367,6 +367,87 @@ def test_obesity_supervisor_only_live_delta_reads_control_plane_truth() -> None:
     assert state["next_owner"] == "supervisor_only/live_quality_repair"
 
 
+def test_dm002_live_worker_without_paper_facing_delta_or_typed_blocker_is_not_progressing() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "active_run_id": "run-dm002",
+            "study_macro_state": {
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-dm002", "package_delivered": False},
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-05-23T09:00:00+00:00",
+                    "surface_kind": "runtime_log_delta",
+                    "changed_refs": ["artifacts/runtime/logs/latest.log"],
+                }
+            },
+            "runtime_health_snapshot": {
+                "worker_liveness_state": {
+                    "state": "running",
+                    "active_run_id": "run-dm002",
+                    "worker_running": True,
+                }
+            },
+            "owner_route": {
+                "next_owner": "write",
+                "allowed_actions": ["run_quality_repair_batch"],
+            },
+        }
+    )
+
+    assert state["state"] == "awaiting_callable_owner"
+    assert state["actual_write_active"] is False
+    assert state["meaningful_artifact_delta"] is False
+    assert state["paper_facing_progress_slo"]["visible_as_progressing"] is False
+    assert state["paper_facing_progress_slo"]["missing_required_delta_classes"] == [
+        "canonical_manuscript",
+        "figure_table",
+        "claim_evidence",
+        "review_ledger",
+        "gate_replay",
+        "ai_reviewer_request",
+        "typed_blocker",
+    ]
+    assert state["why_not_progressing"] == "paper_facing_progress_delta_or_typed_blocker_missing"
+
+
+def test_dm003_live_worker_with_ai_reviewer_request_delta_is_progressing() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "active_run_id": "run-dm003",
+            "study_macro_state": {
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-dm003", "package_delivered": False},
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-05-23T09:05:00+00:00",
+                    "changed_refs": [
+                        "artifacts/supervision/requests/ai_reviewer/latest.json"
+                    ],
+                }
+            },
+        }
+    )
+
+    assert state["state"] == "progressing"
+    assert state["actual_write_active"] is True
+    assert state["meaningful_artifact_delta"] is True
+    assert state["paper_facing_progress_slo"]["satisfied_delta_classes"] == [
+        "ai_reviewer_request"
+    ]
+    assert state["why_not_progressing"] is None
+
+
 def test_user_visible_projection_embeds_paper_progress_state() -> None:
     study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
 

@@ -37,7 +37,8 @@
         ],
         "domain_receipt_parity_status": "domain_intent_handoff_blocker_active",
         "focused_test_refs": [
-          "tests/test_runtime_transport_opl_provider_defaults.py",
+          "tests/test_opl_runtime_contract.py",
+          "tests/test_opl_runtime_contract_no_provider_backend.py",
           "tests/test_adapter_retirement_boundary.py"
         ],
         "must_not_emit": [
@@ -87,7 +88,7 @@
         ],
         "domain_receipt_parity_status": "controller_authorization_receipt_helper_active",
         "focused_test_refs": [
-          "tests/test_study_runtime_execution_evidence_adoption_cases/test_turn_closeout_consumption.py",
+          "tests/test_study_runtime_execution_evidence_adoption_cases/test_no_resurrection_boundary.py",
           "tests/test_adapter_retirement_boundary.py"
         ],
         "must_not_emit": [
@@ -190,6 +191,8 @@
         "domain_receipt_parity_status": "domain_authority_refs_index_active",
         "focused_test_refs": [
           "tests/test_opl_family_persistence_adapter.py",
+          "tests/test_cli_cases/runtime_storage_commands.py",
+          "tests/test_paper_work_unit_lifecycle_contract.py",
           "tests/test_adapter_retirement_boundary.py"
         ],
         "must_not_emit": [

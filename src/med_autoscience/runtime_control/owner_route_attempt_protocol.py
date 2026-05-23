@@ -431,6 +431,16 @@ _REASON_REGISTRY = {
         priority_class="hard_methodology_or_source_blocker",
         regression_refs=("DM002:transport_model_provenance",),
     ),
+    "recover_transport_model_provenance": _entry(
+        owner="source_provenance_owner",
+        allowed_actions=["recover_transport_model_provenance"],
+        required_output=(
+            "canonical transport model provenance bundle or "
+            "typed blocker:transport_model_provenance_recovery_required"
+        ),
+        priority_class="hard_methodology_or_source_blocker",
+        regression_refs=("DM002:transport_model_provenance",),
+    ),
     "methodology_reframe_required": _entry(
         owner="decision",
         allowed_actions=["methodology_reframe_route_decision"],
@@ -482,6 +492,27 @@ _REASON_REGISTRY = {
         required_output="OPL stage attempt admission or typed blocker",
         priority_class="delivery_or_human_handoff",
         regression_refs=("tests/owner_route_reconcile_cases",),
+    ),
+    "abnormal_stopped_runtime_resume_required": _entry(
+        owner="external_supervisor",
+        allowed_actions=["runtime_platform_repair"],
+        required_output="runtime platform repair packet",
+        priority_class="delivery_or_human_handoff",
+        regression_refs=("tests/owner_route_reconcile_cases/test_abnormal_stopped_runtime.py",),
+    ),
+    "failed_quest_runtime_relaunch_required": _entry(
+        owner="external_supervisor",
+        allowed_actions=["runtime_platform_repair"],
+        required_output="runtime platform repair packet",
+        priority_class="delivery_or_human_handoff",
+        regression_refs=("tests/owner_route_reconcile_cases/test_failed_quest_autorepair.py",),
+    ),
+    "runtime_platform_repair": _entry(
+        owner="owner_route_next_owner",
+        allowed_actions=["runtime_platform_repair"],
+        required_output="runtime platform repair packet",
+        priority_class="delivery_or_human_handoff",
+        regression_refs=("tests/test_domain_owner_action_dispatch_cases/runtime_platform_repair.py",),
     ),
     "opl_runtime_owner_route_required": _entry(
         owner="one-person-lab",

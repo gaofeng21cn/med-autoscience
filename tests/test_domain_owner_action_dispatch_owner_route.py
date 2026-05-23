@@ -812,6 +812,12 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
     assert execution["execution_status"] == "executed"
     assert execution["blocked_reason"] is None
     assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert execution["paper_work_unit_lifecycle"]["owner"] == "ai_reviewer"
+    assert execution["paper_work_unit_lifecycle"]["allowed_writes"] == [
+        "artifacts/publication_eval/latest.json"
+    ]
+    assert "paper/**" in execution["paper_work_unit_lifecycle"]["forbidden_writes"]
+    assert execution["paper_work_unit_lifecycle"]["completion_proof"]["currentness_required"] is True
     assert execution["action_class"] == "controller_apply"
     assert execution["will_start_llm"] is False
     assert called["study_id"] == study_id

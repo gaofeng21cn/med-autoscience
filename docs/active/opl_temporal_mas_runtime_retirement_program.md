@@ -4,6 +4,7 @@ Status: `production_residency_proof_landed; mas_proof_ingestion_landed; watchdog
 Date: `2026-05-14`
 Owner: `MedAutoScience domain owner receipts + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL stage-led、以 Agent executor 为最小执行单位 runtime framework 之间的边界、优先级和退役门槛。
+State: `active_support`
 Machine boundary: 本文是人读 program owner。MAS 机器真相继续归 controller/domain-authority refs surfaces、sidecar receipts、durable schemas、CLI/API behavior 和 live workspace evidence；OPL provider contracts、current-control-state 与 attempt ledgers 持有 runtime 控制面。
 完整历史记录：[2026-05-11 OPL Temporal MAS Runtime Retirement full record](../history/program/opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)。
 
@@ -106,7 +107,7 @@ P2 对 OPL production functional closure 的职责是提供 MAS domain-owned evi
 4. 用替代证据清理旧 local/Hermes/MDS/default alias surface，不把旧兼容性无限期保留；满足删除口径时直接删除，不新增兼容 wrapper；
 5. 最后做真实 MAS paper-line guarded apply soak，验证迁移后的目标形态；当前 read-only soak 与 MAS-owned guarded apply proof surface 是进入 live apply 的前置证据，不是最终投稿级完成证据。
 
-因此，当前优先级不是先 paper soak，也不是无证据清空历史层。清理属于迁移收口条件：删除前必须证明无 default caller、无 fixture/provenance 必需、已有 replacement diagnostic/history link；证明成立后就直接删除，不再把兼容入口当作维护目标。
+因此，当前优先级不是先 paper soak，也不是无证据清空历史层。清理属于迁移收口条件：删除前必须证明无 default caller、无 fixture/provenance 必需、已有 replacement diagnostic/history link；证明成立后就直接删除，不再把旧入口当作维护目标。
 
 ## 边界
 

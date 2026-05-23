@@ -34,11 +34,11 @@
    - `MedDeepScientist deconstruction map`
 6. 这条 same-repo tranche 的目标不是 reopening cutover，而是把“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”压成可吸收的 repo-side truth
 
-2026-05-11 当前读法：MAS monolith closeout 已经完成默认运行、默认诊断、默认进度面和默认质量入口的收回；旧 external blocker 只能用于 explicit executor/proof diagnostic、historical backend audit、explicit archive import 或 parity gate。新的 Full online cutover 必须按 OPL provider-backed stage-led framework 判断，不能沿用 2026-04-11 Hermes-first 停车口径作为 MAS 默认状态。
+2026-05-11 当前读法：MAS monolith closeout 已经完成默认运行、默认诊断、默认进度面和默认质量入口的收回；旧 external blocker 只能用于 explicit executor/proof diagnostic、historical backend audit、explicit archive import 或 parity gate。新的 Full online cutover 必须按 OPL provider-backed stage-led framework 判断，不能沿用 2026-04-11 旧 Hermes 默认路线停车口径作为 MAS 默认状态。
 
 ## Merge Gate
 
-当前 repo-side tranche 只有在下面条件全部满足时，才应该并回 `main`：
+当前 repo-side tranche 只有在下面条件全部满足时，才应该并回 `main`。本节保留旧 tranche 的合并纪律作为 provenance；当前 MAS/OPL 工作以 `scripts/verify.sh`、machine-readable contracts、single Active Truth plan 和对应 focused tests 为准。
 
 ### 1. 当前 write-set 与 tranche 边界一致
 
@@ -60,8 +60,9 @@
 
 至少要有：
 
-- `tests/test_runtime_backend.py`
-- `tests/test_runtime_transport_hermes.py`
+- `tests/test_opl_runtime_contract.py`
+- `tests/test_opl_runtime_contract_no_provider_backend.py`
+- `tests/test_adapter_retirement_boundary.py`
 - `tests/test_runtime_protocol_layout.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
@@ -154,35 +155,36 @@
 - `runtime cutover gate` 还没有完成
 - 当前 external blocker 的 repo-side canonical package 见 `../runtime-governance/external_runtime_dependency_gate.md`
 
-以 `2026-05-11` 当前状态看：
+以 `2026-05-23` 当前状态看：
 
-- MAS 默认路径不再等待 external MDS、旧 MDS WebUI 或 Hermes-first runtime cutover。
+- MAS 默认路径不再等待 external MDS、旧 MDS WebUI 或 retired Hermes default-provider runtime cutover。
 - OPL provider / Temporal / explicit executor-proof readiness 只决定 OPL-hosted Full online path 或显式 proof lane，不决定 MAS direct skill path 是否可读、可诊断或可推进。
 - 真实论文推进仍以 MAS owner receipts、artifact delta、gate replay、AI reviewer judgment、human gate 或 stop-loss 为准。
 
 原因是：
 
-- repo-side contract 已完成 authority / delivery / real-study 的收口，并已把默认 outer-runtime seam label 切到 `hermes` 以指向上游目标
-- repo-side 仍可继续收紧 `runtime backend interface` contract，并把 `MedDeepScientist` 解构为 controlled research backend
-- 但真实运行面的切换，仍取决于 controlled fork 固定、behavior equivalence gate 放行，以及 external `Hermes` runtime / workspace surface
+- repo-side contract 已完成 authority / delivery / real-study 的收口；当前默认 hosted path 由 OPL/Temporal 承担持久在线 stage runtime、attempt、queue、wakeup、retry/dead-letter、resume 和 worker residency。
+- `MedDeepScientist` 只保留 source provenance、historical fixture、explicit archive import、backend audit、upstream learning 和 parity oracle reference。
+- `runtime cutover gate` 现在按 OPL provider-backed stage-led runtime、MAS owner receipt / typed blocker、no-forbidden-write proof 和真实 paper-line evidence 判断；旧 controlled fork / behavior equivalence / Hermes runtime 条件只作为历史迁移背景或显式 parity/proof lane 参考。
 
 ## 当前建议
 
-### 当前 tranche 何时算 closeout 成立
+### 当前 MAS/OPL tranche 何时算 closeout 成立
 
-下面这些条件全部满足时，当前“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam” tranche 才算可以 absorb：
+下面这些条件全部满足时，当前 MAS/OPL docs/runtime tranche 才算可以 absorb：
 
-1. 当前 runtime mainline docs / tests / preflight / code 一致
-2. targeted regression 与 meta verification 通过
+1. 当前 runtime / docs / contracts / source / tests 的 owner 边界一致。
+2. repo-native verification 通过；触及 machine-readable contract、action metadata、schema 或 runtime semantics 时追加 `make test-meta`。
 3. `git diff --check` clean
-4. external blocker 仍被诚实保留，没有被 repo-side wording 偷删
+4. single Active Truth plan 已把 closed item、仍开放的功能/结构删除门和测试/证据 tail 分开表达。
+5. 不把 OPL provider completion、descriptor ready、refs-only ledger record 或 conformance proof 写成 MAS paper closure、publication-ready、artifact mutation authorization 或 domain-ready。
 
-### 何时才可以继续往更大 cutover 推进
+### 何时才可以继续往 hosted production evidence 推进
 
 只有当下面这些条件一起满足时，才建议继续：
 
-- controlled fork 固定
-- `behavior_equivalence_gate.yaml` 放行
-- OPL provider truth 或显式 executor-proof diagnostic 已独立就位
-- 至少 1 个真实项目完成 create / resume / pause + controller 落盘 + paper 交付热身
-- external workspace-side blocker 不再要求 repo 继续越权 widening
+- OPL provider / Temporal attempt、queue、retry/dead-letter、resume 和 worker residency 证据独立就位。
+- MAS sidecar/export/dispatch 只交 body-free refs、owner route、typed blocker、no-forbidden-write proof 和 safe action receipt，不写 study truth、publication eval、controller decisions、paper body、memory body 或 artifact body。
+- 至少一条真实 paper line 通过 OPL provider -> MAS owner chain 产出 owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker。
+- Direct MAS path 与 OPL-hosted path 消费同一 MAS-owned stage/controller/quality/artifact surface。
+- MDS/DeepScientist/Hermes/local provider 只作为 explicit provenance、parity oracle、executor/proof lane 或 diagnostic reference，不回到默认 runtime owner。

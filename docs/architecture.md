@@ -1,5 +1,10 @@
 # 架构概览
 
+Owner: `MedAutoScience`
+Purpose: `architecture_current_truth`
+State: `active_current_truth`
+Machine boundary: 本文是人读架构和 owner 边界概览。机器真相继续归 `agent/`、`contracts/`、源码、CLI/MCP/API 行为、product-entry/sidecar payload、runtime/controller durable surfaces、真实 workspace artifact 与 owner receipts。
+
 ## 分层视图
 
 当前架构按三层理解最清楚：

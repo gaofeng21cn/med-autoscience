@@ -432,7 +432,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     reconcile_runtime_health_parser.add_argument("--study-id", type=str)
     reconcile_runtime_health_parser.add_argument("--study-root", type=str)
     reconcile_runtime_health_parser.add_argument("--entry-mode", type=str)
-    study_cycle_profiler.add_cli_parser(subparsers)
+    if study_cycle_profiler is not None:
+        study_cycle_profiler.add_cli_parser(subparsers)
     quality_repair_batch_parser = subparsers.add_parser("quality-repair-batch")
     quality_repair_batch_parser.add_argument("--profile", required=True)
     quality_repair_batch_parser.add_argument("--study-id", type=str)
@@ -488,7 +489,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     progress_portal_parser.add_argument("--host", default="127.0.0.1")
     progress_portal_parser.add_argument("--port", type=int, default=0)
     progress_portal_parser.add_argument("--interval-seconds", type=int, default=30)
-    study_cycle_profiler.add_workspace_cli_parser(subparsers)
+    if study_cycle_profiler is not None:
+        study_cycle_profiler.add_workspace_cli_parser(subparsers)
     register_product_entry_parsers(subparsers)
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)

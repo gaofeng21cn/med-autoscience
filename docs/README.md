@@ -1,5 +1,10 @@
 # 文档索引
 
+Owner: `MedAutoScience`
+Purpose: `docs_entrypoint`
+State: `active_index`
+Machine boundary: 本文是人读文档导航。机器真相继续归 `agent/`、`contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact 与 owner receipts。
+
 这个目录是 `Med Auto Science` 的技术阅读层。仓库首页继续作为医生、PI 和医学研究团队的默认入口。
 
 ## 先读这里
@@ -8,7 +13,8 @@
 | --- | --- |
 | 产品角色与边界 | [项目概览](./project.md) |
 | 当前运行真相 | [当前状态](./status.md) |
-| 当前执行地图 | [MAS 当前开发线路](./active/current-development-lines.md) |
+| Active Truth / 当前差距 / 下一轮 prompt | [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) |
+| 当前内容线索引 | [MAS 当前开发线路](./active/current-development-lines.md) |
 | 架构与 owner 边界 | [架构](./architecture.md) |
 | 不可变约束 | [不可变约束](./invariants.md) |
 | 持久决策 | [关键决策](./decisions.md) |
@@ -18,7 +24,7 @@
 
 OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-development-reference.md`。其中维护 OPL Framework 的全局目标、全局差距、通用能力上收边界、App/workbench 目标和跨仓开发顺序。
 
-MAS 本仓只维护医学研究 domain agent 的目标、当前差距、study/publication/artifact authority、direct MAS app skill path、OPL-hosted sidecar/projection/receipt 边界，以及哪些通用 runtime、memory、artifact lifecycle、workbench 和 observability primitive 应上收到 OPL。MAS 理想目标态读 [MAS 理想目标态](./references/positioning/mas_ideal_state.md)，当前差距和完善计划读 [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)。MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不在 MAS 文档中维护。
+MAS 本仓只维护医学研究 domain agent 的目标、当前差距、study/publication/artifact authority、direct MAS app skill path、OPL-hosted sidecar/projection/receipt 边界，以及哪些通用 runtime、memory、artifact lifecycle、workbench 和 observability primitive 应上收到 OPL。MAS 理想目标态读 [MAS 理想目标态](./references/positioning/mas_ideal_state.md)，single Active Truth plan 读 [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)。该计划是当前完成进度、功能/结构差距、测试/证据差距和下一轮 `/goal` prompt 的唯一 owner；[MAS 当前开发线路](./active/current-development-lines.md) 只作为内容线索引。MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不在 MAS 文档中维护。
 
 ## Workspace / file lifecycle 边界
 

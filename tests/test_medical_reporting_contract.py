@@ -562,40 +562,17 @@ def test_controller_routes_transportability_attribution_survival_f5_to_transport
     ).figure_shell_requirements[-1] == "multicenter_generalizability_overview"
 
 
-def test_normalize_legacy_requirement_keys_rewrites_time_to_event_aliases() -> None:
+def test_time_to_event_reporting_contract_does_not_rewrite_legacy_requirement_aliases() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
 
-    payload = {
-        "figure_shell_requirements": [
-            "cohort_flow_figure",
-            "kaplan_meier_grouped",
-        ],
-        "required_evidence_templates": [
-            "kaplan_meier_grouped",
-            "time_to_event_decision_curve",
-        ],
-        "display_shell_plan": [
-            {
-                "display_id": "km_risk_stratification",
-                "display_kind": "figure",
-                "requirement_key": "kaplan_meier_grouped",
-                "catalog_id": "F3",
-            }
-        ],
-    }
-
-    updated = module.normalize_legacy_requirement_keys(payload)
-
-    assert updated is True
-    assert payload["figure_shell_requirements"] == [
-        "cohort_flow_figure",
-        "time_to_event_risk_group_summary",
-    ]
-    assert payload["required_evidence_templates"] == [
-        "time_to_event_risk_group_summary",
-        "time_to_event_decision_curve",
-    ]
-    assert payload["display_shell_plan"][0]["requirement_key"] == "time_to_event_risk_group_summary"
+    assert not hasattr(module, "normalize_legacy_requirement_keys")
+    assert module.normalize_requirement_key("kaplan_meier_grouped") == "kaplan_meier_grouped"
+    assert (
+        module.normalize_requirement_key(
+            "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+        )
+        == "time_to_event_risk_group_summary"
+    )
 
 
 def test_display_story_role_normalizes_namespaced_requirement_keys() -> None:

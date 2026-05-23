@@ -109,7 +109,7 @@ def render_doctor_report(report: DoctorReport) -> str:
         (
             "default_submission_targets: "
             + ", ".join(
-                str(item.get("publication_profile") or item.get("journal_name") or "<unresolved>")
+                str(item.get("exporter_profile") or item.get("journal_name") or "<unresolved>")
                 for item in report.profile.default_submission_targets
             )
             if report.profile.default_submission_targets
@@ -158,7 +158,7 @@ def render_profile(profile: WorkspaceProfile) -> str:
         (
             "default_submission_targets: "
             + ", ".join(
-                str(item.get("publication_profile") or item.get("journal_name") or "<unresolved>")
+                str(item.get("exporter_profile") or item.get("journal_name") or "<unresolved>")
                 for item in profile.default_submission_targets
             )
             if profile.default_submission_targets

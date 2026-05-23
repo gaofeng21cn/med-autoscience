@@ -26,7 +26,7 @@ def test_mds_manifest_is_event_source_not_hidden_authority(tmp_path: Path) -> No
     assert manifest["truth_authority_role"] == "event_source_only"
     assert manifest["allowed_truth_event_types"] == [
         "runtime_native_event",
-        "runtime_supervision_tick",
+        "opl_runtime_owner_handoff",
         "quality_review_eval",
     ]
     assert manifest["allowed_runtime_health_event_types"] == [

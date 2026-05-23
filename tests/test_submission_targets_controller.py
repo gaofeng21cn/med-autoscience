@@ -14,7 +14,7 @@ def write_resolved_target(
     *,
     primary_target_block: str = """{
     "journal_name": "Diabetes Research and Clinical Practice",
-    "publication_profile": "general_medical_journal",
+    "exporter_profile": "general_medical_journal",
     "citation_style": "numeric_square_brackets",
     "official_guidelines_url": "https://example.org/drcp-guide",
     "package_required": true,
@@ -54,7 +54,7 @@ def write_profile(path: Path, workspace_root: Path) -> None:
                 'default_citation_style = "AMA"',
                 "",
                 "[[default_submission_targets]]",
-                'publication_profile = "general_medical_journal"',
+                'exporter_profile = "general_medical_journal"',
                 "primary = true",
                 "package_required = true",
                 'story_surface = "general_medical_journal"',
@@ -76,7 +76,7 @@ def make_submission_target_workspace(tmp_path: Path) -> tuple[Path, Path, Path, 
         study_root / "study.yaml",
         """study_id: 002-early-residual-risk
 submission_targets:
-  - publication_profile: frontiers_family_harvard
+  - exporter_profile: frontiers_family_harvard
     primary: true
     package_required: true
     citation_style: FrontiersHarvard

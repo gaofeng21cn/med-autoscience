@@ -251,7 +251,12 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert "stale_surface_scan_clean" in retained_gate["delete_or_tombstone_after"]
     assert "paper_closure_verdict" in retained_gate["must_not_emit"]
     sqlite_gate = cleanup_gates["lifecycle_refs_sqlite_index"]
-    assert "tests/test_opl_family_persistence_adapter.py" in sqlite_gate["focused_test_refs"]
+    assert sqlite_gate["focused_test_refs"] == [
+        "tests/test_opl_family_persistence_adapter.py",
+        "tests/test_cli_cases/runtime_storage_commands.py",
+        "tests/test_paper_work_unit_lifecycle_contract.py",
+        "tests/test_adapter_retirement_boundary.py",
+    ]
     workbench_gate = cleanup_gates["workbench_shell_domain_projection_refs"]
     assert workbench_gate["current_role"] == "domain_projection_refs_for_opl_workbench"
     assert workbench_gate["domain_ref_consumer_count"] > 0
