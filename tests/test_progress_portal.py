@@ -200,6 +200,46 @@ def test_progress_portal_payload_has_no_private_live_console_link() -> None:
     assert "terminal/log stream" not in html
 
 
+def test_progress_portal_human_gate_uses_needs_user_decision_not_legacy_physician_alias() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+
+    stale_alias_payload = _progress_payload()
+    stale_alias_payload["user_visible_projection"] = {
+        **_progress_payload()["user_visible_projection"],
+        "needs_physician_decision": True,
+        "needs_user_decision": False,
+    }
+    stale_alias = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=stale_alias_payload,
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    stale_alias_html = module.render_progress_portal_html(stale_alias)
+
+    canonical_payload = _progress_payload()
+    canonical_payload["user_visible_projection"] = {
+        **_progress_payload()["user_visible_projection"],
+        "needs_physician_decision": False,
+        "needs_user_decision": True,
+    }
+    canonical = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=canonical_payload,
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    canonical_html = module.render_progress_portal_html(canonical)
+
+    assert stale_alias["study"]["needs_user_decision"] is False
+    assert "当前没有投影出的用户决策 gate。" in stale_alias_html
+    assert "需要用户确认后继续。" not in stale_alias_html
+    assert canonical["study"]["needs_user_decision"] is True
+    assert "需要用户确认后继续。" in canonical_html
+
+
 def test_progress_portal_profile_without_study_selector_projects_workspace_overview() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
 

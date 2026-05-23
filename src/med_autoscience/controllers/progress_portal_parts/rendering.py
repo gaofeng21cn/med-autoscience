@@ -20,9 +20,9 @@ def condition_badge(conditions: Mapping[str, Any]) -> str:
 
 
 def gate_text(study: Mapping[str, Any]) -> str:
-    if bool(study.get("needs_physician_decision")):
-        return "需要医生/PI 确认后继续。"
-    return "当前没有投影出的医生/PI gate。"
+    if bool(study.get("needs_user_decision")):
+        return "需要用户确认后继续。"
+    return "当前没有投影出的用户决策 gate。"
 
 
 def runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:

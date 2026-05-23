@@ -194,6 +194,7 @@ Family transition materialization 当前通过 read-only `study_state_matrix` ac
 | `owner_route_handoff*` | dispatch/export owner-route refs adapter，不承担 queue、attempt、retry/dead-letter 或 runtime liveness。 | OPL generated sidecar default caller parity、真实 owner receipt 或 stable typed blocker parity 成立后，保留 domain action handlers，删除旧 export/dispatch wrapper。 |
 | T2E legacy reporting/display aliases | requirement key rewrite 与 legacy grouped payload fallback 已退役；当前只允许 canonical `time_to_event_risk_group_summary` input 或 fail-closed blocker。 | 不恢复 alias / normalizer；旧 workspace 通过 `time_to_event_direct_migration` 重物化 canonical input。 |
 | submission-target `publication_profile` 输入 alias | profile/study/quest/resolved-target 输入不再接受 `publication_profile` 作为 exporter fallback；当前 canonical 输入为 `exporter_profile`。 | `publication_profile` 只保留在 package/export output 和 submission manifest 领域字段；旧输入 fail closed，不恢复 conflict normalizer 或兼容测试。 |
+| human-gate product/workbench aliases | product-entry / workspace cockpit / workbench / Progress Portal 当前输出统一使用 `needs_user_decision`；Portal gate 文案不再由旧 `needs_physician_decision` alias 驱动。 | 旧 physician/legacy alias 只允许作为上游 projection 历史字段、tombstone/provenance 或 fail-closed 测试输入，不恢复 current output fallback。 |
 | managed / legacy / compatibility tests | 部分仍验证旧 runtime/managed/legacy 行为。 | 改为 no-resurrection、fail-closed、current contract 或 tombstone tests；删除只维护旧调用路径的兼容测试。 |
 
 ## 当前测试/证据差距

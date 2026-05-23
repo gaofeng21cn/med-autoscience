@@ -73,7 +73,7 @@ MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain
 | T2E legacy reporting/display aliases | `kaplan_meier_grouped` requirement rewrite 与 `cumulative_incidence_grouped` risk-summary fallback 已退役。 | 旧 workspace 走 `time_to_event_direct_migration`；不新增 normalizer、alias 或兼容测试。 |
 | submission-target `publication_profile` 输入 alias | `publication_profile` 不再作为 `exporter_profile` 输入 fallback；旧输入 fail closed。 | active config / resolved target / overlay 模板统一写 `exporter_profile`；不新增 alias、conflict normalizer 或兼容测试。 |
 | stage/progress/task-intake/storage/knowledge/batch read-model shells | 已按 parts/helpers 收薄为 projection、locator、refs-only payload assembly 或 diagnostic input。 | 不能承担 publication verdict、artifact mutation、memory body、generic queue、generic lifecycle 或 App owner；对应 OPL primitive 与 MAS receipt parity 成立后直接删除或 tombstone。 |
-| human-gate alias residue | product/workbench human-gate 输出统一到 `needs_user_decision`。 | 旧 physician/legacy alias 只允许作为 tombstone/provenance 或 fail-closed 测试对象。 |
+| human-gate alias residue | product/workbench/Progress Portal human-gate 当前输出统一到 `needs_user_decision`。 | 旧 physician/legacy alias 只允许作为 tombstone/provenance 或 fail-closed 测试对象；不能驱动当前 Portal gate 文案。 |
 
 私有实现 / OPL 迁移台账见 [MAS 私有实现与 OPL 迁移台账](./runtime/opl_private_implementation_migration_inventory.md)。该台账是当前迁移治理索引；具体拆分提交、行数变化、focused proof 和历史 closeout 不再放入本状态页。
 

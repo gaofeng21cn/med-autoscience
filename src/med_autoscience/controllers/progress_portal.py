@@ -251,9 +251,7 @@ def build_progress_portal_payload(
             "paper_stage_summary": _field(user_visible, "paper_stage_summary"),
             "current_blockers": _list_field(user_visible, "current_blockers"),
             "next_system_action": _field(user_visible, "next_system_action", "等待 MAS 重新生成 canonical progress projection。"),
-            "needs_physician_decision": bool(
-                user_visible.get("needs_physician_decision") or user_visible.get("needs_user_decision")
-            ),
+            "needs_user_decision": bool(user_visible.get("needs_user_decision")),
             "supervision": _supervision(progress, runtime),
             "outer_supervision_slo": outer_supervision_slo or None,
             "runtime_continuity": runtime_continuity,
@@ -466,7 +464,7 @@ def _progress_projection_error_payload(
             "paper_stage_summary": "论文线状态需要先修复 canonical progress projection。",
             "current_blockers": [f"{study_id} study progress projection failed: {message}"],
             "next_system_action": "Inspect and repair the study progress projection contract before routing this study.",
-            "needs_physician_decision": False,
+            "needs_user_decision": False,
         },
         "progress_freshness": {
             "status": "invalid",
@@ -528,7 +526,7 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
             "paper_stage": paper_stage,
             "next_system_action": next_system_action,
             "current_blockers": current_blockers,
-            "needs_physician_decision": False,
+            "needs_user_decision": False,
         },
         "progress_freshness": {
             "status": _non_empty_text(study.get("progress_freshness_status")) or "missing",

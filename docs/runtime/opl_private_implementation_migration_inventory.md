@@ -112,7 +112,7 @@ MAS 的 OPL 标准智能体目标态是：
 
 ## 2026-05-21 product/workbench wrapper alias cleanup
 
-本轮最小真实清理只作用于 product-entry / workspace cockpit / workbench projection shell：移除 `needs_physician_decision`、`legacy_needs_physician_decision_field`、`legacy_approval_gate_field`、`study_physician_decision_gate` 和 `study_needs_physician_decision` 这组旧 human-gate alias 的 product/workbench 输出与 fallback 消费，保留 `needs_user_decision` 作为唯一 product/workbench human-gate 字段。
+本轮最小真实清理只作用于 product-entry / workspace cockpit / workbench / Progress Portal projection shell：移除 `needs_physician_decision`、`legacy_needs_physician_decision_field`、`legacy_approval_gate_field`、`study_physician_decision_gate` 和 `study_needs_physician_decision` 这组旧 human-gate alias 的 product/workbench 输出与 fallback 消费，保留 `needs_user_decision` 作为唯一 product/workbench/Portal human-gate 字段；Progress Portal 当前 gate 文案只由 `needs_user_decision` 驱动，旧 `needs_physician_decision` 只作为上游 projection 历史字段、tombstone/provenance 或 fail-closed 测试输入读取。
 
 该清理属于 `workbench_shell_domain_projection_refs` 的 wrapper/facade thinning evidence：它减少 MAS 私有 generic workbench/status 包装面里的兼容别名，但不删除 `product_entry_parts/workspace_cockpit/`、Progress Portal、owner-route handoff adapter 或 status projection，也不改变 `progress_projection`、publication verdict、artifact authority、controller decision 或任何真实 workspace artifact。
 
