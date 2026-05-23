@@ -41,7 +41,25 @@ def test_test_lane_manifest_paths_exist_and_are_used_by_makefile() -> None:
     for lane in manifest["lanes"].values():
         for path in lane.get("paths", []):
             assert (REPO_ROOT / path).exists(), path
+    for lane_id, lane in manifest["focused_lanes"].items():
+        for key in ("paths", "docs"):
+            for path in lane.get(key, []):
+                assert (REPO_ROOT / path).exists(), f"{lane_id} references missing {key}: {path}"
     assert " ".join(manifest["lanes"]["smoke"]["paths"]) in makefile
+
+
+def test_functional_privatization_cleanup_gate_focused_test_refs_exist() -> None:
+    audit = json.loads(_read("contracts/functional_privatization_audit.json"))
+    cleanup_gates = audit["functional_consumer_boundary"]["active_path_residue_cleanup_gates"]
+
+    missing_refs = [
+        f"{gate['residue_id']}: {path}"
+        for gate in cleanup_gates
+        for path in gate.get("focused_test_refs", [])
+        if path.startswith("tests/") and not (REPO_ROOT / path).exists()
+    ]
+
+    assert missing_refs == []
 
 
 def test_smoke_lane_files_do_not_perform_subprocess_or_repo_root_writes() -> None:

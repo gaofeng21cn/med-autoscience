@@ -192,9 +192,9 @@
         ],
         "domain_receipt_parity_status": "pending_owner_receipt_ref_parity",
         "focused_test_refs": [
-          "tests/test_lifecycle_refs_adapter.py",
-          "tests/test_runtime_lifecycle_read_model.py",
-          "tests/test_runtime_lifecycle_contract.py"
+          "tests/test_opl_family_persistence_adapter.py",
+          "tests/test_cli_cases/runtime_storage_commands.py",
+          "tests/test_paper_work_unit_lifecycle_contract.py"
         ],
         "must_not_emit": [
           "generic_scheduler_owner",

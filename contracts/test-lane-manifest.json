@@ -57,7 +57,7 @@
       "kind": "focused_workspace_monolith_migration_gate",
       "paths": [
         "tests/test_profiles.py",
-        "tests/test_runtime_lifecycle_migration.py",
+        "tests/test_workspace_monolith_migration.py",
         "tests/test_workspace_git_boundary.py",
         "tests/test_real_paper_autonomy_soak_inventory.py"
       ],
@@ -131,7 +131,7 @@
         "tests/test_domain_slo_scheduler_projection.py",
         "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_runtime_reconcile_trigger.py",
-        "tests/test_recovery_intent_ledger.py",
+        "tests/test_control_intent_lifecycle.py",
         "tests/test_domain_health_diagnostic.py",
         "tests/test_study_progress.py",
         "tests/test_progress_portal.py",
@@ -194,7 +194,7 @@
         "tests/test_domain_slo_scheduler_projection.py",
         "tests/test_owner_route_reconcile.py",
         "tests/test_runtime_transport_mas_runtime_core.py",
-        "tests/test_recovery_intent_ledger.py"
+        "tests/test_control_intent_lifecycle.py"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "slo_breach_read_model_runtime_continuity_projection_only",
@@ -2046,7 +2046,7 @@
         "tests/owner_route_reconcile_cases/test_control_surface_artifact_delta.py",
         "tests/test_domain_owner_action_dispatch.py",
         "tests/test_runtime_reconcile_trigger.py",
-        "tests/test_recovery_intent_ledger.py",
+        "tests/test_control_intent_lifecycle.py",
         "tests/test_domain_health_diagnostic.py",
         "tests/test_cli_cases/domain_route_reconcile_command.py",
         "tests/test_paper_autonomy_stability_evidence.py",
@@ -2112,7 +2112,7 @@
         "tests/test_cli_cases/domain_route_reconcile_command.py",
         "tests/test_cli_cases/workspace_monolith_migration_command.py",
         "tests/test_workspace_git_boundary.py",
-        "tests/test_runtime_lifecycle_migration.py"
+        "tests/test_workspace_monolith_migration.py"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "read_only_evidence_no_publication_authority",

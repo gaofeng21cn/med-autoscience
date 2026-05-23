@@ -145,9 +145,9 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
             "lifecycle_refs_adapter_role.refs_only_index_not_generic_persistence_engine",
         ],
         "focused_test_refs": [
-            "tests/test_lifecycle_refs_adapter.py",
-            "tests/test_runtime_lifecycle_read_model.py",
-            "tests/test_runtime_lifecycle_contract.py",
+            "tests/test_opl_family_persistence_adapter.py",
+            "tests/test_cli_cases/runtime_storage_commands.py",
+            "tests/test_paper_work_unit_lifecycle_contract.py",
         ],
         "no_alias_facade_compat_wrapper_allowed": True,
         "must_not_emit": list(_ACTIVE_PATH_MUST_NOT_EMIT),
