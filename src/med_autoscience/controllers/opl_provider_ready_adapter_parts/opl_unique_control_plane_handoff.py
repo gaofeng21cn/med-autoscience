@@ -160,7 +160,7 @@ def build_opl_unique_control_plane_handoff() -> dict[str, Any]:
             "requires_no_resurrection_proof": True,
             "requires_domain_receipt_parity": True,
             "history_tombstone_required": True,
-            "no_alias_facade_compat_wrapper_allowed": True,
+            "no_alias_facade_compat_wrapper_allowed": False,
             "active_path_residue_cleanup_gates": [
                 {
                     key: list(value) if isinstance(value, list) else value

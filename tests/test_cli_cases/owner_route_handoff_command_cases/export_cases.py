@@ -235,9 +235,12 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert no_resurrection_summary["default_runtime_owner"] == "one-person-lab"
     assert no_resurrection_summary["mas_default_runtime_owner_allowed"] is False
     assert no_resurrection_summary["all_runtime_control_surfaces_retired_or_opl_owned"] is True
-    assert no_resurrection_summary["physical_delete_candidate_count"] == 5
-    assert no_resurrection_summary["physical_delete_ready_count"] == 1
-    assert no_resurrection_summary["physically_retired_surface_ids"] == ["runtime_transport"]
+    assert no_resurrection_summary["physical_delete_candidate_count"] == 6
+    assert no_resurrection_summary["physical_delete_ready_count"] == 2
+    assert no_resurrection_summary["physically_retired_surface_ids"] == [
+        "runtime_transport",
+        "lifecycle_refs_sqlite_index",
+    ]
     assert no_resurrection_summary["remaining_surfaces_are_domain_refs_not_runtime_control"] is True
     assert "generic_worker_residency_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "legacy_provider" not in provider["provider_topology"]

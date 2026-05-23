@@ -174,7 +174,11 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         item["surface_id"]: item
         for item in runtime_handoff["physical_retirement_gate_matrix"]["retirement_candidates"]
     }
-    assert retirement_candidates["runtime_transport"]["physical_delete_permitted"] is False
+    assert retirement_candidates["runtime_transport"]["stale_surface_scan_clean"] is True
+    assert retirement_candidates["runtime_transport"]["physical_delete_permitted"] is True
+    assert retirement_candidates["runtime_transport"]["no_resurrection_proof"][
+        "physical_delete_allowed"
+    ] is True
     assert retirement_candidates["runtime_transport"]["current_ref_status"] == "physical_retired_no_alias"
     assert retirement_candidates["runtime_transport"]["gate_results"] == {
         "stale_surface_scan_clean": True,
@@ -183,6 +187,16 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "mas_owner_receipt_parity": "satisfied_or_not_runtime_candidate",
         "focused_tests_green": "focused_lane_tracks_no_resurrection",
         "tombstone_refs_landed": "not_required_for_no_alias_physical_retirement",
+    }
+    assert retirement_candidates["lifecycle_refs_sqlite_index"]["physical_delete_permitted"] is True
+    assert retirement_candidates["lifecycle_refs_sqlite_index"]["current_ref_status"] == (
+        "physical_retired_no_alias_replaced_by_domain_authority_refs_index"
+    )
+    assert retirement_candidates["lifecycle_refs_sqlite_index"]["latest_thinning_evidence"] == {
+        "status": "runtime_lifecycle_sqlite_adapter_physically_absent",
+        "replacement_surface": "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
+        "does_not_claim_generic_persistence_owner": True,
+        "does_not_claim_paper_closure": True,
     }
     assert "domain_authority_refs_index" in runtime_handoff["opl_replacement_surfaces"]
     assert "generic_queue_owner" in runtime_handoff["forbidden_mas_roles"]
@@ -202,7 +216,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     }
     assert runtime_handoff["physical_cleanup_gate"][
         "no_alias_facade_compat_wrapper_allowed"
-    ] is True
+    ] is False
     assert set(cleanup_gates) == {
         "runtime_transport_core_bridge",
         "runtime_turn_runner_closeout_adapter",

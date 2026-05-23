@@ -564,13 +564,13 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
     assert set(candidates) == {
         "runtime_transport",
+        "lifecycle_refs_sqlite_index",
         "domain_authority_refs_index",
         "workbench_shell",
         "owner_route_handoff",
         "status_projection",
     }
     for surface_id, candidate in candidates.items():
-        assert candidate["physical_delete_permitted"] is False
         assert candidate["mas_default_runtime_owner_allowed"] is False
         assert candidate["gate_results"]["opl_default_caller_readiness"]
         assert candidate["gate_results"]["tombstone_refs_landed"] in {
@@ -578,8 +578,20 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
             "landed_for_retired_legacy_only",
             "not_required_for_no_alias_physical_retirement",
         }
+        if surface_id in {"runtime_transport", "lifecycle_refs_sqlite_index"}:
+            assert candidate["stale_surface_scan_clean"] is True
+            assert candidate["physical_delete_permitted"] is True
+            assert candidate["no_resurrection_proof"]["physical_delete_allowed"] is True
+        else:
+            assert candidate["physical_delete_permitted"] is False
     assert candidates["runtime_transport"]["current_ref_status"] == "physical_retired_no_alias"
     assert "src/med_autoscience/runtime_transport/" in candidates["runtime_transport"]["code_paths"]
+    assert candidates["lifecycle_refs_sqlite_index"]["current_ref_status"] == (
+        "physical_retired_no_alias_replaced_by_domain_authority_refs_index"
+    )
+    assert candidates["lifecycle_refs_sqlite_index"]["latest_thinning_evidence"][
+        "does_not_claim_generic_persistence_owner"
+    ] is True
     assert candidates["domain_authority_refs_index"]["current_ref_status"] == (
         "domain_authority_refs_index_active_no_runtime_lifecycle_owner"
     )
@@ -633,9 +645,12 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "all_runtime_control_surfaces_retired_or_opl_owned": True,
         "default_runtime_owner": "one-person-lab",
         "mas_default_runtime_owner_allowed": False,
-        "physical_delete_candidate_count": 5,
-        "physical_delete_ready_count": 1,
-        "physically_retired_surface_ids": ["runtime_transport"],
+        "physical_delete_candidate_count": 6,
+        "physical_delete_ready_count": 2,
+        "physically_retired_surface_ids": [
+            "runtime_transport",
+            "lifecycle_refs_sqlite_index",
+        ],
         "remaining_surfaces_are_domain_refs_not_runtime_control": True,
     }
     tombstones = boundary["retired_legacy_residue_tombstones"]

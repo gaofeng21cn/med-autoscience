@@ -2771,7 +2771,6 @@
       "default_caller_boundary_ref": "functional_consumer_boundary.generated_default_caller_boundary",
       "default_caller_owner": "one-person-lab",
       "forbidden_claims": [
-        "physical_delete_already_completed",
         "runtime_transport_reintroduced_as_mas_owner",
         "lifecycle_refs_reintroduced_as_mas_owner",
         "owner_route_handoff_domain_ref_entry_deleted",
@@ -2783,10 +2782,11 @@
         "all_runtime_control_surfaces_retired_or_opl_owned": true,
         "default_runtime_owner": "one-person-lab",
         "mas_default_runtime_owner_allowed": false,
-        "physical_delete_candidate_count": 5,
-        "physical_delete_ready_count": 1,
+        "physical_delete_candidate_count": 6,
+        "physical_delete_ready_count": 2,
         "physically_retired_surface_ids": [
-          "runtime_transport"
+          "runtime_transport",
+          "lifecycle_refs_sqlite_index"
         ],
         "remaining_surfaces_are_domain_refs_not_runtime_control": true
       },
@@ -2816,16 +2816,56 @@
             "stale_surface_scan_clean": true,
             "tombstone_refs_landed": "not_required_for_no_alias_physical_retirement"
           },
+          "latest_thinning_evidence": {
+            "does_not_claim_paper_closure": true,
+            "no_alias_guard_ref": "tests/test_adapter_retirement_boundary.py",
+            "status": "runtime_transport_package_physically_absent"
+          },
           "mas_default_runtime_owner_allowed": false,
           "mas_role": "none",
           "no_resurrection_proof": {
             "current_ref_status": "physical_retired_no_alias",
             "default_runtime_owner": "one-person-lab",
-            "physical_delete_allowed": false
+            "physical_delete_allowed": true
           },
-          "physical_delete_permitted": false,
-          "stale_surface_scan_clean": false,
+          "physical_delete_permitted": true,
+          "stale_surface_scan_clean": true,
           "surface_id": "runtime_transport"
+        },
+        {
+          "code_paths": [
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
+            "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py"
+          ],
+          "current_ref_status": "physical_retired_no_alias_replaced_by_domain_authority_refs_index",
+          "default_runtime_owner": "one-person-lab",
+          "delete_gate_status": "closed_stale_surface_scan_clean",
+          "domain_or_diagnostic_ref_consumers": [],
+          "gate_results": {
+            "focused_tests_green": "focused_lane_tracks_no_resurrection",
+            "mas_owner_receipt_parity": "satisfied_or_not_runtime_candidate",
+            "opl_default_caller_readiness": "ready",
+            "opl_replacement_parity": "satisfied_or_not_runtime_candidate",
+            "stale_surface_scan_clean": true,
+            "tombstone_refs_landed": "not_required_for_no_alias_physical_retirement"
+          },
+          "latest_thinning_evidence": {
+            "does_not_claim_generic_persistence_owner": true,
+            "does_not_claim_paper_closure": true,
+            "replacement_surface": "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
+            "status": "runtime_lifecycle_sqlite_adapter_physically_absent"
+          },
+          "mas_default_runtime_owner_allowed": false,
+          "mas_role": "none",
+          "no_resurrection_proof": {
+            "current_ref_status": "physical_retired_no_alias_replaced_by_domain_authority_refs_index",
+            "default_runtime_owner": "one-person-lab",
+            "physical_delete_allowed": true
+          },
+          "physical_delete_permitted": true,
+          "stale_surface_scan_clean": true,
+          "surface_id": "lifecycle_refs_sqlite_index"
         },
         {
           "code_paths": [

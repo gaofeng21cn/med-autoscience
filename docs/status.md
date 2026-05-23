@@ -58,16 +58,16 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 | `family_transition_materialization_handoff` | MAS 只暴露 read-only `study_state_matrix` materialization；OPL 负责消费 spec/cases 并执行 generic transition matrix runner。MAS 不持有 generic state-machine runner，也不把 matrix pass 写成 publication / submission ready。 |
 | `hard_methodology_callable_routing` | HDL/unit harmonization 与 grouped calibration 这类 hard-methodology work unit 已路由到 `analysis_harmonization_owner` authority callable；MAS 只保留医学方法学 owner evidence / typed blocker，generic runner 与 App/workbench shell 仍归 OPL。 |
 
-这些 gate 的关闭不等于真实 paper closure、publication-ready、artifact mutation authorization、provider long-soak 或 MAS runtime transport / SQLite refs index 物理删除。
+这些 gate 的关闭不等于真实 paper closure、publication-ready、artifact mutation authorization、provider long-soak 或 workbench / sidecar / status domain-ref shell 默认 caller cutover。
 
 ## 当前物理源码形态差距
 
-MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain SLO projection active source 命名收口。剩余差距统一读作 domain authority refs / diagnostic provenance 的物理删除门，不是 MAS generic runtime owner 复活，也不是已经清零：
+MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain SLO projection active source 命名收口。`runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease、`lifecycle_refs_adapter.py` 与 lifecycle refs SQLite writer 已按 no-alias physical retirement 关闭；剩余差距统一读作仍有 domain-ref consumer 的 projection / handoff shell 删除门，不是 MAS generic runtime owner 复活，也不是 evidence tail 已清零：
 
 | residual surface | 当前定位 | 删除门 |
 | --- | --- | --- |
-| `runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease | 已按旧 runtime 控制面物理退役；仅允许以 tombstone/provenance 或 OPL provider-backed handoff refs 被读取。 | no-resurrection、OPL provider parity、真实 paper-line receipt parity、focused tests、no-forbidden-write proof、history/tombstone refs。 |
-| `lifecycle_refs_adapter.py` 与 lifecycle refs parts | 已由 `domain_authority_refs_index` 取代；不得写成 MAS generic persistence engine、diagnostic fallback 或 active adapter。 | OPL lifecycle/current-control-state parity、MAS domain receipt parity、no-resurrection、focused tests、tombstone refs。 |
+| `runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease | 已按旧 runtime 控制面 no-alias 物理退役；机器面记录为 `physical_delete_permitted=true` / `physical_retired_no_alias`，只能作为 tombstone/provenance 或 OPL provider-backed handoff refs 被读取。 | 继续用 no-resurrection focused tests 和 tombstone/provenance refs 防止复活；不得新增 alias、facade、diagnostic fallback 或 compatibility wrapper。 |
+| `lifecycle_refs_adapter.py` 与 lifecycle refs parts | 已由 `domain_authority_refs_index` 取代并按 no-alias 物理退役；`domain_authority_refs_index` 只保存 owner receipt / typed blocker / locator refs，不是 MAS generic persistence engine。 | 继续用 OPL current-control-state parity、MAS domain receipt parity、focused tests 和 no-forbidden-write proof 防止 lifecycle adapter 复活。 |
 | product-entry / status / workbench projection shell | direct MAS path、OPL handoff 输入或 diagnostic read model；不复制 OPL App/workbench owner。 | OPL generated product/status/workbench 成为 production/default caller 后，只保留 MAS truth refs、receipt signer、typed blocker 和 authority refs。 |
 | `owner_route_handoff*` | owner-route dispatch/export domain authority refs surface；当前只输出 MAS owner-route refs、typed blocker、safe-action receipt 和 no-forbidden-write proof，不承担 queue、attempt、retry/dead-letter 或 runtime liveness。 | OPL generated sidecar default caller parity、真实 owner receipt 或 stable typed blocker parity、focused sidecar tests、no-forbidden-write proof、history/tombstone refs。 |
 | T2E legacy reporting/display aliases | `kaplan_meier_grouped` requirement rewrite 与 `cumulative_incidence_grouped` risk-summary fallback 已退役。 | 旧 workspace 走 `time_to_event_direct_migration`；不新增 normalizer、alias 或兼容测试。 |

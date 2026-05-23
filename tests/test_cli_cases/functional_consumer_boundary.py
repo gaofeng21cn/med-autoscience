@@ -199,6 +199,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
     assert set(candidates) == {
         "runtime_transport",
+        "lifecycle_refs_sqlite_index",
         "domain_authority_refs_index",
         "workbench_shell",
         "owner_route_handoff",
@@ -206,8 +207,12 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     }
     assert retirement_matrix["no_resurrection_summary"]["default_runtime_owner"] == "one-person-lab"
     assert retirement_matrix["no_resurrection_summary"]["mas_default_runtime_owner_allowed"] is False
-    assert retirement_matrix["no_resurrection_summary"]["physical_delete_ready_count"] == 1
-    assert candidates["runtime_transport"]["physical_delete_permitted"] is False
+    assert retirement_matrix["no_resurrection_summary"]["physical_delete_ready_count"] == 2
+    assert candidates["runtime_transport"]["physical_delete_permitted"] is True
+    assert candidates["lifecycle_refs_sqlite_index"]["physical_delete_permitted"] is True
+    assert candidates["lifecycle_refs_sqlite_index"]["latest_thinning_evidence"][
+        "replacement_surface"
+    ] == "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py"
     assert candidates["domain_authority_refs_index"]["current_ref_status"] == (
         "domain_authority_refs_index_active_no_runtime_lifecycle_owner"
     )
