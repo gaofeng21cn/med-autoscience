@@ -265,23 +265,34 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
             {"ref": "studies/DM002/artifacts/controller_decisions/latest.json"},
         ],
         source_fingerprint="abc123",
+        stage_attempt_source_fingerprint="provider-attempt-123",
     )
 
     assert payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
     assert payload["version"] == "mas-domain-dispatch-evidence-record-payload.v1"
     assert payload["body_included"] is False
     assert payload["domain_ready_claimed"] is False
-    assert payload["source_fingerprint"] == "abc123"
+    assert payload["source_fingerprint"] == "provider-attempt-123"
+    assert payload["domain_source_fingerprint"] == "abc123"
+    assert payload["stage_attempt_source_fingerprint"] == "provider-attempt-123"
     assert payload["record_payload"]["typed_blocker_refs"]
     assert {
         key: payload["record_payload"][key]
-        for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "domain_source_fingerprint")
+        for key in (
+            "domain_id",
+            "task_kind",
+            "study_id",
+            "source_fingerprint",
+            "domain_source_fingerprint",
+            "stage_attempt_source_fingerprint",
+        )
     } == {
         "domain_id": "medautoscience",
         "task_kind": "domain_route/reconcile-apply",
         "study_id": "DM002",
-        "source_fingerprint": "abc123",
+        "source_fingerprint": "provider-attempt-123",
         "domain_source_fingerprint": "abc123",
+        "stage_attempt_source_fingerprint": "provider-attempt-123",
     }
     assert payload["record_payload"]["evidence_refs"] == [
         "studies/DM002/artifacts/supervision/owner_route_handoff/latest.json",
@@ -290,6 +301,33 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
         "#/paper_line_guarded_apply_evidence",
     ]
     assert payload["record_payload"]["no_regression_refs"]
+    assert payload["opl_runtime_action_execute_payload"] == payload["record_payload"]
+    usage = payload["opl_runtime_action_execute_usage"]
+    assert usage["surface_kind"] == "mas_domain_dispatch_opl_runtime_action_execute_usage"
+    assert usage["payload_field"] == "opl_runtime_action_execute_payload"
+    assert usage["required_preflight_status_before_record"] == "ready_to_record"
+    assert usage["required_identity_binding_status_before_record"] == "matched"
+    assert usage["operator_must_bind_to_matching_opl_target_identity"] is True
+    assert usage["stale_or_mismatched_attempt_policy"] == (
+        "do_not_record_payload_when_identity_binding_conflicts"
+    )
+    identity_binding = payload["identity_binding"]
+    assert identity_binding["surface_kind"] == "mas_domain_dispatch_evidence_identity_binding"
+    assert identity_binding["payload_identity"] == {
+        "domain_id": "medautoscience",
+        "task_kind": "domain_route/reconcile-apply",
+        "study_id": "DM002",
+        "source_fingerprint": "provider-attempt-123",
+        "domain_source_fingerprint": "abc123",
+        "stage_attempt_source_fingerprint": "provider-attempt-123",
+    }
+    assert identity_binding["target_identity_source"] == (
+        "opl_app_operator_drilldown.domain_dispatch_evidence.target_identity"
+    )
+    assert identity_binding["conflict_error_kind"] == "domain_dispatch_evidence_receipt_conflict"
+    assert identity_binding["stale_attempt_policy"] == (
+        "payload_must_not_be_used_to_close_a_different_or_stale_stage_attempt"
+    )
     assert "receipt_ref" not in payload["record_payload"]
     assert payload["ledger_receipt_ref_hint"].startswith(
         "mas://domain-dispatch-evidence/medautoscience/"

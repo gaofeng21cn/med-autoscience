@@ -499,6 +499,23 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
         assert evidence_payload["record_payload"]["typed_blocker_refs"]
         assert evidence_payload["record_payload"]["evidence_refs"]
         assert evidence_payload["record_payload"]["no_regression_refs"]
+        assert evidence_payload["opl_runtime_action_execute_payload"] == evidence_payload[
+            "record_payload"
+        ]
+        assert evidence_payload["opl_runtime_action_execute_usage"]["payload_field"] == (
+            "opl_runtime_action_execute_payload"
+        )
+        assert evidence_payload["opl_runtime_action_execute_usage"][
+            "operator_must_bind_to_matching_opl_target_identity"
+        ] is True
+        assert evidence_payload["identity_binding"]["payload_identity"]["task_kind"] == (
+            "paper_autonomy/guarded-apply"
+        )
+        assert evidence_payload["identity_binding"]["payload_identity"]["study_id"] == study_id
+        assert evidence_payload["identity_binding"]["payload_identity"]["profile_name"] == "nfpitnet"
+        assert evidence_payload["identity_binding"]["conflict_error_kind"] == (
+            "domain_dispatch_evidence_receipt_conflict"
+        )
         assert "receipt_ref" not in evidence_payload["record_payload"]
         assert evidence_payload["ledger_receipt_ref_hint"].startswith(
             "mas://domain-dispatch-evidence/medautoscience/"
@@ -744,6 +761,21 @@ def test_sidecar_export_projects_controller_route_back_as_pending_task(
     }
     assert evidence_payload["record_payload"]["typed_blocker_refs"]
     assert evidence_payload["record_payload"]["no_regression_refs"]
+    assert evidence_payload["opl_runtime_action_execute_payload"] == evidence_payload["record_payload"]
+    assert evidence_payload["opl_runtime_action_execute_usage"]["required_preflight_status_before_record"] == (
+        "ready_to_record"
+    )
+    assert evidence_payload["opl_runtime_action_execute_usage"][
+        "required_identity_binding_status_before_record"
+    ] == "matched"
+    assert evidence_payload["identity_binding"]["payload_identity"] == {
+        "domain_id": "medautoscience",
+        "task_kind": "domain_route/reconcile-apply",
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "source_fingerprint": task["source_fingerprint"],
+        "domain_source_fingerprint": task["source_fingerprint"],
+        "profile_name": "nfpitnet",
+    }
     assert evidence_payload["body_included"] is False
     assert evidence_payload["domain_ready_claimed"] is False
 

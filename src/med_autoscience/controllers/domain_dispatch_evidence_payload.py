@@ -78,6 +78,7 @@ def build_domain_dispatch_evidence_record_payload(
     identity_payload_fields = {
         "source_fingerprint": normalized_payload_source_fingerprint,
         "domain_source_fingerprint": normalized_source_fingerprint,
+        "stage_attempt_source_fingerprint": normalized_stage_attempt_source_fingerprint,
         "profile_name": normalized_profile_name,
     }
     for key, value in identity_payload_fields.items():
@@ -86,7 +87,36 @@ def build_domain_dispatch_evidence_record_payload(
     top_level_identity_fields = {
         "source_fingerprint": normalized_payload_source_fingerprint,
         "domain_source_fingerprint": normalized_source_fingerprint,
+        "stage_attempt_source_fingerprint": normalized_stage_attempt_source_fingerprint,
         "profile_name": normalized_profile_name,
+    }
+    identity_binding = _identity_binding(
+        task_kind=normalized_task_kind,
+        study_id=normalized_study_id,
+        source_fingerprint=normalized_payload_source_fingerprint,
+        domain_source_fingerprint=normalized_source_fingerprint,
+        profile_name=normalized_profile_name,
+        stage_attempt_source_fingerprint=normalized_stage_attempt_source_fingerprint,
+    )
+    opl_runtime_action_execute_usage = {
+        "surface_kind": "mas_domain_dispatch_opl_runtime_action_execute_usage",
+        "record_action_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:record",
+        "dry_run_command_template": (
+            "opl runtime action execute "
+            f"--action domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:record "
+            "--dry-run --payload '<opl_runtime_action_execute_payload>'"
+        ),
+        "record_command_template": (
+            "opl runtime action execute "
+            f"--action domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:record "
+            "--payload '<opl_runtime_action_execute_payload>'"
+        ),
+        "payload_field": "opl_runtime_action_execute_payload",
+        "preflight_policy": "domain_dispatch_evidence_payload_must_pass_success_refs_or_typed_blocker_path_preflight",
+        "required_preflight_status_before_record": "ready_to_record",
+        "required_identity_binding_status_before_record": "matched",
+        "operator_must_bind_to_matching_opl_target_identity": True,
+        "stale_or_mismatched_attempt_policy": "do_not_record_payload_when_identity_binding_conflicts",
     }
     return {
         "surface_kind": "mas_domain_dispatch_evidence_record_payload",
@@ -101,6 +131,9 @@ def build_domain_dispatch_evidence_record_payload(
         "record_action_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:record",
         "verify_action_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:verify",
         "record_payload": record_payload,
+        "opl_runtime_action_execute_payload": record_payload,
+        "opl_runtime_action_execute_usage": opl_runtime_action_execute_usage,
+        "identity_binding": identity_binding,
         "typed_blocker_refs": [typed_blocker_ref],
         "evidence_refs": evidence_ref_values,
         "no_regression_refs": [no_forbidden_write_ref],
@@ -164,6 +197,62 @@ def _slug(value: str) -> str:
 def _fingerprint(value: object) -> str:
     rendered = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
+
+
+def _identity_binding(
+    *,
+    task_kind: str,
+    study_id: str,
+    source_fingerprint: str | None,
+    domain_source_fingerprint: str | None,
+    profile_name: str | None,
+    stage_attempt_source_fingerprint: str | None,
+) -> dict[str, Any]:
+    payload_identity = {
+        "domain_id": DOMAIN_ID,
+        "task_kind": task_kind,
+        "study_id": study_id,
+        **({"source_fingerprint": source_fingerprint} if source_fingerprint else {}),
+        **(
+            {"domain_source_fingerprint": domain_source_fingerprint}
+            if domain_source_fingerprint
+            else {}
+        ),
+        **({"profile_name": profile_name} if profile_name else {}),
+        **(
+            {"stage_attempt_source_fingerprint": stage_attempt_source_fingerprint}
+            if stage_attempt_source_fingerprint
+            else {}
+        ),
+    }
+    return {
+        "surface_kind": "mas_domain_dispatch_evidence_identity_binding",
+        "payload_identity": payload_identity,
+        "target_identity_source": "opl_app_operator_drilldown.domain_dispatch_evidence.target_identity",
+        "policy": "record_only_when_payload_identity_matches_opl_target_identity",
+        "conflict_error_kind": "domain_dispatch_evidence_receipt_conflict",
+        "match_fields": [
+            "domain_id",
+            "task_kind",
+            "study_id",
+            "profile_name",
+            "source_fingerprint",
+            "domain_source_fingerprint",
+            "stage_attempt_source_fingerprint",
+        ],
+        "source_fingerprint_semantics": {
+            "stage_attempt_source_fingerprint": (
+                "binds a specific OPL provider stage attempt when present"
+            ),
+            "domain_source_fingerprint": (
+                "binds MAS owner-route currentness when the OPL target exposes domain_source_fingerprint"
+            ),
+            "source_fingerprint": (
+                "acts as stage-attempt fingerprint only when the OPL target has no domain_source_fingerprint"
+            ),
+        },
+        "stale_attempt_policy": "payload_must_not_be_used_to_close_a_different_or_stale_stage_attempt",
+    }
 
 
 __all__ = [
