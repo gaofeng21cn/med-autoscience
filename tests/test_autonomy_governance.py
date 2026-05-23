@@ -146,7 +146,7 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
     publication_eval_ref = outer_loop_tests._write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        outer_loop.study_runtime_router,
+        outer_loop.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -157,7 +157,7 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
         },
     )
     monkeypatch.setattr(
-        outer_loop.study_runtime_router,
+        outer_loop.domain_status_projection,
         "ensure_study_runtime",
         lambda **_: {"decision": "relaunch_stopped", "reason": "quest_stopped_requires_explicit_rerun"},
     )

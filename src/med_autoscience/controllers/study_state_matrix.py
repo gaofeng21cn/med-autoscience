@@ -24,7 +24,7 @@ def resolve_study_ids(profile: Any) -> tuple[str, ...]:
 def build_study_state_matrix(
     *,
     profile: Any,
-    study_runtime_router: Any,
+    domain_status_projection: Any,
     study_ids: Iterable[str] | None = None,
     entry_mode: str | None = None,
 ) -> dict[str, Any]:
@@ -35,7 +35,7 @@ def build_study_state_matrix(
     for study_id in resolved_study_ids:
         try:
             status = _dict(
-                study_runtime_router.progress_projection(
+                domain_status_projection.progress_projection(
                     profile=profile,
                     study_id=study_id,
                     study_root=None,

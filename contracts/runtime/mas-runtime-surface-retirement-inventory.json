@@ -19,14 +19,14 @@
   },
   "compatibility_alias_policy": {
     "new_alias_allowed": false,
-    "retained_adapter_can_claim_mas_owner": false
+    "active_adapter_can_claim_mas_owner": false
   },
   "surface_kind": "mas_runtime_surface_retirement_inventory",
   "surfaces": [
     {
-      "active_caller_migrated": false,
+      "active_caller_migrated": true,
       "compatibility_alias_allowed": false,
-      "current_disposition": "opl_migration_input",
+      "current_disposition": "physically_retired",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -36,13 +36,13 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
-      "retained_mas_role": "domain_owner_receipt_adapter_or_standalone_diagnostic",
+      "retained_mas_role": "none_physically_retired_no_alias",
       "surface_id": "runtime_transport_core_bridge"
     },
     {
-      "active_caller_migrated": false,
+      "active_caller_migrated": true,
       "compatibility_alias_allowed": false,
-      "current_disposition": "opl_migration_input",
+      "current_disposition": "physically_retired",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_queue",
@@ -52,13 +52,13 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
-      "retained_mas_role": "stage_turn_closeout_and_owner_receipt_adapter",
+      "retained_mas_role": "none_physically_retired_no_alias",
       "surface_id": "runtime_turn_runner_closeout_adapter"
     },
     {
-      "active_caller_migrated": false,
+      "active_caller_migrated": true,
       "compatibility_alias_allowed": false,
-      "current_disposition": "opl_migration_input",
+      "current_disposition": "physically_retired",
       "forbidden_claims": [
         "mas_owned_generic_runtime",
         "mas_owned_worker_liveness",
@@ -68,7 +68,7 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
-      "retained_mas_role": "worker_lease_receipt_ref_projection_not_residency_owner",
+      "retained_mas_role": "none_physically_retired_no_alias",
       "surface_id": "worker_lease_residency_projection"
     },
     {
@@ -84,8 +84,8 @@
       ],
       "generic_runtime_owner": "one-person-lab",
       "mas_owner_claim_allowed": false,
-      "retained_mas_role": "refs_only_domain_receipt_locator_and_lifecycle_ref_index",
-      "surface_id": "lifecycle_refs_sqlite_index"
+      "retained_mas_role": "refs_only_domain_authority_receipt_locator_index",
+      "surface_id": "domain_authority_refs_index"
     },
     {
       "active_caller_migrated": true,

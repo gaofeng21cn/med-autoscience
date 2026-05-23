@@ -11,7 +11,6 @@ def resolve_why_not_applied(
     default_why_not_applied: str | None,
     actions: list[dict[str, Any]],
     lifecycle: Mapping[str, Any],
-    runtime_platform_repair_apply: Mapping[str, Any] | None,
     submission_milestone_parked: bool,
 ) -> str | None:
     if actions:
@@ -27,20 +26,6 @@ def resolve_why_not_applied(
             ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON,
         }:
             return top_action_reason
-    if runtime_platform_repair_apply is not None and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied":
-        if actions:
-            return _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
-        return None
-    if runtime_platform_repair_apply is not None:
-        apply_reason = _text(runtime_platform_repair_apply.get("reason"))
-        if apply_reason in {"publication_gate_specificity_required", "current_package_freshness_required"}:
-            return apply_reason
-        if (
-            apply_reason == "stale_specificity_terminal_targets_resolved"
-            and default_why_not_applied == "runtime_recovery_retry_budget_exhausted"
-            and actions == []
-        ):
-            return "ai_reviewer_assessment_required"
     if submission_milestone_parked:
         return None
     if default_why_not_applied is None and lifecycle:

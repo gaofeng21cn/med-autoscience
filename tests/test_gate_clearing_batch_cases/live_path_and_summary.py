@@ -225,8 +225,8 @@ def test_run_gate_clearing_batch_skips_repair_units_when_unit_fingerprints_match
         source="test-source",
     )
 
-    assert replay_calls[0].pop("control_plane_route_context")["control_plane_snapshot"]["surface"] == (
-        "control_plane_snapshot"
+    assert replay_calls[0].pop("authority_route_context")["authority_snapshot"]["surface"] == (
+        "authority_snapshot"
     )
     assert replay_calls == [
         {
@@ -355,8 +355,8 @@ def test_run_gate_clearing_batch_skips_submission_refresh_only_when_inputs_match
     assert result_by_unit["create_submission_minimal_package"]["last_success_status"] == "ok"
     assert result_by_unit["sync_submission_minimal_delivery"]["status"] == "synced"
     assert sync_calls == [paper_root]
-    assert replay_calls[0].pop("control_plane_route_context")["control_plane_snapshot"]["surface"] == (
-        "control_plane_snapshot"
+    assert replay_calls[0].pop("authority_route_context")["authority_snapshot"]["surface"] == (
+        "authority_snapshot"
     )
     assert replay_calls == [
         {
@@ -505,8 +505,8 @@ def test_run_gate_clearing_batch_reruns_delivery_sync_when_previous_matching_run
             "unit_results": [
                 {
                     "unit_id": "sync_submission_minimal_delivery",
-                    "status": "control_plane_route_blocked",
-                    "last_success_status": "control_plane_route_blocked",
+                    "status": "authority_route_blocked",
+                    "last_success_status": "authority_route_blocked",
                 },
             ],
             "unit_fingerprints": {
@@ -539,9 +539,9 @@ def test_run_gate_clearing_batch_reruns_delivery_sync_when_previous_matching_run
         lambda *, paper_root, profile: (
             sync_calls.append(paper_root),
             {
-                "status": "control_plane_route_blocked",
-                "control_plane_route_gate": {
-                    "blocking_reasons": ["control_plane_snapshot_missing"],
+                "status": "authority_route_blocked",
+                "authority_route_gate": {
+                    "blocking_reasons": ["authority_snapshot_missing"],
                 },
             },
         )[1],
@@ -569,7 +569,7 @@ def test_run_gate_clearing_batch_reruns_delivery_sync_when_previous_matching_run
         item for item in result["unit_results"] if item["unit_id"] == "sync_submission_minimal_delivery"
     )
     assert sync_calls == [paper_root]
-    assert delivery_result["status"] == "control_plane_route_blocked"
+    assert delivery_result["status"] == "authority_route_blocked"
     assert delivery_result.get("last_success_status") is None
     assert "current_package_freshness_proof" not in result
 def test_run_gate_clearing_batch_reruns_submission_refresh_when_quality_inputs_change(
@@ -880,8 +880,8 @@ def test_run_gate_clearing_batch_authorizes_submission_refresh_from_selected_wor
     monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
     seen_contexts: list[dict[str, object]] = []
 
-    def fake_create_submission_minimal_package(*, paper_root, profile, control_plane_route_context):
-        seen_contexts.append(control_plane_route_context)
+    def fake_create_submission_minimal_package(*, paper_root, profile, authority_route_context):
+        seen_contexts.append(authority_route_context)
         return {"status": "ready"}
 
     monkeypatch.setattr(module, "_create_submission_minimal_package", fake_create_submission_minimal_package)

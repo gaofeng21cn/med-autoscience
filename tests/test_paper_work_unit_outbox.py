@@ -26,10 +26,10 @@ def test_enqueue_replays_semantically_equivalent_receipt_for_same_idempotency_ke
     tmp_path: Path,
 ) -> None:
     outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
+    refs_index = importlib.import_module("med_autoscience.runtime_protocol.domain_authority_refs_index")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
-    db_path = lifecycle_store.workspace_lifecycle_store_path(tmp_path / "workspace")
+    db_path = refs_index.workspace_authority_refs_index_path(tmp_path / "workspace")
 
     first = outbox.enqueue_paper_work_unit(
         study_root=study_root,

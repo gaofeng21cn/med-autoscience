@@ -184,7 +184,7 @@ def build_product_entry_manifest(
         "domain_owner": TARGET_DOMAIN_ID,
         "executor_owner": CONTROLLED_BACKEND_EXECUTOR_OWNER,
         "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
-        "managed_runtime_backend_id": profile.managed_runtime_backend_id,
+        "opl_runtime_ref": profile.opl_runtime_ref,
         "runtime_root": str(profile.runtime_root),
         "hermes_home_root": str(profile.hermes_home_root),
     }
@@ -275,9 +275,7 @@ def build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
         allowed_task_kinds=(
-            "domain_route/recover",
-            "domain_route/reconcile-apply",
-            "autonomy/continue",
+            "domain_route/owner-handoff",
             "paper_autonomy/repair-recheck",
             "paper_autonomy/ai-reviewer-recheck",
             "publication_aftercare/analysis-queue-progress",
@@ -406,7 +404,7 @@ def build_product_entry_manifest(
                 "hermes_agent_requires_full_agent_loop": True,
                 "current_backend_chain": [
                     "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
-                    "generic runtime/provider context -> OPL runtime manager handoff refs",
+                    "generic runtime/provider context -> OPL current_control_state refs-only handoff",
                     "historical med_deepscientist fixture/provenance refs only",
                 ],
                 "optional_executor_proofs": [

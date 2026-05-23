@@ -9,7 +9,6 @@ from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
 ROUTED_ACTION_TYPES = (
-    "runtime_platform_repair",
     "publication_gate_specificity_required",
     "current_package_freshness_required",
     "artifact_display_surface_materialization_required",
@@ -253,7 +252,6 @@ def _action_matches_route_owner(
         return True
     if (
         route_owner == "external_supervisor"
-        and _text(action.get("action_type")) == "runtime_platform_repair"
         and resolved_action_owner == "external_engineering_agent"
     ):
         return True

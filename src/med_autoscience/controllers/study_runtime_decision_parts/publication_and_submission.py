@@ -5,16 +5,15 @@ from importlib import import_module
 import json
 from pathlib import Path
 
-from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience import opl_runtime_contract
 from med_autoscience.controller_confirmation_summary import (
     materialize_controller_confirmation_summary,
     read_controller_confirmation_summary,
     stable_controller_confirmation_summary_path,
 )
 from med_autoscience.controllers import (
+    auto_runtime_parking,
     publication_gate as publication_gate_controller,
-    runtime_worker_activity,
-    runtime_supervision as runtime_supervision_controller,
     study_truth_kernel,
     study_runtime_interaction_arbitration as interaction_arbitration_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
@@ -22,9 +21,9 @@ from med_autoscience.controllers import (
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
+from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from med_autoscience.controllers.study_runtime_decision_parts import publication_stop_loss
-from med_autoscience.controllers.study_runtime_execution_parts import runtime_events as _execution_runtime_events
 from med_autoscience.controllers.study_runtime_decision_parts.publication_eval_quality import (
     _publication_eval_gap_type,
     publication_eval_quality_assessment,
@@ -73,7 +72,6 @@ from med_autoscience.publication_eval_record import (
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
-from med_autoscience.controllers.study_runtime_transport import _get_quest_session
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 from med_autoscience.study_manual_finish import (
@@ -123,7 +121,7 @@ _AUTO_RECOVERY_CONTROLLER_STOP_SOURCES = frozenset(
 )
 
 def _router_module():
-    return import_module("med_autoscience.controllers.study_runtime_router")
+    return import_module("med_autoscience.controllers.domain_status_projection")
 
 def _record_existing_controller_work_unit_evidence_adoption(
     *,
@@ -193,7 +191,7 @@ def _load_json_dict(path: Path) -> dict[str, object]:
 def _supervisor_tick_required(status: ProgressProjectionStatus) -> bool:
     execution = status.execution
     return (
-        runtime_backend_contract.is_managed_research_execution(execution)
+        opl_runtime_contract.is_opl_hosted_research_execution(execution)
         and status.quest_exists
     )
 
@@ -718,19 +716,31 @@ def _record_quest_runtime_audits(
     status: ProgressProjectionStatus,
     quest_runtime: quest_state.QuestRuntimeSnapshot,
 ) -> quest_state.QuestRuntimeLivenessStatus:
-    runtime_liveness_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.runtime_liveness_audit or {}))
-    bash_session_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.bash_session_audit or {}))
-    status.record_runtime_liveness_audit(runtime_liveness_audit)
-    status.record_bash_session_audit(bash_session_audit)
+    if quest_runtime.runtime_liveness_audit is not None:
+        runtime_liveness_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.runtime_liveness_audit))
+        status.record_runtime_liveness_audit(runtime_liveness_audit)
+    if quest_runtime.bash_session_audit is not None:
+        bash_session_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.bash_session_audit))
+        status.record_bash_session_audit(bash_session_audit)
     return quest_runtime.runtime_liveness_status
 
 
-def _record_runtime_worker_activity(status: ProgressProjectionStatus) -> None:
-    status["runtime_worker_activity"] = runtime_worker_activity.normalize_activity(status.to_dict())
+def _record_opl_domain_activity_ref(status: ProgressProjectionStatus) -> None:
+    status["opl_domain_activity_ref"] = resolve_opl_runtime_refs(status.to_dict()).to_domain_activity_ref()
 
 
 def _record_auto_runtime_parked_projection(status: ProgressProjectionStatus) -> None:
-    _execution_runtime_events.record_auto_runtime_parked_projection(status)
+    projection = auto_runtime_parking.build_auto_runtime_parked_projection(status.to_dict())
+    status["auto_runtime_parked"] = projection
+    for field_name in (
+        "parked_state",
+        "parked_owner",
+        "resource_release_expected",
+        "awaiting_explicit_wakeup",
+        "auto_execution_complete",
+        "reopen_policy",
+    ):
+        status[field_name] = projection.get(field_name)
 
 
 def _publication_gate_allows_direct_write(status: ProgressProjectionStatus) -> bool:

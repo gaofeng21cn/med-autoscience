@@ -7,11 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import control_intent, domain_health_diagnostic_work_units
-from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _candidate_path, _non_empty_text
+from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import _non_empty_text
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
-from med_autoscience.runtime_protocol import quest_state
 
 
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "domain_health_diagnostic_outer_loop_wakeup"
@@ -28,15 +27,6 @@ _REQUIRED_SPECIFICITY_TARGET_KINDS = (
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def _write_runtime_state(*, quest_root: Path, runtime_state: Mapping[str, Any]) -> None:
-    runtime_state_path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
-    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
-    runtime_state_path.write_text(
-        json.dumps(dict(runtime_state), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
 
 
 def _compact_work_unit_payload(value: object) -> dict[str, Any]:
@@ -87,52 +77,6 @@ def _specificity_control_intent_identity(
     )
 
 
-def _clear_quest_user_messages_for_superseded_specificity(
-    *,
-    quest_root: Path,
-    runtime_state: dict[str, Any],
-) -> None:
-    queue_path = Path(quest_root).expanduser().resolve() / ".ds" / "user_message_queue.json"
-    if not queue_path.exists():
-        runtime_state["pending_user_message_count"] = 0
-        runtime_state.pop("pending_user_message_ids", None)
-        return
-    try:
-        queue_payload = json.loads(queue_path.read_text(encoding="utf-8")) or {}
-    except (OSError, json.JSONDecodeError):
-        queue_payload = {}
-    if not isinstance(queue_payload, dict):
-        queue_payload = {}
-    pending = [item for item in (queue_payload.get("pending") or []) if isinstance(item, dict)]
-    completed = [item for item in (queue_payload.get("completed") or []) if isinstance(item, dict)]
-    superseded_at = utc_now()
-    retained_pending: list[dict[str, Any]] = []
-    superseded: list[dict[str, Any]] = []
-    for item in pending:
-        dedupe_key = str(item.get("dedupe_key") or "").strip()
-        content = str(item.get("content") or "").strip()
-        is_controller_authorization = (
-            dedupe_key.startswith("control-intent::")
-            or dedupe_key.startswith("controller-decision-authorization:")
-            or content.startswith("MAS controller authorization.")
-        )
-        if not is_controller_authorization:
-            retained_pending.append(item)
-            continue
-        item["status"] = "superseded_by_gate_specificity"
-        item["superseded_at"] = superseded_at
-        superseded.append(item)
-    queue_payload["pending"] = retained_pending
-    queue_payload["completed"] = [*completed, *superseded]
-    queue_path.write_text(json.dumps(queue_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    runtime_state["pending_user_message_count"] = len(retained_pending)
-    runtime_state["pending_user_message_ids"] = [
-        str(item.get("message_id") or "")
-        for item in retained_pending
-        if str(item.get("message_id") or "").strip()
-    ]
-
-
 def _materialize_specificity_controller_state(
     *,
     profile: WorkspaceProfile,
@@ -169,12 +113,11 @@ def _materialize_specificity_controller_state(
         recorded_at=_non_empty_text(wakeup_audit.get("recorded_at")),
         **decision_payload,
     )
-    quest_root = _candidate_path(status_payload.get("quest_root"))
     identity = _specificity_control_intent_identity(
         status_payload=status_payload,
         tick_request=tick_request,
     )
-    if quest_root is None or identity is None:
+    if identity is None:
         return decision_result
     control_intent.append_event(
         study_root=study_root,
@@ -188,10 +131,12 @@ def _materialize_specificity_controller_state(
         recorded_at=_non_empty_text(wakeup_audit.get("recorded_at")) or utc_now(),
     )
     lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
-    runtime_state = quest_state.load_runtime_state(quest_root)
-    runtime_state["quest_id"] = _non_empty_text(status_payload.get("quest_id")) or runtime_state.get("quest_id")
-    _clear_quest_user_messages_for_superseded_specificity(quest_root=quest_root, runtime_state=runtime_state)
-    runtime_state["last_controller_decision_authorization"] = {
+    decision_result["controller_authorization_ref"] = {
+        "surface_kind": "gate_specificity_controller_authorization_ref",
+        "effect": "refs_only",
+        "queue_owner": "one-person-lab",
+        "mas_writes_runtime_state": False,
+        "quest_id": _non_empty_text(status_payload.get("quest_id")),
         "decision_id": _non_empty_text((decision_result.get("study_decision_ref") or {}).get("decision_id")),
         "route_target": "controller",
         "route_key_question": str(tick_request.get("route_key_question") or "").strip(),
@@ -219,13 +164,14 @@ def _materialize_specificity_controller_state(
             "terminal_consumed": bool(lifecycle.get("terminal_consumed")),
         },
     }
-    runtime_state["control_intent_lifecycle"] = {
+    decision_result["control_intent_lifecycle_ref"] = {
+        "surface_kind": "control_intent_lifecycle_ref",
         "state": "needs_specificity",
         "control_intent_key": identity.business_key,
         "work_unit_id": "gate_needs_specificity",
         "work_unit_fingerprint": _non_empty_text(tick_request.get("work_unit_fingerprint")),
+        "mas_writes_runtime_state": False,
     }
-    _write_runtime_state(quest_root=quest_root, runtime_state=runtime_state)
     return decision_result
 
 
@@ -288,12 +234,10 @@ def _study_requests_gate_specificity_terminal(
 
 
 __all__ = [
-    "_clear_quest_user_messages_for_superseded_specificity",
     "_compact_work_unit_payload",
     "_gate_specificity_non_executable_contract",
     "_materialize_specificity_controller_state",
     "_specificity_control_intent_identity",
     "_specificity_terminal_status_payload",
     "_study_requests_gate_specificity_terminal",
-    "_write_runtime_state",
 ]

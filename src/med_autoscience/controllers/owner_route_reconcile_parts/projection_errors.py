@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.owner_route_reconcile_parts import domain_authority_handoff
+
 
 PROJECTION_CONTRACT_ERROR_REASON = "study_projection_contract_error"
 
@@ -15,7 +17,6 @@ def projection_error_study(
     safe_actions_enabled: bool,
     generated_at: str,
     error: Exception,
-    recovery_intent_path: Path,
     why_not_applied_timeline: list[dict[str, Any]],
 ) -> dict[str, Any]:
     reason = PROJECTION_CONTRACT_ERROR_REASON
@@ -57,22 +58,13 @@ def projection_error_study(
         "ai_repair_lifecycle": None,
         "action_queue": [],
         "submission_milestone_parked_refresh": None,
-        "runtime_platform_repair_apply": None,
-        "recovery_intent": {
-            "surface": "runtime_recovery_intent",
-            "schema_version": 1,
-            "study_id": study_id,
-            "quest_id": None,
-            "generated_at": generated_at,
-            "reason": reason,
-            "next_owner": "repo_controller_repair",
-            "retry_budget": {"remaining": 0, "exhausted": True},
-            "current_action": "repair_study_projection_contract",
-            "evidence_refs": {},
-            "quality_ready_authorized": False,
-            "publication_ready_authorized": False,
-            "submission_ready_authorized": False,
-        },
+        "domain_authority_handoff": domain_authority_handoff.projection_error_handoff(
+            study_id=study_id,
+            study_root=study_root,
+            generated_at=generated_at,
+            reason=reason,
+            error=error,
+        ),
         "paper_progress_stall": {
             "schema_version": 1,
             "surface_kind": "paper_progress_stall",
@@ -100,7 +92,7 @@ def projection_error_study(
             "message": str(error),
             "handled_as": reason,
         },
-        "refs": {"recovery_intent_path": str(recovery_intent_path)},
+        "refs": {},
     }
 
 

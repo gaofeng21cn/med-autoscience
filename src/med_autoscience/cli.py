@@ -19,12 +19,10 @@ from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.medical_prose_review_request import materialize_ai_medical_prose_review_from_response
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
-from med_autoscience.cli_parts.control_plane_operations import handle_control_plane_operation_command
+from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
 from med_autoscience.cli_parts.product_entry_commands import handle_product_entry_command
-from med_autoscience.cli_parts.live_console_commands import handle_live_console_command
-from med_autoscience.cli_parts.runtime_lifecycle_commands import handle_runtime_lifecycle_command
 from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
@@ -67,10 +65,8 @@ data_asset_updates_controller = _LazyModuleProxy(lambda: _load_controller("data_
 display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_pack_surface_sync"))
 display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
 delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspector"))
-domain_slo_scheduler_projection = _LazyModuleProxy(lambda: _load_controller("domain_slo_scheduler_projection"))
 domain_action_request_materializer = _LazyModuleProxy(lambda: _load_controller("domain_action_request_materializer"))
 domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain_owner_action_dispatch"))
-domain_route_reconcile = _LazyModuleProxy(lambda: _load_controller("domain_route_reconcile"))
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 workspace_legacy_physical_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_legacy_physical_cleanup"))
@@ -81,10 +77,6 @@ agent_lab_medical_manuscript_quality = _LazyModuleProxy(
 )
 paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
-runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
-runtime_lifecycle_migration = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration"))
-quest_materializer = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.quest_materializer"))
-runtime_live_console = _LazyModuleProxy(lambda: _load_controller("runtime_live_console"))
 runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
@@ -98,9 +90,8 @@ medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_li
 medical_paper_readiness_owner_blocker = _LazyModuleProxy(lambda: _load_controller("medical_paper_readiness_owner_blocker"))
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
-control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("control_plane_migration_audit"))
-control_plane_backfill_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_backfill_apply"))
-control_plane_cleanup_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_cleanup_apply"))
+workspace_authority_migration_audit = _LazyModuleProxy(lambda: _load_controller("workspace_authority_migration_audit"))
+delivery_authority_backfill_apply = _LazyModuleProxy(lambda: _load_controller("delivery_authority_backfill_apply"))
 artifact_lifecycle_operations_report = _LazyModuleProxy(lambda: _load_controller("artifact_lifecycle_operations_report"))
 continuous_soak_summary = _LazyModuleProxy(lambda: _load_controller("continuous_soak_summary"))
 mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
@@ -108,7 +99,6 @@ open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_r
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 progress_portal = _LazyModuleProxy(lambda: _load_controller("progress_portal"))
-portal_console_soak = _LazyModuleProxy(lambda: _load_controller("portal_console_soak"))
 publication_aftercare = _LazyModuleProxy(lambda: _load_controller("publication_aftercare"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
@@ -121,7 +111,7 @@ real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
-study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
 study_state_matrix = _LazyModuleProxy(lambda: _load_controller("study_state_matrix"))
 study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kernel"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
@@ -221,7 +211,7 @@ def _resolve_study_and_quest_for_batch_command(
     study_root = Path(args.study_root) if args.study_root else None
     quest_id = str(args.quest_id or "").strip() or None
     if quest_id is None or study_root is None:
-        status = study_runtime_router.progress_projection(
+        status = domain_status_projection.progress_projection(
             profile=profile,
             study_id=args.study_id,
             study_root=study_root,
@@ -251,18 +241,17 @@ def main(argv: list[str] | None = None) -> int:
         return help_result
     parser = build_parser()
     args = parser.parse_args(normalize_public_command_argv(resolved_argv))
-    control_plane_result = handle_control_plane_operation_command(
+    authority_result = handle_authority_operation_command(
         args,
         controller_modules={
             "artifact_lifecycle_operations_report": artifact_lifecycle_operations_report,
-            "control_plane_backfill_apply": control_plane_backfill_apply,
-            "control_plane_cleanup_apply": control_plane_cleanup_apply,
-            "control_plane_migration_audit": control_plane_migration_audit,
+            "delivery_authority_backfill_apply": delivery_authority_backfill_apply,
+            "workspace_authority_migration_audit": workspace_authority_migration_audit,
             "continuous_soak_summary": continuous_soak_summary,
         },
     )
-    if control_plane_result is not None:
-        return control_plane_result
+    if authority_result is not None:
+        return authority_result
 
     if args.command == "doctor":
         profile = load_profile(args.profile)
@@ -351,50 +340,13 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "ensure-study-runtime-analysis-bundle":
-        result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "ensure-study-runtime":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-            allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
-            explicit_user_wakeup=bool(args.explicit_user_wakeup),
-            force=bool(args.force),
-            source="cli",
-        )
-        print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "pause-study-runtime":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        result = study_runtime_router.pause_study_runtime(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-            force=bool(args.force),
-            source="cli",
-        )
-        print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
-        return 0
-
     study_read_result = handle_study_read_command(
         args,
         parser=parser,
         load_profile=load_profile,
         serialize_study_runtime_result=_serialize_study_runtime_result,
         study_progress=study_progress,
-        study_runtime_router=study_runtime_router,
+        domain_status_projection=domain_status_projection,
         study_state_matrix=study_state_matrix,
         study_truth_kernel=study_truth_kernel,
         runtime_health_kernel=runtime_health_kernel,
@@ -419,18 +371,6 @@ def main(argv: list[str] | None = None) -> int:
             profile=profile,
             study_ids=tuple(args.studies or ()),
             action_types=tuple(args.action_types or ()),
-            mode=args.mode,
-            apply=bool(args.apply),
-            managed_runtime_worker=bool(args.managed_runtime_worker),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "domain-route-reconcile":
-        profile = load_profile(args.profile)
-        result = domain_route_reconcile.reconcile_domain_routes(
-            profile=profile,
-            study_ids=tuple(args.studies or ()),
             mode=args.mode,
             apply=bool(args.apply),
         )
@@ -545,7 +485,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("Specify exactly one of --study-id or --study-root")
         profile = load_profile(args.profile)
         status_payload = _serialize_study_runtime_result(
-            study_runtime_router.progress_projection(
+            domain_status_projection.progress_projection(
                 profile=profile,
                 study_id=args.study_id,
                 study_root=Path(args.study_root) if args.study_root else None,
@@ -591,7 +531,6 @@ def main(argv: list[str] | None = None) -> int:
         args,
         product_entry=product_entry,
         progress_portal=progress_portal,
-        portal_console_soak=portal_console_soak,
         load_profile=load_profile,
     )
     if workbench_result is not None:
@@ -610,7 +549,6 @@ def main(argv: list[str] | None = None) -> int:
         args,
         parser=parser,
         domain_health_diagnostic=domain_health_diagnostic,
-        domain_slo_scheduler_projection=domain_slo_scheduler_projection,
         load_profile=load_profile,
     )
     if watch_supervision_result is not None:
@@ -623,7 +561,6 @@ def main(argv: list[str] | None = None) -> int:
             profile=profile,
             study_ids=study_ids,
             apply_safe_actions=bool(args.apply_safe_actions),
-            apply_runtime_platform_repair=bool(args.apply_runtime_platform_repair),
             developer_supervisor_mode=args.developer_supervisor_mode,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -699,24 +636,6 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    lifecycle_exit_code = handle_runtime_lifecycle_command(
-        args,
-        runtime_lifecycle_read_model=runtime_lifecycle_read_model,
-        runtime_lifecycle_migration=runtime_lifecycle_migration,
-        quest_materializer=quest_materializer,
-    )
-    if lifecycle_exit_code is not None:
-        return lifecycle_exit_code
-
-    live_console_exit_code = handle_live_console_command(
-        args,
-        parser=parser,
-        load_profile=load_profile,
-        runtime_live_console=runtime_live_console,
-    )
-    if live_console_exit_code is not None:
-        return live_console_exit_code
-
     storage_exit_code = handle_runtime_storage_command(
         args,
         parser=parser,
@@ -741,7 +660,6 @@ def main(argv: list[str] | None = None) -> int:
         load_doctor_module=_load_doctor_module,
         overlay_installer=overlay_installer,
         analysis_bundle_controller=analysis_bundle_controller,
-        domain_slo_scheduler_projection=domain_slo_scheduler_projection,
         overlay_request_from_args=_overlay_request_from_args,
         load_json_payload_from_args=_load_json_payload_from_args,
     )
@@ -912,21 +830,6 @@ def main(argv: list[str] | None = None) -> int:
             stage=args.stage,
             publication_profile=args.publication_profile,
             promote_to_final=args.promote_to_final,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "ensure-study-runtime":
-        profile = load_profile(args.profile)
-        result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-            entry_mode=args.entry_mode,
-            allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
-            explicit_user_wakeup=bool(args.explicit_user_wakeup),
-            force=bool(args.force),
-            source="cli",
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

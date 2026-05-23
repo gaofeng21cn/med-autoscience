@@ -106,9 +106,9 @@ def _failed_non_resumable_repair_required(status: Mapping[str, Any], progress: M
         for source in (
             status.get("blocking_reasons"),
             runtime_health.get("blocking_reasons"),
-            _mapping(status.get("control_plane_snapshot")).get("blocking_reasons"),
-            _mapping(_mapping(status.get("control_plane_snapshot")).get("dispatch_gate")).get("blocking_reasons"),
-            _mapping(progress.get("control_plane_snapshot")).get("blocking_reasons"),
+            _mapping(status.get("authority_snapshot")).get("blocking_reasons"),
+            _mapping(_mapping(status.get("authority_snapshot")).get("dispatch_gate")).get("blocking_reasons"),
+            _mapping(progress.get("authority_snapshot")).get("blocking_reasons"),
             progress.get("current_blockers"),
         )
         for item in _string_items(source)
@@ -136,9 +136,9 @@ def _live_status_no_worker_repair_required(status: Mapping[str, Any], progress: 
         for source in (
             status.get("blocking_reasons"),
             runtime_health.get("blocking_reasons"),
-            _mapping(status.get("control_plane_snapshot")).get("blocking_reasons"),
-            _mapping(_mapping(status.get("control_plane_snapshot")).get("dispatch_gate")).get("blocking_reasons"),
-            _mapping(progress.get("control_plane_snapshot")).get("blocking_reasons"),
+            _mapping(status.get("authority_snapshot")).get("blocking_reasons"),
+            _mapping(_mapping(status.get("authority_snapshot")).get("dispatch_gate")).get("blocking_reasons"),
+            _mapping(progress.get("authority_snapshot")).get("blocking_reasons"),
             progress.get("current_blockers"),
         )
         for item in _string_items(source)
@@ -178,9 +178,9 @@ def _paused_resume_no_worker_repair_required(status: Mapping[str, Any], progress
         for source in (
             status.get("blocking_reasons"),
             runtime_health.get("blocking_reasons"),
-            _mapping(status.get("control_plane_snapshot")).get("blocking_reasons"),
-            _mapping(_mapping(status.get("control_plane_snapshot")).get("dispatch_gate")).get("blocking_reasons"),
-            _mapping(progress.get("control_plane_snapshot")).get("blocking_reasons"),
+            _mapping(status.get("authority_snapshot")).get("blocking_reasons"),
+            _mapping(_mapping(status.get("authority_snapshot")).get("dispatch_gate")).get("blocking_reasons"),
+            _mapping(progress.get("authority_snapshot")).get("blocking_reasons"),
             progress.get("current_blockers"),
         )
         for item in _string_items(source)

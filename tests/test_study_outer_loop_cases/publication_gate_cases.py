@@ -924,10 +924,9 @@ def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     charter_ref = _write_charter(study_root)
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
-    seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -936,14 +935,6 @@ def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_
             "reason": "startup_boundary_not_ready_for_resume",
             "runtime_escalation_ref": runtime_escalation_ref,
         },
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router.managed_runtime_transport,
-        "pause_quest",
-        lambda **kwargs: (
-            seen.setdefault("pause_kwargs", kwargs),
-            {"ok": True, "quest_id": "quest-001", "status": "paused", "snapshot": {"status": "paused"}},
-        )[1],
     )
 
     result = module.study_outer_loop_tick(
@@ -964,11 +955,9 @@ def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_
         recorded_at="2026-04-05T06:10:00+00:00",
     )
 
-    assert seen["pause_kwargs"] == {
-        "runtime_root": profile.managed_runtime_home,
-        "quest_id": "quest-001",
-        "source": "test-source",
-    }
-    assert result["dispatch_status"] == "executed"
+    assert result["dispatch_status"] == "blocked"
     assert result["executed_controller_action"]["action_type"] == "pause_runtime"
-    assert result["executed_controller_action"]["result"]["status"] == "paused"
+    action_result = result["executed_controller_action"]["result"]
+    assert action_result["status"] == "opl_runtime_human_gate_required"
+    assert action_result["runtime_owner"] == "one-person-lab"
+    assert action_result["mas_executes_runtime_attempt"] is False

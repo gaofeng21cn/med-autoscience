@@ -5,7 +5,7 @@ import json
 from typing import Any, Mapping
 
 from med_autoscience.controllers import gate_clearing_batch_scheduler
-from med_autoscience.controllers.control_plane_write_route import resolve_control_plane_write_route_context
+from med_autoscience.controllers.authority_write_route import resolve_authority_write_route_context
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -119,7 +119,7 @@ def build_fast_lane_execution_manifest(
     replay_case: Mapping[str, Any],
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    _resolved_route_context, control_plane_route_gate = resolve_control_plane_write_route_context(
+    _resolved_route_context, authority_route_gate = resolve_authority_write_route_context(
         action="bundle_build",
         context=route_context,
         default_paths=[],
@@ -128,13 +128,13 @@ def build_fast_lane_execution_manifest(
     plan_manifest = _mapping(execution_plan.get("fast_lane_execution_manifest"))
     manifest_state = _manifest_state(quality_ledger_enforcement)
     blocking_reasons = _blocking_reasons(quality_ledger_enforcement)
-    if not bool(control_plane_route_gate.get("authorized")):
-        manifest_state = "blocked_by_control_plane_route_gate"
+    if not bool(authority_route_gate.get("authorized")):
+        manifest_state = "blocked_by_authority_route_gate"
         blocking_reasons.append("bundle_build_not_authorized")
     auto_dispatch_allowed = (
         manifest_state == "ready"
         and execution_plan.get("status") == "planned"
-        and bool(control_plane_route_gate.get("authorized"))
+        and bool(authority_route_gate.get("authorized"))
     )
     replay_required = bool(replay_case) or bool(
         _mapping(execution_plan.get("execution_policy")).get("requires_publication_gate_replay")
@@ -167,9 +167,9 @@ def build_fast_lane_execution_manifest(
             "auto_dispatch_allowed": auto_dispatch_allowed,
             "controller_only": True,
             "gate_relaxation_allowed": False,
-            "control_plane_route_authorized": bool(control_plane_route_gate.get("authorized")),
+            "authority_route_authorized": bool(authority_route_gate.get("authorized")),
         },
-        "control_plane_route_gate": control_plane_route_gate,
+        "authority_route_gate": authority_route_gate,
         "execution_plan": execution_plan,
         "quality_gate_policy": dict(_mapping(plan_manifest.get("quality_gate_policy"))),
         "quality_enforcement": dict(quality_ledger_enforcement),

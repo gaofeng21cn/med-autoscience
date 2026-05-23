@@ -9,14 +9,11 @@ def runtime_continuity_projection(
     runtime: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     runtime = runtime or {}
-    runtime_session = compact_runtime_session(progress.get("runtime_session")) or compact_runtime_session(
-        runtime.get("runtime_session")
-    )
-    recovery_intent = compact_recovery_intent(progress.get("recovery_intent")) or compact_recovery_intent(
-        runtime.get("recovery_intent")
+    handoff = compact_domain_authority_handoff(progress.get("domain_authority_handoff")) or compact_domain_authority_handoff(
+        runtime.get("domain_authority_handoff")
     )
     return {
-        "surface_kind": "mas_runtime_continuity_projection",
+        "surface_kind": "mas_domain_authority_control_projection",
         "authority": {
             "kind": "read_model_projection",
             "writes_authority_surface": False,
@@ -24,73 +21,33 @@ def runtime_continuity_projection(
             "publication_ready_authorized": False,
             "submission_ready_authorized": False,
         },
-        "runtime_session": runtime_session,
-        "recovery_intent": recovery_intent,
+        "domain_authority_handoff": handoff,
+        "opl_control_plane": {
+            "runtime_control_owner": "one-person-lab",
+            "stage_attempt_state_owned_by_mas": False,
+            "provider_completion_is_domain_completion": False,
+            "queue_succeeded_is_domain_completion": False,
+        },
     }
 
 
-def compact_runtime_session(value: object) -> dict[str, Any] | None:
-    session = _mapping(value)
-    if not session:
+def compact_domain_authority_handoff(value: object) -> dict[str, Any] | None:
+    handoff = _mapping(value)
+    if not handoff:
         return None
     keys = (
+        "surface_kind",
         "study_id",
         "quest_id",
-        "active_run_id",
-        "last_known_run_id",
-        "worker_state",
-        "worker_running",
-        "runtime_liveness_status",
-        "started_at",
-        "last_seen_at",
-        "last_event_cursor",
-        "last_stdout_ref",
-        "monitor_kind",
-        "monitor_pid",
-        "child_pid",
-        "heartbeat_age_seconds",
-        "last_output_at",
-        "stdout_cursor",
-        "stderr_cursor",
-        "monitor_state",
-        "stale_reason",
-        "will_start_llm",
-        "freshness_state",
-        "freshness_age_seconds",
-        "source_priority",
+        "status",
         "generated_at",
+        "owner_route",
+        "typed_blocker",
+        "action_refs",
+        "opl_control_plane",
+        "authority",
     )
-    compact = {key: session.get(key) for key in keys if session.get(key) is not None}
-    evidence_refs = _refs_from_ref_field(session.get("evidence_refs"))
-    if evidence_refs:
-        compact["evidence_refs"] = evidence_refs
-    return compact or None
-
-
-def compact_recovery_intent(value: object) -> dict[str, Any] | None:
-    intent = _mapping(value)
-    if not intent:
-        return None
-    keys = (
-        "reason",
-        "next_owner",
-        "retry_budget",
-        "dedupe_fingerprint",
-        "last_attempt",
-        "last_result",
-        "next_eligible_tick",
-        "current_action",
-        "generated_at",
-    )
-    compact = {key: intent.get(key) for key in keys if intent.get(key) is not None}
-    evidence_refs = _refs_from_ref_field(intent.get("evidence_refs"))
-    if evidence_refs:
-        compact["evidence_refs"] = evidence_refs
-    compact["authority"] = {
-        "quality_ready_authorized": False,
-        "publication_ready_authorized": False,
-        "submission_ready_authorized": False,
-    }
+    compact = {key: handoff.get(key) for key in keys if handoff.get(key) is not None}
     return compact or None
 
 
@@ -115,7 +72,6 @@ def _refs_from_ref_field(value: object) -> list[str]:
 
 
 __all__ = [
-    "compact_recovery_intent",
-    "compact_runtime_session",
+    "compact_domain_authority_handoff",
     "runtime_continuity_projection",
 ]

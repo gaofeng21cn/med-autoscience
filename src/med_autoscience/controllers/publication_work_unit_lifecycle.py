@@ -16,7 +16,7 @@ _CLOSED_WORK_UNIT_LIFECYCLE_STATUSES = frozenset({"done", "owner_handoff"})
 _OPEN_LIFECYCLE_UNIT_STATUSES = _BLOCKING_STATUSES | frozenset(
     {
         "blocked_matching_failed_unit_fingerprint",
-        "control_plane_route_blocked",
+        "authority_route_blocked",
     }
 )
 STEP_SURFACE_METADATA_KEYS = (

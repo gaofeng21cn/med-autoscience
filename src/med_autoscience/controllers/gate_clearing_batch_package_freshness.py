@@ -10,7 +10,7 @@ from med_autoscience.stable_json import write_stable_json
 STABLE_CURRENT_PACKAGE_FRESHNESS_RELATIVE_PATH = Path("artifacts/controller/current_package_freshness/latest.json")
 _BLOCKING_SYNC_STATUSES = frozenset(
     {
-        "control_plane_route_blocked",
+        "authority_route_blocked",
         "failed",
         "missing",
         "skipped_failed_dependency",

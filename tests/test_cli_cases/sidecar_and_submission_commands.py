@@ -451,7 +451,7 @@ def test_materialize_ai_medical_prose_review_command_uses_validator_surface(
             "artifact_path": str(tmp_path / "studies" / "002-dm" / "artifacts" / "publication_eval" / "medical_prose_review.json"),
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
     monkeypatch.setattr(cli, "materialize_ai_medical_prose_review_from_response", fake_materialize)
 
     exit_code = cli.main(
@@ -765,18 +765,6 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     )
     monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(cli.data_asset_updates_controller, "refresh_data_assets", fake_refresh_data_assets)
-    monkeypatch.setattr(
-        cli.domain_slo_scheduler_projection,
-        "ensure_supervision",
-        lambda **kwargs: {
-            "surface_kind": "workspace_runtime_supervision_replacement_result",
-            "action": "delegated_to_opl_provider_scheduler",
-            "manager": kwargs["manager"],
-            "trigger_now": kwargs["trigger_now"],
-            "write_install_proof": False,
-            "requested_write_install_proof": kwargs["write_install_proof"],
-        },
-    )
 
     exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])
     captured = capsys.readouterr()
@@ -848,11 +836,6 @@ def test_bootstrap_command_maintains_workspace_local_mas_stage_skills_without_ho
         "refresh_data_assets",
         lambda *, workspace_root: {"status": {"layout_ready": True}},
     )
-    monkeypatch.setattr(
-        cli.domain_slo_scheduler_projection,
-        "ensure_supervision",
-        lambda **kwargs: {"surface_kind": "workspace_runtime_supervision_install_result", "action": "installed"},
-    )
     monkeypatch.setenv("HOME", str(home))
 
     exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])
@@ -905,11 +888,6 @@ def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path
         cli.data_asset_updates_controller,
         "refresh_data_assets",
         lambda *, workspace_root: {"status": {"layout_ready": True}},
-    )
-    monkeypatch.setattr(
-        cli.domain_slo_scheduler_projection,
-        "ensure_supervision",
-        lambda **kwargs: {"surface_kind": "workspace_runtime_supervision_install_result", "action": "installed"},
     )
 
     exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])

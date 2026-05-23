@@ -17,7 +17,7 @@ class WorkspaceRuntimeLayout:
     archives_root: Path
     restore_index_root: Path
     runtime_artifacts_root: Path
-    runtime_lifecycle_db_path: Path
+    domain_authority_refs_index_path: Path
     bin_root: Path
     startup_briefs_root: Path
     startup_payloads_root: Path
@@ -81,7 +81,7 @@ def _build_layout(
         archives_root=resolved_runtime_root / "archives",
         restore_index_root=resolved_runtime_root / "restore_index",
         runtime_artifacts_root=runtime_artifacts_root,
-        runtime_lifecycle_db_path=runtime_artifacts_root / "runtime_lifecycle.sqlite",
+        domain_authority_refs_index_path=runtime_artifacts_root / "domain_authority_refs.sqlite",
         bin_root=resolved_ops_root / "bin",
         startup_briefs_root=startup_root / "startup_briefs",
         startup_payloads_root=startup_root / "startup_payloads",

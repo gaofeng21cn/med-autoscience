@@ -186,7 +186,7 @@ def test_human_gate_resume_receipt_consumption_includes_body_free_resume_ref(tmp
             "decision_ref": {"decision_id": decision_id},
             "gate_id": "controller-human-confirmation-002-human-gate",
             "status": "approved",
-            "controller_action_types": ["ensure_study_runtime"],
+            "controller_action_types": ["request_opl_stage_attempt"],
         },
     )
 
@@ -257,7 +257,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 
     payload = module.build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_route/reconcile-apply",
+        task_kind="domain_route/owner-handoff",
         study_id="DM002",
         reason="quest_waiting_opl_runtime_owner_route",
         evidence_refs=[
@@ -288,7 +288,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
         )
     } == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
+        "task_kind": "domain_route/owner-handoff",
         "study_id": "DM002",
         "source_fingerprint": "provider-attempt-123",
         "domain_source_fingerprint": "abc123",
@@ -315,7 +315,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     assert identity_binding["surface_kind"] == "mas_domain_dispatch_evidence_identity_binding"
     assert identity_binding["payload_identity"] == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
+        "task_kind": "domain_route/owner-handoff",
         "study_id": "DM002",
         "source_fingerprint": "provider-attempt-123",
         "domain_source_fingerprint": "abc123",

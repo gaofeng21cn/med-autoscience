@@ -39,7 +39,7 @@ def test_execute_dispatch_runs_publication_gate_owner_surface(monkeypatch, tmp_p
         dispatch,
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -235,7 +235,7 @@ def test_execute_dispatch_runs_publication_gate_owner_when_terminal_stall_handof
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,

@@ -327,7 +327,7 @@ def test_matching_controller_decision_requires_same_work_unit_context(tmp_path: 
     }
     controller_actions = [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "request_opl_stage_attempt",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]

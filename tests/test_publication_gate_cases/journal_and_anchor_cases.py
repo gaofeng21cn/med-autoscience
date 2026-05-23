@@ -201,12 +201,11 @@ def test_run_controller_handles_finalize_only_bundle_blockers_without_main_metri
 
     result = module.run_controller(quest_root=quest_root, apply=True)
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert result["status"] == "blocked"
     assert "missing_submission_minimal" in result["blockers"]
-    assert result["intervention_enqueued"] is True
-    assert len(queue["pending"]) == 1
-    assert "missing_submission_minimal" in queue["pending"][0]["content"]
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["queue_owner"] == "one-person-lab"
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
     tmp_path: Path,
     monkeypatch,
@@ -462,12 +461,12 @@ def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enab
         },
     )
 
-    route_context = {"control_plane_snapshot": {"surface": "snapshot"}}
+    route_context = {"authority_snapshot": {"surface": "snapshot"}}
 
     result = module.run_controller(
         quest_root=quest_root,
         apply=True,
-        control_plane_route_context=route_context,
+        authority_route_context=route_context,
     )
 
     assert len(calls) == 1
@@ -475,7 +474,7 @@ def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enab
     assert calls[0]["missing_source_paths"] == [
         "/tmp/runtime/quests/002/paper/submission_minimal/submission_manifest.json",
     ]
-    assert calls[0]["control_plane_route_context"] is route_context
+    assert calls[0]["authority_route_context"] is route_context
     assert result["study_delivery_stale_sync"]["status"] == "stale_source_missing"
 def test_run_controller_resyncs_delivery_when_only_current_package_projection_is_missing(
     tmp_path: Path,

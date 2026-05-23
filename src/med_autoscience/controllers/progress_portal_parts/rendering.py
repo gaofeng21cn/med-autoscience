@@ -26,51 +26,23 @@ def gate_text(study: Mapping[str, Any]) -> str:
 
 
 def runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:
-    session = _mapping(runtime_continuity.get("runtime_session"))
-    intent = _mapping(runtime_continuity.get("recovery_intent"))
-    items = _runtime_session_continuity_items(session)
-    items.extend(_recovery_intent_continuity_items(intent))
-    return list_section("运行连续性", items, empty_text="当前没有 runtime session / recovery intent 投影。")
+    handoff = _mapping(runtime_continuity.get("domain_authority_handoff"))
+    items = _domain_authority_handoff_items(handoff)
+    return list_section("OPL 控制面交接", items, empty_text="当前没有 MAS domain authority handoff 投影。")
 
 
-def _runtime_session_continuity_items(session: Mapping[str, Any]) -> list[str]:
+def _domain_authority_handoff_items(handoff: Mapping[str, Any]) -> list[str]:
     items: list[str] = []
-    if session:
-        items.append(f"worker：{display_text(session.get('worker_state'), empty_text='未提供')}")
-        if session.get("active_run_id"):
-            items.append(f"active run：{session.get('active_run_id')}")
-        elif session.get("last_known_run_id"):
-            items.append(f"last known run：{session.get('last_known_run_id')}")
-        if session.get("last_seen_at"):
-            items.append(f"last seen：{local_time_label(session.get('last_seen_at'))}")
-        if session.get("heartbeat_age_seconds") is not None:
-            items.append(f"last worker heartbeat：{session.get('heartbeat_age_seconds')}s ago")
-        if session.get("last_output_at"):
-            items.append(f"last output：{local_time_label(session.get('last_output_at'))}")
-        if session.get("monitor_kind") or session.get("monitor_state"):
-            items.append(
-                "monitor owner："
-                + display_text(session.get("monitor_kind"), empty_text="未提供")
-                + " / "
-                + display_text(session.get("monitor_state"), empty_text="未提供")
-            )
-        if session.get("stale_reason"):
-            items.append(f"why waiting：{display_text(session.get('stale_reason'), empty_text='未提供')}")
-        if session.get("will_start_llm") is not None:
-            items.append(f"will start LLM：{'yes' if session.get('will_start_llm') else 'no'}")
-        if session.get("freshness_state"):
-            items.append(f"freshness：{display_text(session.get('freshness_state'), empty_text='未提供')}")
-    return items
-
-
-def _recovery_intent_continuity_items(intent: Mapping[str, Any]) -> list[str]:
-    items: list[str] = []
-    if intent:
-        items.append(f"recovery action：{display_text(intent.get('current_action'), empty_text='未提供')}")
-        if intent.get("next_owner"):
-            items.append(f"next owner：{intent.get('next_owner')}")
-        if intent.get("next_eligible_tick"):
-            items.append(f"next eligible tick：{local_time_label(intent.get('next_eligible_tick'))}")
+    if handoff:
+        owner_route = _mapping(handoff.get("owner_route"))
+        typed_blocker = _mapping(handoff.get("typed_blocker"))
+        items.append(f"handoff status：{display_text(handoff.get('status'), empty_text='未提供')}")
+        if owner_route.get("next_owner"):
+            items.append(f"next owner：{owner_route.get('next_owner')}")
+        if owner_route.get("idempotency_key"):
+            items.append(f"route idempotency key：{owner_route.get('idempotency_key')}")
+        if typed_blocker.get("reason"):
+            items.append(f"typed blocker：{typed_blocker.get('reason')}")
     return items
 
 
@@ -237,11 +209,9 @@ tbody tr:hover td { background: #f7fbf8; }
 .conversation-item__body strong { display: inline-block; margin-right: 8px; }
 .conversation-item__body span { color: var(--muted); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
 .conversation-item__body p { margin: 5px 0 0; font-size: 13px; overflow-wrap: anywhere; }
-.live-console-link { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
-.live-console-link a, .live-console-link strong { color: var(--accent-ink); font-weight: 800; }
-.live-console-link span { color: var(--muted); overflow-wrap: anywhere; }
-.live-console-link.disabled { opacity: .85; }
-.live-console-link .capability-badge { color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 800; background: var(--accent-soft); }
+.portal-nav-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+.portal-nav-links a, .portal-nav-links strong { color: var(--accent-ink); font-weight: 800; }
+.portal-nav-links span { color: var(--muted); overflow-wrap: anywhere; }
 .btn, a.btn, button.btn { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; background: var(--accent); color: #fff; font: inherit; font-size: 14px; font-weight: 800; text-decoration: none; cursor: pointer; box-shadow: var(--shadow-soft); }
 .btn:hover, a.btn:hover, button.btn:hover { background: var(--accent-ink); color: #fff; }
 .btn-outline, a.btn-outline, button.btn-outline { background: var(--panel); color: var(--accent-ink); border-color: var(--line-strong); }

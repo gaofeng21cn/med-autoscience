@@ -105,11 +105,11 @@ def test_run_controller_enqueues_message_when_blocked(tmp_path: Path) -> None:
         apply=True,
     )
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert result["status"] == "blocked"
-    assert result["intervention_enqueued"] is True
-    assert len(queue["pending"]) == 1
-    assert "publishability gate" in queue["pending"][0]["content"]
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["runtime_owner"] == "one-person-lab"
+    assert result["intervention_handoff"]["message_body_included"] is False
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=False)

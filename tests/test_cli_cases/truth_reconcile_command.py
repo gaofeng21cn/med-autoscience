@@ -44,7 +44,7 @@ def test_reconcile_study_truth_command_materializes_from_runtime_status(monkeypa
             "snapshot_path": str(study_root / "artifacts" / "truth" / "latest.json"),
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
     monkeypatch.setattr(cli.study_truth_kernel, "reconcile_truth_snapshot_from_status_payload", fake_reconcile)
 
     exit_code = cli.main(

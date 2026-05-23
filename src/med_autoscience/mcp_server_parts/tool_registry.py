@@ -22,15 +22,6 @@ class McpToolSpec:
         return payload
 
 
-STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION = (
-    "If `autonomous_runtime_notice.required = true` or "
-    "`execution_owner_guard.supervisor_only = true`, the caller must notify the user, "
-    "surface the monitoring entry, and switch into supervisor-only mode. Treat "
-    "`publication_supervisor_state.bundle_tasks_downstream_only = true` as a hard block "
-    "on bundle/build/proofing actions."
-)
-
-
 def build_tool_registry(
     *,
     product_entry_mode_schema: dict[str, Any],
@@ -44,9 +35,10 @@ def build_tool_registry(
     if not product_entry_description:
         product_entry_description = (
             "Read MedAutoScience product-entry surfaces through one tool: "
-            f"{product_entry_modes_text}. migration_audit is dry-run-only; governance_report is read-only; "
-            "backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. "
-            "lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. "
+            f"{product_entry_modes_text}. workspace_authority_migration_audit is dry-run-only; "
+            "storage_governance_report and artifact_lifecycle_report are read-only; "
+            "delivery_authority_backfill_apply is MAS delivery-authority gated. "
+            "Physical cleanup and safe-cache deletion are owned by OPL current-control-state. "
             f"{product_entry_contract_gap_text}"
         )
     return (
@@ -106,32 +98,6 @@ def build_tool_registry(
                     "as_of_date": {"type": "string"},
                 },
                 "required": ["mode", "workspace_root"],
-                "additionalProperties": False,
-            },
-        ),
-        McpToolSpec(
-            name="study_runtime",
-            description=(
-                "Inspect or control study runtime through one task tool: domain_health_diagnostic, "
-                "progress_projection, or ensure_study_runtime. "
-                f"{STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION}"
-            ),
-            metadata=_tool_metadata(metadata_by_tool, "study_runtime"),
-            input_schema={
-                "type": "object",
-                "properties": {
-                    "mode": {"type": "string"},
-                    "profile_path": {"type": "string"},
-                    "quest_root": {"type": "string"},
-                    "runtime_root": {"type": "string"},
-                    "study_id": {"type": "string"},
-                    "study_root": {"type": "string"},
-                    "entry_mode": {"type": "string"},
-                    "allow_stopped_relaunch": {"type": "boolean"},
-                    "explicit_user_wakeup": {"type": "boolean"},
-                    "force": {"type": "boolean"},
-                },
-                "required": ["mode"],
                 "additionalProperties": False,
             },
         ),
@@ -210,7 +176,7 @@ def build_tool_registry(
                         "items": {"type": "string"},
                     },
                     "apply": {"type": "boolean"},
-                    "control_plane_snapshot": {"type": "object"},
+                    "authority_snapshot": {"type": "object"},
                     "retention_report": {"type": "object"},
                     "markdown": {"type": "boolean"},
                     "deep": {"type": "boolean"},

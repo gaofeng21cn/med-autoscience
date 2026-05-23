@@ -29,7 +29,7 @@ def test_pause_study_runtime_command_dispatches_controller(monkeypatch, tmp_path
             "quest_status": "paused",
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "pause_study_runtime", fake_pause)
+    monkeypatch.setattr(cli.domain_status_projection, "pause_study_runtime", fake_pause)
 
     exit_code = cli.main(
         [

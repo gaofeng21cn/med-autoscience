@@ -5,16 +5,12 @@ from typing import Any
 from typing import Callable
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionControllerAction
 from med_autoscience.controllers import domain_action_requests
 from med_autoscience.controllers import domain_action_request_lifecycle
 
 
-EnsureStudyRuntime = Callable[..., dict[str, Any]]
 RuntimeExecutionPayload = Callable[..., dict[str, Any]]
-RuntimeBackendForExecution = Callable[..., Any]
-DefaultRuntimeBackend = Callable[[], Any]
 RunGateClearingBatch = Callable[..., dict[str, Any]]
 RunQualityRepairBatch = Callable[..., dict[str, Any]]
 
@@ -27,62 +23,54 @@ def execute_controller_action(
     study_root: Path,
     quest_id: str,
     source: str,
-    ensure_study_runtime_fn: EnsureStudyRuntime,
+    ensure_study_runtime_fn: Callable[..., dict[str, Any]] | None = None,
     execution_payload_fn: RuntimeExecutionPayload,
     load_yaml_dict_fn: Callable[[Path], dict[str, Any]],
-    managed_runtime_backend_for_execution_fn: RuntimeBackendForExecution,
-    default_managed_runtime_backend_fn: DefaultRuntimeBackend,
     run_gate_clearing_batch_fn: RunGateClearingBatch,
     run_quality_repair_batch_fn: RunQualityRepairBatch,
 ) -> dict[str, Any]:
-    if action.action_type is StudyDecisionActionType.ENSURE_STUDY_RUNTIME:
-        result = ensure_study_runtime_fn(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            force=False,
-            source=source,
-        )
-    elif action.action_type is StudyDecisionActionType.ENSURE_STUDY_RUNTIME_RELAUNCH_STOPPED:
-        result = ensure_study_runtime_fn(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            allow_stopped_relaunch=True,
-            force=False,
-            source=source,
-        )
+    if action.action_type in {
+        StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT,
+        StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT_RELAUNCH,
+    }:
+        result = {
+            "ok": False,
+            "status": "opl_stage_attempt_admission_required",
+            "action": action.action_type.value,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "source": source,
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "mas_executes_runtime_attempt": False,
+            "provider_completion_is_domain_completion": False,
+            "typed_blocker": {
+                "blocker_type": "opl_stage_attempt_admission_required",
+                "owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+                "reason": "mas_runtime_attempt_execution_retired",
+                "required_handoff": "DomainIntent owner route must be hydrated by OPL current_control_state.",
+            },
+        }
     elif action.action_type in {StudyDecisionActionType.PAUSE_RUNTIME, StudyDecisionActionType.STOP_RUNTIME}:
-        execution = execution_payload_fn(
-            load_yaml_dict_fn(study_root / "study.yaml"),
-            profile=profile,
-        )
-        runtime_context = study_runtime_protocol.resolve_study_runtime_context(
-            profile=profile,
-            study_root=study_root,
-            study_id=study_id,
-            quest_id=quest_id,
-        )
-        managed_runtime_backend = (
-            managed_runtime_backend_for_execution_fn(
-                execution,
-                profile=profile,
-                runtime_root=runtime_context.runtime_root,
-            )
-            or default_managed_runtime_backend_fn()
-        )
-        if action.action_type is StudyDecisionActionType.PAUSE_RUNTIME:
-            result = managed_runtime_backend.pause_quest(
-                runtime_root=runtime_context.runtime_root,
-                quest_id=quest_id,
-                source=source,
-            )
-        else:
-            result = managed_runtime_backend.stop_quest(
-                runtime_root=runtime_context.runtime_root,
-                quest_id=quest_id,
-                source=source,
-            )
+        result = {
+            "ok": False,
+            "status": "opl_runtime_human_gate_required",
+            "action": action.action_type.value,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "source": source,
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "mas_executes_runtime_attempt": False,
+            "typed_blocker": {
+                "blocker_type": "opl_runtime_human_gate_required",
+                "owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+                "reason": "mas_pause_stop_runtime_execution_retired",
+                "required_handoff": "Pause/stop must go through OPL current_control_state human gate.",
+            },
+        }
     elif action.action_type is StudyDecisionActionType.RUN_GATE_CLEARING_BATCH:
         try:
             result = run_gate_clearing_batch_fn(
@@ -157,8 +145,8 @@ def execute_controller_action(
 def _permission_blocked_result(exc: PermissionError) -> dict[str, Any]:
     return {
         "ok": False,
-        "status": "control_plane_route_blocked",
-        "blocked_reason": "control_plane_route_blocked",
+        "status": "authority_route_blocked",
+        "blocked_reason": "authority_route_blocked",
         "message": str(exc),
         "next_owner": "MAS/controller",
     }

@@ -141,9 +141,9 @@ def test_control_plane_blocked_delivery_sync_does_not_count_as_closed() -> None:
         [
             {
                 "unit_id": "sync_submission_minimal_delivery",
-                "status": "control_plane_route_blocked",
+                "status": "authority_route_blocked",
                 "result": {
-                    "status": "control_plane_route_blocked",
+                    "status": "authority_route_blocked",
                     "source_signature": "source::abc",
                     "authority_source_signature": "source::abc",
                 },

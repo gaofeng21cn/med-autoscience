@@ -26,7 +26,7 @@ def _runtime_continuity_payload() -> dict[str, object]:
             "freshness_age_seconds": 1500,
             "evidence_refs": ["studies/001-risk/artifacts/runtime/session/latest.json"],
         },
-        "recovery_intent": {
+        "owner_receipt_handoff": {
             "current_action": "safe_reconcile_ready",
             "reason": "worker_stale",
             "next_owner": "mas_controller",
@@ -37,13 +37,14 @@ def _runtime_continuity_payload() -> dict[str, object]:
                 "publication_ready_authorized": False,
                 "submission_ready_authorized": False,
             },
-            "evidence_refs": ["studies/001-risk/artifacts/runtime/recovery_intent/latest.json"],
+            "evidence_refs": ["studies/001-risk/artifacts/runtime/owner_receipt_handoff/latest.json"],
         },
         "runtime_reconcile_trigger": {
             "safe_to_request": True,
             "recommended_command": (
-                "uv run python -m med_autoscience.cli domain-route-reconcile "
-                "--profile /workspace/profile.toml --studies 001-risk --dry-run"
+                "uv run python -m med_autoscience.cli owner-route-reconcile "
+                "--profile /workspace/profile.toml --studies 001-risk "
+                "--developer-supervisor-mode external_observe"
             ),
             "dedupe_fingerprint": "runtime-continuity-001",
             "will_start_llm": False,
@@ -178,22 +179,10 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert "studies/001-risk/artifacts/publication_eval/latest.json" in payload["source_refs"]
     assert payload["quality"]["summary"] == "证据链仍需补强。"
     assert payload["delivery"]["summary"] == "current package 尚未生成。"
-    assert payload["live_console"] == {
-        "available": True,
-        "label": "运行控制台",
-        "html_ref": "ops/mas/live-console/index.html",
-        "href": "../../../live-console/index.html?study_id=001-risk",
-        "scope": "study",
-        "study_id": "001-risk",
-        "capability_badge": "单篇运行控制台",
-        "session_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
-        "serve_command": "medautosci runtime live-console --profile <profile> --serve",
-        "authority": "read_only_runtime_observation",
-        "disabled_reason": None,
-    }
+    assert "live_console" not in payload
 
 
-def test_progress_portal_payload_can_disable_live_console_link_with_reason() -> None:
+def test_progress_portal_payload_has_no_private_live_console_link() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
 
     payload = module.build_progress_portal_payload(
@@ -202,14 +191,12 @@ def test_progress_portal_payload_can_disable_live_console_link_with_reason() -> 
         study_id="001-risk",
         progress_payload=_progress_payload(),
         generated_at="2026-05-08T01:05:00+00:00",
-        live_console_disabled_reason="runtime live console read model is not installed",
     )
     html = module.render_progress_portal_html(payload)
 
-    assert payload["live_console"]["available"] is False
-    assert payload["live_console"]["disabled_reason"] == "runtime live console read model is not installed"
-    assert "运行控制台不可用" in html
-    assert "runtime live console read model is not installed" in html
+    assert "live_console" not in payload
+    assert "运行控制台" not in html
+    assert "live-console" not in html
     assert "terminal/log stream" not in html
 
 
@@ -265,7 +252,7 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
         cockpit_payload={
             "workspace_status": "blocked",
             "workspace_alerts": [
-                "MAS scheduler local adapter runtime supervision 尚未注册。",
+                "OPL provider/runtime manager workspace supervision 尚未注册。",
                 "状态需要检查。",
                 "用户暂停或手动停驻，需显式恢复或新方案。",
                 "live worker 已超过 meaningful artifact delta 活动窗口，必须先恢复产物增量或写出平台修复终态。",
@@ -325,7 +312,7 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
     assert workspace["workspace_alert_items"][0]["current_output"] == "进度信号：有记录，但 worker 或 artifact delta 不满足继续推进证据。"
     assert workspace["workspace_alert_items"][0]["expected"]
     assert workspace["diagnostics"]["suppressed_alerts"] == [
-        "MAS scheduler local adapter runtime supervision 尚未注册。",
+        "OPL provider/runtime manager workspace supervision 尚未注册。",
         "用户暂停或手动停驻，需显式恢复或新方案。",
     ]
     assert workspace["diagnostics"]["suppressed_alert_items"][0]["source"] == "workspace_supervision.service.summary"
@@ -367,7 +354,7 @@ def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_work
             },
         },
         cockpit_payload={
-            "workspace_alerts": ["MAS scheduler local adapter runtime supervision 尚未注册。"],
+            "workspace_alerts": ["OPL provider/runtime manager workspace supervision 尚未注册。"],
             "studies": [
                 {
                     "study_id": "002-dm-china-us-mortality-attribution",
@@ -407,7 +394,7 @@ def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_work
     assert "mas-run-002" in html
     assert "mas-run-003" in html
     assert "诊断与修复建议" in html
-    assert "MAS scheduler local adapter runtime supervision 尚未注册。" in html
+    assert "OPL provider/runtime manager workspace supervision 尚未注册。" in html
     assert "Hermes-hosted runtime supervision 尚未注册。" not in html
     assert "runtime-supervision-status" not in html
     assert "--manager local" not in html
@@ -599,12 +586,10 @@ def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_withou
     assert projection["studies"][0]["study_id"] == "001-risk"
     assert projection["studies"][0]["macro_state"] == "质量修复/复审中"
     assert projection["studies"][0]["links"]["progress_payload_ref"] == "artifacts/runtime/progress_portal/latest.json"
-    assert projection["studies"][0]["links"]["conversation_read_model_ref"].endswith(
-        "conversation_read_model/latest.json"
-    )
-    assert projection["studies"][0]["actions"]["pause"]["owner"] == "mas_runtime_owner"
+    assert "conversation_read_model_ref" not in projection["studies"][0]["links"]
+    assert projection["studies"][0]["actions"]["pause"]["owner"] == "one-person-lab"
     assert projection["studies"][0]["actions"]["stop"]["confirmation_required"] is True
-    assert projection["terminal"]["mode"] == "read_only_tail"
+    assert projection["terminal"]["mode"] == "external_control_plane_required"
     assert projection["terminal"]["active_run_id"] == "run-001"
     assert projection["terminal"]["token_required"] is True
     assert projection["terminal"]["lease_required"] is True
@@ -643,38 +628,28 @@ def test_progress_portal_projects_runtime_continuity_without_new_authority() -> 
 
     continuity = payload["study"]["runtime_continuity"]
     impact = payload["study"]["production_blocker_impact"]
-    assert continuity["runtime_session"]["worker_state"] == "stale"
-    assert continuity["runtime_session"]["last_seen_at"] == "2026-05-08T00:40:00+00:00"
-    assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-001"
-    assert continuity["runtime_session"]["monitor_kind"] == "mas_per_run_worker_wrapper"
-    assert continuity["runtime_session"]["heartbeat_age_seconds"] == 420
-    assert continuity["runtime_session"]["will_start_llm"] is False
-    assert continuity["recovery_intent"]["current_action"] == "safe_reconcile_ready"
-    assert continuity["recovery_intent"]["next_owner"] == "mas_controller"
-    assert continuity["recovery_intent"]["authority"] == {
-        "quality_ready_authorized": False,
-        "publication_ready_authorized": False,
-        "submission_ready_authorized": False,
-    }
+    assert "runtime_session" not in continuity
+    assert "owner_receipt_handoff" not in continuity
+    assert continuity["surface_kind"] == "mas_domain_authority_control_projection"
+    assert continuity["opl_control_plane"]["runtime_control_owner"] == "one-person-lab"
+    assert continuity["opl_control_plane"]["stage_attempt_state_owned_by_mas"] is False
+    assert continuity["authority"]["quality_ready_authorized"] is False
     assert impact["surface_kind"] == "mas_production_blocker_impact_projection"
     assert impact["affects_output"] is True
     assert impact["next_owner"] == "mas_controller"
     assert impact["why_not_running"] == "worker heartbeat is stale; no new manuscript artifact delta"
     assert impact["same_fingerprint_or_handoff"] == "same_fingerprint"
-    assert impact["will_start_llm"] is False
-    assert impact["safe_reconcile_command"].endswith("--studies 001-risk --dry-run")
     assert impact["route"]["source_fingerprint"] == "runtime-continuity-001"
-    assert "studies/001-risk/artifacts/runtime/owner_route/latest.json" in impact["source_refs"]
+    assert "studies/001-risk/artifacts/autonomy/slo_status/latest.json" in impact["source_refs"]
     assert impact["authority"]["writes_authority_surface"] is False
-    assert payload["opl_handoff"]["runtime_continuity"]["recovery_intent"]["current_action"] == "safe_reconcile_ready"
-    assert payload["opl_handoff"]["production_blocker_impact"]["safe_reconcile_command"] == impact["safe_reconcile_command"]
-    assert "last worker heartbeat" in html
-    assert "will start LLM" in html
-    assert "safe_reconcile_ready" in html
+    assert payload["opl_handoff"]["runtime_continuity"]["opl_control_plane"]["runtime_control_owner"] == "one-person-lab"
+    assert "last worker heartbeat" not in html
+    assert "will start LLM" not in html
+    assert "safe_reconcile_ready" not in html
     assert "是否影响产出" in html
-    assert "safe reconcile command" in html
-    assert "--studies 001-risk --dry-run" in html
-    assert "run-stale-001" in html
+    assert "safe reconcile command" not in html
+    assert "--dry-run" not in html
+    assert "run-stale-001" not in html
     assert "quality_ready_authorized" not in html
     assert "MDS" not in html
 
@@ -687,8 +662,9 @@ def test_progress_portal_projects_outer_supervision_slo_conditions() -> None:
             "surface_kind": "outer_supervision_slo",
             "state": "due",
             "recommended_command": (
-                "uv run python -m med_autoscience.cli domain-route-reconcile "
-                "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
+                "uv run python -m med_autoscience.cli owner-route-reconcile "
+                "--profile /workspace/profile.toml --studies 001-risk "
+                "--developer-supervisor-mode external_observe"
             ),
         },
     }
@@ -716,14 +692,14 @@ def test_workspace_cockpit_study_item_projects_runtime_continuity() -> None:
 
     continuity = item["runtime_continuity"]
     impact = item["production_blocker_impact"]
-    assert continuity["runtime_session"]["worker_state"] == "stale"
-    assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-001"
-    assert continuity["recovery_intent"]["current_action"] == "safe_reconcile_ready"
-    assert continuity["recovery_intent"]["authority"]["submission_ready_authorized"] is False
+    assert "runtime_session" not in continuity
+    assert "owner_receipt_handoff" not in continuity
+    assert continuity["opl_control_plane"]["runtime_control_owner"] == "one-person-lab"
+    assert continuity["opl_control_plane"]["stage_attempt_state_owned_by_mas"] is False
     assert impact["next_owner"] == "mas_controller"
     assert impact["affects_output"] is True
     assert impact["same_fingerprint_or_handoff"] == "same_fingerprint"
-    assert impact["will_start_llm"] is False
+    assert "will_start_llm" not in impact
     assert item["outer_supervision_slo"]["state"] == "fresh"
 
 
@@ -946,76 +922,8 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     assert tabs_by_id["artifacts"] == {"id": "artifacts", "label": "产物", "status": "available"}
 
 
-def test_study_workbench_helper_renders_conversation_read_model_timeline() -> None:
+def test_study_workbench_helper_does_not_accept_runtime_conversation_read_model() -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
-    conversation_payload = {
-        "surface_kind": "mas_runtime_conversation_read_model",
-        "selected_study_id": "001-risk",
-        "read_only": True,
-        "timeline_summary": {
-            "item_count": 4,
-            "counts_by_kind": {
-                "user_message": 1,
-                "turn_receipt": 2,
-                "runtime_control_ref": 1,
-            },
-        },
-        "timeline": [
-            {
-                "sequence": 1,
-                "item_kind": "user_message",
-                "study_id": "001-risk",
-                "message_id": "msg-pending",
-                "message_status": "pending",
-                "content_ref": "content_present",
-                "source_ref": "runtime/quests/001/artifacts/runtime/user_message_queue.json",
-            },
-            {
-                "sequence": 2,
-                "item_kind": "turn_receipt",
-                "study_id": "001-risk",
-                "run_id": "run-001",
-                "turn_reason": "queued_user_messages",
-                "turn_status": "completed",
-                "source_ref": "runtime/quests/001/artifacts/runtime/turn_receipts.jsonl",
-            },
-            {
-                "sequence": 3,
-                "item_kind": "runtime_control_ref",
-                "study_id": "001-risk",
-                "event_name": "blocked_waiting_for_user",
-                "blocker_refs": [{"kind": "blocking_decision_request", "value": "confirm next route"}],
-                "source_ref": "runtime/quests/001/.ds/runtime_state.json",
-            },
-            {
-                "sequence": 4,
-                "item_kind": "turn_receipt",
-                "study_id": "other-study",
-                "run_id": "run-other",
-                "source_ref": "runtime/quests/other/artifacts/runtime/turn_receipts.jsonl",
-            },
-        ],
-        "source_refs": [
-            {
-                "surface_kind": "user_message_queue",
-                "study_id": "001-risk",
-                "source_ref": "runtime/quests/001/artifacts/runtime/user_message_queue.json",
-                "read_only": True,
-            },
-            {
-                "surface_kind": "turn_receipts_jsonl",
-                "study_id": "001-risk",
-                "source_ref": "runtime/quests/001/artifacts/runtime/turn_receipts.jsonl",
-                "read_only": True,
-            },
-            {
-                "surface_kind": "turn_receipts_jsonl",
-                "study_id": "other-study",
-                "source_ref": "runtime/quests/other/artifacts/runtime/turn_receipts.jsonl",
-                "read_only": True,
-            },
-        ],
-    }
 
     payload = parts.build_study_workbench_payload(
         progress=_progress_payload(),
@@ -1023,34 +931,21 @@ def test_study_workbench_helper_renders_conversation_read_model_timeline() -> No
         runtime={"study_id": "001-risk", "active_run_id": "run-001"},
         package={"study_id": "001-risk"},
         study_id="001-risk",
-        conversation_payload=conversation_payload,
     )
     html = parts.render_study_workbench_sections(payload)
 
-    assert {"id": "conversation", "label": "执行器对话", "status": "available"} in payload["tabs"]
-    assert payload["conversation"]["surface_kind"] == "mas_progress_portal_conversation_panel"
-    assert payload["conversation"]["status"] == "available"
-    assert payload["conversation"]["timeline_summary"]["item_count"] == 3
-    assert payload["conversation"]["timeline_summary"]["counts_by_kind"]["turn_receipt"] == 1
-    assert [item["item_kind"] for item in payload["conversation"]["timeline_items"]] == [
-        "user_message",
-        "turn_receipt",
-        "runtime_control_ref",
-    ]
-    assert "runtime/quests/other/artifacts/runtime/turn_receipts.jsonl" not in json.dumps(
-        payload["conversation"],
-        ensure_ascii=False,
-    )
-    assert "执行器对话" in html
-    assert "共 3 条；用户消息 1 条；执行回合 1 条；运行控制 1 条" in html
+    assert all(tab["id"] != "conversation" for tab in payload["tabs"])
+    assert "conversation" not in payload
+    assert "执行器对话" not in html
+    assert "runtime_conversation_read_model" not in json.dumps(payload, ensure_ascii=False)
     assert "共 4 条" not in html
-    assert "用户消息" in html
-    assert "msg-pending" in html
-    assert "执行回合" in html
+    assert "用户消息" not in html
+    assert "msg-pending" not in html
+    assert "执行回合" not in html
     assert "run-001" in html
-    assert "blocked_waiting_for_user" in html
-    assert "confirm next route" in html
-    assert "runtime/quests/001/artifacts/runtime/turn_receipts.jsonl" in html
+    assert "blocked_waiting_for_user" not in html
+    assert "confirm next route" not in html
+    assert "runtime/quests/001/artifacts/runtime/turn_receipts.jsonl" not in html
     assert "run-other" not in html
 
 
@@ -1090,7 +985,7 @@ def test_study_workbench_helper_fail_closes_missing_inputs_and_conflicts() -> No
         "package_study_id_mismatch",
         "cockpit_study_id_mismatch",
     ]
-    assert payload["conversation"]["status"] == "missing"
+    assert "conversation" not in payload
 
 
 def test_study_workbench_render_helper_returns_html_sections() -> None:

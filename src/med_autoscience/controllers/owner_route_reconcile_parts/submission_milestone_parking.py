@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_outer_loop
-from med_autoscience.controllers.owner_route_reconcile_parts import platform_repair_owner_route
+from med_autoscience.controllers.owner_route_reconcile_parts import opl_owner_route_handoff
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -54,7 +54,7 @@ def _submission_milestone_runtime_owner_handoff(
             "marked": False,
             "reason": "quest_root_missing",
         }
-    return platform_repair_owner_route.mark_owner_route_handoff(
+    return opl_owner_route_handoff.mark_owner_route_handoff(
         study_root=profile.studies_root / study_id,
         runtime_state_path=runtime_state_path,
         study_id=study_id,
@@ -289,7 +289,7 @@ def refresh_submission_milestone_parking(
         "controller_decision": dict(controller_decision),
         "queue_owner": "one-person-lab",
         "domain_truth_owner": "med-autoscience",
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "domain_route/owner-handoff",
         "runtime_owner_handoff": owner_route.get("handoff"),
         "repair_lifecycle": lifecycle,
         "paper_package_mutation_allowed": False,

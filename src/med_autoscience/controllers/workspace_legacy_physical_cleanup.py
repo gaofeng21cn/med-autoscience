@@ -114,7 +114,7 @@ def build_workspace_legacy_physical_cleanup_audit(*, profile_path: Path) -> dict
         profile.managed_runtime_home,
         legacy_root,
     )
-    replacement_ready = not active_runtime_uses_legacy_root and profile.managed_runtime_backend_id != "med_deepscientist"
+    replacement_ready = not active_runtime_uses_legacy_root and profile.opl_runtime_ref != "med_deepscientist"
     legacy_root_exists = legacy_root.exists()
     physical_root_allowed = legacy_root_exists and replacement_ready and not hard_blockers
     legacy_root_action = (
@@ -149,7 +149,7 @@ def build_workspace_legacy_physical_cleanup_audit(*, profile_path: Path) -> dict
             "active_runtime_root": str(profile.runtime_root),
             "active_managed_runtime_home": str(profile.managed_runtime_home),
             "active_runtime_uses_legacy_root": active_runtime_uses_legacy_root,
-            "managed_runtime_backend_id": profile.managed_runtime_backend_id,
+            "opl_runtime_ref": profile.opl_runtime_ref,
             "replacement_ready_for_cleanup_audit": replacement_ready,
         },
         "legacy_root_candidate": {
@@ -460,7 +460,8 @@ def _archive_legacy_root(*, legacy_root: Path, archive_root: Path, recorded_at: 
         "legacy_root": str(legacy_root),
         "archive_root": str(archive_root),
         "status": status,
-        "active_runtime_owner": "mas_runtime_core",
+        "active_runtime_owner": "one-person-lab",
+        "domain_intent_adapter": "mas_domain_intent_adapter",
         "legacy_role": "archived_historical_fixture_ref",
     }
     tombstone_path.parent.mkdir(parents=True, exist_ok=True)

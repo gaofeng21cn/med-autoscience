@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_progress, study_runtime_router
+from med_autoscience.controllers import study_progress, domain_status_projection
 from med_autoscience.controllers.product_entry_parts.shared import (
     SCHEMA_VERSION,
     WorkspaceProfile,
@@ -38,17 +38,22 @@ def launch_study(
         study_root=study_root,
     )
     runtime_status = _serialize_runtime_status(
-        study_runtime_router.ensure_study_runtime(
+        domain_status_projection.progress_projection(
             profile=profile,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             entry_mode=entry_mode,
-            allow_stopped_relaunch=allow_stopped_relaunch,
-            explicit_user_wakeup=explicit_user_wakeup,
-            force=force,
-            source="product_entry",
         )
     )
+    runtime_status["product_entry_launch_policy"] = {
+        "status": "opl_attempt_admission_required",
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "mas_executes_runtime_attempt": False,
+        "allow_stopped_relaunch_requested": bool(allow_stopped_relaunch),
+        "explicit_user_wakeup_requested": bool(explicit_user_wakeup),
+        "force_requested": bool(force),
+    }
     progress_payload = study_progress.build_study_progress_projection(
         profile=profile,
         profile_ref=profile_ref,
@@ -72,9 +77,14 @@ def launch_study(
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "cockpit": f"{_command_prefix(profile_ref)} workspace-cockpit --profile {_profile_arg(profile_ref)}",
-        "supervisor_tick": (
+        "owner_route_handoff": (
+            f"{_command_prefix(profile_ref)} owner-route-reconcile "
+            f"--profile {_profile_arg(profile_ref)} {_study_selector(study_id=resolved_study_id)} "
+            "--developer-supervisor-mode external_observe"
+        ),
+        "diagnostic_tick": (
             f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+            f"--profile {_profile_arg(profile_ref)}"
         ),
     }
     return {

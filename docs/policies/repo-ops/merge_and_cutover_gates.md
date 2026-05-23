@@ -60,8 +60,9 @@
 
 至少要有：
 
-- `tests/test_runtime_backend.py`
-- `tests/test_runtime_transport_hermes.py`
+- `tests/test_opl_runtime_contract.py`
+- `tests/test_opl_runtime_contract_no_provider_backend.py`
+- `tests/test_adapter_retirement_boundary.py`
 - `tests/test_runtime_protocol_layout.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`

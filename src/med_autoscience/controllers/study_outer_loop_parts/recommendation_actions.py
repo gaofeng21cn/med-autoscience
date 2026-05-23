@@ -353,8 +353,8 @@ def _promote_gate_needs_specificity_action(action_payload: dict[str, Any]) -> di
 
 def _autonomous_controller_action_type_for_runtime_status(status_payload: dict[str, Any]) -> str:
     if str(status_payload.get("reason") or "").strip() == "quest_stopped_requires_explicit_rerun":
-        return StudyDecisionActionType.ENSURE_STUDY_RUNTIME_RELAUNCH_STOPPED.value
-    return StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value
+        return StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT_RELAUNCH.value
+    return StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT.value
 
 
 def _quality_repair_batch_preempts_task_intake(batch_action: dict[str, Any] | None) -> bool:

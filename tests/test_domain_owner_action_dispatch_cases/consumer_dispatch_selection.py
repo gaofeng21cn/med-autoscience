@@ -75,7 +75,6 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
 
     monkeypatch.setattr(module, "_execute_publication_gate_specificity", fake_publication_gate_specificity)
     monkeypatch.setattr(module, "_execute_ai_reviewer_workflow", fail_stale_dispatch)
-    monkeypatch.setattr(module, "_execute_runtime_platform_repair", fail_stale_dispatch)
 
     result = module.dispatch_domain_owner_actions(
         profile=profile,

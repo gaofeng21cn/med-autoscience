@@ -85,11 +85,11 @@ def _build_family_persistence_policy_surface(
     if sqlite_ref is not None:
         lifecycle_ref_indexes.append(
             _persistence_surface(
-                surface_id="lifecycle_refs_sqlite",
-                surface_role="domain_lifecycle_refs_adapter",
-                storage_role="refs_only_lifecycle_ref_index",
+                surface_id="domain_authority_refs_sqlite",
+                surface_role="domain_authority_refs_index",
+                storage_role="refs_only_domain_authority_ref_index",
                 owner="one-person-lab",
-                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="runtime lifecycle SQLite refs index"),
+                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="domain authority refs SQLite index"),
                 rebuild_from_refs=[
                     _ref("/opl_family_persistence_lifecycle_owner_route_adoption/payload", label="adoption payload"),
                 ],
@@ -138,7 +138,9 @@ def _build_family_lifecycle_ledger_surface(
 ) -> dict[str, Any]:
     refs = dict(adoption.get("refs") or {})
     sqlite_refs_index = dict(refs.get("sqlite_refs_index") or {})
-    sqlite_ref = _non_empty_text(sqlite_refs_index.get("workspace_relative_path")) or "artifacts/runtime/runtime_lifecycle.sqlite"
+    sqlite_ref = _non_empty_text(sqlite_refs_index.get("workspace_relative_path")) or (
+        "artifacts/runtime/domain_authority_refs.sqlite"
+    )
     return {
         "surface_kind": "family_lifecycle_ledger",
         "version": "family-lifecycle-ledger.v1",

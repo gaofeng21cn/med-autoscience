@@ -7,15 +7,15 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import make_profile
 
 
-def test_lifecycle_store_builds_opl_family_adoption_surface_from_sidecar_refs(tmp_path: Path) -> None:
-    lifecycle_store = importlib.import_module("med_autoscience.runtime_protocol.lifecycle_refs_adapter")
+def test_domain_authority_refs_index_builds_opl_family_adoption_surface_from_sidecar_refs(tmp_path: Path) -> None:
+    refs_index = importlib.import_module("med_autoscience.runtime_protocol.domain_authority_refs_index")
+    adoption_module = importlib.import_module("med_autoscience.opl_domain_pack.family_adoption")
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"
     quest_root = workspace_root / "runtime" / "quests" / "quest-001"
-    db_path = lifecycle_store.workspace_lifecycle_store_path(workspace_root)
+    db_path = refs_index.workspace_authority_refs_index_path(workspace_root)
     owner_receipt_path = study_root / "artifacts" / "runtime" / "owner_route" / "latest.json"
     dispatch_receipt_path = quest_root / "artifacts" / "runtime" / "dispatch" / "dispatch-001.json"
-    surface_ref_path = study_root / "artifacts" / "runtime" / "surface_refs" / "domain_health_diagnostic.json"
     owner_receipt = {
         "surface": "domain_route_owner_route",
         "study_id": "001-risk",
@@ -37,66 +37,38 @@ def test_lifecycle_store_builds_opl_family_adoption_surface_from_sidecar_refs(tm
         "owner_route": owner_receipt,
         "status": "dispatched",
     }
-    surface_ref = {
-        "surface": "domain_health_diagnostic/latest.json",
-        "study_id": "001-risk",
-        "quest_id": "quest-001",
-        "ref_key": "domain_health_diagnostic",
-        "path": str(study_root / "artifacts" / "domain_health_diagnostic" / "latest.json"),
-        "sha256": "abc123",
-        "observed_at": "2026-05-06T00:02:00+00:00",
-    }
     for path, payload in (
         (owner_receipt_path, owner_receipt),
         (dispatch_receipt_path, dispatch_receipt),
-        (surface_ref_path, surface_ref),
     ):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    lifecycle_store.record_lineage_node(
-        workspace_root=workspace_root,
-        db_path=db_path,
-        node={
-            "node_id": "quest-001",
-            "node_kind": "quest",
-            "object_scope": "quest",
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "status": "active",
-        },
-    )
-    lifecycle_store.record_owner_route_receipt(
+    refs_index.record_owner_route_receipt(
         study_root=study_root,
         receipt=owner_receipt,
         receipt_path=owner_receipt_path,
         db_path=db_path,
     )
-    lifecycle_store.record_dispatch_receipt(
+    refs_index.record_dispatch_receipt(
         quest_root=quest_root,
         receipt=dispatch_receipt,
         receipt_path=dispatch_receipt_path,
         db_path=db_path,
     )
-    lifecycle_store.record_surface_ref(
-        object_root=study_root,
-        object_scope="study",
-        ref=surface_ref,
-        ref_path=surface_ref_path,
-        db_path=db_path,
-    )
 
-    surface = lifecycle_store.build_opl_family_adoption_surface(
+    surface = adoption_module.build_opl_family_adoption_surface(
         workspace_root=workspace_root,
         db_path=db_path,
     )
 
-    assert surface["surface_kind"] == "mas_opl_family_persistence_lifecycle_owner_route_adoption"
+    assert surface["surface_kind"] == "mas_opl_family_domain_authority_refs_adoption"
     assert surface["workspace_root"] == str(workspace_root.resolve())
     assert surface["refs"]["sqlite_refs_index"]["db_path"] == str(db_path.resolve())
+    assert surface["refs"]["sqlite_refs_index"]["workspace_relative_path"] == "artifacts/runtime/domain_authority_refs.sqlite"
     assert surface["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
-    assert surface["refs"]["runtime_lifecycle_contract"] == (
-        "med_autoscience.runtime_protocol.runtime_lifecycle_contract.runtime_lifecycle_contract"
+    assert surface["refs"]["domain_authority_refs_contract"] == (
+        "med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract"
     )
     assert surface["refs"]["authority_boundary"]["domain_truth_owner"] == "MedAutoScience"
     assert surface["refs"]["authority_boundary"]["opl_role"] == "OPL stage-runtime discovery and indexing only"
@@ -107,16 +79,13 @@ def test_lifecycle_store_builds_opl_family_adoption_surface_from_sidecar_refs(tm
         "paper/manuscript/current_package",
         "current_package.zip",
     ]
-    assert surface["payload"]["persistence"]["sqlite_tables"]["lineage_nodes"] == 1
+    assert surface["payload"]["persistence"]["sqlite_tables"]["owner_route_receipts"] == 1
+    assert surface["payload"]["persistence"]["sqlite_tables"]["dispatch_receipts"] == 1
     assert surface["payload"]["owner_route"]["current_ticket"]["idempotency_key"] == "route-001"
     assert surface["payload"]["owner_route"]["current_ticket"]["next_owner"] == "mas_controller"
     assert surface["payload"]["owner_route"]["allowed_actions"] == ["runtime-redrive"]
     assert surface["payload"]["lifecycle"]["dispatch_receipts"][0]["dispatch_id"] == "dispatch-001"
-    assert surface["payload"]["surface_refs"][0]["surface"] == "domain_health_diagnostic/latest.json"
-    assert surface["payload"]["surface_refs"][0]["target_path"].endswith(
-        "studies/001-risk/artifacts/domain_health_diagnostic/latest.json"
-    )
-    assert "publication_eval/latest.json" not in json.dumps(surface["payload"]["surface_refs"], ensure_ascii=False)
+    assert "publication_eval/latest.json" not in json.dumps(surface["payload"], ensure_ascii=False)
 
 
 def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp_path: Path) -> None:
@@ -127,25 +96,18 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
 
     adoption = payload["opl_family_persistence_lifecycle_owner_route_adoption"]
-    assert adoption["surface_kind"] == "mas_opl_family_persistence_lifecycle_owner_route_adoption"
+    assert adoption["surface_kind"] == "mas_opl_family_domain_authority_refs_adoption"
     assert adoption["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
-    assert adoption["refs"]["sqlite_refs_index"]["workspace_relative_path"] == "artifacts/runtime/runtime_lifecycle.sqlite"
+    assert adoption["refs"]["domain_authority_refs_contract"] == (
+        "med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract"
+    )
+    assert adoption["refs"]["sqlite_refs_index"]["workspace_relative_path"] == "artifacts/runtime/domain_authority_refs.sqlite"
     assert adoption["payload"]["persistence"]["source_tables"] == [
-        "lineage_nodes",
-        "lineage_edges",
-        "workspace_allocations",
-        "runtime_snapshots",
-        "snapshot_file_refs",
-        "revision_diffs",
-        "canvas_projection",
-        "study_macro_state_snapshots",
+        "authority_ref_metadata",
+        "archive_refs",
         "owner_route_receipts",
         "dispatch_receipts",
-        "turn_receipts",
         "paper_work_unit_receipts",
-        "surface_refs",
-        "archive_refs",
-        "report_index",
     ]
     assert adoption["payload"]["authority_boundary"]["publication_eval_owner"] == "MedAutoScience"
     assert adoption["payload"]["authority_boundary"]["ai_reviewer_owner"] == "MedAutoScience"
@@ -153,11 +115,11 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert payload["persistence_policy"]["surface_kind"] == "family_persistence_policy"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["owner"] == "one-person-lab"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["surface_role"] == (
-        "domain_lifecycle_refs_adapter"
+        "domain_authority_refs_index"
     )
-    assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["storage_role"] == "refs_only_lifecycle_ref_index"
+    assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["storage_role"] == "refs_only_domain_authority_ref_index"
     assert payload["persistence_policy"]["lifecycle_ref_indexes"][0]["ref"]["ref"] == (
-        "artifacts/runtime/runtime_lifecycle.sqlite"
+        "artifacts/runtime/domain_authority_refs.sqlite"
     )
     assert payload["lifecycle_ledger"]["surface_kind"] == "family_lifecycle_ledger"
     assert payload["lifecycle_ledger"]["actions"][0]["sha256"] == "0" * 64
@@ -174,8 +136,12 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert runtime_handoff["surface_kind"] == "mas_runtime_transport_handoff_projection"
     assert runtime_handoff["generic_runtime_owner"] == "one-person-lab"
     assert runtime_handoff["domain_owner"] == "med-autoscience"
-    assert runtime_handoff["mas_runtime_core_role"] == (
-        "domain_owner_receipt_adapter_or_standalone_diagnostic"
+    assert runtime_handoff["domain_intent_adapter_role"] == (
+        "refs_only_owner_route_typed_blocker_and_owner_receipt_handoff"
+    )
+    retired = {item["path"]: item for item in runtime_handoff["retired_runtime_transport_surfaces"]}
+    assert retired["src/med_autoscience/runtime_transport/mas_runtime_core.py"]["retirement_status"] == (
+        "physically_retired_no_alias"
     )
     assert runtime_handoff["default_caller_policy"] == {
         "default_online_runtime_owner": "one-person-lab",
@@ -208,20 +174,17 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert retirement_candidates["runtime_transport"]["physical_delete_permitted"] is False
     assert retirement_candidates["runtime_transport"]["active_default_caller_zero_proven"] is True
     assert retirement_candidates["runtime_transport"]["active_caller_zero_proven"] is False
-    assert retirement_candidates["lifecycle_refs_sqlite"]["retained_as"] == (
-        "refs_only_lifecycle_ref_index"
-    )
+    assert "domain_authority_refs_index" in runtime_handoff["opl_replacement_surfaces"]
     assert "generic_queue_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "generic_persistence_engine_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "provider_backed_family_runtime" in runtime_handoff["opl_replacement_surfaces"]
-    assert "runtime_lifecycle_index" in runtime_handoff["opl_replacement_surfaces"]
     code_path_roles = {item["path"]: item for item in runtime_handoff["code_path_roles"]}
     assert code_path_roles[
-        "src/med_autoscience/runtime_transport/mas_runtime_core.py"
-    ]["allowed_mas_role"] == "domain_owner_receipt_adapter"
+        "src/med_autoscience/runtime_transport/opl_provider_backed_stage_runtime.py"
+    ]["allowed_mas_role"] == "domain_intent_refs_and_typed_blocker_adapter"
     assert code_path_roles[
-        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py"
-    ]["current_role"] == "refs_only_lifecycle_refs_sqlite_index"
+        "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py"
+    ]["current_role"] == "refs_only_domain_authority_refs_index"
     cleanup_gates = {
         item["residue_id"]: item
         for item in runtime_handoff["physical_cleanup_gate"]["active_path_residue_cleanup_gates"]
@@ -233,35 +196,35 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "runtime_transport_core_bridge",
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
-        "lifecycle_refs_sqlite_index",
+        "domain_authority_refs_index",
         "workbench_shell_domain_projection_refs",
         "owner_route_handoff_adapter",
         "status_projection_domain_truth_refs",
         "legacy_supervisor_scheduler_tombstone",
     }
-    assert cleanup_gates["runtime_transport_core_bridge"]["active_caller_count"] > 0
-    assert cleanup_gates["runtime_transport_core_bridge"]["physical_delete_permitted"] is False
-    assert cleanup_gates["runtime_transport_core_bridge"]["no_active_caller_proven"] is False
-    assert cleanup_gates["lifecycle_refs_sqlite_index"]["current_role"] == (
-        "refs_only_domain_receipt_locator_and_lifecycle_ref_index"
+    assert cleanup_gates["runtime_transport_core_bridge"]["active_caller_count"] == 0
+    assert cleanup_gates["runtime_transport_core_bridge"]["physical_delete_permitted"] is True
+    assert cleanup_gates["runtime_transport_core_bridge"]["physical_delete_completed"] is True
+    assert cleanup_gates["runtime_transport_core_bridge"]["no_active_caller_proven"] is True
+    assert cleanup_gates["domain_authority_refs_index"]["current_role"] == (
+        "refs_only_domain_authority_receipt_index"
     )
     lane_d_closeout = runtime_handoff["physical_cleanup_gate"]["lane_d_closeout"]
     assert lane_d_closeout["status"] == "gated_retained_refs_only_or_diagnostic_residue"
     assert lane_d_closeout["delete_or_archive_authorized"] is False
     assert lane_d_closeout["tombstone_new_active_residue_authorized"] is False
     assert lane_d_closeout["no_alias_facade_compat_wrapper_allowed"] is True
-    assert set(lane_d_closeout["retained_residue_ids"]) == {
+    assert not {
         "runtime_transport_core_bridge",
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
-        "lifecycle_refs_sqlite_index",
+    } & set(lane_d_closeout["retained_residue_ids"])
+    assert {
+        "domain_authority_refs_index",
         "workbench_shell_domain_projection_refs",
         "owner_route_handoff_adapter",
         "status_projection_domain_truth_refs",
-    }
-    assert lane_d_closeout["retained_residue_reasons"]["worker_lease_residency_projection"][
-        "active_caller_status"
-    ] == "active_runtime_worker_diagnostic_caller_present"
+    } <= set(lane_d_closeout["retained_residue_ids"])
     assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
         "domain_projection_refs_for_opl_workbench"
     )
@@ -287,14 +250,14 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     )
     inventory = payload["opl_lifecycle_inventory"]
     assert inventory == provider["lifecycle_inventory"]
-    lifecycle_index = next(
-        item for item in inventory["framework_generic"] if item["item_id"] == "lifecycle_refs_sqlite_index"
+    authority_index = next(
+        item for item in inventory["framework_generic"] if item["item_id"] == "domain_authority_refs_index"
     )
-    assert "lifecycle refs adapter" in lifecycle_index["summary"]
-    assert "generic persistence/lifecycle replacement contract" in lifecycle_index["summary"]
+    assert "domain authority refs" in authority_index["summary"]
+    assert "generic persistence/lifecycle replacement contract" in authority_index["summary"]
     assert {item["item_id"] for item in inventory["framework_generic"]} == {
         "provider_stage_attempt",
-        "lifecycle_refs_sqlite_index",
+        "domain_authority_refs_index",
         "artifact_locator_and_retention_projection",
         "operator_projection_cache",
     }

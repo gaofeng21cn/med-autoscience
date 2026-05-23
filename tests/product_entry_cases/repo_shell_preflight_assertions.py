@@ -61,11 +61,11 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     ),
                 },
                 {
-                    "check_id": "mas_runtime_core_ready",
-                    "title": "MAS Runtime Core Ready",
+                    "check_id": "opl_provider_stage_runtime_ready",
+                    "title": "OPL Provider Stage Runtime Ready",
                     "status": "pass",
                     "blocking": True,
-                    "summary": "MAS runtime core contract 已就位。",
+                    "summary": "OPL provider stage runtime contract 已就位。",
                     "command": (
                         "uv run python -m med_autoscience.cli doctor --profile "
                         + str(profile_ref.resolve())
@@ -87,12 +87,13 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "title": "Workspace Supervision Contract Ready",
                     "status": "pass",
                     "blocking": True,
-                    "summary": "OPL scheduler replacement projection 已 ready。",
-                "command": (
-                    "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile "
-                    + str(profile_ref.resolve())
-                ),
-            },
+                    "summary": "OPL current-control-state handoff 已 ready。",
+                    "command": (
+                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        + str(profile_ref.resolve())
+                        + " --format json"
+                    ),
+                },
             ],
         }
 
@@ -112,7 +113,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
                     ),
                 },
                 {
@@ -137,8 +138,8 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 },
                 {
                     "guardrail_id": "runtime_recovery_required",
-                    "trigger": "study-progress intervention_lane / runtime_supervision health_status / workspace-cockpit attention queue",
-                    "symptom": "托管运行恢复失败、健康降级或长期停在恢复态，当前必须优先处理 runtime recovery。",
+                    "trigger": "study-progress intervention_lane / OPL current_control_state handoff / workspace-cockpit attention queue",
+                    "symptom": "OPL stage/runtime owner handoff 或 MAS domain diagnostic 显示运行恢复失败，当前必须优先处理 runtime recovery。",
                     "recommended_command": (
                         "uv run python -m med_autoscience.cli launch-study --profile "
                         + str(profile_ref.resolve())
@@ -169,7 +170,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
                     ),
                     "surface_kind": "domain_health_diagnostic_refresh",
                 },

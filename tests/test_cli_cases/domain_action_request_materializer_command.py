@@ -113,14 +113,12 @@ def test_domain_owner_action_dispatch_command_dispatches_controller(monkeypatch,
         action_types,
         mode: str,
         apply: bool,
-        managed_runtime_worker: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_ids"] = study_ids
         called["action_types"] = action_types
         called["mode"] = mode
         called["apply"] = apply
-        called["managed_runtime_worker"] = managed_runtime_worker
         return {
             "surface": "default_executor_dispatch_executor",
             "execution_count": len(study_ids),
@@ -142,7 +140,6 @@ def test_domain_owner_action_dispatch_command_dispatches_controller(monkeypatch,
             "NF003",
             "DM002",
             "--action-types",
-            "runtime_platform_repair",
             "return_to_ai_reviewer_workflow",
             "--mode",
             "developer_apply_safe",
@@ -154,14 +151,13 @@ def test_domain_owner_action_dispatch_command_dispatches_controller(monkeypatch,
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
     assert called["study_ids"] == ("NF003", "DM002")
-    assert called["action_types"] == ("runtime_platform_repair", "return_to_ai_reviewer_workflow")
+    assert called["action_types"] == ("return_to_ai_reviewer_workflow",)
     assert called["mode"] == "developer_apply_safe"
     assert called["apply"] is True
-    assert called["managed_runtime_worker"] is False
     assert json.loads(captured.out)["surface"] == "default_executor_dispatch_executor"
 
 
-def test_domain_owner_action_dispatch_command_accepts_managed_runtime_worker_flag(
+def test_domain_owner_action_dispatch_command_rejects_retired_worker_flag(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -178,17 +174,14 @@ def test_domain_owner_action_dispatch_command_accepts_managed_runtime_worker_fla
         action_types,
         mode: str,
         apply: bool,
-        managed_runtime_worker: bool,
     ) -> dict[str, object]:
         called["profile"] = profile
         called["study_ids"] = study_ids
         called["action_types"] = action_types
         called["mode"] = mode
         called["apply"] = apply
-        called["managed_runtime_worker"] = managed_runtime_worker
         return {
             "surface": "default_executor_dispatch_executor",
-            "managed_runtime_worker": managed_runtime_worker,
         }
 
     monkeypatch.setattr(
@@ -197,6 +190,7 @@ def test_domain_owner_action_dispatch_command_accepts_managed_runtime_worker_fla
         fake_dispatch_domain_owner_actions,
     )
 
+    retired_worker_flag = "--" + "managed-runtime" + "-worker"
     exit_code = cli.main(
         [
             "runtime",
@@ -210,19 +204,14 @@ def test_domain_owner_action_dispatch_command_accepts_managed_runtime_worker_fla
             "--mode",
             "developer_apply_safe",
             "--apply",
-            "--managed-runtime-worker",
+            retired_worker_flag,
         ]
     )
-    captured = capsys.readouterr()
+    err = capsys.readouterr().err
 
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["study_ids"] == ("DM003",)
-    assert called["action_types"] == ("return_to_ai_reviewer_workflow",)
-    assert called["mode"] == "developer_apply_safe"
-    assert called["apply"] is True
-    assert called["managed_runtime_worker"] is True
-    assert json.loads(captured.out)["managed_runtime_worker"] is True
+    assert exit_code == 2
+    assert called == {}
+    assert retired_worker_flag in err
 
 
 def test_domain_owner_refresh_controller_decisions_command_dispatches_controller(

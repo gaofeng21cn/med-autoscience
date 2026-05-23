@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers import control_plane_state
+from med_autoscience.controllers import autonomy_state_surface
 
 
-AUTONOMY_STATES = control_plane_state.CONTROL_PLANE_STATES
+AUTONOMY_STATES = autonomy_state_surface.AUTONOMY_STATES
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -18,19 +18,19 @@ def _text(value: object) -> str | None:
 
 
 def autonomy_state_catalog() -> dict[str, dict[str, Any]]:
-    return control_plane_state.control_plane_state_catalog()
+    return autonomy_state_surface.autonomy_state_surface_catalog()
 
 
 def state_spec(state: str) -> dict[str, Any]:
-    return control_plane_state.control_plane_state_spec(state)
+    return autonomy_state_surface.autonomy_state_surface_spec(state)
 
 
 def resolve_autonomy_state(profile_payload: Mapping[str, Any]) -> str:
-    return control_plane_state.resolve_control_plane_state(profile_payload)
+    return autonomy_state_surface.resolve_autonomy_state_surface(profile_payload)
 
 
 def build_autonomy_state_machine_surface(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
-    canonical = control_plane_state.build_control_plane_state_surface(profile_payload)
+    canonical = autonomy_state_surface.build_autonomy_state_surface(profile_payload)
     current_state = canonical["current_state"]
     current_state_spec = _mapping(canonical["current_state_spec"])
     return {
@@ -40,8 +40,8 @@ def build_autonomy_state_machine_surface(profile_payload: Mapping[str, Any]) -> 
         "quest_id": _text(profile_payload.get("quest_id")),
         "current_state": current_state,
         "current_state_spec": dict(current_state_spec),
-        "control_plane_state": canonical,
-        "control_plane_facts": canonical["control_plane_facts"],
+        "autonomy_state_surface": canonical,
+        "opl_runtime_refs": canonical["opl_runtime_refs"],
         "auto_runtime_parked": canonical["auto_runtime_parked"],
         "runtime_failure_classification": canonical["runtime_failure_classification"],
         "states": canonical["states"],

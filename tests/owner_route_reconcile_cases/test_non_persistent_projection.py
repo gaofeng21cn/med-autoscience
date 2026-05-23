@@ -40,7 +40,7 @@ def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
     before = latest_path.read_text(encoding="utf-8")
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -100,7 +100,7 @@ def test_scan_domain_routes_rejects_unknown_study_id_before_reading_status(
     def fail_if_called(**_: object) -> dict[str, object]:
         raise AssertionError("unknown study ids must be rejected before runtime status is read")
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", fail_if_called)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", fail_if_called)
     monkeypatch.setattr(module.study_progress, "read_study_progress", fail_if_called)
 
     with pytest.raises(ValueError, match="Unknown supervisor study_id: DM002"):

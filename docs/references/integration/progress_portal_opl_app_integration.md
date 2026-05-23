@@ -9,7 +9,7 @@ Owner: `MedAutoScience Product Projection + OPL integration boundary`
 
 MAS Progress Portal 与 OPL App 进度看板服务同一个用户目的：让医生、PI 和维护者快速知道研究线当前在哪里、下一步是什么、哪里需要人工判断、文件在哪里。最佳集成形态是 owner-preserving projection：
 
-- `MAS` 持有 domain-owned progress portal payload、conversation read model、Live Console read model、terminal attach gate、runtime control receipt 和 workspace-local HTML legacy_restore_import。
+- `MAS` 持有 domain-owned progress portal payload、route/domain projection、runtime control receipt 和 workspace-local HTML legacy_restore_import；旧 conversation / Live Console / terminal attach read model 只作为 history/provenance。
 - `OPL App` 持有 family-level dashboard、Runtime Workbench、workspace/session/progress/artifact 聚合视图、通知、approval transport 和 terminal UI shell。
 - OPL 只消费 MAS read-model / payload refs，不重新解释 study truth。
 
@@ -75,12 +75,9 @@ OPL App 的最优 UI 是 App-native Runtime Workbench，而不是复制 MAS Port
 OPL App 的 MAS study workbench 应直接消费以下 MAS read model 或它们的稳定 projection：
 
 - `artifacts/runtime/progress_portal/latest.json`
-- `artifacts/runtime/conversation_read_model/latest.json`
-- `artifacts/runtime/live_console/session_read_model/latest.json`
-- `artifacts/runtime/terminal_attach/read_model/latest.json`
 - action receipt refs under `artifacts/runtime/progress_portal/action_receipts/`
 
-交互式 terminal 必须由 MAS terminal attach owner gate 授权。OPL App 可以提供 terminal UI shell，但不能直接写 per-run command queue、runtime state、runtime SQLite、publication eval、controller decisions 或 package authority。
+terminal/log/provider drilldown 必须来自 OPL `current_control_state` 或 provider attempt projection。OPL App 可以提供 terminal UI shell，但 MAS 不提供 terminal attach owner gate；任何 UI 都不能直接写 per-run command queue、runtime state、runtime SQLite、publication eval、controller decisions 或 package authority。
 
 ## 禁止升级的边界
 
@@ -122,6 +119,6 @@ OPL App 可以把该 bundle 映射到 family dashboard 和 App-native Runtime Wo
 - MAS payload 与 `study-progress`、`workspace-cockpit` 和 runtime/publication durable refs 一致。
 - OPL App 能读取 payload/html refs 并展示 family-level progress item。
 - OPL dashboard 显示 freshness、source refs 和 stale/missing/conflict，不把缺口改写成 ready。
-- OPL App 内 MAS study workbench 能显示进度、路线/决策、执行器对话、terminal/log tail、artifact refs 和可用/不可用 action。
-- terminal attach 可用时通过 MAS token/lease/idempotency/audit 发送 input/resize/detach；不可用时显示 MAS gate reason。
+- OPL App 内 MAS study workbench 能显示进度、路线/决策、artifact refs、可用/不可用 action，并并列展示 OPL `current_control_state` 的 runtime drilldown refs。
+- terminal/log/provider drilldown 来自 OPL projection；MAS 不接收 terminal input/resize/detach，也不显示 MAS gate reason。
 - OPL 集成不写 MAS study truth、publication truth、runtime authority、evidence/review ledger 或 artifact authority。

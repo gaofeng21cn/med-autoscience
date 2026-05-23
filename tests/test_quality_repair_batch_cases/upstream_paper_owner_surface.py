@@ -145,8 +145,8 @@ def _mark_publication_eval_as_specific_upstream_repair(
 
 def _paper_write_supervisor_route_context() -> dict[str, Any]:
     return {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "supervisor_gated",
             "canonical_next_action": "resume_same_study_line",
             "authority_refs": {"study_truth": {"epoch": "truth-1"}, "runtime_health": {"epoch": "runtime-1"}},
@@ -305,8 +305,8 @@ def test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bund
         "work_unit_fingerprint": "submission-minimal::dm002",
     }
     route_context = {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "blocked_runtime_escalation",
             "canonical_next_action": "resume_same_study_line",
             "authority_refs": {
@@ -331,7 +331,7 @@ def test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bund
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
@@ -346,7 +346,7 @@ def test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bund
         module.gate_clearing_batch,
         "run_gate_clearing_batch",
         lambda **kwargs: (
-            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            seen.setdefault("gate_context", kwargs["authority_route_context"]),
             {"ok": True, "status": "executed", "unit_results": []},
         )[1],
     )
@@ -359,9 +359,9 @@ def test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bund
         source="test-source",
     )
 
-    assert result["control_plane_route_gate"]["allowed"] is True
-    assert result["control_plane_route_gate"]["action"] == "paper_write"
-    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == (
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["action"] == "paper_write"
+    assert result["authority_route_gate"]["controller_route_gate"]["work_unit_id"] == (
         "analysis_claim_evidence_repair"
     )
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
@@ -455,8 +455,8 @@ def test_run_quality_repair_batch_uses_task_intake_override_over_raw_bundle_summ
         "work_unit_fingerprint": "submission-minimal::dm002",
     }
     route_context = {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "blocked_runtime_escalation",
             "canonical_next_action": "resume_same_study_line",
             "authority_refs": {
@@ -481,7 +481,7 @@ def test_run_quality_repair_batch_uses_task_intake_override_over_raw_bundle_summ
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
@@ -496,7 +496,7 @@ def test_run_quality_repair_batch_uses_task_intake_override_over_raw_bundle_summ
         module.gate_clearing_batch,
         "run_gate_clearing_batch",
         lambda **kwargs: (
-            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            seen.setdefault("gate_context", kwargs["authority_route_context"]),
             {"ok": True, "status": "executed", "unit_results": []},
         )[1],
     )
@@ -509,8 +509,8 @@ def test_run_quality_repair_batch_uses_task_intake_override_over_raw_bundle_summ
         source="test-source",
     )
 
-    assert result["control_plane_route_gate"]["allowed"] is True
-    assert result["control_plane_route_gate"]["action"] == "paper_write"
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["action"] == "paper_write"
     assert result["quality_closure_state"] == "quality_repair_required"
     assert result["quality_execution_lane_id"] == "general_quality_repair"
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
@@ -556,7 +556,7 @@ def test_run_quality_repair_batch_materializes_canonical_paper_owner_surface_for
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     canonical_paper_root = study_root / "paper"
@@ -611,7 +611,7 @@ def test_run_quality_repair_batch_rejects_invalid_projected_blueprint_as_canonic
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     canonical_paper_root = study_root / "paper"
@@ -654,7 +654,7 @@ def test_run_quality_repair_batch_does_not_materialize_paper_owner_surface_witho
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     assert result["source_eval_id"] == publication_eval_payload["eval_id"]
@@ -711,7 +711,7 @@ def test_run_quality_repair_batch_materializes_owner_surface_from_hydration_proj
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     canonical_paper_root = study_root / "paper"
@@ -906,7 +906,7 @@ def test_quality_repair_batch_upstream_work_unit_writes_canonical_delta_and_ai_r
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     assert result["source_eval_id"] == publication_eval_payload["eval_id"]

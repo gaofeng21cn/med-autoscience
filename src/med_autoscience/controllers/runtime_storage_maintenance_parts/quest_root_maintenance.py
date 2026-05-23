@@ -14,7 +14,7 @@ from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
-from med_autoscience.runtime_protocol import lifecycle_refs_adapter
+from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 
 SCHEMA_VERSION = 1
@@ -149,7 +149,7 @@ def _apply_restore_proof_compaction(
     result["restore_proof_compaction"] = compaction_result
     archive_ref = compaction_result.get("archive_ref")
     if isinstance(archive_ref, Mapping):
-        result["runtime_lifecycle_archive_index"] = lifecycle_refs_adapter.record_archive_ref(
+        result["domain_authority_archive_ref_index"] = domain_authority_refs_index.record_archive_ref(
             quest_root=quest_root,
             archive_ref=archive_ref,
         )

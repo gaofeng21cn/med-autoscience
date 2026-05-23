@@ -13,12 +13,12 @@ from med_autoscience.publication_profiles import (
     normalize_publication_profile,
 )
 from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_delivery_lifecycle_hook
-from med_autoscience.controllers.control_plane_route_gate import (
-    attach_control_plane_route_gate,
+from med_autoscience.controllers.authority_route_gate import (
+    attach_authority_route_gate,
 )
-from med_autoscience.controllers.control_plane_write_route import (
-    blocked_control_plane_write_payload,
-    resolve_control_plane_write_route_context,
+from med_autoscience.controllers.authority_write_route import (
+    blocked_authority_write_payload,
+    resolve_authority_write_route_context,
 )
 
 from .staging_and_sources import (

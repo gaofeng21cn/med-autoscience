@@ -22,7 +22,7 @@ class ProjectionSurfacePayloads:
     controller_decision_payload: dict[str, Any] | None
     controller_confirmation_summary_path: Path
     controller_confirmation_summary: dict[str, Any] | None
-    runtime_supervision_payload: dict[str, Any] | None
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None
     runtime_escalation_payload: dict[str, Any] | None
     domain_health_diagnostic_payload: dict[str, Any] | None
     gate_clearing_batch_payload: dict[str, Any] | None
@@ -76,7 +76,7 @@ def read_projection_surface_payloads(
         controller_decision_payload=controller_decision_payload,
         controller_confirmation_summary_path=controller_confirmation_summary_path,
         controller_confirmation_summary=controller_confirmation_summary,
-        runtime_supervision_payload=_read_json_object(paths.runtime_supervision_path),
+        opl_runtime_owner_handoff_payload=_read_json_object(paths.opl_runtime_owner_handoff_path),
         runtime_escalation_payload=_runtime_escalation_payload(
             status=status,
             runtime_health_status=runtime_health_status,

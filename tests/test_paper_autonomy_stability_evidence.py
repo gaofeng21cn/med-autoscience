@@ -64,22 +64,9 @@ def _write_display_refs(workspace: Path) -> None:
         workspace / "artifacts" / "runtime" / "progress_portal" / "latest.json",
         {"surface_kind": "mas_progress_portal", "study": {"study_id": "001-active"}},
     )
-    _write_json(
-        workspace / "artifacts" / "runtime" / "live_console" / "session_read_model" / "latest.json",
-        {"surface_kind": "mas_live_console_session_read_model", "selected_study_id": "001-active"},
-    )
-    _write_json(
-        workspace / "artifacts" / "runtime" / "live_console" / "ui_payload" / "latest.json",
-        {"surface_kind": "mas_live_console_ui", "selected_study_id": "001-active"},
-    )
     (workspace / "ops" / "mas" / "progress").mkdir(parents=True, exist_ok=True)
     (workspace / "ops" / "mas" / "progress" / "index.html").write_text(
         "<!doctype html><title>Med Auto Science</title>\n",
-        encoding="utf-8",
-    )
-    (workspace / "ops" / "mas" / "live-console").mkdir(parents=True, exist_ok=True)
-    (workspace / "ops" / "mas" / "live-console" / "index.html").write_text(
-        "<!doctype html><title>MAS runtime console</title>\n",
         encoding="utf-8",
     )
 

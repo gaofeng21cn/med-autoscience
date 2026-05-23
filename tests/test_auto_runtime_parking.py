@@ -479,7 +479,7 @@ def test_study_progress_task_intake_supersedes_prior_parked_projection(
     )
 
     monkeypatch.setattr(
-        progress.study_runtime_router,
+        progress.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -516,7 +516,7 @@ def test_study_progress_does_not_show_explicit_resume_when_runtime_recovery_is_r
     quest_root = profile.runtime_root / "002-dm-china-us-mortality-attribution"
 
     monkeypatch.setattr(
-        progress.study_runtime_router,
+        progress.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

@@ -33,7 +33,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
         "workspace_supervision": {
             "summary": "当前需要盯住 runtime 监管与投稿包一致性。",
             "service": {
-                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+                "summary": "OPL provider/runtime manager workspace supervision 已在线。",
             },
             "study_counts": {
                 "supervisor_gap": 0,
@@ -179,7 +179,7 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
             workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+                "summary": "OPL provider/runtime manager workspace supervision 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -192,7 +192,7 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
             "status": "loaded",
             "loaded": True,
             "job_exists": True,
-            "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+            "summary": "OPL provider/runtime manager workspace supervision 已在线。",
             "drift_reasons": [],
         },
     )

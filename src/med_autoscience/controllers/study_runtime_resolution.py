@@ -4,7 +4,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
-from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience import opl_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 
 __all__ = [
@@ -18,7 +18,7 @@ _MAS_NATIVE_ENGINE_IDS = {"med-autoscience", "med_autoscience"}
 
 
 def _router_module():
-    return import_module("med_autoscience.controllers.study_runtime_router")
+    return import_module("med_autoscience.controllers.domain_status_projection")
 
 
 def _load_yaml_dict(path: Path) -> dict[str, Any]:
@@ -67,34 +67,35 @@ def _execution_payload(
         return execution_payload
 
     normalized_execution = dict(execution_payload)
-    explicit_backend_id = runtime_backend_contract.explicit_runtime_backend_id(normalized_execution)
-    if explicit_backend_id is None and str(normalized_execution.get("auto_entry") or "").strip() == "on_managed_research_intent":
-        profile_backend_id = str(profile.managed_runtime_backend_id or "").strip()
-        legacy_backend_id = runtime_backend_contract.runtime_backend_id_from_execution(normalized_execution)
+    explicit_runtime_ref = opl_runtime_contract.explicit_opl_runtime_ref(normalized_execution)
+    if explicit_runtime_ref is None and str(normalized_execution.get("auto_entry") or "").strip() == "on_managed_research_intent":
+        profile_runtime_ref = str(profile.opl_runtime_ref or "").strip()
+        legacy_runtime_ref = normalized_execution.get("runtime_backend_id") or normalized_execution.get("runtime_backend")
+        legacy_runtime_ref = str(legacy_runtime_ref or "").strip() or None
         engine_text = str(normalized_execution.get("engine") or "").strip()
-        should_apply_profile_backend = legacy_backend_id == "med_deepscientist" or (
-            legacy_backend_id is None
+        should_apply_profile_runtime = legacy_runtime_ref == "med_deepscientist" or (
+            legacy_runtime_ref is None
             and (
                 not engine_text
                 or engine_text in _LEGACY_MDS_ENGINE_IDS
                 or engine_text in _MAS_NATIVE_ENGINE_IDS
             )
         )
-        if profile_backend_id and should_apply_profile_backend:
-            normalized_execution["runtime_backend_id"] = profile_backend_id
-            normalized_execution["runtime_backend"] = profile_backend_id
-            normalized_execution["runtime_engine_id"] = runtime_backend_contract.engine_id_for_backend_id(profile_backend_id)
-            research_backend_id, research_engine_id = runtime_backend_contract.controlled_research_backend_metadata_for_backend_id(
-                profile_backend_id
+        if profile_runtime_ref and should_apply_profile_runtime:
+            normalized_execution["opl_runtime_ref"] = profile_runtime_ref
+            normalized_execution["runtime_ref"] = profile_runtime_ref
+            normalized_execution["runtime_engine_id"] = opl_runtime_contract.engine_id_for_runtime_ref(profile_runtime_ref)
+            research_backend_id, research_engine_id = opl_runtime_contract.controlled_research_backend_metadata_for_runtime_ref(
+                profile_runtime_ref
             )
             normalized_execution.setdefault("research_backend_id", research_backend_id)
             normalized_execution.setdefault("research_backend", research_backend_id)
             normalized_execution.setdefault("research_engine_id", research_engine_id)
     else:
-        resolved_backend_id = runtime_backend_contract.runtime_backend_id_from_execution(normalized_execution)
-        if resolved_backend_id is not None:
-            research_backend_id, research_engine_id = runtime_backend_contract.controlled_research_backend_metadata_for_backend_id(
-                resolved_backend_id
+        resolved_runtime_ref = opl_runtime_contract.explicit_opl_runtime_ref(normalized_execution)
+        if resolved_runtime_ref is not None:
+            research_backend_id, research_engine_id = opl_runtime_contract.controlled_research_backend_metadata_for_runtime_ref(
+                resolved_runtime_ref
             )
             normalized_execution.setdefault("research_backend_id", research_backend_id)
             normalized_execution.setdefault("research_backend", research_backend_id)

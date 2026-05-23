@@ -1,6 +1,6 @@
 # Durable Workflow Contract
 
-Runtime OS 的目标是让长时研究任务可暂停、可恢复、可重放、可审计。它只持有运行健康与恢复动作，不持有医学论文质量判断。
+Durable workflow 的目标是让长时研究任务可暂停、可恢复、可重放、可审计。当前 generic workflow / attempt / retry / dead-letter owner 是 OPL；MAS 只消费 OPL event refs，并输出 DomainIntent、owner receipt、typed blocker 与 domain diagnostic refs。它不持有医学论文质量判断，也不持有 MAS 私有 runtime 控制面。
 
 ## State Model
 
@@ -16,7 +16,7 @@ Runtime OS 的目标是让长时研究任务可暂停、可恢复、可重放、
 
 ## Event Replay
 
-Runtime OS 必须用 durable event log 恢复状态。replay 从 `restore_point_id` 开始，按 `recorded_at` 排序，用 `event_id` 去重；重放结果必须能重建 `active_state`、`active_run_id`、`work_unit_id`、`retry_budget_remaining` 与 `pending_human_gate_decision_id`。允许的 event classes 包括 runtime observation、worker heartbeat、artifact delta、route-back decision、human gate decision、recovery attempt 与 retry budget decrement。
+OPL runtime 必须用 durable event log 恢复状态。replay 从 `restore_point_id` 开始，按 `recorded_at` 排序，用 `event_id` 去重；重放结果必须能重建 `active_state`、`active_run_id`、`work_unit_id`、`retry_budget_remaining` 与 `pending_human_gate_decision_id`。MAS 可以消费这些 refs 来签 owner receipt、typed blocker 或 domain diagnostic blocker，但不能把它们复制成 MAS-owned runtime lifecycle/read-model/scheduler surface。
 
 ## Idempotent Tick
 
@@ -28,8 +28,8 @@ human gate 是 durable decision，不是 chat 里的临时许可。`awaiting_hum
 
 ## Retry Budget
 
-retry budget 绑定 controller route work unit，通过 `attempt_count` 与 `retry_budget_remaining` 表达。每次消耗 budget 必须产生 `retry_budget_decremented` event；budget 用尽后进入 `escalated`，并先写 `runtime_escalation_record.json`，再进入 platform repair、human gate decision 或 route redesign。
+retry budget 绑定 OPL attempt 与 MAS controller route work unit，通过 `attempt_count` 与 `retry_budget_remaining` refs 表达。每次消耗 budget 必须产生 `retry_budget_decremented` event；budget 用尽后进入 `escalated`，MAS 只能写 `runtime_escalation_record.json`、typed blocker 或 owner-route handoff refs，后续 provider repair / human gate transport / retry-dead-letter 归 OPL。
 
 ## Boundary
 
-`artifacts/runtime/health/latest.json` 是 runtime health truth；`artifacts/publication_eval/latest.json` 仍由 Quality OS 持有；`StudyTruthKernel` 继续持有 canonical study truth。runtime health 只能用于 observability 与 recovery，不能把论文质量改成 ready，不能覆盖 `publication_eval/latest.json`，也不能覆盖 StudyTruthKernel 的 canonical next action。read model 只能投影已有 truth，不能回写成新的 study truth 或 quality truth。
+`artifacts/runtime/health/latest.json` 是 MAS domain health / diagnostic snapshot，不是 runtime attempt truth；OPL current-control-state / attempt ledger 持有 generic runtime truth。`artifacts/publication_eval/latest.json` 仍由 Quality OS 持有；`StudyTruthKernel` 继续持有 canonical study truth。runtime health 只能用于 observability 与 domain blocker explanation，不能把论文质量改成 ready，不能覆盖 `publication_eval/latest.json`，也不能覆盖 StudyTruthKernel 的 canonical next action。read model 只能投影已有 truth，不能回写成新的 study truth、quality truth 或 MAS generic runtime truth。

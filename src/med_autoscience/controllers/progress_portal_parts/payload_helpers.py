@@ -141,22 +141,6 @@ def _supervision(progress: Mapping[str, Any], runtime: Mapping[str, Any]) -> dic
         ),
     }
 
-def _runtime_reconcile_trigger(value: object) -> dict[str, Any]:
-    if not isinstance(value, Mapping):
-        return {}
-    projection = dict(value)
-    if projection.get("surface_kind") != "runtime_reconcile_trigger_projection":
-        return {}
-    projection.setdefault(
-        "authority_flags",
-        {
-            "quality_ready_authorized": False,
-            "publication_ready_authorized": False,
-            "submission_ready_authorized": False,
-        },
-    )
-    return projection
-
 def _outer_supervision_slo(value: object) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
@@ -186,7 +170,6 @@ def _conditions(
     package: Mapping[str, Any],
     freshness: Mapping[str, Any],
     delivery: Mapping[str, Any],
-    runtime_reconcile_trigger: Mapping[str, Any],
     outer_supervision_slo: Mapping[str, Any],
     source_refs: list[str],
 ) -> dict[str, list[str]]:
@@ -201,8 +184,6 @@ def _conditions(
         missing.append("progress_freshness")
     if freshness.get("status") == "stale":
         stale.append("progress_freshness")
-    if runtime_reconcile_trigger.get("safe_to_request") is True:
-        stale.append("runtime_reconcile_requestable")
     outer_state = _non_empty_text(outer_supervision_slo.get("state"))
     if outer_state == "missing":
         missing.append("outer_supervision_slo")

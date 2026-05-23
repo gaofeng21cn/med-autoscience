@@ -15,8 +15,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 NESTED_CASE_COLLECTION_IGNORE_GLOBS = (
     "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
-    "test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_*.py",
-    "test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_*.py",
     "test_domain_health_diagnostic_cases/*_cases_cases/test_*.py",
 )
 
@@ -139,7 +137,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 
 @pytest.fixture
-def writable_control_plane_route_context() -> dict[str, object]:
+def writable_authority_route_context() -> dict[str, object]:
     return writable_route_context()
 
 
@@ -160,7 +158,7 @@ def _inject_legacy_write_route_context(
 def _should_inject_legacy_write_route_context(node: pytest.Item) -> bool:
     if node.get_closest_marker("write_route_legacy_default") is None:
         return False
-    return "test_control_plane_write_route_authority.py" not in _relative_test_path(node)
+    return "test_authority_write_route_authority.py" not in _relative_test_path(node)
 
 
 def _iter_legacy_write_route_targets() -> Iterable[tuple[Any, str]]:
@@ -188,7 +186,7 @@ def _wrap_legacy_write_route_function(
 
 
 def _missing_route_context(kwargs: Mapping[str, Any]) -> bool:
-    return kwargs.get("control_plane_route_context") is None and kwargs.get("route_context") is None
+    return kwargs.get("authority_route_context") is None and kwargs.get("route_context") is None
 
 
 def _inject_route_context_kwarg(
@@ -196,7 +194,7 @@ def _inject_route_context_kwarg(
     signature: inspect.Signature,
     route_context: dict[str, object],
 ) -> None:
-    if "control_plane_route_context" in signature.parameters:
-        kwargs["control_plane_route_context"] = route_context
+    if "authority_route_context" in signature.parameters:
+        kwargs["authority_route_context"] = route_context
     elif "route_context" in signature.parameters:
         kwargs["route_context"] = route_context

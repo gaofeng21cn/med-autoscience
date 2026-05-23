@@ -49,7 +49,7 @@ def test_study_progress_does_not_project_abnormal_stopped_blocked_bundle_as_pack
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

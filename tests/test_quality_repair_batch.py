@@ -382,8 +382,8 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
     _write_quality_summary(study_root)
     route_context = {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "supervisor_gated",
             "canonical_next_action": "resume_same_study_line",
             "authority_refs": {
@@ -419,7 +419,7 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
@@ -449,7 +449,7 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
         module.gate_clearing_batch,
         "run_gate_clearing_batch",
         lambda **kwargs: (
-            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            seen.setdefault("gate_context", kwargs["authority_route_context"]),
             {"ok": True, "status": "executed"},
         )[1],
     )
@@ -460,7 +460,7 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=module._runtime_control_plane_route_context(
+        authority_route_context=module._runtime_authority_route_context(
             profile=profile,
             study_id=study_root.name,
             study_root=study_root,
@@ -469,9 +469,9 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
     )
 
     assert result["source_eval_id"] == publication_eval_payload["eval_id"]
-    assert result["control_plane_route_gate"]["allowed"] is True
-    assert result["control_plane_route_gate"]["action"] == "bundle_build"
-    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == (
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["action"] == "bundle_build"
+    assert result["authority_route_gate"]["controller_route_gate"]["work_unit_id"] == (
         "submission_minimal_refresh"
     )
     gate_context = seen["gate_context"]
@@ -526,8 +526,8 @@ def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypa
         source="test-source",
     )
 
-    assert seen["kwargs"].pop("control_plane_route_context")["control_plane_snapshot"]["surface"] == (
-        "control_plane_snapshot"
+    assert seen["kwargs"].pop("authority_route_context")["authority_snapshot"]["surface"] == (
+        "authority_snapshot"
     )
     assert seen["kwargs"] == {
         "profile": profile,
@@ -731,8 +731,8 @@ def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publicati
         "blocking_artifact_refs": [],
     }
     route_context = {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "supervisor_gated",
             "canonical_next_action": "resume_same_study_line",
             "authority_refs": {
@@ -754,7 +754,7 @@ def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publicati
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
@@ -769,7 +769,7 @@ def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publicati
         module.gate_clearing_batch,
         "run_gate_clearing_batch",
         lambda **kwargs: (
-            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            seen.setdefault("gate_context", kwargs["authority_route_context"]),
             {"ok": True, "status": "executed"},
         )[1],
     )
@@ -782,9 +782,9 @@ def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publicati
         source="test-source",
     )
 
-    assert result["control_plane_route_gate"]["allowed"] is True
-    assert result["control_plane_route_gate"]["action"] == "paper_write"
-    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == (
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["action"] == "paper_write"
+    assert result["authority_route_gate"]["controller_route_gate"]["work_unit_id"] == (
         "analysis_claim_evidence_repair"
     )
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
@@ -898,7 +898,7 @@ def test_study_outer_loop_executes_quality_repair_batch_controller_action(monkey
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        outer_loop.study_runtime_router,
+        outer_loop.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",

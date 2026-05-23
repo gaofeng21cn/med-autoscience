@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +20,7 @@ _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS = {
     "run_gate_clearing_batch",
 }
 _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS = {
-    "ensure_study_runtime_relaunch_stopped",
+    "request_opl_stage_attempt_relaunch",
 }
 _QUALITY_REPAIR_DOWNSTREAM_WORK_UNIT_IDS = {
     "publication_gate_replay",
@@ -211,89 +210,6 @@ def _controller_work_unit_lifecycle_projection(lifecycle: dict[str, Any] | None)
     }
 
 
-def _runtime_message_id(payload: dict[str, Any] | None) -> str | None:
-    if not isinstance(payload, dict):
-        return None
-    nested_message = payload.get("message")
-    if isinstance(nested_message, dict):
-        message_id = str(nested_message.get("id") or nested_message.get("message_id") or "").strip()
-        if message_id:
-            return message_id
-    message_id = str(payload.get("message_id") or payload.get("id") or "").strip()
-    return message_id or None
-
-
-def _write_runtime_state(*, quest_root: Path, runtime_state: dict[str, Any]) -> None:
-    runtime_state_path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
-    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
-    runtime_state_path.write_text(
-        json.dumps(runtime_state, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-
-def _reset_same_fingerprint_count_for_new_control_intent(
-    *,
-    runtime_state: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    current_key = str(authorization_context.get("control_intent_key") or "").strip()
-    if not current_key:
-        return False
-    previous_keys: list[str] = []
-    marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
-    if isinstance(marker, dict):
-        previous_keys.append(str(marker.get("control_intent_key") or "").strip())
-    lifecycle = runtime_state.get(_CONTROL_INTENT_LIFECYCLE_STATE_KEY)
-    if isinstance(lifecycle, dict):
-        previous_keys.append(str(lifecycle.get("control_intent_key") or "").strip())
-    if not any(previous_key and previous_key != current_key for previous_key in previous_keys):
-        return False
-    runtime_state["same_fingerprint_auto_turn_count"] = 0
-    runtime_state.pop(_CONTROL_INTENT_LIFECYCLE_STATE_KEY, None)
-    runtime_state.pop(_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY, None)
-    return True
-
-
-def _mark_controller_decision_authorization_relayed(
-    *,
-    quest_root: Path,
-    runtime_state: dict[str, Any],
-    authorization_context: dict[str, Any],
-    active_run_id: str | None,
-    delivery_mode: str,
-    message_id: str | None,
-    source: str,
-) -> None:
-    _reset_same_fingerprint_count_for_new_control_intent(
-        runtime_state=runtime_state,
-        authorization_context=authorization_context,
-    )
-    runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY] = {
-        "decision_id": str(authorization_context.get("decision_id") or "").strip(),
-        "route_target": str(authorization_context.get("route_target") or "").strip(),
-        "route_key_question": str(authorization_context.get("route_key_question") or "").strip(),
-        "source_route_key_question": str(authorization_context.get("source_route_key_question") or "").strip() or None,
-        "work_unit_id": str(authorization_context.get("work_unit_id") or "").strip() or None,
-        "work_unit_fingerprint": str(authorization_context.get("work_unit_fingerprint") or "").strip() or None,
-        "next_work_unit": dict(authorization_context.get("next_work_unit") or {}),
-        "blocking_work_units": list(authorization_context.get("blocking_work_units") or []),
-        "control_intent_key": str(authorization_context.get("control_intent_key") or "").strip() or None,
-        "control_intent_identity": dict(authorization_context.get("control_intent_identity") or {}),
-        "active_run_id": active_run_id,
-        "delivery_mode": delivery_mode,
-        "message_id": message_id,
-        "source": source,
-        "controller_work_unit_lifecycle": _controller_work_unit_lifecycle_projection(
-            authorization_context.get("controller_work_unit_lifecycle")
-        ),
-    }
-    for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
-        if key in authorization_context:
-            runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY][key] = authorization_context[key]
-    _write_runtime_state(quest_root=quest_root, runtime_state=runtime_state)
-
-
 def _runtime_state_awaits_artifact_delta_or_gate_replay(
     *,
     runtime_state: dict[str, Any],
@@ -356,7 +272,7 @@ def relay_controller_decision_authorization_to_runtime(
     route_rationale = _text(authorization_context.get("route_rationale"))
     text = (
         "MAS controller 已授权当前 runtime 继续执行 controller decision。"
-        f" 动作：{action_summary or 'ensure_study_runtime'}。"
+        f" 动作：{action_summary or 'request_opl_stage_attempt'}。"
         f" 路由：{route_target or 'controller'}。"
         f" work unit：{work_unit_id or route_key_question or 'current_controller_decision'}。"
     )
@@ -364,29 +280,16 @@ def relay_controller_decision_authorization_to_runtime(
         text += f" 关键问题：{route_key_question}。"
     if route_rationale:
         text += f" 理由：{route_rationale}。"
-    message_result = context.runtime_backend.chat_quest(
-        runtime_root=context.runtime_root,
-        quest_id=status.quest_id,
-        text=text,
-        source=context.source,
-    )
-    message_id = _runtime_message_id(message_result)
-    _mark_controller_decision_authorization_relayed(
-        quest_root=context.quest_root,
-        runtime_state=runtime_state,
-        authorization_context=authorization_context,
-        active_run_id=active_run_id,
-        delivery_mode="runtime_chat",
-        message_id=message_id,
-        source=context.source,
-    )
     relay = {
-        "message_id": message_id,
         "content": text,
         "source": context.source,
-        "delivery_mode": "runtime_chat",
+        "delivery_mode": "opl_owner_route_handoff",
         "control_intent_key": authorization_context.get("control_intent_key"),
         "controller_actions": list(authorization_context.get("controller_actions") or []),
+        "queue_owner": "one-person-lab",
+        "mas_writes_runtime_state": False,
+        "mas_submits_runtime_chat": False,
+        "required_closeout": "owner_receipt_or_typed_blocker",
     }
     status.extras["controller_decision_authorization_relay"] = relay
     return relay

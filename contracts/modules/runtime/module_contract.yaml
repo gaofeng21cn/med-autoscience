@@ -1,18 +1,27 @@
 module: runtime
-status: scaffold
+status: retired_private_runtime_control_boundary
 owns:
+  - domain_authority_refs
+  - owner_receipt_refs
+  - typed_blocker_refs
+  - runtime_escalation_record_refs
+consumes_refs:
+  - opl_current_control_state_ref
+  - opl_provider_attempt_ref
+  - runtime_policy_summary_ref
+emits_refs:
+  - domain_health_diagnostic_ref
+  - owner_route_ref
+  - typed_blocker_ref
+  - runtime_escalation_record_ref
+forbids:
   - quest_execution_truth
   - runtime_session_truth
   - runtime_artifact_truth
-  - runtime_escalation_record
-consumes_refs:
-  - runtime_startup_projection
-  - runtime_policy_summary_ref
-emits_refs:
-  - runtime_status_ref
-  - runtime_artifact_ref
-  - runtime_escalation_record_ref
-forbids:
+  - generic_queue_owner
+  - generic_attempt_ledger_owner
+  - generic_runtime_lifecycle_owner
+  - provider_liveness_ownership
   - publication_authority_ownership
   - controller_truth_mutation
   - eval_verdict_ownership

@@ -171,7 +171,7 @@ def test_autonomy_slo_read_model_explains_existing_low_information_breach(tmp_pa
                 },
                 "runtime_reconcile_trigger": {
                     "safe_to_request": True,
-                    "recommended_command": "domain-route-reconcile --dry-run --study-id 003-dpcc",
+                    "recommended_command": "owner-route-reconcile --developer-supervisor-mode external_observe --studies 003-dpcc",
                     "action_class": "reconcile_dry_run",
                 },
                 "controller_apply_receipt": {
@@ -191,10 +191,12 @@ def test_autonomy_slo_read_model_explains_existing_low_information_breach(tmp_pa
     assert payload["breach_reason"] == "same_fingerprint_loop"
     assert payload["breach_explanation"]["status"] == "explained"
     assert payload["breach_explanation"]["owner_route"]["next_owner"] == "mas_controller"
-    assert payload["breach_explanation"]["worker_recovery"]["canonical_runtime_action"] == "recover_runtime"
-    assert payload["breach_explanation"]["worker_recovery"]["retry_budget_remaining"] == 2
-    assert payload["breach_explanation"]["safe_reconcile_dry_run"]["safe_to_request"] is True
-    assert payload["breach_explanation"]["continuity_refs"]["worker_lease"]["run_id"] == "run-003"
+    assert payload["breach_explanation"]["provider_state"]["canonical_runtime_action"] == "recover_runtime"
+    assert payload["breach_explanation"]["provider_state"]["retry_budget_remaining"] == 2
+    assert payload["breach_explanation"]["provider_state"]["runtime_control_owner"] == "one-person-lab"
+    assert "worker_recovery" not in payload["breach_explanation"]
+    assert "safe_reconcile_dry_run" not in payload["breach_explanation"]
+    assert "worker_lease" not in payload["breach_explanation"]["continuity_refs"]
     assert payload["breach_explanation"]["continuity_refs"]["checkpoint_lineage"]["checkpoint_id"] == "checkpoint-003"
     assert payload["breach_explanation"]["continuity_refs"]["idempotent_dispatch"]["idempotency_key"] == "owner-route::003"
     assert payload["breach_explanation"]["continuity_refs"]["controller_apply_receipt"]["receipt_id"] == "apply-003"

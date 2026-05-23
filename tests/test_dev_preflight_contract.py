@@ -253,17 +253,14 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "docs/references/example-runtime-note.md",
             "docs/runtime/example-runtime-contract.md",
             "src/med_autoscience/profiles.py",
-            "src/med_autoscience/runtime_backend.py",
             "profiles/workspace.profile.template.toml",
             "src/med_autoscience/controllers/study_outer_loop.py",
-            "src/med_autoscience/controllers/study_runtime_execution.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
             "src/med_autoscience/controllers/study_runtime_resolution.py",
-            "src/med_autoscience/controllers/study_runtime_router.py",
+            "src/med_autoscience/controllers/domain_status_projection.py",
             "src/med_autoscience/controllers/domain_health_diagnostic.py",
-            "src/med_autoscience/runtime_transport/mas_runtime_core.py",
             "tests/test_profiles.py",
-            "tests/test_runtime_backend.py",
+            "tests/test_opl_runtime_contract.py",
             "tests/test_runtime_protocol_layout.py",
             "tests/test_runtime_protocol_study_runtime.py",
             "tests/test_domain_health_diagnostic.py",
@@ -364,7 +361,7 @@ def test_audit_preflight_contract_coverage_identifies_explicit_classification() 
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     audit = module.audit_preflight_contract_coverage(
-        ["src/med_autoscience/controllers/study_runtime_router.py"],
+        ["src/med_autoscience/controllers/domain_status_projection.py"],
         path_families=(
             module.PreflightCoveragePathFamily(
                 family_id="controller_sources",
@@ -375,13 +372,13 @@ def test_audit_preflight_contract_coverage_identifies_explicit_classification() 
     )
 
     assert audit.explicit_classified_paths == (
-        "src/med_autoscience/controllers/study_runtime_router.py",
+        "src/med_autoscience/controllers/domain_status_projection.py",
     )
     assert audit.generic_python_regression_paths == ()
     assert audit.fail_closed_paths == ()
     assert audit.family_audits[0].explicit_categories == ("runtime_contract_surface",)
     assert audit.family_audits[0].explicit_classified_paths == (
-        "src/med_autoscience/controllers/study_runtime_router.py",
+        "src/med_autoscience/controllers/domain_status_projection.py",
     )
 
 
@@ -458,16 +455,11 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
         [
             "contracts/stage_control_plane.json",
             "scripts/real-paper-autonomy-soak-inventory.py",
-            "src/med_autoscience/controllers/study_control_plane_kernel.py",
+            "src/med_autoscience/controllers/domain_authority_snapshot.py",
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
             "src/med_autoscience/controllers/owner_route_handoff.py",
-            "src/med_autoscience/controllers/control_plane_migration_audit.py",
-            "src/med_autoscience/controllers/control_plane_state.py",
-            "src/med_autoscience/cli.py",
-            "src/med_autoscience/cli_parts/parser.py",
-            "src/med_autoscience/mcp_server.py",
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/dataset_retention.py",
@@ -478,21 +470,16 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/study_progress_parts/projection_runtime_surfaces.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_orchestration.py",
             "src/med_autoscience/controllers/study_delivery_sync_parts/sync_cli.py",
-            "src/med_autoscience/runtime_protocol/paper_artifacts.py",
-            "tests/test_study_control_plane_kernel.py",
+            "tests/test_autonomy_state_surface.py",
             "tests/test_artifact_lifecycle_inventory.py",
             "tests/test_artifact_lifecycle_operations_report.py",
-            "tests/test_control_plane_migration_audit.py",
-            "tests/test_cli_cases/public_entry_commands.py",
+            "tests/test_workspace_authority_migration_audit.py",
             "tests/test_cli_cases/owner_route_handoff_command.py",
-            "tests/test_mcp_server.py",
-            "tests/control_plane_fixtures.py",
         ]
     )
 
     assert result.matched_categories == (
         "control_plane_surface",
-        "runtime_contract_surface",
     )
     assert result.unclassified_changes == ()
 
@@ -749,7 +736,7 @@ def test_plan_commands_for_runtime_contract_surface_include_mas_runtime_proofs()
 
     commands = module.plan_commands_for_categories(("runtime_contract_surface",))
 
-    assert "scripts/run-pytest-clean.sh tests/test_runtime_backend.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_opl_runtime_contract.py -q" in commands
     assert "scripts/run-pytest-clean.sh tests/test_profiles.py -q" in commands
     assert "scripts/run-pytest-clean.sh tests/test_runtime_protocol_layout.py -q" in commands
     assert "scripts/run-pytest-clean.sh tests/test_runtime_transport_hermes.py -q" not in commands

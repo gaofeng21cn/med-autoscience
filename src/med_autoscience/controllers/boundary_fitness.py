@@ -16,10 +16,8 @@ DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/domain_health_diagnostic.py": 1499,
     "src/med_autoscience/cli.py": 1475,
     "src/med_autoscience/controllers/gate_clearing_batch.py": 1363,
-    "src/med_autoscience/controllers/study_runtime_execution.py": 1346,
     "src/med_autoscience/controllers/mainline_status.py": 1301,
     "src/med_autoscience/controllers/product_entry_parts/workspace_surfaces.py": 1292,
-    "src/med_autoscience/runtime_transport/mas_runtime_core.py": 1250,
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": 1289,
     "tests/product_entry_cases/repo_shell_and_handoff_templates.py": 1265,
     "src/med_autoscience/controllers/stage_knowledge_plane.py": 1199,
@@ -117,11 +115,12 @@ PROGRAM_BOUNDARIES = (
         ),
     },
     {
-        "boundary_id": "mas_runtime_core",
-        "owner": "MAS",
-        "path_markers": ("runtime_transport/mas_runtime_core", "runtime_transport/"),
+        "boundary_id": "opl_stage_runtime_handoff",
+        "owner": "OPL",
+        "path_markers": ("runtime_transport/opl_provider_backed_stage_runtime", "runtime_transport/"),
         "recommended_split_direction": (
-            "Split by runtime protocol identity, MAS Runtime OS state, quest lifecycle, and failure taxonomy."
+            "Keep MAS-side code limited to refs-only DomainIntent handoff, typed blocker projection, "
+            "and terminal attach gate calls; queue, attempt, retry, worker residency, and lifecycle control stay with OPL."
         ),
     },
     {
@@ -391,7 +390,7 @@ def _shared_base_bucket_finding(relative_path: str, line_count: int) -> Boundary
         limit=SHARED_BASE_BUCKET_LINE_LIMIT,
         message=f"shared_base.py has grown to {line_count} lines",
         recommendation=(
-            "Split common fixtures/helpers by stable responsibility before shared_base.py becomes a second facade."
+            "Split common fixtures/helpers by stable responsibility before shared_base.py becomes a broad public bucket."
         ),
     )
 
@@ -418,7 +417,7 @@ def _exec_compile_concatenation_finding(relative_path: str) -> BoundaryFinding:
         message="tracked code loads split modules through exec(compile(...)) concatenation",
         recommendation=(
             "Prefer importable modules with explicit public exports; keep this pattern as a migration signal until "
-            "the facade can be replaced without changing the public contract."
+            "the broad entrypoint can be retired without changing the public contract."
         ),
     )
 

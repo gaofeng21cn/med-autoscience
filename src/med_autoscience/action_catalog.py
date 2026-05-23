@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience import editable_shared_bootstrap as _editable_shared_bootstrap
-from med_autoscience.control_plane_command_catalog import (
-    build_control_plane_product_entry_mode_schema,
+from med_autoscience.authority_operation_command_catalog import (
+    build_authority_product_entry_mode_schema,
     product_entry_description_modes_text,
 )
 
@@ -29,7 +29,7 @@ PRODUCT_ENTRY_CONTRACT_GAP_TEXT = (
     "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution."
 )
 MCP_INPUT_SCHEMA_BY_ACTION_ID = {
-    "launch_study": {"type": "string", "enum": ["owner_route_handoff", "stage_attempt", "ensure_study_runtime"]},
+    "launch_study": {"type": "string", "enum": ["owner_route_handoff", "stage_attempt", "request_opl_stage_attempt"]},
     "study_progress": {"type": "object"},
     "product_entry": "product_entry_mode_schema",
 }
@@ -68,16 +68,16 @@ def _authority_boundary(*, helper_owner: str = "one-person-lab") -> dict[str, An
 
 
 def _product_entry_mode_schema() -> dict[str, Any]:
-    return build_control_plane_product_entry_mode_schema()
+    return build_authority_product_entry_mode_schema()
 
 
 def _product_entry_summary() -> str:
     return (
         "Read MedAutoScience product-entry surfaces through one tool: "
-        f"{product_entry_description_modes_text()}. migration_audit is dry-run-only; "
-        "governance_report is read-only; backfill_apply and cleanup_apply are contract-gated; "
-        "safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. "
-        "lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. "
+        f"{product_entry_description_modes_text()}. workspace_authority_migration_audit is dry-run-only; "
+        "storage_governance_report and artifact_lifecycle_report are read-only; "
+        "delivery_authority_backfill_apply is MAS delivery-authority gated. "
+        "Physical cleanup and safe-cache deletion are owned by OPL current-control-state, not MAS product-entry. "
         f"{PRODUCT_ENTRY_CONTRACT_GAP_TEXT}"
     )
 
@@ -117,14 +117,13 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
         },
         {
             "action_id": "launch_study",
-            "title": "Launch or continue MAS study runtime",
-            "summary": "创建或恢复 study runtime，并进入当前研究主线。",
+            "title": "Submit MAS study launch handoff",
+            "summary": "写入 MAS domain handoff，由 OPL 唯一控制面 hydrate 成 stage attempt。",
             "effect": "mutating",
             "command": "{prefix} launch-study --profile {profile} --study-id <study_id>",
             "surface_kind": "launch_study",
             "workspace_locator_fields": ["profile_ref", "study_id"],
-            "mcp_tool_name": "study_runtime",
-            "mcp_public_runtime": True,
+            "mcp_public_runtime": False,
             "human_gate_ids": ["study_user_decision_gate"],
         },
         {

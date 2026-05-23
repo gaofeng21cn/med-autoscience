@@ -14,10 +14,8 @@ def test_scan_domain_routes_apply_safe_actions_releases_idle_workspace_daemon(
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "003-endocrine-burden-followup", quest_id="quest-nf")
-    calls: list[Path] = []
-
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "003-endocrine-burden-followup",
@@ -39,28 +37,15 @@ def test_scan_domain_routes_apply_safe_actions_releases_idle_workspace_daemon(
         },
     )
 
-    def fake_release_idle_workspace_daemon(*, runtime_root: Path):
-        calls.append(runtime_root)
-        return {
-            "released": True,
-            "reason": "idle_workspace_daemon_released",
-            "runtime_root": str(runtime_root),
-            "daemon_lifecycle": {"status": "idle", "active_lease_count": 0},
-        }
-
-    daemon_part = importlib.import_module("med_autoscience.controllers.owner_route_reconcile_parts.workspace_daemon")
-    monkeypatch.setattr(daemon_part.mas_runtime_transport, "release_idle_workspace_daemon", fake_release_idle_workspace_daemon)
-
     result = module.scan_domain_routes(
         profile=profile,
         study_ids=("003-endocrine-burden-followup",),
         apply_safe_actions=True,
     )
 
-    assert calls == [profile.managed_runtime_home]
-    assert result["workspace_daemon_lifecycle"]["released"] is True
-    assert result["workspace_daemon_lifecycle"]["reason"] == "idle_workspace_daemon_released"
-    assert result["workspace_daemon_lifecycle"]["daemon_lifecycle"]["active_lease_count"] == 0
+    assert result["workspace_daemon_lifecycle"]["released"] is False
+    assert result["workspace_daemon_lifecycle"]["reason"] == "opl_provider_liveness_owner_required"
+    assert result["workspace_daemon_lifecycle"]["typed_blocker"]["owner"] == "one-person-lab"
 
 
 def test_scan_domain_routes_observe_mode_does_not_release_workspace_daemon(
@@ -72,7 +57,7 @@ def test_scan_domain_routes_observe_mode_does_not_release_workspace_daemon(
     study_root = write_study(profile.workspace_root, "003-endocrine-burden-followup", quest_id="quest-nf")
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "003-endocrine-burden-followup",
@@ -91,13 +76,6 @@ def test_scan_domain_routes_observe_mode_does_not_release_workspace_daemon(
             "supervision": {"active_run_id": None},
         },
     )
-    daemon_part = importlib.import_module("med_autoscience.controllers.owner_route_reconcile_parts.workspace_daemon")
-    monkeypatch.setattr(
-        daemon_part.mas_runtime_transport,
-        "release_idle_workspace_daemon",
-        lambda **_: (_ for _ in ()).throw(AssertionError("observe mode must not stop workspace daemon")),
-    )
-
     result = module.scan_domain_routes(
         profile=profile,
         study_ids=("003-endocrine-burden-followup",),

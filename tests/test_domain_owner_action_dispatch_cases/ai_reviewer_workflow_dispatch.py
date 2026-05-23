@@ -966,7 +966,6 @@ def test_execute_dispatch_runs_ai_reviewer_when_current_owner_route_carries_term
         "active_run_id": None,
         "allowed_actions": ["return_to_ai_reviewer_workflow"],
         "blocked_actions": [
-            "runtime_platform_repair",
             "publication_gate_specificity_required",
             "current_package_freshness_required",
             "artifact_display_surface_materialization_required",

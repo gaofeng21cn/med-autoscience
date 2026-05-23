@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_watch_runtime_records_failed_managed_recovery_without_aborting_tick(tmp_path: Path, monkeypatch) -> None:
+def test_watch_runtime_records_opl_stage_attempt_handoff_without_mas_recovery(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     profiles = importlib.import_module("med_autoscience.profiles")
     workspace_root = tmp_path / "workspace"
@@ -38,12 +38,7 @@ def test_watch_runtime_records_failed_managed_recovery_without_aborting_tick(tmp
         decision="resume",
         reason="quest_marked_running_but_no_live_session",
     )
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: preflight)
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda **_: (_ for _ in ()).throw(RuntimeError("startup sync timed out")),
-    )
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: preflight)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -51,22 +46,16 @@ def test_watch_runtime_records_failed_managed_recovery_without_aborting_tick(tmp
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert result["managed_study_actions"] == [
-        {"study_id": "001-risk", "decision": "blocked", "reason": "resume_request_failed"}
-    ]
-    assert result["managed_study_auto_recoveries"] == [
-        {
-            "study_id": "001-risk",
-            "preflight_decision": "resume",
-            "preflight_reason": "quest_marked_running_but_no_live_session",
-            "applied_decision": "blocked",
-            "applied_reason": "resume_request_failed",
-            "source": "domain_health_diagnostic",
-        }
-    ]
+    assert result["managed_study_auto_recoveries"] == []
+    action = result["managed_study_actions"][0]
+    assert action["study_id"] == "001-risk"
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
+    assert action["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
 
 
 def test_watch_runtime_isolates_managed_study_projection_errors(tmp_path: Path, monkeypatch) -> None:
@@ -113,8 +102,7 @@ def test_watch_runtime_isolates_managed_study_projection_errors(tmp_path: Path, 
             "active_run_id": "run-002",
         }
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", fake_status)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **kwargs: fake_status(**kwargs))
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", fake_status)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     outer_loop_calls: list[str] = []
 
@@ -130,33 +118,21 @@ def test_watch_runtime_isolates_managed_study_projection_errors(tmp_path: Path, 
         runtime_root=profile.runtime_root,
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     actions = {action["study_id"]: action for action in result["managed_study_actions"]}
     assert actions["001-retired"]["decision"] == "blocked"
     assert actions["001-retired"]["reason"] == "study_projection_contract_error"
-    assert actions["002-live"]["decision"] == "noop"
+    assert actions["002-live"]["decision"] == "blocked"
+    assert actions["002-live"]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert actions["002-live"]["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
     assert outer_loop_calls == ["002-live"]
 
 
-def test_watch_runtime_managed_recovery_uses_turn_lifecycle_receipt(tmp_path: Path, monkeypatch) -> None:
+def test_watch_runtime_managed_recovery_records_opl_provider_handoff_blocker(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
     profiles = importlib.import_module("med_autoscience.profiles")
-    mas_runtime_core = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
-    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
-
-    class AvailableRunner:
-        def start_turn(self, **kwargs):
-            return {
-                "runner_kind": "fake",
-                "start_mode": "fake_started",
-                "available": True,
-                "live": True,
-            }
-
-    turn_lifecycle.set_turn_runner_for_tests(AvailableRunner())
-    turn_lifecycle.set_delayed_timers_enabled_for_tests(False)
     workspace_root = tmp_path / "workspace"
     profile = profiles.WorkspaceProfile(
         name="diabetes",
@@ -180,7 +156,7 @@ def test_watch_runtime_managed_recovery_uses_turn_lifecycle_receipt(tmp_path: Pa
     (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
     runtime_root = profile.runtime_root.parent
     quest_root = runtime_root / "quests" / "001-risk"
-    mas_runtime_core.create_quest(runtime_root=runtime_root, payload={"quest_id": "001-risk", "study_id": "001-risk"})
+    quest_root.mkdir(parents=True, exist_ok=True)
     preflight = make_progress_projection_payload(
         study_id="001-risk",
         decision="resume",
@@ -188,44 +164,26 @@ def test_watch_runtime_managed_recovery_uses_turn_lifecycle_receipt(tmp_path: Pa
     )
     preflight["quest_root"] = str(quest_root)
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: preflight)
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda **kwargs: {
-            **preflight,
-            "decision": "resume",
-            "reason": "quest_marked_running_but_no_live_session",
-            "resume_postcondition": {
-                "effective": True,
-                **mas_runtime_core.resume_quest(
-                    runtime_root=runtime_root,
-                    quest_id="001-risk",
-                    source=kwargs.get("source") or "domain_health_diagnostic",
-                ),
-            },
-        },
-    )
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: preflight)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
-    try:
-        result = module.run_domain_health_diagnostic_for_runtime(
-            runtime_root=profile.runtime_root,
-            controller_runners={},
-            apply=True,
-            profile=profile,
-            ensure_study_runtimes=True,
-        )
-    finally:
-        turn_lifecycle.set_delayed_timers_enabled_for_tests(False)
-        turn_lifecycle.reset_turn_runner_for_tests()
-        turn_lifecycle.reset_clock_for_tests()
+    result = module.run_domain_health_diagnostic_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        request_opl_stage_attempts=True,
+    )
 
-    state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    receipt = json.loads((quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json").read_text(encoding="utf-8"))
-    assert result["managed_study_actions"][0]["decision"] == "resume"
-    assert state["worker_running"] is True
-    assert state["active_run_id"].startswith("mas-run-")
-    assert receipt["reason"] == "explicit_resume"
-    assert receipt["started"] is True
-    assert receipt["idempotency_key"].startswith("turn-")
+    assert result["managed_study_auto_recoveries"] == []
+    action = result["managed_study_actions"][0]
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
+    assert action["resume_postcondition"]["typed_blocker"] == {
+        "blocker_type": "opl_stage_attempt_admission_required",
+        "owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "reason": "mas_runtime_attempt_execution_retired",
+        "required_handoff": "Hydrate MAS DomainIntent/owner-route refs through OPL current_control_state.",
+    }

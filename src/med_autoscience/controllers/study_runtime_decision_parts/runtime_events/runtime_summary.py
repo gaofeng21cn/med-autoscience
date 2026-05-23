@@ -3,6 +3,8 @@ from __future__ import annotations
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .human_gates import *  # noqa: F403
 
+from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
+
 
 def _public_executor_source_surface(execution: dict[str, Any]) -> str:
     executor_kind = str(execution.get("executor_kind") or "").strip()
@@ -100,8 +102,8 @@ def _record_family_orchestration_companion(
             {
                 "role": "audit",
                 "ref_kind": "repo_path",
-                "ref": str(study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"),
-                "label": "runtime_supervision_latest",
+                "ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
+                "label": "opl_runtime_owner_handoff_latest",
             },
             {
                 "role": "controller",
@@ -157,37 +159,25 @@ def _record_runtime_event(
     *,
     status: ProgressProjectionStatus,
     runtime_context: study_runtime_protocol.StudyRuntimeContext,
-    runtime_backend=None,
 ) -> None:
-    execution = status.execution
-    if (
-        runtime_backend is None
-        or str(execution.get("auto_entry") or "").strip() != "on_managed_research_intent"
-        or not status.quest_exists
-    ):
+    if not status.quest_exists:
         status.extras.pop("runtime_event_ref", None)
         status.extras.pop("runtime_event", None)
         return
     try:
-        session_payload = _get_quest_session(
-            runtime_root=runtime_context.runtime_root,
-            quest_id=status.quest_id,
-            runtime_backend=runtime_backend,
+        runtime_event_ref = study_runtime_protocol.read_runtime_event_record_ref(
+            quest_root=runtime_context.quest_root
         )
-    except (RuntimeError, OSError, ValueError):
+    except (OSError, RuntimeError, TypeError, ValueError):
         status.extras.pop("runtime_event_ref", None)
         status.extras.pop("runtime_event", None)
         return
-    runtime_event_ref = session_payload.get("runtime_event_ref")
-    if isinstance(runtime_event_ref, dict):
-        status.record_runtime_event_ref(runtime_event_ref)
-    else:
+    if runtime_event_ref is None:
         status.extras.pop("runtime_event_ref", None)
-    runtime_event = session_payload.get("runtime_event")
-    if isinstance(runtime_event, dict):
-        status["runtime_event"] = dict(runtime_event)
-    else:
         status.extras.pop("runtime_event", None)
+        return
+    status.record_runtime_event_ref(runtime_event_ref)
+    status.extras.pop("runtime_event", None)
 
 
 def _sync_runtime_summary_if_needed(
@@ -299,17 +289,18 @@ def _sync_runtime_summary_if_needed(
     )
 
 
-def _should_refresh_runtime_supervision_from_status(
+def _should_materialize_opl_runtime_owner_handoff_from_status(
     *,
     status: ProgressProjectionStatus,
     study_root: Path,
 ) -> bool:
     status_payload = status.to_dict()
-    facts = runtime_supervision_controller._runtime_facts(status_payload)
-    strict_live = bool(facts["strict_live"])
-    decision = str(status_payload.get("decision") or "").strip() or None
+    refs = resolve_opl_runtime_refs(status_payload)
+    strict_live = refs.strict_live
     reason = str(status_payload.get("reason") or "").strip() or None
-    quest_status = str(status_payload.get("quest_status") or "").strip() or None
+    study_id = str(status_payload.get("study_id") or "").strip() or None
+    quest_id = str(status_payload.get("quest_id") or "").strip() or None
+    quest_root = str(status_payload.get("quest_root") or "").strip() or None
     runtime_health_snapshot = status_payload.get("runtime_health_snapshot")
     if not isinstance(runtime_health_snapshot, dict):
         runtime_health_snapshot = {}
@@ -320,34 +311,111 @@ def _should_refresh_runtime_supervision_from_status(
         runtime_health_attempt_state == "escalated"
         and retry_budget_remaining == 0
     ):
-        target_health_status = "escalated"
+        handoff_context = "escalated"
     elif runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
-        target_health_status = "recovering"
+        handoff_context = "recovering"
     elif strict_live:
-        target_health_status = "live"
-    elif runtime_supervision_controller.needs_recovery_projection(status_payload, strict_live=strict_live):
-        target_health_status = "recovering"
+        handoff_context = "live"
+    elif _opl_runtime_recovery_projection_needed(status_payload, refs=refs):
+        handoff_context = "recovering"
     elif reason == "quest_waiting_opl_runtime_owner_route":
-        target_health_status = "blocked"
-    elif runtime_supervision_controller._needs_drop_detection(status_payload, strict_live=strict_live):
-        target_health_status = "degraded"
+        handoff_context = "blocked"
+    elif _opl_runtime_drop_detection_needed(status_payload, strict_live=strict_live):
+        handoff_context = "degraded"
     else:
         return False
-    latest_report_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
-    latest_report = _read_json_mapping(latest_report_path)
-    if latest_report is None:
+    latest_handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    latest_handoff = _read_json_mapping(latest_handoff_path)
+    if latest_handoff is None:
         return True
+    latest_typed_blocker = latest_handoff.get("typed_blocker")
+    if not isinstance(latest_typed_blocker, dict):
+        latest_typed_blocker = {}
+    latest_refs = latest_handoff.get("opl_current_control_state_ref")
+    if not isinstance(latest_refs, dict):
+        latest_refs = {}
     return any(
         (
-            (str(latest_report.get("health_status") or "").strip() or None) != target_health_status,
-            (str(latest_report.get("active_run_id") or "").strip() or None) != facts["active_run_id"],
-            (str(latest_report.get("runtime_liveness_status") or "").strip() or None)
-            != facts["runtime_liveness_status"],
-            (str(latest_report.get("runtime_decision") or "").strip() or None) != decision,
-            (str(latest_report.get("runtime_reason") or "").strip() or None) != reason,
-            (str(latest_report.get("quest_status") or "").strip() or None) != quest_status,
+            (str(latest_handoff.get("status") or "").strip() or None) != "handoff_required",
+            latest_handoff.get("mas_materializes_runtime_supervision") is not False,
+            latest_handoff.get("mas_runtime_read_model_retired") is not True,
+            latest_handoff.get("provider_completion_is_domain_completion") is not False,
+            latest_handoff.get("queue_succeeded_is_domain_completion") is not False,
+            (str(latest_handoff.get("runtime_owner") or "").strip() or None) != "one-person-lab",
+            (str(latest_handoff.get("domain_owner") or "").strip() or None) != "med-autoscience",
+            (str(latest_handoff.get("study_id") or "").strip() or None) != study_id,
+            (str(latest_handoff.get("quest_id") or "").strip() or None) != quest_id,
+            (str(latest_handoff.get("quest_root") or "").strip() or None) != quest_root,
+            (str(latest_handoff.get("reason") or "").strip() or None) != reason,
+            latest_refs.get("required") is not True,
+            (str(latest_refs.get("hydrate_from") or "").strip() or None) != "MAS DomainIntent / owner-route refs",
+            (str(latest_typed_blocker.get("blocker_type") or "").strip() or None)
+            != "opl_runtime_owner_handoff_required",
+            (str(latest_typed_blocker.get("owner") or "").strip() or None) != "one-person-lab",
+            (str(latest_typed_blocker.get("domain_owner") or "").strip() or None) != "med-autoscience",
+            not handoff_context,
         )
     )
+
+
+def _opl_runtime_recovery_projection_needed(
+    status_payload: Mapping[str, Any],
+    *,
+    refs: Any,
+) -> bool:
+    if refs.strict_live:
+        return False
+    if _status_payload_human_gate_required_for_opl_runtime_ref(status_payload):
+        return False
+    quest_status = str(status_payload.get("quest_status") or "").strip()
+    if quest_status not in {"running", "active"}:
+        return False
+    supervisor_tick_audit = status_payload.get("supervisor_tick_audit")
+    supervisor_tick_status = (
+        str(supervisor_tick_audit.get("status") or "").strip()
+        if isinstance(supervisor_tick_audit, Mapping)
+        else None
+    )
+    if supervisor_tick_status not in {"missing", "stale", "invalid"}:
+        return False
+    return refs.active_run_id is None
+
+
+def _status_payload_human_gate_required_for_opl_runtime_ref(status_payload: Mapping[str, Any]) -> bool:
+    family_checkpoint_lineage = status_payload.get("family_checkpoint_lineage")
+    resume_contract = (
+        family_checkpoint_lineage.get("resume_contract")
+        if isinstance(family_checkpoint_lineage, Mapping)
+        else None
+    )
+    if isinstance(resume_contract, Mapping) and isinstance(resume_contract.get("human_gate_required"), bool):
+        return bool(resume_contract.get("human_gate_required"))
+    interaction_arbitration = status_payload.get("interaction_arbitration")
+    if isinstance(interaction_arbitration, Mapping) and bool(interaction_arbitration.get("requires_user_input")):
+        return True
+    publication_supervisor_state = status_payload.get("publication_supervisor_state")
+    if isinstance(publication_supervisor_state, Mapping):
+        current_required_action = str(publication_supervisor_state.get("current_required_action") or "").strip()
+        return current_required_action == "human_confirmation_required"
+    return False
+
+
+def _opl_runtime_drop_detection_needed(status_payload: Mapping[str, Any], *, strict_live: bool) -> bool:
+    if strict_live:
+        return False
+    decision = str(status_payload.get("decision") or "").strip()
+    reason = str(status_payload.get("reason") or "").strip()
+    quest_status = str(status_payload.get("quest_status") or "").strip()
+    if reason in {
+        "quest_marked_running_but_no_live_session",
+        "running_quest_live_session_audit_failed",
+        "resume_request_failed",
+        "create_request_failed",
+    }:
+        return True
+    if decision in {"create_and_start", "resume", "relaunch_stopped"}:
+        return False
+    return quest_status in {"running", "active"}
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]

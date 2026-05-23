@@ -62,7 +62,7 @@ def test_load_stage_route_contract_keeps_formal_chain_and_writing_constraints() 
 
     assert full_research.default_runtime_mode == "managed"
     assert full_research.preconditions == ("workspace/profile available",)
-    assert full_research.managed_entry_actions == ("doctor", "bootstrap", "overlay-status", "ensure-study-runtime")
+    assert full_research.managed_entry_actions == ("doctor", "bootstrap", "overlay-status", "ensure-supervision")
     assert full_research.managed_routes == (
         "scout",
         "idea",
@@ -101,7 +101,7 @@ def test_stage_entry_modes_from_payload_preserves_mode_level_managed_entry_actio
             "default_runtime_mode": "managed",
             "preconditions": ["workspace/profile available"],
             "lightweight_scope": "none",
-            "managed_entry_actions": ["doctor", "bootstrap", "ensure-study-runtime"],
+            "managed_entry_actions": ["doctor", "bootstrap", "ensure-supervision"],
             "lightweight_routes": [],
             "managed_routes": [
                 "scout",
@@ -120,7 +120,7 @@ def test_stage_entry_modes_from_payload_preserves_mode_level_managed_entry_actio
             "default_runtime_mode": "lightweight",
             "preconditions": ["workspace/profile available"],
             "lightweight_scope": "manuscript and delivery packaging",
-            "managed_entry_actions": ["doctor", "overlay-status", "ensure-study-runtime"],
+            "managed_entry_actions": ["doctor", "overlay-status", "ensure-supervision"],
             "lightweight_routes": ["write"],
             "managed_routes": ["write", "finalize"],
             "startup_boundary_gated_routes": [],
@@ -132,8 +132,8 @@ def test_stage_entry_modes_from_payload_preserves_mode_level_managed_entry_actio
 
     modes = {mode.mode_id: mode for mode in stage_entry_modes_from_payload(payload)}
 
-    assert modes["full_research"].managed_entry_actions == ("doctor", "bootstrap", "ensure-study-runtime")
-    assert modes["writing_delivery"].managed_entry_actions == ("doctor", "overlay-status", "ensure-study-runtime")
+    assert modes["full_research"].managed_entry_actions == ("doctor", "bootstrap", "ensure-supervision")
+    assert modes["writing_delivery"].managed_entry_actions == ("doctor", "overlay-status", "ensure-supervision")
 
 
 def test_payload_and_typed_loader_use_top_level_compatible_agents() -> None:
@@ -183,7 +183,7 @@ def test_stage_entry_modes_reject_mode_level_compatible_agents_override() -> Non
             "compatible_agents": ["Codex"],
             "preconditions": ["workspace/profile available"],
             "lightweight_scope": "none",
-            "managed_entry_actions": ["doctor", "bootstrap", "overlay-status", "ensure-study-runtime"],
+            "managed_entry_actions": ["doctor", "bootstrap", "overlay-status", "ensure-supervision"],
             "lightweight_routes": [],
             "managed_routes": [
                 "scout",

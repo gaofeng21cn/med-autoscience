@@ -22,7 +22,7 @@ ANALYSIS_CLAIM_EVIDENCE_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
 SUBMISSION_DELIVERY_TERMINAL_BLOCKER_WORK_UNIT_ID = "submission_delivery_terminal_blocker"
 _BATCH_OPEN_UNIT_STATUSES = frozenset(
     {
-        "control_plane_route_blocked",
+        "authority_route_blocked",
         "failed",
         "missing",
         "skipped_failed_dependency",

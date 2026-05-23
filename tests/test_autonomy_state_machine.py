@@ -36,7 +36,7 @@ def test_autonomy_state_machine_catalog_covers_all_controller_states() -> None:
     assert surface["surface"] == "autonomy_state_machine"
     assert surface["gate_relaxation_allowed"] is False
     assert set(surface["states"]) == REQUIRED_STATES
-    assert surface["control_plane_state"]["surface"] == "control_plane_state"
+    assert surface["autonomy_state_surface"]["surface"] == "autonomy_state_surface"
     for state_name, state_spec in surface["states"].items():
         assert REQUIRED_STATE_FIELDS <= set(state_spec), state_name
         assert state_spec["state"] == state_name
@@ -49,7 +49,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
         {
             "study_id": "003-dpcc",
             "quest_id": "quest-003",
-            "runtime_worker_activity": {
+            "opl_domain_activity_ref": {
                 "activity_state": "recovering",
                 "heartbeat_state": "missing_live_session",
             },
@@ -80,7 +80,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
     [
         (
             {
-                "runtime_worker_activity": {
+                "opl_domain_activity_ref": {
                     "activity_state": "running",
                     "heartbeat_state": "live",
                 }
@@ -90,7 +90,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
         ({}, "queued"),
         (
             {
-                "runtime_worker_activity": {
+                "opl_domain_activity_ref": {
                     "quest_status": "running",
                     "heartbeat_state": "unknown",
                 }
@@ -103,7 +103,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
         ),
         (
             {
-                "runtime_worker_activity": {
+                "opl_domain_activity_ref": {
                     "activity_state": "recovering",
                     "heartbeat_state": "missing_live_session",
                 }
@@ -146,7 +146,7 @@ def test_autonomy_state_machine_resolves_current_state(
     assert surface["current_state_spec"]["state"] == expected_state
     assert surface["current_state_spec"]["operator_summary"]
     assert surface["current_state_spec"]["human_gate_required"] in {True, False}
-    assert surface["owner"] == surface["control_plane_state"]["owner"]
-    assert surface["resource_release_expected"] == surface["control_plane_state"]["resource_release_expected"]
-    assert surface["long_write_turn_allowed"] == surface["control_plane_state"]["long_write_turn_allowed"]
+    assert surface["owner"] == surface["autonomy_state_surface"]["owner"]
+    assert surface["resource_release_expected"] == surface["autonomy_state_surface"]["resource_release_expected"]
+    assert surface["long_write_turn_allowed"] == surface["autonomy_state_surface"]["long_write_turn_allowed"]
     assert surface["quality_constraint"] == {"gate_relaxation_allowed": False}

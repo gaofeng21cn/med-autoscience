@@ -147,12 +147,12 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 ### write (Write)
 - key_question: Does the manuscript narrative faithfully carry the current evidence?
 - goal: Convert the current evidence line into a manuscript-facing narrative that can withstand review.
-- enter_conditions: active claim and supporting evidence package are readable | required route artifacts are linked or referenced | reviewer-first pressure can be applied against the current draft | user manuscript-change requests from Codex have been converted into a study revision intake with runtime ownership checked
+- enter_conditions: active claim and supporting evidence package are readable | required route artifacts are linked or referenced | reviewer-first pressure can be applied against the current draft | user manuscript-change requests from Codex have been converted into a study revision intake with OPL runtime control boundary checked
 - hard_success_gate: manuscript line states claims that match cited evidence | first-draft quality scan has checked underused data-asset dimensions before calling the draft ready | open gaps, caveats, and next actions are explicit in the writing surface | draft is ready for finalize or route-back with named reasons | explicit user/reviewer manuscript feedback after a stopped or submission-ready milestone has been handled as same-line revision reactivation, not as direct `current_package` editing
-- durable_outputs_minimum: manuscript draft or section update tied to current claim scope | claim-evidence map or equivalent traceability surface | reviewer-first pass note with explicit concerns | first-draft quality note covering field-verified multicenter/geography, subgroup/association, guideline, and real-world constraint axes | revision handoff stating data source, scripts, changed tables/figures, claim guardrails, MAS runtime reactivation state, and whether `current_package` was regenerated from controller-authorized `paper/`
+- durable_outputs_minimum: manuscript draft or section update tied to current claim scope | claim-evidence map or equivalent traceability surface | reviewer-first pass note with explicit concerns | first-draft quality note covering field-verified multicenter/geography, subgroup/association, guideline, and real-world constraint axes | revision handoff stating data source, scripts, changed tables/figures, claim guardrails, OPL provider attempt hydration/resume refs, and whether `current_package` was regenerated from controller-authorized `paper/`
 - human_gate_boundary: manuscript claims expand beyond the current evidence package or locked study objective | draft is ready for external circulation or submission-facing release
 - next_routes: finalize | decision
-- route_back_triggers: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing | manuscript narrative changes the claim boundary | foreground edits only touched `manuscript/current_package/` before MAS runtime reactivation or have not been reconciled into the canonical paper source
+- route_back_triggers: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing | manuscript narrative changes the claim boundary | foreground edits only touched `manuscript/current_package/` before OPL provider attempt hydration/resume and MAS owner authorization, or have not been reconciled into the canonical paper source
 - knowledge_input_obligations: stage_knowledge_packet_ref | claim_evidence_map | reporting_guideline_pack | journal_neighbor_refs | display_to_claim_map
 - memory_closeout_obligations: stage_memory_closeout_packet | writing_experience_lesson | claim_wording_boundary_decision | reporting_guideline_gap | display_to_claim_repair_request | journal_neighbor_positioning_lesson
 
@@ -228,17 +228,17 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 If `upgrade_triggers` is non-empty and any trigger is satisfied, upgrade from lightweight to managed before continuing.
 
 ## Startup Boundary Rule
-Run `ensure-study-runtime` before any managed compute decision. Do not enter `startup_boundary_gated_routes` unless that controller reports `startup_boundary_gate.allow_compute_stage = true`; otherwise stay within `managed_routes`, `governance_routes`, and any writing-only delivery route.
+Read MAS domain refs and request OPL provider hydration before any managed compute decision. Do not enter `startup_boundary_gated_routes` unless the MAS controller projection reports `startup_boundary_gate.allow_compute_stage = true`; otherwise stay within `managed_routes`, `governance_routes`, and any writing-only delivery route.
 
-## Live Runtime Ownership Rule
-If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, and do not write runtime-owned study surfaces.
+## OPL Runtime Control Rule
+If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, and do not write OPL runtime-owned study surfaces.
 Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.
 
 ## No Ad-hoc Execution Rule
-When operating MAS-covered work, agents must use controller-authorized `CLI`, `MCP`, `product-entry`, or runtime surfaces before writing research outputs or advancing a study route.
+When operating MAS-covered work, agents must use controller-authorized `CLI`, `MCP`, `product-entry`, or OPL-dispatched MAS domain handler surfaces before writing research outputs or advancing a study route.
 If a required capability is not exposed through those MAS contracts, stop and close the contract gap in the repo-tracked controller/callable surface before continuing; do not bypass MAS with ad-hoc scripts, direct artifact edits, prompt-only research chains, or generic document/PDF/Office tooling.
 
 ## Revision Intake Rule
 Treat reviewer feedback, manuscript revision, mentor feedback, 审稿意见, 导师反馈, 论文修改, and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.
 Explicit user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone reactivates the same study line; it is not permission to foreground-edit `manuscript/current_package`.
-After writing the durable task intake, relaunch/resume through MAS-owned runtime before editing canonical paper sources, and regenerate `current_package` from that authority.
+After writing the durable task intake, OPL must hydrate or resume the provider attempt from MAS owner refs before MAS domain handlers edit canonical paper sources and regenerate `current_package` from that authority.

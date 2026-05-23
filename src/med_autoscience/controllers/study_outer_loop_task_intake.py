@@ -126,7 +126,7 @@ def recommended_task_intake_action(
         "route_key_question": route_key_question,
         "route_rationale": route_rationale,
         "requires_controller_decision": True,
-        "controller_action_type": StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value,
+        "controller_action_type": StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT.value,
     }
     if isinstance(publishability_gate_report, dict):
         gate_status = str(publishability_gate_report.get("status") or "").strip()

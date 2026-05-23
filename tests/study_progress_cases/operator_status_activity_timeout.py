@@ -72,7 +72,7 @@ def test_activity_timeout_takes_priority_over_paper_surface_refresh_gap(
         lambda: datetime(2026, 5, 2, 10, 0, tzinfo=timezone.utc),
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -173,7 +173,7 @@ def test_runtime_health_snapshot_recovery_dominates_stale_live_runtime_module_pr
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -270,7 +270,7 @@ def test_study_progress_does_not_extend_new_run_grace_from_fresh_supervisor_tick
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

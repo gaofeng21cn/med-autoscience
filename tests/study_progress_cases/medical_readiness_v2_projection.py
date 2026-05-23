@@ -252,7 +252,7 @@ def test_compact_mcp_progress_projection_preserves_runtime_continuity_read_model
             "freshness_state": "stale",
             "evidence_refs": ["artifacts/runtime/session/latest.json"],
         },
-        "recovery_intent": {
+        "owner_receipt_handoff": {
             "current_action": "await_next_tick",
             "reason": "worker_stale",
             "next_owner": "mas_controller",
@@ -270,8 +270,8 @@ def test_compact_mcp_progress_projection_preserves_runtime_continuity_read_model
     continuity = compact["runtime_continuity"]
     assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-003"
     assert continuity["runtime_session"]["worker_state"] == "stale"
-    assert continuity["recovery_intent"]["current_action"] == "await_next_tick"
-    assert continuity["recovery_intent"]["authority"] == {
+    assert continuity["owner_receipt_handoff"]["current_action"] == "await_next_tick"
+    assert continuity["owner_receipt_handoff"]["authority"] == {
         "quality_ready_authorized": False,
         "publication_ready_authorized": False,
         "submission_ready_authorized": False,

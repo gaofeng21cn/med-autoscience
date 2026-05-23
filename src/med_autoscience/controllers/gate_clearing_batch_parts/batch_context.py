@@ -40,7 +40,7 @@ def build_gate_clearing_batch_context(
     study_id: str,
     study_root: Path,
     quest_id: str,
-    control_plane_route_context: dict[str, Any] | None,
+    authority_route_context: dict[str, Any] | None,
     route_context: dict[str, Any] | None,
     quest_root_for_profile: Callable[..., Path],
     publication_gate_controller: Any,
@@ -55,7 +55,7 @@ def build_gate_clearing_batch_context(
     study_delivery_sync_controller: Any,
     currentness_controller: Any,
 ) -> GateClearingBatchContext:
-    resolved_route_context = control_plane_route_context or route_context
+    resolved_route_context = authority_route_context or route_context
     resolved_study_root = Path(study_root).expanduser().resolve()
     quest_root = quest_root_for_profile(profile, quest_id=quest_id)
     gate_state = publication_gate_controller.build_gate_state(quest_root)

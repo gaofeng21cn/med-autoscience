@@ -39,11 +39,11 @@ def _domain_health_diagnostic_tick_request(study_root: Path, quest_root: Path) -
     }
 
 
-def _control_plane_snapshot(*, state: str, blocking_reasons: list[str] | None = None) -> dict[str, object]:
+def _authority_snapshot(*, state: str, blocking_reasons: list[str] | None = None) -> dict[str, object]:
     blocked = state == "blocked"
     return {
         "schema_version": 1,
-        "surface": "control_plane_snapshot",
+        "surface": "authority_snapshot",
         "control_state": "ready" if not blocked else "supervisor_gated",
         "canonical_next_action": "resume_same_study_line",
         "canonical_runtime_action": "continue_supervising_runtime",
@@ -94,7 +94,7 @@ def test_watch_runtime_control_plane_blocked_snapshot_suppresses_outer_loop_disp
         "quest_id": "quest-001",
         "quest_root": str(quest_root),
         "quest_status": "running",
-        "control_plane_snapshot": _control_plane_snapshot(
+        "authority_snapshot": _authority_snapshot(
             state="blocked",
             blocking_reasons=blocking_reasons,
         ),
@@ -115,9 +115,8 @@ def test_watch_runtime_control_plane_blocked_snapshot_suppresses_outer_loop_disp
         }
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -125,7 +124,7 @@ def test_watch_runtime_control_plane_blocked_snapshot_suppresses_outer_loop_disp
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
@@ -142,7 +141,7 @@ def test_watch_runtime_control_plane_blocked_snapshot_suppresses_outer_loop_disp
     assert result["managed_study_no_op_suppressions"][0]["outcome"] == "control_plane_dispatch_blocked"
     assert wakeup_latest["outcome"] == "control_plane_dispatch_blocked"
     assert wakeup_latest["no_op_acknowledged"] is True
-    assert wakeup_latest["control_plane_snapshot"]["dispatch_gate"]["blocking_reasons"] == blocking_reasons
+    assert wakeup_latest["authority_snapshot"]["dispatch_gate"]["blocking_reasons"] == blocking_reasons
     assert wakeup_latest["control_plane_blocking_reasons"] == [
         *blocking_reasons,
         "route_not_authorized",
@@ -170,7 +169,7 @@ def test_watch_runtime_control_plane_open_snapshot_allows_outer_loop_dispatch(
         "quest_id": "quest-001",
         "quest_root": str(quest_root),
         "quest_status": "running",
-        "control_plane_snapshot": _control_plane_snapshot(state="open"),
+        "authority_snapshot": _authority_snapshot(state="open"),
     }
     calls: list[str] = []
 
@@ -188,9 +187,8 @@ def test_watch_runtime_control_plane_open_snapshot_allows_outer_loop_dispatch(
         }
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -198,7 +196,7 @@ def test_watch_runtime_control_plane_open_snapshot_allows_outer_loop_dispatch(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert calls == ["domain_health_diagnostic_outer_loop_wakeup"]
@@ -232,8 +230,8 @@ def test_watch_runtime_downstream_bundle_gate_allows_authorized_paper_repair_dis
         "quest_id": "quest-001",
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "control_plane_snapshot": {
-            **_control_plane_snapshot(
+        "authority_snapshot": {
+            **_authority_snapshot(
                 state="blocked",
                 blocking_reasons=[
                     "publication_supervisor_state.bundle_tasks_downstream_only",
@@ -274,9 +272,8 @@ def test_watch_runtime_downstream_bundle_gate_allows_authorized_paper_repair_dis
         }
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -284,7 +281,7 @@ def test_watch_runtime_downstream_bundle_gate_allows_authorized_paper_repair_dis
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
@@ -349,8 +346,8 @@ def test_watch_domain_route_only_runtime_block_allows_managed_submission_refresh
         "quest_id": "quest-003",
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
-        "control_plane_snapshot": {
-            **_control_plane_snapshot(
+        "authority_snapshot": {
+            **_authority_snapshot(
                 state="blocked",
                 blocking_reasons=[
                     "execution_owner_guard.supervisor_only",
@@ -390,9 +387,8 @@ def test_watch_domain_route_only_runtime_block_allows_managed_submission_refresh
         }
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -400,7 +396,7 @@ def test_watch_domain_route_only_runtime_block_allows_managed_submission_refresh
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
@@ -465,8 +461,8 @@ def test_watch_runtime_downstream_only_still_blocks_managed_submission_refresh_d
         "quest_id": "quest-003",
         "quest_root": str(quest_root),
         "quest_status": "running",
-        "control_plane_snapshot": {
-            **_control_plane_snapshot(
+        "authority_snapshot": {
+            **_authority_snapshot(
                 state="blocked",
                 blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
             ),
@@ -489,9 +485,8 @@ def test_watch_runtime_downstream_only_still_blocks_managed_submission_refresh_d
         return {"dispatch_status": "executed"}
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -499,7 +494,7 @@ def test_watch_runtime_downstream_only_still_blocks_managed_submission_refresh_d
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
@@ -572,8 +567,7 @@ def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
         "build_domain_health_diagnostic_outer_loop_tick_request",
         lambda **_: specificity_tick_request,
     )
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     module.run_domain_health_diagnostic_for_runtime(
@@ -581,7 +575,7 @@ def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     stale_decision = json.loads(
         (study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8")
@@ -611,7 +605,7 @@ def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             }
         ],
@@ -622,7 +616,7 @@ def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
     }
     blocked_status_payload = {
         **status_payload,
-        "control_plane_snapshot": _control_plane_snapshot(
+        "authority_snapshot": _authority_snapshot(
             state="blocked",
             blocking_reasons=["execution_owner_guard.supervisor_only"],
         ),
@@ -638,16 +632,15 @@ def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
         "build_domain_health_diagnostic_outer_loop_tick_request",
         lambda **_: actionable_tick_request,
     )
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: blocked_status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: blocked_status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: blocked_status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
 
     result = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     current_decision = json.loads(
         (study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8")
@@ -684,8 +677,8 @@ def test_watch_runtime_recovery_authorization_false_suppresses_runtime_recovery_
         "quest_id": "quest-001",
         "quest_root": str(profile.runtime_root / "quest-001"),
         "quest_status": "running",
-        "control_plane_snapshot": {
-            **_control_plane_snapshot(
+        "authority_snapshot": {
+            **_authority_snapshot(
                 state="blocked",
                 blocking_reasons=["runtime_recovery_retry_budget_exhausted"],
             ),
@@ -698,16 +691,9 @@ def test_watch_runtime_recovery_authorization_false_suppresses_runtime_recovery_
             },
         },
     }
-    calls: list[str] = []
-
-    def fake_ensure_study_runtime(**kwargs):
-        calls.append(str(kwargs.get("source") or ""))
-        return status_payload
-
     monkeypatch.setattr(module.domain_health_diagnostic_recovery_policy, "hold_for_flapping_circuit_breaker", lambda **_: None)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -715,14 +701,13 @@ def test_watch_runtime_recovery_authorization_false_suppresses_runtime_recovery_
         controller_runners={},
         apply=False,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert calls == []
     assert result["managed_study_auto_recoveries"] == []
     assert result["managed_study_actions"][0]["decision"] == "blocked"
     assert result["managed_study_actions"][0]["reason"] == "resume_request_failed"
-    assert result["managed_study_actions"][0]["control_plane_snapshot"]["route_authorization"][
+    assert result["managed_study_actions"][0]["authority_snapshot"]["route_authorization"][
         "runtime_recovery_allowed"
     ] is False
 
@@ -752,7 +737,7 @@ def test_watch_runtime_blocks_retry_budget_exhausted_even_if_snapshot_was_marked
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             }
         ],
@@ -770,9 +755,9 @@ def test_watch_runtime_blocks_retry_budget_exhausted_even_if_snapshot_was_marked
         "quest_id": "quest-001",
         "quest_root": str(quest_root),
         "quest_status": "running",
-        "control_plane_snapshot": {
+        "authority_snapshot": {
             "schema_version": 1,
-            "surface": "control_plane_snapshot",
+            "surface": "authority_snapshot",
             "control_state": "ready",
             "canonical_next_action": "resume_same_study_line",
             "canonical_runtime_action": "recover_runtime",
@@ -802,13 +787,12 @@ def test_watch_runtime_blocks_retry_budget_exhausted_even_if_snapshot_was_marked
                 "artifact_path": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve())
             },
             "dispatch_status": "executed",
-            "executed_controller_action": {"action_type": "ensure_study_runtime", "result": {"status": "executed"}},
+            "executed_controller_action": {"action_type": "request_opl_stage_attempt", "result": {"status": "executed"}},
         }
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -816,7 +800,7 @@ def test_watch_runtime_blocks_retry_budget_exhausted_even_if_snapshot_was_marked
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     wakeup_latest = json.loads(

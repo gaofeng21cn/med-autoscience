@@ -248,7 +248,7 @@ def test_arbitrate_waiting_for_user_redrives_mas_controller_route_authorization_
         blocked_closeout={
             "run_id": "run-blocked",
             "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
-            "blocked_reason": "control_plane_route_blocked_bundle_build",
+            "blocked_reason": "authority_route_blocked_bundle_build",
             "next_owner": "MAS/controller route authorization owner for bundle_build_allowed",
         },
     )

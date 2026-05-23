@@ -17,7 +17,6 @@ from med_autoscience.controllers.owner_route_reconcile_parts import domain_trans
 from med_autoscience.controllers.owner_route_reconcile_parts import evidence_adoption
 from med_autoscience.controllers.owner_route_reconcile_parts import methodology_reframe_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
-from med_autoscience.controllers.owner_route_reconcile_parts import runtime_repair_action
 from med_autoscience.controllers.owner_route_reconcile_parts import recovery_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts
 from med_autoscience.controllers.owner_route_reconcile_parts import story_surface_delta_actions
@@ -260,38 +259,6 @@ def action_queue(
             for action in oracle_actions
         ]
     actions: list[dict[str, Any]] = []
-    if (
-        runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity)
-        or runtime_facts.live_activity_timeout_current_controller_route_available(
-            status,
-            progress,
-            study_root=study_root,
-            publication_eval_payload=publication_eval_payload,
-        )
-        or runtime_facts.current_controller_route_redrive_required(
-            status,
-            progress,
-            study_root=study_root,
-            publication_eval_payload=publication_eval_payload,
-            gate_specificity=gate_specificity,
-        )
-        or runtime_facts.current_controller_owner_handoff_redrive_required(
-            status=status,
-            progress=progress,
-            study_root=study_root,
-            publication_eval_payload=publication_eval_payload,
-        )
-        or runtime_repair_action.external_supervisor_repair_required(status, progress)
-    ):
-        actions.append(
-            current_truth_owner.runtime_platform_repair_action(
-                study_root=study_root,
-                status=status,
-                publication_eval_payload=publication_eval_payload,
-                default_reason=runtime_repair_action.external_supervisor_repair_reason(status, progress)
-                or current_truth_owner.runtime_platform_repair_reason(status, progress),
-            )
-        )
     owner_handoff_action = _owner_handoff_action(status)
     if owner_handoff_action is not None:
         actions.append(owner_handoff_action)
@@ -305,11 +272,7 @@ def action_queue(
         publication_eval_payload=publication_eval_payload,
     )
     if artifact_action is not None:
-        actions = [
-            action
-            for action in actions
-            if _text(action.get("action_type")) not in {"runtime_platform_repair", artifact_freshness.ACTION_TYPE}
-        ]
+        actions = [action for action in actions if _text(action.get("action_type")) != artifact_freshness.ACTION_TYPE]
         actions.insert(0, artifact_action)
     if (
         not actions
@@ -492,32 +455,6 @@ def _higher_priority_owner_truth_blocks_generic_ai_reviewer(
         return True
     if gate_specificity.get("required") is True:
         return True
-    if runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
-        return True
-    if runtime_facts.live_activity_timeout_current_controller_route_available(
-        status,
-        progress,
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    ):
-        return True
-    if runtime_facts.current_controller_route_redrive_required(
-        status,
-        progress,
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-        gate_specificity=gate_specificity,
-    ):
-        return True
-    if runtime_facts.current_controller_owner_handoff_redrive_required(
-        status=status,
-        progress=progress,
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    ):
-        return True
-    if runtime_repair_action.external_supervisor_repair_required(status, progress):
-        return True
     if analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root):
         return True
     if provenance_limited_harmonization_owner_result.typed_blocker_state(study_root=study_root):
@@ -541,11 +478,6 @@ def _current_package_freshness_lifecycle_action(
         return None
     blocked_reason = _text(lifecycle.get("blocked_reason"))
     if blocked_reason == artifact_freshness.ACTION_TYPE:
-        source_blocked_reason = blocked_reason
-    elif blocked_reason in {
-        "controller_decision_not_superseded",
-        "stale_specificity_terminal_gate_not_found",
-    } and _text(top_action.get("action_type")) == "runtime_platform_repair":
         source_blocked_reason = blocked_reason
     else:
         return None
@@ -629,22 +561,10 @@ def why_not_applied(
         return None
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
     if reason := evidence_adoption.why_not_applied(status):
-        if not _has_controller_redrive_action(actions):
-            return reason
-    if runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
-        for action in actions:
-            if _text(action.get("action_type")) == "runtime_platform_repair":
-                return _text(action.get("reason")) or current_truth_owner.runtime_platform_repair_reason(status, progress)
-        return current_truth_owner.runtime_platform_repair_reason(status, progress)
+        return reason
+    if runtime_facts.opl_stage_attempt_admission_required(status, progress):
+        return current_truth_owner.OPL_STAGE_ATTEMPT_ADMISSION_REASON
     if runtime_facts.live_activity_timeout_current_controller_redrive_required(status, progress):
-        for action in actions:
-            if _text(action.get("action_type")) == "runtime_platform_repair":
-                return _text(action.get("reason")) or current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
-    if any(
-        _text(action.get("action_type")) == "runtime_platform_repair"
-        and _text(action.get("reason")) == current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
-        for action in actions
-    ):
         return current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
     if runtime_facts.retry_exhausted(status, progress):
         if gate_specificity.get("required") is True:
@@ -700,14 +620,6 @@ def _has_source_provenance_handoff_action(actions: list[dict[str, Any]]) -> bool
     )
 
 
-def _has_controller_redrive_action(actions: list[dict[str, Any]]) -> bool:
-    return any(
-        _text(action.get("action_type")) == "runtime_platform_repair"
-        and _text(action.get("reason")) == current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
-        for action in actions
-    )
-
-
 def blocked_reason_from_scan(
     *,
     actions: list[dict[str, Any]],
@@ -716,7 +628,6 @@ def blocked_reason_from_scan(
 ) -> str | None:
     for action in actions:
         if _text(action.get("action_type")) in {
-            "runtime_platform_repair",
             "publication_gate_specificity_required",
             "current_package_freshness_required",
             "return_to_ai_reviewer_workflow",

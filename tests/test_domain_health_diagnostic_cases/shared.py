@@ -30,7 +30,7 @@ def make_progress_projection_payload(
     study_id: str = "001-risk",
     decision: str = "create_and_start",
     reason: str = "quest_missing",
-    include_control_plane_snapshot: bool = False,
+    include_authority_snapshot: bool = False,
 ) -> dict[str, object]:
     payload = {
         "schema_version": 1,
@@ -48,9 +48,9 @@ def make_progress_projection_payload(
         "decision": decision,
         "reason": reason,
     }
-    if include_control_plane_snapshot:
-        payload["control_plane_snapshot"] = {
-            "surface": "control_plane_snapshot",
+    if include_authority_snapshot:
+        payload["authority_snapshot"] = {
+            "surface": "authority_snapshot",
             "schema_version": 1,
             "study_id": study_id,
             "quest_id": study_id,

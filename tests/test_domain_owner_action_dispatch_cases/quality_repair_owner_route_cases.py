@@ -125,7 +125,7 @@ def test_execute_quality_repair_batch_from_persisted_dispatch_and_owner_request(
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
     assert called["study_id"] == study_id
     assert called["quest_id"] == f"quest-{study_id}"
-    assert called["control_plane_route_context"]["work_unit_id"] == "medical_prose_write_repair"
+    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
 @pytest.mark.parametrize(
@@ -269,7 +269,7 @@ def test_execute_quality_repair_batch_honors_write_owner_route_despite_terminal_
     assert execution["blocked_reason"] is None
     assert execution["paper_progress_stall_handoff_allowed"] is True
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert called["control_plane_route_context"]["work_unit_id"] == "medical_prose_write_repair"
+    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
 def test_execute_quality_repair_batch_uses_current_terminal_stall_when_dispatch_stall_fingerprint_is_stale(
@@ -395,7 +395,7 @@ def test_execute_quality_repair_batch_uses_current_terminal_stall_when_dispatch_
     assert execution["paper_progress_stall_handoff_allowed"] is True
     assert execution["current_paper_progress_stall"]["action_fingerprint"] == "paper_progress_stall::current"
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert called["control_plane_route_context"]["work_unit_id"] == "medical_prose_write_repair"
+    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
 def test_execute_quality_repair_batch_allows_registered_dm002_write_route_under_terminal_stall(
@@ -539,7 +539,7 @@ def test_execute_quality_repair_batch_allows_registered_dm002_write_route_under_
     assert execution["blocked_reason"] is None
     assert execution["paper_progress_stall_handoff_allowed"] is True
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert called["control_plane_route_context"]["work_unit_id"] == work_unit_id
+    assert called["authority_route_context"]["work_unit_id"] == work_unit_id
 
 
 def test_execute_quality_repair_batch_prefers_fresh_persisted_dispatch_over_stale_consumer_inline(
@@ -685,8 +685,8 @@ def test_execute_quality_repair_batch_prefers_fresh_persisted_dispatch_over_stal
     assert execution["paper_progress_stall"]["action_fingerprint"] == "paper_progress_stall::current"
     assert execution["current_paper_progress_stall"]["action_fingerprint"] == "paper_progress_stall::current"
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert called["control_plane_route_context"]["work_unit_id"] == "dm002_same_line_publication_paper_repair"
-    assert called["control_plane_route_context"]["current_owner_route"]["idempotency_key"] == route["idempotency_key"]
-    assert called["control_plane_route_context"]["current_owner_route"]["work_unit_fingerprint"] == (
+    assert called["authority_route_context"]["work_unit_id"] == "dm002_same_line_publication_paper_repair"
+    assert called["authority_route_context"]["current_owner_route"]["idempotency_key"] == route["idempotency_key"]
+    assert called["authority_route_context"]["current_owner_route"]["work_unit_fingerprint"] == (
         "dm002_same_line_publication_paper_repair_20260521"
     )

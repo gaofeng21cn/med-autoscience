@@ -227,7 +227,7 @@ route_contracts:
       - active claim and supporting evidence package are readable
       - required route artifacts are linked or referenced
       - reviewer-first pressure can be applied against the current draft
-      - user manuscript-change requests from Codex have been converted into a study revision intake with runtime ownership checked
+      - user manuscript-change requests from Codex have been converted into a study revision intake with OPL runtime control boundary checked
     hard_success_gate:
       - manuscript line states claims that match cited evidence
       - first-draft quality scan has checked underused data-asset dimensions before calling the draft ready
@@ -239,7 +239,7 @@ route_contracts:
       - claim-evidence map or equivalent traceability surface
       - reviewer-first pass note with explicit concerns
       - first-draft quality note covering field-verified multicenter/geography, subgroup/association, guideline, and real-world constraint axes
-      - revision handoff stating data source, scripts, changed tables/figures, claim guardrails, MAS runtime reactivation state, and whether `current_package` was regenerated from controller-authorized `paper/`
+      - revision handoff stating data source, scripts, changed tables/figures, claim guardrails, OPL provider attempt hydration/resume refs, and whether `current_package` was regenerated from controller-authorized `paper/`
     human_gate_boundary:
       - manuscript claims expand beyond the current evidence package or locked study objective
       - draft is ready for external circulation or submission-facing release
@@ -251,7 +251,7 @@ route_contracts:
       - reviewer-first scan finds unresolved logic, novelty, or rigor gaps
       - first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing
       - manuscript narrative changes the claim boundary
-      - foreground edits only touched `manuscript/current_package/` before MAS runtime reactivation or have not been reconciled into the canonical paper source
+      - foreground edits only touched `manuscript/current_package/` before OPL provider attempt hydration/resume and MAS owner authorization, or have not been reconciled into the canonical paper source
     knowledge_input_obligations:
       - stage_knowledge_packet_ref
       - claim_evidence_map

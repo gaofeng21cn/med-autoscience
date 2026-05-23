@@ -93,7 +93,7 @@ def _add_safe_cache_cleanup_contract(workspace_root: Path) -> Path:
 
 def test_dm_cvd_and_nf_pitnet_storage_governance_soak_is_read_only(tmp_path: Path) -> None:
     lifecycle = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_operations_report")
-    migration = importlib.import_module("med_autoscience.controllers.control_plane_migration_audit")
+    migration = importlib.import_module("med_autoscience.controllers.workspace_authority_migration_audit")
     cleanup = importlib.import_module("med_autoscience.controllers.control_plane_cleanup_apply")
     summary = importlib.import_module("med_autoscience.controllers.continuous_soak_summary")
     workspaces = [
@@ -203,7 +203,7 @@ def test_lifecycle_retention_report_safe_cache_apply_path_is_approval_gated(
     contract_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     retention_report = {
-        "surface": "control_plane_lifecycle_report",
+        "surface": "artifact_lifecycle_report",
         "workspaces": [
             {
                 "workspace_root": str(workspace_root),
@@ -238,8 +238,8 @@ def test_lifecycle_retention_report_safe_cache_apply_path_is_approval_gated(
     applied = cleanup.run_cleanup_apply(
         workspace_roots=[workspace_root],
         apply=True,
-        control_plane_snapshot={
-            "surface": "control_plane_snapshot",
+        authority_snapshot={
+            "surface": "authority_snapshot",
             "control_state": "ready",
             "canonical_next_action": "cleanup_apply",
             "authority_refs": {
@@ -259,7 +259,7 @@ def test_lifecycle_retention_report_safe_cache_apply_path_is_approval_gated(
     assert before_plan["action_counts"] == {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0}
     assert before_plan["apply_plan"][0]["audit_payload"]["candidate_source"] == "retention_report"
     assert blocked_apply["status"] == "blocked"
-    assert "control_plane_snapshot_missing" in blocked_apply["control_plane_route_gate"]["blocking_reasons"]
+    assert "authority_snapshot_missing" in blocked_apply["authority_route_gate"]["blocking_reasons"]
     assert applied["status"] == "applied"
     assert not cache_root.exists()
     assert applied["action_counts"] == {"planned": 1, "blocked": 0, "applied": 1, "mutating": 1}

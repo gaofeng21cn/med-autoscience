@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
+from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -42,7 +42,7 @@ def _bool_value(value: object) -> bool | None:
 
 
 def _liveness_probe_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    facts = resolve_control_plane_facts(payload)
+    facts = resolve_opl_runtime_refs(payload)
     return {
         "status": facts.runtime_liveness_status,
         "active_run_id": facts.active_run_id,

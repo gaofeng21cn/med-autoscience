@@ -44,8 +44,7 @@ def build_runtime_report(
     managed_study_outer_loop_dispatches: list[dict[str, Any]],
     managed_study_outer_loop_wakeup_audits: list[dict[str, Any]],
     managed_study_no_op_suppressions: list[dict[str, Any]],
-    managed_study_supervision: list[dict[str, Any]],
-    managed_study_alert_deliveries: list[dict[str, Any]],
+    managed_study_opl_runtime_owner_handoffs: list[dict[str, Any]],
     managed_study_autonomy_slo_statuses: list[dict[str, Any]],
     managed_study_autonomy_repair_actions: list[dict[str, Any]],
 ) -> dict[str, Any]:
@@ -64,8 +63,7 @@ def build_runtime_report(
         "managed_study_outer_loop_dispatches": managed_study_outer_loop_dispatches,
         "managed_study_outer_loop_wakeup_audits": managed_study_outer_loop_wakeup_audits,
         "managed_study_no_op_suppressions": managed_study_no_op_suppressions,
-        "managed_study_supervision": managed_study_supervision,
-        "managed_study_alert_deliveries": managed_study_alert_deliveries,
+        "managed_study_opl_runtime_owner_handoffs": managed_study_opl_runtime_owner_handoffs,
         "managed_study_autonomy_slo_statuses": managed_study_autonomy_slo_statuses,
         "managed_study_autonomy_repair_actions": managed_study_autonomy_repair_actions,
         "action_class": "codex_worker_dispatch" if dispatch_counters["codex_dispatch_count"] else (
@@ -115,7 +113,7 @@ def _dispatch_starts_worker(dispatch: dict[str, Any]) -> bool:
     if dispatch.get("started") is True or dispatch.get("worker_running") is True:
         return True
     action_type = str(dispatch.get("controller_action_type") or dispatch.get("action_type") or "").strip()
-    return action_type in {"ensure_study_runtime", "ensure_study_runtime_relaunch_stopped"}
+    return action_type in {"request_opl_stage_attempt", "request_opl_stage_attempt_relaunch"}
 
 
 __all__ = ["build_runtime_report", "scan_active_quest_reports"]

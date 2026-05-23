@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 from typing import Any
 
@@ -14,15 +13,13 @@ from med_autoscience.medical_prose_review_request import (
     materialize_medical_prose_review_request,
     stable_medical_prose_review_request_path,
 )
+from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
-from med_autoscience.runtime_protocol import user_message
 
 from .shared import (
-    SurfaceState,
     _controller_override,
     build_surface_state,
-    managed_runtime_transport,
     resolve_runtime_root_from_quest_root,
 )
 from .reporting import (
@@ -41,39 +38,6 @@ def write_surface_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path,
         report=report,
         markdown=render_surface_markdown(report),
     )
-
-
-def _same_resolved_path(left: str | None, right: Path) -> bool:
-    if left is None or not str(left).strip():
-        return False
-    try:
-        return Path(left).expanduser().resolve() == right.resolve()
-    except OSError:
-        return False
-
-
-def _running_inside_current_managed_turn(state: SurfaceState) -> bool:
-    if os.environ.get("MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER") != "1":
-        return False
-    if not _same_resolved_path(os.environ.get("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT"), state.quest_root):
-        return False
-    env_quest_id = str(os.environ.get("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID") or "").strip()
-    if env_quest_id and env_quest_id != state.quest_root.name:
-        return False
-    active_run_id = str(state.runtime_state.get("active_run_id") or "").strip()
-    env_run_id = str(os.environ.get("MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID") or "").strip()
-    return bool(active_run_id and env_run_id and active_run_id == env_run_id)
-
-
-def _managed_turn_stop_skip(state: SurfaceState, *, source: str) -> dict[str, Any]:
-    return {
-        "ok": True,
-        "status": "skipped",
-        "reason": "current_managed_runtime_turn",
-        "source": source,
-        "quest_id": state.quest_root.name,
-        "active_run_id": state.runtime_state.get("active_run_id"),
-    }
 
 
 def run_controller(
@@ -112,20 +76,20 @@ def run_controller(
     if apply and report["blockers"]:
         current_status = str(state.runtime_state.get("status") or "").strip().lower()
         if current_status in {"running", "active"} and daemon_url:
-            if _running_inside_current_managed_turn(state):
-                stop_result = _managed_turn_stop_skip(state, source=source)
-            else:
-                stop_result = _controller_override("managed_runtime_transport", managed_runtime_transport).stop_quest(
-                    daemon_url=daemon_url,
-                    runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
-                    quest_id=report["quest_id"],
-                    source=source,
-                )
-        intervention = user_message.enqueue_user_message(
+            stop_result = {
+                "status": "owner_route_required",
+                "reason": "opl_current_control_state_stop_required",
+                "queue_owner": "one-person-lab",
+                "runtime_state_mutated": False,
+                "quest_id": report["quest_id"],
+                "source": source,
+            }
+        intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=medical_surface_policy.build_intervention_message(report),
             source=source,
+            evidence_refs=[str(json_path)],
         )
     return {
         "report_json": str(json_path),
@@ -142,7 +106,8 @@ def run_controller(
         "medical_journal_prose_ai_verdict": report.get("medical_journal_prose_ai_verdict"),
         "medical_journal_prose_mechanical_flag_count": report.get("medical_journal_prose_mechanical_flag_count"),
         "stop_result": stop_result,
-        "intervention_enqueued": bool(intervention),
+        "intervention_enqueued": False,
+        "intervention_handoff": intervention,
     }
 
 

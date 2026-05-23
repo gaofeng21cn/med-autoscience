@@ -6,7 +6,7 @@ from typing import Any
 def workspace_status_paragraphs(studies: list[dict[str, Any]]) -> list[str]:
     if not studies:
         return ["当前 workspace 尚未发现论文线。"]
-    live = sum(1 for item in studies if bool(item.get("active_run_id")) and item.get("worker_running") is True)
+    live = sum(1 for item in studies if bool(item.get("active_run_id")))
     needs_supervisor = sum(1 for item in studies if str(item.get("runtime_health_status") or "") == "escalated")
     parked = sum(
         1
@@ -14,7 +14,7 @@ def workspace_status_paragraphs(studies: list[dict[str, Any]]) -> list[str]:
         if str(item.get("runtime_health_status") or "") in {"parked", "awaiting_explicit_resume", "await_explicit_resume"}
     )
     return [
-        f"当前 workspace 共 {len(studies)} 条论文线：{live} 条确认 live worker，{needs_supervisor} 条需要外层 supervisor，{parked} 条等待显式恢复或停驻。",
+        f"当前 workspace 共 {len(studies)} 条论文线：{live} 条有 OPL 运行投影，{needs_supervisor} 条需要外层 supervisor，{parked} 条等待显式恢复或停驻。",
         "以论文线概览表为当前主状态；单篇详情需进入具体 study 视图查看。",
     ]
 

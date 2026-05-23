@@ -23,7 +23,6 @@ from med_autoscience.runtime_protocol import (
     paper_artifacts,
     quest_state,
     resolve_paper_root_context,
-    user_message,
 )
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path

@@ -75,7 +75,6 @@ from .publication_gate_parts import (
     paper_artifacts,
     quest_state,
     resolve_paper_root_context,
-    user_message,
     runtime_protocol_report_store,
     resolve_write_drift_stdout_path,
     medical_publication_surface_report_current,

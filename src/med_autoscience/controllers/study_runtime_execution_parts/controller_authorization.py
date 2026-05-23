@@ -42,7 +42,7 @@ def _controller_decision_owner_route_ref(
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
         "dispatch_surface": "medautosci sidecar dispatch",
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "domain_route/owner-handoff",
         "authority_boundary": {
             "mas_writes_generic_runtime_queue": False,
             "mas_submits_runtime_chat": False,

@@ -277,9 +277,9 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert alpha_binding["runtime_backend_id"] == "opl_provider_backed_stage_runtime"
     assert alpha_binding["runtime_backend"] == "opl_provider_backed_stage_runtime"
     assert alpha_binding["runtime_engine_id"] == "opl-provider-backed-stage-runtime"
-    assert alpha_binding["research_backend_id"] == "mas_runtime_core"
-    assert alpha_binding["research_backend"] == "mas_runtime_core"
-    assert alpha_binding["research_engine_id"] == "mas-runtime-core"
+    assert alpha_binding["research_backend_id"] == "mas_domain_intent_adapter"
+    assert alpha_binding["research_backend"] == "mas_domain_intent_adapter"
+    assert alpha_binding["research_engine_id"] == "mas-domain-intent-adapter"
     assert "med_deepscientist_runtime_root" not in alpha_binding
     assert "legacy_diagnostic" not in alpha_binding
     assert alpha_binding["historical_fixture_ref"]["read_only"] is True
@@ -335,12 +335,18 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert "install-watch-runtime-service" not in med_readme_text
     assert "watch-runtime-service-status" not in med_readme_text
     assert "uninstall-watch-runtime-service" not in med_readme_text
-    assert "medautosci runtime ensure-supervision --profile <profile>" in med_readme_text
+    assert "OPL current_control_state refs-only handoff" in med_readme_text
+    assert "medautosci runtime ensure-supervision --profile <profile>" not in med_readme_text
+    assert "medautosci runtime supervision-status --profile <profile>" not in med_readme_text
+    assert "medautosci runtime remove-supervision --profile <profile>" not in med_readme_text
     launchd_readme_text = (
         workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md"
     ).read_text(encoding="utf-8")
     assert "Retired Workspace-Local Scheduler" in launchd_readme_text
     assert "install-watch-runtime-service --manager launchd" not in launchd_readme_text
+    assert "medautosci runtime ensure-supervision --profile <profile>" not in launchd_readme_text
+    assert "medautosci runtime supervision-status --profile <profile>" not in launchd_readme_text
+    assert "medautosci runtime remove-supervision --profile <profile>" not in launchd_readme_text
     for name in (
         "install-watch-runtime-service",
         "watch-runtime-service-status",

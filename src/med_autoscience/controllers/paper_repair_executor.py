@@ -62,7 +62,7 @@ def dispatch_repair_work_unit(
     study_root: str | Path,
     repair_work_unit: Mapping[str, Any],
     review_finding: Mapping[str, Any] | None = None,
-    control_plane_route_context: Mapping[str, Any] | None = None,
+    authority_route_context: Mapping[str, Any] | None = None,
     route_context: Mapping[str, Any] | None = None,
     apply: bool = True,
 ) -> dict[str, Any]:
@@ -93,7 +93,7 @@ def dispatch_repair_work_unit(
             study_root=resolved_study_root,
             work_unit=work_unit,
             generated_at=generated_at,
-            control_plane_route_context=control_plane_route_context,
+            authority_route_context=authority_route_context,
             route_context=route_context,
         )
     if callable_surface == AI_REVIEWER_PUBLICATION_EVAL_CALLABLE:
@@ -104,7 +104,7 @@ def dispatch_repair_work_unit(
             study_root=resolved_study_root,
             work_unit=work_unit,
             generated_at=generated_at,
-            control_plane_route_context=control_plane_route_context,
+            control_plane_route_context=authority_route_context,
             route_context=route_context,
         )
 
@@ -214,7 +214,7 @@ def _dispatch_quality_repair_batch_callable(
     study_root: Path,
     work_unit: Mapping[str, Any],
     generated_at: str,
-    control_plane_route_context: Mapping[str, Any] | None,
+    authority_route_context: Mapping[str, Any] | None,
     route_context: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     if profile is None:
@@ -233,7 +233,7 @@ def _dispatch_quality_repair_batch_callable(
         study_root=study_root,
         quest_id=quest_id,
         source=SURFACE,
-        control_plane_route_context=control_plane_route_context,
+        authority_route_context=authority_route_context,
         route_context=route_context,
     )
     return _owner_callable_result(
@@ -389,7 +389,6 @@ def _ai_reviewer_owner_route(
             "active_run_id": None,
             "allowed_actions": [action_type],
             "blocked_actions": [
-                "runtime_platform_repair",
                 "publication_gate_specificity_required",
                 "current_package_freshness_required",
                 "artifact_display_surface_materialization_required",

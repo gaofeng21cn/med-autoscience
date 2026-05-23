@@ -462,7 +462,7 @@ def test_ai_reviewer_publication_eval_controller_materializes_runtime_checked_la
             "quest_id": "quest-001",
         }
 
-    monkeypatch.setattr(controller.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(controller.domain_status_projection, "progress_projection", fake_status)
 
     result = controller.materialize_ai_reviewer_publication_eval(
         profile=SimpleNamespace(name="nfpitnet"),
@@ -505,7 +505,7 @@ def test_ai_reviewer_publication_eval_record_controller_materializes_owner_recor
     ]
 
     monkeypatch.setattr(
-        controller.study_runtime_router,
+        controller.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -549,7 +549,7 @@ def test_ai_reviewer_publication_eval_controller_rejects_mechanical_projection(
     }
 
     monkeypatch.setattr(
-        controller.study_runtime_router,
+        controller.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",

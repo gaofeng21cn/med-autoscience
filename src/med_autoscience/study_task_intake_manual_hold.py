@@ -49,7 +49,7 @@ def build_manual_hold_intake(payload: dict[str, Any] | None) -> dict[str, Any] |
             "reason": "The latest intake explicitly parks this paper line until a new plan and explicit wakeup.",
         },
         "auto_recovery_allowed": False,
-        "runtime_platform_repair_redrive_allowed": False,
+        "opl_owner_route_auto_recovery_allowed": False,
         "relaunch_requires": ["new study plan or revised study charter", "explicit user wakeup"],
     }
 
@@ -114,7 +114,7 @@ def render_manual_hold_markdown_lines(payload: dict[str, Any]) -> list[str]:
         "## Manual Hold Intake",
         "",
         "- 当前任务要求保持论文线停驻，等待新方案和显式唤醒。",
-        "- `runtime_platform_repair`、supervisor redrive 或 active/no-live recovery 不能自动恢复写入。",
+        "- OPL owner-route 自动恢复、supervisor redrive 或 active/no-live recovery 不能自动恢复写入。",
         "- 未来重启必须先形成新的 study plan 或修订 study charter，再由用户显式 wakeup。",
     ]
 
@@ -126,7 +126,7 @@ def render_manual_hold_runtime_context_lines(payload: dict[str, Any]) -> list[st
         "Manual hold intake: active",
         "Route: await_explicit_wakeup",
         "Controller action: hold_until_explicit_wakeup",
-        "Do not auto-recover through runtime_platform_repair or supervisor redrive.",
+        "Do not auto-recover through OPL owner-route auto recovery or supervisor redrive.",
         "Future relaunch requires a new plan and explicit user wakeup.",
     ]
 

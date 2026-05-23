@@ -9,7 +9,6 @@ from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers import real_workspace_soak_monitor
 from med_autoscience.controllers import domain_action_request_materializer
 from med_autoscience.controllers import domain_owner_action_dispatch
-from med_autoscience.controllers import domain_route_reconcile
 from med_autoscience.controllers import owner_route_reconcile
 from med_autoscience.controllers import workspace_monolith_migration
 from med_autoscience.profiles import WorkspaceProfile, load_profile
@@ -31,13 +30,13 @@ READ_ONLY_CONTRACT = {
     "allowed_actions": [
         "read_profiles",
         "read_status_surfaces",
-        "run_reconcile_domain_routes_dry_run_without_receipt_write",
+        "observe_owner_route_handoff_without_receipt_write",
         "run_workspace_migration_dry_run",
         "build_real_workspace_soak_monitor_read_model",
     ],
     "prohibited_actions": [
         "runtime_relaunch",
-        "reconcile_domain_routes_receipt_write",
+        "owner_route_reconcile_receipt_write",
         "workspace_migration_apply",
         "current_package_write",
         "publication_eval_write",
@@ -127,7 +126,7 @@ def _profile_evidence(
         )
         return {
             **base,
-            "reconcile_domain_routes_dry_run": _skipped("profile_unreadable"),
+            "owner_route_handoff_observation": _skipped("profile_unreadable"),
             "workspace_migration_dry_run": _skipped("profile_unreadable"),
             "real_workspace_soak_monitor": _skipped("profile_unreadable"),
             "paper_progress_degradation_evidence": _skipped("profile_unreadable"),
@@ -149,7 +148,7 @@ def _profile_evidence(
             **base,
             "profile_readable": False,
             "profile_error": blocker["reason"],
-            "reconcile_domain_routes_dry_run": _skipped("profile_unreadable"),
+            "owner_route_handoff_observation": _skipped("profile_unreadable"),
             "workspace_migration_dry_run": _skipped("profile_unreadable"),
             "real_workspace_soak_monitor": _skipped("profile_unreadable"),
             "paper_progress_degradation_evidence": _skipped("profile_unreadable"),
@@ -163,20 +162,20 @@ def _profile_evidence(
         studies=studies,
         requested_study_ids=requested_study_ids,
     )
-    reconcile = _reconcile_domain_routes_dry_run(profile=profile, study_ids=resolved_study_ids)
+    owner_route_handoff = _owner_route_handoff_observation(profile=profile, study_ids=resolved_study_ids)
     migration = _workspace_migration_dry_run(profile_path=profile_path)
     monitor = _workspace_soak_monitor(studies=studies)
     progress_degradation = paper_progress_degradation_evidence.build_profile_progress_degradation_evidence(
         profile_path=str(profile_path),
         profile=profile,
         studies=studies,
-        reconcile=reconcile,
+        reconcile=owner_route_handoff,
         monitor=monitor,
     )
     blockers = _profile_blockers(
         profile_path=str(profile_path),
         studies=studies,
-        reconcile=reconcile,
+        owner_route_handoff=owner_route_handoff,
         migration=migration,
         monitor=monitor,
     )
@@ -188,7 +187,7 @@ def _profile_evidence(
     return {
         **base,
         "resolved_study_ids": list(resolved_study_ids),
-        "reconcile_domain_routes_dry_run": reconcile,
+        "owner_route_handoff_observation": owner_route_handoff,
         "workspace_migration_dry_run": migration,
         "real_workspace_soak_monitor": monitor,
         "paper_progress_degradation_evidence": progress_degradation,
@@ -197,7 +196,7 @@ def _profile_evidence(
     }
 
 
-def _reconcile_domain_routes_dry_run(
+def _owner_route_handoff_observation(
     *,
     profile: WorkspaceProfile,
     study_ids: Sequence[str],
@@ -207,7 +206,6 @@ def _reconcile_domain_routes_dry_run(
             profile=profile,
             study_ids=study_ids,
             apply_safe_actions=False,
-            apply_runtime_platform_repair=False,
             developer_supervisor_mode="developer_apply_safe",
             persist_surfaces=False,
         )
@@ -224,7 +222,7 @@ def _reconcile_domain_routes_dry_run(
             mode="developer_apply_safe",
             apply=False,
         )
-        resolved = domain_route_reconcile._resolve_study_ids(  # noqa: SLF001
+        resolved = _resolve_study_ids(
             requested=study_ids,
             before_scan=before_scan,
             after_scan={},
@@ -235,11 +233,10 @@ def _reconcile_domain_routes_dry_run(
             profile=profile,
             study_ids=resolved,
             apply_safe_actions=False,
-            apply_runtime_platform_repair=False,
             developer_supervisor_mode="developer_apply_safe",
             persist_surfaces=False,
         )
-        step_receipts = domain_route_reconcile._step_receipts(  # noqa: SLF001
+        step_receipts = _step_receipts(
             before_scan=before_scan,
             consumed=consumed,
             executed=executed,
@@ -248,8 +245,8 @@ def _reconcile_domain_routes_dry_run(
         study_receipts = [
             {
                 "study_id": study_id,
-                "before": domain_route_reconcile._study_projection(before_scan, study_id),  # noqa: SLF001
-                "after": domain_route_reconcile._study_projection(after_scan, study_id),  # noqa: SLF001
+                "before": _study_projection(before_scan, study_id),
+                "after": _study_projection(after_scan, study_id),
             }
             for study_id in resolved
         ]
@@ -260,7 +257,7 @@ def _reconcile_domain_routes_dry_run(
             "dry_run": True,
             "writes_performed": False,
             "reason": f"{type(exc).__name__}: {exc}",
-            "next_action": "repair_runtime_truth_or_profile_inputs",
+            "next_action": "repair_owner_route_handoff_or_profile_inputs",
         }
     return {
         "status": "completed",
@@ -275,6 +272,101 @@ def _reconcile_domain_routes_dry_run(
         "execution_count": executed.get("execution_count"),
         "stable_blockers": _stable_blockers(after_scan),
     }
+
+
+def _study_map(scan_payload: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    studies: dict[str, dict[str, Any]] = {}
+    for item in _sequence(scan_payload.get("studies")):
+        if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))):
+            studies[study_id] = dict(item)
+    return studies
+
+
+def _study_action_queue(scan_payload: Mapping[str, Any], study_id: str) -> list[dict[str, Any]]:
+    actions: list[dict[str, Any]] = []
+    for action in _sequence(scan_payload.get("action_queue")):
+        if isinstance(action, Mapping) and _text(action.get("study_id")) == study_id:
+            actions.append(dict(action))
+    return actions
+
+
+def _study_projection(scan_payload: Mapping[str, Any], study_id: str) -> dict[str, Any]:
+    study = _study_map(scan_payload).get(study_id, {})
+    return {
+        "owner_route": _mapping(study.get("owner_route")) or None,
+        "action_queue": _study_action_queue(scan_payload, study_id) or list(study.get("action_queue") or []),
+        "why_not_applied": study.get("why_not_applied"),
+        "owner_forwarded": study.get("owner_forwarded"),
+        "stable_blocker": (
+            _mapping(study.get("stable_blocker"))
+            or _mapping(study.get("block_state"))
+            or _mapping(study.get("current_blocker"))
+            or None
+        ),
+    }
+
+
+def _resolve_study_ids(
+    *,
+    requested: Sequence[str],
+    before_scan: Mapping[str, Any],
+    after_scan: Mapping[str, Any],
+    consumed: Mapping[str, Any],
+    executed: Mapping[str, Any],
+) -> tuple[str, ...]:
+    resolved: list[str] = [study_id for item in requested if (study_id := _text(item)) is not None]
+    for source in (before_scan, after_scan):
+        for study in _sequence(source.get("studies")):
+            if isinstance(study, Mapping) and (study_id := _text(study.get("study_id"))) is not None:
+                resolved.append(study_id)
+        for action in _sequence(source.get("action_queue")):
+            if isinstance(action, Mapping) and (study_id := _text(action.get("study_id"))) is not None:
+                resolved.append(study_id)
+    for key in ("request_tasks", "repair_tasks", "default_executor_dispatches"):
+        for item in _sequence(consumed.get(key)):
+            if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
+                resolved.append(study_id)
+    for execution in _sequence(executed.get("executions")):
+        if isinstance(execution, Mapping) and (study_id := _text(execution.get("study_id"))) is not None:
+            resolved.append(study_id)
+    return tuple(dict.fromkeys(resolved))
+
+
+def _step_receipts(
+    *,
+    before_scan: Mapping[str, Any],
+    consumed: Mapping[str, Any],
+    executed: Mapping[str, Any],
+    after_scan: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "step": "scan_owner_routes",
+            "surface": before_scan.get("surface"),
+            "study_count": len(_sequence(before_scan.get("studies"))),
+            "action_count": len(_sequence(before_scan.get("action_queue"))),
+        },
+        {
+            "step": "materialize_domain_requests",
+            "surface": consumed.get("surface"),
+            "repair_task_count": consumed.get("repair_task_count"),
+            "request_task_count": consumed.get("request_task_count"),
+            "default_executor_dispatch_count": consumed.get("default_executor_dispatch_count"),
+        },
+        {
+            "step": "observe_owner_dispatch",
+            "surface": executed.get("surface"),
+            "execution_count": executed.get("execution_count"),
+            "executed_count": executed.get("executed_count"),
+            "blocked_count": executed.get("blocked_count"),
+        },
+        {
+            "step": "rescan_owner_routes",
+            "surface": after_scan.get("surface"),
+            "study_count": len(_sequence(after_scan.get("studies"))),
+            "action_count": len(_sequence(after_scan.get("action_queue"))),
+        },
+    ]
 
 
 def _workspace_migration_dry_run(profile_path: Path) -> dict[str, Any]:
@@ -343,7 +435,7 @@ def _profile_blockers(
     *,
     profile_path: str,
     studies: Sequence[Mapping[str, Any]],
-    reconcile: Mapping[str, Any],
+    owner_route_handoff: Mapping[str, Any],
     migration: Mapping[str, Any],
     monitor: Mapping[str, Any],
 ) -> list[dict[str, str]]:
@@ -370,16 +462,16 @@ def _profile_blockers(
                     study_id=_text(study.get("study_id")),
                 )
             )
-    if reconcile.get("can_complete") is not True:
+    if owner_route_handoff.get("can_complete") is not True:
         blockers.append(
             _blocker(
                 kind="runtime_truth",
-                reason=_text(reconcile.get("reason")) or "reconcile_domain_routes_dry_run_blocked",
-                next_action=_text(reconcile.get("next_action")) or "repair_runtime_truth_or_profile_inputs",
+                reason=_text(owner_route_handoff.get("reason")) or "owner_route_handoff_observation_blocked",
+                next_action=_text(owner_route_handoff.get("next_action")) or "repair_owner_route_handoff_or_profile_inputs",
                 profile_path=profile_path,
             )
         )
-    for stable_blocker in _sequence(reconcile.get("stable_blockers")):
+    for stable_blocker in _sequence(owner_route_handoff.get("stable_blockers")):
         if not isinstance(stable_blocker, Mapping):
             continue
         blockers.append(

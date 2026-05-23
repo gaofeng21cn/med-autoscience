@@ -10,7 +10,7 @@ from .status_display import display_text, status_chip, status_label
 
 _LEGACY_OR_GENERIC_WORKSPACE_ALERTS = frozenset(
     {
-        "MAS scheduler local adapter runtime supervision 尚未注册。",
+        "OPL provider/runtime manager workspace supervision 尚未注册。",
         "Supervisor scheduler 尚未注册。",
         "MAS local scheduler 未加载或存在漂移；仅保留 tombstone/provenance refs。",
         "检测到 legacy MAS local scheduler LaunchAgent；请按 tombstone/provenance refs 审计旧生成物。",
@@ -20,7 +20,7 @@ _LEGACY_OR_GENERIC_WORKSPACE_ALERTS = frozenset(
 )
 _WORKSPACE_SUPERVISION_ALERTS = frozenset(
     {
-        "MAS scheduler local adapter runtime supervision 尚未注册。",
+        "OPL provider/runtime manager workspace supervision 尚未注册。",
         "Supervisor scheduler 尚未注册。",
         "MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。",
         "检测到 legacy MAS local scheduler LaunchAgent；请按 tombstone/provenance refs 审计旧生成物。",
@@ -103,16 +103,18 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
         monitoring = _mapping(item.get("monitoring"))
         progress_freshness = _mapping(item.get("progress_freshness"))
         runtime_health = _mapping(item.get("runtime_health_snapshot"))
-        worker_liveness = _mapping(runtime_health.get("worker_liveness_state"))
+        opl_control = _mapping(item.get("opl_current_control_state")) or _mapping(item.get("current_control_state"))
         supervisor_state = _mapping(runtime_health.get("supervisor_state"))
         intervention_lane = _mapping(item.get("intervention_lane"))
         operator_status_card = _mapping(item.get("operator_status_card"))
         active_run_id = (
             _non_empty_text(monitoring.get("active_run_id"))
-            or _non_empty_text(worker_liveness.get("active_run_id"))
+            or _non_empty_text(opl_control.get("active_run_id"))
         )
         health_status = (
             _non_empty_text(monitoring.get("health_status"))
+            or _non_empty_text(opl_control.get("state"))
+            or _non_empty_text(opl_control.get("status"))
             or _non_empty_text(runtime_health.get("attempt_state"))
         )
         supervisor_tick_status = (
@@ -133,7 +135,6 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
                 or _non_empty_text(user_visible.get("state_label"))
                 or _state_label_from_health(
                     health_status=health_status,
-                    worker_running=worker_liveness.get("worker_running") if "worker_running" in worker_liveness else None,
                     active_run_id=active_run_id,
                 ),
                 "state_summary": _non_empty_text(item.get("state_summary"))
@@ -150,7 +151,6 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
                 "operator_focus": operator_focus,
                 "next_system_action": _non_empty_text(item.get("next_system_action"))
                 or _non_empty_text(user_visible.get("next_system_action")),
-                "worker_running": worker_liveness.get("worker_running") if "worker_running" in worker_liveness else None,
             }
         )
     return result
@@ -164,7 +164,7 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
     if not studies:
         return ""
     rows = []
-    headers = ("论文线", "运行控制台", "状态", "运行编号", "运行健康", "监管心跳", "进度新鲜度", "论文阶段", "焦点/下一步")
+    headers = ("论文线", "OPL 控制面", "状态", "运行编号", "运行健康", "监管心跳", "进度新鲜度", "论文阶段", "焦点/下一步")
     for item in studies:
         selected_class = " selected" if bool(item.get("selected")) else ""
         study_id = display_text(item.get("study_id"), empty_text="未知论文线", preserve_known_token=False)
@@ -176,7 +176,7 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
         )
         values = (
             study_cell,
-            _study_live_console_link(study_id, href=_non_empty_text(item.get("live_console_href"))),
+            _study_control_plane_label(),
             escape(display_text(item.get("state_label"), empty_text="状态投影缺失", preserve_known_token=False)),
             escape(display_text(item.get("active_run_id"), empty_text="无运行编号", preserve_known_token=False)),
             status_chip(item.get("runtime_health_status") or "unknown"),
@@ -197,7 +197,7 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
         '<div class="field-details-body">'
         '<div class="table-wrap"><table class="responsive-table">'
         "<thead><tr>"
-        "<th>论文线</th><th>运行控制台</th><th>状态</th><th>运行编号</th><th>运行健康</th>"
+        "<th>论文线</th><th>OPL 控制面</th><th>状态</th><th>运行编号</th><th>运行健康</th>"
         "<th>监管心跳</th><th>进度新鲜度</th><th>论文阶段</th><th>焦点/下一步</th>"
         "</tr></thead>"
         "<tbody>"
@@ -300,7 +300,6 @@ def _study_item(item: Mapping[str, Any]) -> str:
         if study_href
         else escape(study_id)
     )
-    live_console = _study_live_console_link(study_id, href=_non_empty_text(item.get("live_console_href")))
     detail_link = (
         f'<a class="btn btn-outline" href="{escape(study_href, quote=True)}">打开详情</a>'
         if study_href
@@ -337,7 +336,7 @@ def _study_item(item: Mapping[str, Any]) -> str:
             "</div>",
             '<div class="study-actions">',
             detail_link,
-            live_console,
+            _study_control_plane_label(),
             "</div>",
             "</article>",
         ]
@@ -371,9 +370,8 @@ def _metric_tone(value: object) -> str:
     return "warn" if text else "bad"
 
 
-def _study_live_console_link(study_id: str, *, href: str | None = None) -> str:
-    resolved_href = href or f"../live-console/index.html?study_id={quote(study_id, safe='')}"
-    return f'<a href="{escape(resolved_href, quote=True)}">运行控制台</a>'
+def _study_control_plane_label() -> str:
+    return '<span class="muted">OPL current_control_state</span>'
 
 
 def study_detail_href(study_id: str, *, from_study_page: bool = False) -> str:
@@ -399,11 +397,7 @@ def workspace_portal_navigation(
                 "study_id": study_id,
                 "selected": study_id == selected_study_id,
                 "href": study_detail_href(study_id, from_study_page=from_study_page),
-                "live_console_href": (
-                    f"../../../live-console/index.html?study_id={quote(study_id, safe='')}"
-                    if from_study_page
-                    else f"../live-console/index.html?study_id={quote(study_id, safe='')}"
-                ),
+                "control_plane_owner": "one-person-lab",
                 "state_label": item.get("state_label"),
                 "current_stage": item.get("current_stage"),
                 "paper_stage": item.get("paper_stage"),
@@ -466,9 +460,8 @@ def _workspace_study_has_active_signal(item: Mapping[str, Any]) -> bool:
     monitoring = _mapping(item.get("monitoring"))
     if _non_empty_text(monitoring.get("active_run_id")):
         return True
-    runtime_health = _mapping(item.get("runtime_health_snapshot"))
-    worker_liveness = _mapping(runtime_health.get("worker_liveness_state"))
-    if bool(worker_liveness.get("worker_running")):
+    opl_control = _mapping(item.get("opl_current_control_state")) or _mapping(item.get("current_control_state"))
+    if _non_empty_text(opl_control.get("active_run_id")):
         return True
     current_stage = _non_empty_text(item.get("current_stage"))
     writer_state = _non_empty_text(item.get("writer_state"))
@@ -495,7 +488,7 @@ def _alert_item(text: str) -> dict[str, str | None]:
             "检测到已退役的 MAS local scheduler 旧生成物；当前 CLI 不再暴露 local cleanup command。",
         }
         if text not in legacy_outputs:
-            text = "MAS scheduler local adapter runtime supervision 尚未注册。"
+            text = "OPL provider/runtime manager workspace supervision 尚未注册。"
         purpose = "说明 workspace 级 MAS local scheduler 已退为 tombstone/provenance 语境。"
         expected = "默认 scheduler 由 OPL provider/runtime manager 持有；MAS local adapter 不再暴露 active status/remove/ensure command。"
     elif text == "状态需要检查。":
@@ -512,7 +505,7 @@ def _alert_item(text: str) -> dict[str, str | None]:
         purpose = "提示监管心跳不能单独证明论文实际推进。"
         text = "进度信号：有记录，但 worker 或 artifact delta 不满足继续推进证据。"
         expected = "worker liveness 或 meaningful artifact delta 应恢复为 fresh，或给出稳定 blocked_reason。"
-        recommended_command = "uv run python -m med_autoscience.cli runtime domain-route-reconcile --profile <profile>"
+        recommended_command = "uv run python -m med_autoscience.cli owner-route-reconcile --profile <profile>"
     elif _is_parked_study_alert(text):
         source = "workspace_cockpit.inactive_study_projection"
         purpose = "说明 parked/manual-hold study 不应被自动唤醒。"
@@ -529,15 +522,13 @@ def _alert_item(text: str) -> dict[str, str | None]:
     }
 
 
-def _state_label_from_health(*, health_status: str | None, worker_running: object, active_run_id: str | None) -> str:
-    if worker_running is True and active_run_id:
-        return "运行中"
+def _state_label_from_health(*, health_status: str | None, active_run_id: str | None) -> str:
     if health_status == "escalated":
         return "需要外层 supervisor"
     if health_status in {"parked", "awaiting_explicit_resume", "await_explicit_resume"}:
         return "等待显式恢复"
     if active_run_id:
-        return "有 run 投影但 worker 未确认"
+        return "有 OPL 运行投影"
     return "无运行编号"
 
 

@@ -56,7 +56,7 @@ def controller_decision_route_back_task(
         }
     ]
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_route/reconcile-apply",
+        task_kind="domain_route/owner-handoff",
         study_id=study_id,
         reason="controller_decision_route_back",
         evidence_refs=source_refs,
@@ -65,8 +65,8 @@ def controller_decision_route_back_task(
     )
     return {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "task_kind": "domain_route/owner-handoff",
+        "recommended_task_kind": "domain_route/owner-handoff",
         "priority": 70,
         "source": "mas-controller-decision",
         "requires_approval": False,

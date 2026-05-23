@@ -14,14 +14,15 @@ def build_workbench_status_active_path_gates(
         "tests/test_cli_cases/owner_route_handoff_command_cases/dispatch_cases.py",
     ]
     common = {
-        "current_disposition": "retain_with_explicit_cleanup_gate",
-        "no_active_caller_proven": False,
+        "current_disposition": "domain_projection_refs_only_no_runtime_control_alias",
+        "stale_surface_scan_clean": False,
+        "no_resurrection_guard": True,
         "physical_delete_permitted": False,
         "archive_permitted": False,
         "rename_permitted": False,
         "tombstone_permitted": False,
         "delete_or_tombstone_after": list(delete_or_tombstone_after),
-        "no_alias_facade_compat_wrapper_allowed": True,
+        "no_resurrection_alias_or_wrapper_allowed": False,
         "must_not_emit": list(must_not_emit),
     }
     return (
@@ -32,15 +33,13 @@ def build_workbench_status_active_path_gates(
             "current_paths": [
                 "src/med_autoscience/controllers/progress_portal.py",
                 "src/med_autoscience/controllers/progress_portal_parts/",
-                "src/med_autoscience/controllers/portal_console_soak.py",
-                "src/med_autoscience/controllers/portal_console_soak_parts/",
                 "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
                 "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
                 "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
             ],
             "current_role": "domain_projection_refs_for_opl_workbench",
-            "active_caller_status": "active_product_workbench_domain_projection_caller_present",
-            "active_caller_count": 3,
+            "current_ref_status": "domain_projection_refs_no_runtime_control_owner",
+            "domain_ref_consumer_count": 3,
             "opl_replacement_parity_status": (
                 "generated_workbench_default_projected_not_physical_delete_ready"
             ),
@@ -52,33 +51,33 @@ def build_workbench_status_active_path_gates(
                     "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
                     "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
                 ],
-                "latest_portal_console_soak_split": {
-                    "status": "portal_console_soak_read_model_evidence_split",
-                    "scope": "portal_console_soak_read_model_evidence_shell",
-                    "extracted_paths": [
-                        "src/med_autoscience/controllers/portal_console_soak_parts/artifact_surfaces.py",
-                        "src/med_autoscience/controllers/portal_console_soak_parts/evidence.py",
-                        "src/med_autoscience/controllers/portal_console_soak_parts/shared.py",
+                "retired_combined_portal_runtime_soak_provenance": {
+                    "status": "physically_retired_no_alias",
+                    "scope": "retired_read_model_evidence_shell_provenance",
+                    "retired_paths": [
+                        "retired_combined_portal_runtime_soak_entry_removed_no_alias",
+                        "retired_combined_portal_runtime_soak_parts_removed_no_alias",
                     ],
-                    "retained_entry_shell": "src/med_autoscience/controllers/portal_console_soak.py",
-                    "does_not_claim_physical_delete": True,
-                    "does_not_claim_opl_default_caller": True,
+                    "legacy_surface_ref_count": 0,
+                    "replacement_owner": "one-person-lab",
+                    "replacement_surface": "opl_current_control_state_or_app_workbench_soak",
+                    "does_not_claim_active_entry": True,
                     "does_not_touch_publication_or_package_authority": True,
                 },
-                "retained_entry_shells": [
+                "domain_projection_entry_shells": [
                     "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
                     "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
                     "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py",
                 ],
-                "retained_field": "needs_user_decision",
+                "domain_projection_field": "needs_user_decision",
                 "scope": "product_entry_workspace_cockpit_workbench_projection_shell",
                 "does_not_claim_physical_delete": True,
                 "does_not_claim_opl_default_caller": True,
                 "does_not_touch_publication_or_package_authority": True,
             },
-            "active_caller_proof_refs": [
+            "domain_ref_consumer_refs": [
                 "physical_retirement_gate_matrix.retirement_candidates.workbench_shell",
-                "functional_module_inventory.workbench_portal_generic_shell.active_callers",
+                "functional_module_inventory.workbench_portal_generic_shell.domain_ref_consumers",
             ],
             "focused_test_refs": [
                 "tests/product_entry_cases/functional_consumer_boundary.py",
@@ -88,7 +87,7 @@ def build_workbench_status_active_path_gates(
         },
         {
             **common,
-            "residue_id": "owner_route_handoff_adapter",
+            "residue_id": "owner_route_handoff_domain_ref_entry",
             "residue_class": "sidecar",
             "current_paths": [
                 "src/med_autoscience/controllers/owner_route_handoff.py",
@@ -97,23 +96,23 @@ def build_workbench_status_active_path_gates(
                 "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py",
                 "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py",
             ],
-            "current_role": "domain_owner_route_handoff_adapter",
-            "active_caller_status": "active_domain_owner_route_handoff_caller_present",
-            "active_caller_count": 1,
+            "current_role": "domain_owner_route_handoff_refs",
+            "current_ref_status": "domain_owner_route_handoff_refs_no_runtime_control_owner",
+            "domain_ref_consumer_count": 1,
             "opl_replacement_parity_status": (
                 "opl_generated_sidecar_default_projected_not_physical_delete_ready"
             ),
             "domain_receipt_parity_status": (
                 "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
             ),
-            "active_caller_proof_refs": [
+            "domain_ref_consumer_refs": [
                 "physical_retirement_gate_matrix.retirement_candidates.owner_route_handoff",
                 "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
             ],
             "latest_thinning_evidence": {
-                "status": "sidecar_export_projection_split_to_parts_facade_retained",
-                "facade_path": "src/med_autoscience/controllers/owner_route_handoff.py",
-                "facade_role": "dispatch_facade_and_public_export_only",
+                "status": "sidecar_export_projection_split_to_parts_no_runtime_control_alias",
+                "domain_ref_entry_path": "src/med_autoscience/controllers/owner_route_handoff.py",
+                "entry_role": "dispatch_export_for_domain_refs_only",
                 "extracted_paths": [
                     (
                         "src/med_autoscience/controllers/owner_route_handoff_parts/"
@@ -128,26 +127,26 @@ def build_workbench_status_active_path_gates(
                         "dispatch_orchestration.py"
                     ),
                 ],
-                "retained_active_caller_count": 1,
+                "domain_ref_consumer_count": 1,
                 "does_not_claim_physical_delete": True,
                 "does_not_claim_opl_default_caller": True,
                 "does_not_claim_domain_receipt_parity": True,
             },
             "focused_test_refs": sidecar_focused_test_refs,
             "deletion_readiness_worklist": {
-                "surface_kind": "mas_owner_route_handoff_adapter_deletion_readiness",
-                "status": "blocked_active_domain_owner_route_handoff_caller_present",
-                "allowed_current_role": "domain_owner_route_handoff_adapter",
+                "surface_kind": "mas_owner_route_handoff_domain_ref_entry_deletion_readiness",
+                "status": "blocked_domain_owner_route_handoff_ref_consumer_present_no_runtime_control_owner",
+                "allowed_current_role": "domain_owner_route_handoff_refs",
                 "can_delete": False,
                 "can_archive": False,
                 "can_tombstone": False,
-                "active_caller_count": 1,
-                "active_caller_provenance": "sidecar export and dispatch still expose MAS owner-route refs",
+                "domain_ref_consumer_count": 1,
+                "domain_ref_consumer_provenance": "sidecar export and dispatch still expose MAS owner-route refs",
                 "missing_gate_inputs": [
                     {
-                        "gate": "active_caller_count=0",
+                        "gate": "opl_generated_sidecar_consumes_domain_refs",
                         "status": "blocked",
-                        "required_evidence": "no active sidecar export or dispatch domain caller scan",
+                        "required_evidence": "OPL generated sidecar consumes MAS owner-route refs without domain-owned runtime control",
                     },
                     {
                         "gate": "opl_replacement_parity_proven",
@@ -176,10 +175,10 @@ def build_workbench_status_active_path_gates(
                     {
                         "gate": "history_tombstone_refs_recorded",
                         "status": "required_before_delete",
-                        "required_evidence": "history/provenance tombstone refs for retired owner-route handoff adapter",
+                "required_evidence": "history/provenance tombstone refs for retired owner-route handoff domain-ref entry",
                     },
                 ],
-                "active_caller_proof_refs": [
+                "domain_ref_consumer_refs": [
                     "physical_retirement_gate_matrix.retirement_candidates.owner_route_handoff",
                     "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
                 ],
@@ -218,15 +217,15 @@ def build_workbench_status_active_path_gates(
                 "src/med_autoscience/controllers/progress_projection_parts/",
             ],
             "current_role": "domain_truth_status_projection",
-            "active_caller_status": "active_domain_truth_status_projection_caller_present",
-            "active_caller_count": 2,
+            "current_ref_status": "domain_truth_status_projection_refs_no_runtime_control_owner",
+            "domain_ref_consumer_count": 2,
             "opl_replacement_parity_status": (
                 "opl_generated_status_default_projected_not_physical_delete_ready"
             ),
             "domain_receipt_parity_status": "pending_progress_projection_truth_ref_parity",
-            "active_caller_proof_refs": [
+            "domain_ref_consumer_refs": [
                 "physical_retirement_gate_matrix.retirement_candidates.status_projection",
-                "functional_module_inventory.study_truth.active_callers",
+                "functional_module_inventory.study_truth.domain_ref_consumers",
             ],
             "focused_test_refs": [
                 "tests/test_progress_projection_evidence_adoption.py",

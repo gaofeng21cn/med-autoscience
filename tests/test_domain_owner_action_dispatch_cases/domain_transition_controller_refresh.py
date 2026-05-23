@@ -89,7 +89,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -123,7 +123,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -235,7 +235,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
     }
     ensure_calls: list[dict[str, object]] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -269,7 +269,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -386,7 +386,7 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
     }
     calls: list[str] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -424,8 +424,8 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.study_runtime_router, "pause_study_runtime", fail_pause_study_runtime)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fake_ensure_study_runtime)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -531,7 +531,7 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
     }
     calls: list[str] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
@@ -568,8 +568,8 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.study_runtime_router, "pause_study_runtime", fail_pause_study_runtime)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fail_ensure_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime)
+    monkeypatch.setattr(module.domain_status_projection, "ensure_study_runtime", fail_ensure_study_runtime)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,

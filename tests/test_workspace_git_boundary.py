@@ -371,28 +371,28 @@ def test_init_workspace_creates_outer_git_boundary_and_ignores_generated_study_s
     )
     assert check_local_runtime_config.returncode == 0
 
-    runtime_lifecycle_db = workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
-    runtime_lifecycle_db.parent.mkdir(parents=True, exist_ok=True)
-    runtime_lifecycle_db.write_text("sqlite placeholder\n", encoding="utf-8")
-    check_runtime_lifecycle_db = subprocess.run(
-        ["git", "check-ignore", str(runtime_lifecycle_db.relative_to(workspace_root))],
+    authority_refs_db = workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
+    authority_refs_db.parent.mkdir(parents=True, exist_ok=True)
+    authority_refs_db.write_text("sqlite placeholder\n", encoding="utf-8")
+    check_authority_refs_db = subprocess.run(
+        ["git", "check-ignore", str(authority_refs_db.relative_to(workspace_root))],
         cwd=workspace_root,
         check=False,
         text=True,
         capture_output=True,
     )
-    assert check_runtime_lifecycle_db.returncode == 0
+    assert check_authority_refs_db.returncode == 0
 
-    runtime_lifecycle_wal = workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite-wal"
-    runtime_lifecycle_wal.write_text("wal placeholder\n", encoding="utf-8")
-    check_runtime_lifecycle_wal = subprocess.run(
-        ["git", "check-ignore", str(runtime_lifecycle_wal.relative_to(workspace_root))],
+    authority_refs_wal = workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite-wal"
+    authority_refs_wal.write_text("wal placeholder\n", encoding="utf-8")
+    check_authority_refs_wal = subprocess.run(
+        ["git", "check-ignore", str(authority_refs_wal.relative_to(workspace_root))],
         cwd=workspace_root,
         check=False,
         text=True,
         capture_output=True,
     )
-    assert check_runtime_lifecycle_wal.returncode == 0
+    assert check_authority_refs_wal.returncode == 0
 
     portfolio_evidence_table = workspace_root / "portfolio" / "legacy_audit" / "evidence" / "metrics.csv"
     portfolio_evidence_table.parent.mkdir(parents=True, exist_ok=True)

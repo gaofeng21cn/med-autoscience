@@ -11,7 +11,7 @@ RUNTIME_WATCH_HELPERS = (
     Path("src/med_autoscience/controllers/domain_health_diagnostic_parts/gate_specificity.py"),
 )
 FORBIDDEN_CONTROLLER_TARGETS = (
-    "med_autoscience.controllers.study_runtime_router",
+    "med_autoscience.controllers.domain_status_projection",
     "med_autoscience.controllers.study_outer_loop",
 )
 

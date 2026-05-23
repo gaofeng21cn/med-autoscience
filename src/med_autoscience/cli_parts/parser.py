@@ -3,9 +3,7 @@ from __future__ import annotations
 import argparse
 
 from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
-from med_autoscience.cli_parts.live_console_commands import register_live_console_parsers
 from med_autoscience.cli_parts.product_entry_parsers import register_product_entry_parsers
-from med_autoscience.cli_parts.runtime_lifecycle_commands import register_runtime_lifecycle_parsers
 from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
 from med_autoscience.figure_routes import supported_required_route_help
 
@@ -108,45 +106,14 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_health_diagnostic_parser.add_argument("--quest-root", type=str)
     domain_health_diagnostic_parser.add_argument("--runtime-root", type=str)
     domain_health_diagnostic_parser.add_argument("--profile", type=str)
-    domain_health_diagnostic_parser.add_argument("--ensure-study-runtimes", action="store_true")
-    domain_health_diagnostic_parser.add_argument("--apply-supervisor-platform-repair", action="store_true")
+    domain_health_diagnostic_parser.add_argument("--request-opl-stage-attempts", action="store_true")
+    domain_health_diagnostic_parser.add_argument("--request-opl-owner-route-reconcile", action="store_true")
     domain_health_diagnostic_parser.add_argument("--apply", action="store_true")
-
-    runtime_supervision_status_parser = subparsers.add_parser("runtime-supervision-status")
-    runtime_supervision_status_parser.add_argument("--profile", required=True)
-    runtime_supervision_status_parser.add_argument("--interval-seconds", type=int, default=300)
-    runtime_supervision_status_parser.add_argument(
-        "--manager",
-        choices=ACTIVE_SUPERVISION_MANAGERS,
-        default="opl",
-    )
-
-    runtime_ensure_supervision_parser = subparsers.add_parser("runtime-ensure-supervision")
-    runtime_ensure_supervision_parser.add_argument("--profile", required=True)
-    runtime_ensure_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
-    runtime_ensure_supervision_parser.add_argument("--no-trigger-now", action="store_true")
-    runtime_ensure_supervision_parser.add_argument(
-        "--manager",
-        choices=ACTIVE_SUPERVISION_ENSURE_MANAGERS,
-        default="opl",
-    )
-    runtime_ensure_supervision_parser.add_argument("--dry-run", action="store_true")
-    runtime_ensure_supervision_parser.add_argument("--write-install-proof", action="store_true")
-
-    runtime_remove_supervision_parser = subparsers.add_parser("runtime-remove-supervision")
-    runtime_remove_supervision_parser.add_argument("--profile", required=True)
-    runtime_remove_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
-    runtime_remove_supervision_parser.add_argument(
-        "--manager",
-        choices=ACTIVE_SUPERVISION_MANAGERS,
-        default="opl",
-    )
 
     owner_route_reconcile_parser = subparsers.add_parser("owner-route-reconcile")
     owner_route_reconcile_parser.add_argument("--profile", required=True)
     owner_route_reconcile_parser.add_argument("--studies", nargs="+")
     owner_route_reconcile_parser.add_argument("--apply-safe-actions", action="store_true")
-    owner_route_reconcile_parser.add_argument("--apply-runtime-platform-repair", action="store_true")
     owner_route_reconcile_parser.add_argument(
         "--developer-supervisor-mode",
         choices=("internal_only", "external_observe", "developer_apply_safe"),
@@ -168,7 +135,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_owner_action_dispatch_parser.add_argument("--profile", required=True)
     domain_owner_action_dispatch_parser.add_argument("--studies", nargs="+")
     domain_owner_action_dispatch_parser.add_argument("--action-types", nargs="+")
-    domain_owner_action_dispatch_parser.add_argument("--managed-runtime-worker", action="store_true")
     domain_owner_action_dispatch_parser.add_argument(
         "--mode",
         choices=("developer_apply_safe",),
@@ -177,18 +143,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_owner_action_dispatch_apply = domain_owner_action_dispatch_parser.add_mutually_exclusive_group(required=True)
     domain_owner_action_dispatch_apply.add_argument("--dry-run", action="store_true")
     domain_owner_action_dispatch_apply.add_argument("--apply", action="store_true")
-
-    domain_route_reconcile_parser = subparsers.add_parser("domain-route-reconcile")
-    domain_route_reconcile_parser.add_argument("--profile", required=True)
-    domain_route_reconcile_parser.add_argument("--studies", nargs="+")
-    domain_route_reconcile_parser.add_argument(
-        "--mode",
-        choices=("developer_apply_safe",),
-        required=True,
-    )
-    domain_route_reconcile_apply = domain_route_reconcile_parser.add_mutually_exclusive_group(required=True)
-    domain_route_reconcile_apply.add_argument("--dry-run", action="store_true")
-    domain_route_reconcile_apply.add_argument("--apply", action="store_true")
 
     domain_owner_refresh_controller_decisions_parser = subparsers.add_parser(
         "domain-owner-action-refresh-controller-decisions"
@@ -260,10 +214,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_state_matrix_parser.add_argument("--entry-mode", type=str)
     study_state_matrix_parser.add_argument("--format", choices=("json", "markdown"), default="json")
 
-    register_runtime_lifecycle_parsers(subparsers)
     register_runtime_storage_parsers(subparsers)
-    register_live_console_parsers(subparsers)
-
     init_data_assets_parser = subparsers.add_parser("init-data-assets")
     init_data_assets_parser.add_argument("--workspace-root", required=True)
 
@@ -387,46 +338,30 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     medical_reporting_audit_parser.add_argument("--quest-root", required=True)
     medical_reporting_audit_parser.add_argument("--apply", action="store_true")
 
-    governance_report_parser = subparsers.add_parser("control-plane-governance-report")
+    governance_report_parser = subparsers.add_parser("storage-governance-report")
     governance_report_parser.add_argument("--workspace-root", action="append", required=True)
     governance_report_parser.add_argument("--markdown", action="store_true")
     governance_report_parser.add_argument("--deep", action="store_true")
     governance_report_parser.add_argument("--max-files", type=int)
     governance_report_parser.add_argument("--max-seconds", type=float)
 
-    backfill_apply_parser = subparsers.add_parser("control-plane-backfill-apply")
+    backfill_apply_parser = subparsers.add_parser("delivery-authority-backfill-apply")
     backfill_apply_parser.add_argument("--workspace-root", action="append", required=True)
     backfill_apply_parser.add_argument("--apply", action="store_true")
-    backfill_apply_parser.add_argument("--control-plane-snapshot-json")
-    backfill_apply_parser.add_argument("--control-plane-snapshot-file")
+    backfill_apply_parser.add_argument("--authority-snapshot-json")
+    backfill_apply_parser.add_argument("--authority-snapshot-file")
 
-    safe_cache_cleanup_apply_parser = subparsers.add_parser("control-plane-safe-cache-cleanup-apply")
-    safe_cache_cleanup_apply_parser.add_argument("--workspace-root", action="append", required=True)
-    safe_cache_cleanup_apply_parser.add_argument("--apply", action="store_true")
-    safe_cache_cleanup_apply_parser.add_argument("--control-plane-snapshot-json")
-    safe_cache_cleanup_apply_parser.add_argument("--control-plane-snapshot-file")
-    safe_cache_cleanup_apply_parser.add_argument("--retention-report-json")
-    safe_cache_cleanup_apply_parser.add_argument("--retention-report-file")
-
-    migration_audit_parser = subparsers.add_parser("control-plane-migration-audit")
+    migration_audit_parser = subparsers.add_parser("workspace-authority-migration-audit")
     migration_audit_parser.add_argument("--workspace-root", action="append", required=True)
 
-    cleanup_apply_parser = subparsers.add_parser("control-plane-cleanup-apply")
-    cleanup_apply_parser.add_argument("--workspace-root", action="append", required=True)
-    cleanup_apply_parser.add_argument("--apply", action="store_true")
-    cleanup_apply_parser.add_argument("--control-plane-snapshot-json")
-    cleanup_apply_parser.add_argument("--control-plane-snapshot-file")
-    cleanup_apply_parser.add_argument("--retention-report-json")
-    cleanup_apply_parser.add_argument("--retention-report-file")
-
-    lifecycle_report_parser = subparsers.add_parser("control-plane-lifecycle-report")
+    lifecycle_report_parser = subparsers.add_parser("artifact-lifecycle-report")
     lifecycle_report_parser.add_argument("--workspace-root", action="append", required=True)
     lifecycle_report_parser.add_argument("--markdown", action="store_true")
     lifecycle_report_parser.add_argument("--deep", action="store_true")
     lifecycle_report_parser.add_argument("--max-files", type=int)
     lifecycle_report_parser.add_argument("--max-seconds", type=float)
 
-    continuous_soak_summary_parser = subparsers.add_parser("control-plane-continuous-soak-summary")
+    continuous_soak_summary_parser = subparsers.add_parser("artifact-lifecycle-continuous-soak-summary")
     continuous_soak_summary_parser.add_argument("--workspace-root", action="append", required=True)
     continuous_soak_summary_parser.add_argument("--deep", action="store_true")
     continuous_soak_summary_parser.add_argument("--max-files", type=int)
@@ -468,22 +403,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     reapply_overlay_parser.add_argument("--quest-root", type=str)
     reapply_overlay_parser.add_argument("--profile", type=str)
 
-    subparsers.add_parser("ensure-study-runtime-analysis-bundle")
-
-    ensure_study_runtime_parser = subparsers.add_parser("ensure-study-runtime")
-    ensure_study_runtime_parser.add_argument("--profile", required=True)
-    ensure_study_runtime_parser.add_argument("--study-id", type=str)
-    ensure_study_runtime_parser.add_argument("--study-root", type=str)
-    ensure_study_runtime_parser.add_argument("--entry-mode", type=str)
-    ensure_study_runtime_parser.add_argument("--allow-stopped-relaunch", action="store_true")
-    ensure_study_runtime_parser.add_argument("--explicit-user-wakeup", action="store_true")
-    ensure_study_runtime_parser.add_argument("--force", action="store_true")
-    pause_study_runtime_parser = subparsers.add_parser("pause-study-runtime")
-    pause_study_runtime_parser.add_argument("--profile", required=True)
-    pause_study_runtime_parser.add_argument("--study-id", type=str)
-    pause_study_runtime_parser.add_argument("--study-root", type=str)
-    pause_study_runtime_parser.add_argument("--entry-mode", type=str)
-    pause_study_runtime_parser.add_argument("--force", action="store_true")
     progress_projection_parser = subparsers.add_parser("progress-projection")
     progress_projection_parser.add_argument("--profile", required=True)
     progress_projection_parser.add_argument("--study-id", type=str)
@@ -513,7 +432,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     reconcile_runtime_health_parser.add_argument("--study-id", type=str)
     reconcile_runtime_health_parser.add_argument("--study-root", type=str)
     reconcile_runtime_health_parser.add_argument("--entry-mode", type=str)
-    study_cycle_profiler.add_cli_parser(subparsers)
+    if study_cycle_profiler is not None:
+        study_cycle_profiler.add_cli_parser(subparsers)
     quality_repair_batch_parser = subparsers.add_parser("quality-repair-batch")
     quality_repair_batch_parser.add_argument("--profile", required=True)
     quality_repair_batch_parser.add_argument("--study-id", type=str)
@@ -569,13 +489,8 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     progress_portal_parser.add_argument("--host", default="127.0.0.1")
     progress_portal_parser.add_argument("--port", type=int, default=0)
     progress_portal_parser.add_argument("--interval-seconds", type=int, default=30)
-    portal_console_soak_parser = subparsers.add_parser("portal-console-soak")
-    portal_console_soak_parser.add_argument("--profile", required=True)
-    portal_console_soak_study = portal_console_soak_parser.add_mutually_exclusive_group()
-    portal_console_soak_study.add_argument("--study-id", type=str)
-    portal_console_soak_study.add_argument("--study-root", type=str)
-    portal_console_soak_parser.add_argument("--format", choices=("text", "json"), default="text")
-    study_cycle_profiler.add_workspace_cli_parser(subparsers)
+    if study_cycle_profiler is not None:
+        study_cycle_profiler.add_workspace_cli_parser(subparsers)
     register_product_entry_parsers(subparsers)
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)

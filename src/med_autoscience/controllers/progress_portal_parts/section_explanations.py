@@ -13,7 +13,6 @@ def progress_section_explanations(
     has_diagnostics: bool,
     has_latest_events: bool,
     has_source_refs: bool,
-    live_console_available: bool,
 ) -> list[dict[str, str]]:
     scope = "workspace" if workspace_overview_mode else "study"
     items = [
@@ -46,11 +45,11 @@ def progress_section_explanations(
             "如果没有明确动作，应显示需要重新生成 canonical progress projection。",
         ),
         _item(
-            "运行连续性",
-            "study_progress.runtime_session + recovery_intent",
-            "解释 worker 是否还活着、上次看到什么时候、恢复动作归谁。",
-            "worker state、active/last-known run、last seen、freshness、recovery action、next owner。",
-            "不能把 stale live 投影误报成正常 running。",
+            "OPL 控制面交接",
+            "study_progress.domain_authority_handoff + OPL current_control_state",
+            "解释 MAS 当前 domain owner refs 如何交给 OPL 唯一控制面承载。",
+            "owner route、typed blocker、handoff status、next owner 和 progress freshness。",
+            "不能把 provider/worker 状态误报成 MAS domain completion。",
         ),
         _item(
             "论文与质量",
@@ -94,13 +93,6 @@ def progress_section_explanations(
             "优先列 runtime health、runtime supervision、controller decisions、publication eval 等 refs。",
             "历史外部 runtime 路径只能作为 legacy provenance，不作为默认 truth。",
         ),
-        _item(
-            "运行控制台",
-            "artifacts/runtime/live_console/session_read_model/latest.json",
-            "从 Progress Portal 进入只读 runtime observation。",
-            "workspace/study/run、terminal/log source、runtime health、event refs 和 controller action intent。",
-            "运行控制台不写 runtime truth，也不等同旧 resident WebSocket terminal attach。",
-        ),
     ]
     if not has_workspace_studies:
         items[1]["expected"] = "应先发现 profile 下的 studies；否则检查 workspace profile 和 studies root。"
@@ -112,8 +104,6 @@ def progress_section_explanations(
         items[9]["expected"] = "如果没有可展示事件，应明确写出“当前没有带时间戳的进展事件”。"
     if not has_source_refs:
         items[10]["expected"] = "没有 source refs 时必须 fail-closed 显示来源缺失。"
-    if not live_console_available:
-        items[11]["expected"] = "不可用时必须说明 disabled_reason，不渲染成空控制台。"
     return items
 
 

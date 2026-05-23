@@ -31,7 +31,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -102,7 +102,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
             + str(profile.runtime_root)
             + " --profile "
             + str(profile_ref.resolve())
-            + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+            + " --ensure-supervisions --request-opl-owner-route-reconcile --apply"
         ),
     }
     assert result["recommended_command"].endswith(
@@ -110,7 +110,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         + str(profile.runtime_root)
         + " --profile "
         + str(profile_ref.resolve())
-        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+        + " --ensure-supervisions --request-opl-owner-route-reconcile --apply"
     )
     assert result["recommended_commands"][0]["step_id"] == "refresh_supervision"
     assert result["recovery_contract"]["action_mode"] == "refresh_supervision"
@@ -136,7 +136,7 @@ def test_study_progress_projects_explicit_runtime_blocker_before_publication_sup
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -232,7 +232,7 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -346,7 +346,7 @@ def test_study_progress_projects_manual_finishing_fast_lane_intake(
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -473,7 +473,7 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -660,7 +660,7 @@ def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -846,7 +846,7 @@ def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeou
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

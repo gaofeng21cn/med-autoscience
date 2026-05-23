@@ -14,7 +14,7 @@ def handle_study_read_command(
     load_profile: Callable[[str], Any],
     serialize_study_runtime_result: Callable[[Any], dict[str, Any]],
     study_progress: Any,
-    study_runtime_router: Any,
+    domain_status_projection: Any,
     study_state_matrix: Any,
     study_truth_kernel: Any,
     runtime_health_kernel: Any,
@@ -22,7 +22,7 @@ def handle_study_read_command(
     if args.command == "progress-projection":
         _require_one_study_ref(args, parser)
         profile = load_profile(args.profile)
-        result = study_runtime_router.progress_projection(
+        result = domain_status_projection.progress_projection(
             profile=profile,
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
@@ -51,7 +51,7 @@ def handle_study_read_command(
         profile = load_profile(args.profile)
         result = study_state_matrix.build_study_state_matrix(
             profile=profile,
-            study_runtime_router=study_runtime_router,
+            domain_status_projection=domain_status_projection,
             study_ids=tuple(args.studies or ()),
             entry_mode=args.entry_mode,
         )
@@ -67,7 +67,7 @@ def handle_study_read_command(
         status_payload = _read_status_payload(
             args=args,
             profile=profile,
-            study_runtime_router=study_runtime_router,
+            domain_status_projection=domain_status_projection,
             serialize_study_runtime_result=serialize_study_runtime_result,
         )
         resolved_study_id, resolved_study_root, _ = _resolved_study_refs(
@@ -92,7 +92,7 @@ def handle_study_read_command(
         status_payload = _read_status_payload(
             args=args,
             profile=profile,
-            study_runtime_router=study_runtime_router,
+            domain_status_projection=domain_status_projection,
             serialize_study_runtime_result=serialize_study_runtime_result,
         )
         resolved_study_id, resolved_study_root, resolved_quest_id = _resolved_study_refs(
@@ -124,10 +124,10 @@ def _read_status_payload(
     *,
     args: argparse.Namespace,
     profile: Any,
-    study_runtime_router: Any,
+    domain_status_projection: Any,
     serialize_study_runtime_result: Callable[[Any], dict[str, Any]],
 ) -> dict[str, Any]:
-    status = study_runtime_router.progress_projection(
+    status = domain_status_projection.progress_projection(
         profile=profile,
         study_id=args.study_id,
         study_root=Path(args.study_root) if args.study_root else None,

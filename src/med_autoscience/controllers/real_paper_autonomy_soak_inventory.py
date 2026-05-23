@@ -617,7 +617,7 @@ def _target_coverage(
                         "matching study directory was found but no artifact delta, gate replay, reviewer update, "
                         "route decision, human gate, stop-loss, continuing repair, or stable blocker surface was readable"
                     ),
-                    "required_owner_surface": "MAS runtime/progress/controller/publication surfaces",
+                    "required_owner_surface": "MAS progress/controller/publication domain refs plus OPL current-control-state",
                     "write_permitted": False,
                 }
             )

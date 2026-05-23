@@ -5,7 +5,7 @@ from itertools import chain
 from typing import Any
 
 
-SURFACE_KIND = "control_plane_lifecycle_report"
+SURFACE_KIND = "artifact_lifecycle_report"
 EMPTY_SEQUENCE: tuple[Any, ...] = ()
 
 

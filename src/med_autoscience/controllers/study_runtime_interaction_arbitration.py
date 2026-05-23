@@ -120,9 +120,6 @@ def arbitrate_waiting_for_user(
         )
         if controller_work_unit_redrive is not None:
             return controller_work_unit_redrive
-        platform_repair_redrive = _platform_repair_decision_redrive(continuation_state)
-        if platform_repair_redrive is not None:
-            return platform_repair_redrive
         blocked_closeout_wait = _blocked_closeout_owner_wait(blocked_closeout)
         if blocked_closeout_wait is not None:
             return blocked_closeout_wait
@@ -294,7 +291,7 @@ def _pending_user_message_redrive(continuation_state: dict[str, Any] | None) -> 
         return None
     if continuation_anchor != "user_message_queue":
         return None
-    if continuation_reason != "runtime_platform_repair_resume_existing_pending_user_message":
+    if continuation_reason != "opl_owner_route_resume_existing_pending_user_message":
         return None
     pending_count = continuation_state.get("pending_user_message_count")
     if not isinstance(pending_count, int) or pending_count <= 0:
@@ -302,7 +299,7 @@ def _pending_user_message_redrive(continuation_state: dict[str, Any] | None) -> 
     return {
         "classification": "pending_user_message_redrive",
         "action": "resume",
-        "reason_code": "runtime_platform_repair_pending_user_message_redrive",
+        "reason_code": "opl_owner_route_pending_user_message_handoff",
         "requires_user_input": False,
         "valid_blocking": False,
         "kind": "user_message_queue",
@@ -310,40 +307,8 @@ def _pending_user_message_redrive(continuation_state: dict[str, Any] | None) -> 
         "source_artifact_path": None,
         "pending_user_message_count": pending_count,
         "controller_stage_note": (
-            "Runtime platform repair marked an existing pending user-message queue for autonomous redrive; "
-            "resume the managed runtime instead of parking on waiting_for_user."
-        ),
-    }
-
-
-def _platform_repair_decision_redrive(continuation_state: dict[str, Any] | None) -> dict[str, Any] | None:
-    if not isinstance(continuation_state, dict):
-        return None
-    continuation_policy = _text(continuation_state.get("continuation_policy"))
-    continuation_anchor = _text(continuation_state.get("continuation_anchor"))
-    continuation_reason = _text(continuation_state.get("continuation_reason"))
-    if continuation_policy != "auto":
-        return None
-    if continuation_anchor != "decision":
-        return None
-    if continuation_reason != "runtime_platform_repair_redrive":
-        return None
-    pending_count = continuation_state.get("pending_user_message_count")
-    if isinstance(pending_count, int) and pending_count > 0:
-        return None
-    return {
-        "classification": "platform_repair_decision_redrive",
-        "action": "resume",
-        "reason_code": "runtime_platform_repair_decision_redrive",
-        "requires_user_input": False,
-        "valid_blocking": False,
-        "kind": "runtime_platform_repair",
-        "decision_type": None,
-        "source_artifact_path": None,
-        "pending_user_message_count": int(pending_count or 0),
-        "controller_stage_note": (
-            "Runtime platform repair marked the controller decision lane for autonomous redrive; "
-            "resume the managed runtime instead of parking on waiting_for_user."
+            "MAS recorded an OPL owner-route handoff for an existing pending user-message queue; "
+            "the OPL control plane owns queue hydration and provider resume."
         ),
     }
 

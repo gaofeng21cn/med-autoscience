@@ -26,10 +26,9 @@ def test_study_outer_loop_tick_dispatches_stop_runtime_action(monkeypatch, tmp_p
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     charter_ref = _write_charter(study_root)
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
-    seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -38,14 +37,6 @@ def test_study_outer_loop_tick_dispatches_stop_runtime_action(monkeypatch, tmp_p
             "reason": "startup_boundary_not_ready_for_resume",
             "runtime_escalation_ref": runtime_escalation_ref,
         },
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router.managed_runtime_transport,
-        "stop_quest",
-        lambda **kwargs: (
-            seen.setdefault("stop_kwargs", kwargs),
-            {"ok": True, "quest_id": "quest-001", "status": "stopped", "snapshot": {"status": "stopped"}},
-        )[1],
     )
 
     result = module.study_outer_loop_tick(
@@ -66,14 +57,14 @@ def test_study_outer_loop_tick_dispatches_stop_runtime_action(monkeypatch, tmp_p
         recorded_at="2026-04-05T06:12:00+00:00",
     )
 
-    assert seen["stop_kwargs"] == {
-        "runtime_root": profile.managed_runtime_home,
-        "quest_id": "quest-001",
-        "source": "test-source",
-    }
-    assert result["dispatch_status"] == "executed"
+    assert result["dispatch_status"] == "blocked"
     assert result["executed_controller_action"]["action_type"] == "stop_runtime"
-    assert result["executed_controller_action"]["result"]["status"] == "stopped"
+    action_result = result["executed_controller_action"]["result"]
+    assert action_result["status"] == "opl_runtime_human_gate_required"
+    assert action_result["runtime_owner"] == "one-person-lab"
+    assert action_result["mas_executes_runtime_attempt"] is False
+
+
 def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_runtime(
     monkeypatch,
     tmp_path: Path,
@@ -103,10 +94,9 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
     )
     charter_ref = _write_charter(study_root)
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
-    seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -123,14 +113,6 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
                 "auto_entry": "on_managed_research_intent",
             },
         },
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router.managed_runtime_transport,
-        "stop_quest",
-        lambda **kwargs: (
-            seen.setdefault("stop_kwargs", kwargs),
-            {"ok": True, "quest_id": "quest-001", "status": "stopped", "snapshot": {"status": "stopped"}},
-        )[1],
     )
 
     result = module.study_outer_loop_tick(
@@ -151,15 +133,11 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
         recorded_at="2026-04-05T06:12:00+00:00",
     )
 
-    assert result["dispatch_status"] == "executed"
+    assert result["dispatch_status"] == "blocked"
     assert result["executed_controller_action"]["action_type"] == "stop_runtime"
+    assert result["executed_controller_action"]["result"]["status"] == "opl_runtime_human_gate_required"
     runtime_escalation_ref = result["runtime_escalation_ref"]
     assert runtime_escalation_ref["record_id"] == (
         "runtime-escalation::001-risk::quest-001::quest_already_running::2026-04-05T06:12:00+00:00"
     )
     assert Path(runtime_escalation_ref["artifact_path"]).exists()
-    assert seen["stop_kwargs"] == {
-        "runtime_root": profile.managed_runtime_home,
-        "quest_id": "quest-001",
-        "source": "domain_health_diagnostic_outer_loop_wakeup",
-    }

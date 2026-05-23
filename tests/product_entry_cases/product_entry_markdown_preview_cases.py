@@ -84,7 +84,7 @@ def test_product_entry_manifest_fails_closed_on_invalid_user_interaction_contrac
             workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+                "summary": "OPL provider/runtime manager workspace supervision 已在线。",
                 "drift_reasons": [],
             },
         ),

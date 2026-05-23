@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from med_autoscience.runtime_backend import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
+from med_autoscience.opl_runtime_contract import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
 from med_autoscience.controllers.opl_functional_closure_surfaces import (
     build_functional_closure_status_projection,
     build_lifecycle_apply_requests_surface,
@@ -67,8 +67,8 @@ def build_opl_provider_ready_contract(
         "target_domain_id": TARGET_DOMAIN_ID,
         "status": "provider_ready_skeleton",
         "summary": (
-            "MAS exposes a provider-ready OPL/Temporal adapter contract while MAS-owned runtime, "
-            "publication, quality, and artifact truth remain in workspace artifacts."
+            "MAS exposes provider-ready domain authority refs for OPL/Temporal while runtime control "
+            "belongs to OPL and MAS publication, quality, and artifact truth remain in workspace artifacts."
         ),
         "provider_topology": _provider_topology(provider_availability=provider_availability),
         "executor_requirements": {
@@ -188,7 +188,7 @@ def _direct_mas_path(profile_ref_text: str) -> dict[str, Any]:
         "commands": {
             "read_status": f"medautosci study-progress --profile {profile_ref_text} --format json",
             "read_runtime": f"medautosci study progress-projection --profile {profile_ref_text} --study-id <study_id>",
-            "reconcile": f"medautosci domain-route-reconcile --profile {profile_ref_text} --dry-run",
+            "reconcile": f"medautosci owner-route-reconcile --profile {profile_ref_text}",
         },
         "must_converge_with_opl_hosted_path": True,
     }
@@ -224,7 +224,7 @@ def _workspace_runtime_artifact_root_locator(*, profile: WorkspaceProfile) -> di
             "controller_decisions": "studies/<study_id>/artifacts/controller_decisions/latest.json",
             "stage_knowledge_packet": "studies/<study_id>/artifacts/stage_knowledge/<stage>/latest.json",
             "dispatch_receipts": "artifacts/runtime/opl_family_sidecar/dispatch_receipts",
-            "lifecycle_refs_sqlite": "artifacts/runtime/runtime_lifecycle.sqlite",
+            "domain_authority_refs_index": "artifacts/runtime/domain_authority_refs.sqlite",
         },
     }
 

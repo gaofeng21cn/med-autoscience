@@ -184,7 +184,7 @@ def test_study_progress_projects_open_auto_research_capabilities_without_authori
     _write_open_auto_research_surfaces(study_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -344,7 +344,7 @@ def test_dm002_like_open_auto_research_soak_matrix_blocks_authority_takeover_and
     _write_dm002_like_open_auto_research_soak_surfaces(study_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

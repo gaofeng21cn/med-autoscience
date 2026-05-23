@@ -15,17 +15,18 @@ from med_autoscience.publication_eval_specificity_targets import specificity_tar
 
 
 RUNTIME_CONTROLLER_REDRIVE_REASON = "runtime_controller_redrive_required"
+OPL_STAGE_ATTEMPT_ADMISSION_REASON = "opl_stage_attempt_admission_required"
 QUALITY_REPAIR_BATCH_RELATIVE_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
 SPECIFICITY_WORK_UNIT_IDS = {"gate_needs_specificity", "needs_specificity"}
 RUNTIME_REDRIVE_ACTIONS = {
-    "ensure_study_runtime",
-    "ensure_study_runtime_relaunch_stopped",
+    "request_opl_stage_attempt",
+    "request_opl_stage_attempt_relaunch",
     "run_gate_clearing_batch",
     "run_quality_repair_batch",
 }
 DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE = {
     "ai_reviewer_re_eval": {"return_to_ai_reviewer_workflow"},
-    "bundle_stage_finalize": {"ensure_study_runtime"},
+    "bundle_stage_finalize": {"request_opl_stage_attempt"},
     "publication_gate_blocker": {"run_gate_clearing_batch"},
     "route_back_same_line": {"run_quality_repair_batch"},
 }
@@ -34,52 +35,15 @@ METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = "provenance_limited_harmonization_audit
 METHODOLOGY_REFRAME_REBUILD_WORK_UNIT = "unit_harmonized_external_validation_rerun"
 
 
-def runtime_platform_repair_action(
-    *,
-    study_root: Path,
-    status: Mapping[str, Any],
-    publication_eval_payload: Mapping[str, Any],
-    default_reason: str,
-) -> dict[str, Any]:
-    controller_route = current_controller_runtime_route(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
-    if controller_route is None:
-        return {
-            "action_type": "runtime_platform_repair",
-            "authority": "external_supervisor",
-            "owner": "external_engineering_agent",
-            "recommended_owner": "external_engineering_agent",
-            "reason": default_reason,
-            "summary": _runtime_repair_summary(default_reason),
-            "paper_package_mutation_allowed": False,
-        }
-    return {
-        "action_type": "runtime_platform_repair",
-        "authority": "observability_only",
-        "owner": "mas_controller",
-        "request_owner": "mas_controller",
-        "recommended_owner": "mas_controller",
-        "reason": RUNTIME_CONTROLLER_REDRIVE_REASON,
-        "summary": "Current controller truth names an executable same-line work unit; redrive the no-live runtime through MAS controller ownership.",
-        "controller_route": controller_route,
-        "runtime_reason": _text(status.get("reason")),
-        "paper_package_mutation_allowed": False,
-    }
-
-
-def runtime_platform_repair_reason(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str:
-    from med_autoscience.controllers.owner_route_reconcile_parts import abnormal_stopped_runtime
-
-    if reason := abnormal_stopped_runtime.repair_reason(status, progress):
-        return reason
-    return "runtime_recovery_retry_budget_exhausted"
-
-
 def next_owner_for_reason(reason: str | None) -> str | None:
-    if reason == RUNTIME_CONTROLLER_REDRIVE_REASON:
-        return "mas_controller"
+    if reason in {RUNTIME_CONTROLLER_REDRIVE_REASON, OPL_STAGE_ATTEMPT_ADMISSION_REASON}:
+        return "one-person-lab"
+    if reason in {
+        "runtime_recovery_not_authorized",
+        "runtime_recovery_retry_budget_exhausted",
+        "runtime_relaunch_no_live_run_started",
+    }:
+        return "one-person-lab"
     return None
 
 
@@ -302,7 +266,7 @@ def methodology_reframe_runtime_route_allowed(
     if not (
         _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and work_unit_fingerprint == METHODOLOGY_REFRAME_DECISION_FINGERPRINT
-        and "ensure_study_runtime" in action_types
+        and "request_opl_stage_attempt" in action_types
         and work_unit.get("hard_methodology") is True
         and work_unit.get("terminal_source_provenance_blocker_consumed") is True
         and work_unit.get("current_transport_claim_must_not_be_used_as_medical_conclusion") is True
@@ -343,14 +307,6 @@ def _domain_transition_fingerprint_parts(work_unit_fingerprint: str | None) -> t
     if len(parts) != 3 or parts[0] != "domain-transition" or not parts[1] or not parts[2]:
         return None, None
     return parts[1], parts[2]
-
-
-def _runtime_repair_summary(reason: str) -> str:
-    if reason == "abnormal_stopped_runtime_resume_required":
-        return "Quest is stopped with controller/runtime facts requiring resume and no live worker is attached."
-    if reason == "failed_quest_runtime_relaunch_required":
-        return "Quest is failed/non-resumable, auto continuation is allowed, and no live worker is attached."
-    return "Runtime recovery retry budget is exhausted and no live worker is attached."
 
 
 def _publication_work_unit_fingerprints(publication_eval_payload: Mapping[str, Any]) -> set[str]:
@@ -565,10 +521,9 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "QUALITY_REPAIR_BATCH_RELATIVE_PATH",
+    "OPL_STAGE_ATTEMPT_ADMISSION_REASON",
     "RUNTIME_CONTROLLER_REDRIVE_REASON",
     "current_story_surface_delta_blocker_route",
     "current_controller_runtime_route",
     "next_owner_for_reason",
-    "runtime_platform_repair_reason",
-    "runtime_platform_repair_action",
 ]

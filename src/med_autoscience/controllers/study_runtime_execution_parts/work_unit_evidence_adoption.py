@@ -97,10 +97,8 @@ def _mark_controller_work_unit_evidence_adopted(
     authorization_context: dict[str, Any],
     evidence_adoption: dict[str, Any],
     lifecycle: dict[str, Any],
-) -> None:
-    runtime_state_path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
-    runtime_state = _read_json_mapping(runtime_state_path)
-    runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY] = {
+) -> dict[str, Any]:
+    marker = {
         "decision_id": str(authorization_context.get("decision_id") or "").strip(),
         "publication_eval_id": _text(authorization_context.get("publication_eval_id")),
         "route_target": str(authorization_context.get("route_target") or "").strip(),
@@ -132,8 +130,14 @@ def _mark_controller_work_unit_evidence_adopted(
     }
     for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
         if key in authorization_context:
-            runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY][key] = authorization_context[key]
-    _write_json_mapping(runtime_state_path, runtime_state)
+            marker[key] = authorization_context[key]
+    return {
+        "surface_kind": "controller_work_unit_evidence_adoption_ref",
+        "effect": "refs_only",
+        "queue_owner": "one-person-lab",
+        "mas_writes_runtime_state": False,
+        "marker": marker,
+    }
 
 
 def record_controller_work_unit_evidence_adoption(
@@ -183,7 +187,7 @@ def record_controller_work_unit_evidence_adoption(
         write_json_mapping=_write_json_mapping,
     )
     if quest_root is not None:
-        _mark_controller_work_unit_evidence_adopted(
+        status.extras["controller_work_unit_evidence_adoption_ref"] = _mark_controller_work_unit_evidence_adopted(
             quest_root=quest_root,
             authorization_context=authorization_context,
             evidence_adoption=evidence_adoption,

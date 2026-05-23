@@ -21,6 +21,12 @@ EXPECTED_CLASSIFICATIONS = [
     "fixture_only",
     "retire",
     "external_source_archive_only",
+    "opl_owned_runtime_control_mas_domain_refs",
+]
+EXPECTED_REMAINING_SURFACE_CLASSIFICATIONS = [
+    *EXPECTED_CLASSIFICATIONS,
+    "opl_runtime_control_with_mas_refs",
+    "retired_mas_runtime_surface",
 ]
 EXPECTED_REMAINING_SURFACE_IDS = [
     "runtime_core_daemon",
@@ -209,24 +215,35 @@ def test_mds_remaining_surface_inventory_classifies_functional_monolith_surfaces
     assert inventory["mds_final_role"] == "frozen_source_archive_or_historical_fixture_only"
     assert inventory["default_operation_requires_external_mds"] is False
     assert inventory["upstream_history_import_allowed"] is False
-    assert inventory["allowed_classifications"] == EXPECTED_CLASSIFICATIONS
+    assert inventory["allowed_classifications"] == EXPECTED_REMAINING_SURFACE_CLASSIFICATIONS
     assert [surface["surface_id"] for surface in inventory["remaining_surfaces"]] == EXPECTED_REMAINING_SURFACE_IDS
-    assert {surface["classification"] for surface in inventory["remaining_surfaces"]} == set(EXPECTED_CLASSIFICATIONS)
+    assert {surface["classification"] for surface in inventory["remaining_surfaces"]} == {
+        "mas_owned",
+        "rewrite_in_mas",
+        "fixture_only",
+        "retire",
+        "external_source_archive_only",
+        "opl_runtime_control_with_mas_refs",
+        "retired_mas_runtime_surface",
+    }
     assert inventory["classification_summary"] == {
         "surface_count": 10,
-        "mas_owned": 3,
-        "rewrite_in_mas": 2,
+        "mas_owned": 2,
+        "rewrite_in_mas": 1,
         "fixture_only": 2,
         "retire": 2,
         "external_source_archive_only": 1,
+        "opl_owned_runtime_control_mas_domain_refs": 0,
+        "opl_runtime_control_with_mas_refs": 1,
+        "retired_mas_runtime_surface": 1,
     }
     surfaces_by_id = {surface["surface_id"]: surface for surface in inventory["remaining_surfaces"]}
-    assert surfaces_by_id["runtime_core_daemon"]["classification"] == "mas_owned"
+    assert surfaces_by_id["runtime_core_daemon"]["classification"] == "retired_mas_runtime_surface"
     assert surfaces_by_id["worker_runner_lifecycle"]["classification"] == "mas_owned"
-    assert surfaces_by_id["runtime_core_daemon"]["parity_proof"]["proof_kind"] == "turn_lifecycle_kernel"
+    assert surfaces_by_id["runtime_core_daemon"]["parity_proof"]["proof_kind"] == "retired_runtime_surface_parity"
     assert surfaces_by_id["worker_runner_lifecycle"]["parity_proof"]["proof_kind"] == "worker_runner_receipts"
     for surface in inventory["remaining_surfaces"]:
-        assert surface["classification"] in EXPECTED_CLASSIFICATIONS
+        assert surface["classification"] in EXPECTED_REMAINING_SURFACE_CLASSIFICATIONS
         assert surface["mas_target_owner"]
         assert surface["mds_final_role"]
         assert surface["cutover_contract"]
@@ -320,43 +337,53 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["daemon_residency"]["behavior_difference"] == "MAS default supervision is scheduled ticks, not a resident HTTP/WebSocket daemon."
     assert by_surface["supervision_cadence"]["mas_behavior"]["interval_seconds"] == 300
     assert by_surface["supervision_cadence"]["mas_behavior"]["max_ticks"] == 1
-    assert by_surface["supervision_cadence"]["mas_behavior"]["inner_turn_continuation_owner"] == "MAS Runtime Turn Lifecycle Kernel"
+    assert by_surface["supervision_cadence"]["mas_behavior"]["inner_turn_continuation_owner"] == "OPL stage attempt ledger"
     assert by_surface["turn_completion_continuation"]["equivalence_class"] == "behavior_equivalent"
-    assert by_surface["turn_completion_continuation"]["mas_behavior"]["auto_continue_delay_seconds"] == 0.2
-    assert "complete_turn_and_normalize" in by_surface["turn_completion_continuation"]["mas_contract"]
-    assert by_surface["live_worker_session_tracking"]["mas_behavior"]["session_store"] == "durable runtime state and runtime_session read model"
-    assert by_surface["live_worker_session_tracking"]["mas_behavior"]["runner_monitor"] is True
-    assert "runtime_session" in by_surface["live_worker_session_tracking"]["mas_contract"]
-    assert by_surface["queued_user_messages_mailbox"]["mas_behavior"]["runtime_turn_user_queue"] is True
-    assert "recovery_intent" in by_surface["crash_recovery_auto_resume"]["mas_contract"]
+    assert by_surface["turn_completion_continuation"]["mas_behavior"]["auto_continue_delay_seconds"] is None
+    assert "OPL-owned" in by_surface["turn_completion_continuation"]["mas_contract"]
+    assert by_surface["live_worker_session_tracking"]["mas_behavior"]["session_store"] == (
+        "OPL current_control_state plus MAS domain authority refs"
+    )
+    assert by_surface["live_worker_session_tracking"]["mas_behavior"]["runner_monitor"] is False
+    assert "OPL current_control_state" in by_surface["live_worker_session_tracking"]["mas_contract"]
+    assert by_surface["queued_user_messages_mailbox"]["mas_behavior"] == {
+        "task_intake": True,
+        "controller_handoff": True,
+        "domain_intake_refs": True,
+        "daemon_mailbox": False,
+    }
+    assert "OPL owns recovery scheduling" in by_surface["crash_recovery_auto_resume"]["mas_contract"]
     assert by_surface["progress_visibility"]["equivalence_class"] == "partially_equivalent"
     assert by_surface["progress_visibility"]["mas_behavior"]["primary_scope"] == "workspace_shell_with_per_study_pages"
     assert by_surface["progress_visibility"]["mas_behavior"]["paper_scoped_navigation"] == "landed_per_study_pages"
     assert by_surface["progress_visibility"]["mas_behavior"]["route_decision_trail"] == "landed_read_only"
-    assert by_surface["progress_visibility"]["mas_behavior"]["conversation_read_model"] == "landed_read_only_visible_panel"
+    assert by_surface["progress_visibility"]["mas_behavior"]["executor_conversation_runtime_drilldown"] == (
+        "retired_physical_no_alias_mas_surface"
+    )
+    assert by_surface["progress_visibility"]["mas_behavior"]["combined_portal_runtime_soak_keys"] is False
     assert "mas_progress_portal_route_decision_trail" in by_surface["progress_visibility"]["mas_contract"]
-    assert "mas_runtime_conversation_read_model" in by_surface["progress_visibility"]["mas_contract"]
+    assert "runtime truth" in by_surface["progress_visibility"]["mas_contract"]
     assert by_surface["progress_visibility"]["paper_progress_degradation"]["classification"] == "diagnostic_degrading"
     assert by_surface["progress_visibility"]["paper_progress_degradation"]["affects_automatic_paper_production"] is False
-    assert by_surface["progress_visibility"]["future_parity_candidate"] == "real_workspace_user_soak_and_interactive_gate_polish"
+    assert by_surface["progress_visibility"]["future_parity_candidate"] == (
+        "opl_app_current_control_state_user_path_soak"
+    )
     assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
-    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["live_console"] == (
-        "MAS-authored session/run/terminal/log observation shell"
+    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["mas_private_runtime_console"] == (
+        "retired_physical_no_alias_surface"
     )
-    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["websocket_terminal_attach"] == (
-        "mas_owner_available_or_blocked_by_missing_terminal_input_owner"
-    )
+    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["websocket_terminal_attach"] == "not_exposed_by_mas"
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["terminal_attach_gate"] == (
-        "mas_terminal_attach_gate"
+        "retired_physical_no_alias_surface"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["terminal_attach_owner"] == (
-        "mas_terminal_attach_owner"
+        "one-person-lab"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["authorized_portal_actions"] == (
-        "controller_authorized_apply_for_pause_resume_stop"
+        "not_supported_by_mas_portal"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["future_parity_candidate"] == (
-        "real_workspace_terminal_attach_owner_soak"
+        "opl_current_control_state_provider_drilldown_soak"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["paper_progress_degradation"]["classification"] == (
         "diagnostic_degrading"
@@ -364,8 +391,10 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["webui_websocket_terminal_streaming"]["paper_progress_degradation"][
         "affects_automatic_paper_production"
     ] is False
-    assert "live-console-parity" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
-    assert "mas_terminal_attach_gate" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
+    assert "physically retired with no compatibility alias" in by_surface[
+        "webui_websocket_terminal_streaming"
+    ]["mas_contract"]
+    assert "OPL current_control_state" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
     assert by_surface["connector_channel_background_delivery"]["equivalence_class"] == "not_equivalent_retired"
     assert by_surface["connector_channel_background_delivery"]["paper_progress_degradation"]["classification"] == (
         "retired_non_goal"
@@ -396,17 +425,14 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert continuity["legacy_diagnostic_scheduler_adapter"] == "local"
     assert continuity["optional_scheduler_adapters"] == []
     assert continuity["retired_scheduler_adapters"] == ["hermes_gateway_cron_retired_tombstone"]
-    assert continuity["runtime_session_read_model"]["role"] == "read_model"
-    assert continuity["runtime_session_read_model"]["read_only"] is True
-    assert continuity["runtime_session_read_model"]["writes_authority_surface"] is False
-    assert continuity["recovery_intent_ledger"]["allowed_current_actions"] == [
-        "await_next_tick",
-        "safe_reconcile_ready",
-        "recovering",
-        "parked",
-        "human_gate_required",
-        "escalated",
-    ]
+    assert continuity["current_control_state_projection"]["role"] == "read_model"
+    assert continuity["current_control_state_projection"]["read_only"] is True
+    assert continuity["current_control_state_projection"]["writes_authority_surface"] is False
+    assert continuity["retired_mas_recovery_projection"]["role"] == "physical_retired_no_alias"
+    assert continuity["retired_mas_recovery_projection"]["allowed_current_actions"] == []
+    assert continuity["retired_mas_recovery_projection"]["replacement_surface"] == (
+        "opl_current_control_state plus MAS typed_blocker_or_owner_receipt"
+    )
     assert continuity["safe_reconcile_trigger"]["executes_reconcile"] is False
     assert continuity["safe_reconcile_trigger"]["writes_runtime"] is False
     assert "parked" in continuity["safe_reconcile_trigger"]["blocked_current_truth"]
@@ -432,7 +458,10 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
             "use_progress_portal",
             "use_explicit_archive_import_ref_only",
             "retired_no_active_replacement",
+            "retired_no_resurrection",
             "use_historical_fixture_only",
+            "use_opl_provider_stage_runtime",
+            "use_opl_runtime_workbench",
         }
     assert module.validate_mds_behavior_equivalence_matrix(matrix)["ok"] is True
 
@@ -448,7 +477,7 @@ def test_mds_behavior_equivalence_validation_blocks_overclaim_and_legacy_runtime
     matrix["behavior_surfaces"][1]["quality_authority_allowed"] = True
     matrix["behavior_surfaces"][2]["publication_ready_authority_allowed"] = True
     matrix["runtime_continuity_completion"]["mds_daemon_required"] = True
-    matrix["runtime_continuity_completion"]["runtime_session_read_model"]["writes_authority_surface"] = True
+    matrix["runtime_continuity_completion"]["current_control_state_projection"]["writes_authority_surface"] = True
     matrix["runtime_continuity_completion"]["safe_reconcile_trigger"]["executes_reconcile"] = True
     matrix["runtime_continuity_completion"]["user_surface_projection"]["reinterprets_study_truth"] = True
     matrix["runtime_continuity_completion"]["quality_ready_authorized"] = True

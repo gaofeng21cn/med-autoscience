@@ -10,10 +10,10 @@ from . import control_plane_fixtures as fixtures
 
 
 @pytest.mark.parametrize("case", fixtures.fact_cases(), ids=lambda case: case.case_id)
-def test_control_plane_facts_regression_cases(case: fixtures.ControlPlaneFactCase) -> None:
-    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+def test_opl_runtime_refs_regression_cases(case: fixtures.ControlPlaneFactCase) -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
 
-    facts = module.resolve_control_plane_facts(
+    facts = module.resolve_opl_runtime_refs(
         case.payload,
         supervisor_tick_audit=case.supervisor_tick_audit,
     )
@@ -39,10 +39,10 @@ def test_supervisor_lightweight_path_preserves_liveness() -> None:
     ) is False
 
 
-def test_control_plane_invalidates_stale_active_run_when_liveness_has_no_worker() -> None:
-    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+def test_opl_runtime_refs_invalidates_stale_active_run_when_liveness_has_no_worker() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
 
-    facts = module.resolve_control_plane_facts(
+    facts = module.resolve_opl_runtime_refs(
         {
             "quest_status": "running",
             "active_run_id": "run-stale-launch",

@@ -362,7 +362,7 @@ def test_codex_first_landing_program_is_parallel_and_contract_light() -> None:
     assert parallel["lanes_can_run_in_parallel"] is True
     assert parallel["merge_policy"] == "absorb_lane_after_focused_validation_then_cleanup_worktree"
     assert set(parallel["shared_blockers"]) == {
-        "no_active_caller_proof_missing",
+        "no_resurrection_proof_missing",
         "opl_generated_surface_parity_missing",
         "domain_receipt_parity_missing",
         "independent_reviewer_or_auditor_receipt_missing",
@@ -402,8 +402,8 @@ def test_codex_first_landing_lanes_cover_pack_caller_physical_canary_and_soak() 
     ]["done_criteria"]
     physical = lanes["physical_source_morphology_retirement"]
     assert physical["owner"] == "MedAutoScience"
-    assert "runtime_transport/mas_runtime_core*" in physical["primary_surfaces"]
-    assert any("no-active-caller" in criterion for criterion in physical["done_criteria"])
+    assert "retired runtime_transport/mas_runtime_core* tombstone/provenance" in physical["primary_surfaces"]
+    assert any("no-resurrection proof" in criterion for criterion in physical["done_criteria"])
     canary = lanes["real_paper_line_provider_canary"]
     assert "provider completion never claims domain ready" in " ".join(canary["done_criteria"])
     scaleout = lanes["memory_artifact_human_gate_scaleout"]

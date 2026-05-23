@@ -16,9 +16,7 @@ from .stage_review import build_stage_review_index, render_stage_review_section
 from .status_display import display_text
 from .study_workbench_parts import (
     action_owner_routing_policy as _action_owner_routing_policy,
-    build_conversation_projection as _conversation_projection,
     render_action_owner_routing_section as _action_owner_routing_section,
-    render_conversation_section as _conversation_section,
     workbench_summary as _workbench_summary,
 )
 from med_autoscience.controllers.stage_knowledge_visibility import build_stage_knowledge_visibility
@@ -66,7 +64,6 @@ def build_study_workbench_payload(
     runtime: Mapping[str, Any] | None,
     package: Mapping[str, Any] | None,
     study_id: str,
-    conversation_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_progress = _mapping(progress)
     resolved_cockpit = _mapping(cockpit)
@@ -88,7 +85,6 @@ def build_study_workbench_payload(
         study_id=resolved_study_id,
         study_root=_first_text(resolved_progress.get("study_root"), _mapping(resolved_progress.get("refs")).get("study_root")),
     )
-    conversation = _conversation_projection(conversation_payload, resolved_study_id)
     path_stage = {
         "current_stage": _first_text(user_visible.get("current_stage"), cockpit_study.get("current_stage")),
         "current_stage_summary": _non_empty_text(user_visible.get("current_stage_summary")),
@@ -100,7 +96,6 @@ def build_study_workbench_payload(
         route_decision_trail=route_decision_trail,
         path_stage=path_stage,
         artifact_groups=artifact_groups,
-        conversation=conversation,
         study_id=resolved_study_id,
     )
     refs = source_refs(resolved_progress, resolved_cockpit, resolved_runtime, resolved_package)
@@ -175,7 +170,6 @@ def build_study_workbench_payload(
             {"id": "path_stage", "label": "路径/阶段", "status": _tab_status(path_stage)},
             {"id": "runtime", "label": "运行", "status": _tab_status(runtime_projection)},
             {"id": "artifacts", "label": "产物", "status": _artifact_tab_status(artifact_groups)},
-            {"id": "conversation", "label": "执行器对话", "status": conversation["status"]},
             {"id": "source_refs", "label": "来源", "status": "available" if refs else "missing"},
         ],
         "overview": overview,
@@ -186,7 +180,6 @@ def build_study_workbench_payload(
         "path_stage": path_stage,
         "runtime": runtime_projection,
         "artifact_groups": artifact_groups,
-        "conversation": conversation,
         "action_owner_routing_policy": action_owner_routing_policy,
         "source_refs": refs,
         "conditions": conditions,
@@ -202,7 +195,6 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
     path_stage = _mapping(payload.get("path_stage"))
     runtime = _mapping(payload.get("runtime"))
     artifact_groups = _mapping(payload.get("artifact_groups"))
-    conversation = _mapping(payload.get("conversation"))
     action_owner_routing_policy = _mapping(payload.get("action_owner_routing_policy"))
     conditions = _mapping(payload.get("conditions"))
     refs = _string_list(payload.get("source_refs"))
@@ -238,7 +230,6 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
                 },
             ),
             _artifact_sections(artifact_groups),
-            _conversation_section(conversation),
             _action_owner_routing_section(action_owner_routing_policy),
             '<section class="panel wide"><h2>数据来源</h2>'
             + list_html(refs, empty_text="缺少 source refs。")
@@ -259,19 +250,23 @@ def _runtime_projection(
     tick_audit = _mapping(runtime.get("supervisor_tick_audit"))
     monitoring = _mapping(cockpit_study.get("monitoring"))
     runtime_health = _mapping(cockpit_study.get("runtime_health_snapshot"))
-    worker_liveness = _mapping(runtime_health.get("worker_liveness_state"))
+    opl_control = _mapping(cockpit_study.get("opl_current_control_state")) or _mapping(
+        cockpit_study.get("current_control_state")
+    )
     supervisor_state = _mapping(runtime_health.get("supervisor_state"))
     return {
         "active_run_id": _first_text(
             supervision.get("active_run_id"),
             runtime.get("active_run_id"),
             monitoring.get("active_run_id"),
-            worker_liveness.get("active_run_id"),
+            opl_control.get("active_run_id"),
         ),
         "health_status": _first_text(
             supervision.get("health_status"),
             runtime.get("health_status"),
             monitoring.get("health_status"),
+            opl_control.get("state"),
+            opl_control.get("status"),
             runtime_health.get("attempt_state"),
         ),
         "supervisor_tick_status": _first_text(
@@ -280,7 +275,6 @@ def _runtime_projection(
             monitoring.get("supervisor_tick_status"),
             supervisor_state.get("status"),
         ),
-        "worker_running": worker_liveness.get("worker_running") if "worker_running" in worker_liveness else None,
     }
 
 

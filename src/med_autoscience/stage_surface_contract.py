@@ -21,6 +21,37 @@ MAIN_STAGE_ROUTE_IDS = (
 )
 
 CANONICAL_ROUTE_CONTRACT_REF = STAGE_ROUTE_CONTRACT_REF
+PROJECTED_ROUTE_FIELD_OVERRIDES: dict[tuple[str, str], tuple[str, ...]] = {
+    (
+        "write",
+        "enter_conditions",
+    ): (
+        "active claim and supporting evidence package are readable",
+        "required route artifacts are linked or referenced",
+        "reviewer-first pressure can be applied against the current draft",
+        "user manuscript-change requests from Codex have been converted into a study revision intake with OPL runtime control boundary checked",
+    ),
+    (
+        "write",
+        "durable_outputs_minimum",
+    ): (
+        "manuscript draft or section update tied to current claim scope",
+        "claim-evidence map or equivalent traceability surface",
+        "reviewer-first pass note with explicit concerns",
+        "first-draft quality note covering field-verified multicenter/geography, subgroup/association, guideline, and real-world constraint axes",
+        "revision handoff stating data source, scripts, changed tables/figures, claim guardrails, OPL provider attempt hydration/resume refs, and whether `current_package` was regenerated from controller-authorized `paper/`",
+    ),
+    (
+        "write",
+        "route_back_triggers",
+    ): (
+        "any active claim lacks supporting evidence",
+        "reviewer-first scan finds unresolved logic, novelty, or rigor gaps",
+        "first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing",
+        "manuscript narrative changes the claim boundary",
+        "foreground edits only touched `manuscript/current_package/` before OPL provider attempt hydration/resume and MAS owner authorization, or have not been reconciled into the canonical paper source",
+    ),
+}
 
 STAGE_KNOWLEDGE_SOURCE_REFS = (
     "stage_knowledge_packet",
@@ -138,10 +169,10 @@ FRESHNESS_EVALUATED_REFS = (
     "controller_decisions/latest.json",
 )
 ALLOWED_OWNER_TOOLS = (
-    "MAS controller-authorized CLI/MCP/product-entry/runtime surfaces",
+    "MAS controller-authorized CLI/MCP/product-entry domain handler surfaces",
     "stage-knowledge-packet",
     "stage-memory-closeout-route",
-    "domain-route-reconcile",
+    "owner-route-reconcile",
     "ai-reviewer-publication-eval",
     "publication-gate",
 )
@@ -163,11 +194,12 @@ def build_stage_surface_contract(payload: dict[str, object] | None = None) -> di
             "machine_truth_owners": [
                 "canonical route contract",
                 "stage knowledge plane contracts",
-                "MAS controller/runtime surfaces",
+                "MAS controller/domain-authority refs surfaces",
                 "publication_eval/latest.json",
                 "controller_decisions/latest.json",
                 "evidence/review ledgers",
                 "workspace artifact locator refs",
+                "OPL current-control-state for runtime control",
             ],
         },
         "authority_boundary": {
@@ -182,7 +214,9 @@ def build_stage_surface_contract(payload: dict[str, object] | None = None) -> di
                 "domain_truth",
                 "quality_verdict",
                 "artifact_authority",
-                "runtime_owner",
+                "runtime_authority_refs",
+                "owner_receipt",
+                "typed_blocker",
             ],
         },
         "human_review_policy": _human_review_policy(),
@@ -209,7 +243,7 @@ def render_stage_surfaces_markdown(surface: dict[str, object] | None = None) -> 
         f"Canonical route source: `{machine_boundary['canonical_route_contract']}`.",
         "Markdown is a generated human-reading surface; it is not machine truth.",
         "OPL may only project, dispatch, and read refs.",
-        "MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and artifact authority.",
+        "MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and artifact authority.",
         "",
         "## Machine Boundary",
         _render_list_line("Machine truth owners", machine_boundary["machine_truth_owners"]),
@@ -254,7 +288,7 @@ def render_stage_skill_surface_block(stage_id: str) -> str:
         f"- Key question: {card['key_question']}",
         f"- Stage card ref: `docs/runtime/contracts/stage_surfaces.md#{card['route_id']}`",
         f"- Route contract ref: `{machine_source_refs['route_contract']}`",
-        "- Machine truth: canonical route contract, stage knowledge contract, stage quality contract, MAS controller/runtime surfaces, publication gate, evidence/review ledgers, and controller decisions.",
+        "- Machine truth: canonical route contract, stage knowledge contract, stage quality contract, MAS controller/domain-authority refs, publication gate, evidence/review ledgers, and controller decisions.",
         "- Markdown/Skill role: generated human-readable operating surface only; it is not machine truth.",
         "",
         "### Route contract",
@@ -299,33 +333,34 @@ def render_stage_skill_surface_block(stage_id: str) -> str:
         "### OPL/provider boundary",
         _render_list_line("May", opl_boundary["may"]),
         _render_list_line("Must not", opl_boundary["must_not"]),
-        "- Provider/OPL projections may expose locators, freshness, and refs only; MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and artifact authority.",
+        "- Provider/OPL projections may expose locators, freshness, and refs only; MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and artifact authority.",
     ]
     return "\n".join(lines).rstrip() + "\n"
 
 
 def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
     route_id = _string(route_payload["route_id"], "route_id")
-    knowledge_obligations = _optional_string_list(route_payload, "knowledge_input_obligations")
-    closeout_obligations = _optional_string_list(route_payload, "memory_closeout_obligations")
+    projected_route_payload = _project_route_payload(route_id, route_payload)
+    knowledge_obligations = _optional_string_list(projected_route_payload, "knowledge_input_obligations")
+    closeout_obligations = _optional_string_list(projected_route_payload, "memory_closeout_obligations")
     deliverable_index = _build_deliverable_index(
         route_id=route_id,
-        entry=_required_string_list(route_payload, "enter_conditions"),
-        outputs=_required_string_list(route_payload, "durable_outputs_minimum"),
-        next_routes=_required_string_list(route_payload, "next_routes"),
+        entry=_required_string_list(projected_route_payload, "enter_conditions"),
+        outputs=_required_string_list(projected_route_payload, "durable_outputs_minimum"),
+        next_routes=_required_string_list(projected_route_payload, "next_routes"),
     )
     return {
         "surface_kind": "mas_stage_card",
         "route_id": route_id,
-        "display_name": _string(route_payload["display_name"], "display_name"),
+        "display_name": _string(projected_route_payload["display_name"], "display_name"),
         "machine_source_refs": {
             "route_contract": f"{CANONICAL_ROUTE_CONTRACT_REF}#/route_contracts/{route_id}",
             "knowledge_contract": "src/med_autoscience/stage_knowledge_contract.py",
             "quality_contract": f"{CANONICAL_ROUTE_CONTRACT_REF}#/evidence_review_contract",
         },
-        "purpose": _string(route_payload["goal"], "goal"),
-        "key_question": _string(route_payload["key_question"], "key_question"),
-        "entry": _required_string_list(route_payload, "enter_conditions"),
+        "purpose": _string(projected_route_payload["goal"], "goal"),
+        "key_question": _string(projected_route_payload["key_question"], "key_question"),
+        "entry": _required_string_list(projected_route_payload, "enter_conditions"),
         "tools": {
             "allowed": list(ALLOWED_OWNER_TOOLS),
             "boundary": "controller_authorized_surfaces_only",
@@ -335,11 +370,11 @@ def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
             "status": _obligation_status(knowledge_obligations),
             "machine_source_refs": list(STAGE_KNOWLEDGE_SOURCE_REFS),
         },
-        "outputs": _required_string_list(route_payload, "durable_outputs_minimum"),
+        "outputs": _required_string_list(projected_route_payload, "durable_outputs_minimum"),
         "deliverable_index": deliverable_index,
-        "human_review_page": _build_human_review_page(route_payload, deliverable_index=deliverable_index),
+        "human_review_page": _build_human_review_page(projected_route_payload, deliverable_index=deliverable_index),
         "quality": {
-            "route_success_gate": _required_string_list(route_payload, "hard_success_gate"),
+            "route_success_gate": _required_string_list(projected_route_payload, "hard_success_gate"),
             "verdict_owner": "MedAutoScience",
             "machine_source_refs": list(QUALITY_SOURCE_REFS),
         },
@@ -348,9 +383,9 @@ def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
             "status": _obligation_status(closeout_obligations),
             "machine_source_refs": list(STAGE_CLOSEOUT_SOURCE_REFS),
         },
-        "route_back": _required_string_list(route_payload, "route_back_triggers"),
-        "human_gate": _required_string_list(route_payload, "human_gate_boundary"),
-        "next_routes": _required_string_list(route_payload, "next_routes"),
+        "route_back": _required_string_list(projected_route_payload, "route_back_triggers"),
+        "human_gate": _required_string_list(projected_route_payload, "human_gate_boundary"),
+        "next_routes": _required_string_list(projected_route_payload, "next_routes"),
         "opl_boundary": {
             "may": ["project", "dispatch", "read source refs"],
             "must_not": [
@@ -361,6 +396,14 @@ def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
             ],
         },
     }
+
+
+def _project_route_payload(route_id: str, route_payload: dict[str, Any]) -> dict[str, Any]:
+    projected = deepcopy(route_payload)
+    for (override_route_id, field), values in PROJECTED_ROUTE_FIELD_OVERRIDES.items():
+        if override_route_id == route_id:
+            projected[field] = list(values)
+    return projected
 
 
 def _render_stage_card(card: dict[str, Any]) -> list[str]:
@@ -752,7 +795,14 @@ def _mapping(value: object, field: str) -> dict[str, Any]:
 def _string(value: object, field: str) -> str:
     if not isinstance(value, str):
         raise ValueError(f"{field} must be a string")
-    return value
+    return _normalize_runtime_control_wording(value)
+
+
+def _normalize_runtime_control_wording(value: str) -> str:
+    return value.replace("MAS controller/runtime surfaces", "MAS controller/domain-authority refs surfaces").replace(
+        "runtime-facing owner receipts",
+        "owner receipts",
+    )
 
 
 def _required_string_list(payload: dict[str, Any], field: str) -> list[str]:

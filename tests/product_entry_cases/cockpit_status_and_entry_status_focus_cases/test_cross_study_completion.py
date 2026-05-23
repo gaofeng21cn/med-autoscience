@@ -40,7 +40,7 @@ def test_workspace_cockpit_projects_ai_first_cross_study_completion_runtime_stat
             workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+                "summary": "OPL provider/runtime manager workspace supervision 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -53,7 +53,7 @@ def test_workspace_cockpit_projects_ai_first_cross_study_completion_runtime_stat
             "status": "loaded",
             "loaded": True,
             "job_exists": True,
-            "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+            "summary": "OPL provider/runtime manager workspace supervision 已在线。",
             "drift_reasons": [],
         },
     )

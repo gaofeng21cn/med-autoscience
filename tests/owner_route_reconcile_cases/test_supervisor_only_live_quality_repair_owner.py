@@ -18,7 +18,7 @@ def test_scan_domain_routes_projects_supervisor_only_live_quality_repair_owner(
     quest_root = profile.runtime_root / study_id
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -123,7 +123,7 @@ def test_supervisor_only_live_quality_repair_does_not_suppress_ai_reviewer_workf
         ],
     }
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -199,7 +199,6 @@ def test_supervisor_only_live_quality_repair_does_not_suppress_ai_reviewer_workf
     assert study["blocked_reason"] == "ai_reviewer_assessment_required"
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
     assert study["owner_route"]["blocked_actions"] == [
-        "runtime_platform_repair",
         "publication_gate_specificity_required",
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",

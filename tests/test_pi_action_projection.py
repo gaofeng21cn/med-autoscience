@@ -54,7 +54,7 @@ def test_pi_action_projection_maps_study_progress_surfaces_to_doctor_categories(
             "same_line_state": "bounded_analysis",
             "summary": "same_line route_back remains available for bounded analysis",
         },
-        "control_plane_snapshot": {
+        "authority_snapshot": {
             "canonical_next_action": "switch_line_after_stop_loss",
             "blocking_reasons": ["stop_loss memo requests switch line"],
         },

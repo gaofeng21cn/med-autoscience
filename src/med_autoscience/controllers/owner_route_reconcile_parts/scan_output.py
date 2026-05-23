@@ -12,7 +12,6 @@ def build_scan_domain_routes_payload(
     workspace_root: Path,
     developer_mode_payload: Mapping[str, Any],
     safe_actions_enabled: bool,
-    apply_runtime_platform_repair: bool,
     two_layer_ai_repair_policy: Mapping[str, Any],
     studies: list[dict[str, Any]],
     action_queue: list[dict[str, Any]],
@@ -49,7 +48,11 @@ def build_scan_domain_routes_payload(
         },
         "developer_supervisor_mode": dict(developer_mode_payload),
         "apply_safe_actions": safe_actions_enabled,
-        "apply_runtime_platform_repair": bool(apply_runtime_platform_repair),
+        "runtime_apply_boundary": {
+            "mas_runtime_repair_apply_supported": False,
+            "runtime_control_owner": "one-person-lab",
+            "provider_completion_is_domain_completion": False,
+        },
         "two_layer_ai_repair_policy": dict(two_layer_ai_repair_policy),
         "studies": studies,
         "action_queue": action_queue,
@@ -69,7 +72,7 @@ def persist_scan_domain_routes_payload(
     history_path: Path,
     generated_at: str,
     resolved_study_ids: tuple[str, ...],
-    lifecycle_refs_adapter: Any,
+    domain_authority_refs_index: Any,
     study_root_for_id: Callable[[str], Path],
     write_json: Callable[[Path, Mapping[str, Any]], None],
     append_json_line: Callable[[Path, Mapping[str, Any]], None],
@@ -83,7 +86,7 @@ def persist_scan_domain_routes_payload(
             continue
         try:
             study_root = Path(text(study.get("study_root")) or study_root_for_id(text(study.get("study_id")) or ""))
-            study["owner_route_lifecycle_index"] = lifecycle_refs_adapter.record_owner_route_receipt(
+            study["owner_route_authority_ref_index"] = domain_authority_refs_index.record_owner_route_receipt(
                 study_root=study_root,
                 receipt=owner_route,
                 receipt_path=latest_path,

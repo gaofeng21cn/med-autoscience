@@ -30,7 +30,6 @@ def owner_route(*, study_id: str, action_type: str, owner: str) -> dict[str, obj
         "blocked_actions": [
             item
             for item in (
-                "runtime_platform_repair",
                 "publication_gate_specificity_required",
                 "current_package_freshness_required",
                 "artifact_display_surface_materialization_required",
@@ -90,6 +89,7 @@ def dispatch(
                 "paper/current_package/**",
                 "manuscript/current_package/**",
                 "src/med_autoscience/platform/**",
+                "src/med_autoscience/runtime_transport/**",
             ],
             "allowed_write_surfaces": ["artifacts/supervision/**"],
             "paper_package_mutation_allowed": False,

@@ -24,7 +24,7 @@ Date: `2026-05-04`
 | --- | --- | --- | --- |
 | `mas_core` | MAS | authority | study truth、artifact authority、user-visible next action |
 | `quality_os` | MAS | authority | scientific quality、medical writing quality、publication readiness、submission authority |
-| `runtime_os` | MAS | authority | runtime health、canonical runtime action |
+| `domain_authority_refs` | MAS | authority refs | owner receipt、typed blocker、runtime-domain refs、canonical domain action refs |
 | `entry_projection` | MAS | projection | no authority；只投影 MAS durable truth |
 | `observability_os` | MAS | observability | no authority；只提供 evidence、calibration、analytics |
 | `mds_backend` | MDS | controlled backend / oracle | no MAS authority；只提供 daemon、quest layout、native runtime events 与 mechanical oracle |

@@ -12,13 +12,13 @@ from med_autoscience.controllers import quality_repair_batch_upstream
 from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import quality_repair_paper_owner_surface
 from med_autoscience.controllers import publication_work_units
-from med_autoscience.controllers import study_runtime_router
+from med_autoscience.controllers import domain_status_projection
 from med_autoscience.controllers.quality_repair_batch_parts import repair_execution_gate
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.quality_repair_batch_parts import upstream_route_context
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
-from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
+from med_autoscience.controllers.authority_route_gate import assert_authority_route_authorized
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
 )
@@ -218,14 +218,14 @@ def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
     return _read_json_object(stable_quality_repair_batch_path(study_root=study_root))
 
 
-def _runtime_control_plane_route_context(
+def _runtime_authority_route_context(
     *,
     profile: WorkspaceProfile,
     study_id: str,
     study_root: Path,
     source_eval_id: str | None = None,
 ) -> dict[str, Any] | None:
-    status_payload = study_runtime_router.progress_projection(
+    status_payload = domain_status_projection.progress_projection(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
@@ -235,10 +235,10 @@ def _runtime_control_plane_route_context(
     )
     if not isinstance(status_payload, Mapping):
         return None
-    control_plane_snapshot = status_payload.get("control_plane_snapshot")
-    if not isinstance(control_plane_snapshot, Mapping):
+    authority_snapshot = status_payload.get("authority_snapshot")
+    if not isinstance(authority_snapshot, Mapping):
         return None
-    route_context: dict[str, Any] = {"control_plane_snapshot": dict(control_plane_snapshot)}
+    route_context: dict[str, Any] = {"authority_snapshot": dict(authority_snapshot)}
     controller_route_context = _controller_route_context_for_latest_controller_decision(
         study_root=study_root,
         source_eval_id=source_eval_id,
@@ -559,7 +559,7 @@ def _hard_methodology_owner_handoff_record(
     source_eval_artifact_path: str,
     source_summary_id: str | None,
     source_summary_artifact_path: str,
-    control_plane_route_gate: Mapping[str, Any],
+    authority_route_gate: Mapping[str, Any],
     paper_owner_surface_prepare: Mapping[str, Any],
     gate_clearing_result: Mapping[str, Any],
     hard_methodology_target: Mapping[str, Any],
@@ -579,7 +579,7 @@ def _hard_methodology_owner_handoff_record(
         "next_work_unit": _HARD_METHODOLOGY_NEXT_WORK_UNIT,
         "hard_methodology_target": dict(hard_methodology_target),
         "gate_clearing_batch": dict(gate_clearing_result),
-        "control_plane_route_gate": dict(control_plane_route_gate),
+        "authority_route_gate": dict(authority_route_gate),
         "paper_owner_surface_prepare": dict(paper_owner_surface_prepare),
         "quality_gate_relaxation_allowed": False,
         "current_package_write_allowed": False,
@@ -729,16 +729,16 @@ def run_quality_repair_batch(
     study_root: Path,
     quest_id: str,
     source: str = "med_autoscience",
-    control_plane_route_context: Mapping[str, Any] | None = None,
+    authority_route_context: Mapping[str, Any] | None = None,
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
     current_eval_id = _non_empty_text(publication_eval_payload.get("eval_id"))
     resolved_route_context = (
-        control_plane_route_context
+        authority_route_context
         or route_context
-        or _runtime_control_plane_route_context(
+        or _runtime_authority_route_context(
             profile=profile,
             study_id=study_id,
             study_root=resolved_study_root,
@@ -797,7 +797,7 @@ def run_quality_repair_batch(
         resolved_route_context,
         controller_route_context,
     )
-    control_plane_route_gate = assert_control_plane_route_authorized(
+    authority_route_gate = assert_authority_route_authorized(
         _route_action_for_controller_context(resolved_route_context),
         {"projection_only": True} if resolved_route_context is None else resolved_route_context,
     )
@@ -814,7 +814,7 @@ def run_quality_repair_batch(
             source_eval_artifact_path=source_eval_artifact_path,
             source_summary_id=source_summary_id,
             source_summary_artifact_path=source_summary_artifact_path,
-            control_plane_route_gate=control_plane_route_gate,
+            authority_route_gate=authority_route_gate,
             paper_owner_surface_prepare={
                 "status": "not_applicable",
                 "reason": "hard_methodology_owner_handoff",
@@ -841,7 +841,7 @@ def run_quality_repair_batch(
         study_root=resolved_study_root,
         quest_id=quest_id,
         gate_state=gate_state,
-        control_plane_route_gate=control_plane_route_gate,
+        authority_route_gate=authority_route_gate,
         )
     )
     if _non_empty_text(paper_owner_surface_prepare.get("status")) == "blocked_missing_authorized_canonical_inputs":
@@ -855,7 +855,7 @@ def run_quality_repair_batch(
             "ok": False,
             "quest_id": quest_id,
             "study_id": study_id,
-            "control_plane_route_gate": control_plane_route_gate,
+            "authority_route_gate": authority_route_gate,
             "paper_owner_surface_prepare": paper_owner_surface_prepare,
             "blocked_reason": "canonical_paper_inputs_rehydrate_required",
             "next_owner": "write",
@@ -882,7 +882,7 @@ def run_quality_repair_batch(
             "status": "skipped_duplicate_eval",
             "source_eval_id": current_eval_id,
             "latest_record_path": str(stable_quality_repair_batch_path(study_root=resolved_study_root)),
-            "control_plane_route_gate": control_plane_route_gate,
+            "authority_route_gate": authority_route_gate,
         }
 
     gate_clearing_result = gate_clearing_batch.run_gate_clearing_batch(
@@ -891,7 +891,7 @@ def run_quality_repair_batch(
         study_root=resolved_study_root,
         quest_id=quest_id,
         source=source,
-        control_plane_route_context=resolved_route_context,
+        authority_route_context=resolved_route_context,
     )
     upstream_work_unit_id = repair_execution_gate.selected_work_unit_id_from_gate_result(
         gate_clearing_result,
@@ -948,7 +948,7 @@ def run_quality_repair_batch(
             source_summary_artifact_path=source_summary_artifact_path,
             repair_execution_evidence_path=repair_execution_evidence_path,
             blocked_repair_reason=blocked_repair_reason,
-            control_plane_route_context=resolved_route_context,
+            authority_route_context=resolved_route_context,
         )
         if writer_handoff.should_emit_writer_handoff(blocked_repair_reason)
         else None
@@ -974,7 +974,7 @@ def run_quality_repair_batch(
         "quality_execution_lane_id": _non_empty_text(quality_execution_lane.get("lane_id")),
         "gate_clearing_batch": gate_clearing_result,
         "gate_clearing_execution_summary": gate_clearing_execution_summary,
-        "control_plane_route_gate": control_plane_route_gate,
+        "authority_route_gate": authority_route_gate,
         "paper_owner_surface_prepare": paper_owner_surface_prepare,
         "repair_execution_evidence": repair_execution_evidence,
         "repair_execution_evidence_path": str(repair_execution_evidence_path),

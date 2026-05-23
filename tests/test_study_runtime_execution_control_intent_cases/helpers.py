@@ -34,7 +34,7 @@ def _base_status_payload() -> dict[str, object]:
 def _write_controller_decision_authorization(
     study_root: Path,
     *,
-    action_type: str = "ensure_study_runtime",
+    action_type: str = "run_quality_repair_batch",
     next_work_unit: dict[str, object] | None = None,
     blocking_work_units: list[dict[str, object]] | None = None,
     work_unit_fingerprint: str | None = None,

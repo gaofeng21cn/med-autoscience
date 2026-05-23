@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from med_autoscience.controllers.owner_route_reconcile_parts import platform_repair
 from med_autoscience.controllers.study_progress_parts.publication_runtime import _publication_eval_specificity_request
 from med_autoscience.publication_eval_specificity_targets import (
     REQUIRED_PUBLICATION_GATE_SPECIFICITY_TARGET_KINDS,
@@ -12,6 +11,7 @@ from med_autoscience.publication_eval_specificity_targets import (
 
 
 REQUIRED_TARGET_KINDS = list(REQUIRED_PUBLICATION_GATE_SPECIFICITY_TARGET_KINDS)
+SPECIFICITY_WORK_UNIT_IDS = {"gate_needs_specificity", "needs_specificity"}
 
 
 def publication_gate_specificity_required(
@@ -104,19 +104,6 @@ def gate_specificity_status(gate_specificity: Mapping[str, Any]) -> dict[str, An
     return status
 
 
-def should_defer_runtime_platform_repair(gate_specificity: Mapping[str, Any] | None) -> bool:
-    if not gate_specificity or gate_specificity.get("required") is not True:
-        return False
-    status = _text(gate_specificity.get("status"))
-    blocked_reason = _text(gate_specificity.get("blocked_reason"))
-    request = _mapping(gate_specificity.get("request"))
-    return bool(
-        status == "blocked"
-        or blocked_reason == "publication_gate_specificity_required"
-        or _text(request.get("work_unit_id")) in platform_repair.SPECIFICITY_WORK_UNIT_IDS
-    )
-
-
 def controller_specificity_terminal(status: Mapping[str, Any]) -> bool:
     resume_postcondition = _mapping(status.get("resume_postcondition"))
     specificity_markers = {
@@ -166,7 +153,7 @@ def _no_specificity_targets() -> dict[str, Any]:
 
 def _next_work_unit_needs_specificity(value: object) -> bool:
     next_work_unit = _mapping(value)
-    return _text(next_work_unit.get("unit_id")) in platform_repair.SPECIFICITY_WORK_UNIT_IDS
+    return _text(next_work_unit.get("unit_id")) in SPECIFICITY_WORK_UNIT_IDS
 
 
 def _text(value: object) -> str | None:

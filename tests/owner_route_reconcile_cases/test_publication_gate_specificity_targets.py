@@ -65,7 +65,7 @@ def test_scan_domain_routes_stops_requeueing_specificity_when_gate_names_concret
     }
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-dm-cvd-mortality-risk",
@@ -87,7 +87,7 @@ def test_scan_domain_routes_stops_requeueing_specificity_when_gate_names_concret
             "current_stage": "publication_supervision",
             "paper_stage": "publishability_gate_blocked",
             "quality_review_loop": {"closure_state": "open"},
-            "control_plane_snapshot": {"blocking_reasons": ["publication_eval.ai_reviewer_required"]},
+            "authority_snapshot": {"blocking_reasons": ["publication_eval.ai_reviewer_required"]},
             "ai_repair_lifecycle": {
                 "state": "external_supervisor_required",
                 "blocked_reason": "publication_gate_specificity_required",
@@ -148,7 +148,7 @@ def test_scan_domain_routes_keeps_specificity_queued_when_targets_lack_source_pa
     }
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-dm-cvd-mortality-risk",

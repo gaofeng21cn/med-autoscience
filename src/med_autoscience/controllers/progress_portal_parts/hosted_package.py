@@ -78,9 +78,6 @@ def build_progress_portal_hosted_package(
             "workspace_helper": "ops/mas/bin/start-web",
             "refresh_command": "medautosci workspace progress-portal --profile <profile>",
             "optional_local_read_only_service": "medautosci workspace progress-portal --profile <profile> --serve",
-            "live_console_static_html": "ops/mas/live-console/index.html",
-            "live_console_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
-            "live_console_service": "medautosci runtime live-console --profile <profile> --serve",
         },
         "hosted_runtime_carrier_contract": {
             "allowed_carriers": [
@@ -91,8 +88,6 @@ def build_progress_portal_hosted_package(
             "must_consume": [
                 progress_payload_ref,
                 progress_html_ref,
-                "artifacts/runtime/live_console/session_read_model/latest.json",
-                "ops/mas/live-console/index.html",
             ],
             "must_not_consume": [
                 "MDS WebUI state",
@@ -105,7 +100,7 @@ def build_progress_portal_hosted_package(
                 "publication_eval/latest.json",
                 "controller_decisions/latest.json",
                 "study_macro_state/latest.json",
-                "runtime_lifecycle.sqlite",
+                "domain_authority_refs.sqlite",
                 "manuscript/current_package",
             ],
         },

@@ -8,8 +8,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import (
     ai_first_cross_study_completion,
-    domain_slo_scheduler_projection,
-    study_runtime_router,
+    domain_status_projection,
 )
 from med_autoscience.action_catalog import (
     action_catalog_command_map as _action_catalog_command_map,
@@ -30,10 +29,14 @@ from med_autoscience.domain_entry_contract import (
 from med_autoscience.doctor import build_doctor_report
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience.opl_runtime_contract import (
+    CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER,
+    OPL_HOSTED_STAGE_RUNTIME_ID,
+    OPL_RUNTIME_OWNER,
+)
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
-from med_autoscience.runtime_protocol.lifecycle_refs_adapter import (
+from med_autoscience.opl_domain_pack.family_adoption import (
     build_domain_memory_descriptor,
     build_family_stage_control_plane,
     build_product_entry_adoption_projection,
@@ -152,9 +155,9 @@ PRODUCT_ENTRY_KIND = "med_autoscience_product_entry"
 PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
 PRODUCT_ENTRY_STATUS_KIND = "product_entry_status"
 TARGET_DOMAIN_ID = "med-autoscience"
-CONTROLLED_BACKEND_EXECUTOR_OWNER = runtime_backend_contract.CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER
-MAS_RUNTIME_OWNER = runtime_backend_contract.MAS_RUNTIME_OWNER
-MAS_RUNTIME_SUBSTRATE = runtime_backend_contract.MAS_RUNTIME_SUBSTRATE
+CONTROLLED_BACKEND_EXECUTOR_OWNER = CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER
+MAS_RUNTIME_OWNER = OPL_RUNTIME_OWNER
+MAS_RUNTIME_SUBSTRATE = OPL_HOSTED_STAGE_RUNTIME_ID
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
 _LIVE_TASK_INTAKE_RUNTIME_STATUSES = frozenset({"running", "active", "waiting_for_user"})
 _ATTENTION_PRIORITIES = {
@@ -421,7 +424,17 @@ def _require_direct_entry_mode(value: str | None) -> str:
 
 
 def _inspect_workspace_supervision(profile: WorkspaceProfile) -> dict[str, Any]:
-    return domain_slo_scheduler_projection.read_supervision_status(profile=profile)
+    return {
+        "schema_version": 1,
+        "surface_kind": "opl_current_control_state_handoff",
+        "loaded": True,
+        "owner": OPL_RUNTIME_OWNER,
+        "effect": "refs_only",
+        "summary": "generic runtime supervision is owned by OPL current_control_state",
+        "runtime_scheduler_owner": OPL_RUNTIME_OWNER,
+        "mas_runtime_supervision_read_model_removed": True,
+        "workspace_root": str(profile.workspace_root),
+    }
 
 
 def _doctor_workspace_domain_route_contract(doctor_report: Any) -> dict[str, Any]:
@@ -431,7 +444,7 @@ def _doctor_workspace_domain_route_contract(doctor_report: Any) -> dict[str, Any
     return {}
 
 
-def _doctor_mas_runtime_core_ready(doctor_report: Any) -> bool:
+def _doctor_opl_provider_stage_runtime_ready(doctor_report: Any) -> bool:
     contract = getattr(doctor_report, "runtime_contract", None)
     if isinstance(contract, Mapping):
         return bool(contract.get("ready"))
@@ -448,9 +461,9 @@ def _workspace_ready_alerts(doctor_report) -> list[str]:
         alerts.append("studies 根目录不存在，当前没有 study authority surface。")
     if not doctor_report.portfolio_exists:
         alerts.append("portfolio 根目录不存在，workspace 数据资产面还未完整。")
-    runtime_contract_ready = _doctor_mas_runtime_core_ready(doctor_report)
+    runtime_contract_ready = _doctor_opl_provider_stage_runtime_ready(doctor_report)
     if not runtime_contract_ready:
-        alerts.append("MAS runtime contract 尚未 ready，当前无法继续托管研究执行。")
+        alerts.append("OPL provider stage runtime contract 尚未 ready，当前无法继续托管研究执行。")
     if not doctor_report.medical_overlay_ready:
         alerts.append("workspace medical overlay 还未 ready，当前运行前置能力不完整。")
     workspace_domain_route_contract = _doctor_workspace_domain_route_contract(doctor_report)
@@ -472,7 +485,7 @@ def _build_product_entry_preflight(
     doctor_command = f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}"
     start_command = f"{_command_prefix(profile_ref)} product-entry-status --profile {_profile_arg(profile_ref)}"
     workspace_domain_route_contract = _doctor_workspace_domain_route_contract(doctor_report)
-    runtime_contract_ready = _doctor_mas_runtime_core_ready(doctor_report)
+    runtime_contract_ready = _doctor_opl_provider_stage_runtime_ready(doctor_report)
     checks = [
         _build_shared_program_check(
             check_id="workspace_root_exists",
@@ -507,14 +520,14 @@ def _build_product_entry_preflight(
             command=doctor_command,
         ),
         _build_shared_program_check(
-            check_id="mas_runtime_core_ready",
-            title="MAS Runtime Core Ready",
+            check_id="opl_provider_stage_runtime_ready",
+            title="OPL Provider Stage Runtime Ready",
             status="pass" if runtime_contract_ready else "fail",
             blocking=True,
             summary=(
-                "MAS runtime core contract 已就位。"
+                "OPL provider stage runtime contract 已就位。"
                 if runtime_contract_ready
-                else "MAS runtime core contract 尚未 ready。"
+                else "OPL provider stage runtime contract 尚未 ready。"
             ),
             command=doctor_command,
         ),
@@ -532,12 +545,12 @@ def _build_product_entry_preflight(
             status="pass" if bool(workspace_domain_route_contract.get("loaded")) else "fail",
             blocking=True,
             summary=(
-                "OPL scheduler replacement projection 已 ready。"
+                "OPL current-control-state handoff 已 ready。"
                 if bool(workspace_domain_route_contract.get("loaded"))
                 else _non_empty_text(workspace_domain_route_contract.get("summary"))
-                or "OPL scheduler replacement projection 尚未 ready。"
+                or "OPL current-control-state handoff 尚未 ready。"
             ),
-            command=f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",
+            command=f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} --format json",
         ),
     ]
     blocking_check_ids = [
@@ -575,7 +588,7 @@ def _build_product_entry_guardrails(
     progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
     refresh_command = (
         f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+        f"--profile {profile_arg} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
     )
     build_guardrails = _controller_override("_build_shared_product_entry_guardrails", _build_shared_product_entry_guardrails)
     return build_guardrails(
@@ -604,8 +617,8 @@ def _build_product_entry_guardrails(
             ),
             _build_shared_guardrail_class(
                 guardrail_id="runtime_recovery_required",
-                trigger="study-progress intervention_lane / runtime_supervision health_status / workspace-cockpit attention queue",
-                symptom="托管运行恢复失败、健康降级或长期停在恢复态，当前必须优先处理 runtime recovery。",
+                trigger="study-progress intervention_lane / OPL current_control_state handoff / workspace-cockpit attention queue",
+                symptom="OPL stage/runtime owner handoff 或 MAS domain diagnostic 显示运行恢复失败，当前必须优先处理 runtime recovery。",
                 recommended_command=f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
             ),
             _build_shared_guardrail_class(

@@ -14,9 +14,9 @@ from opl_harness_shared.family_entry_contracts import (
     build_family_domain_entry_contract as _build_shared_family_domain_entry_contract,
 )
 
-from med_autoscience.control_plane_command_catalog import (
-    CONTROL_PLANE_OPERATIONS_COMMANDS,
-    ControlPlaneOperationsCommand,
+from med_autoscience.authority_operation_command_catalog import (
+    AUTHORITY_OPERATION_COMMANDS,
+    AuthorityOperationCommand,
 )
 
 
@@ -31,7 +31,7 @@ DEFAULT_USER_INTERACTION_SHARED_HANDOFF_ENVELOPE = (
     "task_intent",
     "entry_mode",
     "workspace_locator",
-    "runtime_session_contract",
+    "domain_authority_handoff_contract",
     "return_surface_contract",
 )
 
@@ -72,9 +72,9 @@ SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
         ("direct_entry_mode",),
     ),
 }
-SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec | ControlPlaneOperationsCommand] = {
+SERVICE_SAFE_DOMAIN_COMMANDS: dict[str, DomainEntryCommandSpec | AuthorityOperationCommand] = {
     **SERVICE_SAFE_OPERATOR_COMMANDS,
-    **{item.command: item for item in CONTROL_PLANE_OPERATIONS_COMMANDS},
+    **{item.command: item for item in AUTHORITY_OPERATION_COMMANDS},
 }
 
 

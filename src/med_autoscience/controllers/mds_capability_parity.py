@@ -19,6 +19,12 @@ ALLOWED_CAPABILITY_CLASSIFICATIONS: tuple[str, ...] = (
     "fixture_only",
     "retire",
     "external_source_archive_only",
+    "opl_owned_runtime_control_mas_domain_refs",
+)
+ALLOWED_REMAINING_SURFACE_CLASSIFICATIONS: tuple[str, ...] = (
+    *ALLOWED_CAPABILITY_CLASSIFICATIONS,
+    "opl_runtime_control_with_mas_refs",
+    "retired_mas_runtime_surface",
 )
 CUTOVER_REQUIRED_GATES: tuple[str, ...] = (
     "mas_side_contract_exists",
@@ -116,7 +122,7 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "publication_ready_authority_allowed": False,
         "parity_status": "oracle_fixture_defined",
         "provenance_ref": PROVENANCE_REF,
-        "rollback_surface": "progress_projection/domain_health_diagnostic retain the MAS runtime owner decision log",
+        "rollback_surface": "progress_projection/domain_health_diagnostic retain MAS domain owner refs and typed blockers; OPL owns runtime control state",
         "old_mds_authority_surface_status": "marked_oracle",
     },
     {
@@ -191,7 +197,7 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
     {
         "capability_id": "prompt_stage_discipline",
         "title": "Prompt stage discipline",
-        "classification": "mas_owned",
+        "classification": "opl_owned_runtime_control_mas_domain_refs",
         "mds_authority_role": "behavior_oracle",
         "mas_target_owner": "Quality OS",
         "mas_owner_surface": "Quality OS controller stage discipline fixture",
@@ -240,17 +246,17 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
     {
         "surface_id": "runtime_core_daemon",
         "title": "Runtime core daemon",
-        "classification": "mas_owned",
+        "classification": "retired_mas_runtime_surface",
         "mds_source_surface": "daemon/session runtime core",
-        "mas_target_owner": "Runtime OS",
+        "mas_target_owner": "one-person-lab",
         "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "MAS Runtime OS owns turn lifecycle scheduling, completion normalization, and stale-run recovery; external MDS daemon is not a default dependency.",
-        "owner_boundary": "Runtime Turn Lifecycle Kernel owns per-turn continuation; progress_projection/domain_health_diagnostic consume MAS-owned runtime truth and act as supervisor/reconcile surfaces.",
+        "cutover_contract": "OPL stage runtime owns queue, attempt continuation, completion transport, and stale-run recovery; external MDS daemon is not a default dependency.",
+        "owner_boundary": "MAS consumes OPL typed closeout, owner receipt, typed blocker, or publication authority refs; it does not own a generic runtime core daemon.",
         "parity_proof": {
-            "proof_kind": "turn_lifecycle_kernel",
-            "mas_contract": "mas_runtime_core exposes schedule_turn, complete_turn_and_normalize, inspect_turn_lifecycle, and user-message-triggered scheduling.",
+            "proof_kind": "retired_runtime_surface_parity",
+            "mas_contract": "runtime_transport/mas_runtime_core* is physically retired; OPL provider stage runtime plus MAS DomainIntent adapter form the active boundary.",
             "mds_oracle": "MDS daemon schedule_turn plus _normalize_status_after_turn behavior is retained as regression semantics.",
-            "acceptance": "Runner completion clears active_run_id/worker_running, prioritizes queued user messages, schedules delayed auto_continue, and stops at human/terminal gates.",
+            "acceptance": "Provider completion alone cannot advance domain truth; typed closeout or MAS owner receipt/blocker is required.",
         },
     },
     {
@@ -258,35 +264,35 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
         "title": "Quest lifecycle",
         "classification": "mas_owned",
         "mds_source_surface": "quest layout and lifecycle behavior",
-        "mas_target_owner": "Runtime OS",
+        "mas_target_owner": "MedAutoScience domain authority refs",
         "mds_final_role": "historical_fixture_only",
-        "cutover_contract": "MAS runtime/quests and runtime_lifecycle.sqlite own quest lifecycle and materialization.",
-        "owner_boundary": "Legacy quest data can be replayed or imported only through explicit restore/import diagnostics.",
+        "cutover_contract": "OPL stage runtime owns generic quest lifecycle and materialization; MAS keeps domain authority refs, owner receipts, typed blockers, and explicit restore/import diagnostics.",
+        "owner_boundary": "Legacy quest data can be replayed or imported only through explicit restore/import diagnostics; MAS does not own a generic lifecycle SQLite or materialization engine.",
     },
     {
         "surface_id": "worker_runner_lifecycle",
         "title": "Worker and runner lifecycle",
         "classification": "mas_owned",
         "mds_source_surface": "worker runners and liveness loops",
-        "mas_target_owner": "Runtime OS",
+        "mas_target_owner": "MedAutoScience domain authority refs",
         "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "MAS-owned runner lifecycle exposes worker state, run receipts, leases, idempotency keys, and per-quest serialization without requiring MDS worker processes.",
-        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces; domain_health_diagnostic may redrive recovery through schedule_turn but does not become the turn owner.",
+        "cutover_contract": "OPL runner lifecycle exposes worker state, run receipts, leases, idempotency keys, and per-quest serialization; MAS consumes closeout refs and signs owner receipts or typed blockers.",
+        "owner_boundary": "Controller-authorized runtime actions stay in OPL runtime control surfaces; MAS controller/domain-authority refs may request route-back or typed blocker handling but do not become turn owner.",
         "parity_proof": {
             "proof_kind": "worker_runner_receipts",
-            "mas_contract": "MasTurnRunner records started/queued/finished receipts, worker leases, claimed user messages, and run ids.",
+            "mas_contract": "OPL current-control-state records started/queued/finished receipts, worker leases, claimed user messages, and run ids; MAS only consumes closeout refs.",
             "mds_oracle": "MDS one-worker-per-quest turn worker and active_run_id lifecycle are retained as behavior fixtures.",
-            "acceptance": "An active worker only queues additional turn requests, stale JSON liveness is reconciled to not live, and recovery redrive creates a MAS turn receipt.",
+            "acceptance": "An active worker only queues additional turn requests, stale JSON liveness is reconciled to not live by OPL, and recovery redrive returns MAS owner receipt or typed blocker refs.",
         },
     },
     {
         "surface_id": "channels_connectors_transport",
         "title": "Channels, connectors, and transport",
-        "classification": "rewrite_in_mas",
+        "classification": "opl_runtime_control_with_mas_refs",
         "mds_source_surface": "runtime connector and transport layer",
-        "mas_target_owner": "Runtime OS",
+        "mas_target_owner": "MedAutoScience domain authority refs",
         "mds_final_role": "explicit_archive_import_ref_only",
-        "cutover_contract": "MAS runtime transport owns active communication; MDS connectors remain historical archive-import fixtures.",
+        "cutover_contract": "OPL stage runtime owns active communication; MAS exposes owner-route refs, owner receipts, typed blockers, and artifact/source/quality refs.",
         "owner_boundary": "Transport observations cannot write study truth, quality truth, or publication authority.",
     },
     {
@@ -314,9 +320,9 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
         "title": "GitOps workspace state",
         "classification": "retire",
         "mds_source_surface": "workspace root Git and quest Git operations",
-        "mas_target_owner": "Runtime lifecycle",
+        "mas_target_owner": "Domain authority refs index",
         "mds_final_role": "retired_surface",
-        "cutover_contract": "MAS runtime lifecycle uses SQLite/read-model/restore proof, not default root Git or quest Git.",
+        "cutover_contract": "OPL owns runtime lifecycle/current-control-state; MAS keeps refs-only restore/provenance and domain authority locator refs.",
         "owner_boundary": "Git history can remain only as archived restore material outside active lifecycle authority.",
     },
     {
@@ -463,7 +469,7 @@ def _remaining_surface_projection(surface: Mapping[str, Any]) -> dict[str, Any]:
 
 def _remaining_surface_summary(surfaces: list[Mapping[str, Any]]) -> dict[str, int]:
     summary = {"surface_count": len(surfaces)}
-    for classification in ALLOWED_CAPABILITY_CLASSIFICATIONS:
+    for classification in ALLOWED_REMAINING_SURFACE_CLASSIFICATIONS:
         summary[classification] = sum(1 for surface in surfaces if _text(surface.get("classification")) == classification)
     return summary
 
@@ -478,7 +484,7 @@ def build_mds_remaining_surface_inventory() -> dict[str, Any]:
         "default_operation_requires_external_mds": False,
         "default_diagnostic_requires_external_mds": False,
         "upstream_history_import_allowed": False,
-        "allowed_classifications": list(ALLOWED_CAPABILITY_CLASSIFICATIONS),
+        "allowed_classifications": list(ALLOWED_REMAINING_SURFACE_CLASSIFICATIONS),
         "remaining_surfaces": surfaces,
         "classification_summary": _remaining_surface_summary(surfaces),
     }
@@ -606,7 +612,7 @@ def _append_remaining_inventory_issues(matrix: Mapping[str, Any], issues: list[d
             "default_operation_requires_external_mds": False,
             "default_diagnostic_requires_external_mds": False,
             "upstream_history_import_allowed": False,
-            "allowed_classifications": list(ALLOWED_CAPABILITY_CLASSIFICATIONS),
+            "allowed_classifications": list(ALLOWED_REMAINING_SURFACE_CLASSIFICATIONS),
             "remaining_surfaces": _list(matrix.get("remaining_surface_inventory")),
         }
     )
@@ -638,6 +644,11 @@ def _append_behavior_equivalence_issues(matrix: Mapping[str, Any], issues: list[
             "allowed_paper_progress_degradation_classes": list(ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES),
             "behavior_surfaces": _list(matrix.get("behavior_equivalence_inventory")),
             "paper_progress_degradation_classifier": matrix.get("paper_progress_degradation_classifier"),
+            "runtime_continuity_completion": (
+                matrix.get("runtime_continuity_completion") or build_mds_behavior_equivalence_matrix()[
+                    "runtime_continuity_completion"
+                ]
+            ),
             }
             | (
                 {"paper_progress_degradation_summary": matrix["paper_progress_degradation_summary"]}
@@ -776,7 +787,7 @@ def validate_mds_remaining_surface_inventory(inventory: Mapping[str, Any]) -> di
         issues.append({"code": "default_diagnostic_requires_external_mds"})
     if inventory.get("upstream_history_import_allowed") is not False:
         issues.append({"code": "upstream_history_import_allowed"})
-    if list(inventory.get("allowed_classifications") or []) != list(ALLOWED_CAPABILITY_CLASSIFICATIONS):
+    if list(inventory.get("allowed_classifications") or []) != list(ALLOWED_REMAINING_SURFACE_CLASSIFICATIONS):
         issues.append({"code": "allowed_classifications_drift"})
     for surface in _list(inventory.get("remaining_surfaces")):
         if not isinstance(surface, Mapping):
@@ -797,7 +808,7 @@ def _validate_remaining_surface(surface: Mapping[str, Any], issues: list[dict[st
     classification = _text(surface.get("classification"))
     if not surface_id:
         issues.append({"code": "remaining_surface_missing_id"})
-    if classification not in ALLOWED_CAPABILITY_CLASSIFICATIONS:
+    if classification not in ALLOWED_REMAINING_SURFACE_CLASSIFICATIONS:
         issues.append(
             {
                 "code": "invalid_remaining_surface_classification",

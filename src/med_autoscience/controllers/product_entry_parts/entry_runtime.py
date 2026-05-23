@@ -52,7 +52,7 @@ def build_product_entry(
         or _non_empty_text(execution.get("default_entry_mode"))
         or "full_research"
     )
-    runtime_contract = dict(latest_task_payload.get("runtime_session_contract") or {})
+    domain_authority_handoff_contract = dict(latest_task_payload.get("domain_authority_handoff_contract") or {})
     return_contract = dict(latest_task_payload.get("return_surface_contract") or {})
     mainline_snapshot = _mainline_snapshot()
     single_project_boundary = dict(mainline_snapshot.get("single_project_boundary") or {})
@@ -92,18 +92,23 @@ def build_product_entry(
             "study_id": resolved_study_id,
             "study_root": str(resolved_study_root),
         },
-        "runtime_session_contract": {
-            "runtime_owner": MAS_RUNTIME_OWNER,
+        "domain_authority_handoff_contract": {
+            "runtime_owner": "one-person-lab",
             "domain_owner": TARGET_DOMAIN_ID,
             "executor_owner": CONTROLLED_BACKEND_EXECUTOR_OWNER,
             "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
             "managed_entry_mode": managed_entry_mode,
-            "managed_runtime_backend_id": runtime_contract.get("managed_runtime_backend_id") or profile.managed_runtime_backend_id,
-            "runtime_root": runtime_contract.get("runtime_root") or str(profile.runtime_root),
-            "hermes_agent_repo_root": runtime_contract.get("hermes_agent_repo_root"),
-            "hermes_home_root": runtime_contract.get("hermes_home_root") or str(profile.hermes_home_root),
+            "opl_runtime_ref": (
+                domain_authority_handoff_contract.get("opl_runtime_ref")
+                or profile.opl_runtime_ref
+            ),
+            "runtime_root": domain_authority_handoff_contract.get("runtime_root") or str(profile.runtime_root),
+            "hermes_agent_repo_root": domain_authority_handoff_contract.get("hermes_agent_repo_root"),
+            "hermes_home_root": domain_authority_handoff_contract.get("hermes_home_root") or str(profile.hermes_home_root),
             "start_entry": "launch-study",
             "resume_entry": "launch-study",
+            "mas_stage_attempt_state_owner": False,
+            "provider_completion_is_domain_completion": False,
         },
         "managed_runtime_contract": _build_managed_runtime_contract(
             domain_owner=TARGET_DOMAIN_ID,
@@ -164,7 +169,8 @@ def build_product_entry(
             "launch_command": commands["launch_study"],
             "progress_command": commands["study_progress"],
             "runtime_status_command": commands["progress_projection"],
-            "runtime_supervision_path": return_contract.get("runtime_supervision_path"),
+            "opl_runtime_owner_handoff_path": return_contract.get("opl_runtime_owner_handoff_path"),
+            "domain_health_diagnostic_path": return_contract.get("domain_health_diagnostic_path"),
             "publication_eval_path": return_contract.get("publication_eval_path"),
             "controller_decision_path": return_contract.get("controller_decision_path"),
         },
@@ -263,7 +269,8 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             f"- gate-clearing 跟进字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('gate_clearing_batch_followthrough_field') or 'none')}`",
             f"- runtime control projection 字段: `{((return_surface_contract.get('study_progress_projection_contract') or {}).get('research_runtime_control_projection_field') or 'none')}`",
             f"- 长线学习投影: `{((return_surface_contract.get('long_line_learning_projection_contract') or {}).get('surface_kind') or 'none')}`",
-            f"- 运行监管路径: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
+            f"- OPL runtime owner handoff: `{return_surface_contract.get('opl_runtime_owner_handoff_path') or 'none'}`",
+            f"- domain health diagnostic: `{return_surface_contract.get('domain_health_diagnostic_path') or 'none'}`",
             f"- 发表评估路径: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
             f"- 控制器决策路径: `{return_surface_contract.get('controller_decision_path') or 'none'}`",
             "",
@@ -381,7 +388,7 @@ def _enqueue_task_intake_for_live_runtime(
         "message_id": None,
         "reason": None,
         "delivery_mode": None,
-        "runtime_backend_id": None,
+        "opl_runtime_ref": None,
         "backend_submit_error": None,
         "control_intent_key": intent_identity.business_key,
         "owner_route_ref": None,
@@ -435,7 +442,7 @@ def _enqueue_task_intake_for_live_runtime(
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
         "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "domain_route/owner-handoff",
         "authority_boundary": {
             "mas_writes_generic_runtime_queue": False,
             "mas_submits_runtime_chat": False,

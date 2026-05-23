@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_runtime_router
+from med_autoscience.controllers import domain_status_projection
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import publication_gate as publication_gate_controller
@@ -103,11 +103,9 @@ def _execute_controller_action(
         study_root=study_root,
         quest_id=quest_id,
         source=source,
-        ensure_study_runtime_fn=study_runtime_router.ensure_study_runtime,
-        execution_payload_fn=study_runtime_router._execution_payload,
-        load_yaml_dict_fn=study_runtime_router._load_yaml_dict,
-        managed_runtime_backend_for_execution_fn=study_runtime_router._managed_runtime_backend_for_execution,
-        default_managed_runtime_backend_fn=study_runtime_router._default_managed_runtime_backend,
+        ensure_study_runtime_fn=None,
+        execution_payload_fn=domain_status_projection._execution_payload,
+        load_yaml_dict_fn=domain_status_projection._load_yaml_dict,
         run_gate_clearing_batch_fn=gate_clearing_batch.run_gate_clearing_batch,
         run_quality_repair_batch_fn=quality_repair_batch.run_quality_repair_batch,
     )
@@ -319,7 +317,7 @@ def study_outer_loop_tick(
         study_id=study_id,
         study_root=study_root,
     )
-    status = study_runtime_router.progress_projection(
+    status = domain_status_projection.progress_projection(
         profile=profile,
         study_id=resolved_study_id,
         study_root=resolved_study_root,
@@ -434,7 +432,7 @@ def materialize_non_dispatching_outer_loop_decision(
     status = (
         dict(status_payload)
         if isinstance(status_payload, dict)
-        else study_runtime_router.progress_projection(
+        else domain_status_projection.progress_projection(
             profile=profile,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
@@ -499,7 +497,7 @@ def refresh_parked_submission_milestone_controller_decision(
     status = (
         dict(status_payload)
         if isinstance(status_payload, dict)
-        else study_runtime_router.progress_projection(
+        else domain_status_projection.progress_projection(
             profile=profile,
             study_id=resolved_study_id,
             study_root=resolved_study_root,

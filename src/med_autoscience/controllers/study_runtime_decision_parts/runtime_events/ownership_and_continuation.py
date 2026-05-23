@@ -2,6 +2,7 @@ from __future__ import annotations
 
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from ..publication_and_submission import *  # noqa: F403
+from med_autoscience import opl_runtime_contract
 from med_autoscience.controllers.owner_route_reconcile_parts import hard_methodology_currentness
 from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers import source_provenance_owner_result
@@ -65,7 +66,7 @@ def _record_execution_owner_guard(
     quest_root: Path,
 ) -> None:
     execution = status.execution
-    if not runtime_backend_contract.is_managed_research_execution(execution):
+    if not opl_runtime_contract.is_opl_hosted_research_execution(execution):
         return
     if not status.quest_exists or status.quest_status not in _LIVE_QUEST_STATUSES:
         return
@@ -363,7 +364,7 @@ def _record_blocked_closeout_supersession_if_present(
                 "active_run_id": None,
                 "continuation_policy": "auto",
                 "continuation_anchor": "decision",
-                "continuation_reason": "runtime_platform_repair_redrive",
+                "continuation_reason": "controller_work_unit_pending",
                 "pending_user_message_count": int(runtime_state.get("pending_user_message_count") or 0),
                 "runtime_state_path": str(runtime_state_path),
             }

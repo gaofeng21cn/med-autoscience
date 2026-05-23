@@ -33,7 +33,7 @@ def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeyp
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",

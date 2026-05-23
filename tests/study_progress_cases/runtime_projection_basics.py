@@ -165,7 +165,7 @@ def test_study_progress_surfaces_evidence_packet_and_gate_cache_without_telemetr
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -251,7 +251,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -443,7 +443,7 @@ def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalati
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -538,7 +538,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -636,7 +636,7 @@ def test_study_progress_projects_stale_progress_signal_for_active_runtime(monkey
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -734,7 +734,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -912,7 +912,7 @@ def test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

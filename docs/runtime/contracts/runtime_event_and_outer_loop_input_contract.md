@@ -5,24 +5,24 @@
 本文件冻结当前已经落地的正式 contract：
 
 - `OPL provider-backed stage runtime` 负责 generic attempt / queue / worker residency / provider transport truth
-- `MAS Runtime OS` / managed runtime backend 负责 MAS domain runtime event refs、owner receipt、typed blocker、guarded apply 与 diagnostic truth
-- `MedAutoScience` 负责 study-owned supervision / escalation / decision truth
-- managed runtime 的 outer loop 必须同时消费这两层正式输入，不能再靠本仓 controller 重写 quest-owned `runtime_events/*`
+- `OPL current_control_state` 负责 runtime event refs、attempt state、worker/session liveness、provider closeout 与 operator runtime read model
+- `MedAutoScience` 只负责 MAS domain authority refs、owner receipt、typed blocker、guarded apply receipt、study truth、publication/source/artifact/quality authority 与 diagnostic blocker refs
+- managed runtime 的 outer loop 必须消费 OPL current_control_state 与 MAS domain authority refs，不能靠本仓 controller 或旧 runtime shell 重写 quest-owned `runtime_events/*`
 
 这份 contract 解决的是“runtime 已经降级、暂停、停车或等待输入，但 MAS 看不见”的结构性问题。当前系统里，quest-owned truth 与 study-owned truth 已经拆开，不能再混写。
 
 ## 2. Truth Owner 与 Surface
 
-### 2.1 Quest-owned native runtime truth
+### 2.1 OPL-owned runtime event refs
 
-权威 owner：`MAS Runtime OS` / managed runtime backend as MAS domain adapter；generic attempt/queue/provider truth 归 OPL provider-backed stage runtime
+权威 owner：`OPL provider-backed stage runtime` / `current_control_state`
 
 稳定表面：
 
 - `runtime/quests/<quest_id>/artifacts/reports/runtime_events/<timestamp>_<event_kind>.json`
 - `runtime/quests/<quest_id>/artifacts/reports/runtime_events/latest.json`
 
-这是 quest-owned truth，不是 launch report、runtime watch，也不是 study-owned controller summary。旧 `ops/med-deepscientist/runtime/quests/<quest_id>/...` 路径只作为 historical fixture、explicit archive import、backend audit 或 parity oracle reference 保留，不再是当前默认 writer 或 active runtime target。
+这是 OPL runtime event ref truth，不是 launch report、runtime watch，也不是 study-owned controller summary。MAS 可以消费这些 refs 来签 owner receipt、typed blocker 或 domain diagnostic blocker，但不得把它们复制成 MAS-owned runtime lifecycle/read-model/scheduler surface。旧 `ops/med-deepscientist/runtime/quests/<quest_id>/...` 路径只作为 historical fixture、explicit archive import、backend audit 或 parity oracle reference 保留，不再是当前默认 writer 或 active runtime target。
 
 ### 2.2 Study-owned outer-loop truth
 
@@ -36,7 +36,7 @@
 - `controller_decisions/latest.json`
 - `publication_eval/latest.json`
 
-这些表面负责 study-owned judgment，不负责伪装成 quest-owned runtime truth。
+这些表面负责 study/domain judgment、publication authority、owner receipt 和 typed blocker，不负责伪装成 OPL runtime state、attempt ledger、worker liveness 或 quest-owned runtime truth。
 
 ### 2.3 Workspace knowledge / literature truth
 
@@ -60,7 +60,7 @@
 - `snapshot`
 - `runtime_audit`
 
-native runtime truth 扩展字段：
+OPL current-control runtime ref 扩展字段：
 
 - `runtime_event_ref`
 - `runtime_event`
@@ -71,13 +71,13 @@ native runtime truth 扩展字段：
 - `runtime_event` 若存在，必须是合法 native runtime event payload
 - 若二者同时存在，必须指向同一个 durable artifact
 - `runtime_event.quest_id` 必须与 session `quest_id` 一致
-- MAS transport 必须原样透传这对字段，不得静默丢弃，不得在 transport 层重新生成 quest-owned event
+- MAS transport 必须原样透传这对字段，不得静默丢弃，不得在 transport 层重新生成 quest-owned event 或派生 MAS-owned runtime lifecycle/read-model surface
 
 ## 4. Managed Study Status Contract
 
 对 managed runtime 且 quest 已存在的 study，`progress_projection` 必须满足：
 
-- `runtime_event_ref` 直接来自 session-native `runtime_event_ref`
+- `runtime_event_ref` 直接来自 OPL current_control_state / provider-backed stage runtime
 - `runtime_event` 可内联暴露最新 native event payload
 - `decision` / `reason` 仍是 study-owned controller judgment
 - `supervisor_tick_audit.status` 仍是 study-owned freshness truth
@@ -103,7 +103,7 @@ native runtime truth 扩展字段：
 
 语义分工：
 
-- native runtime event 提供 quest runtime truth：
+- OPL current_control_state / runtime event ref 提供 quest runtime truth：
   - `quest_status`
   - `display_status`
   - `active_run_id`
@@ -123,10 +123,10 @@ native runtime truth 扩展字段：
 
 换句话说，outer loop 现在消费的是：
 
-- runtime 自报的 quest truth
-- MAS 自己的 study-owned control truth
+- OPL provider-backed stage runtime 投影的 quest truth
+- MAS domain authority refs 与 study-owned judgment truth
 
-而不是 MAS 自己代 runtime 再写一份 quest truth。
+而不是 MAS 自己代 runtime 再写一份 quest truth、worker lease、recovery intent 或 runtime lifecycle read model。
 
 ## 6. Fail-Closed 规则
 
@@ -136,7 +136,7 @@ native runtime truth 扩展字段：
 - `runtime_event_ref` 指向的 artifact 不存在、schema 非法、`quest_id` 不匹配时，必须报错
 - `supervisor_tick_audit.status != fresh` 时，不得把当前 runtime 输入表述成稳定托管中
 - `runtime_escalation_ref` 缺失或非法时，不得把需要 escalation 的场景描述成正常可继续
-- 不允许再用 controller-side synthetic event 覆盖 native runtime truth
+- 不允许再用 controller-side synthetic event 覆盖 OPL current_control_state / native runtime truth
 - 不允许把 `domain_health_diagnostic`、`launch_report` 或 `study_progress` 升格成 quest runtime truth
 
 ## 7. 当前完成状态
@@ -146,7 +146,7 @@ native runtime truth 扩展字段：
 - `P0 runtime native truth`：已完成；旧 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 只作为 provenance / parity reference 保留
 - `MedAutoScience` consumer-side cutover：已完成，managed runtime 不再覆盖 quest-owned `runtime_events/*`
 - `P1 workspace canonical literature / knowledge truth`：已完成
-- 当前剩余工作不在本 contract 内重开；default runtime closeout 以 OPL provider-backed stage runtime、MAS domain adapter / owner receipt surface、OPL scheduler replacement、MAS supervision SLO/read-model contract（默认 adapter 是 `opl_family_runtime_provider`；local 是显式 legacy diagnostic / cleanup adapter；Hermes 是 explicit legacy diagnostic adapter）和 behavior-equivalence matrix 为准
+- 当前剩余工作不在本 contract 内重开；default runtime closeout 以 OPL provider-backed stage runtime、OPL current_control_state、MAS domain authority refs / owner receipt / typed blocker surface、OPL scheduler replacement、MAS paper-progress SLO/domain diagnostic refs（默认 adapter 是 `opl_family_runtime_provider`；local 是显式 legacy diagnostic / cleanup tombstone；Hermes 是 explicit legacy diagnostic adapter）和 behavior-equivalence matrix 为准
 
 因此，这份文件不再把 `runtime event contract` 写成“MAS 物化的一份 projection contract”，而是把它写成：
 

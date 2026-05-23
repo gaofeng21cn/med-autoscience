@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience import opl_runtime_contract
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
-from med_autoscience.controllers.control_plane_facts import active_run_id as control_plane_active_run_id
+from med_autoscience.controllers.opl_runtime_refs import active_run_id as opl_runtime_active_run_id
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime_escalation_record import (
@@ -78,7 +78,7 @@ def _runtime_status_summary_from_runtime_event(
 
 
 def _runtime_status_active_run_id(status: dict[str, Any], runtime_status: dict[str, str]) -> str | None:
-    return control_plane_active_run_id({**dict(status or {}), "active_run_id": runtime_status.get("active_run_id")})
+    return opl_runtime_active_run_id({**dict(status or {}), "active_run_id": runtime_status.get("active_run_id")})
 
 
 def _load_runtime_escalation_record(
@@ -126,7 +126,7 @@ def _load_runtime_event_record(
 
 def _managed_runtime_requires_event_ref(status: dict[str, Any]) -> bool:
     execution = status.get("execution")
-    if not runtime_backend_contract.is_managed_research_execution(execution if isinstance(execution, dict) else None):
+    if not opl_runtime_contract.is_opl_hosted_research_execution(execution if isinstance(execution, dict) else None):
         return False
     return isinstance(status.get("runtime_event_ref"), dict)
 

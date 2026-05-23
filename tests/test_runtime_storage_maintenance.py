@@ -472,7 +472,7 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
     assert Path(compaction["restore_proof_path"]).is_file()
     assert sum(1 for path in (quest_root / ".ds").rglob("*") if path.is_file()) < file_count_before
 
-    db_path = quest_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    db_path = quest_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     with sqlite3.connect(db_path) as conn:
         row = conn.execute(
             "SELECT archive_id, archive_path, restore_proof_path, payload_json FROM archive_refs WHERE quest_root = ?",
@@ -483,7 +483,7 @@ def test_audit_workspace_storage_restore_proof_compaction_archives_and_prunes_co
     assert row[1] == compaction["archive_ref"]["archive_path"]
     assert row[2] == compaction["restore_proof_path"]
     assert json.loads(row[3])["sha256"] == compaction["archive_ref"]["sha256"]
-    workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    workspace_db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     with sqlite3.connect(workspace_db_path) as conn:
         workspace_row = conn.execute(
             "SELECT archive_id, archive_path, restore_proof_path, payload_json FROM archive_refs WHERE quest_root = ?",

@@ -14,8 +14,6 @@ __all__ = [
     "StudyRuntimeDecision",
     "StudyRuntimeExecutionOwnerGuard",
     "StudyRuntimeInteractionArbitration",
-    "StudyRuntimeExecutionContext",
-    "StudyRuntimeExecutionOutcome",
     "StudyRuntimeOverlayAudit",
     "StudyRuntimeOverlayResult",
     "StudyRuntimePendingUserInteraction",
@@ -36,18 +34,11 @@ __all__ = [
 ]
 
 
-_EXECUTION_NAMES = {
-    "StudyRuntimeExecutionContext",
-    "StudyRuntimeExecutionOutcome",
-}
-
-_STATUS_NAMES = set(__all__) - _EXECUTION_NAMES
+_STATUS_NAMES = set(__all__)
 
 
 def __getattr__(name: str):
-    if name in _EXECUTION_NAMES:
-        value = getattr(import_module("med_autoscience.controllers.study_runtime_execution"), name)
-    elif name in _STATUS_NAMES:
+    if name in _STATUS_NAMES:
         value = getattr(import_module("med_autoscience.controllers.progress_projection"), name)
     else:
         raise AttributeError(name)

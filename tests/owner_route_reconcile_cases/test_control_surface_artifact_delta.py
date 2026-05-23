@@ -80,7 +80,7 @@ def test_scan_domain_routes_does_not_count_control_surface_progress_as_artifact_
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,

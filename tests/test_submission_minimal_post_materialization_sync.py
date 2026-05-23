@@ -128,9 +128,9 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
         apply: bool,
         source: str,
         enqueue_intervention: bool,
-        control_plane_route_context: object,
+        authority_route_context: object,
     ) -> dict[str, object]:
-        gate_calls.append((quest_root, apply, source, enqueue_intervention, control_plane_route_context))
+        gate_calls.append((quest_root, apply, source, enqueue_intervention, authority_route_context))
         return {
             "status": "clear",
             "allow_write": True,
@@ -166,8 +166,8 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
         "study_delivery_sync",
         SimpleNamespace(
             can_sync_study_delivery=lambda *, paper_root: True,
-            sync_study_delivery=lambda *, paper_root, stage, publication_profile, control_plane_route_context: (
-                sync_calls.append((paper_root, stage, publication_profile, control_plane_route_context)),
+            sync_study_delivery=lambda *, paper_root, stage, publication_profile, authority_route_context: (
+                sync_calls.append((paper_root, stage, publication_profile, authority_route_context)),
                 {"status": "synced", "stage": stage, "publication_profile": publication_profile},
             )[1],
         ),
@@ -189,7 +189,7 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
 
     result = module.replay_post_submission_minimal_sync(
         paper_root=paper_root,
-        control_plane_route_context=route_context,
+        authority_route_context=route_context,
     )
 
     assert gate_calls == [
@@ -273,7 +273,7 @@ def test_replay_post_submission_minimal_sync_skips_progress_refresh_when_profile
         "study_delivery_sync",
         SimpleNamespace(
             can_sync_study_delivery=lambda *, paper_root: True,
-            sync_study_delivery=lambda *, paper_root, stage, publication_profile, control_plane_route_context: {
+            sync_study_delivery=lambda *, paper_root, stage, publication_profile, authority_route_context: {
                 "status": "synced",
                 "stage": stage,
                 "publication_profile": publication_profile,

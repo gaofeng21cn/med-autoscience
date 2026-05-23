@@ -110,7 +110,7 @@ def _stall_reasons(*, status: Mapping[str, Any], progress: Mapping[str, Any]) ->
 
 def _blocking_reasons(status: Mapping[str, Any], progress: Mapping[str, Any]) -> list[str]:
     runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
-    control_plane = _mapping(status.get("control_plane_snapshot")) or _mapping(progress.get("control_plane_snapshot"))
+    control_plane = _mapping(status.get("authority_snapshot")) or _mapping(progress.get("authority_snapshot"))
     dispatch_gate = _mapping(control_plane.get("dispatch_gate"))
     return list(
         dict.fromkeys(

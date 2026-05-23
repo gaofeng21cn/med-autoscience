@@ -366,14 +366,14 @@ def test_domain_health_diagnostic_command_dispatches_controller(monkeypatch, tmp
         runtime_root: Path,
         apply: bool,
         profile=None,
-        ensure_study_runtimes: bool = False,
-        apply_supervisor_platform_repair: bool = False,
+        request_opl_stage_attempts: bool = False,
+        request_opl_owner_route_reconcile: bool = False,
     ) -> dict:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
         called["profile"] = profile
-        called["ensure_study_runtimes"] = ensure_study_runtimes
-        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
+        called["request_opl_stage_attempts"] = request_opl_stage_attempts
+        called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         return {"scanned_quests": ["q001"], "runtime_root": str(runtime_root)}
 
     monkeypatch.setattr(cli.domain_health_diagnostic, "run_domain_health_diagnostic_for_runtime", fake_run_domain_health_diagnostic_for_runtime)
@@ -385,8 +385,8 @@ def test_domain_health_diagnostic_command_dispatches_controller(monkeypatch, tmp
     assert called["runtime_root"] == tmp_path / "quests"
     assert called["apply"] is True
     assert called["profile"] is None
-    assert called["ensure_study_runtimes"] is False
-    assert called["apply_supervisor_platform_repair"] is False
+    assert called["request_opl_stage_attempts"] is False
+    assert called["request_opl_owner_route_reconcile"] is False
     assert "q001" in captured.out
 def test_study_progress_command_dispatches_controller_and_renders_markdown(
     monkeypatch,
@@ -464,7 +464,11 @@ def test_medical_reporting_audit_command_dispatches_controller(monkeypatch, tmp_
     assert '"status": "clear"' in captured.out
 
 
-def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_workspace_authority_migration_audit_command_dispatches_read_only_controller(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
 
@@ -472,8 +476,8 @@ def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tm
         called["workspace_roots"] = list(workspace_roots)
         called["dry_run"] = dry_run
         return {
-            "surface": "control_plane_migration_audit",
-            "report_id": "control-plane-migration-audit::mock",
+            "surface": "workspace_authority_migration_audit",
+            "report_id": "workspace-authority-migration-audit::mock",
             "recorded_at": "1970-01-01T00:00:00+00:00",
             "workspace_fingerprint": "workspace-migration-audit::mock",
             "study_fingerprint": "study-migration-audit::mock",
@@ -498,11 +502,11 @@ def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tm
             ],
         }
 
-    monkeypatch.setattr(cli.control_plane_migration_audit, "run_migration_audit", fake_run_migration_audit)
+    monkeypatch.setattr(cli.workspace_authority_migration_audit, "run_migration_audit", fake_run_migration_audit)
 
     exit_code = cli.main(
         [
-            "control-plane-migration-audit",
+            "workspace-authority-migration-audit",
             "--workspace-root",
             str(tmp_path / "DM-CVD-Mortality-Risk"),
             "--workspace-root",
@@ -521,7 +525,7 @@ def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tm
     }
     payload = json.loads(captured.out)
     assert payload["dry_run"] is True
-    assert payload["report_id"] == "control-plane-migration-audit::mock"
+    assert payload["report_id"] == "workspace-authority-migration-audit::mock"
     assert payload["workspace_fingerprint"] == "workspace-migration-audit::mock"
     assert payload["study_fingerprint"] == "study-migration-audit::mock"
     assert payload["delivery_projection_completion_plan_count"] == 1
@@ -529,45 +533,16 @@ def test_migration_audit_command_dispatches_read_only_controller(monkeypatch, tm
     assert payload["mutating_actions"] == []
 
 
-def test_cleanup_apply_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_control_plane_cleanup_apply_is_not_public(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
-    called: dict[str, object] = {}
 
-    def fake_run_cleanup_apply(*, workspace_roots, apply: bool, control_plane_snapshot=None) -> dict[str, object]:
-        called["workspace_roots"] = list(workspace_roots)
-        called["apply"] = apply
-        called["control_plane_snapshot"] = control_plane_snapshot
-        return {
-            "surface": "control_plane_cleanup_apply",
-            "apply": apply,
-            "status": "planned",
-            "workspace_count": len(list(workspace_roots)),
-            "action_counts": {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0},
-            "apply_plan": [{"action": "delete-safe-cache"}],
-            "applied_actions": [],
-        }
-
-    monkeypatch.setattr(cli.control_plane_cleanup_apply, "run_cleanup_apply", fake_run_cleanup_apply)
-
-    exit_code = cli.main(
-        [
+    with pytest.raises(SystemExit):
+        cli.main([
             "control-plane-cleanup-apply",
             "--workspace-root",
             str(tmp_path / "workspace"),
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called == {
-        "workspace_roots": [tmp_path / "workspace"],
-        "apply": False,
-        "control_plane_snapshot": None,
-    }
-    payload = json.loads(captured.out)
-    assert payload["surface"] == "control_plane_cleanup_apply"
-    assert payload["apply"] is False
-    assert payload["action_counts"]["mutating"] == 0
+        ])
+    assert "invalid choice" in capsys.readouterr().err
 
 
 def test_lifecycle_report_command_dispatches_read_only_controller_options(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -580,7 +555,7 @@ def test_lifecycle_report_command_dispatches_read_only_controller_options(monkey
         called["max_files"] = max_files
         called["max_seconds"] = max_seconds
         return {
-            "surface": "control_plane_lifecycle_report",
+            "surface": "artifact_lifecycle_report",
             "workspace_count": len(list(workspace_roots)),
             "scan_policy": {
                 "deep_scan_enabled": deep,
@@ -598,7 +573,7 @@ def test_lifecycle_report_command_dispatches_read_only_controller_options(monkey
 
     exit_code = cli.main(
         [
-            "control-plane-lifecycle-report",
+            "artifact-lifecycle-report",
             "--workspace-root",
             str(tmp_path / "workspace"),
             "--deep",
@@ -618,7 +593,7 @@ def test_lifecycle_report_command_dispatches_read_only_controller_options(monkey
         "max_seconds": 1.5,
     }
     payload = json.loads(captured.out)
-    assert payload["surface"] == "control_plane_lifecycle_report"
+    assert payload["surface"] == "artifact_lifecycle_report"
     assert payload["scan_policy"]["deep_scan_enabled"] is True
     assert payload["scan_policy"]["max_files"] == 7
     assert payload["scan_policy"]["max_seconds"] == 1.5
@@ -636,14 +611,14 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
         runtime_root: Path,
         apply: bool,
         profile=None,
-        ensure_study_runtimes: bool = False,
-        apply_supervisor_platform_repair: bool = False,
+        request_opl_stage_attempts: bool = False,
+        request_opl_owner_route_reconcile: bool = False,
     ) -> dict:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
         called["profile"] = profile
-        called["ensure_study_runtimes"] = ensure_study_runtimes
-        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
+        called["request_opl_stage_attempts"] = request_opl_stage_attempts
+        called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         return {"managed_study_actions": [{"study_id": "001-risk", "decision": "create_and_start"}]}
 
     monkeypatch.setattr(cli.domain_health_diagnostic, "run_domain_health_diagnostic_for_runtime", fake_run_domain_health_diagnostic_for_runtime)
@@ -655,8 +630,8 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
             str(tmp_path / "quests"),
             "--profile",
             str(profile_path),
-            "--ensure-study-runtimes",
-            "--apply-supervisor-platform-repair",
+            "--request-opl-stage-attempts",
+            "--request-opl-owner-route-reconcile",
             "--apply",
         ]
     )
@@ -666,8 +641,8 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
     assert called["runtime_root"] == tmp_path / "quests"
     assert called["apply"] is True
     assert called["profile"].name == "nfpitnet"
-    assert called["ensure_study_runtimes"] is True
-    assert called["apply_supervisor_platform_repair"] is True
+    assert called["request_opl_stage_attempts"] is True
+    assert called["request_opl_owner_route_reconcile"] is True
     assert '"study_id": "001-risk"' in captured.out
 from .runtime_storage_commands import (
     test_runtime_maintain_storage_command_dispatches_controller,
@@ -675,12 +650,9 @@ from .runtime_storage_commands import (
 )
 
 from .domain_slo_scheduler_projection_commands import (
-    test_runtime_ensure_supervision_command_defaults_to_opl_replacement_manager,
-    test_runtime_ensure_supervision_command_rejects_retired_hermes_manager,
-    test_runtime_ensure_supervision_command_rejects_retired_local_manager,
-    test_runtime_remove_supervision_command_defaults_to_opl_replacement_manager,
-    test_runtime_supervision_status_command_dispatches_scheduler_facade,
-    test_runtime_supervision_cli_rejects_retired_workspace_local_managers,
+    test_cli_has_no_domain_slo_scheduler_projection_runtime_callable,
+    test_runtime_supervision_flat_commands_are_not_public_aliases,
+    test_runtime_supervision_grouped_commands_are_not_public_aliases,
 )
 
 

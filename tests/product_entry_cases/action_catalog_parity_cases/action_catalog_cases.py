@@ -68,7 +68,8 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
     assert product_entry_tool["metadata"]["action_catalog_projection"] == product_entry_mcp
 
     assert mcp_tools["study_progress"]["metadata"]["action_catalog_projection"] == mcp_projection["study_progress"]
-    assert mcp_tools["study_runtime"]["metadata"]["action_catalog_projection"] == mcp_projection["study_runtime"]
+    assert "study_runtime" not in mcp_tools
+    assert "study_runtime" not in mcp_projection
 
 
 def test_mas_action_catalog_exposes_study_state_matrix_for_opl_transition_runner(tmp_path: Path) -> None:
@@ -247,7 +248,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     boundary = manifest["functional_consumer_boundary"]
 
     assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
-    assert boundary["status"] == "opl_consumes_generic_surfaces_mas_retains_domain_authority_pack"
+    assert boundary["status"] == "opl_consumes_generic_surfaces_mas_supplies_domain_authority_pack"
     assert boundary["consumer_role"] == "domain_authority_pack_thin_program_surface"
     assert boundary["generic_surface_owner"] == "one-person-lab"
     assert boundary["no_active_caller_required"] is True
@@ -256,7 +257,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     retirement_proof = boundary["legacy_local_scheduler_physical_retirement_proof"]
     assert retirement_proof["install_allowed"] is False
     assert retirement_proof["cleanup_status"] == "tombstone_only"
-    assert boundary["lifecycle_refs_adapter_role"]["mas_may_claim_generic_persistence_engine"] is False
+    assert boundary["domain_authority_refs_index_role"]["mas_may_claim_generic_persistence_engine"] is False
     assert boundary["mas_does_not_own"] == [
         "generic_scheduler",
         "generic_daemon",
@@ -269,7 +270,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "generic_artifact_lifecycle",
         "generic_observability",
     ]
-    assert set(boundary["mas_retains"]) == {
+    assert set(boundary["mas_domain_authority_surfaces"]) == {
         "study_truth",
         "publication_quality_verdict",
         "artifact_authority",

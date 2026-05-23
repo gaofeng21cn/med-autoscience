@@ -651,7 +651,7 @@
       "lanes_can_run_in_parallel": true,
       "merge_policy": "absorb_lane_after_focused_validation_then_cleanup_worktree",
       "shared_blockers": [
-        "no_active_caller_proof_missing",
+        "no_resurrection_proof_missing",
         "opl_generated_surface_parity_missing",
         "domain_receipt_parity_missing",
         "independent_reviewer_or_auditor_receipt_missing",
@@ -729,16 +729,16 @@
         "owner": "MedAutoScience",
         "execution_owner": "Codex CLI",
         "primary_surfaces": [
-          "runtime_transport/mas_runtime_core*",
-          "runtime_protocol/lifecycle_refs_adapter.py",
+          "retired runtime_transport/mas_runtime_core* tombstone/provenance",
+          "runtime_protocol/domain_authority_refs_index.py",
           "product_entry_parts/workspace_cockpit",
           "owner_route_handoff",
           "runtime status projection"
         ],
         "done_criteria": [
-          "each retained surface is classified as authority function, domain handler target, refs-only adapter, diagnostic, or tombstone",
+          "each remaining surface is classified as authority function, domain handler target, domain authority refs, diagnostic provenance, or tombstone",
           "generic runtime, queue, attempt ledger, scheduler, workbench, and lifecycle owner claims stay in OPL",
-          "delete/archive/tombstone only after no-active-caller, OPL parity, domain receipt parity, and no-forbidden-write proof"
+          "delete/archive/tombstone only after no-resurrection proof, OPL parity, domain receipt parity, and no-forbidden-write proof"
         ],
         "verification_refs": [
           {

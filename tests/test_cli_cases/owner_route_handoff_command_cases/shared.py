@@ -73,6 +73,8 @@ def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
         "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
         "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
+    request_digest = "sha256:" + "a" * 64
+    manuscript_digest = "sha256:" + "b" * 64
     rubric_scores = {
         "clinical_significance": {
             "status": "ready",
@@ -177,14 +179,28 @@ def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
             "currentness_checks": {
                 "medical_prose_review": {
                     "status": "current",
-                    "request_digest": "sha256:sidecar-ai-reviewer-request",
+                    "request_digest": request_digest,
                     "manuscript_ref": manuscript_ref,
-                    "manuscript_digest": "sha256:sidecar-manuscript",
+                    "manuscript_digest": manuscript_digest,
                 },
                 "current_package_freshness": {
                     "status": "fresh",
                     "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-10T00:00:00+00:00",
                 },
+            },
+            "publication_quality_readiness": {
+                "surface_kind": "publication_quality_authority_kernel_v1",
+                "status": "ready",
+                "current_manuscript_digest": manuscript_digest,
+                "review_request_digest": request_digest,
+                "evidence_ledger_digest": "sha256:" + "c" * 64,
+                "rubric_version": "medical_publication_critique_v1",
+                "owner_attempt_id": (
+                    "ai-reviewer-publication-eval::publication-eval::001-risk::quest-001::"
+                    "2026-05-10T00:00:00+00:00"
+                ),
+                "fail_closed_when_missing": True,
+                "missing_required_fields": [],
             },
             "future_facing_limitations_plan": [
                 {

@@ -5,7 +5,7 @@ import importlib
 
 PUBLIC_STATES = {
     "progressing",
-    "awaiting_controller_redrive",
+    "opl_stage_attempt_admission_required",
     "blocked_controller_route",
     "awaiting_callable_owner",
     "awaiting_human",
@@ -18,7 +18,7 @@ def _module():
     return importlib.import_module("med_autoscience.controllers.paper_progress_state")
 
 
-def test_dm002_retry_budget_controller_route_awaits_controller_redrive() -> None:
+def test_dm002_retry_budget_opl_route_requires_stage_attempt_admission() -> None:
     state = _module().build_paper_progress_state(
         {
             "study_id": "002-dm-china-us-mortality-attribution",
@@ -41,15 +41,15 @@ def test_dm002_retry_budget_controller_route_awaits_controller_redrive() -> None
                     "worker_running": True,
                 },
             },
-            "control_plane_snapshot": {
+            "authority_snapshot": {
                 "dispatch_gate": {
                     "state": "blocked",
                     "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
                 }
             },
             "owner_route": {
-                "next_owner": "MAS/controller",
-                "allowed_actions": ["runtime-redrive"],
+                "next_owner": "one-person-lab",
+                "allowed_actions": ["request_opl_stage_attempt"],
                 "owner_reason": "runtime_controller_redrive_required",
             },
             "progress_freshness": {
@@ -58,23 +58,21 @@ def test_dm002_retry_budget_controller_route_awaits_controller_redrive() -> None
             "runtime_reconcile_trigger": {
                 "safe_to_request": True,
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli domain-route-reconcile "
+                    "uv run python -m med_autoscience.cli owner-route-reconcile "
                     "--profile /tmp/profile.json --studies 002-dm-china-us-mortality-attribution --dry-run"
                 ),
             },
         }
     )
 
-    assert state["state"] == "awaiting_controller_redrive"
+    assert state["state"] == "opl_stage_attempt_admission_required"
     assert state["state"] in PUBLIC_STATES
     assert state["actual_write_active"] is False
     assert state["package_delivered"] is False
     assert state["meaningful_artifact_delta"] is False
-    assert state["next_owner"] == "MAS/controller"
+    assert state["next_owner"] == "one-person-lab"
     assert state["why_not_progressing"] == "runtime_recovery_retry_budget_exhausted"
-    assert state["safe_reconcile_command"].endswith(
-        "--studies 002-dm-china-us-mortality-attribution --dry-run"
-    )
+    assert state["safe_reconcile_command"] is None
 
 
 def test_dm002_retry_budget_with_blocked_route_surfaces_controller_route_blocker() -> None:
@@ -92,7 +90,7 @@ def test_dm002_retry_budget_with_blocked_route_surfaces_controller_route_blocker
                 "retry_budget_remaining": 0,
                 "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
             },
-            "control_plane_snapshot": {
+            "authority_snapshot": {
                 "dispatch_gate": {
                     "state": "blocked",
                     "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
@@ -108,7 +106,7 @@ def test_dm002_retry_budget_with_blocked_route_surfaces_controller_route_blocker
                 "requires_user_input": False,
                 "next_owner": "MAS/controller route authorization owner for bundle_build_allowed on submission_minimal_refresh",
                 "blocked_reason": (
-                    "control_plane_route_blocked_bundle_build: dispatch_gate_blocked; "
+                    "authority_route_blocked_bundle_build: dispatch_gate_blocked; "
                     "execution_owner_guard.supervisor_only; non_supervisor_gate=bundle_build_allowed_false"
                 ),
             },
@@ -117,7 +115,7 @@ def test_dm002_retry_budget_with_blocked_route_surfaces_controller_route_blocker
 
     assert state["state"] == "blocked_controller_route"
     assert state["next_owner"] == "MAS/controller"
-    assert state["why_not_progressing"].startswith("control_plane_route_blocked_bundle_build")
+    assert state["why_not_progressing"].startswith("authority_route_blocked_bundle_build")
 
 
 def test_dm003_missing_callable_owner_without_user_input_awaits_callable_owner() -> None:
@@ -147,7 +145,7 @@ def test_dm003_missing_callable_owner_without_user_input_awaits_callable_owner()
             "runtime_reconcile_trigger": {
                 "safe_to_request": True,
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli domain-route-reconcile "
+                    "uv run python -m med_autoscience.cli owner-route-reconcile "
                     "--profile /tmp/profile.json --studies 003-dpcc-primary-care-phenotype-treatment-gap --dry-run"
                 ),
             },
@@ -162,9 +160,7 @@ def test_dm003_missing_callable_owner_without_user_input_awaits_callable_owner()
     assert state["next_owner"] == "unknown_external_owner"
     assert state["requires_user_input"] is False
     assert state["why_not_progressing"] == "owner_callable_surface_missing"
-    assert state["safe_reconcile_command"].endswith(
-        "--studies 003-dpcc-primary-care-phenotype-treatment-gap --dry-run"
-    )
+    assert state["safe_reconcile_command"] is None
 
 
 def test_current_delivery_inspection_counts_as_package_delivered() -> None:
@@ -222,7 +218,7 @@ def test_current_delivery_does_not_terminal_deliver_reactivated_same_line_repair
                 "retry_budget_remaining": 0,
                 "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
             },
-            "control_plane_snapshot": {
+            "authority_snapshot": {
                 "control_state": "blocked_runtime_escalation",
                 "canonical_next_action": "resume_same_study_line",
                 "dispatch_gate": {
@@ -240,7 +236,7 @@ def test_current_delivery_does_not_terminal_deliver_reactivated_same_line_repair
                 "requires_user_input": False,
                 "next_owner": "MAS/controller",
                 "blocked_reason": (
-                    "control_plane_route_blocked: bundle_build dispatch_gate_blocked "
+                    "authority_route_blocked: bundle_build dispatch_gate_blocked "
                     "during submission_minimal_refresh"
                 ),
             },
@@ -250,7 +246,7 @@ def test_current_delivery_does_not_terminal_deliver_reactivated_same_line_repair
     assert state["state"] == "blocked_controller_route"
     assert state["package_delivered"] is True
     assert state["next_owner"] == "MAS/controller"
-    assert state["why_not_progressing"].startswith("control_plane_route_blocked")
+    assert state["why_not_progressing"].startswith("authority_route_blocked")
 
 
 def test_obesity_live_artifact_delta_missing_downstream_delivery_is_downstream_only() -> None:
@@ -274,7 +270,7 @@ def test_obesity_live_artifact_delta_missing_downstream_delivery_is_downstream_o
                 "bundle_tasks_downstream_only": True,
                 "deferred_downstream_actions": ["delivery_sync"],
             },
-            "control_plane_snapshot": {
+            "authority_snapshot": {
                 "blocking_reasons": ["publication_supervisor_state.bundle_tasks_downstream_only"],
                 "route_authorization": {"bundle_build_allowed": False},
             },
@@ -350,7 +346,7 @@ def test_obesity_supervisor_only_live_delta_reads_control_plane_truth() -> None:
                     "publication_supervisor_state.bundle_tasks_downstream_only",
                 ]
             },
-            "control_plane_snapshot": {
+            "authority_snapshot": {
                 "dispatch_gate": {
                     "blocking_reasons": [
                         "execution_owner_guard.supervisor_only",

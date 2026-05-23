@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tests.product_entry_cases.attention_queue_and_cockpit_base import *
 from tests.product_entry_cases.cockpit_status_and_entry_status_focus import *
-from tests.product_entry_cases.control_plane_operation_manifest import *
+from tests.product_entry_cases.authority_operation_manifest import *
 from tests.product_entry_cases.manifest_launch_and_task_intake import *
 from tests.product_entry_cases.repo_shell_and_handoff_templates import *
 from tests.product_entry_cases.product_entry_preflight_and_task_submission import *

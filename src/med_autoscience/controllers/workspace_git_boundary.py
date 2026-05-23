@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import subprocess
 
-from med_autoscience.runtime_protocol.runtime_lifecycle_contract import SQLITE_GITIGNORE_PATTERNS
+from med_autoscience.runtime_protocol.domain_authority_refs_index import SQLITE_GITIGNORE_PATTERNS
 
 
 WORKSPACE_GITIGNORE_ENTRIES = (
@@ -155,7 +155,7 @@ def is_workspace_gitignore_path(path: Path) -> bool:
 def render_workspace_gitignore() -> str:
     return (
         "# MedAutoScience workspace-local Git boundary.\n"
-        "# MAS runtime state owns its own lifecycle under runtime/; legacy MDS quest roots remain ignored for compatibility.\n"
+        "# OPL current-control-state owns runtime lifecycle; MAS keeps domain refs and legacy quest roots ignored for provenance.\n"
         + "\n".join(WORKSPACE_GITIGNORE_ENTRIES)
         + "\n"
     )

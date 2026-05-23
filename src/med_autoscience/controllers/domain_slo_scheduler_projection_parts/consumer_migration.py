@@ -23,20 +23,20 @@ from .consumer_migration_inventory import (
 )
 
 SCHEMA_VERSION = 1
-SURFACE_KIND = "mas_legacy_domain_slo_diagnostic_consumer_migration"
+SURFACE_KIND = "mas_runtime_control_retirement_consumer_projection"
 ACTIVE_PATH_ROLE = "opl_replacement_default"
 LOCAL_TOMBSTONE_PATH_ROLE = "physical_retired_tombstone_provenance_only"
-OPTIONAL_ADAPTER_PATH_ROLE = "legacy_scheduler_diagnostic_cleanup_only"
+OPTIONAL_ADAPTER_PATH_ROLE = "physical_retired_tombstone_provenance_only"
 HERMES_TOMBSTONE_PATH_ROLE = "physical_retired_tombstone_provenance_only"
 CURRENT_SCHEDULER_OWNER = "opl_provider_runtime_manager"
-LEGACY_SCHEDULER_OWNER = "mas_legacy_domain_slo_diagnostic"
+LEGACY_SCHEDULER_OWNER = "retired_provenance_only"
 REPLACEMENT_OWNER = "one-person-lab"
 REPLACEMENT_OWNER_SURFACE = "opl_provider_runtime_manager"
 REPLACEMENT_STATE = "opl_replacement_contract_active"
-RETIREMENT_STATE = "local_legacy_retirement_pending_no_active_caller_proof"
+RETIREMENT_STATE = "local_legacy_retirement_pending_no_resurrection_proof"
 LOCAL_TOMBSTONE_RETIREMENT_STATE = "local_legacy_physical_retired_tombstone"
 
-MAS_RETAINED_AFTER_MIGRATION = (
+MAS_DOMAIN_AUTHORITY_AFTER_MIGRATION = (
     "paper_progress_slo_semantics",
     "mas_owner_receipt",
     "typed_blocker",
@@ -56,7 +56,7 @@ OPL_REPLACEMENT_EXPECTED_CAPABILITIES = (
 RETIREMENT_PROOF_REQUIRED = (
     "opl_replacement_contract_available",
     "replacement_proof",
-    "no_active_caller_proof",
+    "no_resurrection_proof",
     "no_forbidden_write",
     "focused_cli_status_tests",
     "git_diff_check",
@@ -94,7 +94,7 @@ OPL_FUNCTIONAL_HARNESS_COVERAGE = (
     "generic_transition_runner",
     "restart_dead_letter_repair_human_gate_state_chain",
 )
-NO_ACTIVE_CALLER_PROOF = {
+NO_RESURRECTION_PROOF = {
     "status": "legacy_local_scheduler_physical_retired",
     "default_caller_count": 0,
     "default_manager": "opl",
@@ -109,9 +109,9 @@ NO_ACTIVE_CALLER_PROOF = {
         "mcp_local_scheduler_install",
     ],
     "forbidden_explicit_callers": [
-        "runtime-supervision-status --profile <profile> --manager local",
-        "runtime-ensure-supervision --profile <profile> --manager local",
-        "runtime-remove-supervision --profile <profile> --manager local",
+        "retired:runtime-supervision-status --profile <profile> --manager local",
+        "retired:runtime-ensure-supervision --profile <profile> --manager local",
+        "retired:runtime-remove-supervision --profile <profile> --manager local",
     ],
     "proof_items": [
         "cli_default_manager_is_opl",
@@ -139,12 +139,12 @@ LOCAL_SCHEDULER_PHYSICAL_RETIREMENT_PROOF = {
     "default_bootstrap_exposes_local_install": False,
     "cleanup_status": "tombstone_only",
     "remaining_physical_delete_blockers": [],
-    "retained_refs": [
+    "provenance_refs": [
         "contracts/runtime/legacy-active-path-tombstones.json",
         "docs/history/runtime/legacy_active_path_tombstones.md",
     ],
 }
-MAS_RETAINED_THIN_PROGRAM_SURFACES = (
+MAS_DOMAIN_AUTHORITY_THIN_PROGRAM_SURFACES = (
     "study_truth",
     "publication_quality_verdict",
     "artifact_authority",
@@ -168,7 +168,6 @@ ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES = (
     "ai_first_stage_gate",
     "ai_first_record_validator",
     "mechanical_guard",
-    "refs_only_adapter",
 )
 AI_FIRST_STAGE_GATE_FUNCTION_IDS = (
     "publication_quality_verdict",
@@ -306,7 +305,7 @@ DECLARATIVE_PACK_COMPILER_INPUT = {
     "schema_version": SCHEMA_VERSION,
     "owner": "med-autoscience",
     "compiler_owner": REPLACEMENT_OWNER,
-    "status": "ready_for_opl_pack_compiler_consumption_generated_surface_migration",
+    "status": "ready_for_opl_pack_compiler_consumption_no_resurrection",
     "pack_id": "mas-medical-research-pack",
     "pack_role": "domain_authority_pack_input_not_generated_shell_owner",
     "input_refs": [
@@ -590,7 +589,7 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
             "cannot_absorb_reason": "Domain helper code encodes medical research semantics rather than generic runtime shell.",
         },
     ],
-    "all_other_program_surfaces": "opl_generated_or_migration_bridge",
+    "all_other_program_surfaces": "opl_generated_or_domain_refs_projection_source",
     "forbidden_long_term_mas_shell_owners": [
         "cli",
         "mcp",
@@ -611,7 +610,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
     legacy_cleanup_items = [
         item["module_id"]
         for item in FUNCTIONAL_MODULE_INVENTORY
-        if item["classification"] == "legacy_cleanup_no_active_caller_gate"
+        if item["classification"] == "legacy_cleanup_no_resurrection_guard"
     ]
     legacy_physical_retired_items = [
         item["module_id"]
@@ -621,10 +620,10 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
     retired_legacy_residue_items = [
         str(item["residue_id"]) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
     ]
-    refs_only_adapter_retirement_gates = [
+    domain_authority_refs_retirement_gates = [
         dict(item["retirement_gate"])
         for item in FUNCTIONAL_MODULE_INVENTORY
-        if item["classification"] == "refs_only_adapter"
+        if item["classification"] == "domain_authority_refs"
     ]
     functional_followthrough_gap_summary = build_functional_followthrough_gap_summary(
         classification_counts=classification_counts,
@@ -636,12 +635,12 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "mas_functional_consumer_boundary",
-        "status": "opl_consumes_generic_surfaces_mas_retains_domain_authority_pack",
+        "status": "opl_consumes_generic_surfaces_mas_supplies_domain_authority_pack",
         "consumer_role": "domain_authority_pack_thin_program_surface",
         "generic_surface_owner": REPLACEMENT_OWNER,
         "generic_surfaces_consumed_from_opl": list(OPL_CONSUMED_GENERIC_SURFACES),
         "mas_does_not_own": list(OPL_CONSUMED_GENERIC_SURFACES),
-        "mas_retains": list(MAS_RETAINED_THIN_PROGRAM_SURFACES),
+        "mas_domain_authority_surfaces": list(MAS_DOMAIN_AUTHORITY_THIN_PROGRAM_SURFACES),
         "declarative_pack_compiler_input": dict(DECLARATIVE_PACK_COMPILER_INPUT),
         "generated_surface_handoff": {
             key: [dict(item) if isinstance(item, dict) else item for item in value]
@@ -688,7 +687,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                     "remaining_functional_followthrough_gate_ids"
                 ]
             ),
-            "legacy_cleanup_items_require_no_active_caller_gate": [],
+            "legacy_cleanup_items_require_no_resurrection_guard": [],
             "legacy_cleanup_items_physical_retired": list(legacy_physical_retired_items),
             "legacy_cleanup_items_tombstoned": list(retired_legacy_residue_items),
             "legacy_cleanup_items_are_diagnostic_provenance_guards": False,
@@ -727,22 +726,23 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         "retired_legacy_residue_tombstones": [
             dict(item) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
         ],
-        "refs_only_adapter_retirement_gates": refs_only_adapter_retirement_gates,
-        "lifecycle_refs_adapter_role": {
-            "classification": "refs_only_adapter",
-            "current_mas_role": "domain_lifecycle_ref_index_adapter",
-            "authority": "refs_only_index_not_generic_persistence_engine",
+        "domain_authority_refs_retirement_gates": domain_authority_refs_retirement_gates,
+        "domain_authority_refs_index_role": {
+            "classification": "domain_authority_refs",
+            "current_mas_role": "domain_authority_receipt_and_locator_ref_index",
+            "authority": "refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
             "owner": REPLACEMENT_OWNER,
-            "provenance_role": "lifecycle_refs_sqlite_migration_provenance",
+            "provenance_role": "domain_authority_ref_locator_index",
             "body_policy": "refs_receipts_blockers_only",
             "mas_may_index_domain_receipts": True,
             "mas_may_claim_generic_persistence_engine": False,
-            "mas_consumes_opl_lifecycle_index_refs": True,
+            "mas_consumes_opl_current_control_state_refs": True,
             "mas_may_write_domain_truth": False,
             "generic_owner_claim_allowed": False,
             "forbidden_mas_roles": [
                 "generic_persistence_engine",
                 "generic_lifecycle_engine",
+                "generic_runtime_lifecycle_owner",
                 "generic_restore_retention_owner",
             ],
             "replacement_expectation": dict(OPL_REPLACEMENT_EXPECTATION_AUDIT),
@@ -754,7 +754,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "opl_harness_pass_is_paper_closure": False,
             "opl_harness_pass_is_publication_ready": False,
             "mas_owns_generic_runtime": False,
-            "mas_retains_domain_authority_pack": list(MAS_RETAINED_THIN_PROGRAM_SURFACES),
+            "mas_domain_authority_pack": list(MAS_DOMAIN_AUTHORITY_THIN_PROGRAM_SURFACES),
             "refs_only_memory_writeback_chain": {
                 "opl_consumes": [
                     "consumed_publication_route_memory_refs",
@@ -763,7 +763,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                     "workspace_writeback_receipt_refs",
                     "opl_aion_display_receipt_refs",
                 ],
-                "mas_retains": [
+                "mas_domain_authority_refs": [
                     "publication_route_memory_body",
                     "memory_writeback_decision",
                     "accepted_rejected_blocked_writeback_verdict",
@@ -778,7 +778,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                     "attempt_start_query_signal",
                     "framework_typed_closeout_transport",
                 ],
-                "mas_retains": [
+                "mas_domain_authority_refs": [
                     "stage_closeout_domain_semantics",
                     "owner_receipt",
                     "typed_blocker",
@@ -793,7 +793,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                     "idempotent_tick",
                     "retry_dead_letter_transport",
                 ],
-                "mas_retains": [
+                "mas_domain_authority_refs": [
                     "domain_transition_table",
                     "publication_quality_verdict",
                     "artifact_authority",
@@ -808,7 +808,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                     "repair_transport",
                     "human_gate_signal_transport",
                 ],
-                "mas_retains": [
+                "mas_domain_authority_refs": [
                     "human_gate_domain_receipt",
                     "repair_owner_receipt",
                     "stop_loss_receipt",
@@ -817,12 +817,12 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                 "state_chain_completion_is_publication_ready": False,
             },
         },
-        "no_active_caller_required": True,
-        "no_active_caller_proof": dict(NO_ACTIVE_CALLER_PROOF),
+        "no_resurrection_required": True,
+        "no_resurrection_proof": dict(NO_RESURRECTION_PROOF),
         "legacy_local_scheduler_physical_retirement_proof": dict(
             LOCAL_SCHEDULER_PHYSICAL_RETIREMENT_PROOF
         ),
-        "no_active_caller_scope": [
+        "no_resurrection_scope": [
             "cli_default",
             "mcp_default",
             "product_entry_default",
@@ -831,7 +831,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         ],
         "proof_surfaces": [
             "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
-            "runtime-supervision-status default manager=opl",
+            "opl_current_control_state owner refs",
             "product_entry_manifest.functional_consumer_boundary",
             "sidecar_export.functional_consumer_boundary",
             "legacy_retirement_tombstone_proof.active_default_callers",
@@ -855,13 +855,12 @@ def build_consumer_migration_contract(
 ) -> dict[str, Any]:
     manager_key = str(manager or "").strip().lower()
     replacement_active = manager_key in {"opl", "opl_provider_runtime_manager"} or adapter_id == "opl_family_runtime_provider"
-    local_tombstone = manager_key == "local" or adapter_id == "local_launchd_retired_tombstone"
-    hermes_tombstone = manager_key == "hermes" or adapter_id == "hermes_gateway_cron_retired_tombstone"
+    legacy_runtime_surface = bool(manager_key or adapter_id) and not replacement_active
     active_path_role = (
         ACTIVE_PATH_ROLE
         if replacement_active
         else LOCAL_TOMBSTONE_PATH_ROLE
-        if local_tombstone or hermes_tombstone
+        if legacy_runtime_surface
         else OPTIONAL_ADAPTER_PATH_ROLE
     )
     return {
@@ -875,17 +874,18 @@ def build_consumer_migration_contract(
         "optional_adapter_path_role": OPTIONAL_ADAPTER_PATH_ROLE,
         "current_surface_allowed_until_replacement": False,
         "replacement_required_before_retirement": not replacement_active,
-        "allowed_operations": (
-            ["status", "remove_legacy_jobs"]
-            if not replacement_active and not local_tombstone and not hermes_tombstone
-            else []
-        ),
-        "forbidden_operations": (
-            ["ensure", "create", "edit", "resume", "trigger_run", "write_tick_script"]
-            if not replacement_active and not local_tombstone and not hermes_tombstone
-            else []
-        ),
-        "retirement_state": LOCAL_TOMBSTONE_RETIREMENT_STATE if local_tombstone or hermes_tombstone else RETIREMENT_STATE,
+        "allowed_operations": [],
+        "forbidden_operations": [
+            "status",
+            "remove_legacy_jobs",
+            "ensure",
+            "create",
+            "edit",
+            "resume",
+            "trigger_run",
+            "write_tick_script",
+        ],
+        "retirement_state": LOCAL_TOMBSTONE_RETIREMENT_STATE if legacy_runtime_surface else RETIREMENT_STATE,
         "replacement_owner": REPLACEMENT_OWNER,
         "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
         "replacement_contract_expected": {
@@ -896,13 +896,13 @@ def build_consumer_migration_contract(
             "status": (
                 "active"
                 if replacement_active
-                else "local_physical_retired"
-                if local_tombstone
+                else "physical_retired_tombstone_provenance_only"
+                if legacy_runtime_surface
                 else "required_before_retirement"
             ),
         },
         "functional_consumer_boundary": build_functional_consumer_boundary(),
-        "mas_retained_after_migration": list(MAS_RETAINED_AFTER_MIGRATION),
+        "mas_domain_authority_after_migration": list(MAS_DOMAIN_AUTHORITY_AFTER_MIGRATION),
         "retirement_proof_required": list(RETIREMENT_PROOF_REQUIRED),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
         "forbidden_writes": list(FORBIDDEN_WRITES),
@@ -941,8 +941,8 @@ __all__ = [
     "MAS_RETAINED_THIN_PROGRAM_SURFACES",
     "MINIMAL_AUTHORITY_FUNCTION_IDS",
     "MINIMAL_AUTHORITY_FUNCTION_MANIFEST",
-    "NO_ACTIVE_CALLER_PROOF",
-    "LOCAL_SCHEDULER_CLEANUP_ONLY_PROOF",
+    "NO_RESURRECTION_PROOF",
+    "LOCAL_SCHEDULER_PHYSICAL_RETIREMENT_PROOF",
     "OPL_CONSUMED_GENERIC_SURFACES",
     "OPL_FUNCTIONAL_HARNESS_COVERAGE",
     "OPL_REPLACEMENT_EXPECTATION_AUDIT",

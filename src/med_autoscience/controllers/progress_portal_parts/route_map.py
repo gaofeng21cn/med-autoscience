@@ -17,7 +17,6 @@ def build_route_map_payload(
     route_decision_trail: Mapping[str, Any],
     path_stage: Mapping[str, Any],
     artifact_groups: Mapping[str, Any],
-    conversation: Mapping[str, Any],
     study_id: str,
 ) -> dict[str, Any]:
     route_trail = _mapping(route_decision_trail)
@@ -49,7 +48,7 @@ def build_route_map_payload(
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
     source_refs = _dedupe_strings(ref for ref in route_refs if source_ref_allowed(ref))
-    conversation_refs = _conversation_anchor_refs(conversation)
+    conversation_refs: list[str] = []
 
     stage_node = _stage_node(path_stage=path_stage, source_refs=source_refs, conversation_refs=conversation_refs)
     if stage_node:
@@ -119,13 +118,6 @@ def build_route_map_payload(
                     source_refs=artifact_node["source_refs"],
                 )
             )
-
-    run_nodes = _run_nodes(conversation)
-    if run_nodes and nodes:
-        anchor_id = _first_route_node_id(nodes) or nodes[-1]["id"]
-        for run_node in run_nodes[:3]:
-            nodes.append(run_node)
-            edges.append(_edge(anchor_id, run_node["id"], kind="advance", label="执行回合", source_refs=run_node["source_refs"]))
 
     nodes = _dedupe_nodes(nodes)
     edges = _dedupe_edges(edges)
@@ -367,43 +359,6 @@ def _artifact_nodes(artifact_groups: Mapping[str, Any]) -> list[dict[str, Any]]:
             )
         )
     return nodes
-
-
-def _run_nodes(conversation: Mapping[str, Any]) -> list[dict[str, Any]]:
-    nodes: list[dict[str, Any]] = []
-    for item in _mapping_list(conversation.get("timeline_items")):
-        run_id = _non_empty_text(item.get("run_id"))
-        if not run_id:
-            continue
-        refs = _dedupe_strings(
-            [
-                _non_empty_text(item.get("source_ref")),
-                *_string_list(item.get("blocker_refs")),
-                *_string_list(item.get("action_refs")),
-                *_string_list(item.get("tool_refs")),
-            ]
-        )
-        nodes.append(
-            _node(
-                node_id=f"run-{_slug(run_id)}",
-                kind="run",
-                label=f"执行回合：{run_id}",
-                status=_non_empty_text(item.get("turn_status")) or "available",
-                summary=_non_empty_text(item.get("summary")) or "执行回合摘要未提供。",
-                source_refs=refs,
-                conversation_refs=[f"conversation-seq-{item.get('sequence')}"] if isinstance(item.get("sequence"), int) else [],
-            )
-        )
-    return _dedupe_nodes(nodes)
-
-
-def _conversation_anchor_refs(conversation: Mapping[str, Any]) -> list[str]:
-    refs: list[str] = []
-    for item in _mapping_list(conversation.get("timeline_items")):
-        sequence = item.get("sequence")
-        if isinstance(sequence, int):
-            refs.append(f"conversation-seq-{sequence}")
-    return _dedupe_strings(refs[:4])
 
 
 def _node(

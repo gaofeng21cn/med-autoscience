@@ -57,12 +57,6 @@ def make_surface_quest(tmp_path: Path) -> Path:
         },
     )
     dump_json(
-        quest_root / ".ds" / "user_message_queue.json",
-        {"version": 1, "pending": [], "completed": []},
-    )
-    (quest_root / ".ds" / "interaction_journal.jsonl").parent.mkdir(parents=True, exist_ok=True)
-    (quest_root / ".ds" / "interaction_journal.jsonl").write_text("", encoding="utf-8")
-    dump_json(
         paper_root / "paper_bundle_manifest.json",
         {"schema_version": 1},
     )
@@ -92,9 +86,10 @@ def test_publication_gate_uses_policy_message_builder(tmp_path: Path, monkeypatc
 
     result = controller.run_controller(quest_root=quest_root, apply=True)
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    assert result["intervention_enqueued"] is True
-    assert queue["pending"][0]["content"] == "POLICY_GATE_MSG"
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["runtime_owner"] == "one-person-lab"
+    assert result["intervention_handoff"]["message_body_included"] is False
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
 def test_medical_surface_uses_policy_forbidden_patterns_and_message_builder(tmp_path: Path, monkeypatch) -> None:
@@ -114,10 +109,10 @@ def test_medical_surface_uses_policy_forbidden_patterns_and_message_builder(tmp_
 
     result = controller.run_controller(quest_root=quest_root, apply=True, daemon_url=None)
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert result["status"] == "blocked"
-    assert result["intervention_enqueued"] is True
-    assert queue["pending"][0]["content"] == "POLICY_SURFACE_MSG"
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["queue_owner"] == "one-person-lab"
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
 def test_medical_surface_policy_blocks_work_report_manuscript_residue() -> None:

@@ -10,7 +10,7 @@ from med_autoscience.controllers.artifact_retention_operations_plan import (
     build_terminal_study_file_lifecycle_plan,
     compact_artifact_retention_operations_plan,
 )
-from med_autoscience.controllers.control_plane_migration_audit import (
+from med_autoscience.controllers.workspace_authority_migration_audit import (
     build_delivery_manifest_historical_backfill_plan,
     summarize_delivery_manifests,
 )

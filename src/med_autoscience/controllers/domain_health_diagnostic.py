@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import (
     autonomy_ai_doctor,
     control_intent,
@@ -16,16 +15,14 @@ from med_autoscience.controllers import (
     medical_reporting_audit,
     publication_gate,
     runtime_health_kernel,
-    runtime_supervision,
     owner_route_reconcile,
-    domain_health_diagnostic_alerts,
     domain_health_diagnostic_outer_loop_dispatch,
     domain_health_diagnostic_recovery_policy,
     domain_health_diagnostic_work_units,
     study_cycle_profiler,
     study_outer_loop,
     study_runtime_family_orchestration as family_orchestration,
-    study_runtime_router,
+    domain_status_projection,
 )
 from med_autoscience.controllers.domain_health_diagnostic_outer_loop_policy import (
     outer_loop_request_requires_fresh_controller_execution,
@@ -43,14 +40,12 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.control_plane_ga
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.fingerprints import build_fingerprint
 from med_autoscience.controllers.domain_health_diagnostic_parts.gate_specificity import (
-    _clear_quest_user_messages_for_superseded_specificity,
     _compact_work_unit_payload,
     _gate_specificity_non_executable_contract,
     _materialize_specificity_controller_state,
     _specificity_control_intent_identity,
     _specificity_terminal_status_payload,
     _study_requests_gate_specificity_terminal,
-    _write_runtime_state,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup import (
     _build_outer_loop_wakeup_audit,
@@ -63,7 +58,7 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup i
     _serialize_managed_study_action,
     _serialize_managed_study_auto_recovery,
     _should_hard_auto_recover_managed_study,
-    _should_refresh_managed_study_status_after_ensure,
+    _should_refresh_managed_study_status_after_stage_request,
     _write_outer_loop_wakeup_audit,
 )
 from med_autoscience.controllers.domain_health_diagnostic_parts.quest_scan import (
@@ -159,33 +154,134 @@ def _materialize_domain_health_diagnostic_non_dispatching_decision(
     )
 
 
-def _refresh_managed_study_status_after_ensure(
+def _refresh_managed_study_status_after_stage_request(
     *,
     profile: WorkspaceProfile,
     study_root: Path,
     status_payload: dict[str, Any],
 ) -> dict[str, Any]:
-    if not _should_refresh_managed_study_status_after_ensure(status_payload):
+    if not _should_refresh_managed_study_status_after_stage_request(status_payload):
         return status_payload
     return _managed_study_status_payload(
-        study_runtime_router.progress_projection(profile=profile, study_root=study_root)
+        domain_status_projection.progress_projection(profile=profile, study_root=study_root)
     )
+
+
+def _request_opl_stage_attempt(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    source: str,
+) -> dict[str, Any]:
+    status_payload = _managed_study_status_payload(
+        domain_status_projection.progress_projection(profile=profile, study_root=study_root)
+    )
+    study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
+    quest_id = _non_empty_text(status_payload.get("quest_id"))
+    return {
+        **status_payload,
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "status": "opl_stage_attempt_admission_required",
+        "source": source,
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "mas_executes_runtime_attempt": False,
+        "provider_completion_is_domain_completion": False,
+        "opl_stage_attempt_request": {
+            "surface_kind": "mas_opl_stage_attempt_request",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "study_root": str(Path(study_root).expanduser().resolve()),
+            "source": source,
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "hydration_owner": "one-person-lab",
+            "stage_attempt_state_owner": "one-person-lab",
+            "mas_runtime_recovery_retired": True,
+        },
+        "resume_postcondition": {
+            "effective": False,
+            "status": "opl_stage_attempt_admission_required",
+            "typed_blocker": {
+                "blocker_type": "opl_stage_attempt_admission_required",
+                "owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+                "reason": "mas_runtime_attempt_execution_retired",
+                "required_handoff": "Hydrate MAS DomainIntent/owner-route refs through OPL current_control_state.",
+            },
+        },
+    }
+
+
+def _materialize_opl_runtime_owner_handoff(
+    *,
+    study_root: Path,
+    status_payload: dict[str, Any],
+    recorded_at: str,
+    apply: bool,
+    domain_health_diagnostic_report_path: Path | None = None,
+) -> dict[str, Any] | None:
+    if status_payload.get("domain_health_diagnostic_error_isolated") is True:
+        return None
+    study_id = _non_empty_text(status_payload.get("study_id")) or Path(study_root).name
+    quest_id = _non_empty_text(status_payload.get("quest_id"))
+    quest_root = _candidate_path(status_payload.get("quest_root"))
+    payload = {
+        "surface_kind": "mas_opl_runtime_owner_handoff",
+        "schema_version": 1,
+        "recorded_at": recorded_at,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "study_root": str(Path(study_root).expanduser().resolve()),
+        "quest_root": str(quest_root) if quest_root is not None else None,
+        "status": "handoff_required",
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "provider_completion_is_domain_completion": False,
+        "queue_succeeded_is_domain_completion": False,
+        "mas_materializes_runtime_supervision": False,
+        "mas_runtime_read_model_retired": True,
+        "reason": _non_empty_text(status_payload.get("reason")) or "opl_current_control_state_required",
+        "opl_current_control_state_ref": {
+            "owner": "one-person-lab",
+            "required": True,
+            "hydrate_from": "MAS DomainIntent / owner-route refs",
+        },
+        "refs": {
+            "domain_health_diagnostic_report_path": (
+                str(domain_health_diagnostic_report_path.expanduser().resolve())
+                if domain_health_diagnostic_report_path is not None
+                else None
+            ),
+        },
+        "typed_blocker": {
+            "blocker_type": "opl_runtime_owner_handoff_required",
+            "owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "reason": "mas_runtime_supervision_retired",
+            "required_handoff": "Hydrate MAS owner-route refs through OPL current_control_state.",
+        },
+    }
+    if apply:
+        handoff_path = Path(study_root).expanduser().resolve() / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+        handoff_path.parent.mkdir(parents=True, exist_ok=True)
+        handoff_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        payload["artifact_path"] = str(handoff_path)
+    return payload
 
 
 def _build_runtime_control_ports() -> RuntimeControlPorts:
     return RuntimeControlPorts(
         get_status=lambda **kwargs: _managed_study_status_payload(
-            study_runtime_router.progress_projection(**kwargs)
+            domain_status_projection.progress_projection(**kwargs)
         ),
-        ensure_runtime=lambda **kwargs: _managed_study_status_payload(
-            study_runtime_router.ensure_study_runtime(**kwargs)
-        ),
+        request_opl_stage_attempt=_request_opl_stage_attempt,
         build_outer_loop_request=study_outer_loop.build_domain_health_diagnostic_outer_loop_tick_request,
-        dispatch_outer_loop=study_runtime_router.study_outer_loop_tick,
+        dispatch_outer_loop=domain_status_projection.study_outer_loop_tick,
         materialize_non_dispatching_decision=_materialize_domain_health_diagnostic_non_dispatching_decision,
-        refresh_status_after_ensure=_refresh_managed_study_status_after_ensure,
-        materialize_supervision=runtime_supervision.materialize_runtime_supervision,
-        deliver_alert=domain_health_diagnostic_alerts.deliver_runtime_alert,
+        refresh_status_after_stage_request=_refresh_managed_study_status_after_stage_request,
+        materialize_opl_runtime_owner_handoff=_materialize_opl_runtime_owner_handoff,
         reconcile_health=runtime_health_kernel.reconcile_runtime_health_snapshot_from_status_payload,
         materialize_autonomy_slo=_materialize_managed_study_autonomy_slo,
         read_ready_ai_repair=read_ready_ai_doctor_repair,
@@ -215,8 +311,8 @@ def run_domain_health_diagnostic_for_runtime(
     controller_runners: dict[str, ControllerRunner] | None = None,
     apply: bool,
     profile: WorkspaceProfile | None = None,
-    ensure_study_runtimes: bool = False,
-    apply_supervisor_platform_repair: bool = False,
+    request_opl_stage_attempts: bool = False,
+    request_opl_owner_route_reconcile: bool = False,
 ) -> dict[str, Any]:
     report = _run_domain_health_diagnostic_for_runtime_impl(
         runtime_root=runtime_root,
@@ -225,14 +321,13 @@ def run_domain_health_diagnostic_for_runtime(
         run_domain_health_diagnostic_for_quest_fn=run_domain_health_diagnostic_for_quest,
         runtime_control_ports=_build_runtime_control_ports(),
         profile=profile,
-        ensure_study_runtimes=ensure_study_runtimes,
+        request_opl_stage_attempts=request_opl_stage_attempts,
     )
-    if apply and ensure_study_runtimes and apply_supervisor_platform_repair and profile is not None:
-        report["supervisor_platform_repair"] = owner_route_reconcile.scan_domain_routes(
+    if apply and request_opl_stage_attempts and request_opl_owner_route_reconcile and profile is not None:
+        report["opl_owner_route_reconcile_request"] = owner_route_reconcile.scan_domain_routes(
             profile=profile,
             study_ids=owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile),
             apply_safe_actions=True,
-            apply_runtime_platform_repair=True,
             developer_supervisor_mode="developer_apply_safe",
         )
     return report
@@ -247,8 +342,8 @@ def run_managed_supervisor_tick(
         runtime_root=profile.runtime_root,
         apply=apply,
         profile=profile,
-        ensure_study_runtimes=True,
-        apply_supervisor_platform_repair=True,
+        request_opl_stage_attempts=True,
+        request_opl_owner_route_reconcile=True,
     )
 
 

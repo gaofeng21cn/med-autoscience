@@ -8,7 +8,7 @@
 这不是一句 README 口号，而是平台级操作约束：
 
 - 人类主要负责提出研究任务、提供或更新数据、审核关键结果、做最终决策
-- `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 MAS Runtime OS / Progress Portal / Artifact OS / Quality OS 与外挂工具、组织论文交付
+- `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 MAS domain authority refs / Progress Portal / Artifact OS / Quality OS 与外挂工具、组织论文交付
 - `MedAutoScience` 自身负责提供稳定、可验证、可审计的 domain-agent entry 接口，而不是要求人手工维护底层状态文件
 
 在 `OPL` 联邦链路里，推荐始终按下面这条理解：
@@ -19,7 +19,7 @@
 
 - `OPL` 是完整智能体运行框架，可托管 stage attempt、queue、wakeup、retry/dead-letter、approval、projection 和 shared lifecycle/index 能力；它不替代 `MedAutoScience` 的医学研究 owner 身份。
 - `Stage` 是一次大型任务步骤；`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。
-- OPL provider-backed stage runtime 是当前 generic runtime owner；`MAS Runtime OS` 只承担 MAS domain runtime adapter、owner receipt、typed blocker、event refs、guarded apply 与 diagnostic surface；`MedDeepScientist` 只保留 frozen source archive、historical fixture、explicit archive import reference、backend audit、upstream intake 和 parity oracle。
+- OPL provider-backed stage runtime 是当前 generic runtime owner；MAS 只承担 domain authority refs、owner receipt、typed blocker、event refs、guarded apply 与 diagnostic provenance surface；`MedDeepScientist` 只保留 frozen source archive、historical fixture、explicit archive import reference、backend audit、upstream intake 和 parity oracle。
 - OPL provider / Temporal 默认承载任务启动后的持久在线调度、唤醒、记录、派发 attempt、retry/dead-letter 和 resume；`hermes_agent` 只作为显式非默认 executor/proof lane，旧 Hermes provider 或 local scheduler 只作 history/provenance/dev/CI/offline baseline，不持有 MAS study truth、publication quality、artifact authority 或 current package。
 
 旧定位说明已归档到 [Historical Framework Positioning](../../history/runtime/historical_framework_positioning.md)。当前 active 口径以独立 medical research domain agent 与 OPL stage-led framework 托管边界为准。

@@ -21,14 +21,14 @@ _STABLE_CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions
 _ALLOWED_STATUSES = frozenset({"pending", "approved", "request_changes", "rejected", "resolved", "consumed"})
 _ALLOWED_RESPONSES = ("approve", "request_changes", "reject")
 _ACTION_LABELS = {
-    "ensure_study_runtime": "继续托管推进当前研究运行",
-    "ensure_study_runtime_relaunch_stopped": "重新拉起当前已停止的研究运行",
+    "request_opl_stage_attempt": "请求 OPL 接管当前 stage attempt",
+    "request_opl_stage_attempt_relaunch": "请求 OPL 显式接管已停止 stage attempt",
     "pause_runtime": "暂停当前研究运行",
     "stop_runtime": "停止当前研究运行",
 }
 _ACTION_QUESTIONS = {
-    "ensure_study_runtime": "请确认是否允许 MAS 继续托管推进当前研究。",
-    "ensure_study_runtime_relaunch_stopped": "请确认是否允许 MAS 重新拉起当前已停止的研究运行。",
+    "request_opl_stage_attempt": "请确认是否允许 OPL hydrate 并接管当前 stage attempt。",
+    "request_opl_stage_attempt_relaunch": "请确认是否允许 OPL 显式 hydrate 并接管已停止 stage attempt。",
     "pause_runtime": "请确认是否允许 MAS 暂停当前研究运行。",
     "stop_runtime": "请确认是否允许 MAS 停止当前研究运行。",
 }

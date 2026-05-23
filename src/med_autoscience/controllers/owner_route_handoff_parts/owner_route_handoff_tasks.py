@@ -21,7 +21,10 @@ def owner_route_handoff_task(
 ) -> dict[str, Any] | None:
     record = _mapping(study.get("owner_route_handoff"))
     handoff = _mapping(record.get("handoff"))
-    if _text(handoff.get("recommended_task_kind")) != "domain_route/reconcile-apply":
+    if _text(handoff.get("recommended_task_kind")) not in {
+        "domain_route/owner-handoff",
+        "domain_route/owner-handoff",
+    }:
         return None
     reason = _text(handoff.get("reason")) or _text(record.get("source")) or "owner_route_handoff"
     study_root = Path(_text(study.get("study_root")) or profile.studies_root / study_id)
@@ -55,7 +58,7 @@ def owner_route_handoff_task(
         }
     )
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_route/reconcile-apply",
+        task_kind="domain_route/owner-handoff",
         study_id=study_id,
         reason=reason,
         evidence_refs=source_refs,
@@ -64,8 +67,8 @@ def owner_route_handoff_task(
     )
     return {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "task_kind": "domain_route/owner-handoff",
+        "recommended_task_kind": "domain_route/owner-handoff",
         "priority": 55,
         "source": "mas-sidecar-export",
         "requires_approval": False,
@@ -86,7 +89,7 @@ def owner_route_handoff_task(
             "study_id": study_id,
             "source_fingerprint": source_fingerprint,
             "continuation_reason": reason,
-            "authority_boundary": "mas_owner_reconcile_only",
+            "authority_boundary": "mas_domain_route_refs_only_opl_stage_attempt_owner",
             "owner_route_handoff_ref": owner_route_handoff_ref,
             "route_transition_contract": route_transition_contract,
             "stage_graph_handoff": stage_graph_handoff,
@@ -105,7 +108,7 @@ def _route_transition_contract(*, handoff: Mapping[str, Any]) -> dict[str, Any]:
         "runtime_transition_owner": "one-person-lab",
         "queue_owner": "one-person-lab",
         "domain_truth_owner": "med-autoscience",
-        "task_kind": "domain_route/reconcile-apply",
+        "task_kind": "domain_route/owner-handoff",
         "allowed_payload_refs": [
             "domain_route_ref",
             "owner_route_ref",

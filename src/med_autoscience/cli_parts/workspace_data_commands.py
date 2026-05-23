@@ -22,7 +22,6 @@ def handle_workspace_data_command(
     load_doctor_module: Any,
     overlay_installer: Any,
     analysis_bundle_controller: Any,
-    domain_slo_scheduler_projection: Any,
     overlay_request_from_args: Any,
     load_json_payload_from_args: Any,
 ) -> int | None:
@@ -145,12 +144,13 @@ def handle_workspace_data_command(
             hermes_agent_repo_root=profile.hermes_agent_repo_root,
             hermes_home_root=profile.hermes_home_root,
         )
-        supervision_bootstrap = domain_slo_scheduler_projection.ensure_supervision(
-            profile=profile,
-            manager="opl",
-            trigger_now=False,
-            write_install_proof=True,
-        )
+        supervision_bootstrap = {
+            "surface_kind": "opl_current_control_state_handoff",
+            "owner": "one-person-lab",
+            "effect": "refs_only",
+            "mas_runtime_supervision_command_removed": True,
+            "reason": "mas_runtime_scheduler_not_active_callable",
+        }
         doctor = load_doctor_module()
         doctor_report = doctor.build_doctor_report(profile)
         overlay_install = None

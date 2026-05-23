@@ -4,11 +4,10 @@ import hashlib
 
 from .shared import *  # noqa: F403,F401
 
-def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_path: Path, capsys) -> None:
+def test_sidecar_dispatch_rejects_retired_runtime_recovery_task_kind(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
-    study_root = workspace_root / "studies" / "001-risk"
     write_profile(profile_path, workspace_root=workspace_root)
     task_path = tmp_path / "task.json"
     _write_json(
@@ -16,7 +15,7 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
         {
             "task_id": "frt_001",
             "domain_id": "medautoscience",
-            "task_kind": "domain_route/recover",
+            "task_kind": "domain_route/retired-runtime-recover",
             "payload": {"profile": str(profile_path), "study_id": "001-risk"},
             "attempts": 1,
             "source": "opl_family_runtime",
@@ -31,52 +30,35 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
     exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
     captured = capsys.readouterr()
 
-    assert exit_code == 0
+    assert exit_code == 1
     payload = json.loads(captured.out)
     assert payload["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
-    assert payload["accepted"] is True
-    assert payload["will_start_llm_worker"] is False
-    assert payload["dispatch"]["action_type"] == "domain_route_recover"
-    assert payload["dispatch"]["recommended_domain_command"].startswith("uv run python -m med_autoscience.cli owner-route-reconcile")
+    assert payload["accepted"] is False
+    assert payload["reason"] == "unsupported_task_kind"
+    assert payload["task_kind"] == "domain_route/retired-runtime-recover"
     assert payload["authority_boundary"]["writes_domain_truth"] is False
     assert payload["authority_boundary"]["writes_artifact_gate"] is False
-    assert payload["forbidden_write_guard_proof"]["result"] == "accepted_no_forbidden_writes"
-    assert payload["forbidden_write_guard_proof"]["can_write_domain_truth"] is False
-    assert Path(workspace_root / payload["receipt_ref"]).is_file()
+    assert payload["forbidden_write_guard_proof"]["result"] == "not_evaluated"
+    assert "dispatch" not in payload
+    assert "receipt_ref" not in payload
     assert not (workspace_root / ".ds" / "user_message_queue.json").exists()
     assert not (workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests").exists()
-    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
-    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
-    assert not (study_root / "manuscript" / "current_package").exists()
-    assert not (study_root / "current_package.zip").exists()
 
 
-def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_sidecar_dispatch_requests_opl_admission_for_owner_route_handoff(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
-    calls: list[dict[str, object]] = []
-
-    def fake_reconcile_domain_routes(*, profile, study_ids, mode: str, apply: bool) -> dict[str, object]:
-        calls.append({"profile": profile.name, "study_ids": tuple(study_ids), "mode": mode, "apply": apply})
-        return {
-            "surface": "domain_route_reconcile_receipt",
-            "resolved_studies": list(study_ids),
-            "will_start_llm": True,
-            "codex_dispatch_count": 1,
-            "blocked_count": 0,
-        }
-
-    monkeypatch.setattr(adapter.domain_route_reconcile, "reconcile_domain_routes", fake_reconcile_domain_routes)
+    monkeypatch.delattr(adapter, "domain_route_reconcile", raising=False)
     task_path = tmp_path / "task.json"
     _write_json(
         task_path,
         {
             "task_id": "frt_reconcile",
             "domain_id": "medautoscience",
-            "task_kind": "domain_route/reconcile-apply",
+            "task_kind": "domain_route/owner-handoff",
             "payload": {"profile": str(profile_path), "study_id": "001-risk"},
         },
     )
@@ -85,11 +67,12 @@ def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch,
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    assert calls == [{"profile": "nfpitnet", "study_ids": ("001-risk",), "mode": "developer_apply_safe", "apply": True}]
     assert payload["accepted"] is True
-    assert payload["will_start_llm_worker"] is True
-    assert payload["dispatch"]["execution_policy"] == "mas_owner_reconcile_apply"
-    assert payload["dispatch"]["result"]["surface"] == "domain_route_reconcile_receipt"
+    assert payload["opl_attempt_admission_requested"] is True
+    assert payload["opl_attempt_admission_status"] == "requested"
+    assert payload["dispatch"]["execution_policy"] == "opl_route_hydration_stage_attempt_admission"
+    assert payload["dispatch"]["result"]["surface"] == "domain_route_owner_handoff_admission"
+    assert payload["dispatch"]["result"]["mas_executes_reconcile_apply"] is False
     assert payload["authority_boundary"]["writes_domain_truth"] is False
 
 
@@ -136,7 +119,8 @@ def test_sidecar_dispatch_executes_paper_repair_work_unit_inside_mas_owner(tmp_p
     assert exit_code == 0
     assert payload["accepted"] is True
     assert payload["dispatch"]["action_type"] == "paper_repair_executor_dispatch"
-    assert payload["will_start_llm_worker"] is False
+    assert payload["opl_attempt_admission_requested"] is False
+    assert payload["opl_attempt_admission_status"] == "not_requested"
     paper_receipt = payload["dispatch"]["result"]
     assert paper_receipt["execution_status"] == "executed"
     assert paper_receipt["repair_execution_evidence"]["progress_delta_candidate"] is True
@@ -299,7 +283,8 @@ def test_sidecar_dispatch_accepts_quality_repair_writer_handoff_without_dead_let
 
     assert exit_code == 0
     assert payload["accepted"] is True
-    assert payload["will_start_llm_worker"] is True
+    assert payload["opl_attempt_admission_requested"] is True
+    assert payload["opl_attempt_admission_status"] == "requested"
     assert "reason" not in payload
     paper_receipt = payload["dispatch"]["result"]
     assert paper_receipt["accepted"] is True
@@ -636,7 +621,6 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
         action_types,
         mode: str,
         apply: bool,
-        managed_runtime_worker: bool = False,
     ) -> dict[str, object]:
         calls.append(
             {
@@ -696,12 +680,7 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
-    reconcile_calls: list[dict[str, object]] = []
     reviewer_calls: list[dict[str, object]] = []
-
-    def fake_reconcile_domain_routes(*, profile, study_ids, mode: str, apply: bool) -> dict[str, object]:
-        reconcile_calls.append({"profile": profile.name, "study_ids": tuple(study_ids), "mode": mode, "apply": apply})
-        return {"surface": "domain_route_reconcile_receipt", "will_start_llm": True}
 
     def fake_dispatch_domain_owner_actions(
         *,
@@ -710,7 +689,6 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
         action_types,
         mode: str,
         apply: bool,
-        managed_runtime_worker: bool = False,
     ) -> dict[str, object]:
         reviewer_calls.append(
             {
@@ -723,7 +701,7 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
         )
         return {"surface": "domain_owner_action_dispatch_execution", "executed_count": 1}
 
-    monkeypatch.setattr(adapter.domain_route_reconcile, "reconcile_domain_routes", fake_reconcile_domain_routes)
+    monkeypatch.delattr(adapter, "domain_route_reconcile", raising=False)
     monkeypatch.setattr(
         adapter.domain_owner_action_dispatch,
         "dispatch_domain_owner_actions",
@@ -759,11 +737,14 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
 
     assert analysis_exit == 0
     assert reviewer_exit == 0
-    assert analysis_payload["dispatch"]["action_type"] == "domain_route_reconcile_apply"
-    assert analysis_payload["dispatch"]["execution_policy"] == "mas_owner_reconcile_apply"
+    assert analysis_payload["dispatch"]["action_type"] == "domain_route_owner_handoff"
+    assert analysis_payload["dispatch"]["execution_policy"] == "opl_route_hydration_stage_attempt_admission"
     assert reviewer_payload["dispatch"]["action_type"] == "ai_reviewer_recheck_execute_dispatch"
     assert reviewer_payload["dispatch"]["execution_policy"] == "mas_owner_ai_reviewer_execute_dispatch"
-    assert reconcile_calls == [{"profile": "nfpitnet", "study_ids": ("DM002",), "mode": "developer_apply_safe", "apply": True}]
+    assert analysis_payload["opl_attempt_admission_requested"] is True
+    assert analysis_payload["opl_attempt_admission_status"] == "requested"
+    assert analysis_payload["dispatch"]["result"]["surface"] == "domain_route_owner_handoff_admission"
+    assert analysis_payload["dispatch"]["result"]["mas_executes_reconcile_apply"] is False
     assert reviewer_calls == [
         {
             "profile": "nfpitnet",
@@ -849,7 +830,7 @@ def test_sidecar_dispatch_rejects_opl_attempt_truth_substitution(tmp_path: Path,
         {
             "task_id": "attempt-substitution",
             "domain_id": "medautoscience",
-            "task_kind": "domain_route/recover",
+            "task_kind": "domain_route/owner-handoff",
             "payload": {
                 "profile": "/tmp/profile.toml",
                 "study_id": "001-risk",

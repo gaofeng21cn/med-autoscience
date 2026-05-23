@@ -356,8 +356,8 @@ def _runtime_module_surface(
     quest_id: str | None,
     study_root: Path,
     launch_report_path: Path,
-    runtime_supervision_path: Path,
-    runtime_supervision_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_path: Path,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     runtime_escalation_path: Path | None,
     domain_health_diagnostic_path: Path | None,
     recovery_contract: dict[str, Any],
@@ -397,7 +397,7 @@ def _runtime_module_surface(
             _non_empty_text(status.get("runtime_liveness_status")) or "none"
             if manual_finish_active
             else dominant_runtime_health_status
-            or _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+            or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("health_status"))
             or "unknown"
         )
     )
@@ -406,7 +406,7 @@ def _runtime_module_surface(
         if manual_finish_active or runtime_parked
         else (
             _non_empty_text(execution_owner_guard.get("current_required_action"))
-            or _non_empty_text((runtime_supervision_payload or {}).get("next_action"))
+            or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("next_action"))
         )
     )
     status_summary = (
@@ -416,7 +416,7 @@ def _runtime_module_surface(
             (
                 None
                 if dominant_runtime_health_status is not None
-                else _display_text((runtime_supervision_payload or {}).get("summary"))
+                else _display_text((opl_runtime_owner_handoff_payload or {}).get("summary"))
             )
             or current_stage_summary
             or next_system_action
@@ -429,7 +429,7 @@ def _runtime_module_surface(
             (
                 None
                 if dominant_runtime_health_status is not None
-                else _display_text((runtime_supervision_payload or {}).get("next_action_summary"))
+                else _display_text((opl_runtime_owner_handoff_payload or {}).get("next_action_summary"))
             )
             or next_system_action
             or current_stage_summary
@@ -440,8 +440,8 @@ def _runtime_module_surface(
         quest_id=quest_id,
         generated_at=generated_at,
         runtime_status_ref=(
-            str(runtime_supervision_path.resolve())
-            if runtime_supervision_payload is not None
+            str(opl_runtime_owner_handoff_path.resolve())
+            if opl_runtime_owner_handoff_payload is not None
             else str(launch_report_path.resolve())
         ),
         runtime_artifact_ref=str(launch_report_path.resolve()),
@@ -462,7 +462,7 @@ def _runtime_module_surface(
         status_summary=status_summary,
         next_action_summary=next_action_summary,
         needs_human_intervention=(
-            bool((runtime_supervision_payload or {}).get("needs_human_intervention")) or needs_physician_decision
+            bool((opl_runtime_owner_handoff_payload or {}).get("needs_human_intervention")) or needs_physician_decision
         ),
     )
     summary_ref = materialize_runtime_status_summary(study_root=study_root, summary=summary)

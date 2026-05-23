@@ -5,9 +5,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import progress_portal, runtime_live_console_ui
+from med_autoscience.controllers import progress_portal
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import runtime_live_console_read_model
 
 
 SURFACE = "paper_progress_degradation_evidence"
@@ -29,7 +28,7 @@ READ_ONLY_CONTRACT = {
         "read_publication_gate_projection",
         "read_ai_reviewer_handoff_projection",
         "read_writer_handoff_projection",
-        "read_portal_console_refs",
+        "read_progress_portal_refs",
         "summarize_safe_reconcile_dry_run",
     ],
     "prohibited_actions": [
@@ -100,12 +99,12 @@ def build_profile_progress_degradation_evidence(
         )
         for study in studies
     ]
-    portal_console_refs = _portal_console_refs(profile.workspace_root)
+    portal_refs = _progress_portal_refs(profile.workspace_root)
     safe_reconcile = _safe_reconcile_dry_run_evidence(reconcile)
     monitor_evidence = _monitor_evidence(monitor)
     blockers = [
         dict(blocker)
-        for source in [*study_items, portal_console_refs, safe_reconcile, monitor_evidence]
+        for source in [*study_items, portal_refs, safe_reconcile, monitor_evidence]
         for blocker in _sequence(source.get("blockers"))
         if isinstance(blocker, Mapping)
     ]
@@ -119,7 +118,7 @@ def build_profile_progress_degradation_evidence(
         "workspace_root": str(profile.workspace_root),
         "study_count": len(study_items),
         "studies": study_items,
-        "portal_console_refs": portal_console_refs,
+        "progress_portal_refs": portal_refs,
         "safe_reconcile_dry_run": safe_reconcile,
         "real_workspace_soak_monitor": monitor_evidence,
         "summary": {
@@ -132,7 +131,7 @@ def build_profile_progress_degradation_evidence(
             "publication_handoff_clear_count": sum(
                 item["publication_handoff_clarity"]["status"] == "clear" for item in study_items
             ),
-            "portal_console_refs_readable": portal_console_refs["status"] == "readable",
+            "progress_portal_refs_readable": portal_refs["status"] == "readable",
             "safe_reconcile_has_next_action": bool(safe_reconcile.get("next_action")),
             "blocker_count": len(blockers),
             "writes_performed": False,
@@ -440,7 +439,7 @@ def _writer_handoff_clarity(
     }
 
 
-def _portal_console_refs(workspace_root: Path) -> dict[str, Any]:
+def _progress_portal_refs(workspace_root: Path) -> dict[str, Any]:
     refs = [
         _ref_status(
             label="progress_portal_payload",
@@ -452,30 +451,15 @@ def _portal_console_refs(workspace_root: Path) -> dict[str, Any]:
             path=workspace_root / progress_portal.PROGRESS_PORTAL_HTML_REF,
             kind="text",
         ),
-        _ref_status(
-            label="live_console_session_read_model",
-            path=workspace_root / runtime_live_console_read_model.LIVE_CONSOLE_READ_MODEL_REF,
-            kind="json",
-        ),
-        _ref_status(
-            label="live_console_ui_payload",
-            path=workspace_root / runtime_live_console_ui.LIVE_CONSOLE_PAYLOAD_REF,
-            kind="json",
-        ),
-        _ref_status(
-            label="live_console_html",
-            path=workspace_root / runtime_live_console_ui.LIVE_CONSOLE_HTML_REF,
-            kind="text",
-        ),
     ]
     unreadable = [ref for ref in refs if ref["readable"] is not True]
     blockers = []
     if unreadable:
         blockers.append(
             {
-                "kind": "portal_console_refs",
-                "reason": "portal_console_refs_unreadable",
-                "next_action": "materialize_portal_console_read_models",
+                "kind": "progress_portal_refs",
+                "reason": "progress_portal_refs_unreadable",
+                "next_action": "materialize_progress_portal_read_models",
                 "missing_or_unreadable_refs": [ref["label"] for ref in unreadable],
             }
         )

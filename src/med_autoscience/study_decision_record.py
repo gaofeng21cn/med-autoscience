@@ -53,8 +53,8 @@ class StudyDecisionType(StrEnum):
 
 
 class StudyDecisionActionType(StrEnum):
-    ENSURE_STUDY_RUNTIME = "ensure_study_runtime"
-    ENSURE_STUDY_RUNTIME_RELAUNCH_STOPPED = "ensure_study_runtime_relaunch_stopped"
+    REQUEST_OPL_STAGE_ATTEMPT = "request_opl_stage_attempt"
+    REQUEST_OPL_STAGE_ATTEMPT_RELAUNCH = "request_opl_stage_attempt_relaunch"
     PAUSE_RUNTIME = "pause_runtime"
     STOP_RUNTIME = "stop_runtime"
     RUN_GATE_CLEARING_BATCH = "run_gate_clearing_batch"

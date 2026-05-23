@@ -54,9 +54,9 @@ def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_re
             "study_root": str(study_root),
             "entry_mode": "full_research",
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "001-risk",
                 "auto_resume": True,
@@ -89,9 +89,9 @@ def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_re
             "study_root": str(study_root),
             "entry_mode": "full_research",
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "001-risk",
                 "auto_resume": True,
@@ -121,12 +121,14 @@ def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_re
     ]
     call_index = {"value": 0}
 
-    def next_status(*, profile, study_root, source):
-        index = min(call_index["value"], len(states) - 1)
-        call_index["value"] += 1
-        return states[index]
+    projection_states = [states[0], states[0], states[1]]
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", next_status)
+    def next_status(**_: object):
+        index = min(call_index["value"], len(projection_states) - 1)
+        call_index["value"] += 1
+        return projection_states[index]
+
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", next_status)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     first = module.run_domain_health_diagnostic_for_runtime(
@@ -134,26 +136,28 @@ def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_re
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     second = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    first_supervision = first["managed_study_supervision"][0]
-    second_supervision = second["managed_study_supervision"][0]
-    latest_payload = json.loads(
-        (study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json").read_text(encoding="utf-8")
+    first_handoff = first["managed_study_opl_runtime_owner_handoffs"][0]
+    second_handoff = second["managed_study_opl_runtime_owner_handoffs"][0]
+    latest_handoff = json.loads(
+        (study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json").read_text(encoding="utf-8")
     )
 
-    assert first_supervision["health_status"] == "degraded"
-    assert second_supervision["health_status"] == "live"
-    assert second_supervision["last_transition"] == "recovered"
-    assert "runtime_event_ref" not in latest_payload
+    assert first_handoff["status"] == "handoff_required"
+    assert second_handoff["status"] == "handoff_required"
+    assert second_handoff["runtime_owner"] == "one-person-lab"
+    assert second_handoff["mas_runtime_read_model_retired"] is True
+    assert second_handoff["typed_blocker"]["blocker_type"] == "opl_runtime_owner_handoff_required"
+    assert latest_handoff["provider_completion_is_domain_completion"] is False
     assert not (quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json").exists()
 def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_tick(
     tmp_path: Path,
@@ -199,9 +203,9 @@ def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_t
         "study_root": str(study_root),
         "entry_mode": "full_research",
         "execution": {
-            "engine": "mas-runtime-core",
-            "runtime_backend_id": "mas_runtime_core",
-            "runtime_engine_id": "mas-runtime-core",
+            "engine": "opl-provider-backed-stage-runtime",
+            "runtime_backend_id": "opl_provider_backed_stage_runtime",
+            "runtime_engine_id": "opl-provider-backed-stage-runtime",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "001-risk",
             "auto_resume": True,
@@ -252,15 +256,19 @@ def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_t
         },
     }
 
+    projection_states = [recovery_requested, live_status]
+    call_index = {"value": 0}
+
+    def next_projection(*, profile, study_root):
+        index = min(call_index["value"], len(projection_states) - 1)
+        call_index["value"] += 1
+        calls.append(("status", Path(study_root).name))
+        return projection_states[index]
+
     monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: calls.append(("ensure", source)) or recovery_requested,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
-        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or live_status,
+        next_projection,
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [quest_root])
 
@@ -269,27 +277,23 @@ def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_t
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    supervision = result["managed_study_supervision"][0]
-    latest_payload = json.loads(
-        (study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json").read_text(encoding="utf-8")
+    handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
+    latest_handoff = json.loads(
+        (study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json").read_text(encoding="utf-8")
     )
 
-    assert calls == [
-        ("ensure", "domain_health_diagnostic"),
-        ("status", "001-risk"),
-    ]
-    assert result["managed_study_actions"] == [
-        {
-            "study_id": "001-risk",
-            "decision": "resume",
-            "reason": "quest_marked_running_but_no_live_session",
-        }
-    ]
-    assert supervision["health_status"] == "live"
-    assert supervision["runtime_decision"] == "noop"
+    assert calls == [("status", "001-risk"), ("status", "001-risk")]
+    assert result["managed_study_actions"][0]["study_id"] == "001-risk"
+    assert result["managed_study_actions"][0]["decision"] == "blocked"
+    assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert handoff["status"] == "handoff_required"
+    assert handoff["runtime_owner"] == "one-person-lab"
+    assert handoff["provider_completion_is_domain_completion"] is False
+    assert latest_handoff["mas_materializes_runtime_supervision"] is False
     assert supervision["active_run_id"] == "run-live"
     assert latest_payload["health_status"] == "live"
     assert latest_payload["runtime_decision"] == "noop"
@@ -462,17 +466,12 @@ def test_watch_runtime_relays_recovery_alerts_to_bound_conversations_without_pat
                 "interaction_id": f"interaction-{len(interaction_calls)}",
             }
 
-    def next_status(*, profile, study_root, source):
+    def next_status(**_: object):
         index = min(state_index["value"], len(states) - 1)
         state_index["value"] += 1
         return states[index]
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", next_status)
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "progress_projection",
-        lambda *, profile, study_root: states[min(max(state_index["value"] - 1, 0), len(states) - 1)],
-    )
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", next_status)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     monkeypatch.setattr(
         module.runtime_backend_contract,
@@ -485,28 +484,28 @@ def test_watch_runtime_relays_recovery_alerts_to_bound_conversations_without_pat
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     latest_alert_path = study_root / "artifacts" / "runtime" / "runtime_alert_delivery" / "latest.json"
@@ -577,11 +576,7 @@ def test_watch_runtime_relays_manual_intervention_alert_once_per_escalated_state
             interaction_calls.append(dict(payload))
             return {"status": "ok", "interaction_id": f"interaction-{len(interaction_calls)}"}
 
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: failing_status,
-    )
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: failing_status)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     monkeypatch.setattr(
         module.runtime_backend_contract,
@@ -594,21 +589,21 @@ def test_watch_runtime_relays_manual_intervention_alert_once_per_escalated_state
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     latest_alert = json.loads(
@@ -677,12 +672,7 @@ def test_watch_runtime_retries_alert_delivery_after_previous_failure(
             return {"status": "ok", "interaction_id": "interaction-2"}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: recovering_status,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: recovering_status,
     )
@@ -698,7 +688,7 @@ def test_watch_runtime_retries_alert_delivery_after_previous_failure(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     failed_alert = json.loads(
         (study_root / "artifacts" / "runtime" / "runtime_alert_delivery" / "latest.json").read_text(encoding="utf-8")
@@ -709,7 +699,7 @@ def test_watch_runtime_retries_alert_delivery_after_previous_failure(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     delivered_alert = json.loads(
         (study_root / "artifacts" / "runtime" / "runtime_alert_delivery" / "latest.json").read_text(encoding="utf-8")
@@ -781,12 +771,7 @@ def test_watch_runtime_routes_alert_delivery_through_outer_backend_without_mds_f
             return {"status": "ok", "interaction_id": "interaction-outer"}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: recovering_status,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: recovering_status,
     )
@@ -802,7 +787,7 @@ def test_watch_runtime_routes_alert_delivery_through_outer_backend_without_mds_f
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     latest_alert = json.loads(

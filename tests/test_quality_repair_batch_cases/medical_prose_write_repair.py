@@ -157,7 +157,7 @@ def test_medical_prose_write_repair_updates_canonical_story_surface(
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     assert result["ok"] is True
@@ -373,7 +373,7 @@ def test_medical_prose_write_repair_preserves_current_writer_story_delta(
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     assert result["ok"] is True
@@ -541,7 +541,7 @@ def test_medical_prose_write_repair_preserves_medication_coverage_writer_story_d
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     assert result["ok"] is True
@@ -692,7 +692,7 @@ def test_medical_prose_write_repair_uses_explicit_route_context_when_gate_result
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=route_context,
+        authority_route_context=route_context,
     )
 
     assert result["ok"] is True
@@ -922,7 +922,7 @@ def test_dm002_publication_paper_repair_updates_external_validation_manuscript(
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=route_context,
+        authority_route_context=route_context,
     )
 
     assert result["ok"] is True

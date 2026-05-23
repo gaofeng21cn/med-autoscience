@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
-import sqlite3
 
 
 def _module():
@@ -139,9 +138,9 @@ def test_running_quest_with_retry_exhausted_no_worker_is_queued_for_runtime_repa
         },
         progress={
             "owner_route": {
-                "next_owner": "mas_controller",
+                "next_owner": "one-person-lab",
                 "owner_reason": "abnormal_stopped_runtime_resume_required",
-                "allowed_actions": ["runtime_platform_repair"],
+                "allowed_actions": ["request_opl_stage_attempt"],
             }
         },
     )
@@ -338,8 +337,8 @@ def test_running_and_repairable_studies_are_not_collapsed_into_parked_states() -
         },
         progress={
             "owner_route": {
-                "next_owner": "mas_controller",
-                "allowed_actions": ["runtime_platform_repair"],
+                "next_owner": "one-person-lab",
+                "allowed_actions": ["request_opl_stage_attempt"],
                 "owner_reason": "runtime_controller_redrive_required",
             }
         },
@@ -373,10 +372,10 @@ def test_controller_stop_truth_conflict_takes_priority_over_stale_active_run() -
     assert state["reason"] == "truth_conflict"
 
 
-def test_materialize_study_macro_state_writes_file_authority_and_indexes_sidecar(tmp_path: Path) -> None:
+def test_materialize_study_macro_state_writes_file_authority_without_runtime_index(tmp_path: Path) -> None:
     module = _module()
     study_root = tmp_path / "studies" / "001-risk"
-    db_path = tmp_path / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    db_path = tmp_path / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     state = _derive(
         study_id="001-risk",
         status={
@@ -391,30 +390,15 @@ def test_materialize_study_macro_state_writes_file_authority_and_indexes_sidecar
 
     snapshot_path = study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json"
     assert result["snapshot_path"] == str(snapshot_path.resolve())
-    assert result["index"]["indexed_table"] == "study_macro_state_snapshots"
+    assert result["index"] is None
+    assert result["index_status"] == "file_authority_only"
+    assert result["ignored_db_path"] == str(db_path.resolve())
     persisted = json.loads(snapshot_path.read_text(encoding="utf-8"))
     assert persisted == {
         **state,
         "snapshot_id": state["source_fingerprint"],
     }
-    with sqlite3.connect(db_path) as conn:
-        row = conn.execute(
-            """
-            SELECT study_id, snapshot_id, macro_state, writer_state, user_next, reason, source_path
-            FROM study_macro_state_snapshots
-            WHERE study_root = ?
-            """,
-            (str(study_root.resolve()),),
-        ).fetchone()
-    assert row == (
-        "001-risk",
-        state["source_fingerprint"],
-        "parked",
-        "parked",
-        "submit_info",
-        "external_info",
-        str(snapshot_path.resolve()),
-    )
+    assert not db_path.exists()
 
 
 def test_macro_state_uses_short_primary_enums_and_conditions_for_detail() -> None:

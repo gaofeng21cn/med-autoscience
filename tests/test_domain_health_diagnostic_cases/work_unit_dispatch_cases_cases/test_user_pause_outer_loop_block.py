@@ -25,7 +25,7 @@ def test_watch_runtime_blocks_outer_loop_dispatch_for_user_paused_study(
             study_id="001-risk",
             decision="blocked",
             reason="quest_user_paused_requires_explicit_wakeup",
-            include_control_plane_snapshot=True,
+            include_authority_snapshot=True,
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",
@@ -71,11 +71,10 @@ def test_watch_runtime_blocks_outer_loop_dispatch_for_user_paused_study(
     }
     calls: list[str] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "study_outer_loop_tick",
         lambda **kwargs: calls.append(str(kwargs.get("source") or "")) or {"dispatch_status": "executed"},
     )
@@ -86,7 +85,7 @@ def test_watch_runtime_blocks_outer_loop_dispatch_for_user_paused_study(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     latest = json.loads(
@@ -116,7 +115,7 @@ def test_watch_runtime_blocks_outer_loop_dispatch_for_manual_hold(
             study_id="001-risk",
             decision="blocked",
             reason="quest_waiting_for_explicit_wakeup_after_manual_hold",
-            include_control_plane_snapshot=True,
+            include_authority_snapshot=True,
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",
@@ -154,11 +153,10 @@ def test_watch_runtime_blocks_outer_loop_dispatch_for_manual_hold(
     }
     calls: list[str] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "study_outer_loop_tick",
         lambda **kwargs: calls.append(str(kwargs.get("source") or "")) or {"dispatch_status": "executed"},
     )
@@ -169,7 +167,7 @@ def test_watch_runtime_blocks_outer_loop_dispatch_for_manual_hold(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert calls == []

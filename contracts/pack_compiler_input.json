@@ -11,8 +11,7 @@
   "allowed_judgment_modes": [
     "ai_first_stage_gate",
     "ai_first_record_validator",
-    "mechanical_guard",
-    "refs_only_adapter"
+    "mechanical_guard"
   ],
   "authority_boundary": {
     "agent_pack_owner": "MedAutoScience",
@@ -133,7 +132,7 @@
     "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
     "canonical_agent_pack_root": "agent/",
     "functional_audit": "src/med_autoscience/controllers/domain_slo_scheduler_projection_parts/consumer_migration.py::build_functional_consumer_boundary",
-    "memory_descriptor": "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/family_adoption.py::build_domain_memory_descriptor",
+    "memory_descriptor": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor",
     "required_domain_pack_paths": [
       "agent/stages/stage_route_contract.yaml",
       "agent/prompts/direction_and_route_selection.md",
@@ -156,7 +155,7 @@
       "agent/knowledge/publication_route_memory.md",
       "agent/knowledge/source_readiness_and_artifact_authority.md"
     ],
-    "stage_control_plane": "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/family_adoption.py::build_family_stage_control_plane"
+    "stage_control_plane": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_family_stage_control_plane"
   },
   "src_must_not_be_canonical_semantic_pack": true,
   "src_role": "domain_handler_minimal_authority_functions_and_native_helpers_only",

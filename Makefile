@@ -7,10 +7,10 @@ MAS_PYTEST_XDIST_ARGS := -n $(MAS_PYTEST_WORKERS) --dist=$(MAS_PYTEST_DIST)
 CONTROL_PLANE_TESTS := \
 	tests/test_control_plane_regression.py \
 	tests/test_control_plane_structure.py \
-	tests/test_study_control_plane_kernel.py \
-	tests/test_control_plane_state_machine.py \
+	tests/test_domain_authority_snapshot.py \
+	tests/test_autonomy_state_surface.py \
 	tests/test_study_runtime_typed_surface_cases/status_type_cases.py \
-	tests/test_control_plane_route_gate.py \
+	tests/test_authority_route_gate.py \
 	tests/test_artifact_lifecycle_inventory.py \
 	tests/test_artifact_retention_operations_plan.py \
 	tests/test_storage_governance_policy_kernel.py \
@@ -18,22 +18,22 @@ CONTROL_PLANE_TESTS := \
 	tests/test_runtime_protocol_paper_artifacts.py \
 	tests/test_study_delivery_sync.py \
 	tests/test_runtime_storage_maintenance.py \
-	tests/test_control_plane_cleanup_apply.py \
-	tests/test_control_plane_migration_audit.py \
-	tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller \
-	tests/test_cli_cases/public_entry_commands.py::test_cleanup_apply_command_dispatches_controller \
+	tests/test_workspace_authority_migration_audit.py \
+	tests/test_delivery_authority_backfill_apply.py \
+	tests/test_cli_cases/public_entry_commands.py::test_workspace_authority_migration_audit_command_dispatches_read_only_controller \
+	tests/test_cli_cases/public_entry_commands.py::test_control_plane_cleanup_apply_is_not_public \
 	tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller_options \
-	tests/test_cli_cases/control_plane_operation_commands.py \
-	tests/test_mcp_server.py::test_mcp_product_entry_description_documents_control_plane_operations_surfaces \
-	tests/test_mcp_server.py::test_mcp_product_entry_schema_accepts_control_plane_operations_options \
-	tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit \
-	tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply \
+	tests/test_cli_cases/authority_operation_commands.py \
+	tests/test_mcp_server.py::test_mcp_product_entry_description_documents_authority_operation_surfaces \
+	tests/test_mcp_server.py::test_mcp_product_entry_schema_accepts_authority_operation_options \
+	tests/test_mcp_server.py::test_mcp_product_entry_can_call_workspace_authority_migration_audit \
+	tests/test_mcp_server.py::test_mcp_product_entry_rejects_cleanup_apply_mode \
 	tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report_with_scan_options \
-	tests/test_test_command_surfaces.py::test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_control_plane_operation_modes \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_control_plane_operation_commands \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_calls_continuous_soak_summary \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_calls_continuous_soak_summary \
+	tests/test_test_command_surfaces.py::test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces \
+	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_authority_operation_modes \
+	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_authority_operation_commands \
+	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summary \
+	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_calls_artifact_lifecycle_continuous_soak_summary \
 	tests/test_truth_projection_surfaces.py \
 	tests/test_runtime_health_projection_surfaces.py \
 	tests/test_study_progress.py \

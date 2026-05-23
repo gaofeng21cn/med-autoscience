@@ -220,7 +220,7 @@ class _DeveloperMode:
         }
 
 
-def test_managed_runtime_worker_materializes_current_route_back_ai_reviewer_eval(
+def test_current_opl_dispatch_materializes_current_route_back_ai_reviewer_eval(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -228,47 +228,31 @@ def test_managed_runtime_worker_materializes_current_route_back_ai_reviewer_eval
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
-    run_id = "mas-run-002-current"
     eval_id = "publication-eval::002::current-route-back"
     study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
-    quest_root = profile.runtime_root / quest_id
     _write_ai_reviewer_currentness_inputs(study_root, eval_id=eval_id)
     _write_ai_reviewer_request(study_root, study_id=study_id, quest_id=quest_id, eval_id=eval_id)
-    _write_json(
-        quest_root / ".ds" / "runtime_state.json",
-        {
-            "status": "running",
-            "quest_id": quest_id,
-            "active_run_id": run_id,
-            "worker_running": True,
-            "current_controller_authorization": {
-                "decision_id": "fresh-ai-reviewer-medical-prose-decision",
-                "authorization_basis": "controller_domain_transition",
-                "active_run_id": run_id,
-                "controller_actions": ["return_to_ai_reviewer_workflow"],
-                "route_target": "review",
-                "work_unit_id": "ai_reviewer_medical_prose_quality_review",
-                "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::medical-prose-review",
-                "next_work_unit": {
-                    "unit_id": "ai_reviewer_medical_prose_quality_review",
-                    "lane": "review",
-                },
-            },
-        },
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
     )
-    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER", "1")
-    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT", str(quest_root))
-    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID", quest_id)
-    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID", run_id)
-    monkeypatch.setenv("HOME", str(quest_root / ".ds" / "codex_homes" / run_id))
-    monkeypatch.setenv("CODEX_HOME", str(quest_root / ".ds" / "codex_homes" / run_id / ".codex"))
-    monkeypatch.setattr(
-        module,
-        "resolve_developer_supervisor_mode",
-        lambda **_: _DeveloperMode(
-            "external_observe",
-            safe_actions_enabled=False,
-            blocked_reason="github_user_lookup_failed",
+    from tests.domain_owner_action_dispatch_helpers import (
+        dispatch as _dispatch,
+        write_current_dispatch as _write_current_dispatch,
+    )
+
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
         ),
     )
     monkeypatch.setattr(
@@ -283,7 +267,6 @@ def test_managed_runtime_worker_materializes_current_route_back_ai_reviewer_eval
         action_types=("return_to_ai_reviewer_workflow",),
         mode="developer_apply_safe",
         apply=True,
-        managed_runtime_worker=True,
     )
 
     latest = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
@@ -292,7 +275,9 @@ def test_managed_runtime_worker_materializes_current_route_back_ai_reviewer_eval
     assert result["executed_count"] == 1
     execution = result["executions"][0]
     assert execution["execution_status"] == "executed"
-    assert execution["managed_runtime_authorization"]["status"] == "authorized"
+    assert "managed_runtime" + "_authorization" not in execution
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] == "scan_latest"
     assert latest["assessment_provenance"]["owner"] == "ai_reviewer"
     assert latest["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer"
     assert latest["quality_assessment"]["medical_journal_prose_quality"]["status"] == "partial"

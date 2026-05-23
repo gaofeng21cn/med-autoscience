@@ -36,7 +36,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
             workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+                "summary": "OPL current_control_state refs-only handoff 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -123,7 +123,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         "runtime_root_exists",
         "studies_root_exists",
         "portfolio_root_exists",
-        "mas_runtime_core_ready",
+        "opl_provider_stage_runtime_ready",
         "medical_overlay_ready",
         "workspace_domain_route_contract_ready",
     ]
@@ -157,13 +157,13 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["product_entry_guardrails"]["guardrail_classes"][4]["guardrail_id"] == "quality_floor_blocker"
     assert payload["product_entry_guardrails"]["recovery_loop"][1]["step_id"] == "refresh_supervision"
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
-    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_runtime_contract"
+    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_domain_refs_boundary"
     assert payload["phase3_clearance_lane"]["clearance_targets"][1]["target_id"] == "supervisor_service"
     assert payload["phase3_clearance_lane"]["clearance_loop"][1]["step_id"] == "supervisor_service"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["current_backend_chain"] == [
         "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
-        "generic runtime/provider context -> OPL runtime manager handoff refs",
+        "generic runtime/provider context -> OPL current_control_state refs-only handoff",
         "historical med_deepscientist fixture/provenance refs only",
     ]
     assert payload["phase5_platform_target"]["surface_kind"] == "phase5_platform_target"
@@ -202,7 +202,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             workspace_domain_route_contract={
                 "status": "retired_legacy_service_present",
                 "loaded": False,
-                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；仅保留 tombstone/provenance refs。",
+                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL current_control_state refs-only handoff；仅保留 tombstone/provenance refs。",
                 "drift_reasons": ["retired_legacy_service_loaded"],
             },
         ),
@@ -214,7 +214,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             "manager": "launchd",
             "status": "retired_legacy_service_present",
             "loaded": False,
-            "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；仅保留 tombstone/provenance refs。",
+            "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL current_control_state refs-only handoff；仅保留 tombstone/provenance refs。",
             "drift_reasons": ["retired_legacy_service_loaded"],
             "legacy_service": {"loaded": True, "service_exists": True},
             "legacy_service_role": "retired_cleanup_evidence",
@@ -310,7 +310,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
     assert payload["workspace_supervision"]["service"]["status"] == "retired_legacy_service_present"
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["recommended_command"].endswith(
-        "runtime-ensure-supervision --profile " + str(profile_ref.resolve())
+        "study-progress --profile " + str(profile_ref.resolve()) + " --format json"
     )
 
 def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_owner_drift(
@@ -334,7 +334,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
             workspace_domain_route_contract={
                 "status": "retired_legacy_service_present",
                 "loaded": False,
-                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；仅保留 tombstone/provenance refs。",
+                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL current_control_state refs-only handoff；仅保留 tombstone/provenance refs。",
                 "drift_reasons": ["retired_legacy_service_loaded"],
             },
         ),

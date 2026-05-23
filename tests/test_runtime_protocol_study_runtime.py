@@ -119,9 +119,9 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
         "runtime_backend_id": "opl_provider_backed_stage_runtime",
         "runtime_backend": "opl_provider_backed_stage_runtime",
         "runtime_engine_id": "opl-provider-backed-stage-runtime",
-        "research_backend_id": "mas_runtime_core",
-        "research_backend": "mas_runtime_core",
-        "research_engine_id": "mas-runtime-core",
+        "research_backend_id": "mas_domain_intent_adapter",
+        "research_backend": "mas_domain_intent_adapter",
+        "research_engine_id": "mas-domain-intent-adapter",
         "runtime_home": str(runtime_root),
         "study_id": "001-risk",
         "study_root": str(study_root),
@@ -139,41 +139,28 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     }
 
 
-def test_write_runtime_binding_supports_explicit_mas_runtime_core_backend_metadata(tmp_path: Path) -> None:
+def test_write_runtime_binding_rejects_retired_mas_runtime_core_backend_metadata(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     runtime_root = tmp_path / "workspace" / "runtime"
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     binding_path = study_root / "runtime_binding.yaml"
 
-    module.write_runtime_binding(
-        runtime_binding_path=binding_path,
-        runtime_root=runtime_root,
-        study_id="001-risk",
-        study_root=study_root,
-        quest_id="quest-mas-runtime-core-001",
-        last_action="resume",
-        source="test-source",
-        recorded_at="2026-04-11T12:00:00+00:00",
-        runtime_backend_id="mas_runtime_core",
-        runtime_engine_id="mas-runtime-core",
-    )
-
-    payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
-    assert payload["engine"] == "mas-runtime-core"
-    assert payload["runtime_backend_id"] == "mas_runtime_core"
-    assert payload["runtime_backend"] == "mas_runtime_core"
-    assert payload["runtime_engine_id"] == "mas-runtime-core"
-    assert payload["runtime_home"] == str(runtime_root)
-    assert payload["runtime_quests_root"] == str(runtime_root / "quests")
-    assert "med_deepscientist_runtime_root" not in payload
-    assert payload["historical_fixture_ref"] == {
-        "surface_kind": "historical_fixture_ref",
-        "runtime_root": str(runtime_root),
-        "read_only": True,
-    }
+    with pytest.raises(ValueError, match="unknown managed runtime backend in binding request: mas_runtime_core"):
+        module.write_runtime_binding(
+            runtime_binding_path=binding_path,
+            runtime_root=runtime_root,
+            study_id="001-risk",
+            study_root=study_root,
+            quest_id="quest-mas-runtime-core-001",
+            last_action="resume",
+            source="test-source",
+            recorded_at="2026-04-11T12:00:00+00:00",
+            runtime_backend_id="mas_runtime_core",
+            runtime_engine_id="mas-runtime-core",
+        )
 
 
-def test_write_runtime_binding_records_controlled_research_backend_metadata_for_mas_runtime_core(
+def test_write_runtime_binding_records_domain_intent_adapter_metadata_for_opl_provider_backend(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
@@ -186,35 +173,34 @@ def test_write_runtime_binding_records_controlled_research_backend_metadata_for_
         runtime_root=runtime_root,
         study_id="001-risk",
         study_root=study_root,
-        quest_id="quest-mas-runtime-core-001",
+        quest_id="quest-opl-provider-001",
         last_action="resume",
         source="test-source",
         recorded_at="2026-04-11T12:00:00+00:00",
-        runtime_backend_id="mas_runtime_core",
-        runtime_engine_id="mas-runtime-core",
     )
 
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
-    assert payload["research_backend_id"] == "mas_runtime_core"
-    assert payload["research_backend"] == "mas_runtime_core"
-    assert payload["research_engine_id"] == "mas-runtime-core"
+    assert payload["runtime_backend_id"] == "opl_provider_backed_stage_runtime"
+    assert payload["runtime_backend"] == "opl_provider_backed_stage_runtime"
+    assert payload["runtime_engine_id"] == "opl-provider-backed-stage-runtime"
+    assert payload["research_backend_id"] == "mas_domain_intent_adapter"
+    assert payload["research_backend"] == "mas_domain_intent_adapter"
+    assert payload["research_engine_id"] == "mas-domain-intent-adapter"
 
 
-def test_runtime_binding_backend_metadata_resolves_explicit_mas_runtime_core_backend() -> None:
+def test_runtime_binding_backend_metadata_rejects_explicit_mas_runtime_core_backend() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
-    backend_id, engine_id = module._runtime_binding_backend_metadata(
-        {
-            "execution": {
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
-                "auto_entry": "on_managed_research_intent",
+    with pytest.raises(ValueError, match="unknown managed runtime backend in status execution: mas_runtime_core"):
+        module._runtime_binding_backend_metadata(
+            {
+                "execution": {
+                    "runtime_backend_id": "mas_runtime_core",
+                    "runtime_engine_id": "mas-runtime-core",
+                    "auto_entry": "on_managed_research_intent",
+                }
             }
-        }
-    )
-
-    assert backend_id == "mas_runtime_core"
-    assert engine_id == "mas-runtime-core"
+        )
 
 
 def test_runtime_binding_backend_metadata_rejects_retired_hermes_substrate_for_legacy_med_deepscientist_execution() -> None:

@@ -60,7 +60,7 @@ def build_readonly_ai_repair_lifecycle_projection(
     top_action = next((dict(item) for item in actions if isinstance(item, Mapping)), None)
     if top_action is None:
         return None
-    control_plane = _mapping_copy(status_payload.get("control_plane_snapshot"))
+    control_plane = _mapping_copy(status_payload.get("authority_snapshot"))
     dispatch_gate = _mapping_copy(control_plane.get("dispatch_gate"))
     route_authorization = _mapping_copy(control_plane.get("route_authorization"))
     runtime_health = _mapping_copy(status_payload.get("runtime_health_snapshot"))

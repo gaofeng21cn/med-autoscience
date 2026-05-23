@@ -143,7 +143,10 @@ def test_execute_dispatch_accepts_current_action_queue_owner_route(monkeypatch, 
     assert called == [study_id]
 
 
-def test_execute_dispatch_rejects_incomplete_forbidden_surface_contract(monkeypatch, tmp_path: Path) -> None:
+def test_execute_dispatch_rejects_retired_runtime_platform_repair_before_prompt_contract_validation(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -176,10 +179,17 @@ def test_execute_dispatch_rejects_incomplete_forbidden_surface_contract(monkeypa
     )
 
     assert result["blocked_count"] == 1
-    assert result["executions"][0]["blocked_reason"] == "forbidden_surfaces_incomplete"
+    execution = result["executions"][0]
+    assert execution["dispatch_contract_valid"] is False
+    assert execution["dispatch_contract_blocked_reason"] == "unsupported_action_type"
+    assert execution["blocked_reason"] == "unsupported_action_type"
+    assert execution["owner_callable_surface"] is None
 
 
-def test_execute_dispatch_blocks_apply_when_stall_fingerprint_is_not_current(monkeypatch, tmp_path: Path) -> None:
+def test_execute_dispatch_blocks_retired_runtime_platform_repair_before_stall_currentness(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
@@ -247,5 +257,8 @@ def test_execute_dispatch_blocks_apply_when_stall_fingerprint_is_not_current(mon
     execution = result["executions"][0]
     assert result["blocked_count"] == 1
     assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "paper_progress_stall_fingerprint_stale"
+    assert execution["dispatch_contract_valid"] is False
+    assert execution["dispatch_contract_blocked_reason"] == "unsupported_action_type"
+    assert execution["blocked_reason"] == "unsupported_action_type"
+    assert execution["owner_callable_surface"] is None
     assert execution["will_start_llm"] is False

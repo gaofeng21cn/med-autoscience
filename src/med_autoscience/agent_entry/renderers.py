@@ -8,9 +8,41 @@ import yaml
 
 from med_autoscience.stage_route_contract import STAGE_ROUTE_CONTRACT_REF, load_stage_route_contract_payload
 
+PROJECTED_ROUTE_FIELD_OVERRIDES: dict[tuple[str, str], tuple[str, ...]] = {
+    (
+        "write",
+        "enter_conditions",
+    ): (
+        "active claim and supporting evidence package are readable",
+        "required route artifacts are linked or referenced",
+        "reviewer-first pressure can be applied against the current draft",
+        "user manuscript-change requests from Codex have been converted into a study revision intake with OPL runtime control boundary checked",
+    ),
+    (
+        "write",
+        "durable_outputs_minimum",
+    ): (
+        "manuscript draft or section update tied to current claim scope",
+        "claim-evidence map or equivalent traceability surface",
+        "reviewer-first pass note with explicit concerns",
+        "first-draft quality note covering field-verified multicenter/geography, subgroup/association, guideline, and real-world constraint axes",
+        "revision handoff stating data source, scripts, changed tables/figures, claim guardrails, OPL provider attempt hydration/resume refs, and whether `current_package` was regenerated from controller-authorized `paper/`",
+    ),
+    (
+        "write",
+        "route_back_triggers",
+    ): (
+        "any active claim lacks supporting evidence",
+        "reviewer-first scan finds unresolved logic, novelty, or rigor gaps",
+        "first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing",
+        "manuscript narrative changes the claim boundary",
+        "foreground edits only touched `manuscript/current_package/` before OPL provider attempt hydration/resume and MAS owner authorization, or have not been reconciled into the canonical paper source",
+    ),
+}
+
 
 def render_stage_route_contract_payload() -> dict[str, object]:
-    return deepcopy(load_stage_route_contract_payload())
+    return _project_stage_route_payload(load_stage_route_contract_payload())
 
 
 def render_stage_route_contract_guide() -> str:
@@ -100,20 +132,20 @@ def render_stage_route_contract_guide() -> str:
             "upgrade from lightweight to managed before continuing.",
             "",
             "## Startup Boundary Rule",
-            "Run `ensure-study-runtime` before any managed compute decision. Do not enter "
-            "`startup_boundary_gated_routes` unless that controller reports "
+            "Read MAS domain refs and request OPL provider hydration before any managed compute decision. Do not enter "
+            "`startup_boundary_gated_routes` unless the MAS controller projection reports "
             "`startup_boundary_gate.allow_compute_stage = true`; otherwise stay within "
             "`managed_routes`, `governance_routes`, and any writing-only delivery route.",
             "",
-            "## Live Runtime Ownership Rule",
+            "## OPL Runtime Control Rule",
             "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, "
             "notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, "
-            "and do not write runtime-owned study surfaces.",
+            "and do not write OPL runtime-owned study surfaces.",
             "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.",
             "",
             "## No Ad-hoc Execution Rule",
             "When operating MAS-covered work, agents must use controller-authorized `CLI`, `MCP`, "
-            "`product-entry`, or runtime surfaces before writing research outputs or advancing a study route.",
+            "`product-entry`, or OPL-dispatched MAS domain handler surfaces before writing research outputs or advancing a study route.",
             "If a required capability is not exposed through those MAS contracts, stop and close the contract gap "
             "in the repo-tracked controller/callable surface before continuing; do not bypass MAS with ad-hoc "
             "scripts, direct artifact edits, prompt-only research chains, or generic document/PDF/Office tooling.",
@@ -123,8 +155,8 @@ def render_stage_route_contract_guide() -> str:
             "and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.",
             "Explicit user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone "
             "reactivates the same study line; it is not permission to foreground-edit `manuscript/current_package`.",
-            "After writing the durable task intake, relaunch/resume through MAS-owned runtime before editing "
-            "canonical paper sources, and regenerate `current_package` from that authority.",
+            "After writing the durable task intake, OPL must hydrate or resume the provider attempt from MAS "
+            "owner refs before MAS domain handlers edit canonical paper sources and regenerate `current_package` from that authority.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -273,20 +305,20 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             "upgrade from lightweight to managed before continuing.",
             "",
             "## Startup Boundary Rule",
-            "Run `ensure-study-runtime` before any managed compute decision. Do not enter "
-            "`startup_boundary_gated_routes` unless that controller reports "
+            "Read MAS domain refs and request OPL provider hydration before any managed compute decision. Do not enter "
+            "`startup_boundary_gated_routes` unless the MAS controller projection reports "
             "`startup_boundary_gate.allow_compute_stage = true`; otherwise stay within "
             "`managed_routes`, `governance_routes`, and any writing-only delivery route.",
             "",
-            "## Live Runtime Ownership Rule",
+            "## OPL Runtime Control Rule",
             "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode, "
             "notify the user, report `browser_url`, `quest_session_api_url`, and `active_run_id` when present, "
-            "and do not write runtime-owned study surfaces.",
+            "and do not write OPL runtime-owned study surfaces.",
             "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions.",
             "",
             "## No Ad-hoc Execution Rule",
             "When operating MAS-covered work, agents must use controller-authorized `CLI`, `MCP`, "
-            "`product-entry`, or runtime surfaces before writing research outputs or advancing a study route.",
+            "`product-entry`, or OPL-dispatched MAS domain handler surfaces before writing research outputs or advancing a study route.",
             "If a required capability is not exposed through those MAS contracts, stop and close the contract gap "
             "in the repo-tracked controller/callable surface before continuing; do not bypass MAS with ad-hoc "
             "scripts, direct artifact edits, prompt-only research chains, or generic document/PDF/Office tooling.",
@@ -296,8 +328,8 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             "and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.",
             "Explicit user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone "
             "reactivates the same study line; it is not permission to foreground-edit `manuscript/current_package`.",
-            "After writing the durable task intake, relaunch/resume through MAS-owned runtime before editing "
-            "canonical paper sources, and regenerate `current_package` from that authority.",
+            "After writing the durable task intake, OPL must hydrate or resume the provider attempt from MAS "
+            "owner refs before MAS domain handlers edit canonical paper sources and regenerate `current_package` from that authority.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -325,8 +357,28 @@ def _route_contract_payload_map(payload: dict[str, object]) -> list[dict[str, An
             raise ValueError("route_contracts keys must be non-empty strings")
         if not isinstance(route_contract, dict):
             raise ValueError(f"route_contracts[{route_id}] must be a mapping")
-        route_contracts.append(route_contract)
+        route_contracts.append(_project_route_contract(route_id, route_contract))
     return route_contracts
+
+
+def _project_stage_route_payload(payload: dict[str, object]) -> dict[str, object]:
+    projected = deepcopy(payload)
+    raw_route_contracts = projected.get("route_contracts")
+    if not isinstance(raw_route_contracts, dict):
+        raise ValueError("route_contracts must be a mapping")
+    for route_id, route_contract in list(raw_route_contracts.items()):
+        if not isinstance(route_id, str) or not isinstance(route_contract, dict):
+            continue
+        raw_route_contracts[route_id] = _project_route_contract(route_id, route_contract)
+    return projected
+
+
+def _project_route_contract(route_id: str, route_contract: dict[str, Any]) -> dict[str, Any]:
+    projected = deepcopy(route_contract)
+    for (override_route_id, field), values in PROJECTED_ROUTE_FIELD_OVERRIDES.items():
+        if override_route_id == route_id:
+            projected[field] = list(values)
+    return projected
 
 
 def _evidence_review_contract_payload(payload: dict[str, object]) -> dict[str, Any]:

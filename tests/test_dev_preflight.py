@@ -343,9 +343,9 @@ def test_collect_changed_files_from_base_ref_diff(monkeypatch, tmp_path: Path) -
     monkeypatch.setattr(
         module,
         "_git_diff_name_only",
-        lambda **kwargs: ["src/med_autoscience/controllers/study_runtime_router.py"],
+        lambda **kwargs: ["src/med_autoscience/controllers/domain_status_projection.py"],
     )
 
     changed_files = module.collect_changed_files(repo_root=tmp_path, base_ref="origin/main")
 
-    assert changed_files == ["src/med_autoscience/controllers/study_runtime_router.py"]
+    assert changed_files == ["src/med_autoscience/controllers/domain_status_projection.py"]

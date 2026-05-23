@@ -109,19 +109,6 @@ def blocked_action_from_ai_reviewer_freshness_mismatch(
     return action
 
 
-def route_required(runtime_platform_repair_apply: Mapping[str, Any] | None) -> bool:
-    if runtime_platform_repair_apply is None:
-        return False
-    return (
-        _text(runtime_platform_repair_apply.get("dispatch_status")) == "blocked"
-        and _text(runtime_platform_repair_apply.get("reason")) == ACTION_TYPE
-    )
-
-
-def remove_runtime_platform_repair(actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [action for action in actions if _text(action.get("action_type")) != "runtime_platform_repair"]
-
-
 def artifact_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
     progress_freshness = _mapping(progress.get("progress_freshness"))
     delta_freshness = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
@@ -285,6 +272,4 @@ __all__ = [
     "blocked_action_from_ai_reviewer_freshness_mismatch",
     "blocked_action_from_gate_clearing",
     "meaningful_artifact_delta_observed",
-    "remove_runtime_platform_repair",
-    "route_required",
 ]

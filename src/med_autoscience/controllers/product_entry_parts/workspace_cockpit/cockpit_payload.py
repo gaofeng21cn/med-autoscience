@@ -129,9 +129,8 @@ def _study_item(
     runtime_continuity = runtime_continuity_projection(progress_payload)
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
-    control_plane_snapshot = _control_plane_snapshot_summary(progress_payload.get("control_plane_snapshot"))
+    authority_snapshot = _authority_snapshot_summary(progress_payload.get("authority_snapshot"))
     research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
-    runtime_reconcile_trigger = dict(progress_payload.get("runtime_reconcile_trigger") or {})
     outer_supervision_slo = dict(progress_payload.get("outer_supervision_slo") or {})
     production_blocker_impact = build_production_blocker_impact_projection(
         progress_payload,
@@ -146,7 +145,7 @@ def _study_item(
         "runtime_health_epoch": _non_empty_text(progress_payload.get("runtime_health_epoch"))
         or _non_empty_text((runtime_health_snapshot or {}).get("runtime_health_epoch")),
         "runtime_health_snapshot": runtime_health_snapshot,
-        "control_plane_snapshot": control_plane_snapshot,
+        "authority_snapshot": authority_snapshot,
         "status_narration_contract": progress_payload.get("status_narration_contract"),
         "user_visible_projection": user_visible_projection or None,
         "state": user_visible_field(
@@ -241,7 +240,6 @@ def _study_item(
         "pi_action_projection": pi_action_projection,
         "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
-        "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
         "outer_supervision_slo": outer_supervision_slo or None,
         "runtime_continuity": runtime_continuity,
         "production_blocker_impact": production_blocker_impact,
@@ -307,7 +305,7 @@ def _runtime_health_snapshot_summary(value: object) -> dict[str, Any] | None:
     return summary or None
 
 
-def _control_plane_snapshot_summary(value: object) -> dict[str, Any] | None:
+def _authority_snapshot_summary(value: object) -> dict[str, Any] | None:
     if not isinstance(value, Mapping):
         return None
     keys = (

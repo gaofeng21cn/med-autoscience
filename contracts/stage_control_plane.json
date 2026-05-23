@@ -19,7 +19,7 @@
   "notes": [
     "Descriptor-only projection over existing MAS Stage-Led Autonomy routes.",
     "OPL may index, inspect, display and dispatch MAS-exported guarded tasks only.",
-    "MAS keeps route contracts, controller runtime, evidence/review ledgers, publication gate and execution kernel."
+    "MAS keeps route contracts, evidence/review ledgers, publication gate and domain authority receipts."
   ],
   "owner": "MedAutoScience",
   "plane_id": "med_autoscience_stage_control_plane",

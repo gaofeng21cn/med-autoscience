@@ -27,9 +27,9 @@ from med_autoscience.controllers.study_progress_parts.macro_state_projection imp
 )
 from med_autoscience.human_gate_policy import controller_human_gate_allowed
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_backend import (
+from med_autoscience.opl_runtime_contract import (
     CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER,
-    MAS_RUNTIME_OWNER,
+    OPL_RUNTIME_OWNER,
 )
 from med_autoscience.runtime_status_summary import (
     build_runtime_status_summary,
@@ -131,7 +131,7 @@ class _LazyModuleProxy:
 
 gate_clearing_batch = _LazyModuleProxy(lambda: _load_controller("gate_clearing_batch"))
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
-study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
 _QUALITY_CLOSURE_BASIS_LABELS = {
     "clinical_significance": "临床意义",
     "evidence_strength": "证据强度",
@@ -148,7 +148,7 @@ _QUALITY_REVIEW_FOLLOWTHROUGH_STATE_LABELS = {
     "not_in_re_review_waiting": "当前不在等待复评阶段",
 }
 _LATEST_EVENT_DISPLAY_TIERS = {
-    "runtime_supervision": 0,
+    "opl_runtime_owner_handoff": 0,
     "runtime_progress": 0,
     "paper_projection": 0,
     "controller_decision": 0,
@@ -236,7 +236,7 @@ def _runtime_control_pickup_refs(
     refs_payload: Mapping[str, Any] | None = None,
     publication_eval_ref: object = None,
     controller_decision_ref: object = None,
-    runtime_supervision_ref: object = None,
+    opl_runtime_owner_handoff_ref: object = None,
     domain_health_diagnostic_ref: object = None,
 ) -> list[str]:
     refs = dict(refs_payload or {})
@@ -247,8 +247,8 @@ def _runtime_control_pickup_refs(
         _non_empty_text(refs.get("publication_eval_path")),
         _non_empty_text(controller_decision_ref),
         _non_empty_text(refs.get("controller_decision_path")),
-        _non_empty_text(runtime_supervision_ref),
-        _non_empty_text(refs.get("runtime_supervision_path")),
+        _non_empty_text(opl_runtime_owner_handoff_ref),
+        _non_empty_text(refs.get("opl_runtime_owner_handoff_path")),
         _non_empty_text(domain_health_diagnostic_ref),
         _non_empty_text(refs.get("domain_health_diagnostic_report_path")),
     ]
@@ -278,7 +278,7 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
     default_projection: dict[str, Any] = {
         "surface_kind": "research_runtime_control_projection",
         "study_session_owner": {
-            "runtime_owner": MAS_RUNTIME_OWNER,
+            "runtime_owner": OPL_RUNTIME_OWNER,
             "study_owner": "med-autoscience",
             "executor_owner": CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER,
         },
@@ -315,7 +315,7 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
             "fallback_fields": [
                 "refs.publication_eval_path",
                 "refs.controller_decision_path",
-                "refs.runtime_supervision_path",
+                "refs.opl_runtime_owner_handoff_path",
                 "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs": pickup_refs,

@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 
-DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe"
+DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
 
 
 def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: Path) -> None:
@@ -22,27 +22,19 @@ def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: P
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
     service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
-    reconcile_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "domain-route-reconcile"
     supervisor_execute_dispatch = workspace_root / "ops" / "medautoscience" / "bin" / "domain-owner-action-dispatch"
 
-    for path in (reconcile_domain_routes, supervisor_execute_dispatch):
+    for path in (supervisor_execute_dispatch,):
         assert path.is_file()
         assert os.access(path, os.X_OK)
     for path in (install_service, service_status, uninstall_service):
         assert not path.exists()
     assert not (workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner").exists()
-
-    reconcile_domain_routes_text = reconcile_domain_routes.read_text(encoding="utf-8")
-    assert "run_medautosci runtime domain-route-reconcile" in reconcile_domain_routes_text
-    assert '--profile "${PROFILE_PATH}"' in reconcile_domain_routes_text
-    assert "--mode developer_apply_safe" in reconcile_domain_routes_text
-    assert "--apply" in reconcile_domain_routes_text
-
     scan_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "owner-route-reconcile"
     assert scan_domain_routes.is_file()
     assert os.access(scan_domain_routes, os.X_OK)
     scan_domain_routes_text = scan_domain_routes.read_text(encoding="utf-8")
-    assert "run_medautosci runtime owner-route-reconcile" in scan_domain_routes_text
+    assert "run_medautosci owner-route-reconcile" in scan_domain_routes_text
     assert '--profile "${PROFILE_PATH}"' in scan_domain_routes_text
 
     materialize_domain_action_requests = workspace_root / "ops" / "medautoscience" / "bin" / "domain-action-request-materialize"

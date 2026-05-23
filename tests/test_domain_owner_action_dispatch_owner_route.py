@@ -57,7 +57,7 @@ def test_execute_dispatch_materializes_display_contract_stubs_before_gate_cleari
     dispatch_payload["prompt_contract"]["owner_route"] = route
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -209,7 +209,7 @@ def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_block
     assert execution["blocked_reason"] == "owner_callable_surface_missing"
 
 
-def test_execute_dispatch_allows_external_engineering_agent_for_external_supervisor_route(
+def test_execute_dispatch_blocks_retired_runtime_platform_repair_for_external_supervisor_route(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -241,15 +241,6 @@ def test_execute_dispatch_allows_external_engineering_agent_for_external_supervi
         / "runtime_platform_repair.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
-    monkeypatch.setattr(
-        module,
-        "_execute_runtime_platform_repair",
-        lambda **_: {
-            "execution_status": "executed",
-            "blocked_reason": None,
-            "owner_callable_surface": "owner_route_reconcile.scan_domain_routes(apply_runtime_platform_repair=True)",
-        },
-    )
 
     result = module.dispatch_domain_owner_actions(
         profile=profile,
@@ -259,11 +250,15 @@ def test_execute_dispatch_allows_external_engineering_agent_for_external_supervi
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["owner_route_current"] is True
-    assert execution["execution_status"] == "executed"
-    assert execution["blocked_reason"] is None
+    assert execution["dispatch_contract_valid"] is False
+    assert execution["dispatch_contract_blocked_reason"] == "unsupported_action_type"
+    assert execution["owner_route_current"] is None
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "unsupported_action_type"
+    assert execution["owner_callable_surface"] is None
 
 
 def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
@@ -435,16 +430,6 @@ def test_execute_dispatch_blocks_unsupported_executor_kind_fail_closed(
         / "runtime_platform_repair.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
-    monkeypatch.setattr(
-        module,
-        "_execute_runtime_platform_repair",
-        lambda **_: {
-            "execution_status": "executed",
-            "blocked_reason": None,
-            "owner_callable_surface": "should_not_run_for_unsupported_executor_kind",
-        },
-    )
-
     result = module.dispatch_domain_owner_actions(
         profile=profile,
         study_ids=(study_id,),
@@ -592,7 +577,7 @@ def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_an
     assert execution["owner_callable_surface"] is None
     assert execution["prompt_contract"]["repeat_suppression_key"] == "publication-blockers::repeat-executor"
 
-    db_path = profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    db_path = profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite"
     assert db_path.is_file()
     with sqlite3.connect(db_path) as conn:
         row = conn.execute(
@@ -838,7 +823,7 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
     assert called["study_id"] == study_id
 
 
-def test_execute_dispatch_runs_runtime_platform_repair_when_terminal_stall_route_allows_repair(
+def test_execute_dispatch_blocks_retired_runtime_platform_repair_even_when_terminal_stall_route_allows_repair(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -922,19 +907,6 @@ def test_execute_dispatch_runs_runtime_platform_repair_when_terminal_stall_route
             "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
         },
     )
-    called: dict[str, object] = {}
-
-    def fake_execute_runtime_platform_repair(**kwargs) -> dict[str, object]:
-        called.update(kwargs)
-        return {
-            "execution_status": "executed",
-            "blocked_reason": None,
-            "owner_callable_surface": "owner_route_reconcile.scan_domain_routes(apply_runtime_platform_repair=True)",
-            "owner_result": {"dispatch_status": "applied", "started": True, "active_run_id": "run-obesity"},
-        }
-
-    monkeypatch.setattr(module, "_execute_runtime_platform_repair", fake_execute_runtime_platform_repair)
-
     result = module.dispatch_domain_owner_actions(
         profile=profile,
         study_ids=(study_id,),
@@ -944,12 +916,14 @@ def test_execute_dispatch_runs_runtime_platform_repair_when_terminal_stall_route
     )
 
     execution = result["executions"][0]
-    assert result["executed_count"] == 1
-    assert result["blocked_count"] == 0
-    assert result["codex_dispatch_count"] == 1
-    assert execution["execution_status"] == "executed"
-    assert execution["blocked_reason"] is None
-    assert execution["paper_progress_stall_handoff_allowed"] is True
-    assert execution["action_class"] == "codex_worker_dispatch"
-    assert execution["will_start_llm"] is True
-    assert called["study_id"] == study_id
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    assert result["codex_dispatch_count"] == 0
+    assert execution["dispatch_contract_valid"] is False
+    assert execution["dispatch_contract_blocked_reason"] == "unsupported_action_type"
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "unsupported_action_type"
+    assert execution["owner_callable_surface"] is None
+    assert execution["paper_progress_stall_handoff_allowed"] is False
+    assert execution["action_class"] == "observe_only"
+    assert execution["will_start_llm"] is False

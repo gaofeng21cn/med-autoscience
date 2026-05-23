@@ -20,7 +20,7 @@ _CURRENT_STAGE_LABELS = {
     "managed_runtime_recovering": "托管运行恢复中",
     "managed_runtime_degraded": "托管运行健康降级",
     "managed_runtime_escalated": "托管运行已升级告警",
-    "managed_runtime_supervision_gap": "OPL runtime manager 托管监管存在缺口",
+    "managed_opl_runtime_owner_handoff_gap": "OPL runtime manager 托管监管存在缺口",
     "waiting_physician_decision": "等待用户判断",
     "waiting_user_decision": "等待用户判断",
     "publication_supervision": "论文可发表性监管",
@@ -37,8 +37,8 @@ _DECISION_TYPE_LABELS = {
     "promote_to_delivery": "推进到交付线",
 }
 _CONTROLLER_ACTION_LABELS = {
-    "ensure_study_runtime": "继续托管推进当前研究运行",
-    "ensure_study_runtime_relaunch_stopped": "显式重启已经停止的研究运行",
+    "request_opl_stage_attempt": "请求 OPL 接管 stage attempt",
+    "request_opl_stage_attempt_relaunch": "请求 OPL 显式接管已停止 stage attempt",
     "pause_runtime": "先暂停当前运行",
     "stop_runtime": "停止当前运行",
 }
@@ -176,7 +176,7 @@ _RECOVERY_ACTION_MODE_LABELS = {
     "monitor_only": "继续监督当前 study",
 }
 _OPERATOR_STATUS_HANDLING_LABELS = {
-    "runtime_supervision_recovering": "监管恢复中",
+    "opl_runtime_owner_handoff_recovering": "监管恢复中",
     "runtime_recovering": "运行恢复中",
     "publication_gate_specificity_required": "发表门控需具体化",
     "paper_surface_refresh_in_progress": "人类查看面刷新中",
@@ -196,7 +196,7 @@ _OPERATOR_STATUS_HANDLING_LABELS = {
     "monitor_only": "持续监督中",
 }
 _OPERATOR_STATUS_TRUTH_SOURCE_LABELS = {
-    "runtime_supervision": "runtime_supervision/latest.json",
+    "opl_runtime_owner_handoff": "opl_runtime_owner_handoff/latest.json",
     "supervisor_tick_audit": "supervisor_tick_audit",
     "publication_eval": "publication_eval/latest.json",
     "controller_confirmation": "controller_confirmation_summary.json",

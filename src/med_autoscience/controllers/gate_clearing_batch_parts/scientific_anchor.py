@@ -43,7 +43,7 @@ def freeze_scientific_anchor_fields(
     study_id: str,
     profile: WorkspaceProfile,
     mapping_path: Path,
-    study_runtime_router_controller: Any,
+    domain_status_projection_controller: Any,
 ) -> dict[str, Any]:
     study_yaml_path = Path(study_root).expanduser().resolve() / "study.yaml"
     study_payload = read_yaml(study_yaml_path)
@@ -66,7 +66,7 @@ def freeze_scientific_anchor_fields(
         study_root=study_root,
         study_id=study_id,
         study_payload=study_payload,
-        execution=study_runtime_router_controller._execution_payload(study_payload, profile=profile),
+        execution=domain_status_projection_controller._execution_payload(study_payload, profile=profile),
         required_first_anchor=non_empty_text((study_payload.get("execution") or {}).get("required_first_anchor")),
     )
     return {

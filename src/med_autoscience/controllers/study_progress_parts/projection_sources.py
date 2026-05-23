@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts
+from med_autoscience.controllers import autonomy_ai_doctor, opl_runtime_refs
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -18,7 +18,7 @@ def _supervision_active_run_id(
     autonomous_runtime_notice: dict[str, Any],
     continuation_state: dict[str, Any],
 ) -> str | None:
-    return control_plane_facts.active_run_id(
+    return opl_runtime_refs.active_run_id(
         {
             **dict(status or {}),
             "execution_owner_guard": dict(execution_owner_guard or {}),

@@ -243,7 +243,7 @@ def _decision_record(
         requires_human_confirmation=False,
         controller_actions=(
             StudyDecisionControllerAction(
-                action_type=StudyDecisionActionType.ENSURE_STUDY_RUNTIME,
+                action_type=StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT,
                 payload_ref=str(request_path),
             ),
         ),

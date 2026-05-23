@@ -9,7 +9,7 @@ from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
 
 
-def refresh_if_platform_repair_required(
+def refresh_if_opl_stage_attempt_required(
     *,
     profile: WorkspaceProfile,
     study_id: str,
@@ -17,9 +17,9 @@ def refresh_if_platform_repair_required(
     status_payload: Mapping[str, Any],
     developer_mode: DeveloperSupervisorMode,
     enabled: bool,
-    runtime_platform_repair_required: bool,
+    opl_stage_attempt_required: bool,
 ) -> dict[str, Any] | None:
-    if not runtime_platform_repair_required:
+    if not opl_stage_attempt_required:
         return None
     return submission_milestone_parking.refresh_submission_milestone_parking(
         profile=profile,

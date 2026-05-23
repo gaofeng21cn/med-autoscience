@@ -40,8 +40,8 @@ def render_medautoscience_config(*, workspace_root: Path, profile_relpath: Path)
 
 def render_mas_runtime_bridge_config() -> str:
     return (
-        "# MAS runtime bridge config.\n"
-        "# This file intentionally has no external MDS launcher setting; default runtime operations use MAS surfaces.\n"
+        "# MAS domain refs bridge config.\n"
+        "# This file intentionally has no external MDS launcher setting; default runtime control belongs to OPL.\n"
     )
 
 
@@ -52,27 +52,27 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
         "默认 profile:\n\n"
         f"- `{profile_relpath.as_posix()}`\n"
         "\n"
-        "推荐的长时监管入口：\n\n"
+        "推荐的 domain refs 入口：\n\n"
         "- `bin/watch-runtime`\n"
-        "- `bin/domain-route-reconcile`\n"
+        "- `bin/owner-route-reconcile`\n"
         "- `bin/domain-action-request-materialize`\n"
         "- `bin/domain-owner-action-dispatch`\n\n"
-        "默认 scheduler projection 委托 OPL provider/runtime manager：`medautosci runtime ensure-supervision --profile <profile>`、"
-        "`medautosci runtime supervision-status --profile <profile>` 与 `medautosci runtime remove-supervision --profile <profile>`。"
-        "`local` 已物理退役为 tombstone/provenance-only；Hermes 只在显式 status/remove 时作为 legacy diagnostic cleanup adapter。\n"
+        "默认 stage/runtime lifecycle 由 OPL current_control_state refs-only handoff 承接。"
+        "MAS 只保留 `domain-health-diagnostic`、owner receipt、typed blocker 与 domain authority refs；"
+        "旧 workspace-local supervision 命令已物理退役为 tombstone/provenance-only。\n"
     )
 
 
 def render_mas_runtime_bridge_readme() -> str:
     return (
-        "# MAS Runtime Bridge\n\n"
-        "这个目录保留当前 workspace 的 MAS-native 运维薄入口脚本。\n\n"
-        "它是 MAS-first runtime 运维面，不是研究入口。\n\n"
+        "# MAS Domain Refs Bridge\n\n"
+        "这个目录保留当前 workspace 的 MAS domain refs 运维薄入口脚本。\n\n"
+        "它不是 MAS 私有 runtime 运维面，也不是研究入口。\n\n"
         "请遵守下面的边界：\n\n"
         "- 研究 quest 的创建、恢复、门禁判断统一走 `MedAutoScience`。\n"
         "- 不要从这里直接发起研究，不要把 `start-web`、`status`、`doctor`、`stop` 当成研究入口。\n"
-        "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、`ops/medautoscience/bin/bootstrap`、`ensure-study-runtime` 等受管入口。\n"
-        "- 如果需要查看或维护 runtime，本目录下脚本只调用 MAS CLI / read-model / controlled pause surface，不调用外部 MDS launcher、daemon 或 WebUI。\n"
+        "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、`ops/medautoscience/bin/bootstrap` 与 OPL stage control 面。\n"
+        "- 如果需要查看或维护 runtime，读取 OPL current-control-state；本目录下脚本只调用 MAS domain refs / diagnostic surface，不调用外部 MDS launcher、daemon 或 WebUI。\n"
     )
 
 

@@ -127,10 +127,10 @@ def _build_phase3_clearance_lane(
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
     doctor_command = f"{prefix} doctor --profile {profile_arg}"
-    supervisor_service_command = f"{prefix} runtime-supervision-status --profile {profile_arg}"
+    supervisor_service_command = f"{prefix} study-progress --profile {profile_arg} --format json"
     refresh_supervision_command = (
         f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+        f"--profile {profile_arg} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
     )
     launch_study_command = f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>"
     study_progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
@@ -139,14 +139,14 @@ def _build_phase3_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
         summary=(
             "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
-            "与 paper-progress SLO 由 MAS surface 承接，generic cadence/provider SLO 归 OPL runtime manager。"
+            "与 paper-progress SLO 由 MAS surface 承接，generic cadence/provider SLO 归 OPL current_control_state。"
         ),
-        recommended_step_id="mas_runtime_contract",
+        recommended_step_id="mas_domain_refs_boundary",
         recommended_command=doctor_command,
         clearance_targets=[
             _build_shared_clearance_target(
-                target_id="mas_runtime_contract",
-                title="Check MAS runtime and legacy hosted-runtime tombstone contract",
+                target_id="mas_domain_refs_boundary",
+                title="Check MAS domain refs and legacy runtime tombstone boundary",
                 commands=[doctor_command],
             ),
             _build_shared_clearance_target(
@@ -168,9 +168,9 @@ def _build_phase3_clearance_lane(
         ],
         clearance_loop=[
             _build_shared_product_entry_program_step(
-                step_id="mas_runtime_contract",
-                title="确认 MAS runtime contract ready，旧 hosted runtime 仅保留 tombstone/provenance",
-                surface_kind="doctor_runtime_contract",
+                step_id="mas_domain_refs_boundary",
+                title="确认 MAS domain refs boundary ready，旧 hosted runtime 仅保留 tombstone/provenance",
+                surface_kind="doctor_domain_refs_boundary",
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_step(
@@ -181,7 +181,7 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
-                title="刷新 MAS domain runtime projection",
+                title="刷新 MAS domain refs projection",
                 surface_kind="domain_health_diagnostic_refresh",
                 command=refresh_supervision_command,
             ),
@@ -212,8 +212,8 @@ def _build_phase3_clearance_lane(
                 ref=str(profile.studies_root / "<study_id>" / "artifacts" / "domain_health_diagnostic" / "latest.json"),
             ),
             _build_shared_product_entry_program_surface(
-                surface_kind="runtime_supervision",
-                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_supervision" / "latest.json"),
+                surface_kind="runtime_supervision_retired_provenance",
+                ref="contracts/runtime/legacy-active-path-tombstones.json",
             ),
             _build_shared_product_entry_program_surface(
                 surface_kind="controller_decisions",
@@ -255,7 +255,7 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
         ],
         current_backend_chain=[
             "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
-            "generic runtime/provider context -> OPL runtime manager handoff refs",
+            "generic runtime/provider context -> OPL current_control_state refs-only handoff",
             "historical med_deepscientist fixture/provenance refs only",
         ],
         optional_executor_proofs=[

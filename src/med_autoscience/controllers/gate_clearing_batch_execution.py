@@ -45,7 +45,7 @@ def latest_unit_status(latest_batch: dict[str, Any], *, unit_id: str) -> str | N
 def unit_status_is_success(status: str | None) -> bool:
     return status not in {
         None,
-        "control_plane_route_blocked",
+        "authority_route_blocked",
         "failed",
         "missing",
         "skipped",

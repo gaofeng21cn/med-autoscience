@@ -174,7 +174,7 @@ def test_mas_persistence_lifecycle_owner_route_projection_is_refs_payload_only()
         "lifecycle": "opl_family_lifecycle_contract.v1",
         "owner_route": "opl_family_owner_route_contract.v1",
     }
-    assert "artifacts/runtime/runtime_lifecycle.sqlite" in projection["source_surfaces"]
+    assert "artifacts/runtime/domain_authority_refs.sqlite" in projection["source_surfaces"]
     assert "owner_route_receipts" in projection["sqlite_tables"]
     assert "surface_refs" in projection["sqlite_tables"]
     assert projection["authority_boundary"] == (
@@ -308,8 +308,8 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     )
     assert adoption["remaining_functional_followthrough_gate_ids"] == []
     assert adoption["closed_functional_structure_gate_ids"] == [
-        "generated_surface_active_caller_cutover",
-        "refs_only_adapter_thinning",
+        "generated_surface_default_owner_cutover",
+        "domain_authority_refs_thinning",
         "legacy_cleanup_physical_retirement",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
@@ -335,7 +335,7 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
         "projection shell",
         "test-lane harness",
     ]
-    assert adoption["current_mas_shell_role"] == "handwritten_migration_bridge"
+    assert adoption["current_mas_shell_role"] == "domain_handler_and_refs_projection_source"
     assert adoption["mas_handwritten_shell_expansion_allowed"] is False
     assert adoption["minimal_authority_functions"] == [
         "publication_quality_verdict",

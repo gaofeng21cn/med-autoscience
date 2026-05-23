@@ -88,7 +88,7 @@ def test_progress_portal_authorized_actions_apply_writes_owner_route_request_wit
     assert first["runtime_control_operation"] == "opl_runtime_owner_route"
     assert first["requested_runtime_action"] == "resume"
     assert first["runtime_owner_handoff"]["queue_owner"] == "one-person-lab"
-    assert first["runtime_owner_handoff"]["recommended_task_kind"] == "domain_route/reconcile-apply"
+    assert first["runtime_owner_handoff"]["recommended_task_kind"] == "domain_route/owner-handoff"
     assert first["runtime_owner_handoff"]["authority_boundary"]["mas_resumes_provider_worker"] is False
     assert first["forbidden_writes"] == [
         "paper",

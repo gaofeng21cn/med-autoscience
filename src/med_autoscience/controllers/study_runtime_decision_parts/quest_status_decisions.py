@@ -23,11 +23,11 @@ from med_autoscience.controllers.study_runtime_decision_parts.runtime_events.hum
     _is_controller_owned_finalize_parking,
     _is_human_review_milestone_parking,
     _live_worker_missing_active_run_id,
-    _platform_repair_redrive_without_live_worker,
+    _opl_owner_route_handoff_without_live_worker,
     _publication_supervisor_requires_human_confirmation,
     _set_running_quest_recovery_decision,
     _should_park_delivered_package_without_live_worker,
-    _should_park_delivered_or_redriven_package_without_live_worker,
+    _should_park_delivered_or_opl_handoff_package_without_live_worker,
     _stale_progress_without_live_bash_sessions,
     _user_pause_contract_without_live_worker,
 )
@@ -56,7 +56,6 @@ _OPL_RUNTIME_OWNER_ROUTE_CLASSIFICATIONS = frozenset(
     {
         "blocked_closeout_owner_redrive",
         "controller_work_unit_pending_redrive",
-        "platform_repair_decision_redrive",
         "pending_user_message_redrive",
     }
 )
@@ -74,7 +73,7 @@ def _stopped_runtime_redrive_reason(result: ProgressProjectionStatus) -> StudyRu
             return StudyRuntimeReason(reason_code)
         except ValueError:
             pass
-    return StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+    return StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
 
 
 def _apply_live_quest_status_decision(
@@ -126,7 +125,7 @@ def _apply_live_quest_status_decision(
         )
         return finalize_result()
     if (
-        not _platform_repair_redrive_without_live_worker(result, audit_status=audit_status)
+        not _opl_owner_route_handoff_without_live_worker(result, audit_status=audit_status)
         and _record_existing_controller_work_unit_evidence_adoption(status=result, study_root=study_root) is not None
     ):
         result.set_decision(
@@ -136,7 +135,7 @@ def _apply_live_quest_status_decision(
         return finalize_result()
     if (
         not _has_domain_transition_runtime_redrive(result)
-        and _should_park_delivered_or_redriven_package_without_live_worker(
+        and _should_park_delivered_or_opl_handoff_package_without_live_worker(
             result,
             study_root=study_root,
             audit_status=audit_status,
@@ -330,25 +329,11 @@ def _apply_resumable_quest_status_decision(
         _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result)
         and not task_intake_releases_bare_paused_parking
     ):
-        from med_autoscience.controllers.study_runtime_execution_parts import (
-            runtime_events as runtime_execution_events,
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
         )
-
-        repaired_human_takeover = runtime_execution_events.repair_legacy_human_takeover_user_pause_contract(
-            quest_root=quest_root,
-            source="legacy_human_takeover_escalation_repair",
-        )
-        if repaired_human_takeover is not None:
-            result._record_dict_extra("human_takeover_contract", repaired_human_takeover)
-            result = rebuild_status()
-            result._record_dict_extra("human_takeover_contract", repaired_human_takeover)
-            return result
-        else:
-            result.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
-            )
-            return finalize_result()
+        return finalize_result()
     if quest_status not in _RESUMABLE_QUEST_STATUSES:
         return finalize_result()
     if _user_pause_contract_without_live_worker(

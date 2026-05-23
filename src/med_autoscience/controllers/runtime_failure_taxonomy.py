@@ -118,7 +118,7 @@ def _diagnosis_from_profile(profile_payload: Mapping[str, Any]) -> Mapping[str, 
         diagnosis = _mapping(profile_payload.get(key))
         if diagnosis:
             return diagnosis
-    runtime_activity = _mapping(profile_payload.get("runtime_worker_activity"))
+    runtime_activity = _mapping(profile_payload.get("opl_domain_activity_ref"))
     for key in ("mds_failure_diagnosis", "runtime_failure_diagnosis", "failure_diagnosis"):
         diagnosis = _mapping(runtime_activity.get(key))
         if diagnosis:

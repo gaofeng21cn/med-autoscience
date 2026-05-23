@@ -288,7 +288,7 @@ def _append_quality_categories(categories: list[str], payload: Mapping[str, Any]
 def _append_runtime_categories(categories: list[str], payload: Mapping[str, Any]) -> None:
     intervention_lane = _mapping(payload.get("intervention_lane"))
     task_intake = _mapping(payload.get("task_intake"))
-    controller = _mapping(payload.get("control_plane_snapshot"))
+    controller = _mapping(payload.get("authority_snapshot"))
     texts = _joined_text(
         intervention_lane,
         task_intake,
@@ -341,7 +341,7 @@ def _source_surfaces(payload: Mapping[str, Any]) -> list[str]:
     for key in (
         "study_truth_snapshot",
         "runtime_health_snapshot",
-        "control_plane_snapshot",
+        "authority_snapshot",
         "medical_paper_readiness",
         "quality_execution_lane",
         "same_line_route_truth",

@@ -76,7 +76,7 @@ def _write_memory_router_receipt(
 
 def _stub_paused_status(*, cli: object, monkeypatch: object, study_root: Path, study_id: str) -> None:
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,

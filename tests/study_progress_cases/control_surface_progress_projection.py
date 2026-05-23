@@ -61,7 +61,7 @@ def test_study_progress_freshness_does_not_treat_control_surface_as_artifact_del
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -165,9 +165,9 @@ def test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta(
                 },
                 {
                     "unit_id": "create_submission_minimal_package",
-                    "status": "control_plane_route_blocked",
+                    "status": "authority_route_blocked",
                     "result": {
-                        "status": "control_plane_route_blocked",
+                        "status": "authority_route_blocked",
                         "paper_root": str(study_root / "paper"),
                     },
                 },
@@ -201,7 +201,7 @@ def test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta(
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -305,7 +305,7 @@ def test_study_progress_counts_runtime_closeout_paper_outputs_as_artifact_delta(
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

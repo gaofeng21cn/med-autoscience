@@ -43,14 +43,14 @@ from med_autoscience.runtime_control.ports import (
     RuntimeControlPorts,
     build_outer_loop_request,
     dispatch_outer_loop,
-    ensure_runtime,
+    request_opl_stage_attempt,
 )
 
 
 ControllerRunner = Callable[..., dict[str, Any]]
 RunDomainHealthDiagnosticForQuest = Callable[..., dict[str, Any]]
 
-_MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "domain_health_diagnostic_auto_recovery"
+_MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "domain_health_diagnostic_opl_stage_attempt_request"
 _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "domain_health_diagnostic_controller_reroute"
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "domain_health_diagnostic_outer_loop_wakeup"
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
@@ -106,7 +106,7 @@ def _serialize_no_op_suppression(
         "max_redrive_attempts",
         "platform_repair_kind",
         "controller_work_unit_block",
-        "control_plane_snapshot",
+        "authority_snapshot",
         "control_plane_blocking_reasons",
         "explicit_wakeup_contract",
     ):
@@ -269,7 +269,7 @@ def run_domain_health_diagnostic_for_runtime(
     run_domain_health_diagnostic_for_quest_fn: RunDomainHealthDiagnosticForQuest,
     runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile | None = None,
-    ensure_study_runtimes: bool = False,
+    request_opl_stage_attempts: bool = False,
 ) -> dict[str, Any]:
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     managed_study_auto_recoveries: list[dict[str, Any]] = []
@@ -277,7 +277,7 @@ def run_domain_health_diagnostic_for_runtime(
     managed_study_outer_loop_dispatches: list[dict[str, Any]] = []
     managed_study_outer_loop_wakeup_audits: list[dict[str, Any]] = []
     managed_study_no_op_suppressions: list[dict[str, Any]] = []
-    managed_study_alert_deliveries: list[dict[str, Any]] = []
+    managed_study_opl_runtime_owner_handoffs: list[dict[str, Any]] = []
     managed_study_autonomy_slo_statuses: list[dict[str, Any]] = []
     managed_study_autonomy_repair_actions: list[dict[str, Any]] = []
     managed_study_runtime_recovery_payloads: dict[str, dict[str, Any]] = {}
@@ -285,7 +285,7 @@ def run_domain_health_diagnostic_for_runtime(
         runtime_control_ports=runtime_control_ports,
         profile=profile,
         apply=apply,
-        ensure_study_runtimes=ensure_study_runtimes,
+        request_opl_stage_attempts=request_opl_stage_attempts,
         auto_recoveries=managed_study_auto_recoveries,
         recovery_holds=managed_study_recovery_holds,
         runtime_recovery_payloads=managed_study_runtime_recovery_payloads,
@@ -296,7 +296,7 @@ def run_domain_health_diagnostic_for_runtime(
         apply=apply,
         run_domain_health_diagnostic_for_quest_fn=run_domain_health_diagnostic_for_quest_fn,
     )
-    if apply and ensure_study_runtimes and profile is not None:
+    if apply and request_opl_stage_attempts and profile is not None:
         rerouted_managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
         for study_root, status_payload in managed_study_statuses:
             resolved_status_payload = status_payload
@@ -306,7 +306,7 @@ def run_domain_health_diagnostic_for_runtime(
             quest_root = status_payload.get("quest_root")
             quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
             if _quest_report_requests_managed_study_reroute(quest_report):
-                rerouted_payload = ensure_runtime(
+                rerouted_payload = request_opl_stage_attempt(
                     ports=runtime_control_ports,
                     profile=profile,
                     study_root=study_root,
@@ -322,14 +322,13 @@ def run_domain_health_diagnostic_for_runtime(
                 resolved_status_payload = _managed_study_status_payload(rerouted_payload)
             rerouted_managed_study_statuses.append((study_root, resolved_status_payload))
         managed_study_statuses = rerouted_managed_study_statuses
-    managed_study_supervision: list[dict[str, Any]] = []
     managed_study_action_overrides: dict[str, dict[str, Any]] = {}
     for study_root, status_payload in managed_study_statuses:
         study_root_key = str(Path(study_root).expanduser().resolve())
         current_study_outer_loop_dispatched = False
         if profile is not None:
             if status_payload.get("domain_health_diagnostic_error_isolated") is not True:
-                status_payload = runtime_control_ports.refresh_status_after_ensure(
+                status_payload = runtime_control_ports.refresh_status_after_stage_request(
                     profile=profile,
                     study_root=study_root,
                     status_payload=status_payload,
@@ -761,9 +760,9 @@ def run_domain_health_diagnostic_for_runtime(
                 managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
-        supervision_report = None
+        opl_runtime_owner_handoff = None
         if status_payload.get("domain_health_diagnostic_error_isolated") is not True:
-            supervision_report = runtime_control_ports.materialize_supervision(
+            opl_runtime_owner_handoff = runtime_control_ports.materialize_opl_runtime_owner_handoff(
                 study_root=study_root,
                 status_payload=status_payload,
                 recorded_at=utc_now(),
@@ -775,17 +774,8 @@ def run_domain_health_diagnostic_for_runtime(
                     else None
                 ),
             )
-        if supervision_report is not None:
-            managed_study_supervision.append(supervision_report)
-            alert_delivery = runtime_control_ports.deliver_alert(
-                profile=profile,
-                study_root=study_root,
-                status_payload=status_payload,
-                supervision_report=supervision_report,
-                apply=apply,
-            )
-            if alert_delivery is not None:
-                managed_study_alert_deliveries.append(alert_delivery)
+        if opl_runtime_owner_handoff is not None:
+            managed_study_opl_runtime_owner_handoffs.append(opl_runtime_owner_handoff)
         if apply:
             study_id = str(status_payload.get("study_id") or "").strip()
             quest_id = str(status_payload.get("quest_id") or "").strip()
@@ -844,8 +834,7 @@ def run_domain_health_diagnostic_for_runtime(
         managed_study_outer_loop_dispatches=managed_study_outer_loop_dispatches,
         managed_study_outer_loop_wakeup_audits=managed_study_outer_loop_wakeup_audits,
         managed_study_no_op_suppressions=managed_study_no_op_suppressions,
-        managed_study_supervision=managed_study_supervision,
-        managed_study_alert_deliveries=managed_study_alert_deliveries,
+        managed_study_opl_runtime_owner_handoffs=managed_study_opl_runtime_owner_handoffs,
         managed_study_autonomy_slo_statuses=managed_study_autonomy_slo_statuses,
         managed_study_autonomy_repair_actions=managed_study_autonomy_repair_actions,
     )
