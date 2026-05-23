@@ -108,6 +108,7 @@ def execute_publication_gate_specificity(
     profile: WorkspaceProfile,
     study_id: str,
     apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     quest_root = quest_root_from_status(profile, study_id)
     if quest_root is None:
@@ -168,6 +169,7 @@ def execute_runtime_platform_repair(
     study_id: str,
     apply: bool,
     supported_mode: str,
+    dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not apply:
         return {
@@ -204,6 +206,7 @@ def execute_current_package_freshness(
     profile: WorkspaceProfile,
     study_id: str,
     apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     quest_root = quest_root_from_status(profile, study_id)
     if quest_root is None:
@@ -379,6 +382,7 @@ def execute_artifact_display_materialization(
     profile: WorkspaceProfile,
     study_id: str,
     apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
     paper_root = study_root / "paper"
@@ -452,6 +456,7 @@ def execute_ai_reviewer_workflow(
     profile: WorkspaceProfile,
     study_id: str,
     apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
     controller_decision_refresh,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
@@ -531,6 +536,7 @@ def execute_canonical_paper_inputs_rehydrate(
     profile: WorkspaceProfile,
     study_id: str,
     apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
     if not paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):

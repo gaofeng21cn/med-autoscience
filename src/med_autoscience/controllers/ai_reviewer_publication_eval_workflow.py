@@ -370,6 +370,12 @@ def _record_bound_medical_prose_review_currentness(
     record_payload: Mapping[str, Any],
     ref_bundle: Mapping[str, str],
 ) -> dict[str, Any]:
+    if _record_routes_back_before_delivery(record_payload):
+        return _route_back_record_medical_prose_review_currentness(
+            study_root=study_root,
+            record_payload=record_payload,
+            ref_bundle=ref_bundle,
+        )
     currentness = _medical_prose_review_currentness(
         study_root=study_root,
         record_payload=record_payload,
@@ -383,6 +389,68 @@ def _record_bound_medical_prose_review_currentness(
     return {
         **currentness,
         "route_back_required": route_back_required,
+        "route_target": route_target,
+        "authority_source_signature": "ai_reviewer_request_record",
+    }
+
+
+def _route_back_record_medical_prose_review_currentness(
+    *,
+    study_root: Path,
+    record_payload: Mapping[str, Any],
+    ref_bundle: Mapping[str, str],
+) -> dict[str, Any]:
+    prose_ref = _text(ref_bundle.get("medical_prose_review"))
+    if not prose_ref:
+        raise ValueError("AI reviewer publication eval workflow missing medical_prose_review")
+    prose_path = _resolve_ref(study_root=study_root, ref=prose_ref)
+    prose_payload = _read_json(prose_path)
+    provenance = _mapping(prose_payload.get("assessment_provenance"))
+    request_digest = _text(provenance.get("request_digest"))
+    manuscript_ref = _text(provenance.get("manuscript_ref")) or _text(ref_bundle.get("manuscript"))
+    manuscript_digest = _text(provenance.get("manuscript_digest"))
+    if not request_digest:
+        raise ValueError("medical_prose_review_request_digest_missing")
+    if not manuscript_ref:
+        raise ValueError("medical_prose_review_manuscript_ref_missing")
+    if not manuscript_digest:
+        raise ValueError("medical_prose_review_manuscript_digest_missing")
+
+    request_ref = _text(provenance.get("request_ref")) or str(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    )
+    request_path = _resolve_ref(study_root=study_root, ref=request_ref)
+    request_payload = _read_json(request_path)
+    current_request_digest = _text(request_payload.get("request_digest"))
+    if current_request_digest and current_request_digest != request_digest:
+        raise ValueError("medical_prose_review_request_digest_mismatch")
+    request_manuscript = _mapping(request_payload.get("manuscript"))
+    request_manuscript_ref = _text(request_manuscript.get("path"))
+    request_manuscript_digest = _text(request_manuscript.get("digest"))
+    if request_manuscript_ref and not _refs_match(
+        study_root=study_root,
+        left=request_manuscript_ref,
+        right=manuscript_ref,
+    ):
+        raise ValueError("medical_prose_review_manuscript_ref_mismatch")
+    if request_manuscript_digest and request_manuscript_digest != manuscript_digest:
+        raise ValueError("medical_prose_review_manuscript_digest_mismatch")
+
+    quality_assessment = _mapping(record_payload.get("quality_assessment"))
+    record_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
+    prose_quality = _mapping(prose_payload.get("medical_journal_prose_quality"))
+    prose_route_back = _mapping(prose_quality.get("route_back_recommendation"))
+    route_target = _record_route_target(record_payload) or _text(prose_route_back.get("route_target"))
+    return {
+        "status": "current",
+        "ref": str(prose_path),
+        "request_ref": str(request_path),
+        "request_digest": request_digest,
+        "manuscript_ref": manuscript_ref,
+        "manuscript_digest": manuscript_digest,
+        "prose_status": _text(record_quality.get("status")) or _text(prose_quality.get("status")),
+        "overall_style_verdict": _text(prose_quality.get("overall_style_verdict")),
+        "route_back_required": True,
         "route_target": route_target,
         "authority_source_signature": "ai_reviewer_request_record",
     }

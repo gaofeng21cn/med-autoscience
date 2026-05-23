@@ -364,6 +364,7 @@ def _execute_publication_gate_specificity(
     profile: WorkspaceProfile,
     study_id: str,
     apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return action_execution.execute_publication_gate_specificity(profile=profile, study_id=study_id, apply=apply)
 
@@ -373,12 +374,14 @@ def _execute_runtime_platform_repair(
     profile: WorkspaceProfile,
     study_id: str,
     apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return action_execution.execute_runtime_platform_repair(
         profile=profile,
         study_id=study_id,
         apply=apply,
         supported_mode=SUPPORTED_MODE,
+        dispatch=dispatch,
     )
 
 
@@ -387,11 +390,13 @@ def _execute_ai_reviewer_workflow(
     profile: WorkspaceProfile,
     study_id: str,
     apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return action_execution.execute_ai_reviewer_workflow(
         profile=profile,
         study_id=study_id,
         apply=apply,
+        dispatch=dispatch,
         controller_decision_refresh=_refresh_controller_decision_after_ai_reviewer_eval,
     )
 

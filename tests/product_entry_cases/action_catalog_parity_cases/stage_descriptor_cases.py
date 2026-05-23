@@ -209,6 +209,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert journal_pack["clean_room_absorption"] == {
         "source_project": "nature-skills",
         "absorbed_as": "mas_native_contract_pattern",
+        "status_signal_consumed_as": "upstream_readme_status_only_not_mas_authority",
         "vendor_dependency": False,
         "runtime_dependency": False,
         "publication_authority": False,

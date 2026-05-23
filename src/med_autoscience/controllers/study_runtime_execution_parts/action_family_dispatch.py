@@ -620,6 +620,8 @@ def _execute_runtime_decision(
     router_module: Callable[[], Any],
 ) -> StudyRuntimeExecutionOutcome:
     router = router_module()
+    if status.decision is not None and not isinstance(status.decision, StudyRuntimeDecision):
+        raise ValueError(f"unsupported study runtime decision: {status.decision}")
     if status.decision in {StudyRuntimeDecision.CREATE_AND_START, StudyRuntimeDecision.CREATE_ONLY}:
         return router._execute_create_runtime_decision(status=status, context=context)
     if status.decision == StudyRuntimeDecision.RESUME:
