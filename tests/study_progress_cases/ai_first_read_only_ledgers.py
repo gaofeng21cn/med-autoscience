@@ -40,7 +40,7 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -160,7 +160,7 @@ def test_study_progress_default_read_does_not_materialize_ai_first_ledgers(
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

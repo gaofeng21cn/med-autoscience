@@ -713,7 +713,7 @@ def test_quality_repair_batch_preserves_ai_reviewer_methodology_analysis_work_un
     assert action["blocking_work_units"] == [work_unit]
 
 
-def test_study_outer_loop_tick_records_control_plane_route_blocked_quality_repair(
+def test_study_outer_loop_tick_records_authority_route_blocked_quality_repair(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -725,7 +725,7 @@ def test_study_outer_loop_tick_records_control_plane_route_blocked_quality_repai
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -766,6 +766,6 @@ def test_study_outer_loop_tick_records_control_plane_route_blocked_quality_repai
     assert result["executed_controller_action"]["action_type"] == "run_quality_repair_batch"
     action_result = result["executed_controller_action"]["result"]
     assert action_result["ok"] is False
-    assert action_result["status"] == "control_plane_route_blocked"
-    assert action_result["blocked_reason"] == "control_plane_route_blocked"
+    assert action_result["status"] == "authority_route_blocked"
+    assert action_result["blocked_reason"] == "authority_route_blocked"
     assert "publication_supervisor_state.bundle_tasks_downstream_only" in action_result["message"]

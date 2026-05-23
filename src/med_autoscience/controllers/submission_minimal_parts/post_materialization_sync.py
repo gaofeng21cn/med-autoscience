@@ -88,10 +88,10 @@ def replay_post_submission_minimal_sync(
     *,
     paper_root: Path,
     publication_profile: str = "general_medical_journal",
-    control_plane_route_context: Mapping[str, Any] | None = None,
+    authority_route_context: Mapping[str, Any] | None = None,
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    resolved_route_context = control_plane_route_context or route_context
+    resolved_route_context = authority_route_context or route_context
     try:
         context = resolve_paper_root_context(Path(paper_root).expanduser().resolve())
     except (FileNotFoundError, ValueError):
@@ -102,7 +102,7 @@ def replay_post_submission_minimal_sync(
         apply=True,
         source="submission-minimal-post-materialization",
         enqueue_intervention=False,
-        control_plane_route_context=resolved_route_context,
+        authority_route_context=resolved_route_context,
     )
     gate_refresh = {
         "status": str(gate_replay.get("status") or "").strip(),
@@ -117,7 +117,7 @@ def replay_post_submission_minimal_sync(
             paper_root=context.paper_root,
             stage="submission_minimal",
             publication_profile=publication_profile,
-            control_plane_route_context=resolved_route_context,
+            authority_route_context=resolved_route_context,
         )
 
     profile_path, profile = _resolve_profile_for_study_root(context.study_root)

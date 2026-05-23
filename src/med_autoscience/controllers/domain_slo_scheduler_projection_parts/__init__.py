@@ -1,1 +1,1 @@
-"""Supervision scheduler projections and retired local cleanup adapters."""
+"""Supervision scheduler projections and retired local provenance refs."""

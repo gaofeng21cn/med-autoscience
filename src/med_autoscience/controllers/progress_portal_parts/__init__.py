@@ -46,14 +46,6 @@ from .route_map import (
     render_route_map_section,
 )
 from .runtime_workbench_projection import build_runtime_workbench_projection
-from .live_console_shell import (
-    LIVE_CONSOLE_HTML_REF,
-    LIVE_CONSOLE_SERVE_COMMAND,
-    LIVE_CONSOLE_SESSION_READ_MODEL_REF,
-    live_console_projection,
-    render_live_console_portal_link,
-    render_live_console_static_shell,
-)
 from .workspace_overview import (
     dedupe_texts,
     render_workspace_studies_section,
@@ -73,9 +65,6 @@ from .workspace_summary import (
 )
 
 __all__ = [
-    "LIVE_CONSOLE_HTML_REF",
-    "LIVE_CONSOLE_SERVE_COMMAND",
-    "LIVE_CONSOLE_SESSION_READ_MODEL_REF",
     "ARTIFACT_GROUPS",
     "build_route_decision_trail_payload",
     "build_route_map_payload",
@@ -90,7 +79,6 @@ __all__ = [
     "gate_text",
     "list_html",
     "list_section",
-    "live_console_projection",
     "local_time_label",
     "local_time_projection",
     "localtime_symlink_target",
@@ -102,9 +90,7 @@ __all__ = [
     "render_route_decision_trail_section",
     "render_route_map_section",
     "render_study_workbench_sections",
-    "render_live_console_portal_link",
     "render_section_explanations_section",
-    "render_live_console_static_shell",
     "runtime_continuity_section",
     "section",
     "source_ref_allowed",

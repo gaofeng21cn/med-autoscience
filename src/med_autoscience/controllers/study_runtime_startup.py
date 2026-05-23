@@ -6,7 +6,7 @@ import inspect
 from pathlib import Path
 from typing import Any
 
-from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience import opl_runtime_contract
 from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
     medical_analysis_contract as medical_analysis_contract_controller,
@@ -40,7 +40,7 @@ SUPPORTED_STARTUP_CONTRACT_PROFILES = {"paper_required_autonomous"}
 
 
 def _router_module():
-    return import_module("med_autoscience.controllers.study_runtime_router")
+    return import_module("med_autoscience.controllers.domain_status_projection")
 
 
 def _read_optional_text(path: Path | None) -> str:
@@ -343,7 +343,7 @@ def _build_create_payload(
         "title": title,
         "goal": goal,
         "quest_id": str(execution.get("quest_id") or study_id).strip() or study_id,
-        "source": "med_autoscience.study_runtime_router",
+        "source": "med_autoscience.domain_status_projection",
         "auto_start": startup_boundary_gate.allow_compute_stage and runtime_reentry_gate.allow_runtime_entry,
         "startup_contract": startup_contract,
     }
@@ -422,8 +422,9 @@ def _sync_existing_quest_startup_context(
         update_kwargs["requested_baseline_ref"] = (
             dict(requested_baseline_ref) if isinstance(requested_baseline_ref, dict) else None
         )
-    if isinstance(execution, dict) and runtime_backend_contract.is_managed_runtime_execution(execution):
-        managed_runtime_backend = _router_module()._managed_runtime_backend_for_execution(execution)
-        if managed_runtime_backend is not None:
-            update_kwargs["runtime_backend"] = managed_runtime_backend
+    if isinstance(execution, dict) and opl_runtime_contract.is_opl_hosted_research_execution(execution):
+        update_kwargs["opl_runtime_ref"] = (
+            opl_runtime_contract.explicit_opl_runtime_ref(execution)
+            or opl_runtime_contract.OPL_HOSTED_STAGE_RUNTIME_ID
+        )
     return _router_module()._update_quest_startup_context(**update_kwargs)

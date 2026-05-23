@@ -32,7 +32,7 @@ MedAutoScience owns the review judgment, claim downgrade, citation repair routin
 
 Allowed MAS owner tools and surfaces:
 
-- controller-authorized MAS CLI / MCP / product-entry / runtime surfaces
+- controller-authorized MAS CLI / MCP / product-entry domain handler surfaces
 - `artifacts/publication_eval/latest.json`
 - `artifacts/controller_decisions/latest.json`
 - `paper/review/review_ledger.json` and reviewer action matrix surfaces
@@ -247,7 +247,7 @@ If an RH-inspired critique is useful, write it as MAS-owned review ledger, citat
 - Do not treat contradiction flags as publication verdicts; they are `review_signal_only`.
 - Do not advance to finalize with orphan claims, missing evidence refs, unresolved citation gaps, or unclosed reviewer blockers.
 - Do not fix citation gaps by inventing sources, guessing official requirements, or relying on memory alone.
-- Do not directly edit `manuscript/current_package` as the final repair when canonical paper sources or runtime ownership are stale.
+- Do not directly edit `manuscript/current_package` as the final repair when canonical paper sources or OPL runtime-control refs are stale.
 - Do not convert an external harness result, provider completion, or dashboard state into MAS quality authority.
 - Do not bury negative, weak, contradictory, or blocked findings in prose.
 - Do not let OPL own review truth, publication readiness, or memory writeback.

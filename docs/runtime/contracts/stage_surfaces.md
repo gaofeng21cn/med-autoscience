@@ -3,13 +3,13 @@
 Canonical route source: `agent/stages/stage_route_contract.yaml`.
 Markdown is a generated human-reading surface; it is not machine truth.
 OPL may only project, dispatch, and read refs.
-MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and artifact authority.
+MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and artifact authority.
 
 ## Machine Boundary
-- Machine truth owners: canonical route contract | stage knowledge plane contracts | MAS controller/runtime surfaces | publication_eval/latest.json | controller_decisions/latest.json | evidence/review ledgers | workspace artifact locator refs
+- Machine truth owners: canonical route contract | stage knowledge plane contracts | MAS controller/domain-authority refs surfaces | publication_eval/latest.json | controller_decisions/latest.json | evidence/review ledgers | workspace artifact locator refs | OPL current-control-state for runtime control
 - OPL allowed: projection | dispatch | read_refs
 - OPL forbidden: domain_truth | quality_verdict | artifact_authority | memory_writeback_acceptance
-- MAS authority: domain_truth | quality_verdict | artifact_authority | runtime_owner
+- MAS authority: domain_truth | quality_verdict | artifact_authority | runtime_authority_refs | owner_receipt | typed_blocker
 
 ## Stage Cards
 
@@ -28,10 +28,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - current line still needs direction framing or evidence scoping
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -105,10 +105,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - active route still needs a chosen line before baseline work
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -182,10 +182,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - startup boundary can justify managed baseline work
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -258,10 +258,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - study line has a concrete experiment target and stop condition
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -334,10 +334,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - study charter still allows the requested follow-up analyses
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -410,13 +410,13 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - active claim and supporting evidence package are readable
 - required route artifacts are linked or referenced
 - reviewer-first pressure can be applied against the current draft
-- user manuscript-change requests from Codex have been converted into a study revision intake with runtime ownership checked
+- user manuscript-change requests from Codex have been converted into a study revision intake with OPL runtime control boundary checked
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -431,7 +431,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - claim-evidence map or equivalent traceability surface
 - reviewer-first pass note with explicit concerns
 - first-draft quality note covering field-verified multicenter/geography, subgroup/association, guideline, and real-world constraint axes
-- revision handoff stating data source, scripts, changed tables/figures, claim guardrails, MAS runtime reactivation state, and whether `current_package` was regenerated from controller-authorized `paper/`
+- revision handoff stating data source, scripts, changed tables/figures, claim guardrails, OPL provider attempt hydration/resume refs, and whether `current_package` was regenerated from controller-authorized `paper/`
 
 ### Quality
 - Verdict owner: MedAutoScience
@@ -468,7 +468,7 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - route_back_or_human_gate: 退回原因或人工决策点
 
 ### Route Back / Human Gate
-- Route back: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing | manuscript narrative changes the claim boundary | foreground edits only touched `manuscript/current_package/` before MAS runtime reactivation or have not been reconciled into the canonical paper source
+- Route back: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing | manuscript narrative changes the claim boundary | foreground edits only touched `manuscript/current_package/` before OPL provider attempt hydration/resume and MAS owner authorization, or have not been reconciled into the canonical paper source
 - Human gate: manuscript claims expand beyond the current evidence package or locked study objective | draft is ready for external circulation or submission-facing release
 - Next routes: finalize | decision
 
@@ -491,10 +491,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - study reference context and reviewer findings are available or explicitly missing
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -568,10 +568,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - remaining risks are reviewable as a bounded package
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -644,10 +644,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - controller-owned judgment point has been reached
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`
@@ -721,10 +721,10 @@ MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and arti
 - packaging choices affect the current manuscript bundle
 
 ### Allowed Tools
-- MAS controller-authorized CLI/MCP/product-entry/runtime surfaces
+- MAS controller-authorized CLI/MCP/product-entry domain handler surfaces
 - stage-knowledge-packet
 - stage-memory-closeout-route
-- domain-route-reconcile
+- owner-route-reconcile
 - ai-reviewer-publication-eval
 - publication-gate
 - Boundary: `controller_authorized_surfaces_only`

@@ -11,7 +11,6 @@ def handle_workbench_command(
     *,
     product_entry: Any,
     progress_portal: Any,
-    portal_console_soak: Any,
     load_profile: Any,
 ) -> int | None:
     if args.command == "workspace-cockpit":
@@ -54,20 +53,6 @@ def handle_workbench_command(
             print(_render_progress_portal_command_text(result), end="")
         return 0
 
-    if args.command == "portal-console-soak":
-        profile = load_profile(args.profile)
-        result = portal_console_soak.run_portal_console_soak(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            study_id=args.study_id,
-            study_root=Path(args.study_root) if args.study_root else None,
-        )
-        if args.format == "json":
-            _print_json(result)
-        else:
-            print(_render_portal_console_soak_text(result), end="")
-        return 0
-
     return None
 
 
@@ -88,21 +73,6 @@ def _render_progress_portal_command_text(result: dict[str, Any]) -> str:
     hosted_package_path = result.get("hosted_package_path")
     if hosted_package_path:
         lines.append(f"hosted_package: {hosted_package_path}")
-    return "\n".join(lines) + "\n"
-
-
-def _render_portal_console_soak_text(result: dict[str, Any]) -> str:
-    lines = ["MAS Portal Console Soak"]
-    if status := result.get("status"):
-        lines.append(f"status: {status}")
-    if report_path := result.get("report_path"):
-        lines.append(f"report: {report_path}")
-    evidence = result.get("evidence")
-    if isinstance(evidence, dict):
-        for key, value in evidence.items():
-            item_status = value.get("status") if isinstance(value, dict) else None
-            if item_status:
-                lines.append(f"{key}: {item_status}")
     return "\n".join(lines) + "\n"
 
 

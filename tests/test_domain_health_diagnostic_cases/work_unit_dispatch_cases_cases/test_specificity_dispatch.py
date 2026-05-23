@@ -43,7 +43,7 @@ def test_watch_runtime_does_not_dispatch_after_platform_repair_required(
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             }
         ],
@@ -83,13 +83,12 @@ def test_watch_runtime_does_not_dispatch_after_platform_repair_required(
                 "artifact_path": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve())
             },
             "dispatch_status": "executed",
-            "executed_controller_action": {"action_type": "ensure_study_runtime", "result": {"status": "executed"}},
+            "executed_controller_action": {"action_type": "request_opl_stage_attempt", "result": {"status": "executed"}},
         }
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -97,7 +96,7 @@ def test_watch_runtime_does_not_dispatch_after_platform_repair_required(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
@@ -216,9 +215,8 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
         return {"dispatch_status": "executed"}
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -226,7 +224,7 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
@@ -380,8 +378,7 @@ def test_watch_runtime_carries_specificity_targets_into_authorization_and_wakeup
     )
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -389,7 +386,7 @@ def test_watch_runtime_carries_specificity_targets_into_authorization_and_wakeup
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     wakeup_latest = json.loads(
         (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")

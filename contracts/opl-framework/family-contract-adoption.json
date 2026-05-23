@@ -271,7 +271,7 @@
       "projection shell",
       "test-lane harness"
     ],
-    "current_mas_shell_role": "handwritten_migration_bridge",
+    "current_mas_shell_role": "domain_handler_and_refs_projection_source",
     "mas_handwritten_shell_expansion_allowed": false,
     "minimal_authority_functions": [
       "publication_quality_verdict",
@@ -308,8 +308,8 @@
     ],
     "remaining_items_are_evidence_gates": true,
     "closed_functional_structure_gate_ids": [
-      "generated_surface_active_caller_cutover",
-      "refs_only_adapter_thinning",
+      "generated_surface_default_owner_cutover",
+      "domain_authority_refs_thinning",
       "legacy_cleanup_physical_retirement",
       "opl_app_workbench_drilldown",
       "lifecycle_locator_retention_restore_ledger_reconciliation"
@@ -319,9 +319,9 @@
       "declarative_pack_compiler_input",
       "generated_surface_handoff",
       "minimal_authority_function_manifest",
-      "no_active_caller_proof",
+      "no_resurrection_proof",
       "opl_functional_harness_consumer_coverage",
-      "opl_generated_interface_active_caller_target_proof",
+      "opl_generated_interface_default_owner_target_proof",
       "opl_app_operator_workbench_drilldown",
       "opl_lifecycle_index_cleanup_restore_ledger"
     ]
@@ -381,7 +381,7 @@
       "payload"
     ],
     "source_surfaces": [
-      "artifacts/runtime/runtime_lifecycle.sqlite",
+      "artifacts/runtime/domain_authority_refs.sqlite",
       "study_macro_state/latest.json",
       "domain_route_owner_route",
       "domain_route_dispatch_receipt",

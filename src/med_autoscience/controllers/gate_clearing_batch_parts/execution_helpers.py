@@ -289,7 +289,7 @@ def repair_paper_live_paths(
     return {
         "ok": True,
         "status": "updated" if repaired_files else "current",
-        "source": "mas_runtime_core",
+        "source": "mas_domain_intent_adapter",
         "external_mds_required": False,
         "quest_id": quest_id,
         "quest_root": str((quest_root / quest_id).expanduser().resolve()),

@@ -93,7 +93,7 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -105,7 +105,7 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
             "decision": "blocked",
             "reason": "runtime_recovery_retry_budget_exhausted",
             "runtime_health_snapshot": {"attempt_state": "escalated", "retry_budget_remaining": 0},
-            "control_plane_snapshot": {"control_state": "blocked_runtime_escalation"},
+            "authority_snapshot": {"control_state": "blocked_runtime_escalation"},
         },
     )
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")

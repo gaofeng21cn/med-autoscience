@@ -86,8 +86,8 @@
 - `runtime_reason`
 - `task_intake`
 - `progress_freshness`
-- `runtime_session`
-- `recovery_intent`
+- `opl_current_control_state_refs`
+- `domain_authority_refs`
 - `runtime_reconcile_trigger`
 - `runtime_continuity`
 - `latest_events`
@@ -111,10 +111,10 @@
 - `task_intake` 表示当前 latest durable study task intake 摘要
 - `paper_stage` 表示论文主线当前建议推进阶段
 - `progress_freshness` 表示“最近有没有明确研究推进信号”，用于尽早暴露卡住、没进度或空转
-- `runtime_session` 表示最新 worker/session 可见性，包括 `active_run_id`、`last_known_run_id`、`worker_state`、`last_seen_at`、freshness 与 evidence refs；它是 read model，不是 runtime authority
-- `recovery_intent` 表示 MAS supervisor 对当前恢复动作的 durable intent，包括 `current_action`、next owner、retry budget、dedupe fingerprint、last attempt/result 和 next eligible tick；它不授权 paper/package/publication 写入
-- `runtime_reconcile_trigger` 表示读入口是否可以安全请求一次 controller-owned reconcile dry-run；它只返回推荐命令、去重 fingerprint 和 blocked reasons，不直接执行 relaunch/redrive
-- `runtime_continuity` 是给 Portal、workspace cockpit、product-entry、MCP 与 OPL handoff 的 compact projection，用来显示 last seen、current action、next recovery step 与 why not running；它不重新解释 study truth
+- `opl_current_control_state_refs` 表示 OPL 当前 attempt / provider / queue / retry-dead-letter / worker liveness projection refs；MAS 不重新解释为 runtime authority
+- `domain_authority_refs` 表示 MAS owner receipt、typed blocker、owner-route locator、artifact/source/status locator 和 no-forbidden-write refs
+- `runtime_reconcile_trigger` 表示读入口是否可以展示 OPL next action 或 MAS typed blocker；它只返回推荐命令、去重 fingerprint 和 blocked reasons，不直接执行 relaunch/redrive
+- `runtime_continuity` 是给 Portal、workspace cockpit、product-entry、MCP 与 OPL handoff 的 compact projection，用来显示 OPL current-control-state ref、MAS owner receipt / typed blocker、next owner 与 why not running；它不重新解释 study truth
 - `latest_events` 必须带明确时间戳
 - `autonomy_soak_status` 用于表达最近一次已被 durable surface 记录的自治续跑 / outer-loop dispatch，至少要能回答“系统自动转去了哪条线、关键问题是什么、下一次确认看什么、证据引用在哪里”
 - `autonomy_contract.restore_point` 是恢复点与 human gate 的前台真相；调用方应读取其中的 `human_gate_required` 与 `summary`，不要从泛化 blocker 推断恢复许可
@@ -206,7 +206,7 @@
 
 `MedAutoScience` 继续保持下面的运行形态：
 
-- `MAS Runtime OS` 持有 domain runtime state、event refs、recovery judgment、owner receipt 和 quest lifecycle projection；generic attempt/queue/provider lifecycle 归 OPL
+- OPL current control state 持有 runtime state、attempt event、recovery、worker liveness 和 quest/stage lifecycle projection；MAS 持有 domain authority refs、owner receipt、typed blocker 和 publication/artifact/source authority
 - 默认 outer supervision scheduler owner 是 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider`；MAS local scheduler surface 已物理退役为 tombstone/provenance refs，不再每 `300` 秒调用 MAS one-shot supervision tick，也不再暴露公开 status/remove/ensure command；Hermes gateway cron 只在显式 status/remove 时作为 legacy diagnostic cleanup adapter
 - `MedAutoScience` 作为 tick-driven controller / read-model owner
 - 新增 `study_progress` 作为只读 progress/watch/report projection

@@ -29,7 +29,7 @@ def test_quality_repair_writer_handoff_requires_typed_closeout_packet(tmp_path: 
         source_summary_artifact_path="artifacts/eval_hygiene/evaluation_summary/latest.json",
         repair_execution_evidence_path=profile.studies_root / study_id / "artifacts/controller/repair_execution_evidence/latest.json",
         blocked_repair_reason="manuscript_story_surface_delta_missing",
-        control_plane_route_context={
+        authority_route_context={
             "controller_route_context": {
                 "work_unit_id": "medical_prose_write_repair",
                 "work_unit_fingerprint": "domain-transition::route_back_same_line::medical_prose_write_repair",
@@ -96,7 +96,7 @@ def test_quality_repair_writer_handoff_bridges_runtime_owner_route_currentness(t
             / "artifacts/controller/repair_execution_evidence/latest.json"
         ),
         blocked_repair_reason="manuscript_story_surface_delta_missing",
-        control_plane_route_context={
+        authority_route_context={
             "current_owner_route": current_route,
             "controller_route_context": {
                 "work_unit_id": "medical_prose_write_repair",
@@ -172,7 +172,7 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -239,7 +239,7 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     assert "exactly one JSON object" in execution["writer_worker_handoff"]["terminal_output_instruction"]
     assert called["study_id"] == study_id
     assert called["quest_id"] == f"quest-{study_id}"
-    route_context = called["control_plane_route_context"]
+    route_context = called["authority_route_context"]
     assert route_context["controller_action_type"] == "run_quality_repair_batch"
     assert route_context["work_unit_id"] == "medical_prose_write_repair"
 
@@ -375,7 +375,7 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
     assert execution["execution_status"] == "executed"
     assert execution["owner_route_current"] is True
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
-    assert called["control_plane_route_context"]["work_unit_id"] == "medical_prose_write_repair"
+    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
 def test_execute_dispatch_does_not_empty_spin_consumed_quality_repair_writer_handoff(
@@ -517,7 +517,7 @@ def test_execute_dispatch_does_not_empty_spin_consumed_quality_repair_writer_han
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
     assert execution["consumed_writer_handoff_empty_spin_blocked"] is True
     assert execution["required_next_owner"] == "write"
-    assert called["control_plane_route_context"]["work_unit_id"] == "medical_prose_write_repair"
+    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 
 def test_quality_repair_writer_handoff_rejects_package_write_surface(

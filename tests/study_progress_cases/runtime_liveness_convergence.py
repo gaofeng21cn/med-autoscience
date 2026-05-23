@@ -23,7 +23,7 @@ def test_study_progress_projects_active_quest_without_live_run_as_recovery(
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -99,7 +99,7 @@ def test_study_progress_projects_output_blocker_impact_from_runtime_continuity(
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -123,7 +123,7 @@ def test_study_progress_projects_output_blocker_impact_from_runtime_continuity(
                 "last_known_run_id": "run-stale-001",
                 "will_start_llm": False,
             },
-            "recovery_intent": {
+            "owner_receipt_handoff": {
                 "current_action": "safe_reconcile_ready",
                 "next_owner": "mas_controller",
                 "dedupe_fingerprint": "runtime-continuity-001",
@@ -174,7 +174,7 @@ def test_study_progress_projects_output_blocker_impact_from_runtime_continuity(
     assert impact["authority"]["writes_authority_surface"] is False
 
 
-def test_study_progress_absorbs_live_runtime_supervision_over_stale_status(
+def test_study_progress_ignores_retired_runtime_supervision_currentness(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -241,7 +241,7 @@ def test_study_progress_absorbs_live_runtime_supervision_over_stale_status(
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -276,9 +276,10 @@ def test_study_progress_absorbs_live_runtime_supervision_over_stale_status(
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["active_run_id"] == "run-live-001"
-    assert result["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "live"
-    assert result["progress_freshness"]["worker_liveness_freshness"]["status"] == "fresh"
-    assert result["progress_freshness"]["worker_liveness_freshness"]["active_run_id"] == "run-live-001"
-    assert result["paper_progress_stall"]["stalled"] is False
-    assert "runtime_recovery_retry_budget_exhausted" not in result["paper_progress_stall"]["stall_reasons"]
+    assert result["active_run_id"] is None
+    assert result["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "missing_live_session"
+    assert result["progress_freshness"]["worker_liveness_freshness"]["status"] == "recovering"
+    assert result["progress_freshness"]["worker_liveness_freshness"]["active_run_id"] is None
+    assert result["refs"]["runtime_supervision_path"] is None
+    assert all(item["category"] != "runtime_supervision" for item in result["latest_events"])
+    assert "runtime_recovery_retry_budget_exhausted" in result["paper_progress_stall"]["stall_reasons"]

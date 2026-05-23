@@ -82,7 +82,7 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
     _install_fake_delivery_inspector(monkeypatch, captured=captured)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

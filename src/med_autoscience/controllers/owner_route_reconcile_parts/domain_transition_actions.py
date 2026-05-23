@@ -75,13 +75,13 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
             action["original_route_target"] = route_target
     if decision_type == "bundle_stage_finalize":
         action["authority"] = "observability_only"
-        action["owner"] = "mas_controller"
-        action["request_owner"] = "mas_controller"
-        action["recommended_owner"] = "mas_controller"
+        action["owner"] = "one-person-lab"
+        action["request_owner"] = "one-person-lab"
+        action["recommended_owner"] = "one-person-lab"
         action["reason"] = current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
         action["summary"] = (
-            "MAS domain transition oracle selected bundle-stage finalization; redrive the current "
-            "controller route instead of repeating a stale analysis or write work unit."
+            "MAS domain transition oracle selected bundle-stage finalization; request OPL stage "
+            "attempt admission instead of redriving a MAS-owned runtime repair action."
         )
         action["controller_route_required"] = True
         action["domain_transition_decision_type"] = decision_type
@@ -99,8 +99,8 @@ def _owner_for_domain_action(action_type: str) -> str:
         return "analysis_harmonization_owner"
     if action_type == "publication_gate_specificity_required":
         return "publication_gate"
-    if action_type == "runtime_platform_repair":
-        return "mas_controller"
+    if action_type == "request_opl_stage_attempt":
+        return "one-person-lab"
     return "med-autoscience"
 
 

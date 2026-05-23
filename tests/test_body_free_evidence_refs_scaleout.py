@@ -257,7 +257,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 
     payload = module.build_domain_dispatch_evidence_record_payload(
-        task_kind="domain_route/reconcile-apply",
+        task_kind="domain_route/owner-handoff",
         study_id="DM002",
         reason="quest_waiting_opl_runtime_owner_route",
         evidence_refs=[
@@ -278,7 +278,7 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
         for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "domain_source_fingerprint")
     } == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
+        "task_kind": "domain_route/owner-handoff",
         "study_id": "DM002",
         "source_fingerprint": "abc123",
         "domain_source_fingerprint": "abc123",

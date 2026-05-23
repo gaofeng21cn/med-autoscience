@@ -58,9 +58,9 @@ def prepare_canonical_paper_owner_surface_for_upstream_repair(
     study_root: Path,
     quest_id: str,
     gate_state: Any,
-    control_plane_route_gate: Mapping[str, Any],
+    authority_route_gate: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if _non_empty_text(control_plane_route_gate.get("action")) != "paper_write":
+    if _non_empty_text(authority_route_gate.get("action")) != "paper_write":
         return {"status": "not_applicable", "reason": "route_action_not_paper_write"}
 
     canonical_paper_root = Path(study_root).expanduser().resolve() / "paper"

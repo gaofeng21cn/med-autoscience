@@ -73,21 +73,15 @@ def test_watch_runtime_does_not_preensure_paused_specificity_terminal_request(
             "worker_running": False,
         },
     )
-    ensure_calls: list[str] = []
     outer_loop_calls: list[str] = []
-
-    def fail_if_preensure_runs(**kwargs):
-        ensure_calls.append(str(kwargs.get("source") or ""))
-        pytest.fail("runtime watch must not resume a paused quest before gate specificity terminal projection")
 
     def fake_outer_loop_tick(**kwargs):
         outer_loop_calls.append(str(kwargs.get("source") or ""))
         return {"dispatch_status": "executed"}
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fail_if_preensure_runs)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -95,11 +89,10 @@ def test_watch_runtime_does_not_preensure_paused_specificity_terminal_request(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
 
-    assert ensure_calls == []
     assert outer_loop_calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
     assert result["managed_study_no_op_suppressions"][0]["outcome"] == "needs_specificity"
@@ -175,12 +168,7 @@ def test_watch_runtime_projects_specificity_terminal_as_blocked_action(
     )
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda **_: pytest.fail("specificity terminal must not execute ensure"),
-    )
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -188,7 +176,7 @@ def test_watch_runtime_projects_specificity_terminal_as_blocked_action(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_actions"] == [
@@ -295,12 +283,7 @@ def test_watch_runtime_applies_specificity_action_override_by_study_root(
         "build_domain_health_diagnostic_outer_loop_tick_request",
         lambda *, study_root, status_payload: tick_request if Path(study_root).name == "001-risk" else None,
     )
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: fake_status(profile=profile, study_root=study_root),
-    )
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", fake_status)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -308,15 +291,14 @@ def test_watch_runtime_applies_specificity_action_override_by_study_root(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
     assert result["managed_study_actions"][0]["decision"] == "blocked"
     assert result["managed_study_actions"][0]["reason"] == "needs_specificity"
     assert result["managed_study_actions"][0]["work_unit_id"] == "gate_needs_specificity"
-    assert result["managed_study_actions"][1] == {
-        "study_id": "002-risk",
-        "decision": "blocked",
-        "reason": "quest_stopped_requires_explicit_rerun",
-    }
+    assert result["managed_study_actions"][1]["study_id"] == "002-risk"
+    assert result["managed_study_actions"][1]["decision"] == "blocked"
+    assert result["managed_study_actions"][1]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][1]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"

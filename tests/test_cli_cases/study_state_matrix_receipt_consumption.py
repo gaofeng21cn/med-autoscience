@@ -127,7 +127,7 @@ def test_study_state_matrix_consumes_bundle_stage_package_closure_receipt(
     figure_path.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -209,7 +209,7 @@ def test_study_state_matrix_marks_default_executor_execution_receipt_supersessio
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -281,7 +281,7 @@ def test_study_state_matrix_consumes_mas_owner_apply_receipt_as_artifact_delta(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -342,7 +342,7 @@ def test_study_state_matrix_consumes_controller_decision_owner_receipt_as_stable
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -398,7 +398,7 @@ def test_study_state_matrix_projection_error_does_not_consume_controller_owner_r
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -443,7 +443,7 @@ def test_study_state_matrix_consumes_controller_route_decision_owner_receipt(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -507,7 +507,7 @@ def test_study_state_matrix_consumes_controller_stop_loss_owner_receipt(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -574,7 +574,7 @@ def test_study_state_matrix_does_not_consume_pending_stop_loss_human_gate_receip
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -648,7 +648,7 @@ def test_study_state_matrix_consumes_human_gate_resume_receipt(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -757,7 +757,7 @@ def test_study_state_matrix_consumes_ai_reviewer_publication_eval_receipt(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,

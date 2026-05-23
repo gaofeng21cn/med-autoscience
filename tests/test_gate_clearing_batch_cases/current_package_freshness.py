@@ -296,11 +296,11 @@ def test_blocked_delivery_sync_clears_stale_current_package_freshness_proof(tmp_
         unit_results=[
             {
                 "unit_id": "sync_submission_minimal_delivery",
-                "status": "control_plane_route_blocked",
+                "status": "authority_route_blocked",
                 "result": {
-                    "status": "control_plane_route_blocked",
-                    "control_plane_route_gate": {
-                        "blocking_reasons": ["control_plane_snapshot_missing"],
+                    "status": "authority_route_blocked",
+                    "authority_route_gate": {
+                        "blocking_reasons": ["authority_snapshot_missing"],
                     },
                 },
             }

@@ -396,13 +396,17 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     write_study(profile.workspace_root, "001-risk")
 
     monkeypatch.setattr(
-        launch_surface.study_runtime_router,
-        "ensure_study_runtime",
+        launch_surface.domain_status_projection,
+        "progress_projection",
         lambda **kwargs: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
-            "decision": "resume",
-            "reason": "quest_marked_running_but_no_live_session",
+            "decision": "blocked",
+            "reason": "quest_waiting_opl_runtime_owner_route",
+            "typed_blocker": {
+                "blocker_type": "opl_provider_admission_required",
+                "reason": "mas_private_runtime_transport_retired",
+            },
         },
     )
     monkeypatch.setattr(
@@ -482,7 +486,9 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     )
 
     assert payload["study_id"] == "001-risk"
-    assert payload["runtime_status"]["decision"] == "resume"
+    assert payload["runtime_status"]["decision"] == "blocked"
+    assert payload["runtime_status"]["product_entry_launch_policy"]["status"] == "opl_attempt_admission_required"
+    assert payload["runtime_status"]["product_entry_launch_policy"]["mas_executes_runtime_attempt"] is False
     assert payload["progress"]["supervision"]["browser_url"] == "http://127.0.0.1:20999"
     assert payload["progress"]["task_intake"]["journal_target"] == "JAMA Network Open"
     assert payload["progress"]["progress_freshness"]["status"] == "fresh"
@@ -684,7 +690,8 @@ def test_submit_study_task_writes_structured_manual_hold_intake(tmp_path: Path) 
     assert written_payload["task_intake_kind"] == "manual_hold"
     assert written_payload["manual_hold_intake"]["kind"] == "manual_hold"
     assert written_payload["manual_hold_intake"]["auto_recovery_allowed"] is False
-    assert payload["manual_hold_intake"]["runtime_platform_repair_redrive_allowed"] is False
+    assert payload["manual_hold_intake"]["opl_owner_route_auto_recovery_allowed"] is False
+    assert "runtime_platform_repair_redrive_allowed" not in payload["manual_hold_intake"]
     assert "Manual Hold Intake" in latest_markdown.read_text(encoding="utf-8")
 
 
@@ -716,8 +723,10 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert payload["entry_mode"] == "opl-handoff"
     assert payload["workspace_locator"]["study_id"] == "001-risk"
     assert payload["workspace_locator"]["study_root"] == str(study_root)
-    assert payload["runtime_session_contract"]["managed_entry_mode"] == "full_research"
-    assert payload["runtime_session_contract"]["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
+    assert payload["domain_authority_handoff_contract"]["managed_entry_mode"] == "full_research"
+    assert payload["domain_authority_handoff_contract"]["opl_runtime_ref"] == profile.opl_runtime_ref
+    assert payload["domain_authority_handoff_contract"]["mas_stage_attempt_state_owner"] is False
+    assert payload["domain_authority_handoff_contract"]["provider_completion_is_domain_completion"] is False
     assert payload["domain_payload"]["journal_target"] == "JAMA Network Open"
     assert payload["domain_payload"]["evidence_boundary"] == ["必须保留 publication gate"]
     assert payload["return_surface_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
@@ -847,7 +856,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
                 "refs.medical_prose_review_path",
                 "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
-                "refs.runtime_supervision_path",
+                "refs.opl_runtime_owner_handoff_path",
                 "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
@@ -968,7 +977,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "task_intent",
             "entry_mode",
             "workspace_locator",
-            "runtime_session_contract",
+            "domain_authority_handoff_contract",
             "return_surface_contract",
         ],
     }

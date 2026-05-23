@@ -29,7 +29,6 @@ def test_mcp_server_tool_registry_import_is_lightweight(monkeypatch: pytest.Monk
         "doctor_audit",
         "workspace_readiness",
         "research_assets",
-        "study_runtime",
         "study_progress",
         "open_auto_research_soak",
         "publication_status",
@@ -72,7 +71,6 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "doctor_audit",
         "workspace_readiness",
         "research_assets",
-        "study_runtime",
         "study_progress",
         "open_auto_research_soak",
         "publication_status",
@@ -83,18 +81,15 @@ def test_mcp_server_lists_read_only_tools() -> None:
 @pytest.mark.parametrize(
     "fragment",
     (
-        "migration_audit",
-        "governance_report",
-        "backfill_apply",
-        "safe_cache_cleanup_apply",
-        "cleanup_apply",
-        "lifecycle_report",
+        "workspace_authority_migration_audit",
+        "storage_governance_report",
+        "delivery_authority_backfill_apply",
+        "artifact_lifecycle_report",
         "dry-run",
-        "contract-gated",
-        "delete-safe-cache",
+        "Physical cleanup and safe-cache deletion are owned by OPL",
     ),
 )
-def test_mcp_product_entry_description_documents_control_plane_operations_surfaces(fragment: str) -> None:
+def test_mcp_product_entry_description_documents_authority_operation_surfaces(fragment: str) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
 
@@ -109,10 +104,10 @@ def test_mcp_product_entry_description_documents_control_plane_operations_surfac
         ("deep", {"type": "boolean"}),
         ("max_files", {"type": "integer", "minimum": 1}),
         ("max_seconds", {"type": "number", "exclusiveMinimum": 0}),
-        ("control_plane_snapshot", {"type": "object"}),
+        ("authority_snapshot", {"type": "object"}),
     ),
 )
-def test_mcp_product_entry_schema_accepts_control_plane_operations_options(
+def test_mcp_product_entry_schema_accepts_authority_operation_options(
     option: str,
     schema: dict[str, object],
 ) -> None:
@@ -125,35 +120,35 @@ def test_mcp_product_entry_schema_accepts_control_plane_operations_options(
 
 def test_mcp_product_entry_mode_schema_is_catalog_backed() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
-    catalog = importlib.import_module("med_autoscience.control_plane_command_catalog")
+    catalog = importlib.import_module("med_autoscience.authority_operation_command_catalog")
     tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
     mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
 
-    assert mode_schema == catalog.build_control_plane_product_entry_mode_schema()
+    assert mode_schema == catalog.build_authority_product_entry_mode_schema()
 
 
 def test_mcp_product_entry_schema_exposes_storage_governance_modes_from_catalog() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
-    catalog = importlib.import_module("med_autoscience.control_plane_command_catalog")
+    catalog = importlib.import_module("med_autoscience.authority_operation_command_catalog")
     tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
     mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
 
     expected_modes = {
         item.mcp_mode
-        for item in catalog.CONTROL_PLANE_OPERATIONS_COMMANDS
+        for item in catalog.AUTHORITY_OPERATION_COMMANDS
         if item.surface in {
             "storage_governance_report",
-            "control_plane_backfill_apply",
-            "control_plane_safe_cache_cleanup_apply",
+            "delivery_authority_backfill_apply",
         }
     }
 
     assert expected_modes == {
-        "governance_report",
-        "backfill_apply",
-        "safe_cache_cleanup_apply",
+        "storage_governance_report",
+        "delivery_authority_backfill_apply",
     }
     assert expected_modes.issubset(set(mode_schema["enum"]))
+    assert "cleanup_apply" not in mode_schema["enum"]
+    assert "safe_cache_cleanup_apply" not in mode_schema["enum"]
 
 
 def test_mcp_server_exposes_medical_reporting_audit_tool() -> None:
@@ -165,18 +160,12 @@ def test_mcp_server_exposes_medical_reporting_audit_tool() -> None:
     assert "medical_literature_audit" in descriptions["publication_status"]
 
 
-def test_mcp_server_documents_live_runtime_guard_on_study_runtime_tools() -> None:
+def test_mcp_server_does_not_resurrect_study_runtime_tool() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
-    descriptions = {tool["name"]: tool["description"] for tool in module.build_tool_manifest()}
+    tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
 
-    description = descriptions["study_runtime"]
-
-    assert "autonomous_runtime_notice.required = true" in description
-    assert "execution_owner_guard.supervisor_only = true" in description
-    assert "notify the user" in description
-    assert "supervisor-only" in description
-    assert "bundle_tasks_downstream_only = true" in description
-    assert "bundle/build/proofing" in description
+    assert "study_runtime" not in tools
+    assert "study_progress" in tools
 
 
 def test_mcp_server_doctor_tool_describes_backend_audit_surface() -> None:
@@ -227,12 +216,12 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
                 "execution:",
                 "  auto_entry: on_managed_research_intent",
                 "  quest_id: quest-001",
-                "  runtime_backend_id: mas_runtime_core",
-                "  runtime_backend: mas_runtime_core",
-                "  runtime_engine_id: mas-runtime-core",
-                "  research_backend_id: mas_runtime_core",
-                "  research_backend: mas_runtime_core",
-                "  research_engine_id: mas-runtime-core",
+                "  runtime_backend_id: opl_provider_backed_stage_runtime",
+                "  runtime_backend: opl_provider_backed_stage_runtime",
+                "  runtime_engine_id: opl-provider-backed-stage-runtime",
+                "  research_backend_id: mas_domain_intent_adapter",
+                "  research_backend: mas_domain_intent_adapter",
+                "  research_engine_id: mas-domain-intent-adapter",
             ]
         )
         + "\n",
@@ -259,14 +248,6 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
         encoding="utf-8",
     )
 
-    status_result = module.call_tool(
-        "study_runtime",
-        {
-            "mode": "progress_projection",
-            "profile_path": str(profile_path),
-            "study_id": "001-risk",
-        },
-    )
     progress_result = module.call_tool(
         "study_progress",
         {
@@ -282,30 +263,17 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
         },
     )
 
-    assert status_result["isError"] is False
     assert progress_result["isError"] is False
     assert cockpit_result["isError"] is False
-    assert status_result["structuredContent"]["execution"]["runtime_backend_id"] == "mas_runtime_core"
     assert progress_result["structuredContent"]["quest_root"] == str(workspace_root / "runtime" / "quests" / "quest-001")
+    assert progress_result["structuredContent"]["authority_snapshot"]["canonical_runtime_action"]
     assert cockpit_result["structuredContent"]["profile_name"] == "minimal"
 
 
-def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_server_rejects_study_runtime_tool_calls(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
-
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_id, study_root, entry_mode, allow_stopped_relaunch, force, source, explicit_user_wakeup: {
-            "decision": "create_and_start",
-            "study_id": study_id,
-            "quest_id": study_id,
-            "allow_stopped_relaunch": allow_stopped_relaunch,
-            "source": source,
-        },
-    )
 
     result = module.call_tool(
         "study_runtime",
@@ -319,40 +287,14 @@ def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Pa
         },
     )
 
-    assert result["isError"] is False
-    assert result["structuredContent"]["decision"] == "create_and_start"
-    assert result["structuredContent"]["quest_id"] == "001-risk"
-    assert result["structuredContent"]["allow_stopped_relaunch"] is True
+    assert result["isError"] is True
+    assert result["content"][0]["text"] == "Unknown tool: study_runtime"
 
 
-def test_mcp_server_can_serialize_typed_ensure_study_runtime_result(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_server_rejects_ensure_study_runtime_mode_on_retired_mcp_tool(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
-    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
-            {
-                "schema_version": 1,
-                "study_id": "001-risk",
-                "study_root": "/tmp/studies/001-risk",
-                "entry_mode": "full_research",
-                "execution": {"quest_id": "001-risk", "auto_resume": True},
-                "quest_id": "001-risk",
-                "quest_root": "/tmp/runtime/quests/001-risk",
-                "quest_exists": True,
-                "quest_status": "created",
-                "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
-                "runtime_binding_exists": True,
-                "study_completion_contract": {},
-                "decision": "create_and_start",
-                "reason": "quest_missing",
-            }
-        ),
-    )
 
     result = module.call_tool(
         "study_runtime",
@@ -363,52 +305,8 @@ def test_mcp_server_can_serialize_typed_ensure_study_runtime_result(monkeypatch,
         },
     )
 
-    assert result["isError"] is False
-    assert result["structuredContent"]["decision"] == "create_and_start"
-    assert result["structuredContent"]["study_id"] == "001-risk"
-
-
-def test_mcp_server_can_serialize_typed_progress_projection_result(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.mcp_server")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "progress_projection",
-        lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
-            {
-                "schema_version": 1,
-                "study_id": "001-risk",
-                "study_root": "/tmp/studies/001-risk",
-                "entry_mode": "full_research",
-                "execution": {"quest_id": "001-risk", "auto_resume": True},
-                "quest_id": "001-risk",
-                "quest_root": "/tmp/runtime/quests/001-risk",
-                "quest_exists": True,
-                "quest_status": "created",
-                "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
-                "runtime_binding_exists": True,
-                "study_completion_contract": {},
-                "decision": "noop",
-                "reason": "quest_missing",
-            }
-        ),
-    )
-
-    result = module.call_tool(
-        "study_runtime",
-        {
-            "mode": "progress_projection",
-            "profile_path": str(profile_path),
-            "study_id": "001-risk",
-        },
-    )
-
-    assert result["isError"] is False
-    assert result["structuredContent"]["decision"] == "noop"
-    assert result["structuredContent"]["study_id"] == "001-risk"
+    assert result["isError"] is True
+    assert result["content"][0]["text"] == "Unknown tool: study_runtime"
 
 
 def test_mcp_server_progress_projection_prefers_progress_projection_markdown_when_available(
@@ -420,93 +318,86 @@ def test_mcp_server_progress_projection_prefers_progress_projection_markdown_whe
     write_profile(profile_path)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
-        "progress_projection",
+        module.study_progress,
+        "read_study_progress",
         lambda **kwargs: {
-            "schema_version": 1,
             "study_id": "001-risk",
-            "decision": "noop",
-            "quest_status": "running",
-            "progress_projection": {
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
+            "paper_stage": "publishability_gate_blocked",
+            "paper_stage_summary": "当前关键路径是补齐论文证据与叙事，而不是抢跑打包。",
+            "current_blockers": ["缺少最小投稿包导出。"],
+            "latest_events": [],
+            "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
                 "study_id": "001-risk",
-                "current_stage": "publication_supervision",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-001", "package_delivered": False},
+                "conditions": [],
+            },
+            "user_visible_projection": {
+                "surface": "study_progress_user_visible_projection",
+                "schema_version": 2,
+                "authority": "truth_projection",
+                "projection_only": True,
+                "study_id": "001-risk",
+                "state": "live/watch/runtime",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "package_delivered": False,
+                "actual_write_active": True,
+                "user_action_required": False,
+                "state_label": "自动运行中",
+                "state_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
+                "current_stage": "live",
                 "current_stage_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
                 "paper_stage": "publishability_gate_blocked",
                 "paper_stage_summary": "当前关键路径是补齐论文证据与叙事，而不是抢跑打包。",
                 "current_blockers": ["缺少最小投稿包导出。"],
-                "latest_events": [],
                 "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
-                "study_macro_state": {
-                    "surface": "study_macro_state",
-                    "schema_version": 1,
-                    "study_id": "001-risk",
-                    "writer_state": "live",
-                    "user_next": "watch",
-                    "reason": "runtime",
-                    "details": {"active_run_id": "run-001", "package_delivered": False},
-                    "conditions": [],
-                },
-                "user_visible_projection": {
-                    "surface": "study_progress_user_visible_projection",
-                    "schema_version": 2,
-                    "authority": "truth_projection",
-                    "projection_only": True,
-                    "study_id": "001-risk",
-                    "state": "live/watch/runtime",
-                    "writer_state": "live",
-                    "user_next": "watch",
-                    "reason": "runtime",
-                    "package_delivered": False,
-                    "actual_write_active": True,
-                    "user_action_required": False,
-                    "state_label": "自动运行中",
-                    "state_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
-                    "current_stage": "live",
-                    "current_stage_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
-                    "paper_stage": "publishability_gate_blocked",
-                    "paper_stage_summary": "当前关键路径是补齐论文证据与叙事，而不是抢跑打包。",
-                    "current_blockers": ["缺少最小投稿包导出。"],
-                    "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
-                    "evidence": {"latest_events": [], "refs": {}},
-                    "conditions": [],
-                },
-                "auto_runtime_parked": {
-                    "surface_kind": "auto_runtime_parked",
-                    "parked": False,
-                    "source_reason": "quest_already_running",
-                },
-                "needs_physician_decision": False,
-                "task_intake": {
-                    "study_id": "001-risk",
-                    "task_intent": "reviewer revision",
-                    "submission_revision_operating_contract": {"large": "detail"},
-                },
-                "runtime_efficiency": {
-                    "run_id": "run-001",
-                    "latest_evidence_packets": [{"payload": "large"}],
-                    "evidence_packet_count": 1,
-                },
-                "supervision": {
-                    "browser_url": "http://127.0.0.1:21001",
-                    "quest_session_api_url": "http://127.0.0.1:21001/api/session",
-                    "active_run_id": "run-001",
-                    "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
-                },
+                "evidence": {"latest_events": [], "refs": {}},
+                "conditions": [],
+            },
+            "auto_runtime_parked": {
+                "surface_kind": "auto_runtime_parked",
+                "parked": False,
+                "source_reason": "quest_already_running",
+            },
+            "needs_physician_decision": False,
+            "task_intake": {
+                "study_id": "001-risk",
+                "task_intent": "reviewer revision",
+                "submission_revision_operating_contract": {"large": "detail"},
+            },
+            "runtime_efficiency": {
+                "run_id": "run-001",
+                "latest_evidence_packets": [{"payload": "large"}],
+                "evidence_packet_count": 1,
+            },
+            "supervision": {
+                "browser_url": "http://127.0.0.1:21001",
+                "quest_session_api_url": "http://127.0.0.1:21001/api/session",
+                "active_run_id": "run-001",
+                "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
             },
         },
     )
 
     result = module.call_tool(
-        "study_runtime",
+        "study_progress",
         {
-            "mode": "progress_projection",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },
     )
 
     assert result["isError"] is False
-    projection = result["structuredContent"]["progress_projection"]
+    projection = result["structuredContent"]
     assert projection["study_id"] == "001-risk"
     assert projection["mcp_projection"]["compacted"] is True
     assert projection["task_intake"]["task_intent"] == "reviewer revision"
@@ -604,7 +495,7 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     assert "自动推进研究" in result["content"][0]["text"]
 
 
-def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_product_entry_can_call_workspace_authority_migration_audit(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}
 
@@ -612,8 +503,8 @@ def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path)
         captured["workspace_roots"] = list(workspace_roots)
         captured["dry_run"] = dry_run
         return {
-            "surface": "control_plane_migration_audit",
-            "report_id": "control-plane-migration-audit::mock",
+            "surface": "workspace_authority_migration_audit",
+            "report_id": "workspace-authority-migration-audit::mock",
             "recorded_at": "1970-01-01T00:00:00+00:00",
             "workspace_fingerprint": "workspace-migration-audit::mock",
             "study_fingerprint": "study-migration-audit::mock",
@@ -638,12 +529,12 @@ def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path)
             ],
         }
 
-    monkeypatch.setattr(module.control_plane_migration_audit, "run_migration_audit", fake_run_migration_audit)
+    monkeypatch.setattr(module.workspace_authority_migration_audit, "run_migration_audit", fake_run_migration_audit)
 
     result = module.call_tool(
         "product_entry",
         {
-            "mode": "migration_audit",
+            "mode": "workspace_authority_migration_audit",
             "workspace_roots": [
                 str(tmp_path / "DM-CVD-Mortality-Risk"),
                 str(tmp_path / "NF-PitNET"),
@@ -660,12 +551,12 @@ def test_mcp_product_entry_can_call_migration_audit(monkeypatch, tmp_path: Path)
         "dry_run": True,
     }
     assert result["structuredContent"]["dry_run"] is True
-    assert result["structuredContent"]["report_id"] == "control-plane-migration-audit::mock"
+    assert result["structuredContent"]["report_id"] == "workspace-authority-migration-audit::mock"
     assert result["structuredContent"]["workspace_fingerprint"] == "workspace-migration-audit::mock"
     assert result["structuredContent"]["study_fingerprint"] == "study-migration-audit::mock"
     assert result["structuredContent"]["delivery_projection_completion_plan_count"] == 1
     assert result["structuredContent"]["action_counts"]["mutating"] == 0
-    assert "control_plane_migration_audit" in result["content"][0]["text"]
+    assert "workspace_authority_migration_audit" in result["content"][0]["text"]
 
 
 def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tmp_path: Path) -> None:
@@ -687,82 +578,48 @@ def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tm
     generated_default = boundary["generated_default_caller_boundary"]
     assert generated_default["status"] == "opl_generated_hosted_shell_is_default_caller"
     assert generated_default["default_caller_owner"] == "one-person-lab"
-    assert generated_default["all_default_callers_migrated"] is True
+    assert generated_default["all_default_surfaces_generated"] is True
     mcp_surface = {
         item["surface_id"]: item for item in generated_default["surface_boundaries"]
     }["mcp"]
-    assert mcp_surface["mas_retained_role"] == "domain_handler_target"
+    assert mcp_surface["mas_allowed_role"] == "domain_handler_target"
     assert mcp_surface["parity_ref"] == "mcp_descriptor_parity"
     assert mcp_surface["mas_generic_owner_allowed"] is False
     retirement_matrix = boundary["physical_retirement_gate_matrix"]
     candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
-    assert candidates["owner_route_handoff"]["active_default_caller_count"] == 0
     assert candidates["owner_route_handoff"]["physical_delete_permitted"] is False
-    assert candidates["status_projection"]["retained_as"] == "domain_truth_status_projection"
+    assert candidates["owner_route_handoff"]["no_resurrection_proof"]["physical_delete_allowed"] is False
+    assert candidates["status_projection"]["mas_role"] == "domain_truth_status_projection"
     assert manifest["runtime_transport_handoff_projection"]["generated_default_caller_boundary"] == (
         generated_default
     )
 
 
-def test_mcp_product_entry_can_call_cleanup_apply(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_product_entry_rejects_cleanup_apply_mode(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
-    captured: dict[str, object] = {}
-
-    def fake_run_cleanup_apply(
-        *,
-        workspace_roots,
-        apply: bool,
-        control_plane_snapshot=None,
-        retention_report=None,
-    ) -> dict[str, object]:
-        captured["workspace_roots"] = list(workspace_roots)
-        captured["apply"] = apply
-        captured["control_plane_snapshot"] = control_plane_snapshot
-        captured["retention_report"] = retention_report
-        return {
-            "surface": "control_plane_cleanup_apply",
-            "apply": apply,
-            "status": "planned",
-            "workspace_count": 1,
-            "action_counts": {"planned": 1, "blocked": 0, "applied": 0, "mutating": 0},
-            "apply_plan": [{"action": "delete-safe-cache"}],
-            "applied_actions": [],
-        }
-
-    monkeypatch.setattr(module.control_plane_cleanup_apply, "run_cleanup_apply", fake_run_cleanup_apply)
 
     result = module.call_tool(
         "product_entry",
         {
             "mode": "cleanup_apply",
             "workspace_roots": [str(tmp_path / "workspace")],
-            "apply": False,
-            "control_plane_snapshot": {"surface": "control_plane_snapshot"},
         },
     )
 
-    assert result["isError"] is False
-    assert captured == {
-        "workspace_roots": [tmp_path / "workspace"],
-        "apply": False,
-        "control_plane_snapshot": {"surface": "control_plane_snapshot"},
-        "retention_report": None,
-    }
-    assert result["structuredContent"]["surface"] == "control_plane_cleanup_apply"
-    assert result["structuredContent"]["action_counts"]["mutating"] == 0
-    assert "control_plane_cleanup_apply" in result["content"][0]["text"]
+    assert result["isError"] is True
+    assert "Unsupported product_entry mode: cleanup_apply" in result["content"][0]["text"]
 
 
-def test_mcp_product_entry_can_call_backfill_apply(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_product_entry_can_call_delivery_authority_backfill_apply(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}
 
-    def fake_run_backfill_apply(*, workspace_roots, apply: bool, control_plane_snapshot=None) -> dict[str, object]:
+    def fake_run_backfill_apply(*, workspace_roots, apply: bool, authority_snapshot=None) -> dict[str, object]:
         captured["workspace_roots"] = list(workspace_roots)
         captured["apply"] = apply
-        captured["control_plane_snapshot"] = control_plane_snapshot
+        captured["authority_snapshot"] = authority_snapshot
         return {
-            "surface": "control_plane_backfill_apply",
+            "surface": "delivery_authority_backfill_apply",
             "apply": apply,
             "status": "planned",
             "workspace_count": 1,
@@ -771,15 +628,15 @@ def test_mcp_product_entry_can_call_backfill_apply(monkeypatch, tmp_path: Path) 
             "applied_actions": [],
         }
 
-    monkeypatch.setattr(module.control_plane_backfill_apply, "run_backfill_apply", fake_run_backfill_apply)
+    monkeypatch.setattr(module.delivery_authority_backfill_apply, "run_backfill_apply", fake_run_backfill_apply)
 
     result = module.call_tool(
         "product_entry",
         {
-            "mode": "backfill_apply",
+            "mode": "delivery_authority_backfill_apply",
             "workspace_roots": [str(tmp_path / "workspace")],
             "apply": False,
-            "control_plane_snapshot": {"surface": "control_plane_snapshot"},
+            "authority_snapshot": {"surface": "authority_snapshot"},
         },
     )
 
@@ -787,11 +644,11 @@ def test_mcp_product_entry_can_call_backfill_apply(monkeypatch, tmp_path: Path) 
     assert captured == {
         "workspace_roots": [tmp_path / "workspace"],
         "apply": False,
-        "control_plane_snapshot": {"surface": "control_plane_snapshot"},
+        "authority_snapshot": {"surface": "authority_snapshot"},
     }
-    assert result["structuredContent"]["surface"] == "control_plane_backfill_apply"
+    assert result["structuredContent"]["surface"] == "delivery_authority_backfill_apply"
     assert result["structuredContent"]["action_counts"]["mutating"] == 0
-    assert "control_plane_backfill_apply" in result["content"][0]["text"]
+    assert "delivery_authority_backfill_apply" in result["content"][0]["text"]
 
 
 def test_mcp_product_entry_can_call_lifecycle_report_with_scan_options(monkeypatch, tmp_path: Path) -> None:
@@ -804,7 +661,7 @@ def test_mcp_product_entry_can_call_lifecycle_report_with_scan_options(monkeypat
         captured["max_files"] = max_files
         captured["max_seconds"] = max_seconds
         return {
-            "surface": "control_plane_lifecycle_report",
+            "surface": "artifact_lifecycle_report",
             "workspace_count": 1,
             "scan_policy": {
                 "deep_scan_enabled": deep,
@@ -827,7 +684,7 @@ def test_mcp_product_entry_can_call_lifecycle_report_with_scan_options(monkeypat
     result = module.call_tool(
         "product_entry",
         {
-            "mode": "lifecycle_report",
+            "mode": "artifact_lifecycle_report",
             "workspace_roots": [str(tmp_path / "workspace")],
             "deep": True,
             "max_files": 9,
@@ -842,10 +699,10 @@ def test_mcp_product_entry_can_call_lifecycle_report_with_scan_options(monkeypat
         "max_files": 9,
         "max_seconds": 2.5,
     }
-    assert result["structuredContent"]["surface"] == "control_plane_lifecycle_report"
+    assert result["structuredContent"]["surface"] == "artifact_lifecycle_report"
     assert result["structuredContent"]["scan_policy"]["max_files"] == 9
     assert result["structuredContent"]["mutation_policy"]["physical_cleanup_performed"] is False
-    assert "control_plane_lifecycle_report" in result["content"][0]["text"]
+    assert "artifact_lifecycle_report" in result["content"][0]["text"]
 
 
 def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:

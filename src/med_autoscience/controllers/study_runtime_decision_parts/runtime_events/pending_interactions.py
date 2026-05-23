@@ -171,20 +171,9 @@ def _pending_user_interaction_payload(
     runtime_root: Path,
     quest_root: Path,
     quest_id: str,
-    runtime_backend=None,
     fallback_interaction_id: str | None = None,
 ) -> dict[str, object] | None:
     session_payload: dict[str, object] = {}
-    if runtime_backend is not None:
-        try:
-            raw_session_payload = runtime_backend.get_quest_session(
-                runtime_root=runtime_root,
-                quest_id=quest_id,
-            )
-        except (RuntimeError, OSError, ValueError):
-            raw_session_payload = {}
-        if isinstance(raw_session_payload, dict):
-            session_payload = raw_session_payload
     snapshot = session_payload.get("snapshot")
     if not isinstance(snapshot, dict):
         snapshot = {}
@@ -255,7 +244,6 @@ def _record_pending_user_interaction_if_required(
     quest_root: Path,
     quest_id: str,
     publication_gate_report: dict[str, object] | None,
-    runtime_backend=None,
 ) -> None:
     stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
         status=status,
@@ -272,7 +260,6 @@ def _record_pending_user_interaction_if_required(
         runtime_root=runtime_root,
         quest_root=quest_root,
         quest_id=quest_id,
-        runtime_backend=runtime_backend,
         fallback_interaction_id=(
             str(stopped_recovery_context.get("active_interaction_id") or "").strip()
             if isinstance(stopped_recovery_context, dict)

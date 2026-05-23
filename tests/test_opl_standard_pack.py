@@ -8,13 +8,13 @@ from pathlib import Path
 import pytest
 
 from med_autoscience.action_catalog import build_mas_action_catalog
-from med_autoscience.opl_standard_pack import build_standard_pack
-from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.agent_pack_refs import (
+from med_autoscience.opl_domain_pack.agent_pack_refs import (
     AGENT_PROMPT_REFS,
 )
-from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.family_adoption import (
+from med_autoscience.opl_domain_pack.family_adoption import (
     build_family_stage_control_plane,
 )
+from med_autoscience.opl_standard_pack import build_standard_pack
 
 
 pytestmark = pytest.mark.meta
@@ -70,7 +70,6 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "ai_first_stage_gate",
         "ai_first_record_validator",
         "mechanical_guard",
-        "refs_only_adapter",
     ]
     assert generated["pack_compiler_input"]["verdict_function_model_retired"] is True
     assert generated["pack_compiler_input"]["gate_validator_ref"] == (
@@ -283,8 +282,8 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert followthrough["remaining_functional_followthrough_gate_ids"] == []
     assert followthrough["remaining_functional_followthrough_gates"] == []
     assert followthrough["closed_functional_structure_gate_ids"] == [
-        "generated_surface_active_caller_cutover",
-        "refs_only_adapter_thinning",
+        "generated_surface_default_owner_cutover",
+        "domain_authority_refs_thinning",
         "legacy_cleanup_physical_retirement",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
@@ -297,9 +296,11 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     ]
     audit = generated["functional_privatization_audit"]
     functional_boundary = audit["functional_consumer_boundary"]
-    runtime_role = functional_boundary["lifecycle_refs_adapter_role"]
-    assert runtime_role["classification"] == "refs_only_adapter"
-    assert runtime_role["authority"] == "refs_only_index_not_generic_persistence_engine"
+    runtime_role = functional_boundary["domain_authority_refs_index_role"]
+    assert runtime_role["classification"] == "domain_authority_refs"
+    assert runtime_role["authority"] == (
+        "refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine"
+    )
     assert runtime_role["body_policy"] == "refs_receipts_blockers_only"
     assert runtime_role["generic_owner_claim_allowed"] is False
     assert runtime_role["mas_may_claim_generic_persistence_engine"] is False
@@ -309,23 +310,19 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         item["module_id"]: item
         for item in functional_boundary["functional_module_inventory"]
     }
-    private_runtime_refs_only_modules = {
-        "lifecycle_refs_adapter": {
-            "boundary": "refs_only_sqlite_lifecycle_index_not_generic_runtime_owner",
+    private_runtime_domain_authority_ref_modules = {
+        "domain_authority_refs_index": {
+            "boundary": "refs_only_owner_receipt_locator_index_not_generic_runtime_owner",
             "must_not_emit": "generic_runtime_verdict",
         },
         "runtime_storage_maintenance": {
-            "boundary": "refs_only_adapter_no_generic_cleanup_policy_owner",
+            "boundary": "domain_authority_refs_no_generic_cleanup_policy_owner",
             "must_not_emit": "generic_cleanup_policy",
         },
-        "terminal_attach_transport": {
-            "boundary": "refs_only_terminal_projection_no_generic_attach_runtime_owner",
-            "must_not_emit": "generic_terminal_runtime_owner",
-        },
     }
-    for module_id, expected in private_runtime_refs_only_modules.items():
+    for module_id, expected in private_runtime_domain_authority_ref_modules.items():
         item = inventory[module_id]
-        assert item["classification"] == "refs_only_adapter"
+        assert item["classification"] == "domain_authority_refs"
         assert item["authority_boundary"] == expected["boundary"]
         provenance_boundary = item["provenance_boundary"]
         assert provenance_boundary["generic_owner_claim_allowed"] is False
@@ -346,31 +343,26 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         item["residue_id"]: item for item in functional_boundary["active_path_residue_cleanup_gates"]
     }
     assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["current_role"] == (
-        "stage_turn_closeout_and_owner_receipt_adapter"
+        "none_physically_retired_no_alias"
     )
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["active_caller_count"] > 0
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"][
-        "no_active_caller_proven"
-    ] is False
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"][
-        "physical_delete_permitted"
-    ] is False
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"][
-        "no_alias_facade_compat_wrapper_allowed"
-    ] is True
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["physical_delete_completed"] is True
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["resurrection_alias_or_wrapper_allowed"] is False
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["current_paths"] == []
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["archive_permitted"] is False
+    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["tombstone_permitted"] is False
     assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
         "domain_projection_refs_for_opl_workbench"
     )
     assert cleanup_gates["workbench_shell_domain_projection_refs"][
         "physical_delete_permitted"
     ] is False
-    assert cleanup_gates["owner_route_handoff_adapter"]["current_role"] == (
-        "domain_owner_route_handoff_adapter"
+    assert cleanup_gates["owner_route_handoff_domain_ref_entry"]["current_role"] == (
+        "domain_owner_route_handoff_refs"
     )
-    sidecar_worklist = cleanup_gates["owner_route_handoff_adapter"]["deletion_readiness_worklist"]
+    sidecar_worklist = cleanup_gates["owner_route_handoff_domain_ref_entry"]["deletion_readiness_worklist"]
     assert sidecar_worklist["can_delete"] is False
-    assert sidecar_worklist["active_caller_count"] == 1
-    sidecar_paths = cleanup_gates["owner_route_handoff_adapter"]["current_paths"]
+    assert sidecar_worklist["domain_ref_consumer_count"] == 1
+    sidecar_paths = cleanup_gates["owner_route_handoff_domain_ref_entry"]["current_paths"]
     assert "src/med_autoscience/controllers/owner_route_handoff.py" in sidecar_paths
     assert (
         "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py"
@@ -380,9 +372,9 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py"
         in sidecar_paths
     )
-    sidecar_thinning = cleanup_gates["owner_route_handoff_adapter"]["latest_thinning_evidence"]
+    sidecar_thinning = cleanup_gates["owner_route_handoff_domain_ref_entry"]["latest_thinning_evidence"]
     assert sidecar_thinning["status"] == (
-        "sidecar_export_projection_split_to_parts_facade_retained"
+        "sidecar_export_projection_split_to_parts_no_runtime_control_alias"
     )
     assert sidecar_thinning["does_not_claim_physical_delete"] is True
     assert sidecar_thinning["does_not_claim_domain_receipt_parity"] is True
@@ -397,7 +389,7 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "current_disposition"
     ] == "tombstone_only"
     assert cleanup_gates["legacy_supervisor_scheduler_tombstone"][
-        "no_active_caller_proven"
+        "stale_surface_scan_clean"
     ] is True
 
 

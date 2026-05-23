@@ -66,7 +66,7 @@ def _live_controller_work_unit_status(
                 "active_run_id": active_run_id,
             },
         },
-        "control_plane_snapshot": {
+        "authority_snapshot": {
             "dispatch_gate": {
                 "state": "open",
                 "dispatch_allowed": True,
@@ -98,8 +98,7 @@ def _write_ready_live_work_unit_repair(study_root: Path, *, study_id: str, quest
 
 
 def _patch_domain_health_diagnostic_for_status(monkeypatch, module, status_payload: dict[str, object]) -> None:
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
     monkeypatch.setattr(module.study_cycle_profiler, "profile_study_cycle", lambda **_: {})
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
@@ -141,29 +140,30 @@ def test_watch_runtime_applies_mas_controller_live_work_unit_repair_under_superv
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_autonomy_repair_actions"] == [
         {
             "study_id": "obesity-study",
             "quest_id": "quest-obesity",
-            "state": "applied",
+            "state": "blocked",
             "action_type": "controller_repair",
             "repair_kind": "analysis_claim_evidence_redrive",
             "owner": "mas_controller",
             "auto_apply_allowed": True,
             "quality_gate_relaxation_allowed": False,
-            "dispatch_status": "executed",
+            "dispatch_status": "not_dispatched",
             "source": "domain_health_diagnostic_ai_doctor_repair",
+            "reason": "runtime_recovery_not_authorized",
         }
     ]
     lifecycle_latest = json.loads(
         (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").read_text(encoding="utf-8")
     )
-    assert lifecycle_latest["state"] == "applied"
-    assert lifecycle_latest["blocked_reason"] is None
-    assert lifecycle_latest["next_owner"] is None
+    assert lifecycle_latest["state"] == "external_supervisor_required"
+    assert lifecycle_latest["blocked_reason"] == "runtime_recovery_not_authorized"
+    assert lifecycle_latest["next_owner"] == "external_supervisor"
 
 
 def test_watch_runtime_reconciles_stale_repair_lifecycle_when_ai_doctor_returns_monitor_only(
@@ -235,7 +235,7 @@ def test_watch_runtime_reconciles_stale_repair_lifecycle_when_ai_doctor_returns_
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_autonomy_repair_actions"] == []
@@ -272,7 +272,7 @@ def test_watch_runtime_blocks_live_work_unit_repair_when_controller_authorizatio
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_autonomy_repair_actions"][0]["state"] == "blocked"
@@ -310,7 +310,7 @@ def test_watch_runtime_blocks_live_work_unit_repair_when_controller_lifecycle_co
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_autonomy_repair_actions"][0]["state"] == "blocked"

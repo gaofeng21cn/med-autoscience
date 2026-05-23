@@ -9,7 +9,7 @@ from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_ca
 from med_autoscience.controllers.domain_slo_scheduler_projection_parts.consumer_migration import (
     build_functional_consumer_boundary,
 )
-from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.agent_pack_refs import (
+from med_autoscience.opl_domain_pack.agent_pack_refs import (
     AGENT_KNOWLEDGE_REFS,
     AGENT_PROMPT_REFS,
     AGENT_QUALITY_GATE_REFS,
@@ -17,7 +17,7 @@ from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.agent_pack_re
     AGENT_STAGE_POLICY_REFS,
     REQUIRED_DOMAIN_PACK_PATHS,
 )
-from med_autoscience.runtime_protocol.lifecycle_refs_adapter_parts.family_adoption import (
+from med_autoscience.opl_domain_pack.family_adoption import (
     build_domain_memory_descriptor,
     build_family_stage_control_plane,
 )
@@ -105,7 +105,6 @@ ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES = [
     "ai_first_stage_gate",
     "ai_first_record_validator",
     "mechanical_guard",
-    "refs_only_adapter",
 ]
 AI_FIRST_STAGE_GATE_FUNCTION_IDS = [
     "publication_quality_verdict",
@@ -346,12 +345,10 @@ def _pack_compiler_input() -> dict[str, Any]:
             "required_domain_pack_paths": REQUIRED_DOMAIN_PACK_PATHS,
             "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
             "stage_control_plane": (
-                "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/"
-                "family_adoption.py::build_family_stage_control_plane"
+                "src/med_autoscience/opl_domain_pack/family_adoption.py::build_family_stage_control_plane"
             ),
             "memory_descriptor": (
-                "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/"
-                "family_adoption.py::build_domain_memory_descriptor"
+                "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor"
             ),
             "functional_audit": (
                 "src/med_autoscience/controllers/domain_slo_scheduler_projection_parts/"
@@ -590,12 +587,14 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
             "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof"
         ),
         "opl_unified_audit_read_model": True,
-        "claims_generic_runtime_removed_from_mas": False,
-        "claims_opl_replacement_exists": False,
+        "claims_generic_runtime_removed_from_mas": True,
+        "claims_opl_unique_control_plane": True,
+        "claims_opl_replacement_exists": True,
+        "no_resurrection_policy": "retired_surfaces_must_remain_tombstone_or_provenance_only",
         "claims_production_long_run_soak_complete": False,
         "classification_buckets": [
             "declarative_pack_generated_surface",
-            "refs_only_adapter",
+            "domain_authority_refs",
             "minimal_authority_function",
             "legacy_cleanup_tombstone_provenance",
             "legacy_cleanup_physical_retired",
@@ -611,12 +610,14 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
                 "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof"
             ),
             "opl_unified_audit_read_model": True,
-            "claims_generic_runtime_removed_from_mas": False,
-            "claims_opl_replacement_exists": False,
+            "claims_generic_runtime_removed_from_mas": True,
+            "claims_opl_unique_control_plane": True,
+            "claims_opl_replacement_exists": True,
+            "no_resurrection_policy": "retired_surfaces_must_remain_tombstone_or_provenance_only",
             "claims_production_long_run_soak_complete": False,
             "classification_buckets": [
                 "declarative_pack_generated_surface",
-                "refs_only_adapter",
+                "domain_authority_refs",
                 "minimal_authority_function",
                 "legacy_cleanup_tombstone_provenance",
                 "legacy_cleanup_physical_retired",

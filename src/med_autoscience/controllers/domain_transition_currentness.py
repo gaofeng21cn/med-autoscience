@@ -217,7 +217,7 @@ def status_domain_transition_route_back_tick_request(
     transition_type = _text(domain_transition.get("decision_type"))
     if (
         transition_type != StudyDecisionType.ROUTE_BACK_SAME_LINE.value
-        or transition_action != StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value
+        or transition_action != StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT.value
         or transition_unit_id is None
     ):
         return None
@@ -342,7 +342,7 @@ def _tick_request_spec_for_transition(
         transition_type == StudyDecisionType.ROUTE_BACK_SAME_LINE.value
         and transition_action
         in {
-            StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value,
+            StudyDecisionActionType.REQUEST_OPL_STAGE_ATTEMPT.value,
             StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
         }
     ):
@@ -392,7 +392,7 @@ def _status_payload(
 ) -> dict[str, Any]:
     if isinstance(status_payload, Mapping) and status_payload:
         return dict(status_payload)
-    router = import_module("med_autoscience.controllers.study_runtime_router")
+    router = import_module("med_autoscience.controllers.domain_status_projection")
     payload = router.progress_projection(
         profile=profile,
         study_root=study_root,

@@ -5,14 +5,14 @@ import os
 import shutil
 import subprocess
 
-from med_autoscience.control_plane_command_catalog import (
-    CONTROL_PLANE_OPERATION_CLI_COMMANDS,
-    CONTROL_PLANE_OPERATION_MCP_MODES,
-    CONTROL_PLANE_OPERATIONS_COMMANDS,
+from med_autoscience.authority_operation_command_catalog import (
+    AUTHORITY_OPERATION_CLI_COMMANDS,
+    AUTHORITY_OPERATION_MCP_MODES,
+    AUTHORITY_OPERATION_COMMANDS,
 )
 
 
-def test_installed_medautosci_mcp_lists_control_plane_operation_modes() -> None:
+def test_installed_medautosci_mcp_lists_authority_operation_modes() -> None:
     executable = shutil.which("medautosci-mcp")
     assert executable is not None
 
@@ -31,10 +31,10 @@ def test_installed_medautosci_mcp_lists_control_plane_operation_modes() -> None:
     tools = {tool["name"]: tool for tool in payload["result"]["tools"]}
     mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
 
-    assert set(CONTROL_PLANE_OPERATION_MCP_MODES).issubset(set(mode_schema["enum"]))
+    assert set(AUTHORITY_OPERATION_MCP_MODES).issubset(set(mode_schema["enum"]))
 
 
-def test_installed_medautosci_mcp_lists_storage_governance_surface_modes() -> None:
+def test_installed_medautosci_mcp_lists_authority_surface_modes() -> None:
     executable = shutil.which("medautosci-mcp")
     assert executable is not None
 
@@ -54,25 +54,25 @@ def test_installed_medautosci_mcp_lists_storage_governance_surface_modes() -> No
     mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
     expected_modes = {
         item.mcp_mode
-        for item in CONTROL_PLANE_OPERATIONS_COMMANDS
+        for item in AUTHORITY_OPERATION_COMMANDS
         if item.surface in {
             "storage_governance_report",
-            "control_plane_backfill_apply",
-            "control_plane_safe_cache_cleanup_apply",
-            "continuous_soak_summary",
+            "delivery_authority_backfill_apply",
+            "artifact_lifecycle_continuous_soak_summary",
         }
     }
 
     assert expected_modes == {
-        "governance_report",
-        "backfill_apply",
-        "safe_cache_cleanup_apply",
-        "continuous_soak_summary",
+        "storage_governance_report",
+        "delivery_authority_backfill_apply",
+        "artifact_lifecycle_continuous_soak_summary",
     }
     assert expected_modes.issubset(set(mode_schema["enum"]))
+    assert "cleanup_apply" not in mode_schema["enum"]
+    assert "safe_cache_cleanup_apply" not in mode_schema["enum"]
 
 
-def test_installed_medautosci_cli_lists_control_plane_operation_commands() -> None:
+def test_installed_medautosci_cli_lists_authority_operation_commands() -> None:
     executable = shutil.which("medautosci")
     assert executable is not None
 
@@ -87,8 +87,10 @@ def test_installed_medautosci_cli_lists_control_plane_operation_commands() -> No
         env=environment,
     )
 
-    for command in CONTROL_PLANE_OPERATION_CLI_COMMANDS:
+    for command in AUTHORITY_OPERATION_CLI_COMMANDS:
         assert command in result.stdout
+    assert "control-plane-cleanup-apply" not in result.stdout
+    assert "control-plane-safe-cache-cleanup-apply" not in result.stdout
 
 
 def test_installed_medautosci_cli_lists_storage_governance_commands() -> None:
@@ -107,12 +109,11 @@ def test_installed_medautosci_cli_lists_storage_governance_commands() -> None:
     )
     expected_commands = {
         item.cli_command
-        for item in CONTROL_PLANE_OPERATIONS_COMMANDS
+        for item in AUTHORITY_OPERATION_COMMANDS
         if item.surface in {
             "storage_governance_report",
-            "control_plane_backfill_apply",
-            "control_plane_safe_cache_cleanup_apply",
-            "continuous_soak_summary",
+            "delivery_authority_backfill_apply",
+            "artifact_lifecycle_continuous_soak_summary",
         }
     }
 
@@ -120,7 +121,7 @@ def test_installed_medautosci_cli_lists_storage_governance_commands() -> None:
         assert command in result.stdout
 
 
-def test_installed_medautosci_mcp_calls_continuous_soak_summary(tmp_path) -> None:
+def test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summary(tmp_path) -> None:
     executable = shutil.which("medautosci-mcp")
     assert executable is not None
 
@@ -135,7 +136,7 @@ def test_installed_medautosci_mcp_calls_continuous_soak_summary(tmp_path) -> Non
         "params": {
             "name": "product_entry",
             "arguments": {
-                "mode": "continuous_soak_summary",
+                "mode": "artifact_lifecycle_continuous_soak_summary",
                 "workspace_roots": [str(workspace_root)],
             },
         },
@@ -158,12 +159,12 @@ def test_installed_medautosci_mcp_calls_continuous_soak_summary(tmp_path) -> Non
     assert structured["writes_workspace"] is False
     assert structured["read_only_contract"] == {
         "dry_run": True,
-        "cleanup_apply": False,
+        "physical_cleanup_owned_by": "one-person-lab",
         "writes_workspace": False,
     }
 
 
-def test_installed_medautosci_cli_calls_continuous_soak_summary(tmp_path) -> None:
+def test_installed_medautosci_cli_calls_artifact_lifecycle_continuous_soak_summary(tmp_path) -> None:
     executable = shutil.which("medautosci")
     assert executable is not None
 
@@ -174,7 +175,7 @@ def test_installed_medautosci_cli_calls_continuous_soak_summary(tmp_path) -> Non
     result = subprocess.run(
         [
             executable,
-            "control-plane-continuous-soak-summary",
+            "artifact-lifecycle-continuous-soak-summary",
             "--workspace-root",
             str(workspace_root),
         ],

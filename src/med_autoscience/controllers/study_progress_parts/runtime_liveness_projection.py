@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
+from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -35,7 +35,7 @@ def live_managed_runtime_present(
         "execution_owner_guard": dict(execution_owner_guard or {}),
         "continuation_state": dict(continuation_state or {}),
     }
-    facts = resolve_control_plane_facts(payload)
+    facts = resolve_opl_runtime_refs(payload)
     if facts.strict_live:
         return True
     if not bool((execution_owner_guard or {}).get("supervisor_only")):
@@ -61,7 +61,7 @@ def runtime_recovery_pending_from_status(
 ) -> bool:
     if live_managed_runtime:
         return False
-    facts = resolve_control_plane_facts(status, supervisor_tick_audit=supervisor_tick_audit)
+    facts = resolve_opl_runtime_refs(status, supervisor_tick_audit=supervisor_tick_audit)
     if facts.quest_status not in {"running", "active"}:
         return False
     return facts.recovery_pending

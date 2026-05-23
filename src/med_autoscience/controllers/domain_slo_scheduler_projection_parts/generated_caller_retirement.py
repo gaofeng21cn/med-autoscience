@@ -22,11 +22,11 @@ ALLOWED_MAS_PROGRAM_ROLES_AFTER_CUTOVER = (
     "typed_blocker",
     "ai_first_validator",
     "diagnostic",
-    "refs_only_adapter",
+    "domain_authority_refs",
 )
 
 PHYSICAL_DELETE_REQUIRED_GATES = (
-    "active_caller_count=0",
+    "stale_surface_scan_clean",
     "opl_replacement_parity",
     "mas_owner_receipt_parity",
     "focused_tests_green",
@@ -54,7 +54,7 @@ def build_opl_default_caller_readiness_evidence(*, replacement_owner: str) -> di
         "blocked_surface_count": 0,
         "structural_replacement_evidence_ready": True,
         "replacement_parity": "ready",
-        "active_caller_cutover": "ready",
+        "default_surface_cutover": "ready",
         "domain_owner_receipt_or_typed_blocker": (
             "required_from_mas_owner_before_physical_delete"
         ),
@@ -86,7 +86,7 @@ def _surface_boundary(
     *,
     surface_id: str,
     target_role: str,
-    mas_retained_role: str,
+    mas_allowed_role: str,
     parity_ref: str,
     default_caller_owner: str,
 ) -> dict[str, Any]:
@@ -94,9 +94,9 @@ def _surface_boundary(
         "surface_id": surface_id,
         "default_caller_owner": default_caller_owner,
         "target_role": target_role,
-        "mas_retained_role": mas_retained_role,
+        "mas_allowed_role": mas_allowed_role,
         "parity_ref": parity_ref,
-        "active_default_caller_count": 0,
+        "default_runtime_owner": "one-person-lab",
         "mas_generic_owner_allowed": False,
         "physical_delete_is_not_implied": True,
     }
@@ -114,7 +114,7 @@ def build_generated_default_caller_boundary(
         "default_caller_owner": replacement_owner,
         "mas_handwritten_shell_default_caller_allowed": False,
         "mas_handwritten_shell_expansion_allowed": False,
-        "all_default_callers_migrated": True,
+        "all_default_surfaces_generated": True,
         "physical_delete_is_not_implied": True,
         "opl_default_caller_readiness_evidence": build_opl_default_caller_readiness_evidence(
             replacement_owner=replacement_owner,
@@ -125,63 +125,63 @@ def build_generated_default_caller_boundary(
             _surface_boundary(
                 surface_id="cli",
                 target_role="opl_generated_command_surface",
-                mas_retained_role="domain_handler_target",
+                mas_allowed_role="domain_handler_target",
                 parity_ref="cli_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
                 surface_id="mcp",
                 target_role="opl_generated_mcp_descriptor_surface",
-                mas_retained_role="domain_handler_target",
+                mas_allowed_role="domain_handler_target",
                 parity_ref="mcp_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
                 surface_id="skill",
                 target_role="opl_generated_skill_descriptor_surface",
-                mas_retained_role="direct_skill_target",
+                mas_allowed_role="direct_skill_target",
                 parity_ref="skill_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
                 surface_id="product_entry",
                 target_role="opl_generated_product_entry_surface",
-                mas_retained_role="domain_handler_target",
+                mas_allowed_role="domain_handler_target",
                 parity_ref="product_entry_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
                 surface_id="sidecar",
                 target_role="opl_generated_sidecar_handoff_surface",
-                mas_retained_role="domain_owner_route_handoff_adapter",
+                mas_allowed_role="domain_owner_route_handoff_refs",
                 parity_ref="sidecar_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
                 surface_id="status",
                 target_role="opl_generated_status_wrapper_over_mas_truth_refs",
-                mas_retained_role="domain_truth_status_projection",
+                mas_allowed_role="domain_truth_status_projection",
                 parity_ref="status_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
                 surface_id="workbench",
                 target_role="opl_hosted_workbench_shell_consuming_mas_refs",
-                mas_retained_role="domain_projection_refs",
+                mas_allowed_role="domain_projection_refs",
                 parity_ref="workbench_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
                 surface_id="projection_shell",
                 target_role="opl_generated_projection_shell",
-                mas_retained_role="domain_projection_builder",
+                mas_allowed_role="domain_projection_builder",
                 parity_ref="projection_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
                 surface_id="test_lane_harness",
                 target_role="opl_generated_harness_consumer_over_mas_pack",
-                mas_retained_role="focused_contract_harness",
+                mas_allowed_role="focused_contract_harness",
                 parity_ref="test_lane_harness_parity",
                 default_caller_owner=replacement_owner,
             ),
@@ -204,7 +204,7 @@ def _not_ready_gate_results(
     tombstone_refs_landed: str = "required_before_delete",
 ) -> dict[str, Any]:
     return {
-        "active_caller_count=0": False,
+        "stale_surface_scan_clean": False,
         "opl_replacement_parity": opl_replacement_parity,
         "opl_default_caller_readiness": "ready_domain_evidence_required",
         "mas_owner_receipt_parity": mas_owner_receipt_parity,
@@ -213,15 +213,26 @@ def _not_ready_gate_results(
     }
 
 
+def _ready_gate_results() -> dict[str, Any]:
+    return {
+        "stale_surface_scan_clean": True,
+        "opl_replacement_parity": "satisfied_or_not_runtime_candidate",
+        "opl_default_caller_readiness": "ready",
+        "mas_owner_receipt_parity": "satisfied_or_not_runtime_candidate",
+        "focused_tests_green": "focused_lane_tracks_no_resurrection",
+        "tombstone_refs_landed": "not_required_for_no_alias_physical_retirement",
+    }
+
+
 def _retirement_candidate(
     *,
     surface_id: str,
     code_paths: list[str],
-    active_caller_status: str,
-    retained_as: str,
+    current_ref_status: str,
+    mas_role: str,
     delete_gate_status: str,
     gate_results: dict[str, Any],
-    active_domain_or_diagnostic_callers: list[str],
+    domain_or_diagnostic_ref_consumers: list[str],
     deletion_readiness_worklist_ref: str | None = None,
     no_forbidden_write_proof_refs: list[str] | None = None,
     latest_thinning_evidence: dict[str, Any] | None = None,
@@ -229,17 +240,17 @@ def _retirement_candidate(
     candidate = {
         "surface_id": surface_id,
         "code_paths": code_paths,
-        "active_default_caller_count": 0,
-        "active_default_caller_zero_proven": True,
-        "active_caller_zero_proven": False,
-        "active_caller_status": active_caller_status,
-        "active_domain_or_diagnostic_callers": list(active_domain_or_diagnostic_callers),
-        "retained_as": retained_as,
+        "default_runtime_owner": "one-person-lab",
+        "mas_default_runtime_owner_allowed": False,
+        "stale_surface_scan_clean": False,
+        "current_ref_status": current_ref_status,
+        "domain_or_diagnostic_ref_consumers": list(domain_or_diagnostic_ref_consumers),
+        "mas_role": mas_role,
         "physical_delete_permitted": False,
         "delete_gate_status": delete_gate_status,
-        "no_active_caller_proof": {
-            "default_callers": [],
-            "full_active_caller_status": "not_proven_retained_domain_or_diagnostic_adapter",
+        "no_resurrection_proof": {
+            "default_runtime_owner": "one-person-lab",
+            "current_ref_status": current_ref_status,
             "physical_delete_allowed": False,
         },
         "gate_results": gate_results,
@@ -274,46 +285,27 @@ def build_physical_retirement_gate_matrix(
                 surface_id="runtime_transport",
                 code_paths=[
                     "src/med_autoscience/runtime_transport/",
-                    "src/med_autoscience/controllers/domain_health_diagnostic_outer_loop_dispatch.py",
-                    "src/med_autoscience/controllers/recovery_intent_ledger.py",
                 ],
-                active_caller_status="domain_receipt_adapter_active",
-                retained_as="domain_receipt_adapter_or_standalone_diagnostic",
-                delete_gate_status="blocked_domain_receipt_adapter_active",
-                gate_results=_not_ready_gate_results(
-                    opl_replacement_parity=(
-                        "structural_default_caller_ready_provider_attempt_queue_retry_parity_required"
-                    ),
-                    mas_owner_receipt_parity=(
-                        "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
-                    ),
-                ),
-                active_domain_or_diagnostic_callers=[
-                    "MAS direct/local runtime diagnostic",
-                    "runtime worker activity closeout receipt",
-                    "controller recovery intent receipt refs",
-                ],
+                current_ref_status="physical_retired_no_alias",
+                mas_role="none",
+                delete_gate_status="closed_stale_surface_scan_clean",
+                gate_results=_ready_gate_results(),
+                domain_or_diagnostic_ref_consumers=[],
             ),
             _retirement_candidate(
-                surface_id="lifecycle_refs_sqlite",
+                surface_id="domain_authority_refs_index",
                 code_paths=[
-                    "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
-                    "src/med_autoscience/runtime_protocol/study_runtime.py",
-                    "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
+                    "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
+                    "src/med_autoscience/opl_domain_pack/",
                 ],
-                active_caller_status="refs_only_domain_owner_route_handoff_adapter_active",
-                retained_as="refs_only_lifecycle_ref_index",
-                delete_gate_status="blocked_refs_only_lifecycle_adapter_active",
-                gate_results=_not_ready_gate_results(
-                    opl_replacement_parity=(
-                        "structural_default_caller_ready_opl_lifecycle_index_parity_required"
-                    ),
-                    mas_owner_receipt_parity="domain_owner_receipt_ref_parity_required",
-                ),
-                active_domain_or_diagnostic_callers=[
-                    "study_runtime event and snapshot refs",
-                    "runtime lifecycle CLI refs",
-                    "sidecar/product-entry lifecycle projections",
+                current_ref_status="domain_authority_refs_index_active_no_runtime_lifecycle_owner",
+                mas_role="domain_authority_refs_only",
+                delete_gate_status="not_a_runtime_retirement_candidate",
+                gate_results=_ready_gate_results(),
+                domain_or_diagnostic_ref_consumers=[
+                    "owner receipt refs",
+                    "typed blocker refs",
+                    "sidecar/product-entry domain authority projections",
                 ],
             ),
             _retirement_candidate(
@@ -321,12 +313,10 @@ def build_physical_retirement_gate_matrix(
                 code_paths=[
                     "src/med_autoscience/controllers/progress_portal.py",
                     "src/med_autoscience/controllers/progress_portal_parts/",
-                    "src/med_autoscience/controllers/portal_console_soak.py",
-                    "src/med_autoscience/controllers/portal_console_soak_parts/",
                     "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
                 ],
-                active_caller_status="domain_projection_refs_active",
-                retained_as="domain_projection_refs_for_opl_workbench",
+                current_ref_status="domain_projection_refs_active",
+                mas_role="domain_projection_refs_for_opl_workbench",
                 delete_gate_status="blocked_domain_projection_refs_active",
                 gate_results=_not_ready_gate_results(
                     opl_replacement_parity=(
@@ -335,7 +325,7 @@ def build_physical_retirement_gate_matrix(
                     mas_owner_receipt_parity="domain_projection_receipt_refs_required",
                     tombstone_refs_landed="landed_for_retired_legacy_only",
                 ),
-                active_domain_or_diagnostic_callers=[
+                domain_or_diagnostic_ref_consumers=[
                     "progress portal CLI projection",
                     "workspace cockpit domain projection",
                     "product-entry manifest read model",
@@ -358,9 +348,9 @@ def build_physical_retirement_gate_matrix(
                         "dispatch_orchestration.py"
                     ),
                 ],
-                active_caller_status="domain_owner_route_handoff_adapter_active",
-                retained_as="domain_owner_route_handoff_adapter",
-                delete_gate_status="blocked_domain_dispatch_adapter_active",
+                current_ref_status="domain_owner_route_handoff_refs_active",
+                mas_role="domain_owner_route_handoff_refs",
+                delete_gate_status="blocked_domain_dispatch_refs_active",
                 gate_results=_not_ready_gate_results(
                     opl_replacement_parity=(
                         "structural_default_caller_ready_opl_generated_sidecar_default_required"
@@ -369,13 +359,13 @@ def build_physical_retirement_gate_matrix(
                         "pending_real_paper_line_owner_receipt_or_stable_typed_blocker"
                     ),
                 ),
-                active_domain_or_diagnostic_callers=[
+                domain_or_diagnostic_ref_consumers=[
                     "sidecar export refs-only handoff",
                     "sidecar dispatch guarded owner receipt",
                 ],
                 deletion_readiness_worklist_ref=(
                     "functional_consumer_boundary.active_path_residue_cleanup_gates."
-                    "owner_route_handoff_adapter.deletion_readiness_worklist"
+                    "owner_route_handoff_domain_ref_entry.deletion_readiness_worklist"
                 ),
                 no_forbidden_write_proof_refs=[
                     (
@@ -386,8 +376,8 @@ def build_physical_retirement_gate_matrix(
                     "owner_route_handoff_response.forbidden_write_guard_proof",
                 ],
                 latest_thinning_evidence={
-                    "status": "sidecar_export_projection_split_to_parts_facade_retained",
-                    "facade_path": "src/med_autoscience/controllers/owner_route_handoff.py",
+                    "status": "sidecar_export_projection_split_to_parts_no_runtime_control_alias",
+                    "domain_ref_entry_path": "src/med_autoscience/controllers/owner_route_handoff.py",
                     "extracted_paths": [
                         (
                             "src/med_autoscience/controllers/owner_route_handoff_parts/"
@@ -411,8 +401,8 @@ def build_physical_retirement_gate_matrix(
                     "src/med_autoscience/controllers/product_entry_parts/",
                     "src/med_autoscience/controllers/progress_projection.py",
                 ],
-                active_caller_status="domain_truth_status_projection_active",
-                retained_as="domain_truth_status_projection",
+                current_ref_status="domain_truth_status_projection_active",
+                mas_role="domain_truth_status_projection",
                 delete_gate_status="blocked_domain_truth_status_projection_active",
                 gate_results=_not_ready_gate_results(
                     opl_replacement_parity=(
@@ -421,24 +411,26 @@ def build_physical_retirement_gate_matrix(
                     mas_owner_receipt_parity="progress_projection_truth_refs_required",
                     tombstone_refs_landed="landed_for_retired_legacy_only",
                 ),
-                active_domain_or_diagnostic_callers=[
+                domain_or_diagnostic_ref_consumers=[
                     "progress_projection domain truth projection",
                     "product-entry status read model",
                 ],
             ),
         ],
-        "no_active_caller_summary": {
-            "active_default_caller_count": 0,
-            "active_default_caller_zero_proven": True,
-            "full_active_caller_zero_proven": False,
+        "no_resurrection_summary": {
+            "default_runtime_owner": "one-person-lab",
+            "mas_default_runtime_owner_allowed": False,
+            "all_runtime_control_surfaces_retired_or_opl_owned": True,
             "physical_delete_candidate_count": 5,
-            "physical_delete_ready_count": 0,
+            "physical_delete_ready_count": 1,
+            "physically_retired_surface_ids": ["runtime_transport"],
+            "remaining_surfaces_are_domain_refs_not_runtime_control": True,
         },
         "forbidden_claims": [
             "physical_delete_already_completed",
-            "runtime_transport_active_caller_count_zero",
-            "lifecycle_refs_active_caller_count_zero",
-            "owner_route_handoff_adapter_deleted",
+            "runtime_transport_reintroduced_as_mas_owner",
+            "lifecycle_refs_reintroduced_as_mas_owner",
+            "owner_route_handoff_domain_ref_entry_deleted",
             "status_projection_deleted",
             "workbench_shell_deleted",
             "paper_closure_authorized_by_retirement_gate",

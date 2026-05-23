@@ -130,13 +130,11 @@
               "launch-study",
               "submit-study-task",
               "build-product-entry",
-              "control-plane-governance-report",
-              "control-plane-migration-audit",
-              "control-plane-backfill-apply",
-              "control-plane-cleanup-apply",
-              "control-plane-safe-cache-cleanup-apply",
-              "control-plane-lifecycle-report",
-              "control-plane-continuous-soak-summary"
+              "storage-governance-report",
+              "workspace-authority-migration-audit",
+              "delivery-authority-backfill-apply",
+              "artifact-lifecycle-report",
+              "artifact-lifecycle-continuous-soak-summary"
             ]
           }
         },

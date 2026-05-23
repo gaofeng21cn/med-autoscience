@@ -6,7 +6,6 @@ import platform
 
 from med_autoscience.ai_first_drift_audit import run_ai_first_drift_audit
 from med_autoscience.controllers.ai_first_observability import build_doctor_ai_first_observability_summary
-from med_autoscience.controllers import domain_slo_scheduler_projection
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.overlay import describe_medical_overlay
 from med_autoscience.workspace_contracts import inspect_workspace_contracts, legacy_external_runtime_tombstone_contract
@@ -75,7 +74,16 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
                 legacy_external_runtime_tombstone_contract(),
             )
         ),
-        workspace_domain_route_contract=dict(domain_slo_scheduler_projection.read_supervision_status(profile=profile)),
+        workspace_domain_route_contract={
+            "schema_version": 1,
+            "surface_kind": "opl_current_control_state_handoff",
+            "loaded": True,
+            "owner": "one-person-lab",
+            "effect": "refs_only",
+            "summary": "generic runtime supervision is owned by OPL current_control_state",
+            "mas_runtime_supervision_read_model_removed": True,
+            "workspace_root": str(profile.workspace_root),
+        },
         ai_first_drift_audit=ai_first_drift_audit,
         ai_first_observability=dict(
             build_doctor_ai_first_observability_summary(drift_audit=ai_first_drift_audit)

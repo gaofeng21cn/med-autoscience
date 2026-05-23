@@ -47,7 +47,7 @@ def _study_command_surfaces(
         "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
         "refresh_supervision": (
             f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+            f"--profile {profile_arg} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
         ),
     }
 
@@ -406,7 +406,7 @@ def _research_runtime_control_projection(
     evaluation_summary_ref: str | None,
     publication_eval_ref: str,
     controller_decision_ref: str,
-    runtime_supervision_ref: str | None,
+    opl_runtime_owner_handoff_ref: str | None,
     domain_health_diagnostic_ref: str | None,
 ) -> dict[str, Any]:
     restore_point = _mapping_copy(autonomy_contract.get("restore_point"))
@@ -415,13 +415,13 @@ def _research_runtime_control_projection(
         evaluation_summary_ref=evaluation_summary_ref,
         publication_eval_ref=publication_eval_ref,
         controller_decision_ref=controller_decision_ref,
-        runtime_supervision_ref=runtime_supervision_ref,
+        opl_runtime_owner_handoff_ref=opl_runtime_owner_handoff_ref,
         domain_health_diagnostic_ref=domain_health_diagnostic_ref,
     )
     return {
         "surface_kind": "research_runtime_control_projection",
         "study_session_owner": {
-            "runtime_owner": MAS_RUNTIME_OWNER,
+            "runtime_owner": OPL_RUNTIME_OWNER,
             "study_owner": "med-autoscience",
             "executor_owner": CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER,
         },
@@ -458,7 +458,7 @@ def _research_runtime_control_projection(
                 "evaluation_summary_path": evaluation_summary_ref,
                 "publication_eval_path": publication_eval_ref,
                 "controller_decision_path": controller_decision_ref,
-                "runtime_supervision_path": runtime_supervision_ref,
+                "opl_runtime_owner_handoff_path": opl_runtime_owner_handoff_ref,
                 "domain_health_diagnostic_report_path": domain_health_diagnostic_ref,
             },
         },
@@ -468,7 +468,7 @@ def _research_runtime_control_projection(
             "fallback_fields": [
                 "refs.publication_eval_path",
                 "refs.controller_decision_path",
-                "refs.runtime_supervision_path",
+                "refs.opl_runtime_owner_handoff_path",
                 "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs": pickup_refs,
@@ -582,8 +582,8 @@ def _latest_events(
     *,
     launch_report_payload: dict[str, Any] | None,
     launch_report_path: Path,
-    runtime_supervision_payload: dict[str, Any] | None,
-    runtime_supervision_path: Path | None,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_path: Path | None,
     runtime_escalation_payload: dict[str, Any] | None,
     runtime_escalation_path: Path | None,
     publication_eval_payload: dict[str, Any] | None,
@@ -601,20 +601,20 @@ def _latest_events(
 ) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
     task_override_summary = _task_intake_override_event_summary(task_intake_progress_override)
-    if runtime_supervision_payload is not None:
-        runtime_health_status = _non_empty_text(runtime_supervision_payload.get("health_status")) or "runtime"
+    if opl_runtime_owner_handoff_payload is not None:
+        runtime_health_status = _non_empty_text(opl_runtime_owner_handoff_payload.get("health_status")) or "runtime"
         runtime_summary = (
-            _non_empty_text(runtime_supervision_payload.get("summary"))
-            or _non_empty_text(runtime_supervision_payload.get("clinician_update"))
+            _non_empty_text(opl_runtime_owner_handoff_payload.get("summary"))
+            or _non_empty_text(opl_runtime_owner_handoff_payload.get("clinician_update"))
             or "运行健康状态已刷新。"
         )
         item = _event(
-            timestamp=_non_empty_text(runtime_supervision_payload.get("recorded_at")),
-            category="runtime_supervision",
+            timestamp=_non_empty_text(opl_runtime_owner_handoff_payload.get("recorded_at")),
+            category="opl_runtime_owner_handoff",
             title=f"托管运行监管状态更新（{runtime_health_status}）",
             summary=runtime_summary,
-            source="runtime_supervision",
-            artifact_path=runtime_supervision_path,
+            source="opl_runtime_owner_handoff",
+            artifact_path=opl_runtime_owner_handoff_path,
         )
         if item is not None:
             events.append(item)

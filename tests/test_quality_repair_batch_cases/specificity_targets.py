@@ -286,14 +286,14 @@ def test_run_quality_repair_batch_prefers_latest_controller_decision_over_stale_
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
             "study_root": str(kwargs["study_root"]),
             "quest_id": quest_id,
-            "control_plane_snapshot": {
-                "surface": "control_plane_snapshot",
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
                 "control_state": "supervisor_gated",
                 "canonical_next_action": "resume_same_study_line",
                 "authority_refs": {
@@ -337,7 +337,7 @@ def test_run_quality_repair_batch_prefers_latest_controller_decision_over_stale_
         module.gate_clearing_batch,
         "run_gate_clearing_batch",
         lambda **kwargs: (
-            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            seen.setdefault("gate_context", kwargs["authority_route_context"]),
             {"ok": True, "status": "executed"},
         )[1],
     )
@@ -350,9 +350,9 @@ def test_run_quality_repair_batch_prefers_latest_controller_decision_over_stale_
         source="test-source",
     )
 
-    assert result["control_plane_route_gate"]["allowed"] is True
-    assert result["control_plane_route_gate"]["action"] == "paper_write"
-    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == (
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["action"] == "paper_write"
+    assert result["authority_route_gate"]["controller_route_gate"]["work_unit_id"] == (
         "analysis_claim_evidence_repair"
     )
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
@@ -376,8 +376,8 @@ def test_run_quality_repair_batch_uses_paper_write_for_medical_prose_methodology
     _write_quality_summary(study_root)
     work_unit_id = "medical_prose_quality_analysis_source_documentation_repair"
     route_context = {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "supervisor_gated",
             "canonical_next_action": "resume_same_study_line",
             "authority_refs": {
@@ -422,7 +422,7 @@ def test_run_quality_repair_batch_uses_paper_write_for_medical_prose_methodology
         module.gate_clearing_batch,
         "run_gate_clearing_batch",
         lambda **kwargs: (
-            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            seen.setdefault("gate_context", kwargs["authority_route_context"]),
             {
                 "ok": True,
                 "status": "executed",
@@ -437,12 +437,12 @@ def test_run_quality_repair_batch_uses_paper_write_for_medical_prose_methodology
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=route_context,
+        authority_route_context=route_context,
     )
 
-    assert result["control_plane_route_gate"]["allowed"] is True
-    assert result["control_plane_route_gate"]["action"] == "paper_write"
-    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == work_unit_id
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["action"] == "paper_write"
+    assert result["authority_route_gate"]["controller_route_gate"]["work_unit_id"] == work_unit_id
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == work_unit_id
 
 
@@ -485,8 +485,8 @@ def test_run_quality_repair_batch_overrides_stale_bundle_route_for_medical_prose
     _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
     _write_quality_summary(study_root)
     stale_bundle_context = {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "supervisor_gated",
             "canonical_next_action": "resume_same_study_line",
             "authority_refs": {
@@ -532,7 +532,7 @@ def test_run_quality_repair_batch_overrides_stale_bundle_route_for_medical_prose
         module.gate_clearing_batch,
         "run_gate_clearing_batch",
         lambda **kwargs: (
-            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            seen.setdefault("gate_context", kwargs["authority_route_context"]),
             {
                 "ok": True,
                 "status": "executed",
@@ -547,12 +547,12 @@ def test_run_quality_repair_batch_overrides_stale_bundle_route_for_medical_prose
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=stale_bundle_context,
+        authority_route_context=stale_bundle_context,
     )
 
-    assert result["control_plane_route_gate"]["allowed"] is True
-    assert result["control_plane_route_gate"]["action"] == "paper_write"
-    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == "medical_prose_write_repair"
+    assert result["authority_route_gate"]["allowed"] is True
+    assert result["authority_route_gate"]["action"] == "paper_write"
+    assert result["authority_route_gate"]["controller_route_gate"]["work_unit_id"] == "medical_prose_write_repair"
     gate_context = seen["gate_context"]
     assert isinstance(gate_context, dict)
     assert gate_context["controller_route_context"]["work_unit_id"] == "medical_prose_write_repair"

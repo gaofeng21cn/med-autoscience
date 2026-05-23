@@ -21,15 +21,15 @@ def _build_automation_surface(
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS automation entry surface."
     refresh_command = (
         f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+        f"--profile {_profile_arg(profile_ref)} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
     )
-    runtime_supervision = _build_shared_automation_descriptor(
-        automation_id="mas_runtime_supervision_loop",
-        title="MAS domain runtime projection refresh",
+    domain_health_refresh = _build_shared_automation_descriptor(
+        automation_id="mas_domain_health_diagnostic_refresh_loop",
+        title="MAS domain health diagnostic refresh",
         owner="one-person-lab",
         trigger_kind="interval",
         target_surface_kind="domain_health_diagnostic_refresh",
-        summary="由 OPL-owned scheduler transport 触发 MAS domain projection refresh，保持恢复建议和 attention queue 为最新状态。",
+        summary="由 OPL current_control_state 触发 MAS domain diagnostic refresh，保持 owner handoff 和 attention queue refs 为最新状态。",
         readiness_status="automation_ready",
         gate_policy="publication_gated",
         output_expectation=[
@@ -39,13 +39,13 @@ def _build_automation_surface(
         ],
         target_command=refresh_command,
         domain_projection={
-            "service_status_command": f"{_command_prefix(profile_ref)} runtime supervision-status --profile {_profile_arg(profile_ref)}",
+            "service_status_command": f"{_command_prefix(profile_ref)} study progress --profile {_profile_arg(profile_ref)}",
             "recommended_entry_surface": "workspace_cockpit",
         },
     )
     return _build_shared_automation_catalog(
         summary=summary,
-        automations=[runtime_supervision],
+        automations=[domain_health_refresh],
         readiness_summary=render_automation_ready_summary(),
     )
 

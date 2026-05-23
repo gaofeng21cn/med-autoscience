@@ -30,6 +30,7 @@ def _write_default_executor_dispatch(
                     "runtime_health_epoch": "runtime-health-event-002",
                     "work_unit_fingerprint": "medical-prose-routeback::write::fp",
                     "source_fingerprint": "truth-snapshot::002",
+                    "route_epoch": "publication-eval::002::current",
                     "current_owner": "quality_repair_batch",
                     "next_owner": "write",
                     "source_refs": {
@@ -39,6 +40,7 @@ def _write_default_executor_dispatch(
                     },
                     "owner_reason": owner_reason,
                     "allowed_actions": ["run_quality_repair_batch"],
+                    "idempotency_key": "owner-route::002::medical-prose-write-repair",
                 },
                 "allowed_write_surfaces": [
                     "paper/draft.md",
@@ -320,7 +322,7 @@ def test_sidecar_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, ca
             study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
         ),
         blocked_repair_reason="manuscript_story_surface_delta_missing",
-        control_plane_route_context={
+        authority_route_context={
             "current_owner_route": current_route,
             "controller_route_context": {
                 "work_unit_id": "medical_prose_write_repair",
@@ -393,6 +395,7 @@ def test_sidecar_export_projects_ai_reviewer_default_executor_dispatch_request(
         "runtime_health_epoch": "runtime-health-event-006195-9cdb58e3383bd0a9",
         "work_unit_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",
         "source_fingerprint": "truth-snapshot::085b4164f248a2f4c92bf66b",
+        "route_epoch": "truth-event-000017-bac190eb1c889a78",
         "current_owner": "mas_controller",
         "next_owner": "ai_reviewer",
         "owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
@@ -405,6 +408,10 @@ def test_sidecar_export_projects_ai_reviewer_default_executor_dispatch_request(
             "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
             "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
         },
+        "idempotency_key": (
+            "owner-route::002-dm-china-us-mortality-attribution::"
+            "ai-reviewer-current-manuscript"
+        ),
     }
     write_profile(profile_path, workspace_root=workspace_root)
     _write_json(

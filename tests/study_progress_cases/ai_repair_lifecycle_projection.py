@@ -40,7 +40,7 @@ def test_study_progress_projects_ai_repair_lifecycle_and_mcp_compact_projection(
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -60,7 +60,7 @@ def test_study_progress_projects_ai_repair_lifecycle_and_mcp_compact_projection(
                 "retry_budget_remaining": 0,
                 "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
             },
-            "control_plane_snapshot": {
+            "authority_snapshot": {
                 "control_state": "blocked_runtime_escalation",
                 "canonical_runtime_action": "external_supervisor_required",
                 "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
@@ -104,7 +104,7 @@ def test_study_progress_suppresses_stale_repair_lifecycle_after_work_unit_eviden
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -177,7 +177,7 @@ def test_study_progress_builds_readonly_ai_repair_lifecycle_from_ready_repair_ac
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -197,7 +197,7 @@ def test_study_progress_builds_readonly_ai_repair_lifecycle_from_ready_repair_ac
                 "retry_budget_remaining": 0,
                 "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
             },
-            "control_plane_snapshot": {
+            "authority_snapshot": {
                 "control_state": "blocked_runtime_escalation",
                 "canonical_runtime_action": "external_supervisor_required",
                 "dispatch_gate": {

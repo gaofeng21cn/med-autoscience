@@ -19,13 +19,11 @@ def execute_owner_dispatch_action(
     dispatch: Mapping[str, Any],
     apply: bool,
     execute_publication_gate_specificity: Executor,
-    execute_runtime_platform_repair: Executor,
     execute_ai_reviewer_workflow: Executor,
     quest_root_resolver: Callable[[WorkspaceProfile, str], Path | None],
 ) -> dict[str, Any]:
     executors = {
         "publication_gate_specificity_required": execute_publication_gate_specificity,
-        "runtime_platform_repair": execute_runtime_platform_repair,
         "current_package_freshness_required": action_execution.execute_current_package_freshness,
         "artifact_display_surface_materialization_required": action_execution.execute_artifact_display_materialization,
         "return_to_ai_reviewer_workflow": execute_ai_reviewer_workflow,

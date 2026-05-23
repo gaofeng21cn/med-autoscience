@@ -40,7 +40,7 @@ def test_execute_dispatch_runs_current_package_freshness_owner_workflow(monkeypa
         dispatch,
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -78,7 +78,7 @@ def test_execute_dispatch_runs_current_package_freshness_owner_workflow(monkeypa
     assert called["study_root"] == study_root
     assert called["quest_id"] == f"quest-{study_id}"
     assert called["source"] == "domain_owner_action_dispatch"
-    route_context = called["control_plane_route_context"]["controller_route_context"]
+    route_context = called["authority_route_context"]["controller_route_context"]
     assert route_context["control_surface"] == "gate_clearing_batch"
     assert route_context["controller_action_type"] == "run_gate_clearing_batch"
     assert route_context["work_unit_id"] == "submission_minimal_refresh"
@@ -173,7 +173,7 @@ def test_execute_dispatch_runs_current_package_freshness_when_stalled_and_previo
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -292,7 +292,7 @@ def test_execute_dispatch_reruns_when_freshness_proof_exists_but_batch_still_blo
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,
@@ -398,7 +398,7 @@ def test_execute_dispatch_reruns_when_freshness_proof_source_eval_is_stale(
         {"schema_version": 1, "status": "executed", "source_eval_id": stale_eval_id, "unit_results": []},
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": study_id,

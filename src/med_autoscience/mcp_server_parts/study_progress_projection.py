@@ -573,13 +573,13 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "portable_supervisor_dashboard": compact_portable_supervisor_dashboard,
         "study_truth_snapshot": _compact_study_truth_snapshot,
         "runtime_health_snapshot": _compact_runtime_health_snapshot,
-        "control_plane_snapshot": _compact_control_plane_snapshot,
+        "authority_snapshot": _compact_authority_snapshot,
     }.items():
         item = builder(source_payload.get(key))
         if item is not None:
             compact[key] = item
     runtime_continuity = runtime_continuity_projection(source_payload)
-    if runtime_continuity.get("runtime_session") or runtime_continuity.get("recovery_intent"):
+    if runtime_continuity.get("domain_authority_handoff"):
         compact["runtime_continuity"] = runtime_continuity
     if study_macro_state is not None:
         compact["study_macro_state"] = study_macro_state
@@ -652,7 +652,7 @@ def _compact_runtime_health_snapshot(value: object) -> dict[str, Any] | None:
     )
 
 
-def _compact_control_plane_snapshot(value: object) -> dict[str, Any] | None:
+def _compact_authority_snapshot(value: object) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
     return _compact_record(

@@ -8,7 +8,6 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .domain_transition_status import *  # noqa: F403
     from .quest_status_decisions import *  # noqa: F403
     from .runtime_health_dominance import *  # noqa: F403
-    from .status_finalization import *  # noqa: F403
     from .status_projection_shell import *  # noqa: F403
     from .supervisor_state_overrides import *  # noqa: F403
 
@@ -25,7 +24,7 @@ def _status_state(
 ) -> ProgressProjectionStatus:
     router = _router_module()
     execution = router._execution_payload(study_payload, profile=profile)
-    explicit_runtime_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution)
+    explicit_opl_runtime_ref = opl_runtime_contract.explicit_opl_runtime_ref(execution)
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
     runtime_context = study_runtime_protocol.resolve_study_runtime_context(
@@ -38,29 +37,21 @@ def _status_state(
     quest_root = runtime_context.quest_root
     runtime_binding_path = runtime_context.runtime_binding_path
     launch_report_path = runtime_context.launch_report_path
-    managed_runtime_backend = router._managed_runtime_backend_for_execution(
-        execution,
-        profile=profile,
-        runtime_root=runtime_root,
-    )
-    if managed_runtime_backend is not None:
-        execution = dict(execution)
-        execution.setdefault("runtime_backend_id", getattr(managed_runtime_backend, "BACKEND_ID", ""))
-        execution.setdefault("runtime_backend", getattr(managed_runtime_backend, "BACKEND_ID", ""))
-        execution.setdefault("runtime_engine_id", getattr(managed_runtime_backend, "ENGINE_ID", ""))
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = quest_runtime.quest_exists
     quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
-    if quest_status in _LIVE_QUEST_STATUSES and managed_runtime_backend is not None:
-        runtime_liveness_audit = router._inspect_quest_live_execution(
-            runtime_root=runtime_root,
-            quest_id=quest_id,
-            runtime_backend=managed_runtime_backend,
+    if quest_status in _LIVE_QUEST_STATUSES and opl_runtime_contract.is_opl_hosted_research_execution(execution):
+        quest_runtime = quest_runtime.with_runtime_liveness_audit(
+            {
+                "status": "unknown",
+                "source": "opl_current_control_state_required",
+                "runtime_owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+                "mas_provider_live_query_retired": True,
+                "provider_completion_is_domain_completion": False,
+                "snapshot": {"status": quest_status.value if quest_status is not None else None},
+            }
         )
-        quest_runtime = quest_runtime.with_runtime_liveness_audit(runtime_liveness_audit).with_bash_session_audit(
-            dict(runtime_liveness_audit.get("bash_session_audit") or {})
-        )
-        quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
     contracts = router.inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
     startup_boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(
@@ -165,7 +156,6 @@ def _status_state(
         quest_root=quest_root,
         quest_id=quest_id,
         publication_gate_report=publication_gate_report,
-        runtime_backend=managed_runtime_backend,
     )
     _record_interaction_arbitration_if_required(
         status=result,
@@ -185,21 +175,20 @@ def _status_state(
             quest_root=quest_root,
             quest_runtime=quest_runtime,
             runtime_context=runtime_context,
-            runtime_backend=managed_runtime_backend,
             router=router,
             entry_mode=entry_mode,
             sync_runtime_summary=sync_runtime_summary,
             include_progress_projection=include_progress_projection,
         )
 
-    if explicit_runtime_backend_id is not None and managed_runtime_backend is None:
+    if explicit_opl_runtime_ref is not None and not opl_runtime_contract.is_opl_hosted_research_execution(execution):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STUDY_EXECUTION_RUNTIME_BACKEND_UNBOUND,
         )
         return _finalize_result()
 
-    if managed_runtime_backend is None:
+    if not opl_runtime_contract.is_opl_hosted_research_execution(execution):
         result.set_decision(
             StudyRuntimeDecision.LIGHTWEIGHT,
             StudyRuntimeReason.STUDY_EXECUTION_NOT_MANAGED_RUNTIME_BACKEND,

@@ -48,7 +48,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -226,7 +226,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -616,7 +616,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -729,7 +729,7 @@ def test_study_progress_does_not_project_autonomous_controller_gate_as_physician
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -798,7 +798,7 @@ def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -881,7 +881,7 @@ def test_study_progress_surfaces_same_line_route_back_quality_focus(
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

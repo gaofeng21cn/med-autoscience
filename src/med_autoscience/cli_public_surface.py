@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATIONS_COMMANDS
-
-
 GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("doctor", "report"): "doctor",
     ("doctor", "profile"): "show-profile",
@@ -17,7 +14,6 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("workspace", "init"): "init-workspace",
     ("workspace", "cockpit"): "workspace-cockpit",
     ("workspace", "progress-portal"): "progress-portal",
-    ("workspace", "portal-console-soak"): "portal-console-soak",
     ("workspace", "profile-cycles"): "workspace-profile-cycles",
     ("data", "init-assets"): "init-data-assets",
     ("data", "assets-status"): "data-assets-status",
@@ -36,34 +32,18 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("data", "tooluniverse-status"): "tooluniverse-status",
     ("runtime", "domain-health-diagnostic"): "domain-health-diagnostic",
     ("runtime", "reconcile-health"): "reconcile-runtime-health",
-    ("runtime", "supervision-status"): "runtime-supervision-status",
-    ("runtime", "ensure-supervision"): "runtime-ensure-supervision",
-    ("runtime", "remove-supervision"): "runtime-remove-supervision",
-    ("runtime", "owner-route-reconcile"): "owner-route-reconcile",
     ("runtime", "domain-action-request-materialize"): "domain-action-request-materialize",
     ("runtime", "domain-owner-action-dispatch"): "domain-owner-action-dispatch",
-    ("runtime", "domain-route-reconcile"): "domain-route-reconcile",
     ("runtime", "domain-owner-action-refresh-controller-decisions"): "domain-owner-action-refresh-controller-decisions",
     ("runtime", "paper-autonomy-stability-evidence"): "paper-autonomy-stability-evidence",
-    ("runtime", "lifecycle-inventory"): "runtime-lifecycle-inventory",
-    ("runtime", "lifecycle-read"): "runtime-lifecycle-read",
-    ("runtime", "lifecycle-export"): "runtime-lifecycle-export",
-    ("runtime", "lifecycle-ledger"): "runtime-lifecycle-ledger",
-    ("runtime", "lifecycle-quest-git-inventory"): "runtime-lifecycle-quest-git-inventory",
-    ("runtime", "lifecycle-quest-git-cutover"): "runtime-lifecycle-quest-git-cutover",
-    ("runtime", "quest-materialize"): "runtime-quest-materialize",
     ("runtime", "workspace-monolith-migrate"): "workspace-monolith-migrate",
     ("runtime", "paper-authority-clean-migration"): "paper-authority-clean-migration",
     ("runtime", "study-config-clean-migration"): "study-config-clean-migration",
     ("runtime", "maintain-storage"): "runtime-maintain-storage",
     ("runtime", "storage-audit"): "workspace-storage-audit",
-    ("runtime", "live-console"): "runtime-live-console",
     ("runtime", "overlay-status"): "overlay-status",
     ("runtime", "install-overlay"): "install-medical-overlay",
     ("runtime", "reapply-overlay"): "reapply-medical-overlay",
-    ("runtime", "ensure-analysis-bundle"): "ensure-study-runtime-analysis-bundle",
-    ("study", "ensure-runtime"): "ensure-study-runtime",
-    ("study", "pause-runtime"): "pause-study-runtime",
     ("study", "progress-projection"): "progress-projection",
     ("study", "progress"): "study-progress",
     ("study", "open-auto-research-soak"): "open-auto-research-soak",
@@ -100,9 +80,11 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "route-memory-inventory"): "publication-route-memory-inventory",
     ("sidecar", "export"): "sidecar-export",
     ("sidecar", "dispatch"): "sidecar-dispatch",
-    ("product", "governance-report"): "control-plane-governance-report",
-    ("product", "backfill-apply"): "control-plane-backfill-apply",
-    ("product", "safe-cache-cleanup-apply"): "control-plane-safe-cache-cleanup-apply",
+    ("product", "governance-report"): "storage-governance-report",
+    ("product", "backfill-apply"): "delivery-authority-backfill-apply",
+    ("product", "authority-migration-audit"): "workspace-authority-migration-audit",
+    ("product", "artifact-lifecycle-report"): "artifact-lifecycle-report",
+    ("product", "artifact-lifecycle-soak-summary"): "artifact-lifecycle-continuous-soak-summary",
     ("product", "entry_status"): "product-entry-status",
     ("product", "preflight"): "product-preflight",
     ("product", "start"): "product-start",
@@ -120,7 +102,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "doctor": "doctor 审计、profile、mainline 与 stage-route contract 检查。",
     "workspace": "workspace 初始化与 readiness cockpit。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
-    "runtime": "domain health diagnostic、OPL scheduler replacement projection、overlay、analysis bundle、storage maintenance 与 live console。",
+    "runtime": "domain health diagnostic、domain owner handoff、overlay 与 storage maintenance。",
     "study": "progress projection、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
     "sidecar": "OPL family-runtime typed queue 的 MAS 只读 export 与 guarded dispatch。",
@@ -148,16 +130,6 @@ def print_public_help() -> None:
             "  medautosci study progress --profile <profile> --study-id <study_id>",
             "  medautosci product manifest --profile <profile> --study-id <study_id>",
             "  medautosci product skill-catalog --profile <profile> --format json",
-        ]
-    )
-    lines.extend(
-        [
-            "",
-            "Control-plane operations:",
-            *[
-                f"  {item.cli_command:<42}{item.description}"
-                for item in CONTROL_PLANE_OPERATIONS_COMMANDS
-            ],
         ]
     )
     print("\n".join(lines))

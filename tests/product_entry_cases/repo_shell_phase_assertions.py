@@ -5,33 +5,34 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "surface_kind": "phase3_host_clearance_lane",
         "summary": (
             "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
-            "与 paper-progress SLO 由 MAS surface 承接，generic cadence/provider SLO 归 OPL runtime manager。"
+            "与 paper-progress SLO 由 MAS surface 承接，generic cadence/provider SLO 归 OPL current_control_state。"
         ),
-        "recommended_step_id": "mas_runtime_contract",
+        "recommended_step_id": "mas_domain_refs_boundary",
         "recommended_command": (
             "uv run python -m med_autoscience.cli doctor --profile "
             + str(profile_ref.resolve())
         ),
         "clearance_targets": [
-            {
-                "target_id": "mas_runtime_contract",
-                "title": "Check MAS runtime and legacy hosted-runtime tombstone contract",
-                "commands": ["uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve())],
-            },
+                {
+                    "target_id": "mas_domain_refs_boundary",
+                    "title": "Check MAS domain refs and legacy runtime tombstone boundary",
+                    "commands": ["uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve())],
+                },
             {
                 "target_id": "supervisor_service",
-                "title": "Inspect OPL-owned supervision projection",
+                "title": "Inspect OPL current-control-state refs through MAS progress",
                 "commands": [
                     (
-                        "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
+                        "uv run python -m med_autoscience.cli study-progress --profile "
                         + str(profile_ref.resolve())
+                        + " --format json"
                     ),
                     (
                         "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
                     ),
                 ],
             },
@@ -53,34 +54,35 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
         ],
         "clearance_loop": [
-            {
-                "step_id": "mas_runtime_contract",
-                "title": "确认 MAS runtime contract ready，旧 hosted runtime 仅保留 tombstone/provenance",
-                "surface_kind": "doctor_runtime_contract",
-                "command": (
-                    "uv run python -m med_autoscience.cli doctor --profile "
-                    + str(profile_ref.resolve())
+                {
+                    "step_id": "mas_domain_refs_boundary",
+                    "title": "确认 MAS domain refs boundary ready，旧 hosted runtime 仅保留 tombstone/provenance",
+                    "surface_kind": "doctor_domain_refs_boundary",
+                    "command": (
+                        "uv run python -m med_autoscience.cli doctor --profile "
+                        + str(profile_ref.resolve())
                 ),
             },
             {
                 "step_id": "supervisor_service",
                 "title": "确认 OPL replacement 与 MAS domain projection 在线",
-                "surface_kind": "workspace_supervisor_service",
+                "surface_kind": "opl_current_control_state_handoff",
                 "command": (
-                    "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
+                    "uv run python -m med_autoscience.cli study-progress --profile "
                     + str(profile_ref.resolve())
+                    + " --format json"
                 ),
             },
-            {
-                "step_id": "refresh_supervision",
-                "title": "刷新 MAS domain runtime projection",
-                "surface_kind": "domain_health_diagnostic_refresh",
-                "command": (
+                {
+                    "step_id": "refresh_supervision",
+                    "title": "刷新 MAS domain refs projection",
+                    "surface_kind": "domain_health_diagnostic_refresh",
+                    "command": (
                     "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                     + str(profile.runtime_root)
                     + " --profile "
                     + str(profile_ref.resolve())
-                    + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                    + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
                 ),
             },
             {
@@ -122,8 +124,8 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                 "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "domain_health_diagnostic" / "latest.json"),
             },
             {
-                "surface_kind": "runtime_supervision",
-                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_supervision" / "latest.json"),
+                "surface_kind": "runtime_supervision_retired_provenance",
+                "ref": "contracts/runtime/legacy-active-path-tombstones.json",
             },
             {
                 "surface_kind": "controller_decisions",
@@ -159,7 +161,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         ],
         "current_backend_chain": [
             "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
-            "generic runtime/provider context -> OPL runtime manager handoff refs",
+            "generic runtime/provider context -> OPL current_control_state refs-only handoff",
             "historical med_deepscientist fixture/provenance refs only",
         ],
         "optional_executor_proofs": [
@@ -194,7 +196,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     assert phase5["north_star_topology"] == {
         "domain_agent": "Med Auto Science",
         "runtime_owner": "one-person-lab",
-        "runtime_substrate": "opl_provider_backed_stage_runtime",
+        "runtime_substrate": "opl_hosted_stage_runtime",
         "controlled_research_backend": (
             "MAS domain owner receipts / Artifact authority refs / Quality verdict refs; "
             "generic runtime lifecycle handoff to OPL"

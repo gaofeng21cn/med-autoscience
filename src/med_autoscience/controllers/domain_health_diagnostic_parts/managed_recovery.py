@@ -12,10 +12,14 @@ from med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup i
     _should_hard_auto_recover_managed_study,
 )
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_control.ports import RuntimeControlPorts, ensure_runtime, runtime_status_payload
+from med_autoscience.runtime_control.ports import (
+    RuntimeControlPorts,
+    request_opl_stage_attempt,
+    runtime_status_payload,
+)
 
 
-MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "domain_health_diagnostic_auto_recovery"
+MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "domain_health_diagnostic_opl_stage_attempt_request"
 RECOVERY_DECISIONS = {"create_and_start", "resume", "relaunch_stopped"}
 
 
@@ -35,6 +39,10 @@ def recovery_failure_payload(
     payload["reason"] = failure_reason
     payload["runtime_execution_error"] = str(error)
     return payload
+
+
+def _stage_request_decision(payload: Mapping[str, Any]) -> bool:
+    return str(payload.get("decision") or "").strip() in RECOVERY_DECISIONS
 
 
 def projection_error_payload(
@@ -84,7 +92,10 @@ def _record_requested_runtime_recovery(
     action_payload: dict[str, Any],
 ) -> None:
     action_status_payload = _managed_study_status_payload(action_payload)
-    if str(action_status_payload.get("decision") or "").strip() in RECOVERY_DECISIONS:
+    if _stage_request_decision(action_status_payload) or str(action_status_payload.get("status") or "").strip() in {
+        "opl_stage_attempt_admission_required",
+        "opl_stage_attempt_requested",
+    }:
         study_root_key = str(Path(study_root).expanduser().resolve())
         runtime_recovery_payloads[study_root_key] = action_status_payload
 
@@ -103,7 +114,7 @@ def _apply_managed_study_status(
         except Exception as exc:
             return projection_error_payload(study_root=study_root, error=exc)
     try:
-        action_payload = ensure_runtime(
+        action_payload = request_opl_stage_attempt(
             ports=runtime_control_ports,
             profile=profile,
             study_root=study_root,
@@ -172,7 +183,7 @@ def _auto_recovery_action_payload(
         }, False
     if not apply:
         return preflight_payload, False
-    action_payload = ensure_runtime(
+    action_payload = request_opl_stage_attempt(
         ports=runtime_control_ports,
         profile=profile,
         study_root=study_root,
@@ -227,15 +238,15 @@ def managed_study_initial_statuses(
     runtime_control_ports: RuntimeControlPorts,
     profile: WorkspaceProfile | None,
     apply: bool,
-    ensure_study_runtimes: bool,
+    request_opl_stage_attempts: bool,
     auto_recoveries: list[dict[str, Any]],
     recovery_holds: list[dict[str, Any]],
     runtime_recovery_payloads: dict[str, dict[str, Any]],
 ) -> list[tuple[Path, dict[str, Any]]]:
-    if not ensure_study_runtimes:
+    if not request_opl_stage_attempts:
         return []
     if profile is None:
-        raise ValueError("profile is required when ensure_study_runtimes is enabled")
+        raise ValueError("profile is required when request_opl_stage_attempts is enabled")
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     for study_root in _managed_study_roots(profile):
         if apply:

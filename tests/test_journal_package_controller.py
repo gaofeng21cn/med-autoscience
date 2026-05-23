@@ -189,8 +189,8 @@ def test_materialize_journal_package_route_gate_blocks_zip_materialization(tmp_p
         journal_slug="rheumatology-international",
         publication_profile="general_medical_journal",
         route_context={
-            "control_plane_snapshot": {
-                "surface": "control_plane_snapshot",
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
                 "dispatch_gate": {
                     "state": "open",
                     "dispatch_allowed": True,
@@ -211,8 +211,8 @@ def test_materialize_journal_package_route_gate_blocks_zip_materialization(tmp_p
     )
 
     package_root = study_root / "submission_packages" / "rheumatology-international"
-    assert result["status"] == "control_plane_route_blocked"
-    assert result["control_plane_route_gate"]["allowed"] is False
+    assert result["status"] == "authority_route_blocked"
+    assert result["authority_route_gate"]["allowed"] is False
     assert not package_root.exists()
 
 

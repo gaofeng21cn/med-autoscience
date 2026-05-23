@@ -83,9 +83,9 @@ def legacy_watch_runtime_entry_reason(
             if (
                 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' not in existing_content
                 or '--profile "${PROFILE_PATH}"' not in existing_content
-                or "--ensure-study-runtimes" not in existing_content
-                or "--apply-supervisor-platform-repair" not in existing_content
-                or "--apply" not in existing_content
+                or "--request-opl-stage-attempts" in existing_content
+                or "--request-opl-owner-route-reconcile" in existing_content
+                or "--apply" in existing_content
                 or "--loop" in existing_content
             ):
                 return "legacy_watch_runtime_entry"
@@ -102,13 +102,8 @@ def legacy_supervisor_entry_reason(
     supervisor_specs = (
         (
             ("ops", "medautoscience", "bin", "owner-route-reconcile"),
-            ("runtime owner-route-reconcile",),
+            ("run_medautosci owner-route-reconcile",),
             "legacy_scan_domain_routes_entry",
-        ),
-        (
-            ("ops", "medautoscience", "bin", "domain-route-reconcile"),
-            ("runtime domain-route-reconcile", "--mode developer_apply_safe"),
-            "legacy_reconcile_domain_routes_entry",
         ),
         (
             ("ops", "medautoscience", "bin", "domain-action-request-materialize"),

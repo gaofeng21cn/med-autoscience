@@ -38,10 +38,10 @@ def test_profile_sli_summary_separates_active_duplicate_dispatch_from_history() 
     assert summary["duplicate_dispatch_active"] is False
     assert summary["next_work_unit_id"] == "analysis_claim_evidence_repair"
     assert summary["package_stale_is_current_bottleneck"] is False
-def test_runtime_worker_activity_normalizes_runtime_state() -> None:
-    module = importlib.import_module("med_autoscience.controllers.runtime_worker_activity")
+def test_opl_runtime_refs_normalizes_domain_activity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
 
-    live = module.normalize_activity(
+    live = module.resolve_opl_runtime_refs(
         {
             "quest_status": "running",
             "runtime_liveness_audit": {
@@ -51,26 +51,27 @@ def test_runtime_worker_activity_normalizes_runtime_state() -> None:
             },
             "autonomous_runtime_notice": {"browser_url": "http://127.0.0.1:20999"},
         }
-    )
-    recovering = module.normalize_activity(
+    ).to_domain_activity_ref()
+    recovering = module.resolve_opl_runtime_refs(
         {
             "quest_status": "running",
             "runtime_liveness_status": None,
             "reason": "quest_marked_running_but_no_live_session",
         }
-    )
+    ).to_domain_activity_ref()
 
-    assert live["worker"] == "runtime_worker"
+    assert live["provider_owner"] == "one-person-lab"
+    assert live["source"] == "opl_runtime_refs"
     assert live["activity_state"] == "running"
     assert live["heartbeat_state"] == "live"
     assert live["active_run_id"] == "run-123"
     assert live["monitoring_url"] == "http://127.0.0.1:20999"
     assert recovering["activity_state"] == "recovering"
     assert recovering["heartbeat_state"] == "missing_live_session"
-def test_control_plane_facts_do_not_treat_stale_continuation_run_as_strict_live() -> None:
-    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+def test_opl_runtime_refs_do_not_treat_stale_continuation_run_as_strict_live() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
 
-    facts = module.resolve_control_plane_facts(
+    facts = module.resolve_opl_runtime_refs(
         {
             "quest_status": "active",
             "runtime_liveness_status": "unknown",
@@ -85,8 +86,8 @@ def test_control_plane_facts_do_not_treat_stale_continuation_run_as_strict_live(
     assert facts.strict_live is False
     assert facts.missing_live_session is True
     assert facts.recovery_pending is True
-def test_control_plane_facts_do_not_treat_completed_parked_run_as_strict_live(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+def test_opl_runtime_refs_do_not_treat_completed_parked_run_as_strict_live(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     run_root = quest_root / ".ds" / "runs" / "run-parked-001"
     run_root.mkdir(parents=True)
@@ -111,7 +112,7 @@ def test_control_plane_facts_do_not_treat_completed_parked_run_as_strict_live(tm
         encoding="utf-8",
     )
 
-    facts = module.resolve_control_plane_facts(
+    facts = module.resolve_opl_runtime_refs(
         {
             "quest_status": "running",
             "quest_root": str(quest_root),
@@ -137,11 +138,11 @@ def test_control_plane_facts_do_not_treat_completed_parked_run_as_strict_live(tm
     assert facts.worker_running is False
     assert facts.missing_live_session is False
     assert facts.recovery_pending is False
-    assert facts.to_runtime_worker_activity()["activity_state"] == "parked"
-def test_control_plane_facts_treat_closeout_continuation_as_parked_not_recovery() -> None:
-    module = importlib.import_module("med_autoscience.controllers.control_plane_facts")
+    assert facts.to_domain_activity_ref()["activity_state"] == "parked"
+def test_opl_runtime_refs_treat_closeout_continuation_as_parked_not_recovery() -> None:
+    module = importlib.import_module("med_autoscience.controllers.opl_runtime_refs")
 
-    facts = module.resolve_control_plane_facts(
+    facts = module.resolve_opl_runtime_refs(
         {
             "quest_status": "active",
             "decision": "lightweight",
@@ -174,9 +175,9 @@ def test_control_plane_facts_treat_closeout_continuation_as_parked_not_recovery(
     assert facts.strict_live is False
     assert facts.missing_live_session is False
     assert facts.recovery_pending is False
-    assert facts.to_runtime_worker_activity()["activity_state"] == "parked"
+    assert facts.to_domain_activity_ref()["activity_state"] == "parked"
 def test_progress_projection_exposes_runtime_worker_activity(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     profile = make_profile(tmp_path)
     write_study(
         profile.workspace_root,
@@ -209,27 +210,18 @@ def test_progress_projection_exposes_runtime_worker_activity(monkeypatch, tmp_pa
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
-    monkeypatch.setattr(
-        module.managed_runtime_transport,
-        "inspect_quest_live_execution",
-        lambda *, runtime_root, quest_id: {
-            "status": "live",
-            "active_run_id": "run-live",
-            "runtime_audit": {"worker_running": True, "active_run_id": "run-live"},
-            "bash_session_audit": {"status": "live"},
-        },
-    )
-
     result = module.progress_projection(profile=profile, study_id="001-risk", include_progress_projection=False)
 
     legacy_worker_activity_key = "mds" + "_worker_activity"
     assert legacy_worker_activity_key not in result
-    assert result["runtime_worker_activity"] == {
-        "worker": "runtime_worker",
-        "activity_state": "running",
-        "heartbeat_state": "live",
+    assert not hasattr(module, "managed_runtime" + "_transport")
+    assert result["opl_domain_activity_ref"] == {
+        "provider_owner": "one-person-lab",
+        "source": "opl_runtime_refs",
+        "activity_state": "recovering",
+        "heartbeat_state": "missing_live_session",
         "quest_status": "running",
-        "active_run_id": "run-live",
-        "monitoring_url": result["autonomous_runtime_notice"]["browser_url"],
-        "reason": "quest_already_running",
+        "active_run_id": None,
+        "monitoring_url": None,
+        "reason": "quest_marked_running_but_no_live_session",
     }

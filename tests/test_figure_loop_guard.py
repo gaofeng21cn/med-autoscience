@@ -46,9 +46,6 @@ def make_quest(tmp_path: Path) -> tuple[Path, Path]:
             }
         ],
     )
-    dump_json(quest_root / ".ds" / "user_message_queue.json", {"version": 1, "pending": [], "completed": []})
-    (quest_root / ".ds" / "interaction_journal.jsonl").parent.mkdir(parents=True, exist_ok=True)
-    (quest_root / ".ds" / "interaction_journal.jsonl").write_text("", encoding="utf-8")
     references = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "references.bib"
     references.parent.mkdir(parents=True, exist_ok=True)
     references.write_text(
@@ -258,19 +255,6 @@ def test_build_guard_report_does_not_block_without_active_run(tmp_path: Path) ->
 def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     quest_root, outbox_path = make_quest(tmp_path)
-    stopped: list[tuple[str | None, str | None, str, str]] = []
-
-    def fake_stop_quest(
-        *,
-        daemon_url: str | None = None,
-        runtime_root: Path | None = None,
-        quest_id: str,
-        source: str,
-    ) -> dict:
-        stopped.append((daemon_url, str(runtime_root) if runtime_root is not None else None, quest_id, source))
-        return {"ok": True, "interrupted": True, "status": "stopped", "source": source}
-
-    monkeypatch.setattr(module.managed_runtime_transport, "stop_quest", fake_stop_quest)
 
     result = module.run_controller(
         quest_root=quest_root,
@@ -290,26 +274,13 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
         min_reference_count=12,
     )
 
-    assert stopped == [
-        (
-            "http://127.0.0.1:20999",
-            str((quest_root.parent.parent).resolve()),
-            "002-early-residual-risk",
-            "medautosci-figure-loop-guard",
-        )
-    ]
-    assert result["intervention_enqueued"] is True
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    assert len(queue["pending"]) == 1
-    content = queue["pending"][0]["content"]
-    assert "F4B" in content
-    assert "F3C" in content
-    assert "F5A" in content
-    assert "literature_scout" in content
-    assert build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C") in content
-    assert build_figure_route(FIGURE_ROUTE_ILLUSTRATION_PROGRAM, "F5A") in content
-    assert "script/data repair route" in content
-    assert "programmatic illustration route" in content
+    assert not hasattr(module, "managed_runtime" + "_transport")
+    assert result["quest_stop_applied"] is True
+    assert result["quest_stop_status"] == "owner_route_required"
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["runtime_owner"] == "one-person-lab"
+    assert result["intervention_handoff"]["user_message_queue_mutated"] is False
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
 def test_run_controller_defers_stop_when_called_from_same_quest(tmp_path: Path, monkeypatch) -> None:
@@ -317,11 +288,6 @@ def test_run_controller_defers_stop_when_called_from_same_quest(tmp_path: Path, 
     quest_root, outbox_path = make_quest(tmp_path)
     monkeypatch.setenv("DS_QUEST_ROOT", str(quest_root))
     monkeypatch.setenv("DS_RUN_ID", "run-loop")
-
-    def unexpected_stop_quest(**kwargs: object) -> dict:
-        pytest.fail("self-owned controller invocation must not stop its own quest")
-
-    monkeypatch.setattr(module.managed_runtime_transport, "stop_quest", unexpected_stop_quest)
 
     result = module.run_controller(
         quest_root=quest_root,
@@ -332,12 +298,12 @@ def test_run_controller_defers_stop_when_called_from_same_quest(tmp_path: Path, 
         min_reference_count=12,
     )
 
-    assert result["intervention_enqueued"] is True
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["queue_owner"] == "one-person-lab"
     assert result["quest_stop_applied"] is False
     assert result["quest_stop_deferred"] is True
     assert result["quest_stop_defer_reason"] == "self_owned_domain_health_diagnostic"
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    assert len(queue["pending"]) == 1
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
 def test_build_guard_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:

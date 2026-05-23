@@ -146,7 +146,7 @@ MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v
 | `journal_resolution_flow` | 指定 journal 格式整理进入 `journal-resolution` / `finalize` route + OPL stage graph。 | 目标 journal refs、format delta refs、artifact authority receipt、independent review/human gate/typed blocker 可被 OPL ingest。 |
 | `executor_reviewer_auditor_split` | executor、reviewer、auditor 分离成独立 OPL invocations。 | quality/format/publication gate 不允许同一 invocation 自审关闭。 |
 | `transition_matrix_consumption` | MAS `study_state_matrix` / transition table 持续暴露给 OPL runner。 | OPL runner pass 只证明 matrix 可消费；真实 owner receipt/typed blocker 才能关闭 route。 |
-| `retained_adapter_physical_thinning` | runtime_transport、SQLite lifecycle、status/workbench shell 按台账收薄。 | no-active-caller、OPL parity、MAS receipt parity、focused tests、no-forbidden-write、tombstone/provenance refs 全部成立才删除。 |
+| `runtime_control_plane_physical_retirement` | runtime_transport、SQLite lifecycle、worker lease、status/workbench shell 中的通用 runtime 控制面按 no-alias 退役；剩余只允许 domain authority refs、owner receipt、typed blocker 和 OPL handoff refs。 | 新投影不得声明 MAS generic queue、attempt ledger、scheduler、retry/dead-letter、worker residency、runtime lifecycle 或 read-model owner。 |
 | `paper_line_canary` | 真实 paper-line 证明 OPL attempt -> MAS owner chain。 | 产出 progress delta、AI reviewer/gate receipt、artifact movement、human gate、stop-loss、owner receipt 或 stable typed blocker。 |
 
 ## 禁止误写
@@ -155,5 +155,5 @@ MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v
 - 不把 transition runner pass 写成 publication-ready、submission-ready 或 artifact-ready。
 - 不把 OPL provider completion 写成 MAS owner receipt。
 - 不把 owner-route handoff 写成 runtime liveness/redrive 仲裁。
-- 不把 retained adapter 的存在写成 MAS generic runtime owner；也不把它们写成已经物理删除。
+- 不把旧 runtime/control adapter 写成 MAS generic runtime owner、compat alias、diagnostic fallback 或当前 active caller gate。
 - 不用同一 agent execution + 自审关闭 AI-first quality gate。

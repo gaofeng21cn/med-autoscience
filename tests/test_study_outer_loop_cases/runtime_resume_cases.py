@@ -29,7 +29,7 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -41,7 +41,7 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "ensure_study_runtime",
         lambda **kwargs: (
             seen.setdefault("ensure_kwargs", kwargs),

@@ -21,19 +21,15 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import lifecycle_refs_adapter
+from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 
 SCHEMA_VERSION = 1
 CONSUMER_LATEST_RELATIVE_PATH = Path("artifacts/supervision/consumer/latest.json")
 CONSUMER_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/consumer/history.jsonl")
-RUNTIME_PLATFORM_REPAIR_PACKET_RELATIVE_PATH = Path(
-    "artifacts/supervision/consumer/runtime_platform_repair.json"
-)
 DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT = Path(
     "artifacts/supervision/consumer/default_executor_dispatches"
 )
-SUPPORTED_ACTION_TYPE = "runtime_platform_repair"
 SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
     {
         "publication_gate_specificity_required",
@@ -56,11 +52,11 @@ FORBIDDEN_SURFACES = [
     "paper/current_package/**",
     "manuscript/current_package/**",
     "src/med_autoscience/platform/**",
+    "src/med_autoscience/runtime_transport/**",
 ]
 ALLOWED_WRITE_SURFACES = [
     "artifacts/supervision/consumer/latest.json",
     "artifacts/supervision/consumer/history.jsonl",
-    "studies/<study_id>/artifacts/supervision/consumer/runtime_platform_repair.json",
     "studies/<study_id>/artifacts/supervision/consumer/publication_gate_specificity_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/current_package_freshness_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/artifact_display_surface_materialization_required.json",
@@ -119,10 +115,6 @@ def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
     return profile.studies_root / study_id
 
 
-def _packet_path(profile: WorkspaceProfile, study_id: str) -> Path:
-    return _study_root(profile, study_id) / RUNTIME_PLATFORM_REPAIR_PACKET_RELATIVE_PATH
-
-
 def _request_packet_path(profile: WorkspaceProfile, study_id: str, action_type: str) -> Path:
     if action_type not in SUPPORTED_REQUEST_ACTION_TYPES:
         raise ValueError(f"unsupported supervisor request action_type: {action_type}")
@@ -177,67 +169,6 @@ def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | Non
     if _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE:
         return "developer_apply_safe_required"
     return None
-
-
-def _repair_task(
-    *,
-    profile: WorkspaceProfile,
-    action: Mapping[str, Any],
-    developer_mode_payload: Mapping[str, Any],
-    apply: bool,
-) -> dict[str, Any]:
-    study_id = _text(action.get("study_id")) or "unknown-study"
-    handoff_packet = _mapping(action.get("handoff_packet"))
-    packet_path = _packet_path(profile, study_id)
-    apply_allowed = (
-        apply
-        and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
-        and developer_mode_payload.get("safe_actions_enabled") is True
-    )
-    blocked_reason = None if apply_allowed or not apply else _github_block_reason(developer_mode_payload)
-    dispatch_status = "applied" if apply_allowed else "dry_run" if not apply else "blocked"
-    return {
-        "surface": "runtime_platform_repair_task",
-        "schema_version": SCHEMA_VERSION,
-        "study_id": study_id,
-        "quest_id": _text(action.get("quest_id")) or _text(handoff_packet.get("quest_id")),
-        "action_type": SUPPORTED_ACTION_TYPE,
-        "action_id": _text(action.get("action_id")),
-        "reason": _text(action.get("reason")) or _text(handoff_packet.get("reason")),
-        "dispatch_status": dispatch_status,
-        "blocked_reason": blocked_reason,
-        "dry_run": not apply,
-        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
-        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
-        "merge_cleanup_checklist": list(MERGE_CLEANUP_CHECKLIST),
-        "github_gate": dict(_mapping(developer_mode_payload.get("github_user_gate"))),
-        "effective_mode": _text(developer_mode_payload.get("mode")),
-        "requested_mode": _text(developer_mode_payload.get("requested_mode")),
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-        "manual_study_patch_allowed": False,
-        "medical_claim_authoring_allowed": False,
-        "platform_code_mutation_allowed": False,
-        "source_action": dict(action),
-        "handoff_packet": {
-            **handoff_packet,
-            "surface": "runtime_platform_repair_handoff_packet",
-            "action_type": SUPPORTED_ACTION_TYPE,
-            "forbidden_surfaces": list(FORBIDDEN_SURFACES),
-            "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
-            "github_gate": dict(_mapping(developer_mode_payload.get("github_user_gate"))),
-            "effective_mode": _text(developer_mode_payload.get("mode")),
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "manual_study_patch_allowed": False,
-            "medical_claim_authoring_allowed": False,
-            "platform_code_mutation_allowed": False,
-        },
-        "refs": {
-            "scan_latest": str(_scan_latest_path(profile)),
-            "repair_packet_path": str(packet_path),
-        },
-    }
 
 
 def _request_owner_for_action_type(action_type: str) -> str:
@@ -344,17 +275,6 @@ def _request_packet_ref_for_dispatch(action_type: str) -> str | None:
     if action_type in SUPPORTED_REQUEST_ACTION_TYPES:
         return _request_packet_ref_for_action_type(action_type)
     return None
-
-
-def _next_executable_owner_for_runtime_repair(action: Mapping[str, Any]) -> str:
-    handoff_packet = _mapping(action.get("handoff_packet"))
-    return (
-        _text(action.get("recommended_owner"))
-        or _text(action.get("owner"))
-        or _text(handoff_packet.get("recommended_owner"))
-        or _text(handoff_packet.get("owner"))
-        or "external_engineering_agent"
-    )
 
 
 def _required_output_surface(action: Mapping[str, Any], action_type: str) -> str:
@@ -684,14 +604,13 @@ def _selected_actions(
     *,
     scan_payload: Mapping[str, Any],
     study_ids: tuple[str, ...],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    selected: list[dict[str, Any]] = []
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     request_selected: list[dict[str, Any]] = []
     ignored: list[dict[str, Any]] = []
     allowed_studies = set(study_ids)
     actions = _current_actions_for_studies(scan_payload=scan_payload, study_ids=study_ids)
     if not isinstance(actions, list):
-        return selected, request_selected, ignored
+        return request_selected, ignored
     for action in actions:
         if not isinstance(action, Mapping):
             continue
@@ -700,16 +619,13 @@ def _selected_actions(
             ignored.append(_ignored_action(action, "study_not_requested"))
             continue
         action_type = _text(action.get("action_type"))
-        if action_type == SUPPORTED_ACTION_TYPE:
-            selected.append(dict(action))
-            continue
         if action_type in SUPPORTED_REQUEST_ACTION_TYPES:
             request_selected.append(dict(action))
             continue
         else:
             ignored.append(_ignored_action(action, "unsupported_action_type"))
             continue
-    return selected, request_selected, ignored
+    return request_selected, ignored
 
 
 def _current_actions_for_studies(*, scan_payload: Mapping[str, Any], study_ids: tuple[str, ...]) -> list[dict[str, Any]] | None:
@@ -818,19 +734,10 @@ def materialize_domain_action_requests(
     developer_mode_payload = developer_mode.to_dict()
     scan_payload = _read_json_object(_scan_latest_path(profile)) or {}
     resolved_study_ids = _resolve_study_ids_from_scan(scan_payload, study_ids)
-    selected_actions, selected_request_actions, ignored_actions = _selected_actions(
+    selected_request_actions, ignored_actions = _selected_actions(
         scan_payload=scan_payload,
         study_ids=resolved_study_ids,
     )
-    repair_tasks = [
-        _repair_task(
-            profile=profile,
-            action=action,
-            developer_mode_payload=developer_mode_payload,
-            apply=apply,
-        )
-        for action in selected_actions
-    ]
     request_tasks = [
         _request_task(
             profile=profile,
@@ -841,18 +748,6 @@ def materialize_domain_action_requests(
         for action in selected_request_actions
     ]
     default_executor_dispatches = [
-        _default_executor_dispatch(
-            profile=profile,
-            action=action,
-            action_type=SUPPORTED_ACTION_TYPE,
-            next_executable_owner=_next_executable_owner_for_runtime_repair(action),
-            required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
-            apply=apply,
-            developer_mode_payload=developer_mode_payload,
-            scan_payload=scan_payload,
-        )
-        for action in selected_actions
-    ] + [
         _default_executor_dispatch(
             profile=profile,
             action=action,
@@ -868,13 +763,6 @@ def materialize_domain_action_requests(
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
     if apply and developer_mode.safe_actions_enabled:
-        for task in repair_tasks:
-            if _text(task.get("dispatch_status")) != "applied":
-                continue
-            packet_path = Path(_mapping(task.get("refs")).get("repair_packet_path"))
-            packet = _mapping(task.get("handoff_packet"))
-            _write_json(packet_path, packet)
-            written_files.append(str(packet_path))
         for dispatch in default_executor_dispatches:
             if _text(dispatch.get("dispatch_status")) != "ready":
                 continue
@@ -882,11 +770,11 @@ def materialize_domain_action_requests(
             _write_json(dispatch_path, dispatch)
             dispatch["dispatch_id"] = f"dispatch::{_text(dispatch.get('study_id'))}::{_text(dispatch.get('action_type'))}"
             quest_root = profile.runtime_root / (_text(dispatch.get("quest_id")) or _text(dispatch.get("study_id")) or "")
-            dispatch["runtime_lifecycle_index"] = lifecycle_refs_adapter.record_dispatch_receipt(
+            dispatch["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
                 quest_root=quest_root,
                 receipt=dispatch,
                 receipt_path=dispatch_path,
-                db_path=lifecycle_refs_adapter.workspace_lifecycle_store_path(profile.workspace_root),
+                db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
             )
             _write_json(dispatch_path, dispatch)
             written_files.append(str(dispatch_path))
@@ -925,8 +813,9 @@ def materialize_domain_action_requests(
         "github_gate": dict(developer_mode.github_user_gate),
         "developer_supervisor_mode": developer_mode_payload,
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
-        "repair_task_count": len(repair_tasks),
-        "repair_tasks": repair_tasks,
+        "runtime_repair_task_count": 0,
+        "runtime_repair_tasks_retired": True,
+        "runtime_control_owner": "one-person-lab",
         "request_task_count": len(request_tasks),
         "request_tasks": request_tasks,
         "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
@@ -954,7 +843,7 @@ def materialize_domain_action_requests(
             {
                 "generated_at": generated_at,
                 "study_ids": list(resolved_study_ids),
-                "repair_task_count": len(repair_tasks),
+                "runtime_repair_task_count": 0,
                 "request_task_count": len(request_tasks),
                 "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
                 "written_files": list(written_files),

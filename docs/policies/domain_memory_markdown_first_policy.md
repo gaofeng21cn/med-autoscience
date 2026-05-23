@@ -64,7 +64,7 @@ The current repo-tracked structured files relevant to memory are:
 | --- | --- | --- |
 | `docs/policies/study-workflow/publication_route_memory_seed_fixture.json` | seed index / locator | kept as JSON index; canonical body moved to `publication_route_memory_library.md`. |
 | `docs/references/med-deepscientist/source_provenance.json` | source provenance manifest | keep JSON; it records external source provenance and capability refs, not the natural-language memory body. |
-| `tests/fixtures/live_console/mds_webui_cleanroom_oracle.json` | test oracle fixture | keep JSON; it supports deterministic tests. |
+| retired console clean-room oracle fixture | test oracle fixture | keep JSON only in history/provenance context; it supports deterministic tests and is not an active memory body. |
 
 Memory-like runtime surfaces in `portfolio/research_memory/**`, `artifacts/stage_knowledge/**`, receipts, and OPL projections remain structured because they are generated owner surfaces, body-free projections, or runtime proof. They should not become the primary maintainer editing interface for natural-language experience.
 

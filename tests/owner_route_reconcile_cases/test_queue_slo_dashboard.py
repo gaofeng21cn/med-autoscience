@@ -88,7 +88,7 @@ def test_scan_domain_routes_aggregates_queue_slo_from_repeat_action_fingerprints
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",

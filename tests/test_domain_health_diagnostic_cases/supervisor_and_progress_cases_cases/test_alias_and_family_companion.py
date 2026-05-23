@@ -28,9 +28,9 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_auto_recover_submissi
         ),
         "quest_status": "waiting_for_user",
         "execution": {
-            "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+            "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "001-risk",
             "auto_resume": True,
@@ -57,14 +57,9 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_auto_recover_submissi
     }
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or parked_status,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: calls.append(("ensure", source)) or parked_status,
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -73,7 +68,7 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_auto_recover_submissi
         controller_runners={},
         apply=False,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert calls == [("status", "001-risk")]

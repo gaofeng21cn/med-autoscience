@@ -12,21 +12,21 @@ def build_generated_surface_handoff(
         "surface_kind": "mas_generated_surface_handoff",
         "schema_version": schema_version,
         "generated_surface_owner": replacement_owner,
-        "current_mas_role": "handwritten_migration_bridge",
-        "status": "handoff_declared_mas_shells_are_migration_bridges",
+        "current_mas_role": "domain_handler_and_refs_projection_source",
+        "status": "handoff_declared_opl_default_surfaces_mas_domain_refs_only_no_resurrection",
         "long_term_mas_owner": False,
         "mas_handwritten_shell_expansion_allowed": False,
         "handoff_surfaces": [
             {
                 "surface_id": "cli",
                 "current_paths": ["src/med_autoscience/cli.py", "src/med_autoscience/cli_parts/"],
-                "current_role": "migration_bridge_thin_wrapper",
+                "current_role": "domain_handler_command_target_refs_only",
                 "target_role": "opl_generated_command_surface",
             },
             {
                 "surface_id": "mcp",
                 "current_paths": ["src/med_autoscience/mcp_server.py"],
-                "current_role": "migration_bridge_tool_handler_target",
+                "current_role": "domain_handler_tool_target_refs_only",
                 "target_role": "opl_generated_mcp_descriptor_surface",
             },
             {
@@ -35,13 +35,13 @@ def build_generated_surface_handoff(
                     "plugins/mas/skills/mas/SKILL.md",
                     "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
                 ],
-                "current_role": "migration_bridge_domain_skill_target_and_pack_guidance",
+                "current_role": "domain_skill_handler_target_and_pack_refs_only",
                 "target_role": "opl_generated_skill_descriptor_surface",
             },
             {
                 "surface_id": "product_entry",
                 "current_paths": ["src/med_autoscience/controllers/product_entry.py"],
-                "current_role": "migration_bridge_manifest_builder",
+                "current_role": "domain_manifest_ref_source_no_default_caller",
                 "target_role": "opl_generated_product_entry_surface",
             },
             {
@@ -61,7 +61,7 @@ def build_generated_surface_handoff(
                         "dispatch_orchestration.py"
                     ),
                 ],
-                "current_role": "migration_bridge_export_dispatch_adapter",
+                "current_role": "domain_owner_route_refs_export_dispatch_source",
                 "target_role": "opl_generated_sidecar_handoff_surface",
             },
             {
@@ -70,7 +70,7 @@ def build_generated_surface_handoff(
                     "src/med_autoscience/controllers/product_entry_parts/",
                     "src/med_autoscience/controllers/progress_projection.py",
                 ],
-                "current_role": "domain_truth_plus_migration_bridge_status_wrapper",
+                "current_role": "domain_truth_refs_status_projection_source",
                 "target_role": "opl_generated_status_wrapper_over_mas_truth_refs",
             },
             {
@@ -79,7 +79,7 @@ def build_generated_surface_handoff(
                     "src/med_autoscience/controllers/progress_portal.py",
                     "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
                 ],
-                "current_role": "migration_bridge_workbench_projection_shell",
+                "current_role": "domain_refs_workbench_projection_source",
                 "target_role": "opl_hosted_workbench_shell_consuming_mas_refs",
             },
             {
@@ -88,19 +88,19 @@ def build_generated_surface_handoff(
                     "src/med_autoscience/controllers/product_entry_parts/",
                     "src/med_autoscience/controllers/progress_portal_parts/",
                 ],
-                "current_role": "migration_bridge_projection_builder",
+                "current_role": "domain_refs_projection_builder_source",
                 "target_role": "opl_generated_projection_shell",
             },
             {
                 "surface_id": "test_lane_harness",
                 "current_paths": ["contracts/test-lane-manifest.json", "tests/"],
-                "current_role": "migration_bridge_repo_guard",
+                "current_role": "focused_contract_guard_for_no_resurrection",
                 "target_role": "opl_generated_harness_consumer_over_mas_pack",
             },
         ],
-        "migration_bridge_exit_criteria": [
+        "domain_refs_projection_exit_criteria": [
             "opl_pack_compiler_generated_surface_available",
-            "active_callers_migrated",
+            "opl_generated_default_owner_consumes_domain_refs",
             "focused_lane_green",
             "no_forbidden_write",
             "history_tombstone_or_delete_unowned_shell",

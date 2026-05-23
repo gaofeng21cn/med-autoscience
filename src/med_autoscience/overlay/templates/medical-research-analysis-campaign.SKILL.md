@@ -36,7 +36,7 @@ MedAutoScience owns the study truth, controller authorization, evidence ledger, 
 
 Allowed MAS owner tools and surfaces:
 
-- controller-authorized MAS CLI / MCP / product-entry / runtime surfaces
+- controller-authorized MAS CLI / MCP / product-entry domain handler surfaces
 - `progress_projection` and `domain_health_diagnostic`
 - `artifacts/controller_decisions/latest.json`
 - `artifacts/publication_eval/latest.json`

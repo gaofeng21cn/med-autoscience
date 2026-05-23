@@ -17,16 +17,10 @@ from med_autoscience.figure_routes import (
     partition_required_routes,
     supported_required_route_help,
 )
-from med_autoscience import runtime_backend as runtime_backend_contract
-from med_autoscience.runtime_protocol import quest_state, user_message
+from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
+from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 from med_autoscience.runtime_protocol.layout import resolve_runtime_root_from_quest_root
-
-
-managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
-    runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
-)
-managed_runtime_transport = managed_runtime_backend
 
 
 RESOLVED_PATTERNS = [
@@ -468,17 +462,20 @@ def run_controller(
                 quest_stop_deferred = True
                 quest_stop_defer_reason = "self_owned_domain_health_diagnostic"
             else:
-                stop_result = managed_runtime_transport.stop_quest(
-                    daemon_url=daemon_url,
-                    runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
-                    quest_id=state.quest_id,
-                    source=source,
-                )
-        intervention = user_message.enqueue_user_message(
+                stop_result = {
+                    "status": "owner_route_required",
+                    "reason": "opl_current_control_state_stop_required",
+                    "queue_owner": "one-person-lab",
+                    "runtime_state_mutated": False,
+                    "quest_id": state.quest_id,
+                    "source": source,
+                }
+        intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=build_intervention_message(report),
             source=source,
+            evidence_refs=[str(json_path)],
         )
 
     return {
@@ -489,8 +486,9 @@ def run_controller(
         "dominant_figure_id": report["dominant_figure_id"],
         "dominant_figure_mentions": report["dominant_figure_mentions"],
         "reference_count": report["reference_count"],
-        "intervention_enqueued": bool(intervention),
-        "message_id": intervention.get("message_id") if intervention else None,
+        "intervention_enqueued": False,
+        "message_id": None,
+        "intervention_handoff": intervention,
         "quest_stop_applied": bool(stop_result),
         "quest_stop_status": stop_result.get("status") if isinstance(stop_result, dict) else None,
         "quest_stop_deferred": quest_stop_deferred,

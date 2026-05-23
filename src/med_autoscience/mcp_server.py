@@ -12,9 +12,9 @@ from med_autoscience.action_catalog import (
     action_catalog_metadata_by_mcp_tool,
     build_mas_action_catalog,
 )
-from med_autoscience.control_plane_command_catalog import (
-    CONTROL_PLANE_OPERATION_COMMANDS_BY_MCP_MODE,
-    build_control_plane_product_entry_mode_schema,
+from med_autoscience.authority_operation_command_catalog import (
+    AUTHORITY_OPERATION_COMMANDS_BY_MCP_MODE,
+    build_authority_product_entry_mode_schema,
     product_entry_description_modes_text,
 )
 from med_autoscience.mcp_server_parts.handler_adapter import (
@@ -63,9 +63,8 @@ def _load_profiles_module() -> Any:
 
 artifact_lifecycle_operations_report = _LazyModuleProxy(lambda: _load_controller("artifact_lifecycle_operations_report"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
-control_plane_backfill_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_backfill_apply"))
-control_plane_cleanup_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_cleanup_apply"))
-control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("control_plane_migration_audit"))
+delivery_authority_backfill_apply = _LazyModuleProxy(lambda: _load_controller("delivery_authority_backfill_apply"))
+workspace_authority_migration_audit = _LazyModuleProxy(lambda: _load_controller("workspace_authority_migration_audit"))
 continuous_soak_summary = _LazyModuleProxy(lambda: _load_controller("continuous_soak_summary"))
 data_assets = _LazyModuleProxy(lambda: _load_controller("data_assets"))
 external_research = _LazyModuleProxy(lambda: _load_controller("external_research"))
@@ -77,7 +76,7 @@ product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
-study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
 workspace_init = _LazyModuleProxy(lambda: _load_controller("workspace_init"))
 workspace_literature = _LazyModuleProxy(lambda: _load_controller("workspace_literature"))
 doctor = _LazyModuleProxy(_load_doctor_module)
@@ -86,7 +85,7 @@ profiles = _LazyModuleProxy(_load_profiles_module)
 _PRODUCT_ENTRY_CONTRACT_GAP_TEXT = PRODUCT_ENTRY_CONTRACT_GAP_TEXT
 ACTION_CATALOG = build_mas_action_catalog()
 TOOL_REGISTRY = build_tool_registry(
-    product_entry_mode_schema=build_control_plane_product_entry_mode_schema(),
+    product_entry_mode_schema=build_authority_product_entry_mode_schema(),
     product_entry_modes_text=product_entry_description_modes_text(),
     product_entry_contract_gap_text=_PRODUCT_ENTRY_CONTRACT_GAP_TEXT,
     action_catalog_metadata_by_tool=action_catalog_metadata_by_mcp_tool(ACTION_CATALOG),
@@ -230,7 +229,7 @@ def _call_progress_projection(arguments: dict[str, Any]) -> dict[str, Any]:
     from med_autoscience.mcp_server_parts.projection_adapters import render_progress_projection_result
 
     profile = profiles.load_profile(_require_string(arguments, "profile_path"))
-    result = study_runtime_router.progress_projection(
+    result = domain_status_projection.progress_projection(
         profile=profile,
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
         study_root=_optional_path(arguments, "study_root"),
@@ -269,23 +268,6 @@ def _call_open_auto_research_soak(arguments: dict[str, Any]) -> dict[str, Any]:
         result,
         allow_controller_writes=_optional_bool(arguments, "allow_controller_writes"),
     )
-
-
-def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
-    from med_autoscience.mcp_server_parts.projection_adapters import render_serialized_study_runtime_result
-
-    profile = profiles.load_profile(_require_string(arguments, "profile_path"))
-    result = study_runtime_router.ensure_study_runtime(
-        profile=profile,
-        study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
-        study_root=_optional_path(arguments, "study_root"),
-        entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
-        allow_stopped_relaunch=_optional_bool(arguments, "allow_stopped_relaunch"),
-        explicit_user_wakeup=_optional_bool(arguments, "explicit_user_wakeup"),
-        force=_optional_bool(arguments, "force"),
-        source="mcp",
-    )
-    return render_serialized_study_runtime_result(result)
 
 
 def _call_init_workspace(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -374,28 +356,18 @@ def _call_build_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_migration_audit(arguments: dict[str, Any]) -> dict[str, Any]:
-    result = control_plane_migration_audit.run_migration_audit(
-        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="migration_audit"),
+    result = workspace_authority_migration_audit.run_migration_audit(
+        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="workspace_authority_migration_audit"),
         dry_run=True,
     )
     return _tool_text_result(_json_text(result), structured=result)
 
 
 def _call_backfill_apply(arguments: dict[str, Any]) -> dict[str, Any]:
-    result = control_plane_backfill_apply.run_backfill_apply(
-        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="backfill_apply"),
+    result = delivery_authority_backfill_apply.run_backfill_apply(
+        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="delivery_authority_backfill_apply"),
         apply=_optional_bool(arguments, "apply", default=False),
-        control_plane_snapshot=_optional_mapping(arguments.get("control_plane_snapshot")),
-    )
-    return _tool_text_result(_json_text(result), structured=result)
-
-
-def _call_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
-    result = control_plane_cleanup_apply.run_cleanup_apply(
-        workspace_roots=_require_path_list(arguments, "workspace_roots", mode="cleanup_apply"),
-        apply=_optional_bool(arguments, "apply", default=False),
-        control_plane_snapshot=_optional_mapping(arguments.get("control_plane_snapshot")),
-        retention_report=_optional_mapping(arguments.get("retention_report"), field_name="retention_report"),
+        authority_snapshot=_optional_mapping(arguments.get("authority_snapshot"), field_name="authority_snapshot"),
     )
     return _tool_text_result(_json_text(result), structured=result)
 
@@ -441,37 +413,20 @@ def _call_continuous_soak_summary(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
-def _call_safe_cache_cleanup_apply(arguments: dict[str, Any]) -> dict[str, Any]:
-    result = _call_cleanup_apply(arguments)
-    structured = result.get("structuredContent")
-    if isinstance(structured, dict):
-        projected = {
-            **structured,
-            "surface": "control_plane_safe_cache_cleanup_apply",
-            "source_surface": structured.get("surface"),
-        }
-        result["structuredContent"] = projected
-        if result["content"] and result["content"][0]["text"].lstrip().startswith("{"):
-            result["content"][0]["text"] = _json_text(projected)
-    return result
-
-
-_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS: dict[str, ToolHandler] = {
-    "migration_audit": _call_migration_audit,
-    "backfill_apply": _call_backfill_apply,
-    "cleanup_apply": _call_cleanup_apply,
-    "safe_cache_cleanup_apply": _call_safe_cache_cleanup_apply,
-    "governance_report": _call_governance_report,
-    "lifecycle_report": _call_lifecycle_report,
-    "continuous_soak_summary": _call_continuous_soak_summary,
+_AUTHORITY_PRODUCT_ENTRY_HANDLERS: dict[str, ToolHandler] = {
+    "workspace_authority_migration_audit": _call_migration_audit,
+    "delivery_authority_backfill_apply": _call_backfill_apply,
+    "storage_governance_report": _call_governance_report,
+    "artifact_lifecycle_report": _call_lifecycle_report,
+    "artifact_lifecycle_continuous_soak_summary": _call_continuous_soak_summary,
 }
-_MISSING_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS = (
-    set(CONTROL_PLANE_OPERATION_COMMANDS_BY_MCP_MODE) - set(_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS)
+_MISSING_AUTHORITY_PRODUCT_ENTRY_HANDLERS = (
+    set(AUTHORITY_OPERATION_COMMANDS_BY_MCP_MODE) - set(_AUTHORITY_PRODUCT_ENTRY_HANDLERS)
 )
-if _MISSING_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS:
+if _MISSING_AUTHORITY_PRODUCT_ENTRY_HANDLERS:
     raise RuntimeError(
-        "control-plane MCP handler drift: "
-        f"missing_modes={sorted(_MISSING_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS)}"
+        "authority MCP handler drift: "
+        f"missing_modes={sorted(_MISSING_AUTHORITY_PRODUCT_ENTRY_HANDLERS)}"
     )
 
 
@@ -516,18 +471,6 @@ def _call_research_assets(arguments: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _call_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
-    return call_mode_handler(
-        tool_name="study_runtime",
-        arguments=arguments,
-        handlers={
-            "domain_health_diagnostic": _call_domain_health_diagnostic,
-            "progress_projection": _call_progress_projection,
-            "ensure_study_runtime": _call_ensure_study_runtime,
-        },
-    )
-
-
 def _call_publication_status(arguments: dict[str, Any]) -> dict[str, Any]:
     return call_mode_handler(
         tool_name="publication_status",
@@ -549,7 +492,7 @@ def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
             "product_start": _call_product_start,
             "product_entry_manifest": _call_product_manifest,
             "build_product_entry": _call_build_product_entry,
-            **_CONTROL_PLANE_PRODUCT_ENTRY_HANDLERS,
+            **_AUTHORITY_PRODUCT_ENTRY_HANDLERS,
         },
     )
 
@@ -558,7 +501,6 @@ TOOL_HANDLERS = {
     "doctor_audit": _call_doctor_audit,
     "workspace_readiness": _call_workspace_readiness,
     "research_assets": _call_research_assets,
-    "study_runtime": _call_study_runtime,
     "study_progress": _call_study_progress,
     "open_auto_research_soak": _call_open_auto_research_soak,
     "publication_status": _call_publication_status,

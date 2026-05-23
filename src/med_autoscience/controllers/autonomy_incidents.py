@@ -244,7 +244,7 @@ def _derived_platform_incidents(profile_payload: Mapping[str, Any]) -> list[str]
     current_state = _normalize_platform_incident_type(state_machine.get("current_state"))
     if current_state in {"no_live", "stalled"}:
         incidents.append(current_state)
-    runtime_activity = _mapping(profile_payload.get("runtime_worker_activity"))
+    runtime_activity = _mapping(profile_payload.get("opl_domain_activity_ref"))
     if _text(runtime_activity.get("heartbeat_state")) == "missing_live_session":
         incidents.append("no_live")
     if _text(runtime_activity.get("activity_state")) == "stalled":

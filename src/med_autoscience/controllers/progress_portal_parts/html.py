@@ -17,7 +17,6 @@ from .rendering import (
     section,
     status_chip,
 )
-from .live_console_shell import render_live_console_portal_link
 from .section_explanations import render_section_explanations_section
 from .source_refs import display_source_refs
 from .status_display import display_text
@@ -43,7 +42,6 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
     freshness = _mapping(payload.get("freshness"))
     quality = _mapping(payload.get("quality"))
     delivery = _mapping(payload.get("delivery"))
-    live_console = _mapping(payload.get("live_console"))
     conditions = _mapping(payload.get("conditions"))
     workspace_diagnostics = _mapping(workspace.get("diagnostics"))
     runtime_continuity = _mapping(study.get("runtime_continuity"))
@@ -129,7 +127,6 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
             f"<div><dt>状态缺口</dt><dd>{escape(condition_badge_label)}</dd></div>",
             "</dl>",
             "</details>",
-            render_live_console_portal_link(live_console),
             "</header>",
             render_workspace_dashboard_section(
                 workspace_studies,
@@ -191,7 +188,7 @@ def _navigation_section(payload: Mapping[str, Any]) -> str:
     return (
         '<nav class="panel wide portal-nav" aria-label="论文线导航">'
         "<h2>切换论文线</h2>"
-        '<div class="live-console-link">'
+        '<div class="portal-nav-links">'
         + "".join(links)
         + "</div></nav>"
     )

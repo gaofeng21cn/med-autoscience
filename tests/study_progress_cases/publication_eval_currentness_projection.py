@@ -152,7 +152,7 @@ def test_study_progress_drops_stale_submission_authority_blocker_after_controlle
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -378,7 +378,7 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -527,7 +527,7 @@ def test_study_progress_refreshes_semantically_stale_publication_eval_even_when_
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -714,7 +714,7 @@ def test_study_progress_does_not_overwrite_ai_reviewer_publication_eval_with_gat
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

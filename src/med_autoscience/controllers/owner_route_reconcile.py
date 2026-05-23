@@ -7,21 +7,18 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
-from med_autoscience.controllers import study_progress, study_runtime_router
-from med_autoscience.controllers import recovery_intent_ledger
+from med_autoscience.controllers import study_progress, domain_status_projection
 from med_autoscience.controllers.owner_route_reconcile_parts import canonical_inputs
 from med_autoscience.controllers.owner_route_reconcile_parts import default_executor_receipts
 from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.owner_route_reconcile_parts import action_projection
-from med_autoscience.controllers.owner_route_reconcile_parts import applied_repair_merge
 from med_autoscience.controllers.owner_route_reconcile_parts import artifact_freshness
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer
 from med_autoscience.controllers.owner_route_reconcile_parts import block_state as block_state_part
 from med_autoscience.controllers.owner_route_reconcile_parts import completion_evidence
+from med_autoscience.controllers.owner_route_reconcile_parts import domain_authority_handoff
 from med_autoscience.controllers.owner_route_reconcile_parts import evidence_adoption
 from med_autoscience.controllers.owner_route_reconcile_parts import lifecycle_projection
-from med_autoscience.controllers.owner_route_reconcile_parts import platform_repair
-from med_autoscience.controllers.owner_route_reconcile_parts import publication_gate_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
 from med_autoscience.controllers.owner_route_reconcile_parts import paper_progress_stall_projection
 from med_autoscience.controllers.owner_route_reconcile_parts import projection_errors
@@ -38,7 +35,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import domain_route
 from med_autoscience.controllers.owner_route_reconcile_parts import workspace_daemon
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import lifecycle_refs_adapter
+from med_autoscience.runtime_protocol import domain_authority_refs_index
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
     resolve_developer_supervisor_mode,
@@ -213,10 +210,8 @@ def _supervisor_only(status: Mapping[str, Any], progress: Mapping[str, Any]) -> 
     return runtime_facts.supervisor_only(status, progress)
 
 
-def _runtime_platform_repair_required(
-    status: Mapping[str, Any], progress: Mapping[str, Any], *, gate_specificity: Mapping[str, Any] | None = None
-) -> bool:
-    return runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity)
+def _opl_stage_attempt_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    return runtime_facts.opl_stage_attempt_admission_required(status, progress)
 
 
 def _decorate_action(
@@ -359,7 +354,7 @@ def _read_study_projection_inputs(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
-        status_reader=study_runtime_router.progress_projection,
+        status_reader=domain_status_projection.progress_projection,
         progress_reader=study_progress.read_study_progress,
     )
 
@@ -418,57 +413,11 @@ def _should_refresh_blocked_lifecycle(
     )
 
 
-def _apply_runtime_platform_repair_projection(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    study_root: Path,
-    quest_id: str | None,
-    status_payload: Mapping[str, Any],
-    progress_payload: Mapping[str, Any],
-    publication_eval_payload: Mapping[str, Any],
-    gate_specificity: Mapping[str, Any],
-    developer_mode: DeveloperSupervisorMode,
-    apply_runtime_platform_repair: bool,
-    submission_milestone_parked: bool,
-) -> tuple[dict[str, Any] | None, Mapping[str, Any] | None]:
-    apply_result = platform_repair.apply_runtime_platform_repair(
-        profile=profile,
-        study_id=study_id,
-        study_root=study_root,
-        status=status_payload,
-        progress=progress_payload,
-        publication_eval_payload=publication_eval_payload,
-        developer_mode=developer_mode,
-        enabled=apply_runtime_platform_repair,
-        repair_required=evidence_adoption.platform_repair_required_from_scan(
-            status=status_payload,
-            progress=progress_payload,
-            publication_eval_payload=publication_eval_payload,
-            study_root=study_root,
-            gate_specificity=gate_specificity,
-            submission_milestone_parked=submission_milestone_parked,
-        ),
-        gate_specificity=gate_specificity,
-    )
-    if apply_result is None:
-        return None, None
-    lifecycle = platform_repair.write_runtime_platform_repair_lifecycle(
-        study_root=study_root,
-        supervision_latest_relative_path=SUPERVISION_LATEST_RELATIVE_PATH,
-        study_id=study_id,
-        quest_id=quest_id,
-        apply_result=apply_result,
-    )
-    return apply_result, lifecycle
-
-
 def _study_projection(
     *,
     profile: WorkspaceProfile,
     study_id: str,
     apply_safe_actions: bool,
-    apply_runtime_platform_repair: bool,
     developer_mode: DeveloperSupervisorMode,
     persist_surfaces: bool,
     generated_at: str,
@@ -486,14 +435,14 @@ def _study_projection(
         progress_payload=progress_payload,
         publication_eval_payload=publication_eval_payload,
     )
-    submission_milestone_parked_refresh = submission_milestone_projection.refresh_if_platform_repair_required(
+    submission_milestone_parked_refresh = submission_milestone_projection.refresh_if_opl_stage_attempt_required(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
         status_payload=status_payload,
         developer_mode=developer_mode,
         enabled=developer_mode.safe_actions_enabled,
-        runtime_platform_repair_required=_runtime_platform_repair_required(status_payload, progress_payload),
+        opl_stage_attempt_required=_opl_stage_attempt_required(status_payload, progress_payload),
     )
     if submission_milestone_projection.applied(submission_milestone_parked_refresh):
         status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
@@ -553,7 +502,6 @@ def _study_projection(
         publication_eval_payload=publication_eval_payload,
     )
     if artifact_blocked_action is not None:
-        actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
         actions = block_state_part.remove_action_type(actions, "current_package_freshness_required")
         actions = block_state_part.remove_action_type(actions, "return_to_ai_reviewer_workflow")
         actions.insert(
@@ -593,97 +541,6 @@ def _study_projection(
     }
     if submission_milestone_parked:
         lifecycle = _mapping(_mapping(submission_milestone_parked_refresh).get("repair_lifecycle"))
-    runtime_platform_repair_apply, platform_lifecycle = _apply_runtime_platform_repair_projection(
-        profile=profile,
-        study_id=study_id,
-        study_root=study_root,
-        quest_id=resolved_quest_id,
-        status_payload=status_payload,
-        progress_payload=progress_payload,
-        publication_eval_payload=publication_eval_payload,
-        gate_specificity=gate_specificity,
-        developer_mode=developer_mode,
-        apply_runtime_platform_repair=apply_runtime_platform_repair,
-        submission_milestone_parked=submission_milestone_parked,
-    )
-    if platform_lifecycle is not None:
-        lifecycle = _mapping(platform_lifecycle)
-    adoption_projected = False
-    status_payload, progress_payload, adoption_projected = applied_repair_merge.merge_evidence_adoption_projection(
-        status=status_payload,
-        progress=progress_payload,
-        apply_result=runtime_platform_repair_apply,
-    )
-    if adoption_projected:
-        status_payload, progress_payload = _attach_study_macro_state(
-            study_id=study_id,
-            status_payload=status_payload,
-            progress_payload=progress_payload,
-            publication_eval_payload=publication_eval_payload,
-        )
-        gate_specificity = _publication_gate_specificity_required(
-            status_payload,
-            progress_payload,
-            publication_eval_payload,
-        )
-        ai_reviewer_assessment = ai_reviewer.assessment(
-            status=status_payload,
-            progress=progress_payload,
-            publication_eval=publication_eval_payload,
-            blocking_reasons=_blocking_reasons(status_payload, progress_payload),
-            study_root=study_root,
-        )
-        actions = _action_queue(
-            status_payload,
-            progress_payload,
-            study_root=study_root,
-            study_id=study_id,
-            quest_id=resolved_quest_id,
-            publication_eval_payload=publication_eval_payload,
-            gate_specificity=gate_specificity,
-            ai_reviewer_assessment=ai_reviewer_assessment,
-        )
-        if developer_mode.mode == "external_observe":
-            actions = []
-    if applied_repair_merge.applied(runtime_platform_repair_apply):
-        status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-        )
-        status_payload, progress_payload = applied_repair_merge.merge_runtime_fact(
-            status=status_payload,
-            progress=progress_payload,
-            apply_result=runtime_platform_repair_apply,
-        )
-        status_payload, progress_payload = _attach_study_macro_state(
-            study_id=study_id,
-            status_payload=status_payload,
-            progress_payload=progress_payload,
-            publication_eval_payload=publication_eval_payload,
-        )
-        gate_specificity = _publication_gate_specificity_required(
-            status_payload,
-            progress_payload,
-            publication_eval_payload,
-        )
-        ai_reviewer_assessment = ai_reviewer.assessment(
-            status=status_payload,
-            progress=progress_payload,
-            publication_eval=publication_eval_payload,
-            blocking_reasons=_blocking_reasons(status_payload, progress_payload),
-            study_root=study_root,
-        )
-        actions = _action_queue(
-            status_payload,
-            progress_payload,
-            study_root=study_root,
-            study_id=study_id,
-            quest_id=resolved_quest_id,
-            publication_eval_payload=publication_eval_payload,
-            gate_specificity=gate_specificity,
-            ai_reviewer_assessment=ai_reviewer_assessment,
-        )
     lifecycle = evidence_adoption.resolved_lifecycle(status_payload, lifecycle)
     if block_state_part.runtime_relaunch_lifecycle_resolved(
         status=status_payload,
@@ -697,38 +554,6 @@ def _study_projection(
         lifecycle=lifecycle,
     ):
         lifecycle = {}
-    if applied_repair_merge.applied(runtime_platform_repair_apply):
-        actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
-    if applied_repair_merge.owner_route_required(runtime_platform_repair_apply):
-        actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
-    if (
-        runtime_platform_repair_apply is not None
-        and _text(runtime_platform_repair_apply.get("dispatch_status")) == "blocked"
-        and _text(runtime_platform_repair_apply.get("reason")) == "publication_gate_specificity_required"
-    ):
-        actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
-        if not any(_text(action.get("action_type")) == "publication_gate_specificity_required" for action in actions):
-            actions.insert(
-                0,
-                _decorate_action(
-                    study_id=study_id,
-                    quest_id=resolved_quest_id,
-                    action=publication_gate_actions.action_payload(gate_specificity=gate_specificity),
-                ),
-            )
-    if artifact_freshness.route_required(runtime_platform_repair_apply):
-        actions = artifact_freshness.remove_runtime_platform_repair(actions)
-        if any(_text(action.get("action_type")) == "artifact_display_surface_materialization_required" for action in actions):
-            actions = block_state_part.remove_action_type(actions, "current_package_freshness_required")
-        elif not any(_text(action.get("action_type")) == "current_package_freshness_required" for action in actions):
-            actions.insert(
-                0,
-                _decorate_action(
-                    study_id=study_id,
-                    quest_id=resolved_quest_id,
-                    action=artifact_freshness.action_payload(),
-                ),
-            )
     why_not_applied = status_projection.resolve_why_not_applied(
         default_why_not_applied=_why_not_applied(
             status=status_payload,
@@ -739,7 +564,6 @@ def _study_projection(
         ),
         actions=actions,
         lifecycle=lifecycle,
-        runtime_platform_repair_apply=runtime_platform_repair_apply,
         submission_milestone_parked=submission_milestone_parked,
     )
     block_state = block_state_part.projection_block_state(
@@ -808,16 +632,15 @@ def _study_projection(
             publication_eval_payload=publication_eval_payload,
             actions=actions,
         )
-    recovery_intent = recovery_intent_ledger.project_recovery_intent(
+    domain_handoff = domain_authority_handoff.build_domain_authority_handoff(
         study_id=study_id,
         quest_id=resolved_quest_id,
         study_root=study_root,
-        status=status_payload,
-        progress=progress_payload,
         owner_route=owner_route,
-        action_queue=actions,
+        actions=actions,
+        blocked_reason=blocked_reason,
+        next_owner=next_owner,
         generated_at=generated_at,
-        persist=persist_surfaces,
     )
     _clear_resolved_repair_lifecycle(
         study_root=study_root,
@@ -848,8 +671,7 @@ def _study_projection(
         "ai_repair_lifecycle": lifecycle or None,
         "action_queue": actions,
         "submission_milestone_parked_refresh": submission_milestone_parked_refresh,
-        "runtime_platform_repair_apply": runtime_platform_repair_apply,
-        "recovery_intent": recovery_intent,
+        "domain_authority_handoff": domain_handoff,
         "paper_progress_stall": paper_progress_stall_payload,
         "owner_route": owner_route,
         "default_executor_execution_receipt_consumption": default_executor_execution_receipt_consumption or None,
@@ -864,7 +686,7 @@ def _study_projection(
         "paper_package_mutated": False,
         "apply_safe_actions": developer_mode.safe_actions_enabled,
         "developer_supervisor_mode": developer_mode.to_dict(),
-        "refs": {"recovery_intent_path": str(recovery_intent_ledger.latest_path_for_study(study_root))},
+        "refs": {},
     }
 
 
@@ -873,7 +695,6 @@ def scan_domain_routes(
     profile: WorkspaceProfile,
     study_ids: Iterable[str],
     apply_safe_actions: bool = False,
-    apply_runtime_platform_repair: bool = False,
     developer_supervisor_mode: str | None = None,
     persist_surfaces: bool = True,
 ) -> dict[str, Any]:
@@ -902,7 +723,6 @@ def scan_domain_routes(
                 profile=profile,
                 study_id=study_id,
                 apply_safe_actions=apply_safe_actions,
-                apply_runtime_platform_repair=apply_runtime_platform_repair,
                 developer_mode=developer_mode,
                 persist_surfaces=persist_surfaces,
                 generated_at=generated_at,
@@ -918,7 +738,6 @@ def scan_domain_routes(
                 safe_actions_enabled=developer_mode.safe_actions_enabled,
                 generated_at=generated_at,
                 error=exc,
-                recovery_intent_path=recovery_intent_ledger.latest_path_for_study(study_root),
                 why_not_applied_timeline=_why_not_applied_timeline(reason),
             )
         studies.append(study_projection)
@@ -963,7 +782,6 @@ def scan_domain_routes(
         workspace_root=profile.workspace_root,
         developer_mode_payload=developer_mode.to_dict(),
         safe_actions_enabled=developer_mode.safe_actions_enabled,
-        apply_runtime_platform_repair=apply_runtime_platform_repair,
         two_layer_ai_repair_policy=two_layer_ai_repair_policy_payload(),
         studies=studies,
         action_queue=action_queue,
@@ -982,7 +800,7 @@ def scan_domain_routes(
             history_path=history_path,
             generated_at=generated_at,
             resolved_study_ids=resolved_study_ids,
-            lifecycle_refs_adapter=lifecycle_refs_adapter,
+            domain_authority_refs_index=domain_authority_refs_index,
             study_root_for_id=lambda value: _study_root(profile, value),
             write_json=_write_json,
             append_json_line=_append_json_line,

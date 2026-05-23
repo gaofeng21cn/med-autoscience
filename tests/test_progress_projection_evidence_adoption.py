@@ -7,10 +7,6 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import _clear_readiness_report, make_profile, write_study, write_text
 
 
-def _managed_runtime_transport(module: object):
-    return module.managed_runtime_transport
-
-
 def _write_controller_decision_authorization(
     study_root: Path,
     *,
@@ -144,7 +140,7 @@ def test_progress_projection_projects_adopted_work_unit_evidence_without_runtime
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     profile = make_profile(tmp_path)
     study_id = "001-risk"
     study_root = write_study(
@@ -192,22 +188,9 @@ def test_progress_projection_projects_adopted_work_unit_evidence_without_runtime
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, study_id),
     )
-    monkeypatch.setattr(
-        _managed_runtime_transport(module),
-        "inspect_quest_live_execution",
-        lambda *, runtime_root, quest_id: {
-            "ok": True,
-            "status": "none",
-            "active_run_id": None,
-            "runner_live": False,
-            "bash_live": False,
-            "runtime_audit": {"ok": True, "status": "none", "worker_running": False},
-            "bash_session_audit": {"ok": True, "status": "none", "live_session_count": 0},
-        },
-    )
-
     result = module.progress_projection(profile=profile, study_id=study_id, include_progress_projection=False)
 
+    assert not hasattr(module, "managed_runtime" + "_transport")
     assert result["decision"] == "noop"
     assert result["reason"] == "controller_work_unit_evidence_adopted"
     assert "runtime_recovery_lifecycle" not in result

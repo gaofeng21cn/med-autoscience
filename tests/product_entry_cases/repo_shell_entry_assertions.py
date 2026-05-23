@@ -34,6 +34,7 @@ def _assert_artifact_inventory_surface(*, module, payload, profile, profile_ref)
     assert {
         "artifact_runtime_proof",
         "submission_hygiene_truth",
+        "opl_runtime_owner_handoff_latest",
         "medical_manuscript_blueprint",
         "medical_journal_style_corpus",
         "medical_prose_review_request",
@@ -41,7 +42,7 @@ def _assert_artifact_inventory_surface(*, module, payload, profile, profile_ref)
         "retrospective_medical_prose_audit",
     }.issubset(file_ids)
     assert any(
-        entry.get("path") == "studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json"
+        entry.get("path") == "studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
         for entry in payload["artifact_inventory"]["supporting_files"]
     )
     assert payload["executor_defaults"]["default_executor_name"] == "codex_cli"
@@ -64,7 +65,7 @@ def _assert_executor_default_surface(*, module, payload, profile, profile_ref) -
     assert "hermes_native_requires_full_agent_loop" not in payload["executor_defaults"]
     assert payload["executor_defaults"]["current_backend_chain"] == [
         "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
-        "generic runtime/provider context -> OPL runtime manager handoff refs",
+        "generic runtime/provider context -> OPL current_control_state refs-only handoff",
         "historical med_deepscientist fixture/provenance refs only",
     ]
     assert payload["executor_defaults"]["optional_executor_proofs"] == [
@@ -275,12 +276,12 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
     assert payload["automation"]["automations"] == [
         {
             "surface_kind": "automation_descriptor",
-            "automation_id": "mas_runtime_supervision_loop",
-            "title": "MAS domain runtime projection refresh",
+            "automation_id": "mas_domain_health_diagnostic_refresh_loop",
+            "title": "MAS domain health diagnostic refresh",
             "owner": "one-person-lab",
             "trigger_kind": "interval",
             "target_surface_kind": "domain_health_diagnostic_refresh",
-            "summary": "由 OPL-owned scheduler transport 触发 MAS domain projection refresh，保持恢复建议和 attention queue 为最新状态。",
+            "summary": "由 OPL current_control_state 触发 MAS domain diagnostic refresh，保持 owner handoff 和 attention queue refs 为最新状态。",
             "readiness_status": "automation_ready",
             "gate_policy": "publication_gated",
             "output_expectation": [
@@ -293,11 +294,11 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
                 + str(profile.runtime_root)
                 + " --profile "
                 + str(profile_ref.resolve())
-                + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
             ),
             "domain_projection": {
                 "service_status_command": (
-                    "uv run python -m med_autoscience.cli runtime supervision-status --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                 ),
                 "recommended_entry_surface": "workspace_cockpit",

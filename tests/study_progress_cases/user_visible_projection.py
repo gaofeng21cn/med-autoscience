@@ -393,7 +393,7 @@ def test_user_visible_projection_does_not_auto_park_reactivated_same_line_delive
                 "retry_budget_remaining": 0,
                 "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
             },
-            "control_plane_snapshot": {
+            "authority_snapshot": {
                 "control_state": "blocked_runtime_escalation",
                 "canonical_next_action": "resume_same_study_line",
                 "dispatch_gate": {
@@ -411,7 +411,7 @@ def test_user_visible_projection_does_not_auto_park_reactivated_same_line_delive
                 "requires_user_input": False,
                 "next_owner": "MAS/controller",
                 "blocked_reason": (
-                    "control_plane_route_blocked: bundle_build dispatch_gate_blocked "
+                    "authority_route_blocked: bundle_build dispatch_gate_blocked "
                     "during submission_minimal_refresh"
                 ),
             },
@@ -421,7 +421,7 @@ def test_user_visible_projection_does_not_auto_park_reactivated_same_line_delive
     assert projection["package_delivered"] is True
     assert projection["paper_progress_state"]["state"] == "blocked_controller_route"
     assert projection["state_label"] == "质量修复/复审中"
-    assert projection["why_not_progressing"].startswith("control_plane_route_blocked")
+    assert projection["why_not_progressing"].startswith("authority_route_blocked")
     assert projection["current_blockers"] == ["质量、artifact 或 runtime 修复 owner 已接管。"]
     assert projection["next_step"] == "等待质量修复/复审 owner 完成处理。"
 

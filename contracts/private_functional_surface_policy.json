@@ -11,8 +11,7 @@
   "allowed_judgment_modes": [
     "ai_first_stage_gate",
     "ai_first_record_validator",
-    "mechanical_guard",
-    "refs_only_adapter"
+    "mechanical_guard"
   ],
   "allowed_private_surface_classes": [
     "ai_first_stage_quality_gate_boundary",

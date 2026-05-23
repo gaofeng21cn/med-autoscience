@@ -15,6 +15,12 @@ EXPECTED_CLASSIFICATIONS = [
     "fixture_only",
     "retire",
     "external_source_archive_only",
+    "opl_owned_runtime_control_mas_domain_refs",
+]
+EXPECTED_REMAINING_SURFACE_CLASSIFICATIONS = [
+    *EXPECTED_CLASSIFICATIONS,
+    "opl_runtime_control_with_mas_refs",
+    "retired_mas_runtime_surface",
 ]
 EXPECTED_REMAINING_SURFACE_IDS = [
     "runtime_core_daemon",
@@ -315,9 +321,17 @@ def test_no_history_snapshot_manifest_records_remaining_surface_cutover_classifi
     inventory = manifest["remaining_surface_inventory"]
 
     assert inventory["surface"] == "mds_remaining_surface_inventory"
-    assert inventory["allowed_classifications"] == EXPECTED_CLASSIFICATIONS
+    assert inventory["allowed_classifications"] == EXPECTED_REMAINING_SURFACE_CLASSIFICATIONS
     assert [surface["surface_id"] for surface in inventory["remaining_surfaces"]] == EXPECTED_REMAINING_SURFACE_IDS
-    assert {surface["classification"] for surface in inventory["remaining_surfaces"]} == set(EXPECTED_CLASSIFICATIONS)
+    assert {surface["classification"] for surface in inventory["remaining_surfaces"]} == {
+        "mas_owned",
+        "rewrite_in_mas",
+        "fixture_only",
+        "retire",
+        "external_source_archive_only",
+        "opl_runtime_control_with_mas_refs",
+        "retired_mas_runtime_surface",
+    }
     for surface in inventory["remaining_surfaces"]:
         assert surface["authority_claims"] == []
         assert surface["imports_upstream_history"] is False
@@ -375,7 +389,7 @@ def test_no_history_source_provenance_json_is_machine_readable() -> None:
     assert payload["author_audit"]["coauthor_trailers_allowed"] is False
     assert payload["author_audit"]["unwanted_upstream_author_identity_allowed"] is False
     assert payload["remaining_surface_inventory"]["surface"] == "mds_remaining_surface_inventory"
-    assert payload["remaining_surface_inventory"]["allowed_classifications"] == EXPECTED_CLASSIFICATIONS
+    assert payload["remaining_surface_inventory"]["allowed_classifications"] == EXPECTED_REMAINING_SURFACE_CLASSIFICATIONS
     assert [surface["surface_id"] for surface in payload["remaining_surface_inventory"]["remaining_surfaces"]] == (
         EXPECTED_REMAINING_SURFACE_IDS
     )

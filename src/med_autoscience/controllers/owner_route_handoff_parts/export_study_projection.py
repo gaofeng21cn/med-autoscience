@@ -13,12 +13,6 @@ from .authority_boundary import authority_boundary_payload
 
 
 _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
-    ("runtime_supervision_truth", Path("artifacts/runtime/runtime_supervision/latest.json"), "runtime_supervision"),
-    ("runtime_supervision_truth_legacy_ref", Path("artifacts/runtime_supervision/latest.json"), "runtime_supervision"),
-    ("autonomy_slo_status", Path("artifacts/autonomy/slo_status/latest.json"), "slo_status"),
-    ("worker_lease", Path("artifacts/runtime/worker_lease/latest.json"), "worker_lease"),
-    ("runtime_session", Path("artifacts/runtime/runtime_session/latest.json"), "runtime_session"),
-    ("recovery_intent", Path("artifacts/runtime/recovery_intent/latest.json"), "recovery_intent"),
     ("safe_reconcile_dry_run", Path("artifacts/supervision/reconcile/latest.json"), "safe_reconcile"),
     ("controller_receipt", Path("artifacts/runtime/supervisor_dispatch_receipt/latest.json"), "controller_receipt"),
     ("controller_decisions", Path("artifacts/controller_decisions/latest.json"), "controller_decisions"),
@@ -26,7 +20,6 @@ _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("paper_work_unit_outbox_receipts", Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl"), "paper_work_unit_receipts"),
     ("owner_route_handoff", Path("artifacts/supervision/owner_route_handoff/latest.json"), "owner_route_handoff"),
 )
-_AUTO_CONTINUATION_BLOCKING_DECISIONS = {"stop_loss", "terminal_stop", "completed"}
 
 
 def mapping(value: object) -> Mapping[str, Any]:
@@ -84,10 +77,14 @@ def build_study_projection(*, study_root: Path, profile: WorkspaceProfile) -> di
         study_root=study_root,
         profile=profile,
     )
-    payload["autonomy_continuation"] = autonomy_continuation_projection(
-        study=payload,
-        profile=profile,
-    )
+    payload["autonomy_continuation"] = {
+        "surface_kind": "mas_autonomy_continuation_projection",
+        "eligible_for_auto_dispatch": False,
+        "status": "retired_runtime_liveness_scheduler_signal",
+        "replacement_owner": "one-person-lab",
+        "recommended_task_kind": None,
+        "workspace_profile": profile.name,
+    }
     return payload
 
 
@@ -95,39 +92,6 @@ def study_roots(profile: WorkspaceProfile) -> list[Path]:
     if not profile.studies_root.is_dir():
         return []
     return sorted(path for path in profile.studies_root.iterdir() if path.is_dir())
-
-
-def hard_human_gate_required(controller: Mapping[str, Any]) -> bool:
-    if bool(controller.get("requires_human_confirmation")):
-        return True
-    gates = controller.get("family_human_gates")
-    return isinstance(gates, list) and len(gates) > 0
-
-
-def terminal_controller_decision(controller: Mapping[str, Any]) -> bool:
-    decision_type = text(controller.get("decision_type"))
-    route_target = text(controller.get("route_target"))
-    return decision_type in _AUTO_CONTINUATION_BLOCKING_DECISIONS or route_target == "stop"
-
-
-def continuation_reason(study: Mapping[str, Any]) -> str | None:
-    slo = mapping(study.get("slo_status"))
-    runtime = mapping(study.get("runtime_supervision"))
-    recovery = mapping(study.get("recovery_intent"))
-    controller = mapping(study.get("controller_decisions"))
-    if hard_human_gate_required(controller):
-        return None
-    if terminal_controller_decision(controller):
-        return None
-    if text(slo.get("state")) == "breach":
-        return text(slo.get("breach_reason")) or "slo_breach"
-    if text(runtime.get("runtime_decision")) == "blocked":
-        return text(runtime.get("runtime_reason")) or "runtime_blocked"
-    if text(runtime.get("runtime_liveness_status")) == "parked":
-        return text(runtime.get("runtime_reason")) or "runtime_parked"
-    if text(recovery.get("current_action")) == "safe_reconcile_ready":
-        return "safe_reconcile_ready"
-    return None
 
 
 def paper_autonomy_loop_projection(*, study_root: Path) -> dict[str, Any]:
@@ -219,21 +183,6 @@ def memory_paper_soak_proof_projection(*, study_root: Path, profile: WorkspacePr
         "source_fingerprint": text(proof.get("source_fingerprint")),
         "authority_boundary": mapping(proof.get("authority_boundary")) or authority_boundary_payload(),
         "read_only_display_policy": mapping(proof.get("read_only_display_policy")),
-    }
-
-
-def autonomy_continuation_projection(*, study: Mapping[str, Any], profile: WorkspaceProfile) -> dict[str, Any]:
-    controller = mapping(study.get("controller_decisions"))
-    reason = continuation_reason(study)
-    return {
-        "surface_kind": "mas_autonomy_continuation_projection",
-        "eligible_for_auto_dispatch": reason is not None,
-        "blocked_by_human_gate": hard_human_gate_required(controller),
-        "blocked_by_terminal_decision": terminal_controller_decision(controller),
-        "reason": reason,
-        "recommended_task_kind": "domain_route/reconcile-apply" if reason is not None else None,
-        "recommended_domain_owner": "med-autoscience" if reason is not None else None,
-        "workspace_profile": profile.name,
     }
 
 

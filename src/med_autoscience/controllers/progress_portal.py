@@ -10,7 +10,6 @@ import webbrowser
 
 from med_autoscience.controllers.progress_portal_parts import (
     build_study_workbench_payload,
-    live_console_projection,
     local_time_projection,
     progress_section_explanations,
     build_runtime_workbench_projection,
@@ -45,7 +44,6 @@ from med_autoscience.controllers.progress_portal_parts.payload_helpers import (
     _production_blocker_impact,
     _quality_summary,
     _runtime_continuity,
-    _runtime_reconcile_trigger,
     _source_payload_summary,
     _string_list,
     _supervision,
@@ -78,13 +76,11 @@ def build_progress_portal_payload(
     cockpit_payload: Mapping[str, Any] | None = None,
     runtime_payload: Mapping[str, Any] | None = None,
     package_payload: Mapping[str, Any] | None = None,
-    conversation_payload: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
     local_timezone: str | None = None,
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
     auto_refresh_seconds: int | None = None,
-    live_console_disabled_reason: str | None = None,
     page_scope: str | None = None,
 ) -> dict[str, Any]:
     resolved_profile_name = profile_name or (profile.name if profile is not None else None) or "unknown"
@@ -142,7 +138,6 @@ def build_progress_portal_payload(
     latest_events = _latest_events(user_visible, progress)
     quality = _quality_summary(progress.get("publication_eval"))
     delivery = _delivery_summary(progress, package, study_id=resolved_study_id)
-    runtime_reconcile_trigger = _runtime_reconcile_trigger(progress.get("runtime_reconcile_trigger"))
     outer_supervision_slo = _outer_supervision_slo(progress.get("outer_supervision_slo"))
     workspace_study_rows = workspace_studies(cockpit, selected_study_id=resolved_study_id)
     _attach_study_hrefs(workspace_study_rows, from_study_page=resolved_page_scope == "study")
@@ -170,15 +165,9 @@ def build_progress_portal_payload(
             runtime,
             package,
             resolved_study_id,
-            conversation_payload=conversation_payload,
         )
         if resolved_page_scope == "study"
         else {}
-    )
-    live_console = live_console_projection(
-        disabled_reason=live_console_disabled_reason,
-        study_id=None if workspace_overview_mode else resolved_study_id,
-        page_scope=resolved_page_scope,
     )
     has_workspace_studies = bool(workspace_study_rows)
     has_workspace_alerts = bool(workspace_alerts["visible_items"])
@@ -194,7 +183,6 @@ def build_progress_portal_payload(
         package=package,
         freshness=freshness,
         delivery=delivery,
-        runtime_reconcile_trigger=runtime_reconcile_trigger,
         outer_supervision_slo=outer_supervision_slo,
         source_refs=source_refs,
     )
@@ -267,7 +255,6 @@ def build_progress_portal_payload(
                 user_visible.get("needs_physician_decision") or user_visible.get("needs_user_decision")
             ),
             "supervision": _supervision(progress, runtime),
-            "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
             "outer_supervision_slo": outer_supervision_slo or None,
             "runtime_continuity": runtime_continuity,
             "production_blocker_impact": production_blocker_impact,
@@ -277,7 +264,6 @@ def build_progress_portal_payload(
         "quality": quality,
         "delivery": delivery,
         "study_workbench": study_workbench,
-        "live_console": live_console,
         "conditions": conditions,
         "section_explanations": progress_section_explanations(
             workspace_overview_mode=workspace_overview_mode,
@@ -286,7 +272,6 @@ def build_progress_portal_payload(
             has_diagnostics=has_diagnostics,
             has_latest_events=has_latest_events,
             has_source_refs=has_source_refs,
-            live_console_available=bool(live_console.get("available")),
         ),
         "source_refs": source_refs,
         "source_payloads": source_payloads,
@@ -319,7 +304,6 @@ def build_progress_portal_payload(
         source_refs=source_refs,
         conditions=conditions,
         study_workbench=study_workbench,
-        live_console=live_console,
     )
     if auto_refresh_seconds is not None and auto_refresh_seconds > 0:
         payload["portal_view"] = {
@@ -381,7 +365,6 @@ def _materialize_study_pages(
     generated_at: str | None,
     local_timezone: str | None,
     auto_refresh_seconds: int | None,
-    live_console_disabled_reason: str | None,
 ) -> dict[str, dict[str, Any]]:
     pages: dict[str, dict[str, Any]] = {}
     workspace = _mapping(workspace_payload.get("workspace"))
@@ -404,17 +387,10 @@ def _materialize_study_pages(
                 profile_ref=profile_ref,
                 progress_payload=progress or _progress_from_workspace_study_row(study),
                 cockpit_payload=cockpit_for_pages,
-                conversation_payload=_conversation_read_model_payload(
-                    profile=profile,
-                    profile_ref=profile_ref,
-                    study_id=study_id,
-                    generated_at=generated_at,
-                ),
                 generated_at=generated_at,
                 local_timezone=local_timezone,
                 sync_runtime_summary=False,
                 auto_refresh_seconds=auto_refresh_seconds,
-                live_console_disabled_reason=live_console_disabled_reason,
                 page_scope="study",
             )
         html_path = profile.workspace_root / "ops" / "mas" / "progress" / "studies" / study_id / "index.html"
@@ -627,7 +603,6 @@ def materialize_progress_portal(
     sync_runtime_summary: bool = True,
     open_browser: bool = False,
     auto_refresh_seconds: int | None = None,
-    live_console_disabled_reason: str | None = None,
 ) -> dict[str, Any]:
     selected_study_id = _non_empty_text(study_id) or (study_root.name if study_root is not None else None)
     detail_payload = None
@@ -641,19 +616,11 @@ def materialize_progress_portal(
             cockpit_payload=cockpit_payload,
             runtime_payload=runtime_payload,
             package_payload=package_payload,
-            conversation_payload=_conversation_read_model_payload(
-                profile=profile,
-                profile_ref=profile_ref,
-                study_id=selected_study_id,
-                study_root=study_root,
-                generated_at=generated_at,
-            ),
             generated_at=generated_at,
             local_timezone=local_timezone,
             entry_mode=entry_mode,
             sync_runtime_summary=sync_runtime_summary,
             auto_refresh_seconds=auto_refresh_seconds,
-            live_console_disabled_reason=live_console_disabled_reason,
             page_scope="study",
         )
         selected_study_id = str(_mapping(detail_payload.get("study")).get("study_id") or selected_study_id)
@@ -672,7 +639,6 @@ def materialize_progress_portal(
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         auto_refresh_seconds=auto_refresh_seconds,
-        live_console_disabled_reason=live_console_disabled_reason,
         page_scope="workspace",
     )
     if detail_payload is not None:
@@ -692,7 +658,6 @@ def materialize_progress_portal(
         generated_at=generated_at,
         local_timezone=local_timezone,
         auto_refresh_seconds=auto_refresh_seconds,
-        live_console_disabled_reason=live_console_disabled_reason,
     )
     selected_page = study_pages.get(selected_study_id or "") if selected_study_id is not None else None
     hosted_package = build_progress_portal_hosted_package(
@@ -751,25 +716,6 @@ def build_progress_portal_hosted_package(
         surface_kind=HOSTED_PACKAGE_SURFACE_KIND,
         profile_ref=profile_ref,
         study_pages=study_pages,
-    )
-
-
-def _conversation_read_model_payload(
-    *,
-    profile: WorkspaceProfile,
-    profile_ref: str | Path | None,
-    study_id: str | None,
-    generated_at: str | None,
-    study_root: Path | None = None,
-) -> dict[str, Any]:
-    from med_autoscience.controllers import runtime_live_console
-
-    return runtime_live_console.build_conversation_read_model(
-        profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        study_root=study_root,
-        generated_at=generated_at,
     )
 
 

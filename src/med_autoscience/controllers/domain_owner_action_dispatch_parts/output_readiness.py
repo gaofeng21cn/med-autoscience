@@ -340,7 +340,7 @@ def _gate_clearing_batch_still_pending(batch: Mapping[str, Any] | None) -> bool:
         return False
     for unit in _list(payload.get("unit_results")):
         status = _text(_mapping(unit).get("status"))
-        if status in {"failed", "control_plane_route_blocked", "missing", "skipped_failed_dependency"}:
+        if status in {"failed", "authority_route_blocked", "missing", "skipped_failed_dependency"}:
             return True
     replay = _mapping(payload.get("gate_replay"))
     if _text(replay.get("status")) == "blocked" and _list(replay.get("blockers")):

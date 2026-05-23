@@ -126,18 +126,18 @@ def test_run_gate_clearing_batch_closes_submission_authority_sync_with_delivery_
     }
     seen: dict[str, dict[str, Any]] = {}
 
-    def create_submission_minimal_package(*, control_plane_route_context=None, **_: object) -> dict[str, object]:
-        seen["submission_context"] = dict(control_plane_route_context or {})
+    def create_submission_minimal_package(*, authority_route_context=None, **_: object) -> dict[str, object]:
+        seen["submission_context"] = dict(authority_route_context or {})
         return {
             "output_root": "paper/submission_minimal",
             "status": "ready",
-            "control_plane_route_gate": {
+            "authority_route_gate": {
                 "controller_route_gate": {"authorized": True},
             },
         }
 
-    def sync_study_delivery(*, control_plane_route_context=None, **_: object) -> dict[str, object]:
-        seen["delivery_context"] = dict(control_plane_route_context or {})
+    def sync_study_delivery(*, authority_route_context=None, **_: object) -> dict[str, object]:
+        seen["delivery_context"] = dict(authority_route_context or {})
         return {
             "status": "synced",
             "current_package_root": "studies/003-dpcc-primary-care-phenotype-treatment-gap/manuscript/current_package",
@@ -180,7 +180,7 @@ def test_run_gate_clearing_batch_closes_submission_authority_sync_with_delivery_
     ]
     assert seen["submission_context"]["controller_route_context"]["work_unit_id"] == "submission_authority_sync_closure"
     assert seen["delivery_context"]["controller_route_context"]["work_unit_id"] == "submission_authority_sync_closure"
-    assert result["unit_results"][0]["result"]["control_plane_route_gate"]["controller_route_gate"]["authorized"] is True
+    assert result["unit_results"][0]["result"]["authority_route_gate"]["controller_route_gate"]["authorized"] is True
 
 
 def test_run_gate_clearing_batch_reruns_same_eval_after_failed_submission_hardening_batch(

@@ -18,8 +18,8 @@ _ROUTE_DECISION_OWNER_RECEIPT_VALUES = frozenset(
 )
 _HUMAN_GATE_RESUME_ACTIONS = frozenset(
     {
-        "ensure_study_runtime",
-        "ensure_study_runtime_relaunch_stopped",
+        "request_opl_stage_attempt",
+        "request_opl_stage_attempt_relaunch",
         "resume_runtime",
     }
 )

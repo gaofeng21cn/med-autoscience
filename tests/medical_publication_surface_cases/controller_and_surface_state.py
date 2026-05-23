@@ -10,19 +10,6 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
 
     assert module is not None
     quest_root = make_quest(tmp_path, medicalized=False, ama_defaults=False)
-    stopped: list[tuple[str | None, str | None, str, str]] = []
-
-    def fake_stop_quest(
-        *,
-        daemon_url: str | None = None,
-        runtime_root: Path | None = None,
-        quest_id: str,
-        source: str,
-    ) -> dict:
-        stopped.append((daemon_url, str(runtime_root) if runtime_root is not None else None, quest_id, source))
-        return {"ok": True, "status": "stopped", "source": source}
-
-    monkeypatch.setattr(module.managed_runtime_transport, "stop_quest", fake_stop_quest)
 
     result = module.run_controller(
         quest_root=quest_root,
@@ -30,32 +17,23 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
         daemon_url="http://127.0.0.1:20999",
     )
 
-    assert stopped == [
-        (
-            "http://127.0.0.1:20999",
-            str((quest_root.parent.parent).resolve()),
-            "002-early-residual-risk",
-            "codex-medical-publication-surface",
-        )
-    ]
-    assert result["intervention_enqueued"] is True
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    assert len(queue["pending"]) == 1
-    content = queue["pending"][0]["content"]
-    assert "deployment-facing" in content
-    assert "Do not advertise tooling in figure captions." in content
-    assert "AMA" in content
-    assert "methods_implementation_manifest.json" in content
-    assert "results_narrative_map.json" in content
-    assert "figure_semantics_manifest.json" in content
-    assert "evidence_ledger.json" in content
-    assert "derived_analysis_manifest.json" in content
-    assert "manuscript_safe_reproducibility_supplement.json" in content
-    assert "endpoint_provenance_note.md" in content
+    assert not hasattr(module, "managed_runtime" + "_transport")
+    assert result["stop_result"] == {
+        "status": "owner_route_required",
+        "reason": "opl_current_control_state_stop_required",
+        "queue_owner": "one-person-lab",
+        "runtime_state_mutated": False,
+        "quest_id": "002-early-residual-risk",
+        "source": "codex-medical-publication-surface",
+    }
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["runtime_owner"] == "one-person-lab"
+    assert result["intervention_handoff"]["message_body_included"] is False
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
     assert result["top_hits"]
 
 
-def test_run_controller_inside_current_managed_turn_enqueues_without_self_stop(
+def test_run_controller_inside_former_managed_turn_env_still_routes_to_opl_handoff(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -66,23 +44,11 @@ def test_run_controller_inside_current_managed_turn_enqueues_without_self_stop(
 
     assert module is not None
     quest_root = make_quest(tmp_path, medicalized=False, ama_defaults=False)
-    stopped: list[tuple[str | None, str | None, str, str]] = []
-
-    def fake_stop_quest(
-        *,
-        daemon_url: str | None = None,
-        runtime_root: Path | None = None,
-        quest_id: str,
-        source: str,
-    ) -> dict:
-        stopped.append((daemon_url, str(runtime_root) if runtime_root is not None else None, quest_id, source))
-        return {"ok": True, "status": "stopped", "source": source}
-
-    monkeypatch.setattr(module.managed_runtime_transport, "stop_quest", fake_stop_quest)
-    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER", "1")
-    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT", str(quest_root))
-    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID", "002-early-residual-risk")
-    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID", "run-1")
+    retired_env_prefix = "MED_AUTOSCIENCE_" + "MANAGED_RUNTIME"
+    monkeypatch.setenv(retired_env_prefix + "_WORKER", "1")
+    monkeypatch.setenv(retired_env_prefix + "_QUEST_ROOT", str(quest_root))
+    monkeypatch.setenv(retired_env_prefix + "_QUEST_ID", "002-early-residual-risk")
+    monkeypatch.setenv(retired_env_prefix + "_RUN_ID", "run-1")
 
     result = module.run_controller(
         quest_root=quest_root,
@@ -90,19 +56,18 @@ def test_run_controller_inside_current_managed_turn_enqueues_without_self_stop(
         daemon_url="http://127.0.0.1:20999",
     )
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    assert stopped == []
     assert result["stop_result"] == {
-        "ok": True,
-        "status": "skipped",
-        "reason": "current_managed_runtime_turn",
-        "source": "codex-medical-publication-surface",
+        "status": "owner_route_required",
+        "reason": "opl_current_control_state_stop_required",
+        "queue_owner": "one-person-lab",
+        "runtime_state_mutated": False,
         "quest_id": "002-early-residual-risk",
-        "active_run_id": "run-1",
+        "source": "codex-medical-publication-surface",
     }
-    assert result["intervention_enqueued"] is True
-    assert len(queue["pending"]) == 1
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["queue_owner"] == "one-person-lab"
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
     assert state["status"] == "running"
     assert state["active_run_id"] == "run-1"
 
@@ -115,19 +80,6 @@ def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: 
 
     assert module is not None
     quest_root = make_quest(tmp_path, medicalized=False, ama_defaults=False)
-    stopped: list[tuple[str | None, str | None, str, str]] = []
-
-    def fake_stop_quest(
-        *,
-        daemon_url: str | None = None,
-        runtime_root: Path | None = None,
-        quest_id: str,
-        source: str,
-    ) -> dict:
-        stopped.append((daemon_url, str(runtime_root) if runtime_root is not None else None, quest_id, source))
-        return {"ok": True, "status": "stopped", "source": source}
-
-    monkeypatch.setattr(module.managed_runtime_transport, "stop_quest", fake_stop_quest)
 
     result = module.run_controller(
         quest_root=quest_root,
@@ -135,11 +87,10 @@ def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: 
         daemon_url=None,
     )
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    assert stopped == []
     assert result["stop_result"] is None
-    assert result["intervention_enqueued"] is True
-    assert len(queue["pending"]) == 1
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
 def test_build_surface_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:

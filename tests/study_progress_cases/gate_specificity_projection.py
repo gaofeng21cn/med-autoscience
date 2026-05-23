@@ -80,7 +80,7 @@ def test_study_progress_projects_gate_specificity_as_controller_lane(
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -190,7 +190,7 @@ def test_gate_specificity_supersedes_older_task_intake_route_override(
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -297,7 +297,7 @@ def test_gate_specificity_takes_priority_over_live_activity_timeout(
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -441,7 +441,7 @@ def test_study_progress_reads_gate_specificity_request_surface(
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -562,7 +562,7 @@ def test_study_progress_suppresses_stale_gate_specificity_request_after_targets_
     _write_bash_summary(quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

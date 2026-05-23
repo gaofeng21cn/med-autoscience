@@ -28,7 +28,7 @@ def test_study_progress_does_not_project_study_completed_when_completion_contrac
     quest_root = profile.managed_runtime_home / "quests" / "quest-002"
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

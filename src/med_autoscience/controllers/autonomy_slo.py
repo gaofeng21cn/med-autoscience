@@ -424,7 +424,7 @@ def _efficiency_signals(
         signals.append(
             {
                 "signal_id": "worker_heartbeat",
-                "source": "runtime_worker_activity",
+                "source": "opl_domain_activity_ref",
                 "state": "breach" if heartbeat_state == "missing_live_session" else "met",
                 "value": heartbeat_state,
                 "target": "live",
@@ -436,7 +436,7 @@ def _efficiency_signals(
 def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
     sli_summary = _mapping(profile_payload.get("sli_summary"))
     gate_summary = _mapping(profile_payload.get("gate_blocker_summary"))
-    runtime_activity = _mapping(profile_payload.get("runtime_worker_activity"))
+    runtime_activity = _mapping(profile_payload.get("opl_domain_activity_ref"))
     incident_types = _incident_types(profile_payload)
     bottleneck_types = _bottleneck_types(profile_payload)
     long_run_health = _long_run_health(

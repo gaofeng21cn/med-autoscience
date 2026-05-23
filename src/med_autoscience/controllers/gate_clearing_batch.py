@@ -42,7 +42,7 @@ from med_autoscience.controllers.gate_clearing_batch_execution import GateCleari
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     filter_repair_units_for_publication_work_unit,
 )
-from med_autoscience.controllers.control_plane_route_context_call import call_with_control_plane_route_context as _route_call
+from med_autoscience.controllers.authority_route_context_call import call_with_authority_route_context as _route_call
 from med_autoscience.controllers.gate_clearing_batch_write_routes import route_bound_call as _route_bound
 from med_autoscience.controllers.gate_clearing_batch_write_routes import create_submission_minimal_package_with_route
 from med_autoscience.controllers.gate_clearing_batch_write_routes import sync_submission_minimal_delivery_with_route
@@ -83,7 +83,7 @@ display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("dis
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
-study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
 time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time_to_event_direct_migration"))
 
 
@@ -506,7 +506,7 @@ def _freeze_scientific_anchor_fields(
         study_id=study_id,
         profile=profile,
         mapping_path=mapping_path,
-        study_runtime_router_controller=study_runtime_router,
+        domain_status_projection_controller=domain_status_projection,
     )
 
 
@@ -597,7 +597,7 @@ def _controller_route_context_for_selected_work_unit(
     }
 
 
-def _merge_control_plane_route_contexts(*contexts: dict[str, Any] | None) -> dict[str, Any] | None:
+def _merge_authority_route_contexts(*contexts: dict[str, Any] | None) -> dict[str, Any] | None:
     merged: dict[str, Any] = {}
     for context in contexts:
         if isinstance(context, dict):
@@ -612,7 +612,7 @@ def run_gate_clearing_batch(
     study_root: Path,
     quest_id: str,
     source: str = "med_autoscience",
-    control_plane_route_context: dict[str, Any] | None = None,
+    authority_route_context: dict[str, Any] | None = None,
     route_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     context = batch_context.build_gate_clearing_batch_context(
@@ -620,7 +620,7 @@ def run_gate_clearing_batch(
         study_id=study_id,
         study_root=study_root,
         quest_id=quest_id,
-        control_plane_route_context=control_plane_route_context,
+        authority_route_context=authority_route_context,
         route_context=route_context,
         quest_root_for_profile=_quest_root,
         publication_gate_controller=publication_gate,
@@ -693,7 +693,7 @@ def run_gate_clearing_batch(
     explicit_next_work_unit = work_unit_selection["explicit_next_work_unit"]
     current_publication_work_unit_payload = work_unit_selection["current_publication_work_unit_payload"]
     selected_publication_work_unit = work_unit_selection["selected_publication_work_unit"]
-    resolved_route_context = _merge_control_plane_route_contexts(
+    resolved_route_context = _merge_authority_route_contexts(
         resolved_route_context,
         _controller_route_context_for_selected_work_unit(
             selected_publication_work_unit=selected_publication_work_unit,
@@ -842,7 +842,7 @@ def run_gate_clearing_batch(
         profile=profile,
         sync_submission_minimal_delivery=_route_bound(
             function=_sync_submission_minimal_delivery,
-            control_plane_route_context=resolved_route_context,
+            authority_route_context=resolved_route_context,
         ),
         path_fingerprints=_path_fingerprints,
         settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
@@ -856,7 +856,7 @@ def run_gate_clearing_batch(
             apply=True,
             source=source,
             enqueue_intervention=False,
-            control_plane_route_context=resolved_route_context,
+            authority_route_context=resolved_route_context,
         ),
     )
     gate_replay_step = publication_work_unit_lifecycle.gate_replay_step(

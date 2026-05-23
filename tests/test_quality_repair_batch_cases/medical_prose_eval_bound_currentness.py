@@ -177,7 +177,7 @@ def test_medical_prose_write_repair_does_not_close_on_current_ai_reviewer_bound_
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_paper_write_supervisor_route_context(),
+        authority_route_context=_paper_write_supervisor_route_context(),
     )
 
     assert result["ok"] is True

@@ -102,9 +102,6 @@ def make_quest(
             "pending_user_message_count": 0,
         },
     )
-    dump_json(quest_root / ".ds" / "user_message_queue.json", {"version": 1, "pending": [], "completed": []})
-    (quest_root / ".ds" / "interaction_journal.jsonl").parent.mkdir(parents=True, exist_ok=True)
-    (quest_root / ".ds" / "interaction_journal.jsonl").write_text("", encoding="utf-8")
     (quest_root / "baselines" / "local" / "baseline-1").mkdir(parents=True, exist_ok=True)
     (quest_root / "baselines" / "local" / "baseline-1" / "verification.md").write_text(
         "# Verification\n\n"

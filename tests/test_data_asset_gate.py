@@ -225,16 +225,13 @@ def test_run_controller_enqueues_advisory_message_when_public_extension_availabl
 
     result = module.run_controller(quest_root=quest_root, apply=True)
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert result["status"] == "advisory"
     assert result["blockers"] == []
     assert result["advisories"] == ["public_data_extension_available"]
-    assert result["intervention_enqueued"] is True
-    assert len(queue["pending"]) == 1
-    assert "public-data extension" in queue["pending"][0]["content"]
-    assert "do not need to stop the current run" in queue["pending"][0]["content"]
-    assert "default action is to triage it durably" in queue["pending"][0]["content"]
-    assert "explicit use case, storage budget" in queue["pending"][0]["content"]
+    assert result["intervention_enqueued"] is False
+    assert result["intervention_handoff"]["runtime_owner"] == "one-person-lab"
+    assert result["intervention_handoff"]["message_body_included"] is False
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
 def test_run_controller_reports_unresolved_dataset_ids_in_hard_block_message(tmp_path: Path) -> None:
@@ -251,10 +248,10 @@ def test_run_controller_reports_unresolved_dataset_ids_in_hard_block_message(tmp
 
     result = module.run_controller(quest_root=quest_root, apply=True)
 
-    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert result["status"] == "blocked"
     assert result["unresolved_dataset_ids"] == ["nfpitnet_master"]
-    assert "nfpitnet_master" in queue["pending"][0]["content"]
+    assert result["intervention_handoff"]["typed_blocker"]["blocker_type"] == "opl_pending_user_message_handoff_required"
+    assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
 def test_build_gate_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:

@@ -13,7 +13,7 @@ from med_autoscience.controllers import (
     quality_regression_projection,
     route_decision_orchestrator,
     runtime_trajectory_proof,
-    study_runtime_router,
+    domain_status_projection,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -219,7 +219,7 @@ def _runtime_status_payload(
     if runtime_status_payload is not None:
         return dict(runtime_status_payload)
     try:
-        result = study_runtime_router.progress_projection(
+        result = domain_status_projection.progress_projection(
             profile=profile,
             study_id=study_id,
             study_root=study_root,

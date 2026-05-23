@@ -87,7 +87,7 @@ DOC_REFERENCE_FORBIDDEN_AUTHORITY_WRITES: tuple[str, ...] = (
     "evidence_ledger",
     "review_ledger",
     "current_package",
-    "runtime_lifecycle.sqlite",
+    "domain_authority_refs.sqlite",
 )
 DOC_REFERENCE_HUB_ROLES: tuple[dict[str, Any], ...] = (
     {

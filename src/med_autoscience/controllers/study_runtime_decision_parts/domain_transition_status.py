@@ -116,8 +116,6 @@ def _domain_transition_runtime_redrive_reason(status: ProgressProjectionStatus) 
         reason = StudyRuntimeReason(reason_code)
     except ValueError:
         reason = StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
-    if reason is StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE:
-        return StudyRuntimeReason.QUEST_WAITING_OPL_RUNTIME_OWNER_ROUTE
     return reason
 
 

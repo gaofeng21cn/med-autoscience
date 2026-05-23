@@ -303,7 +303,7 @@ def test_fast_lane_manifest_blocks_when_quality_enforcer_blocks() -> None:
     assert manifest["blocking_reasons"] == ["review_ledger_charter_expectation_not_closed"]
 
 
-def test_fast_lane_manifest_blocks_when_control_plane_route_gate_blocks() -> None:
+def test_fast_lane_manifest_blocks_when_authority_route_gate_blocks() -> None:
     module = importlib.import_module("med_autoscience.controllers.fast_lane_executor")
 
     manifest = module.build_fast_lane_execution_manifest(
@@ -313,8 +313,8 @@ def test_fast_lane_manifest_blocks_when_control_plane_route_gate_blocks() -> Non
         quality_ledger_enforcement=_quality_ledger_enforcement(),
         replay_case={},
         route_context={
-            "control_plane_snapshot": {
-                "surface": "control_plane_snapshot",
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
                 "dispatch_gate": {
                     "state": "open",
                     "dispatch_allowed": True,
@@ -334,9 +334,9 @@ def test_fast_lane_manifest_blocks_when_control_plane_route_gate_blocks() -> Non
         },
     )
 
-    assert manifest["manifest_state"] == "blocked_by_control_plane_route_gate"
+    assert manifest["manifest_state"] == "blocked_by_authority_route_gate"
     assert manifest["execution_permission"]["auto_dispatch_allowed"] is False
-    assert manifest["control_plane_route_gate"]["allowed"] is False
+    assert manifest["authority_route_gate"]["allowed"] is False
     assert "bundle_build_not_authorized" in manifest["blocking_reasons"]
 
 

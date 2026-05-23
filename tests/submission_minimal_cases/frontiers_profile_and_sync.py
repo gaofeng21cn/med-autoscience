@@ -99,11 +99,11 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
         *,
         paper_root: Path,
         publication_profile: str,
-        control_plane_route_context=None,
+        authority_route_context=None,
     ) -> dict[str, object]:
         called["paper_root"] = paper_root
         called["publication_profile"] = publication_profile
-        called["control_plane_route_context"] = control_plane_route_context
+        called["authority_route_context"] = authority_route_context
         return {
             "status": "synced",
             "quest_root": "/tmp/runtime/quests/quest-001",
@@ -118,9 +118,9 @@ def test_create_submission_minimal_package_replays_post_materialization_sync_whe
 
     assert called["paper_root"] == paper_root
     assert called["publication_profile"] == "general_medical_journal"
-    route_context = called["control_plane_route_context"]
-    assert route_context["control_plane_snapshot"]["surface"] == "control_plane_snapshot"
-    assert manifest["control_plane_route_gate"]["authorized"] is True
+    route_context = called["authority_route_context"]
+    assert route_context["authority_snapshot"]["surface"] == "authority_snapshot"
+    assert manifest["authority_route_gate"]["authorized"] is True
     assert manifest["delivery_sync"] == {"stage": "submission_minimal"}
     assert manifest["post_materialization_sync"] == {
         "status": "synced",

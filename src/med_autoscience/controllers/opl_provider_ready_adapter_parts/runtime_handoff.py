@@ -24,7 +24,7 @@ _OPL_REPLACEMENT_SURFACES = [
     "retry_dead_letter_transport",
     "generic_transition_runner",
     "worker_residency_manager",
-    "runtime_lifecycle_index",
+    "domain_authority_refs_index",
     "memory_locator_writeback_transport",
     "artifact_locator_retention_restore_shell",
     "operator_workbench_projection",
@@ -55,24 +55,36 @@ _ALLOWED_DOMAIN_ACTIONS = [
     "standalone_diagnostic",
 ]
 
-_CODE_PATH_ROLES = [
+_RETIRED_RUNTIME_TRANSPORT_SURFACES = [
     {
         "path": "src/med_autoscience/runtime_transport/mas_runtime_core.py",
-        "current_role": "domain_direct_runtime_bridge_and_standalone_diagnostic",
+        "retired_role": "domain_direct_runtime_bridge_and_standalone_diagnostic",
+        "retirement_status": "physically_retired_no_alias",
         "long_term_owner": OPL_OWNER,
-        "allowed_mas_role": "domain_owner_receipt_adapter",
+        "replacement_surface": "OPL current_control_state provider/stage runtime",
     },
     {
         "path": "src/med_autoscience/runtime_transport/mas_runtime_core_turn_runner.py",
-        "current_role": "stage_turn_closeout_receipt_adapter",
+        "retired_role": "stage_turn_closeout_receipt_adapter",
+        "retirement_status": "physically_retired_no_alias",
         "long_term_owner": OPL_OWNER,
-        "allowed_mas_role": "stage_closeout_domain_semantics",
+        "replacement_surface": "src/med_autoscience/controllers/study_runtime_execution_parts/controller_authorization_receipts.py",
     },
     {
         "path": "src/med_autoscience/runtime_transport/mas_runtime_core_worker_leases.py",
-        "current_role": "worker_lease_receipt_projection",
+        "retired_role": "worker_residency_projection_provenance",
+        "retirement_status": "physically_retired_no_alias",
         "long_term_owner": OPL_OWNER,
-        "allowed_mas_role": "domain_worker_receipt_ref_adapter",
+        "replacement_surface": "one-person-lab provider liveness projection",
+    },
+]
+
+_CODE_PATH_ROLES = [
+    {
+        "path": "OPL current_control_state provider/stage runtime",
+        "current_role": "fail_closed_domain_intent_handoff_adapter",
+        "long_term_owner": OPL_OWNER,
+        "allowed_mas_role": "domain_intent_refs_and_typed_blocker_adapter",
     },
     {
         "path": "src/med_autoscience/controllers/owner_route_reconcile.py",
@@ -93,14 +105,8 @@ _CODE_PATH_ROLES = [
         "allowed_mas_role": "domain_dispatch_receipt_adapter",
     },
     {
-        "path": "src/med_autoscience/controllers/domain_route_reconcile.py",
-        "current_role": "domain_safe_reconcile_guard",
-        "long_term_owner": OPL_OWNER,
-        "allowed_mas_role": "guarded_apply_or_typed_blocker",
-    },
-    {
-        "path": "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
-        "current_role": "refs_only_lifecycle_refs_sqlite_index",
+        "path": "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
+        "current_role": "refs_only_domain_authority_refs_index",
         "long_term_owner": OPL_OWNER,
         "allowed_mas_role": "owner_receipt_and_locator_ref_index",
     },
@@ -115,7 +121,8 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
         "status": "opl_generic_runtime_owner_mas_domain_bridge_only",
         "generic_runtime_owner": OPL_OWNER,
         "domain_owner": DOMAIN_OWNER,
-        "mas_runtime_core_role": "domain_owner_receipt_adapter_or_standalone_diagnostic",
+        "domain_intent_adapter_role": "refs_only_owner_route_typed_blocker_and_owner_receipt_handoff",
+        "retired_runtime_transport_surfaces": [dict(item) for item in _RETIRED_RUNTIME_TRANSPORT_SURFACES],
         "active_domain_allowed_actions": list(_ALLOWED_DOMAIN_ACTIONS),
         "forbidden_mas_roles": list(_FORBIDDEN_MAS_ROLES),
         "opl_replacement_surfaces": list(_OPL_REPLACEMENT_SURFACES),
@@ -147,9 +154,9 @@ def build_runtime_transport_handoff_projection() -> dict[str, Any]:
             replacement_owner=OPL_OWNER,
         ),
         "physical_cleanup_gate": {
-            "delete_or_archive_when_no_domain_direct_or_diagnostic_caller": True,
+            "delete_or_archive_when_stale_surface_scan_clean": True,
             "requires_opl_replacement_parity": True,
-            "requires_no_active_default_caller_proof": True,
+            "requires_no_resurrection_proof": True,
             "requires_domain_receipt_parity": True,
             "history_tombstone_required": True,
             "no_alias_facade_compat_wrapper_allowed": True,

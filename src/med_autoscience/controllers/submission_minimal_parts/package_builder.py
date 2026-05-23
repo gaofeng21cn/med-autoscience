@@ -129,24 +129,24 @@ def create_submission_minimal_package(
     paper_root: Path,
     publication_profile: str,
     citation_style: str | None = "auto",
-    control_plane_route_context: Mapping[str, Any] | None = None,
+    authority_route_context: Mapping[str, Any] | None = None,
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    from med_autoscience.controllers.control_plane_write_route import (
+    from med_autoscience.controllers.authority_write_route import (
         attach_write_route_gate,
-        blocked_control_plane_write_payload,
-        resolve_control_plane_write_route_context,
+        blocked_authority_write_payload,
+        resolve_authority_write_route_context,
     )
 
     paper_root = paper_root.resolve()
-    resolved_route_context, control_plane_route_gate = resolve_control_plane_write_route_context(
+    resolved_route_context, authority_route_gate = resolve_authority_write_route_context(
         action="submission_materialize",
-        context=control_plane_route_context or route_context,
+        context=authority_route_context or route_context,
         default_paths=[paper_root / "submission_minimal", paper_root / "references.bib"],
     )
-    if not bool(control_plane_route_gate.get("authorized")):
-        return blocked_control_plane_write_payload(
-            gate=control_plane_route_gate,
+    if not bool(authority_route_gate.get("authorized")):
+        return blocked_authority_write_payload(
+            gate=authority_route_gate,
             paper_root=str(paper_root),
         )
     workspace_root = workspace_root_from_paper_root(paper_root)
@@ -158,7 +158,7 @@ def create_submission_minimal_package(
         return {
             **clean_migration_blocker,
             "paper_root": str(paper_root),
-            "control_plane_route_gate": control_plane_route_gate,
+            "authority_route_gate": authority_route_gate,
         }
     requested_publication_profile = str(publication_profile or "").strip()
     profile_config = resolve_publication_profile_config(
@@ -560,7 +560,7 @@ def create_submission_minimal_package(
         if supplementary_material is not None:
             manifest["supplementary_material"] = supplementary_material
 
-        manifest["control_plane_route_gate"] = control_plane_route_gate
+        manifest["authority_route_gate"] = authority_route_gate
         write_text(
             readme_path,
             build_submission_minimal_readme(publication_profile=resolved_publication_profile),
@@ -624,12 +624,12 @@ def create_submission_minimal_package(
             paper_root=paper_root,
             stage="submission_minimal",
             publication_profile=resolved_publication_profile,
-            control_plane_route_context=resolved_route_context,
+            authority_route_context=resolved_route_context,
         )
         post_materialization_sync_result = replay_post_submission_minimal_sync(
             paper_root=paper_root,
             publication_profile=resolved_publication_profile,
-            control_plane_route_context=resolved_route_context,
+            authority_route_context=resolved_route_context,
         )
         refreshed_source_contract = build_submission_minimal_source_contract(
             paper_root=paper_root,
@@ -659,8 +659,8 @@ def create_submission_minimal_package(
             result["delivery_sync"] = delivery_sync_result
         if post_materialization_sync_result is not None:
             result["post_materialization_sync"] = post_materialization_sync_result
-        return attach_write_route_gate(result, control_plane_route_gate)
-    return attach_write_route_gate(manifest, control_plane_route_gate)
+        return attach_write_route_gate(result, authority_route_gate)
+    return attach_write_route_gate(manifest, authority_route_gate)
 
 
 def _sync_study_delivery_with_route_context(
@@ -668,15 +668,15 @@ def _sync_study_delivery_with_route_context(
     paper_root: Path,
     stage: str,
     publication_profile: str,
-    control_plane_route_context: Mapping[str, Any],
+    authority_route_context: Mapping[str, Any],
 ) -> dict[str, Any]:
     signature = inspect.signature(study_delivery_sync.sync_study_delivery)
-    if "control_plane_route_context" in signature.parameters:
+    if "authority_route_context" in signature.parameters:
         return study_delivery_sync.sync_study_delivery(
             paper_root=paper_root,
             stage=stage,
             publication_profile=publication_profile,
-            control_plane_route_context=control_plane_route_context,
+            authority_route_context=authority_route_context,
         )
     return study_delivery_sync.sync_study_delivery(
         paper_root=paper_root,

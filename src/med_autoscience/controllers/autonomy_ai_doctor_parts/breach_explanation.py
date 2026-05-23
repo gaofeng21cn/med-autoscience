@@ -40,7 +40,7 @@ def _breach_reason(payload: Mapping[str, Any]) -> str:
         for value in (
             *_list(payload.get("blocking_reasons")),
             *_list(_mapping(payload.get("runtime_health_snapshot")).get("blocking_reasons")),
-            *_list(_mapping(payload.get("control_plane_snapshot")).get("blocking_reasons")),
+            *_list(_mapping(payload.get("authority_snapshot")).get("blocking_reasons")),
         )
         if (item := _text(value)) is not None
     }
@@ -63,27 +63,20 @@ def _breach_reason(payload: Mapping[str, Any]) -> str:
 def _breach_explanation(payload: Mapping[str, Any], *, breach_reason: str) -> dict[str, Any]:
     owner_route = _first_mapping(
         payload.get("owner_route"),
-        _mapping(payload.get("runtime_continuity")).get("owner_route"),
-        _mapping(payload.get("recovery_intent")).get("owner_route"),
+        _mapping(_mapping(payload.get("runtime_continuity")).get("domain_authority_handoff")).get("owner_route"),
+        _mapping(payload.get("domain_authority_handoff")).get("owner_route"),
     )
     runtime_health = _mapping(payload.get("runtime_health_snapshot"))
-    recovery_intent = _mapping(payload.get("recovery_intent"))
-    runtime_session = _mapping(payload.get("runtime_session"))
-    reconcile_trigger = _mapping(payload.get("runtime_reconcile_trigger"))
-    worker_recovery = _worker_recovery_projection(runtime_health=runtime_health, recovery_intent=recovery_intent)
-    safe_reconcile = _safe_reconcile_projection(reconcile_trigger=reconcile_trigger, recovery_intent=recovery_intent)
+    provider_state = _provider_state_projection(runtime_health=runtime_health)
     continuity_refs = _continuity_refs(
         payload=payload,
         owner_route=owner_route,
-        runtime_session=runtime_session,
-        recovery_intent=recovery_intent,
     )
     category = _breach_category(
         breach_reason=breach_reason,
         payload=payload,
         owner_route=owner_route,
-        worker_recovery=worker_recovery,
-        safe_reconcile=safe_reconcile,
+        provider_state=provider_state,
     )
     return {
         "status": "explained" if category != "unclassified_breach" else "needs_classification",
@@ -94,8 +87,7 @@ def _breach_explanation(payload: Mapping[str, Any], *, breach_reason: str) -> di
         "human_gate": _human_gate_projection(payload),
         "bundle_blocker": _bundle_blocker_projection(payload),
         "quality_repair": _quality_repair_projection(payload),
-        "worker_recovery": worker_recovery or None,
-        "safe_reconcile_dry_run": safe_reconcile or None,
+        "provider_state": provider_state or None,
         "continuity_refs": continuity_refs,
         "low_information_breach_rejected": _low_information_breach_rejected(payload),
         "authority": {
@@ -114,8 +106,7 @@ def _breach_category(
     breach_reason: str,
     payload: Mapping[str, Any],
     owner_route: Mapping[str, Any],
-    worker_recovery: Mapping[str, Any],
-    safe_reconcile: Mapping[str, Any],
+    provider_state: Mapping[str, Any],
 ) -> str:
     if _human_gate_projection(payload).get("required") is True:
         return "human_gate"
@@ -123,10 +114,8 @@ def _breach_category(
         return "bundle_blocker"
     if _quality_repair_projection(payload).get("required") is True:
         return "quality_repair"
-    if worker_recovery:
-        return "worker_recovery"
-    if safe_reconcile:
-        return "safe_reconcile_dry_run"
+    if provider_state:
+        return "opl_provider_state"
     if owner_route:
         return "owner_route"
     if breach_reason in {"human_gate_required"}:
@@ -136,50 +125,25 @@ def _breach_category(
     if breach_reason in {"read_churn_without_artifact_delta", "same_fingerprint_loop", "no_meaningful_progress"}:
         return "quality_repair"
     if breach_reason in {"platform_repair_required", "late_success_timeout", "runtime_recovery_retry_budget_exhausted"}:
-        return "worker_recovery"
+        return "opl_provider_state"
     return "unclassified_breach"
 
 
-def _worker_recovery_projection(*, runtime_health: Mapping[str, Any], recovery_intent: Mapping[str, Any]) -> dict[str, Any]:
+def _provider_state_projection(*, runtime_health: Mapping[str, Any]) -> dict[str, Any]:
     projection = {
         "canonical_runtime_action": _text(runtime_health.get("canonical_runtime_action")),
         "attempt_state": _text(runtime_health.get("attempt_state")),
         "retry_budget_remaining": runtime_health.get("retry_budget_remaining"),
-        "current_action": _text(recovery_intent.get("current_action")),
-        "next_owner": _text(recovery_intent.get("next_owner")),
-        "dedupe_fingerprint": _text(recovery_intent.get("dedupe_fingerprint")),
+        "runtime_control_owner": "one-person-lab" if runtime_health else None,
     }
     return {key: value for key, value in projection.items() if value is not None}
-
-
-def _safe_reconcile_projection(
-    *,
-    reconcile_trigger: Mapping[str, Any],
-    recovery_intent: Mapping[str, Any],
-) -> dict[str, Any]:
-    safe_to_request = reconcile_trigger.get("safe_to_request")
-    current_action = _text(recovery_intent.get("current_action"))
-    projection = {
-        "safe_to_request": bool(safe_to_request) if safe_to_request is not None else (
-            True if current_action == "safe_reconcile_ready" else None
-        ),
-        "recommended_command": _text(reconcile_trigger.get("recommended_command")),
-        "action_class": _text(reconcile_trigger.get("action_class")),
-        "dedupe_fingerprint": _text(reconcile_trigger.get("dedupe_fingerprint"))
-        or _text(recovery_intent.get("dedupe_fingerprint")),
-        "blocked_reasons": list(_list(reconcile_trigger.get("blocked_reasons"))),
-    }
-    return {key: value for key, value in projection.items() if value not in (None, [])}
 
 
 def _continuity_refs(
     *,
     payload: Mapping[str, Any],
     owner_route: Mapping[str, Any],
-    runtime_session: Mapping[str, Any],
-    recovery_intent: Mapping[str, Any],
 ) -> dict[str, Any]:
-    worker_lease = _first_mapping(runtime_session.get("worker_lease"), payload.get("worker_lease"))
     checkpoint = _first_mapping(
         payload.get("family_checkpoint_lineage"),
         payload.get("checkpoint_lineage"),
@@ -187,9 +151,8 @@ def _continuity_refs(
     idempotent_dispatch = _first_mapping(
         payload.get("idempotent_dispatch"),
         payload.get("dispatch_receipt"),
-        _mapping(runtime_session.get("receipt_source")).get("dispatch_receipt"),
         {
-            "idempotency_key": _text(owner_route.get("idempotency_key")) or _text(recovery_intent.get("dedupe_fingerprint"))
+            "idempotency_key": _text(owner_route.get("idempotency_key"))
         },
     )
     controller_apply_receipt = _first_mapping(
@@ -198,11 +161,9 @@ def _continuity_refs(
         _mapping(payload.get("controller_action_receipt")),
     )
     refs = {
-        "worker_lease": worker_lease or None,
         "checkpoint_lineage": checkpoint or None,
         "idempotent_dispatch": idempotent_dispatch or None,
         "controller_apply_receipt": controller_apply_receipt or None,
-        "recovery_intent": recovery_intent or None,
     }
     return {key: value for key, value in refs.items() if value}
 

@@ -106,8 +106,8 @@ def _write_quality_summary(study_root: Path) -> None:
 
 def _analysis_claim_evidence_repair_route_context() -> dict[str, Any]:
     return {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "supervisor_gated",
             "canonical_next_action": "resume_same_study_line",
             "authority_refs": {"study_truth": {"epoch": "truth-1"}, "runtime_health": {"epoch": "runtime-1"}},
@@ -178,7 +178,7 @@ def test_quality_repair_batch_repairs_missing_display_registry_for_existing_pape
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context=_analysis_claim_evidence_repair_route_context(),
+        authority_route_context=_analysis_claim_evidence_repair_route_context(),
     )
 
     display_registry = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))

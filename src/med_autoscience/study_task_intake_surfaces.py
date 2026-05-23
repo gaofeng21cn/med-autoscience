@@ -159,7 +159,7 @@ def render_task_intake_runtime_context(
                 f"Revision checklist: {checklist}",
                 "Reviewer/user manuscript feedback reactivates the same study line.",
                 "A stopped milestone state is not foreground current_package edit permission.",
-                "Relaunch/resume through MAS-owned runtime before editing canonical paper sources.",
+                "OPL hydrates/resumes the provider attempt from MAS owner refs before MAS domain handlers edit canonical paper sources.",
                 "Regenerate manuscript/current_package from canonical authority after revision.",
             ]
         )
@@ -247,15 +247,19 @@ def write_task_intake(
             "studies_root": str(profile.studies_root),
             "runtime_root": str(profile.runtime_root),
         },
-        "runtime_session_contract": {
-            "managed_runtime_backend_id": profile.managed_runtime_backend_id,
+        "domain_authority_handoff_contract": {
+            "opl_runtime_ref": profile.opl_runtime_ref,
+            "runtime_owner": "one-person-lab",
             "runtime_root": str(profile.runtime_root),
             "hermes_agent_repo_root": str(profile.hermes_agent_repo_root) if profile.hermes_agent_repo_root else None,
             "hermes_home_root": str(profile.hermes_home_root),
         },
         "return_surface_contract": {
-            "runtime_supervision_path": str(
-                resolved_study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+            "opl_runtime_owner_handoff_path": str(
+                resolved_study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            ),
+            "domain_health_diagnostic_path": str(
+                resolved_study_root / "artifacts" / "domain_health_diagnostic" / "latest.json"
             ),
             "publication_eval_path": str(
                 resolved_study_root / "artifacts" / "publication_eval" / "latest.json"

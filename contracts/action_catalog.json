@@ -207,7 +207,7 @@
         "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
         "surface_kind": "launch_study"
       },
-      "summary": "创建或恢复 study runtime，并进入当前研究主线。",
+      "summary": "写入 MAS domain handoff，由 OPL 唯一控制面 hydrate 成 stage attempt。",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "launch_study"
@@ -218,10 +218,10 @@
         },
         "mcp": {
           "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
-          "descriptor_only": false,
-          "public_runtime": true,
+          "descriptor_only": true,
+          "public_runtime": false,
           "surface_kind": "launch_study",
-          "tool_name": "study_runtime"
+          "tool_name": "launch_study"
         },
         "openai": {
           "tool_name": "launch_study"
@@ -237,7 +237,7 @@
           "surface_kind": "launch_study"
         }
       },
-      "title": "Launch or continue MAS study runtime",
+      "title": "Submit MAS study launch handoff",
       "workspace_locator_fields": [
         "profile_ref",
         "study_id"
@@ -637,7 +637,7 @@
         "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
         "surface_kind": "product_entry_manifest"
       },
-      "summary": "Read MedAutoScience product-entry surfaces through one tool: product_entry_status, product_preflight, product_start, product_entry_manifest, build_product_entry, migration_audit, governance_report, backfill_apply, cleanup_apply, safe_cache_cleanup_apply, lifecycle_report, continuous_soak_summary. migration_audit is dry-run-only; governance_report is read-only; backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution.",
+      "summary": "Read MedAutoScience product-entry surfaces through one tool: product_entry_status, product_preflight, product_start, product_entry_manifest, build_product_entry, workspace_authority_migration_audit, storage_governance_report, delivery_authority_backfill_apply, artifact_lifecycle_report, artifact_lifecycle_continuous_soak_summary. workspace_authority_migration_audit is dry-run-only; storage_governance_report and artifact_lifecycle_report are read-only; delivery_authority_backfill_apply is MAS delivery-authority gated. Physical cleanup and safe-cache deletion are owned by OPL current-control-state, not MAS product-entry. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "product_entry"

@@ -10,15 +10,13 @@ from med_autoscience.developer_supervisor_mode import resolve_developer_supervis
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
-from med_autoscience.runtime_protocol import lifecycle_refs_adapter
+from med_autoscience.runtime_protocol import domain_authority_refs_index
 
-from . import runtime_dispatch_cost, study_runtime_router
+from . import runtime_dispatch_cost, domain_status_projection
 from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
 from .domain_owner_action_dispatch_parts import controller_refresh
 from .domain_owner_action_dispatch_parts import dispatch_contract
-from .domain_owner_action_dispatch_parts import managed_runtime_authorization
-from .domain_owner_action_dispatch_parts import managed_runtime_dispatches
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import persisted_dispatches
 from .domain_owner_action_dispatch_parts import terminal_stall_handoff
@@ -37,7 +35,6 @@ EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_
 EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
 EXECUTION_HISTORY_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "history.jsonl"
 SUPPORTED_ACTION_TYPES = frozenset({
-    "runtime_platform_repair",
     "publication_gate_specificity_required",
     "current_package_freshness_required",
     "artifact_display_surface_materialization_required",
@@ -126,17 +123,7 @@ def _dispatches(
     action_types: tuple[str, ...],
     *,
     consumer_payload: Mapping[str, Any] | None = None,
-    managed_runtime_worker: bool = False,
 ) -> list[dict[str, Any]]:
-    managed_dispatches = (
-        _managed_runtime_authorization_dispatches(
-            profile=profile,
-            study_id=study_id,
-            action_types=action_types,
-        )
-        if managed_runtime_worker and action_types
-        else []
-    )
     return persisted_dispatches.selected_dispatches(
         profile=profile,
         study_id=study_id,
@@ -146,22 +133,6 @@ def _dispatches(
         scan_payload=_read_json_object(_scan_latest_path(profile)),
         supported_action_types=SUPPORTED_ACTION_TYPES,
         dispatch_relative_root=DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
-        managed_runtime_dispatches=managed_dispatches,
-    )
-
-
-def _managed_runtime_authorization_dispatches(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    action_types: tuple[str, ...],
-) -> list[dict[str, Any]]:
-    return managed_runtime_dispatches.authorization_dispatches(
-        study_id=study_id,
-        action_types=action_types,
-        supported_action_types=SUPPORTED_ACTION_TYPES,
-        forbidden_surfaces=FORBIDDEN_SURFACES,
-        schema_version=SCHEMA_VERSION,
     )
 
 
@@ -300,10 +271,7 @@ def _execution_owner_route(
     study_id: str,
     action_type: str,
     dispatch: Mapping[str, Any],
-    managed_authorization: Mapping[str, Any],
 ) -> tuple[dict[str, Any] | None, str | None]:
-    if managed_authorization.get("status") == "authorized":
-        return _dispatch_owner_route(dispatch), "managed_runtime_authorization"
     scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
     if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
         return scan_route, scan_route_basis or "scan_latest"
@@ -368,20 +336,6 @@ def _execute_publication_gate_specificity(
     return action_execution.execute_publication_gate_specificity(profile=profile, study_id=study_id, apply=apply)
 
 
-def _execute_runtime_platform_repair(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    apply: bool,
-) -> dict[str, Any]:
-    return action_execution.execute_runtime_platform_repair(
-        profile=profile,
-        study_id=study_id,
-        apply=apply,
-        supported_mode=SUPPORTED_MODE,
-    )
-
-
 def _execute_ai_reviewer_workflow(
     *,
     profile: WorkspaceProfile,
@@ -405,7 +359,7 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
     source: str = "ai_reviewer_publication_eval_workflow",
 ) -> dict[str, Any]:
     try:
-        status = study_runtime_router.progress_projection(
+        status = domain_status_projection.progress_projection(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
@@ -598,7 +552,6 @@ def _execute_dispatch(
     dispatch_payload: Mapping[str, Any],
     developer_mode_payload: Mapping[str, Any],
     apply: bool,
-    managed_runtime_worker: bool,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
     dispatch = _mapping(dispatch_payload)
@@ -612,20 +565,6 @@ def _execute_dispatch(
             "blocked_reason": "dispatch_payload_missing_or_invalid",
         }
     action_type = _text(dispatch.get("action_type")) or "unknown_action"
-    managed_authorization = managed_runtime_authorization.resolve_managed_runtime_authorization(
-        profile=profile,
-        study_id=study_id,
-        dispatch=dispatch,
-        action_type=action_type,
-        requested=managed_runtime_worker,
-    )
-    if managed_authorization.get("status") == "authorized":
-        dispatch = managed_runtime_authorization.runtime_authorized_dispatch(
-            dispatch=dispatch,
-            action_type=action_type,
-            authorization=managed_authorization,
-            supported_action_types=SUPPORTED_ACTION_TYPES,
-        )
     action_fingerprint = runtime_dispatch_cost.dispatch_action_fingerprint(
         dispatch=dispatch,
         dispatch_path=dispatch_path,
@@ -636,9 +575,8 @@ def _execute_dispatch(
         study_id=study_id,
         action_type=action_type,
         dispatch=dispatch,
-        managed_authorization=managed_authorization,
     )
-    owner_route_block_reason = None if managed_authorization.get("status") == "authorized" else _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
+    owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     current_study = _current_scan_study(profile, study_id)
     required_output_pending = output_readiness.required_output_pending(
@@ -669,7 +607,6 @@ def _execute_dispatch(
         repeat_guard=repeat_guard,
         developer_mode_payload=developer_mode_payload,
         apply=apply,
-        managed_authorization=managed_authorization,
     ) or _execute_owner_dispatch_action(
         profile=profile,
         study_id=study_id,
@@ -703,7 +640,6 @@ def _execute_dispatch(
         apply=apply,
         developer_mode_payload=developer_mode_payload,
         execution=execution,
-        managed_authorization=managed_authorization,
     )
 
 
@@ -717,7 +653,6 @@ def _dispatch_pre_execution_block(
     repeat_guard: Mapping[str, Any],
     developer_mode_payload: Mapping[str, Any],
     apply: bool,
-    managed_authorization: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     if not guard_ok:
         return {
@@ -748,15 +683,6 @@ def _dispatch_pre_execution_block(
             "repeat_suppressed": True,
             "why_not_applied": repeat_suppression.REPEAT_SUPPRESSED_REASON,
         }
-    if managed_authorization.get("status") == "blocked":
-        return {
-            "execution_status": "blocked",
-            "blocked_reason": _text(managed_authorization.get("blocked_reason")) or "managed_runtime_authorization_blocked",
-            "owner_callable_surface": None,
-            "managed_runtime_authorization": dict(managed_authorization),
-        }
-    if managed_authorization.get("status") == "authorized":
-        return None
     if apply and (
         _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE
         or developer_mode_payload.get("safe_actions_enabled") is not True
@@ -784,7 +710,6 @@ def _execute_owner_dispatch_action(
         dispatch=dispatch,
         apply=apply,
         execute_publication_gate_specificity=_execute_publication_gate_specificity,
-        execute_runtime_platform_repair=_execute_runtime_platform_repair,
         execute_ai_reviewer_workflow=_execute_ai_reviewer_workflow,
         quest_root_resolver=action_execution.quest_root_from_status,
     )
@@ -811,7 +736,6 @@ def _dispatch_execution_payload(
     apply: bool,
     developer_mode_payload: Mapping[str, Any],
     execution: Mapping[str, Any],
-    managed_authorization: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "surface": "default_executor_dispatch_execution",
@@ -826,7 +750,6 @@ def _dispatch_execution_payload(
         "required_output_surface": _text(dispatch.get("required_output_surface")),
         "dispatch_path": str(dispatch_path),
         "dispatch_authority": _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch",
-        "managed_runtime_authorization": dict(managed_authorization),
         "dispatch_contract_valid": guard_ok,
         "dispatch_contract_blocked_reason": guard_reason,
         "executor_boundary": _executor_boundary(dispatch),
@@ -865,7 +788,6 @@ def dispatch_domain_owner_actions(
     mode: str,
     apply: bool,
     action_types: Iterable[str] = (),
-    managed_runtime_worker: bool = False,
     consumer_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
@@ -886,7 +808,6 @@ def dispatch_domain_owner_actions(
             study_id,
             resolved_action_types,
             consumer_payload=consumer_payload,
-            managed_runtime_worker=managed_runtime_worker,
         ):
             execution = _execute_dispatch(
                 profile=profile,
@@ -894,7 +815,6 @@ def dispatch_domain_owner_actions(
                 dispatch_payload=dispatch,
                 developer_mode_payload=developer_mode_payload,
                 apply=apply,
-                managed_runtime_worker=managed_runtime_worker,
             )
             executions.append(execution)
         study_executions = [execution for execution in executions if execution["study_id"] == study_id]
@@ -930,11 +850,11 @@ def dispatch_domain_owner_actions(
             written_files.append(str(history_path))
             for execution in study_executions:
                 quest_root = profile.runtime_root / (_text(execution.get("quest_id")) or study_id)
-                execution["runtime_lifecycle_index"] = lifecycle_refs_adapter.record_dispatch_receipt(
+                execution["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
                     quest_root=quest_root,
                     receipt=execution,
                     receipt_path=latest_path,
-                    db_path=lifecycle_refs_adapter.workspace_lifecycle_store_path(profile.workspace_root),
+                    db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
                 )
             _write_json(latest_path, study_payload)
     payload = {
@@ -948,7 +868,6 @@ def dispatch_domain_owner_actions(
         "developer_supervisor_mode": developer_mode_payload,
         "requested_studies": list(resolved_study_ids),
         "requested_action_types": list(resolved_action_types),
-        "managed_runtime_worker": bool(managed_runtime_worker),
         "execution_count": len(executions),
         "executed_count": sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in executions),
         "blocked_count": sum(item.get("execution_status") == "blocked" for item in executions),

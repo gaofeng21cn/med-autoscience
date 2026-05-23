@@ -138,7 +138,7 @@ def test_study_progress_verified_reviewer_handoff_surfaces_ai_reviewer_quality_c
     _write_json(summary_path, evaluation_summary)
     monkeypatch.setattr(module, "read_evaluation_summary", lambda *, study_root, ref: evaluation_summary)
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

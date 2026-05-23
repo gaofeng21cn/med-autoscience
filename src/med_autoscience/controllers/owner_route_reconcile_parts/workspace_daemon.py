@@ -4,7 +4,6 @@ from typing import Any
 
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_transport import mas_runtime_core as mas_runtime_transport
 
 
 def workspace_daemon_lifecycle(
@@ -19,18 +18,17 @@ def workspace_daemon_lifecycle(
             "reason": "safe_actions_not_enabled",
             "runtime_root": str(profile.managed_runtime_home),
         }
-    try:
-        return mas_runtime_transport.release_idle_workspace_daemon(
-            runtime_root=profile.managed_runtime_home,
-        )
-    except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
-        return {
-            "surface": "workspace_daemon_lifecycle",
-            "released": False,
-            "reason": "workspace_daemon_release_unavailable",
-            "runtime_root": str(profile.managed_runtime_home),
-            "error": str(exc),
-        }
+    return {
+        "surface": "workspace_daemon_lifecycle",
+        "released": False,
+        "reason": "opl_provider_liveness_owner_required",
+        "runtime_root": str(profile.managed_runtime_home),
+        "typed_blocker": {
+            "blocker_type": "provider_liveness_owned_by_opl",
+            "owner": "one-person-lab",
+            "required_action": "Release or reconcile idle provider workers through OPL current_control_state.",
+        },
+    }
 
 
-__all__ = ["mas_runtime_transport", "workspace_daemon_lifecycle"]
+__all__ = ["workspace_daemon_lifecycle"]

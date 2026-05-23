@@ -131,8 +131,8 @@ def test_sync_study_delivery_route_gate_blocks_current_package_projection(tmp_pa
         paper_root=paper_root,
         stage="submission_minimal",
         route_context={
-            "control_plane_snapshot": {
-                "surface": "control_plane_snapshot",
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
                 "dispatch_gate": {
                     "state": "open",
                     "dispatch_allowed": True,
@@ -152,8 +152,8 @@ def test_sync_study_delivery_route_gate_blocks_current_package_projection(tmp_pa
         },
     )
 
-    assert result["status"] == "control_plane_route_blocked"
-    assert result["control_plane_route_gate"]["route_authorization_flag"] == "bundle_build_allowed"
+    assert result["status"] == "authority_route_blocked"
+    assert result["authority_route_gate"]["route_authorization_flag"] == "bundle_build_allowed"
     assert not (study_root / "manuscript" / "current_package").exists()
     assert not (study_root / "manuscript" / "current_package.zip").exists()
 
@@ -523,8 +523,8 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
         stale_reason=str(result["stale_reason"]),
         missing_source_paths=list(result["missing_source_paths"]),
         route_context={
-            "control_plane_snapshot": {
-                "surface": "control_plane_snapshot",
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
                 "dispatch_gate": {
                     "state": "open",
                     "dispatch_allowed": True,
@@ -593,9 +593,9 @@ def test_materialize_submission_delivery_stale_notice_blocks_without_snapshot(tm
         missing_source_paths=[str(paper_root / "submission_minimal" / "submission_manifest.json")],
     )
 
-    assert result["status"] == "control_plane_route_blocked"
-    assert result["control_plane_route_gate"]["action"] == "submission_notice_materialize"
-    assert "control_plane_snapshot_missing" in result["control_plane_route_gate"]["blocking_reasons"]
+    assert result["status"] == "authority_route_blocked"
+    assert result["authority_route_gate"]["action"] == "submission_notice_materialize"
+    assert "authority_snapshot_missing" in result["authority_route_gate"]["blocking_reasons"]
     assert not baseline_status.exists()
     assert (manuscript_root / "current_package" / "manuscript.docx").exists()
 
@@ -613,8 +613,8 @@ def test_materialize_submission_delivery_stale_notice_allows_open_snapshot(tmp_p
         paper_root=paper_root,
         stale_reason="current_submission_source_missing",
         route_context={
-            "control_plane_snapshot": {
-                "surface": "control_plane_snapshot",
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
                 "dispatch_gate": {
                     "state": "open",
                     "dispatch_allowed": True,
@@ -636,8 +636,8 @@ def test_materialize_submission_delivery_stale_notice_allows_open_snapshot(tmp_p
 
     manuscript_root = study_root / "manuscript"
     assert result["status"] == "stale_source_missing"
-    assert result["control_plane_route_gate"]["action"] == "submission_notice_materialize"
-    assert result["control_plane_route_gate"]["authorized"] is True
+    assert result["authority_route_gate"]["action"] == "submission_notice_materialize"
+    assert result["authority_route_gate"]["authorized"] is True
     assert (manuscript_root / "delivery_status.json").exists()
 
 
@@ -656,9 +656,9 @@ def test_materialize_submission_delivery_stale_notice_blocks_projection_only_wri
         route_context={"projection_only": True},
     )
 
-    assert result["status"] == "control_plane_route_blocked"
-    assert result["control_plane_route_gate"]["projection_only"] is True
-    assert "projection_only_write_blocked" in result["control_plane_route_gate"]["blocking_reasons"]
+    assert result["status"] == "authority_route_blocked"
+    assert result["authority_route_gate"]["projection_only"] is True
+    assert "projection_only_write_blocked" in result["authority_route_gate"]["blocking_reasons"]
     assert not (study_root / "manuscript" / "delivery_status.json").exists()
 def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")

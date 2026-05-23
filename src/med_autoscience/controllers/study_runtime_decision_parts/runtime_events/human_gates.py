@@ -100,7 +100,7 @@ def _is_delivered_human_review_milestone_without_live_worker(
     )
 
 
-def _platform_repair_redrive_without_live_worker(
+def _opl_owner_route_handoff_without_live_worker(
     status: ProgressProjectionStatus,
     *,
     audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
@@ -115,25 +115,17 @@ def _platform_repair_redrive_without_live_worker(
         continuation_state.active_run_id is None
         and continuation_state.continuation_policy == "auto"
         and continuation_state.continuation_anchor == "decision"
-        and continuation_state.continuation_reason
-        in {
-            "runtime_platform_repair_redrive",
-            "controller_work_unit_pending",
-        }
+        and continuation_state.continuation_reason == "controller_work_unit_pending"
     ):
         return False
-    if continuation_state.continuation_reason == "runtime_platform_repair_redrive":
-        return True
     runtime_state = _load_json_dict(Path(continuation_state.runtime_state_path))
-    platform_repair = runtime_state.get("last_runtime_platform_repair")
     authorization = runtime_state.get("last_controller_decision_authorization")
-    return (
-        isinstance(platform_repair, dict)
-        and str(platform_repair.get("source") or "").strip() == "owner_route_reconcile_platform_repair"
-    ) or (
-        isinstance(authorization, dict)
-        and str(authorization.get("source") or "").strip() == "owner_route_reconcile_platform_repair"
-    )
+    if isinstance(authorization, dict):
+        source = str(authorization.get("source") or "").strip()
+        if source == "owner_route_reconcile_current_controller_authorization":
+            return True
+    handoff = runtime_state.get("opl_runtime_owner_route_handoff")
+    return isinstance(handoff, dict) and str(handoff.get("queue_owner") or "").strip() == "one-person-lab"
 
 
 def _user_pause_contract_without_live_worker(
@@ -226,12 +218,12 @@ def _has_current_human_facing_delivery_manifest(study_root: Path) -> bool:
     return source_signature == authority_signature == evaluated_signature
 
 
-def _should_block_platform_repair_redrive_for_delivered_package(
+def _should_block_opl_owner_route_handoff_for_delivered_package(
     status: ProgressProjectionStatus,
     *,
     study_root: Path,
 ) -> bool:
-    return _has_delivered_human_package_surface(study_root) and _platform_repair_redrive_without_live_worker(status)
+    return _has_delivered_human_package_surface(study_root) and _opl_owner_route_handoff_without_live_worker(status)
 
 
 def _should_park_delivered_package_without_live_worker(
@@ -253,7 +245,7 @@ def _should_park_delivered_package_without_live_worker(
     return continuation_state.active_run_id is None
 
 
-def _should_park_delivered_or_redriven_package_without_live_worker(
+def _should_park_delivered_or_opl_handoff_package_without_live_worker(
     status: ProgressProjectionStatus,
     *,
     study_root: Path,
@@ -262,7 +254,7 @@ def _should_park_delivered_or_redriven_package_without_live_worker(
 ) -> bool:
     return (
         manual_finish_compatibility_guard
-        and _platform_repair_redrive_without_live_worker(status, audit_status=audit_status)
+        and _opl_owner_route_handoff_without_live_worker(status, audit_status=audit_status)
     ) or _should_park_delivered_package_without_live_worker(
         status,
         study_root=study_root,
@@ -353,7 +345,6 @@ def _set_running_quest_recovery_decision(
             "blocked_closeout_owner_redrive",
             "controller_work_unit_pending_redrive",
             "domain_transition_runtime_redrive",
-            "platform_repair_decision_redrive",
         }
         and str(interaction_arbitration.get("action") or "").strip() == "resume"
     )

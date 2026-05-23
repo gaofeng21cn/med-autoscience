@@ -111,7 +111,7 @@ def build_outer_supervision_slo_projection(
         "blocked_reasons": list(dict.fromkeys(blocked_reasons)),
         "missing_reasons": list(dict.fromkeys(missing_reasons)),
         "refs": {
-            "supervision_status": "runtime-supervision-status",
+        "supervision_status": "opl_current_control_state",
             "reconcile_latest": str(profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH),
         },
         "handoff": {
@@ -168,13 +168,13 @@ def _recommended_reconcile_command(
 
 def reconcile_domain_routes_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
     command = (
-        "uv run python -m med_autoscience.cli domain-route-reconcile "
+        "uv run python -m med_autoscience.cli owner-route-reconcile "
         f"--profile {_quote(str(profile_ref) if profile_ref is not None else '<profile>')}"
     )
     resolved_study_id = _text(study_id)
     if resolved_study_id is not None:
         command = f"{command} --studies {_quote(resolved_study_id)}"
-    return f"{command} --mode developer_apply_safe --dry-run"
+    return f"{command} --developer-supervisor-mode developer_apply_safe"
 
 
 def _blocked_reasons(supervision: Mapping[str, Any]) -> list[str]:
@@ -188,7 +188,7 @@ def _blocked_reasons(supervision: Mapping[str, Any]) -> list[str]:
     if status == "execution_failed":
         reasons.append("latest_scheduler_tick_execution_failed")
     if status in {"not_loaded", "not_installed"} and supervision:
-        reasons.append(f"domain_slo_scheduler_projection_{status}")
+        reasons.append(f"opl_current_control_state_handoff_{status}")
     return list(dict.fromkeys(reasons))
 
 

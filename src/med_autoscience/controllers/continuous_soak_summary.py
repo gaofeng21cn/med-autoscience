@@ -6,8 +6,7 @@ from typing import Any
 
 from med_autoscience.controllers import (
     artifact_lifecycle_operations_report,
-    control_plane_cleanup_apply,
-    control_plane_migration_audit,
+    workspace_authority_migration_audit,
 )
 
 
@@ -29,14 +28,9 @@ def build_continuous_soak_summary(
         max_files=max_files,
         max_seconds=max_seconds,
     )
-    migration_report = control_plane_migration_audit.run_migration_audit(
+    migration_report = workspace_authority_migration_audit.run_migration_audit(
         workspace_roots=roots,
         dry_run=True,
-    )
-    cleanup_plan = control_plane_cleanup_apply.run_cleanup_apply(
-        workspace_roots=roots,
-        apply=False,
-        retention_report=lifecycle_report,
     )
     governance = _mapping(lifecycle_report.get("storage_governance_policy"))
     mutation_policy = _mapping(lifecycle_report.get("mutation_policy"))
@@ -46,8 +40,7 @@ def build_continuous_soak_summary(
         "schema_version": SCHEMA_VERSION,
         "workspace_count": _int(migration_report.get("workspace_count")),
         "study_count": _int(migration_report.get("study_count")),
-        "mutating_actions": _int(_mapping(migration_report.get("action_counts")).get("mutating"))
-        + _int(_mapping(cleanup_plan.get("action_counts")).get("mutating")),
+        "mutating_actions": _int(_mapping(migration_report.get("action_counts")).get("mutating")),
         "unclassified_authority_surface": _int(migration_report.get("unclassified_authority_surface")),
         "writes_workspace": bool(mutation_policy.get("writes_workspace")) or bool(cleanup_plan.get("writes_workspace")),
         "top_growth_buckets": _sequence(governance.get("top_growth_buckets")),
@@ -56,12 +49,11 @@ def build_continuous_soak_summary(
         "source_surfaces": {
             "migration_audit": migration_report.get("surface"),
             "lifecycle_report": lifecycle_report.get("surface"),
-            "cleanup_apply": cleanup_plan.get("surface"),
             "storage_governance_policy": governance.get("surface_kind"),
         },
         "read_only_contract": {
             "dry_run": True,
-            "cleanup_apply": False,
+            "physical_cleanup_owned_by": "one-person-lab",
             "writes_workspace": False,
         },
     }

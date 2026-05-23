@@ -1,34 +1,25 @@
 from __future__ import annotations
 
-from .test_study_runtime_router_cases.fixtures_and_launch_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.creation_and_profile_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.overlay_and_resume_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.completion_and_package_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.resume_postcondition_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.pause_postcondition_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.controller_parking_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.interaction_arbitration_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.finalize_and_recovery_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.human_review_milestone_preflight_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.submission_milestone_parking_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.startup_boundary_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.runtime_event_surface_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.stale_launch_report_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.overlay_audit_and_progress_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.runtime_liveness_convergence_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.user_pause_contract_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.publication_eval_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.stop_loss_status_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.publication_eval_ai_reviewer_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.submission_metadata_waiting_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.submission_metadata_resume_signal_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.submission_metadata_drift_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.submission_metadata_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.submission_metadata_revision_intake_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.ai_reviewer_submission_metadata_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.publication_gate_recheck_lifecycle_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.stale_ai_reviewer_revision_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.live_write_drift_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.live_reviewer_closeout_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.restart_and_submission_cases import *  # noqa: F403
-from .test_study_runtime_router_cases.platform_repair_redrive_cases import *  # noqa: F403
+import importlib
+
+
+def test_domain_status_projection_keeps_private_runtime_control_plane_retired() -> None:
+    router = importlib.import_module("med_autoscience.controllers.domain_status_projection")
+
+    for name in (
+        "ensure_study_runtime",
+        "pause_study_runtime",
+        "_managed_runtime_backend_for_execution",
+        "_execute_runtime_decision",
+        "_create_quest",
+        "_resume_quest",
+        "_pause_quest",
+    ):
+        assert not hasattr(router, name)
+
+
+def test_domain_status_projection_keeps_provider_backend_resolution_retired() -> None:
+    router = importlib.import_module("med_autoscience.controllers.domain_status_projection")
+
+    assert "_managed_runtime_backend_for_execution" not in vars(router)
+    assert not hasattr(router, "_managed_runtime_backend_for_execution")

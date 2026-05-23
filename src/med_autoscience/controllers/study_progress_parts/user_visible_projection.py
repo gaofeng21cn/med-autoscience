@@ -25,7 +25,7 @@ _EVIDENCE_REF_KEYS = (
     "publication_eval_path",
     "controller_decision_path",
     "controller_confirmation_summary_path",
-    "runtime_supervision_path",
+    "opl_runtime_owner_handoff_path",
     "domain_health_diagnostic_report_path",
     "runtime_status_summary_path",
     "evaluation_summary_path",

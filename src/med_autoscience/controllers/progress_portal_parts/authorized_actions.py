@@ -99,7 +99,7 @@ def _runtime_owner_route_request(
             "handoff_ref": handoff_ref,
             "queue_owner": "one-person-lab",
             "domain_truth_owner": "med-autoscience",
-            "recommended_task_kind": "domain_route/reconcile-apply",
+            "recommended_task_kind": "domain_route/owner-handoff",
             "runtime_action": action,
             "quest_id": quest_id,
             "runtime_root_ref": _workspace_relative(profile.runtime_root, profile.workspace_root),

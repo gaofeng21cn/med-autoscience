@@ -6,64 +6,25 @@ from typing import Any
 
 
 def render_runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:
-    session = _mapping(runtime_continuity.get("runtime_session"))
-    intent = _mapping(runtime_continuity.get("recovery_intent"))
-    items = _runtime_session_items(session) + _recovery_intent_items(intent)
-    return _list_section("Runtime Continuity", items, empty_text="当前没有 runtime session / recovery intent 投影。")
+    handoff = _mapping(runtime_continuity.get("domain_authority_handoff"))
+    items = _domain_authority_items(handoff)
+    return _list_section("OPL 控制面交接", items, empty_text="当前没有 MAS domain authority handoff 投影。")
 
 
-def _runtime_session_items(session: Mapping[str, Any]) -> list[str]:
-    if not session:
+def _domain_authority_items(handoff: Mapping[str, Any]) -> list[str]:
+    if not handoff:
         return []
+    owner_route = _mapping(handoff.get("owner_route"))
+    typed_blocker = _mapping(handoff.get("typed_blocker"))
     items = [
-        f"worker: {session.get('worker_state') or 'unknown'}",
+        f"handoff status: {handoff.get('status') or 'unknown'}",
     ]
-    items.extend(_run_identity_items(session))
-    items.extend(_worker_observation_items(session))
-    items.extend(_monitor_items(session))
-    return items
-
-
-def _run_identity_items(session: Mapping[str, Any]) -> list[str]:
-    if session.get("active_run_id"):
-        return [f"active run: {session.get('active_run_id')}"]
-    if session.get("last_known_run_id"):
-        return [f"last known run: {session.get('last_known_run_id')}"]
-    return []
-
-
-def _worker_observation_items(session: Mapping[str, Any]) -> list[str]:
-    items = []
-    if session.get("last_seen_at"):
-        items.append(f"last seen: {session.get('last_seen_at')}")
-    if session.get("heartbeat_age_seconds") is not None:
-        items.append(f"last worker heartbeat: {session.get('heartbeat_age_seconds')}s ago")
-    if session.get("last_output_at"):
-        items.append(f"last output: {session.get('last_output_at')}")
-    return items
-
-
-def _monitor_items(session: Mapping[str, Any]) -> list[str]:
-    items = []
-    if session.get("monitor_kind") or session.get("monitor_state"):
-        items.append(f"monitor owner: {session.get('monitor_kind') or 'unknown'} / {session.get('monitor_state') or 'unknown'}")
-    if session.get("stale_reason"):
-        items.append(f"why waiting: {session.get('stale_reason')}")
-    if session.get("will_start_llm") is not None:
-        items.append(f"will start LLM: {'yes' if session.get('will_start_llm') else 'no'}")
-    if session.get("freshness_state"):
-        items.append(f"freshness: {session.get('freshness_state')}")
-    return items
-
-
-def _recovery_intent_items(intent: Mapping[str, Any]) -> list[str]:
-    if not intent:
-        return []
-    items = [f"recovery action: {intent.get('current_action') or 'unknown'}"]
-    if intent.get("next_owner"):
-        items.append(f"next owner: {intent.get('next_owner')}")
-    if intent.get("next_eligible_tick"):
-        items.append(f"next eligible tick: {intent.get('next_eligible_tick')}")
+    if owner_route.get("next_owner"):
+        items.append(f"next owner: {owner_route.get('next_owner')}")
+    if owner_route.get("idempotency_key"):
+        items.append(f"route idempotency key: {owner_route.get('idempotency_key')}")
+    if typed_blocker.get("reason"):
+        items.append(f"typed blocker: {typed_blocker.get('reason')}")
     return items
 
 

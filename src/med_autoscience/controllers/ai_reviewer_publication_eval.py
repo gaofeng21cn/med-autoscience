@@ -8,7 +8,7 @@ from typing import Any, Mapping
 from med_autoscience.publication_eval_latest import materialize_ai_reviewer_publication_eval_latest
 from med_autoscience.publication_eval_record import PublicationEvalRecord
 
-from . import study_runtime_router
+from . import domain_status_projection
 
 __all__ = [
     "materialize_ai_reviewer_publication_eval",
@@ -86,7 +86,7 @@ def materialize_ai_reviewer_publication_eval_record(
         raise ValueError("Specify exactly one of study_id or study_root")
 
     status_payload = _mapping_payload(
-        study_runtime_router.progress_projection(
+        domain_status_projection.progress_projection(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
@@ -131,7 +131,7 @@ def materialize_ai_reviewer_publication_eval(
         raise ValueError("Specify exactly one of study_id or study_root")
 
     status_payload = _mapping_payload(
-        study_runtime_router.progress_projection(
+        domain_status_projection.progress_projection(
             profile=profile,
             study_id=study_id,
             study_root=study_root,

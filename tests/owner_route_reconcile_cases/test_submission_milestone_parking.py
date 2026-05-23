@@ -169,7 +169,7 @@ def test_scan_domain_routes_parks_submission_milestone_instead_of_platform_repai
     def fail_if_called(**_: object) -> object:
         raise AssertionError("submission milestone parking must route runtime stop to OPL owner")
 
-    monkeypatch.setattr(module.study_runtime_router, "_managed_runtime_backend_for_execution", fail_if_called)
+    monkeypatch.setattr(module.domain_status_projection, "_managed_runtime_backend_for_execution", fail_if_called)
 
     def fake_runtime_status(**_: object) -> dict[str, object]:
         runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
@@ -202,7 +202,7 @@ def test_scan_domain_routes_parks_submission_milestone_instead_of_platform_repai
             "runtime_escalation_ref": runtime_escalation_ref,
         }
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", fake_runtime_status)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", fake_runtime_status)
     monkeypatch.setattr(
         module.study_progress,
         "read_study_progress",

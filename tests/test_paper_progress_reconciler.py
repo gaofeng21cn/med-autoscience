@@ -36,7 +36,7 @@ def _owner_route(
     }
 
 
-def test_reconciler_records_dm002_controller_redrive_outbox_receipt(tmp_path: Path) -> None:
+def test_reconciler_records_dm002_opl_stage_attempt_admission_outbox_receipt(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
     outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
     profile = make_profile(tmp_path)
@@ -44,9 +44,9 @@ def test_reconciler_records_dm002_controller_redrive_outbox_receipt(tmp_path: Pa
     write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
     route = _owner_route(
         study_id=study_id,
-        owner="MAS/controller",
+        owner="one-person-lab",
         reason="runtime_recovery_retry_budget_exhausted",
-        action_type="runtime_platform_repair",
+        action_type="request_opl_stage_attempt",
     )
     scan = {
         "studies": [
@@ -63,7 +63,7 @@ def test_reconciler_records_dm002_controller_redrive_outbox_receipt(tmp_path: Pa
                     "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
                     "worker_liveness_state": {"state": "activity_timeout", "worker_running": True},
                 },
-                "control_plane_snapshot": {
+                "authority_snapshot": {
                     "dispatch_gate": {
                         "state": "blocked",
                         "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
@@ -81,9 +81,9 @@ def test_reconciler_records_dm002_controller_redrive_outbox_receipt(tmp_path: Pa
             {
                 "study_id": study_id,
                 "quest_id": f"quest-{study_id}",
-                "execution_id": "execution::dm002::runtime_platform_repair",
+                "execution_id": "execution::dm002::request_opl_stage_attempt",
                 "execution_status": "executed",
-                "action_type": "runtime_platform_repair",
+                "action_type": "request_opl_stage_attempt",
                 "owner_route": route,
                 "will_start_llm": True,
             }
@@ -103,11 +103,11 @@ def test_reconciler_records_dm002_controller_redrive_outbox_receipt(tmp_path: Pa
     )
 
     decision = receipt["decisions"][0]
-    assert decision["current_state"]["state"] == "awaiting_controller_redrive"
-    assert decision["decision"] == "controller_redrive"
+    assert decision["current_state"]["state"] == "opl_stage_attempt_admission_required"
+    assert decision["decision"] == "opl_stage_attempt_admission"
     assert decision["apply_eligible"] is True
     assert decision["action_receipt"]["receipt_status"] == "started"
-    assert decision["action_receipt"]["worker_start_ref"] == "execution::dm002::runtime_platform_repair"
+    assert decision["action_receipt"]["worker_start_ref"] == "execution::dm002::request_opl_stage_attempt"
     assert outbox.worker_starts(study_root=profile.studies_root / study_id)
 
 
@@ -158,7 +158,7 @@ def test_reconciler_routes_dm003_missing_callable_to_controller_registry_repair(
     assert decision["current_state"]["state"] == "awaiting_callable_owner"
     assert decision["current_state"]["requires_user_input"] is False
     assert decision["decision"] == "registry_repair"
-    assert decision["next_owner"] == "MAS/controller"
+    assert decision["next_owner"] == "med-autoscience"
     assert decision["why_not_progressing"] == "owner_callable_surface_missing"
     assert decision["action_receipt"]["receipt_status"] == "dry_run_not_recorded"
 
@@ -171,11 +171,10 @@ def test_reconciler_does_not_record_worker_start_without_dispatch_execution(tmp_
     write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
     route = _owner_route(
         study_id=study_id,
-        owner="external_supervisor",
+        owner="one-person-lab",
         reason="execution_owner_guard_supervisor_only",
-        action_type="runtime_platform_repair",
+        action_type="request_opl_stage_attempt",
     )
-    route["allowed_actions"] = []
     scan = {
         "studies": [
             {
@@ -209,8 +208,8 @@ def test_reconciler_does_not_record_worker_start_without_dispatch_execution(tmp_
     )
 
     decision = receipt["decisions"][0]
-    assert decision["current_state"]["state"] == "awaiting_callable_owner"
-    assert decision["decision"] == "registry_repair"
+    assert decision["current_state"]["state"] == "opl_stage_attempt_admission_required"
+    assert decision["decision"] == "opl_stage_attempt_admission"
     assert decision["apply_eligible"] is False
     assert decision["action_receipt"]["receipt_status"] == "not_executed"
     assert decision["action_receipt"]["reason"] == "owner_dispatch_not_executed"

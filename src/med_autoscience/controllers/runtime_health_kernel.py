@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
+from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
 from med_autoscience.controllers.runtime_health_kernel_parts import event_log, explicit_resume, run_epoch_budget
 
 
@@ -736,7 +736,7 @@ def _status_payload_runtime_health_events(
 ) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
     sequence = first_sequence
-    facts = resolve_control_plane_facts(status_payload)
+    facts = resolve_opl_runtime_refs(status_payload)
     runtime_liveness_audit = _mapping(status_payload.get("runtime_liveness_audit"))
     runtime_audit = _mapping(runtime_liveness_audit.get("runtime_audit"))
     stable_runtime_audit = _stable_runtime_audit(runtime_audit)

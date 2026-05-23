@@ -7,8 +7,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 CONTROL_PLANE_MODULES = (
-    "src/med_autoscience/controllers/runtime_worker_activity.py",
-    "src/med_autoscience/controllers/runtime_supervision.py",
+    "src/med_autoscience/controllers/opl_runtime_refs.py",
     "src/med_autoscience/controllers/domain_health_diagnostic_parts/managed_wakeup.py",
     "src/med_autoscience/controllers/domain_health_diagnostic_recovery_policy.py",
     "src/med_autoscience/controllers/study_outer_loop_parts/runtime_refs.py",
@@ -62,7 +61,7 @@ def _is_live_comparison(node: ast.Compare) -> bool:
 def test_control_plane_modules_depend_on_canonical_fact_resolver() -> None:
     for relative_path in CONTROL_PLANE_MODULES:
         source = _source(relative_path)
-        assert "control_plane_facts" in source or "resolve_control_plane_facts" in source, relative_path
+        assert "opl_runtime_refs" in source or "resolve_opl_runtime_refs" in source, relative_path
 
 
 def test_control_plane_modules_do_not_reparse_strict_live_directly() -> None:
@@ -83,6 +82,8 @@ def test_control_plane_modules_do_not_reparse_strict_live_directly() -> None:
 def test_control_plane_fact_resolution_stays_in_single_source_module() -> None:
     for relative_path in CONTROL_PLANE_MODULES:
         source = _source(relative_path)
+        if relative_path.endswith("opl_runtime_refs.py"):
+            continue
         assert "runtime_liveness_status = (" not in source, relative_path
         assert "runtime_liveness_audit.get(\"active_run_id\")" not in source, relative_path
         assert "runtime_audit.get(\"active_run_id\")" not in source, relative_path

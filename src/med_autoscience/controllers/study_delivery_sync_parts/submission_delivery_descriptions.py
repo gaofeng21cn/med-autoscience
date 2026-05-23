@@ -6,9 +6,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.control_plane_write_route import (
-    blocked_control_plane_write_payload,
-    resolve_control_plane_write_route_context,
+from med_autoscience.controllers.authority_write_route import (
+    blocked_authority_write_payload,
+    resolve_authority_write_route_context,
 )
 from med_autoscience.controllers.submission_package_layout import (
     audit_path,
@@ -488,7 +488,7 @@ def materialize_submission_delivery_stale_notice(
     stale_reason: str,
     missing_source_paths: list[str] | None = None,
     publication_profile: str = "general_medical_journal",
-    control_plane_route_context: Mapping[str, Any] | None = None,
+    authority_route_context: Mapping[str, Any] | None = None,
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not can_sync_study_delivery(paper_root=paper_root):
@@ -513,14 +513,14 @@ def materialize_submission_delivery_stale_notice(
     current_package_zip = manuscript_root / "current_package.zip"
     delivery_manifest_path = manuscript_root / "delivery_manifest.json"
     delivery_status_path = manuscript_root / "delivery_status.json"
-    _resolved_route_context, control_plane_route_gate = resolve_control_plane_write_route_context(
+    _resolved_route_context, authority_route_gate = resolve_authority_write_route_context(
         action="submission_notice_materialize",
-        context=control_plane_route_context or route_context,
+        context=authority_route_context or route_context,
         default_paths=[current_package_root, current_package_zip, delivery_status_path],
     )
-    if not bool(control_plane_route_gate.get("authorized")):
-        return blocked_control_plane_write_payload(
-            gate=control_plane_route_gate,
+    if not bool(authority_route_gate.get("authorized")):
+        return blocked_authority_write_payload(
+            gate=authority_route_gate,
             paper_root=str(resolved_paper_root),
             study_root=str(study_root),
             delivery_status_path=str(delivery_status_path),
@@ -708,7 +708,7 @@ def materialize_submission_delivery_stale_notice(
         "applicable": True,
         **status_payload,
         "delivery_status_path": str(delivery_status_path),
-        "control_plane_route_gate": control_plane_route_gate,
+        "authority_route_gate": authority_route_gate,
     }
 
 

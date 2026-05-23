@@ -45,10 +45,10 @@ The core lane renderer injects the generated stage skill surface here.
 
 ## Allowed MAS owner tools
 
-- Controller-authorized CLI/MCP/product-entry/runtime surfaces
+- Controller-authorized CLI/MCP/product-entry domain handler surfaces
 - `stage-knowledge-packet`
 - `stage-memory-closeout-route`
-- `domain-route-reconcile`
+- `owner-route-reconcile`
 - `ai-reviewer-publication-eval`
 - `publication-gate`
 
@@ -85,4 +85,3 @@ The core lane renderer injects the generated stage skill surface here.
 
 - Treat source, gap, numeric trace, and claim-evidence material as MAS-owned inputs or gates only.
 - no RH dependency: do not import Research Harness runtime, database, dashboard, MCP, runner, or verdict authority.
-

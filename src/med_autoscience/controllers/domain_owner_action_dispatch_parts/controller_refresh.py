@@ -7,9 +7,9 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
-from .. import study_runtime_router
-from ..owner_route_reconcile_parts import pending_user_messages
-from ..owner_route_reconcile_parts import platform_current_controller, platform_repair_pending_redrive
+from .. import domain_status_projection
+from ..owner_route_reconcile_parts import current_controller_authorization, pending_user_messages
+from ..owner_route_reconcile_parts import opl_pending_user_message_handoff
 
 
 def _text(value: object) -> str | None:
@@ -112,7 +112,7 @@ def _resume_existing_pending_user_message(
     authorization: Mapping[str, Any],
     source: str,
 ) -> dict[str, Any]:
-    pending_resume = platform_repair_pending_redrive.mark_existing_pending_user_message_redrive(
+    pending_resume = opl_pending_user_message_handoff.mark_existing_pending_user_message_handoff(
         runtime_state_path=runtime_state_path,
         study_id=study_id,
         quest_id=quest_id,
@@ -162,7 +162,7 @@ def _request_runtime_resume(
         "queue_owner": "one-person-lab",
         "delegated_runtime_owner": "one-person-lab",
         "runtime_state_mutated": False,
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "domain_route/owner-handoff",
         "runtime_owner_handoff": {
             "surface_kind": "mas_controller_authorization_runtime_handoff",
             "study_id": study_id,
@@ -173,7 +173,7 @@ def _request_runtime_resume(
             "work_unit_fingerprint": _text(authorization.get("work_unit_fingerprint")),
             "queue_owner": "one-person-lab",
             "domain_truth_owner": "med-autoscience",
-            "recommended_task_kind": "domain_route/reconcile-apply",
+            "recommended_task_kind": "domain_route/owner-handoff",
             "authority_boundary": {
                 "mas_writes_generic_runtime_queue": False,
                 "mas_submits_runtime_chat": False,
@@ -208,7 +208,7 @@ def _runtime_owner_prompt_refresh_handoff(
         "reason": "active_codex_prompt_stale_for_current_controller_authorization",
         "queue_owner": "one-person-lab",
         "runtime_state_mutated": False,
-        "recommended_task_kind": "domain_route/reconcile-apply",
+        "recommended_task_kind": "domain_route/owner-handoff",
     }
 
 
@@ -220,14 +220,14 @@ def _current_controller_authorization_handoff(
     quest_id: str | None,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    authorization = platform_current_controller.current_controller_authorization_payload(
+    authorization = current_controller_authorization.current_controller_authorization_payload(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
         read_json_object=_read_json_object,
         allow_specificity_work_unit=False,
     )
     if authorization is None:
-        authorization = platform_current_controller.story_surface_delta_authorization_payload(
+        authorization = current_controller_authorization.story_surface_delta_authorization_payload(
             study_root=study_root,
             publication_eval_payload=publication_eval_payload,
             read_json_object=_read_json_object,

@@ -460,5 +460,5 @@ def test_current_ai_reviewer_write_routeback_preempts_consumed_story_recheck_req
     assert transition["decision_type"] == "route_back_same_line"
     assert transition["route_target"] == "write"
     assert transition["owner"] == "write"
-    assert transition["controller_action"] == "ensure_study_runtime"
+    assert transition["controller_action"] == "request_opl_stage_attempt"
     assert transition["next_work_unit"]["unit_id"] == "dm002_same_line_publication_paper_repair"

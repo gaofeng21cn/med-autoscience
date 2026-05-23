@@ -463,23 +463,23 @@ _REASON_REGISTRY = {
         regression_refs=("tests/owner_route_reconcile_cases",),
     ),
     "runtime_controller_redrive_required": _entry(
-        owner="external_supervisor",
-        allowed_actions=["runtime_platform_repair"],
-        required_output="runtime platform repair packet",
+        owner="one-person-lab",
+        allowed_actions=[],
+        required_output="OPL stage attempt admission or typed blocker",
         priority_class="delivery_or_human_handoff",
         regression_refs=("tests/owner_route_reconcile_cases",),
     ),
     "runtime_recovery_not_authorized": _entry(
-        owner="external_supervisor",
-        allowed_actions=["runtime_platform_repair"],
-        required_output="runtime recovery authorization or typed blocker",
+        owner="one-person-lab",
+        allowed_actions=[],
+        required_output="OPL stage attempt admission or typed blocker",
         priority_class="delivery_or_human_handoff",
         regression_refs=("tests/owner_route_reconcile_cases",),
     ),
     "runtime_recovery_retry_budget_exhausted": _entry(
-        owner="external_supervisor",
-        allowed_actions=["runtime_platform_repair"],
-        required_output="runtime recovery typed blocker",
+        owner="one-person-lab",
+        allowed_actions=[],
+        required_output="OPL stage attempt admission or typed blocker",
         priority_class="delivery_or_human_handoff",
         regression_refs=("tests/owner_route_reconcile_cases",),
     ),
@@ -514,7 +514,6 @@ _REASON_REGISTRY = {
 }
 
 _ROUTED_ACTION_TYPES = (
-    "runtime_platform_repair",
     "publication_gate_specificity_required",
     "current_package_freshness_required",
     "artifact_display_surface_materialization_required",

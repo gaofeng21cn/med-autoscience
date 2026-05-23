@@ -56,7 +56,7 @@ def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_ga
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -129,7 +129,7 @@ def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_de
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -283,7 +283,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -409,7 +409,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
     publication_eval_path = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -536,7 +536,7 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -645,7 +645,7 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -744,7 +744,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
         lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,
@@ -851,7 +851,7 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "schema_version": 1,

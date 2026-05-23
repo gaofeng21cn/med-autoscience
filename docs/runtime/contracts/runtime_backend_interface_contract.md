@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-冻结 `MedAutoScience -> OPL generic runtime + MAS domain runtime adapter` 的单一 contract，使 `MedAutoScience` 只依赖 runtime backend interface contract 暴露 domain owner receipt / typed blocker / diagnostic adapter，而不再把 `med-deepscientist` 或 MAS 私有 runtime core 当作通用运行框架真相。
+冻结 `MedAutoScience -> OPL generic runtime + MAS domain authority refs` 的单一 contract，使 `MedAutoScience` 只依赖 OPL runtime contract 与 MAS owner receipt / typed blocker / diagnostic refs，而不再把 `med-deepscientist` 或 MAS 私有 runtime core 当作通用运行框架真相。
 
 当前默认 generic runtime owner 是：
 
@@ -10,21 +10,11 @@
 - `runtime_substrate = opl_provider_backed_stage_runtime`
 - `runtime_backend_id = opl_provider_backed_stage_runtime`
 - `runtime_engine_id = opl-provider-backed-stage-runtime`
-- `runtime_backend_role = opl_provider_default_runtime_with_mas_domain_adapter`
+- `runtime_backend_role = opl_provider_default_runtime_with_mas_domain_authority_refs`
 - `runtime_backend_is_generic_owner = false`
 - `default_runtime_backend_is_opl_provider_owned = true`
 
-当前 delegated MAS domain adapter identity 是：
-
-- `delegated_domain_adapter_id = mas_runtime_core`
-- `delegated_domain_adapter_engine_id = mas-runtime-core`
-- `domain_runtime_adapter_id = mas_runtime_core`
-- `domain_runtime_adapter_role = mas_domain_owner_receipt_adapter`
-
-当前 research backend identity 是：
-
-- `research_backend_id = mas_runtime_core`
-- `research_engine_id = mas-runtime-core`
+MAS 不再声明 delegated runtime adapter identity。历史 payload 里的 `delegated_domain_adapter_id = mas_runtime_core`、`domain_runtime_adapter_id = mas_runtime_core`、`research_backend_id = mas_runtime_core` 只能按 retired provenance / migration input 读取，不能作为当前 runtime owner、diagnostic fallback 或 compatibility alias。
 
 旧 `Codex-default host-agent runtime` 继续作为 executor 配置来源；direct `med_deepscientist` backend lane 只保留为 frozen source archive / historical fixture / explicit archive import reference，不作为 runnable dependency。
 
@@ -43,7 +33,7 @@
 3. 对 `auto_entry == on_managed_research_intent` 的历史 managed execution：
    - 若 legacy `execution.engine` 指向 `med_deepscientist` 或为空
    - controller 先把 execution 归一化到 profile 默认 backend；当前默认是 `opl_provider_backed_stage_runtime`
-   - controlled research metadata 仍解析到 `mas_runtime_core`
+   - controlled research metadata 只解析到 MAS domain authority refs、owner receipt 或 typed blocker；历史 `mas_runtime_core` 字段按 retired provenance 处理
 4. 其余场景再使用 `execution.engine` 映射到已注册 backend
 
 fail-closed 规则：
@@ -77,23 +67,21 @@ managed runtime backend 必须显式暴露：
 
 - `CONTROLLED_RESEARCH_BACKEND_ID`
 - `CONTROLLED_RESEARCH_ENGINE_ID`
-- `DELEGATED_DOMAIN_ADAPTER_ID`
-- `DELEGATED_DOMAIN_ADAPTER_ENGINE_ID`
+- `DOMAIN_AUTHORITY_REFS_CONTRACT_REF`
+- `REQUIRED_CLOSEOUT_PACKET_REF`
 
 `MedAutoScience` controller 只能通过这层 contract 调 backend，不得再直接依赖 backend-specific module name 作为控制逻辑判断条件。
 
-## 3.1 MAS runtime adapter implements only domain receipt/diagnostic role
+## 3.1 MAS implements only domain authority refs / receipt / blocker role
 
-`mas_runtime_core` 不是把 MDS daemon 嵌入 MAS，也不是启动外部 `med-deepscientist` daemon。它当前只作为 MAS domain runtime adapter / owner receipt surface / standalone diagnostic 实现 controller-facing operation shape；generic scheduler、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 和 workbench owner 归 OPL provider-backed stage runtime。
+`mas_runtime_core` 已从当前 runtime owner 口径退役。MAS 当前只作为 domain authority refs、owner receipt、typed blocker、artifact/source/quality refs 和 standalone diagnostic explanation provider；generic scheduler、queue、attempt ledger、retry/dead-letter、worker residency、transition runner、persistence/lifecycle engine 和 workbench owner 归 OPL provider-backed stage runtime。
 
-- `resolve_daemon_url` 返回本地 runtime root URI，只作为 backend identity / locator。
-- `create_quest` 在 `runtime/quests/<quest_id>` 下创建普通 quest directory、`quest.yaml` 和 create payload。
-- `resume_quest` / `relaunch_stopped_quest` / `pause_quest` / `stop_quest` 写入 `.ds/runtime_state.json` 和 `artifacts/runtime/mas_runtime_events.jsonl`，形成可回放状态与事件。
-- `resume_quest` 不得释放 stopped/failed terminal state；只有 controller 已决策为 stopped relaunch 时，才能走 `relaunch_stopped_quest`。
-- `get_quest_session`、`inspect_quest_live_runtime`、`inspect_quest_live_execution` 读取 MAS local state、runtime files 和 event refs，返回与 controller contract 对齐的 session/liveness projection。
-- `chat_quest`、`artifact_complete_quest`、`artifact_interact` 只记录 MAS runtime event / queue / artifact handoff，不调用 MDS HTTP API。
+- OPL provider-backed stage runtime 负责 start/query/resume/pause/stop/retry/dead-letter、attempt state、worker liveness 和 typed closeout。
+- MAS owner callable 只消费 typed closeout refs，返回 owner receipt、typed blocker、route-back、artifact/source/quality refs 或 no-forbidden-write proof。
+- MAS 不写 `.ds/runtime_state.json`、worker lease、runtime session read model 或 runtime recovery intent 作为当前控制面。
+- `chat_quest`、`artifact_complete_quest`、`artifact_interact` 这类历史 runtime event / queue / artifact handoff 语义只能通过 OPL stage runtime + MAS authority refs 重建，不保留 MAS runtime fallback。
 
-因此，旧 MDS daemon 的长期价值被拆成两部分：controller-facing operation shape 由 `ManagedRuntimeBackend` contract 保留，generic runtime owner 归 OPL，MAS adapter 只签收 domain receipt、typed blocker、event refs 与 diagnostic projection；MDS 只保留 frozen source archive、historical fixture、explicit archive import / provenance reference 和 read-only backend audit，不再保留 runnable MAS transport。
+因此，旧 MDS daemon 的长期价值被拆成两部分：runtime transport/control 归 OPL，MAS 只签收 domain receipt、typed blocker 与 diagnostic refs；MDS 只保留 frozen source archive、historical fixture、explicit archive import / provenance reference 和 read-only backend audit，不再保留 runnable MAS transport。
 
 ## 3.2 Registry validation
 
@@ -150,8 +138,8 @@ managed runtime execution 的正式条件是：
 
 这份 contract 完成的是：
 
-- controller 与 OPL generic runtime / MAS domain adapter 之间的 backend abstraction freeze
-- OPL provider-backed stage runtime 作为默认 generic runtime owner/substrate 的 repo-side contract，`mas_runtime_core` 只作为 domain adapter / owner receipt / diagnostic surface
+- controller 与 OPL generic runtime / MAS domain authority refs 之间的 backend abstraction freeze
+- OPL provider-backed stage runtime 作为默认 generic runtime owner/substrate 的 repo-side contract，MAS 只作为 domain authority refs / owner receipt / typed blocker surface
 - `MedDeepScientist` 作为 frozen archive / historical fixture / explicit archive import reference 的显式边界
 - default MAS operation 不依赖 external `med-deepscientist` repo / runtime root
 - external MDS 只作为显式 backend audit、historical fixture / explicit archive import reference、historical fixture 和 source provenance target

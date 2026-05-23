@@ -7,7 +7,7 @@ from typing import Any
 PUBLIC_STATES = frozenset(
     {
         "progressing",
-        "awaiting_controller_redrive",
+        "opl_stage_attempt_admission_required",
         "blocked_controller_route",
         "awaiting_callable_owner",
         "awaiting_human",
@@ -82,12 +82,14 @@ def _paper_state(
     if _is_downstream_only(payload, blocking_reasons):
         return "downstream_only"
     same_line_reactivation = _same_line_reactivation_active(payload)
+    if _opl_stage_attempt_admission_owner(payload, next_owner) and not _route_authorization_blocked(payload):
+        return "opl_stage_attempt_admission_required"
     if (
         _RUNTIME_RETRY_EXHAUSTED in blocking_reasons
-        and next_owner == "MAS/controller"
+        and _opl_stage_attempt_admission_owner(payload, next_owner)
         and not _route_authorization_blocked(payload)
     ):
-        return "awaiting_controller_redrive"
+        return "opl_stage_attempt_admission_required"
     if _controller_route_blocked(payload, blocking_reasons):
         return "blocked_controller_route"
     if _owner_callable_surface_missing(payload, next_owner):
@@ -170,7 +172,7 @@ def _next_owner(payload: Mapping[str, Any], details: Mapping[str, Any]) -> str |
     paper_progress_stall = _mapping(payload.get("paper_progress_stall"))
     portable_supervisor = _mapping(payload.get("portable_supervisor_dashboard"))
     ai_repair_lifecycle = _mapping(payload.get("ai_repair_lifecycle"))
-    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    control_plane = _mapping(payload.get("authority_snapshot"))
     if _supervisor_only_live_quality_repair(payload):
         return "supervisor_only/live_quality_repair"
     owner = (
@@ -212,7 +214,7 @@ def _why_not_progressing(
         return "package_delivered"
     if state == "downstream_only":
         return _DOWNSTREAM_ONLY
-    if state == "awaiting_controller_redrive":
+    if state == "opl_stage_attempt_admission_required":
         return _RUNTIME_RETRY_EXHAUSTED
     interaction = _mapping(payload.get("interaction_arbitration"))
     for value in (
@@ -238,16 +240,11 @@ def _why_not_progressing(
 
 
 def _safe_reconcile_command(payload: Mapping[str, Any]) -> str | None:
-    trigger = _mapping(payload.get("runtime_reconcile_trigger"))
-    if trigger.get("safe_to_request") is False:
-        return None
-    return _text(trigger.get("recommended_command")) or _text(
-        trigger.get("canonical_one_shot_reconcile_domain_routes_command")
-    )
+    return None
 
 
 def _controller_route_blocked(payload: Mapping[str, Any], blocking_reasons: list[str]) -> bool:
-    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    control_plane = _mapping(payload.get("authority_snapshot"))
     dispatch_gate = _mapping(control_plane.get("dispatch_gate"))
     if _route_authorization_blocked(payload):
         return True
@@ -293,8 +290,16 @@ def _owner_callable_surface_missing(payload: Mapping[str, Any], next_owner: str 
     return "owner_callable_surface_missing" in _blocking_reasons(payload)
 
 
+def _opl_stage_attempt_admission_owner(payload: Mapping[str, Any], next_owner: str | None) -> bool:
+    owner_route = _mapping(payload.get("owner_route"))
+    return (
+        next_owner == "one-person-lab"
+        and "request_opl_stage_attempt" in _string_items(owner_route.get("allowed_actions"))
+    )
+
+
 def _route_authorization_blocked(payload: Mapping[str, Any]) -> bool:
-    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    control_plane = _mapping(payload.get("authority_snapshot"))
     route_authorization = _mapping(control_plane.get("route_authorization"))
     if not route_authorization:
         return False
@@ -341,7 +346,7 @@ def _supervisor_only(payload: Mapping[str, Any]) -> bool:
         return True
     if "execution_owner_guard.supervisor_only" in _blocking_reasons(payload):
         return True
-    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    control_plane = _mapping(payload.get("authority_snapshot"))
     dispatch_gate = _mapping(control_plane.get("dispatch_gate"))
     return "execution_owner_guard.supervisor_only" in _string_items(dispatch_gate.get("blocking_reasons"))
 
@@ -363,7 +368,7 @@ def _registered_callable_owners() -> set[str]:
 
 
 def _blocking_reasons(payload: Mapping[str, Any]) -> list[str]:
-    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    control_plane = _mapping(payload.get("authority_snapshot"))
     dispatch_gate = _mapping(control_plane.get("dispatch_gate"))
     health = _mapping(payload.get("runtime_health_snapshot"))
     truth = _mapping(payload.get("study_truth_snapshot"))

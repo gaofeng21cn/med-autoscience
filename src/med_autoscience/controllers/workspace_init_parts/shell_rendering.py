@@ -3,10 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 
-DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe"
+DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
 DEVELOPER_SUPERVISOR_CONSUME_ARGS = "--mode developer_apply_safe --apply"
 DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS = "--mode developer_apply_safe --apply"
-DEVELOPER_SUPERVISOR_RECONCILE_ARGS = "--mode developer_apply_safe --apply"
 
 
 def _render_behavior_equivalence_gate() -> str:
@@ -150,9 +149,6 @@ def _render_watch_runtime_script(*, workspace_root: Path, runtime_quests_root: P
         'run_medautosci runtime domain-health-diagnostic \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         '  --runtime-root "${WORKSPACE_RUNTIME_ROOT}" \\\n'
-        '  --ensure-study-runtimes \\\n'
-        '  --apply-supervisor-platform-repair \\\n'
-        '  --apply \\\n'
         '  "$@"\n'
     )
 
@@ -162,7 +158,7 @@ def _render_scan_domain_routes_script() -> str:
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime owner-route-reconcile \\\n'
+        'run_medautosci owner-route-reconcile \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         '  "$@"\n'
     )
@@ -188,18 +184,6 @@ def _render_supervisor_execute_dispatch_script() -> str:
         'run_medautosci runtime domain-owner-action-dispatch \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         f"  {DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS} \\\n"
-        '  "$@"\n'
-    )
-
-
-def _render_reconcile_domain_routes_script() -> str:
-    return (
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime domain-route-reconcile \\\n'
-        '  --profile "${PROFILE_PATH}" \\\n'
-        f"  {DEVELOPER_SUPERVISOR_RECONCILE_ARGS} \\\n"
         '  "$@"\n'
     )
 
@@ -345,7 +329,8 @@ def _render_mas_runtime_bridge_stop_script() -> str:
         '  echo "MAS controlled pause requires --study-id <study_id> or --study-root <path>." >&2\n'
         "  exit 2\n"
         "fi\n"
-        'run_medautosci study pause-runtime --profile "${PROFILE_PATH}" "$@"\n'
+        'echo "MAS pause-runtime is retired; use OPL current_control_state / human gate tooling." >&2\n'
+        "exit 2\n"
     )
 
 

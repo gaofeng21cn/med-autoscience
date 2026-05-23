@@ -79,9 +79,9 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
     (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
 
     monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: make_progress_projection_payload(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda *, profile, study_root: make_progress_projection_payload(
             study_id=Path(study_root).name,
             decision="create_and_start",
             reason="quest_missing",
@@ -94,12 +94,15 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert result["managed_study_actions"] == [
-        {"study_id": "001-risk", "decision": "create_and_start", "reason": "quest_missing"}
-    ]
+    action = result["managed_study_actions"][0]
+    assert action["study_id"] == "001-risk"
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["resume_postcondition"]["status"] == "opl_stage_attempt_admission_required"
+    assert action["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
 
 def test_watch_runtime_materializes_managed_study_autonomy_slo_status(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
@@ -143,8 +146,7 @@ def test_watch_runtime_materializes_managed_study_autonomy_slo_status(tmp_path: 
         },
     }
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -153,7 +155,7 @@ def test_watch_runtime_materializes_managed_study_autonomy_slo_status(tmp_path: 
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     latest_path = study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json"
@@ -210,9 +212,9 @@ def test_watch_runtime_skips_outer_loop_wakeup_when_inputs_stabilize_after_no_re
             },
         },
         "execution": {
-            "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+            "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "quest-001",
             "auto_resume": True,
@@ -220,8 +222,7 @@ def test_watch_runtime_skips_outer_loop_wakeup_when_inputs_stabilize_after_no_re
     }
     build_calls: list[str] = []
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     monkeypatch.setattr(
         module.study_outer_loop,
@@ -234,21 +235,21 @@ def test_watch_runtime_skips_outer_loop_wakeup_when_inputs_stabilize_after_no_re
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     second = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     third = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     latest_path = study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json"
@@ -295,9 +296,9 @@ def test_domain_health_diagnostic_uses_typed_surface_attributes_for_managed_stud
             raise AssertionError("domain_health_diagnostic should not use mapping access for typed progress projection status")
 
     monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: AttributeOnlyProgressProjectionStatus.from_payload(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda *, profile, study_root: AttributeOnlyProgressProjectionStatus.from_payload(
             make_progress_projection_payload()
         ),
     )
@@ -308,12 +309,13 @@ def test_domain_health_diagnostic_uses_typed_surface_attributes_for_managed_stud
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert result["managed_study_actions"] == [
-        {"study_id": "001-risk", "decision": "create_and_start", "reason": "quest_missing"}
-    ]
+    action = result["managed_study_actions"][0]
+    assert action["study_id"] == "001-risk"
+    assert action["decision"] == "blocked"
+    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
 
 def test_domain_health_diagnostic_uses_typed_surface_attributes_for_read_only_managed_study_actions(
     tmp_path: Path,
@@ -352,7 +354,7 @@ def test_domain_health_diagnostic_uses_typed_surface_attributes_for_read_only_ma
             raise AssertionError("domain_health_diagnostic should not use mapping access for typed progress projection status")
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: AttributeOnlyProgressProjectionStatus.from_payload(
             make_progress_projection_payload(decision="noop")
@@ -365,7 +367,7 @@ def test_domain_health_diagnostic_uses_typed_surface_attributes_for_read_only_ma
         controller_runners={},
         apply=False,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_actions"] == [

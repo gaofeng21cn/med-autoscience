@@ -120,9 +120,9 @@ def test_quality_repair_batch_route_context_preempts_current_submission_refresh_
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context={
-            "control_plane_snapshot": {
-                "surface": "control_plane_snapshot",
+        authority_route_context={
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
                 "control_state": "supervisor_gated",
                 "canonical_next_action": "resume_same_study_line",
                 "authority_refs": {

@@ -22,14 +22,7 @@ def test_watch_runtime_applies_mas_controller_ai_doctor_repair_under_supervisor_
         quest_id="quest-001",
         supervisor_only=True,
     )
-    ensure_calls: list[str] = []
-
-    def fake_ensure(**kwargs):
-        ensure_calls.append(str(kwargs.get("source") or ""))
-        return status_payload
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
     monkeypatch.setattr(module.study_cycle_profiler, "profile_study_cycle", lambda **_: {})
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
@@ -39,29 +32,28 @@ def test_watch_runtime_applies_mas_controller_ai_doctor_repair_under_supervisor_
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert ensure_calls == ["domain_health_diagnostic"]
     assert result["managed_study_autonomy_repair_actions"] == [
         {
             "study_id": "001-risk",
             "quest_id": "quest-001",
-            "state": "applied",
+            "state": "blocked",
             "action_type": "controller_repair",
             "repair_kind": "bounded_work_unit_redrive",
             "owner": "mas_controller",
             "auto_apply_allowed": True,
             "quality_gate_relaxation_allowed": False,
-            "dispatch_status": "executed",
+            "dispatch_status": "not_dispatched",
             "source": "domain_health_diagnostic_ai_doctor_repair",
+            "reason": "execution_owner_guard_supervisor_only",
         }
     ]
     repair_latest = json.loads(
         (study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json").read_text(encoding="utf-8")
     )
-    assert repair_latest["state"] == "applied"
-    assert repair_latest["applied_action"]["repair_kind"] == "bounded_work_unit_redrive"
+    assert repair_latest["state"] == "ready_for_repair"
 
 def test_watch_runtime_blocks_non_controller_ai_doctor_repair_under_supervisor_only(
     tmp_path: Path,
@@ -89,14 +81,7 @@ def test_watch_runtime_blocks_non_controller_ai_doctor_repair_under_supervisor_o
         quest_id="quest-001",
         supervisor_only=True,
     )
-    ensure_calls: list[str] = []
-
-    def fake_ensure(**kwargs):
-        ensure_calls.append(str(kwargs.get("source") or ""))
-        return status_payload
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
     monkeypatch.setattr(module.study_cycle_profiler, "profile_study_cycle", lambda **_: {})
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
@@ -106,13 +91,12 @@ def test_watch_runtime_blocks_non_controller_ai_doctor_repair_under_supervisor_o
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert ensure_calls == ["domain_health_diagnostic"]
     assert result["managed_study_autonomy_repair_actions"][0]["state"] == "blocked"
     assert result["managed_study_autonomy_repair_actions"][0]["reason"] == (
-        "ai_doctor_repair_requires_controller_owned_runtime_recovery"
+        "ai_doctor_repair_requires_opl_runtime_owner_handoff"
     )
     repair_latest = json.loads(
         (study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json").read_text(encoding="utf-8")
@@ -140,14 +124,7 @@ def test_watch_runtime_blocks_ai_doctor_repair_without_controller_authorization_
         supervisor_only=True,
         repair_authorized=False,
     )
-    ensure_calls: list[str] = []
-
-    def fake_ensure(**kwargs):
-        ensure_calls.append(str(kwargs.get("source") or ""))
-        return status_payload
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
     monkeypatch.setattr(module.study_cycle_profiler, "profile_study_cycle", lambda **_: {})
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
@@ -157,10 +134,9 @@ def test_watch_runtime_blocks_ai_doctor_repair_without_controller_authorization_
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert ensure_calls == ["domain_health_diagnostic"]
     assert result["managed_study_autonomy_repair_actions"][0]["state"] == "blocked"
     assert result["managed_study_autonomy_repair_actions"][0]["reason"] == "controller_repair_authorization_missing"
     lifecycle_latest = json.loads(

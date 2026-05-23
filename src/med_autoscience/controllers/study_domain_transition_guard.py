@@ -28,7 +28,7 @@ RUNTIME_REDRIVE_DECISION_TYPES = frozenset(
 )
 ACTION_TYPE_BY_DECISION_TYPE = {
     "ai_reviewer_re_eval": "return_to_ai_reviewer_workflow",
-    "bundle_stage_finalize": "runtime_platform_repair",
+    "bundle_stage_finalize": "request_opl_stage_attempt",
     "publication_gate_blocker": "publication_gate_specificity_required",
     "route_back_same_line": "run_quality_repair_batch",
 }

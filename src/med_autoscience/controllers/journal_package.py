@@ -7,12 +7,12 @@ from pathlib import Path
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.control_plane_route_gate import (
-    attach_control_plane_route_gate,
+from med_autoscience.controllers.authority_route_gate import (
+    attach_authority_route_gate,
 )
-from med_autoscience.controllers.control_plane_write_route import (
-    blocked_control_plane_write_payload,
-    resolve_control_plane_write_route_context,
+from med_autoscience.controllers.authority_write_route import (
+    blocked_authority_write_payload,
+    resolve_authority_write_route_context,
 )
 from med_autoscience.journal_requirements import (
     describe_journal_submission_package,
@@ -251,19 +251,19 @@ def materialize_journal_package(
     journal_slug: str,
     publication_profile: str | None = None,
     confirmed_target: bool = False,
-    control_plane_route_context: Mapping[str, Any] | None = None,
+    authority_route_context: Mapping[str, Any] | None = None,
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     resolved_study_root = _resolve_study_root(paper_root=resolved_paper_root, study_root=study_root)
-    resolved_route_context, control_plane_route_gate = resolve_control_plane_write_route_context(
+    resolved_route_context, authority_route_gate = resolve_authority_write_route_context(
         action="bundle_build",
-        context=control_plane_route_context or route_context,
+        context=authority_route_context or route_context,
         default_paths=[resolved_study_root / "manuscript" / "journal_packages"],
     )
-    if not bool(control_plane_route_gate.get("authorized")):
-        return blocked_control_plane_write_payload(
-            gate=control_plane_route_gate,
+    if not bool(authority_route_gate.get("authorized")):
+        return blocked_authority_write_payload(
+            gate=authority_route_gate,
             study_root=str(resolved_study_root),
             paper_root=str(resolved_paper_root),
             journal_slug=journal_slug,
@@ -427,7 +427,7 @@ def materialize_journal_package(
         study_root=resolved_study_root,
         journal_slug=journal_slug,
     )
-    return attach_control_plane_route_gate({
+    return attach_authority_route_gate({
         "status": "materialized",
         "study_root": str(resolved_study_root),
         "paper_root": str(resolved_paper_root),
@@ -442,4 +442,4 @@ def materialize_journal_package(
         "submission_manifest_path": str(package_manifest_path),
         "zip_path": str(zip_path),
         "package_status": package_status["status"],
-    }, control_plane_route_gate)
+    }, authority_route_gate)

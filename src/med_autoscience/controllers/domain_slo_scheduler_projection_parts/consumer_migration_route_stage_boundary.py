@@ -20,7 +20,7 @@ def build_route_stage_residue_boundary(
         "status_projection_domain_truth_refs",
         active_path_gates,
     )
-    sidecar_gate = _active_path_gate_by_id("owner_route_handoff_adapter", active_path_gates)
+    sidecar_gate = _active_path_gate_by_id("owner_route_handoff_domain_ref_entry", active_path_gates)
     domain_health_diagnostic_loop = _module_by_id("domain_health_diagnostic_loop_shell", module_inventory)
     return {
         "surface_kind": "mas_route_stage_residue_boundary",
@@ -52,7 +52,7 @@ def build_route_stage_residue_boundary(
             "legacy_surface_names_current_active",
             "sqlite_lifecycle_ref_deleted",
             "status_projection_deleted",
-            "owner_route_handoff_adapter_deleted",
+            "owner_route_handoff_domain_ref_entry_deleted",
             "domain_status_authority_migrated_to_opl",
         ],
     }
@@ -101,7 +101,7 @@ def _residual_surfaces(
             "generic_runtime_owner_claim_allowed": False,
             "physical_retired": True,
             "long_loop_shell_physical_retired": domain_health_diagnostic_loop.get("physical_retired") is True,
-            "active_long_loop_caller_allowed": domain_health_diagnostic_loop.get("active_caller_allowed") is True,
+            "long_loop_resurrection_allowed": False,
             "physical_delete_permitted": False,
             "gate_ref": "functional_module_inventory.domain_health_diagnostic",
         },
@@ -118,19 +118,20 @@ def _residual_surfaces(
             "gate_ref": "docs/runtime/opl_private_implementation_migration_inventory.md#domain_status_authority",
         },
         {
-            "surface_id": "owner_receipt_lifecycle_ref_index",
-            "retired_legacy_surface_id": "runtime_lifecycle_sqlite_sidecar",
+            "surface_id": "domain_authority_refs_index",
+            "retired_legacy_surface_id": "domain_authority_ref_locator_index",
             "current_role": sqlite_gate["current_role"],
-            "classification": "refs_only_adapter",
+            "classification": "domain_authority_refs",
             "owner": "med-autoscience",
             "generic_runtime_owner_claim_allowed": False,
             "physical_retired": True,
             "physical_delete_permitted": sqlite_gate["physical_delete_permitted"],
-            "active_caller_count": sqlite_gate["active_caller_count"],
+            "stale_surface_scan_clean": sqlite_gate.get("stale_surface_scan_clean") is True,
+            "no_resurrection_guard": sqlite_gate.get("no_resurrection_guard") is True,
             "delete_or_tombstone_after": list(sqlite_gate["delete_or_tombstone_after"]),
             "gate_ref": "active_path_residue_cleanup_gates.lifecycle_refs_sqlite_index",
-            "refs_only_gate": _refs_only_adapter_gate_by_id(
-                "lifecycle_refs_adapter",
+            "domain_authority_refs_gate": _domain_authority_refs_gate_by_id(
+                "domain_authority_refs_index",
                 module_inventory,
             ),
         },
@@ -138,14 +139,15 @@ def _residual_surfaces(
             "surface_id": "owner_route_dispatch_receipt",
             "retired_legacy_surface_id": "sidecar_dispatch_adapter",
             "current_role": sidecar_gate["current_role"],
-            "classification": "retained_owner_route_handoff_adapter",
+            "classification": "domain_owner_route_handoff_refs",
             "owner": "med-autoscience",
             "generic_runtime_owner_claim_allowed": False,
             "physical_retired": True,
             "physical_delete_permitted": sidecar_gate["physical_delete_permitted"],
-            "active_caller_count": sidecar_gate["active_caller_count"],
+            "domain_ref_consumer_count": sidecar_gate["domain_ref_consumer_count"],
+            "domain_ref_consumer_refs": list(sidecar_gate["domain_ref_consumer_refs"]),
             "delete_or_tombstone_after": list(sidecar_gate["delete_or_tombstone_after"]),
-            "gate_ref": "active_path_residue_cleanup_gates.owner_route_handoff_adapter",
+            "gate_ref": "active_path_residue_cleanup_gates.owner_route_handoff_domain_ref_entry",
         },
     ]
 
@@ -170,14 +172,14 @@ def _module_by_id(
     raise KeyError(f"unknown functional module: {module_id}")
 
 
-def _refs_only_adapter_gate_by_id(
+def _domain_authority_refs_gate_by_id(
     module_id: str,
     module_inventory: Iterable[Mapping[str, Any]],
 ) -> dict[str, Any]:
     gate = _module_by_id(module_id, module_inventory).get("retirement_gate")
     if isinstance(gate, Mapping):
         return dict(gate)
-    raise KeyError(f"unknown refs-only adapter gate: {module_id}")
+    raise KeyError(f"unknown domain authority refs gate: {module_id}")
 
 
 __all__ = ["build_route_stage_residue_boundary"]

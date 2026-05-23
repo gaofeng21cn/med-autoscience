@@ -39,7 +39,7 @@ def test_watch_runtime_keeps_submission_milestone_parked_instead_of_external_sup
             "continuation_anchor": "decision",
             "continuation_reason": "controller_work_unit_pending",
         },
-        "control_plane_snapshot": {
+        "authority_snapshot": {
             "control_state": "ready",
             "dispatch_gate": {"state": "open", "dispatch_allowed": True, "blocking_reasons": []},
             "route_authorization": {"runtime_recovery_allowed": False},
@@ -53,8 +53,7 @@ def test_watch_runtime_keeps_submission_milestone_parked_instead_of_external_sup
         },
     }
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
     monkeypatch.setattr(module.study_cycle_profiler, "profile_study_cycle", lambda **_: {})
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
@@ -64,7 +63,7 @@ def test_watch_runtime_keeps_submission_milestone_parked_instead_of_external_sup
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_autonomy_repair_actions"][0]["state"] == "parked"
@@ -142,8 +141,7 @@ def test_watch_runtime_reconciles_stale_repair_lifecycle_when_ai_doctor_returns_
             "ai_doctor_state": "not_required",
         }
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
     monkeypatch.setattr(module, "_materialize_managed_study_autonomy_slo", materialize_slo)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
@@ -153,7 +151,7 @@ def test_watch_runtime_reconciles_stale_repair_lifecycle_when_ai_doctor_returns_
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_autonomy_repair_actions"] == []
@@ -190,7 +188,7 @@ def test_watch_runtime_closes_ai_doctor_repair_after_preensure_recovery_even_wit
         "quest_id": "quest-001",
         "quest_root": str(first_quest_root),
         "quest_status": "running",
-        "control_plane_snapshot": {
+        "authority_snapshot": {
             "dispatch_gate": {"state": "open", "dispatch_allowed": True, "blocking_reasons": []},
             "route_authorization": {"authorized": True, "runtime_recovery_allowed": True},
             "blocking_reasons": [],
@@ -218,7 +216,7 @@ def test_watch_runtime_closes_ai_doctor_repair_after_preensure_recovery_even_wit
             "active_run_id": "run-002",
             "runtime_audit": {"status": "live", "worker_running": True, "active_run_id": "run-002"},
         },
-        "control_plane_snapshot": {
+        "authority_snapshot": {
             "dispatch_gate": {"state": "open", "dispatch_allowed": True, "blocking_reasons": []},
             "route_authorization": {"runtime_recovery_allowed": True},
             "blocking_reasons": [],
@@ -228,7 +226,7 @@ def test_watch_runtime_closes_ai_doctor_repair_after_preensure_recovery_even_wit
             "authorized": True,
             "action": "runtime_recovery",
             "work_unit_id": "runtime_recovery",
-            "controller_action_type": "ensure_study_runtime",
+            "controller_action_type": "request_opl_stage_attempt",
             "control_surface": "domain_health_diagnostic",
         },
     }
@@ -247,7 +245,7 @@ def test_watch_runtime_closes_ai_doctor_repair_after_preensure_recovery_even_wit
         "requires_human_confirmation": False,
         "controller_actions": [
             {
-                "action_type": "ensure_study_runtime",
+                "action_type": "request_opl_stage_attempt",
                 "payload_ref": str((first_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             }
         ],
@@ -256,21 +254,17 @@ def test_watch_runtime_closes_ai_doctor_repair_after_preensure_recovery_even_wit
         "next_work_unit": {"unit_id": "runtime_recovery", "lane": "runtime", "summary": "Recover first study."},
     }
 
-    def fake_ensure(*, study_root, **kwargs):
-        return first_status if Path(study_root).name == "001-risk" else second_recovery
-
     def fake_status(*, study_root, **kwargs):
         return first_status if Path(study_root).name == "001-risk" else second_live
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", fake_status)
     monkeypatch.setattr(
         module.study_outer_loop,
         "build_domain_health_diagnostic_outer_loop_tick_request",
         lambda *, study_root, status_payload: tick_request if Path(study_root).name == "001-risk" else None,
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "study_outer_loop_tick",
         lambda **kwargs: {
             "study_id": "001-risk",
@@ -287,7 +281,7 @@ def test_watch_runtime_closes_ai_doctor_repair_after_preensure_recovery_even_wit
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert len(result["managed_study_outer_loop_dispatches"]) == 1
@@ -295,13 +289,14 @@ def test_watch_runtime_closes_ai_doctor_repair_after_preensure_recovery_even_wit
         {
             "study_id": "002-risk",
             "quest_id": "quest-002",
-            "state": "applied",
+            "state": "blocked",
             "action_type": "controller_repair",
             "repair_kind": "bounded_work_unit_redrive",
             "owner": "mas_controller",
             "auto_apply_allowed": True,
             "quality_gate_relaxation_allowed": False,
-            "dispatch_status": "executed",
+            "dispatch_status": "not_dispatched",
             "source": "domain_health_diagnostic_ai_doctor_repair",
+            "reason": "ai_doctor_repair_requires_opl_runtime_owner_handoff",
         }
     ]

@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.test_study_runtime_execution_control_intent import (
+from tests.test_study_runtime_execution_control_intent_cases.helpers import (
     _write_controller_decision_authorization,
     _write_publication_eval_work_unit_authority,
     _write_runtime_state,

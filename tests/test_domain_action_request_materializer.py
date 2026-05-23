@@ -19,7 +19,7 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _runtime_platform_repair_action(study_id: str, quest_id: str) -> dict[str, object]:
+def _retired_runtime_platform_repair_action(study_id: str, quest_id: str) -> dict[str, object]:
     route = _owner_route(
         study_id=study_id,
         quest_id=quest_id,
@@ -88,7 +88,7 @@ def _owner_route(
     }
 
 
-def test_materialize_domain_action_requests_dry_run_projects_runtime_platform_repair_without_writes(
+def test_materialize_domain_action_requests_dry_run_ignores_retired_runtime_platform_repair_without_writes(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -103,7 +103,7 @@ def test_materialize_domain_action_requests_dry_run_projects_runtime_platform_re
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_runtime_platform_repair_action(study_id, "quest-nf")],
+            "action_queue": [_retired_runtime_platform_repair_action(study_id, "quest-nf")],
         },
     )
 
@@ -114,32 +114,31 @@ def test_materialize_domain_action_requests_dry_run_projects_runtime_platform_re
         apply=False,
     )
 
-    task = result["repair_tasks"][0]
     assert result["surface"] == "domain_action_request_materializer"
     assert result["dry_run"] is True
     assert result["effective_mode"] == "developer_apply_safe"
     assert result["github_gate"]["allowed"] is True
-    assert task["dispatch_status"] == "dry_run"
-    assert task["action_type"] == "runtime_platform_repair"
-    assert task["paper_package_mutation_allowed"] is False
-    assert task["platform_code_mutation_allowed"] is False
-    assert task["refs"]["scan_latest"] == str(latest_path)
-    assert task["refs"]["repair_packet_path"] == str(
-        study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json"
-    )
-    assert task["forbidden_surfaces"] == [
-        "paper/**",
-        "manuscript/**",
-        "current_package/**",
-        "paper/current_package/**",
-        "manuscript/current_package/**",
-        "src/med_autoscience/platform/**",
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert result["ignored_actions"] == [
+        {
+            "study_id": study_id,
+            "action_type": "runtime_platform_repair",
+            "action_id": (
+                f"supervisor-action::{study_id}::"
+                "runtime_platform_repair::runtime_recovery_retry_budget_exhausted"
+            ),
+            "reason": "unsupported_action_type",
+        }
     ]
+    assert "repair_tasks" not in result
     assert not (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
 
 
-def test_materialize_domain_action_requests_apply_writes_only_consumer_handoff_surfaces(
+def test_materialize_domain_action_requests_apply_does_not_write_retired_runtime_repair_surfaces(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -154,7 +153,7 @@ def test_materialize_domain_action_requests_apply_writes_only_consumer_handoff_s
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_runtime_platform_repair_action(study_id, "quest-nf")],
+            "action_queue": [_retired_runtime_platform_repair_action(study_id, "quest-nf")],
         },
     )
 
@@ -176,29 +175,24 @@ def test_materialize_domain_action_requests_apply_writes_only_consumer_handoff_s
         / "runtime_platform_repair.json"
     )
     assert result["dry_run"] is False
-    assert result["repair_tasks"][0]["dispatch_status"] == "applied"
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert consumer_path.is_file()
-    assert repair_packet_path.is_file()
-    assert dispatch_path.is_file()
+    assert not repair_packet_path.exists()
+    assert not dispatch_path.exists()
     consumer = json.loads(consumer_path.read_text(encoding="utf-8"))
-    repair_packet = json.loads(repair_packet_path.read_text(encoding="utf-8"))
-    dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
-    assert consumer["written_files"] == [str(repair_packet_path), str(dispatch_path), str(consumer_path)]
-    assert repair_packet["surface"] == "runtime_platform_repair_handoff_packet"
-    assert repair_packet["action_type"] == "runtime_platform_repair"
-    assert dispatch["surface"] == "default_executor_dispatch_request"
-    assert dispatch["executor_kind"] == "codex_cli_default"
-    assert dispatch["consumer_mutation_scope"] == "executor_dispatch_request_only"
-    assert dispatch["prompt_contract"]["prompt_budget"] == {"max_prompt_tokens": 6000}
-    assert dispatch["prompt_contract"]["compact_evidence_packet_ref"] == "artifacts/supervision/compact_evidence_packets/runtime_platform_repair.json"
-    assert dispatch["prompt_contract"]["do_not_repeat"] is True
-    assert dispatch["prompt_contract"]["repeat_suppression_key"] == dispatch["owner_route"]["work_unit_fingerprint"]
-    assert repair_packet["paper_package_mutation_allowed"] is False
+    assert consumer["written_files"] == [str(consumer_path)]
+    assert consumer["runtime_repair_tasks_retired"] is True
+    assert consumer["ignored_actions"] == result["ignored_actions"]
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
 
 
-def test_materialize_domain_action_requests_keeps_repeated_ready_dispatch_without_artifact_delta_executable(
+def test_materialize_domain_action_requests_does_not_resurrect_existing_runtime_platform_repair_dispatch(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -207,7 +201,7 @@ def test_materialize_domain_action_requests_keeps_repeated_ready_dispatch_withou
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    action = _runtime_platform_repair_action(study_id, "quest-nf")
+    action = _retired_runtime_platform_repair_action(study_id, "quest-nf")
     route = dict(action["owner_route"])
     route.update(
         {
@@ -269,12 +263,19 @@ def test_materialize_domain_action_requests_keeps_repeated_ready_dispatch_withou
         apply=True,
     )
 
-    dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["dispatch_status"] == "ready"
-    assert dispatch["repeat_suppressed"] is False
-    assert dispatch["why_not_applied"] is None
-    assert dispatch["blocked_reason"] is None
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["request_task_count"] == 0
+    assert result["default_executor_dispatch_count"] == 0
+    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["repeat_suppressed_count"] == 0
+    consumer = json.loads(
+        (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert consumer["default_executor_dispatches"] == []
+    assert consumer["ignored_actions"] == result["ignored_actions"]
     assert dispatch_path.read_text(encoding="utf-8").find('"dispatch_status": "ready"') != -1
 
 
@@ -332,7 +333,8 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
     )
 
     consumer = json.loads(consumer_path.read_text(encoding="utf-8"))
-    assert result["repair_task_count"] == 0
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
     assert result["request_task_count"] == 0
     assert result["default_executor_dispatch_count"] == 0
     assert result["written_files"] == [str(consumer_path)]
@@ -435,7 +437,7 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_runtime_platform_repair_action(study_id, "quest-nf")],
+            "action_queue": [_retired_runtime_platform_repair_action(study_id, "quest-nf")],
         },
     )
 
@@ -448,11 +450,13 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
 
     assert result["effective_mode"] == "developer_apply_safe"
     assert result["apply_allowed"] is True
-    assert result["repair_tasks"][0]["dispatch_status"] == "applied"
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["route"] == "pull_request"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
     assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
-    assert (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").is_file()
+    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
 
 
 def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply_safe_mode(
@@ -470,7 +474,7 @@ def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_runtime_platform_repair_action(study_id, "quest-nf")],
+            "action_queue": [_retired_runtime_platform_repair_action(study_id, "quest-nf")],
         },
     )
 
@@ -483,8 +487,10 @@ def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply
 
     assert result["effective_mode"] == "external_observe"
     assert result["apply_allowed"] is False
-    assert result["repair_tasks"][0]["dispatch_status"] == "blocked"
-    assert result["repair_tasks"][0]["blocked_reason"] == "developer_apply_safe_required"
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert not (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
 
@@ -643,7 +649,8 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
         / "consumer"
         / "artifact_display_surface_materialization_required.json"
     )
-    assert result["repair_tasks"] == []
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
     assert result["request_tasks"][0]["action_type"] == "publication_gate_specificity_required"
     assert result["request_tasks"][1]["action_type"] == "return_to_ai_reviewer_workflow"
     assert result["request_tasks"][2]["action_type"] == "current_package_freshness_required"
@@ -797,7 +804,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
                 }
             ],
             "action_queue": [
-                _runtime_platform_repair_action(study_id, "quest-dpcc"),
+                _retired_runtime_platform_repair_action(study_id, "quest-dpcc"),
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dpcc",
@@ -836,44 +843,35 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     )
 
     dispatches = result["default_executor_dispatches"]
-    assert result["default_executor_dispatch_count"] == 3
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
+    assert result["default_executor_dispatch_count"] == 2
     assert [dispatch["executor_kind"] for dispatch in dispatches] == [
-        "codex_cli_default",
         "codex_cli_default",
         "codex_cli_default",
     ]
     assert [dispatch["action_type"] for dispatch in dispatches] == [
-        "runtime_platform_repair",
         "publication_gate_specificity_required",
         "return_to_ai_reviewer_workflow",
     ]
-    assert dispatches[0]["next_executable_owner"] == "external_engineering_agent"
-    assert dispatches[1]["next_executable_owner"] == "publication_gate"
-    assert dispatches[2]["next_executable_owner"] == "ai_reviewer"
-    assert dispatches[1]["default_model_policy"] == "inherit_current_codex_configuration"
-    assert dispatches[2]["prompt_contract"]["forbidden_surfaces"] == module.FORBIDDEN_SURFACES
-    assert "publication_eval/latest.json" in dispatches[2]["prompt_contract"]["required_output_surface"]
-    assert dispatches[2]["prompt_contract"]["manual_study_patch_allowed"] is False
-    assert dispatches[0]["dispatch_status"] == "ready"
+    assert dispatches[0]["next_executable_owner"] == "publication_gate"
+    assert dispatches[1]["next_executable_owner"] == "ai_reviewer"
+    assert dispatches[0]["default_model_policy"] == "inherit_current_codex_configuration"
+    assert dispatches[1]["prompt_contract"]["forbidden_surfaces"] == module.FORBIDDEN_SURFACES
+    assert "publication_eval/latest.json" in dispatches[1]["prompt_contract"]["required_output_surface"]
+    assert dispatches[1]["prompt_contract"]["manual_study_patch_allowed"] is False
+    assert dispatches[0]["dispatch_status"] == "blocked"
+    assert dispatches[0]["blocked_reason"] == "owner_route_next_owner_mismatch"
     assert dispatches[1]["dispatch_status"] == "blocked"
     assert dispatches[1]["blocked_reason"] == "owner_route_next_owner_mismatch"
-    assert dispatches[2]["dispatch_status"] == "blocked"
-    assert dispatches[2]["blocked_reason"] == "owner_route_next_owner_mismatch"
 
     dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches"
     written_dispatches = sorted(dispatch_dir.glob("*.json"))
-    assert [path.name for path in written_dispatches] == ["runtime_platform_repair.json"]
-    runtime_dispatch = json.loads((dispatch_dir / "runtime_platform_repair.json").read_text(encoding="utf-8"))
-    assert runtime_dispatch["surface"] == "default_executor_dispatch_request"
-    assert runtime_dispatch["executor_kind"] == "codex_cli_default"
-    assert runtime_dispatch["dispatch_status"] == "ready"
-    assert runtime_dispatch["consumer_mutation_scope"] == "executor_dispatch_request_only"
-    assert runtime_dispatch["prompt_contract"]["quality_gate_relaxation_allowed"] is False
-    assert runtime_dispatch["prompt_contract"]["paper_package_mutation_allowed"] is False
-    assert "current_package" in "\n".join(runtime_dispatch["prompt_contract"]["forbidden_surfaces"])
-    assert "Codex CLI" in runtime_dispatch["executor_prompt"]
+    assert written_dispatches == []
 
-    assert (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").is_file()
+    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
     assert not (
         study_root
         / "artifacts"

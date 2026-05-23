@@ -388,7 +388,7 @@ def test_study_progress_surfaces_figure_loop_guard_blockers_from_domain_health_d
         },
     }
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **kwargs: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **kwargs: status_payload)
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
@@ -479,7 +479,7 @@ def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monke
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "schema_version": 1,
@@ -604,7 +604,7 @@ def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "schema_version": 1,
@@ -722,7 +722,7 @@ def test_study_progress_does_not_surface_reporting_checklist_gap_as_hard_blocker
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "schema_version": 1,
@@ -811,7 +811,7 @@ def test_study_progress_blockers_override_bundle_stage_next_action(monkeypatch, 
     )
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "schema_version": 1,

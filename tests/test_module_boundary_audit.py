@@ -18,7 +18,7 @@ def test_module_boundary_audit_report_declares_layers_dependencies_and_authority
     assert list(by_group) == [
         "mas_core",
         "quality_os",
-        "runtime_os",
+        "runtime_authority_refs",
         "artifact_delivery",
         "product_entry_projection",
         "observability_os",
@@ -31,9 +31,15 @@ def test_module_boundary_audit_report_declares_layers_dependencies_and_authority
     assert by_group["quality_os"]["may_authorize_publication"] is True
     assert by_group["quality_os"]["hub_role"] == "authority"
     assert "publication_readiness" in by_group["quality_os"]["writable_authority_surfaces"]
-    assert by_group["runtime_os"]["may_control_runtime"] is True
-    assert by_group["runtime_os"]["hub_role"] == "authority"
-    assert "runtime_health" in by_group["runtime_os"]["writable_authority_surfaces"]
+    runtime_refs = by_group["runtime_authority_refs"]
+    assert runtime_refs["may_control_runtime"] is False
+    assert runtime_refs["hub_role"] == "adapter"
+    assert runtime_refs["writable_authority_surfaces"] == []
+    assert runtime_refs["opl_runtime_control_owner"] == "one-person-lab"
+    assert runtime_refs["domain_authority_ref_surfaces"] == [
+        "runtime_health",
+        "canonical_runtime_action",
+    ]
     assert by_group["artifact_delivery"]["hub_role"] == "materializer"
     assert by_group["artifact_delivery"]["writable_authority_surfaces"] == ["artifact_authority"]
     assert by_group["product_entry_projection"]["hub_role"] == "read_model"
@@ -57,7 +63,7 @@ def test_module_boundary_audit_report_declares_layers_dependencies_and_authority
     assert "src/med_autoscience/controllers/module_boundary_audit.py" in by_group["maintainability"]["repo_targets"]
     assert [item["boundary_id"] for item in report["truth_boundaries"]] == [
         "study_truth",
-        "runtime_truth",
+        "runtime_authority_refs",
         "quality_truth",
         "delivery_truth",
         "maintainability_truth",

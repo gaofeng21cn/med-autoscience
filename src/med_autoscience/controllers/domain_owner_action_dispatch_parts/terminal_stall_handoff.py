@@ -74,10 +74,6 @@ def owner_handoff_allowed(
             _text(owner_route.get("failure_signature")) == "quest_waiting_opl_runtime_owner_route"
             and next_work_unit_id == "medical_prose_write_repair"
         )
-    if action_type == "runtime_platform_repair":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
-        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type != "return_to_ai_reviewer_workflow":
         return False
     if output_readiness.ai_reviewer_output_pending(current_study):

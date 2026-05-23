@@ -170,7 +170,7 @@ def export_family_sidecar(
                 "state": _aggregate_slo_state(studies),
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",
             },
-            "repair_command": f"medautosci runtime domain-route-reconcile --profile {profile_ref} --mode developer_apply_safe --dry-run",
+            "repair_command": f"medautosci owner-route-reconcile --profile {profile_ref} --developer-supervisor-mode developer_apply_safe",
             "local_scheduler_tombstone_ref": (
                 "contracts/runtime/legacy-active-path-tombstones.json#mas-local-scheduler"
             ),
@@ -265,27 +265,6 @@ def _pending_family_tasks(
         )
         if controller_task is not None:
             tasks.append(controller_task)
-        continuation = mapping(study.get("autonomy_continuation"))
-        if not continuation.get("eligible_for_auto_dispatch"):
-            continue
-        reason = text(continuation.get("reason")) or "autonomy_continuation"
-        task_kind = text(continuation.get("recommended_task_kind")) or "domain_route/reconcile-apply"
-        tasks.append(
-            {
-                "domain_id": "medautoscience",
-                "task_kind": task_kind,
-                "priority": 50,
-                "source": "mas-sidecar-export",
-                "requires_approval": False,
-                "dedupe_key": f"mas:{profile.name}:{study_id}:autonomy-continuation:{reason}",
-                "payload": {
-                    "profile": str(profile_ref),
-                    "study_id": study_id,
-                    "continuation_reason": reason,
-                    "authority_boundary": "mas_owner_reconcile_only",
-                },
-            }
-        )
     return tasks
 
 

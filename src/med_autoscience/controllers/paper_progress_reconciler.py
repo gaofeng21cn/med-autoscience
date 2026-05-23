@@ -117,24 +117,24 @@ def _desired_state(current_state: Mapping[str, Any], study: Mapping[str, Any]) -
     state = _text(current_state.get("state"))
     owner_route = _mapping(study.get("owner_route"))
     source_fingerprint = _source_fingerprint(study)
-    if state == "awaiting_controller_redrive":
+    if state == "opl_stage_attempt_admission_required":
         return {
-            "state": "controller_redrive_ready",
-            "owner": "MAS/controller",
-            "action_type": "runtime_platform_repair",
-            "required_outputs": ("artifacts/supervision/consumer/runtime_platform_repair.json",),
-            "artifact_delta_predicate": "owner_route_advances_or_runtime_repair_receipt",
+            "state": "opl_stage_attempt_admission_required",
+            "owner": "one-person-lab",
+            "action_type": "request_opl_stage_attempt",
+            "required_outputs": ("OPL stage attempt admission receipt or MAS typed blocker",),
+            "artifact_delta_predicate": "opl_stage_attempt_admitted_or_typed_blocker_recorded",
             "gate_replay_target": None,
-            "idempotency_key": _idempotency_key(study, owner_route, "runtime_platform_repair"),
+            "idempotency_key": _idempotency_key(study, owner_route, "opl_stage_attempt_admission"),
             "source_fingerprint": source_fingerprint,
         }
     if state == "awaiting_callable_owner":
         return {
-            "state": "registry_repair_ready",
-            "owner": "MAS/controller",
-            "action_type": "runtime_platform_repair",
-            "required_outputs": ("artifacts/supervision/consumer/runtime_platform_repair.json",),
-            "artifact_delta_predicate": "owner_callable_registry_repaired_or_controller_queue_written",
+            "state": "domain_owner_contract_blocked",
+            "owner": "med-autoscience",
+            "action_type": "owner_callable_surface_missing",
+            "required_outputs": ("MAS owner receipt or typed blocker",),
+            "artifact_delta_predicate": "domain_owner_contract_resolved_or_typed_blocker_recorded",
             "gate_replay_target": None,
             "idempotency_key": _idempotency_key(study, owner_route, "registry_repair"),
             "source_fingerprint": source_fingerprint,
@@ -191,8 +191,8 @@ def _decision(
     study: Mapping[str, Any],
 ) -> str:
     state = _text(current_state.get("state"))
-    if state == "awaiting_controller_redrive":
-        return "controller_redrive"
+    if state == "opl_stage_attempt_admission_required":
+        return "opl_stage_attempt_admission"
     if state == "awaiting_callable_owner":
         return "registry_repair"
     if state == "downstream_only":
@@ -278,11 +278,35 @@ def _callable_contract(desired_state: Mapping[str, Any]) -> dict[str, Any] | Non
     registry = owner_callable_registry()
     if owner in registry:
         return dict(registry[owner])
+    if owner == "one-person-lab" and _text(desired_state.get("action_type")) == "request_opl_stage_attempt":
+        return {
+            "owner": owner,
+            "action_type": "request_opl_stage_attempt",
+            "callable_surface": "opl_stage_attempt.request_admission",
+            "required_inputs": ("paper_progress_state", "owner_route", "source_fingerprint"),
+            "required_outputs": ("OPL stage attempt admission receipt", "MAS typed blocker"),
+            "artifact_delta_predicate": "opl_stage_attempt_admitted_or_typed_blocker_recorded",
+            "gate_replay_target": None,
+            "idempotency_scope": "study_quest_owner_route",
+            "source_fingerprint_scope": "owner_route.source_fingerprint",
+        }
+    if owner == "med-autoscience" and _text(desired_state.get("action_type")) == "owner_callable_surface_missing":
+        return {
+            "owner": owner,
+            "action_type": "owner_callable_surface_missing",
+            "callable_surface": "mas_domain_authority.typed_blocker.owner_callable_surface_missing",
+            "required_inputs": ("paper_progress_state", "owner_route", "missing_owner_ref"),
+            "required_outputs": ("MAS typed blocker", "MAS owner receipt"),
+            "artifact_delta_predicate": "domain_owner_contract_resolved_or_typed_blocker_recorded",
+            "gate_replay_target": None,
+            "idempotency_scope": "study_quest_owner_route",
+            "source_fingerprint_scope": "owner_route.source_fingerprint",
+        }
     if owner == "supervisor_only/live_quality_repair":
         return {
             "owner": owner,
             "action_type": "monitor_live_quality_repair",
-            "callable_surface": "domain_route_reconcile.monitor_live_quality_repair",
+            "callable_surface": "opl_stage_attempt.monitor_live_quality_repair",
             "required_inputs": ("paper_progress_state", "publication_supervisor_state"),
             "required_outputs": (),
             "artifact_delta_predicate": "live_artifact_delta_without_delivery_package_claim",
@@ -331,8 +355,6 @@ def _next_owner_for_decision(
     if _text(current_state.get("state")) == "downstream_only" and _supervisor_only_live(study, current_state):
         return "supervisor_only/live_quality_repair"
     owner = _text(desired_state.get("owner"))
-    if owner == "mas_controller":
-        return "MAS/controller"
     return owner or _text(current_state.get("next_owner"))
 
 

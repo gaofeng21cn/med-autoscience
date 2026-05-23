@@ -1,338 +1,329 @@
 {
-  "surface": "mds_no_history_snapshot_manifest",
-  "schema_version": 1,
-  "import_mode": "no_history_snapshot_only",
-  "default_operation_requires_external_mds": false,
-  "source_provenance": {
-    "upstream_repo": "med-deepscientist",
-    "upstream_ref": "med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc",
-    "snapshot_sha256": "f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b",
-    "snapshot_archive_format": "git archive --format=tar HEAD",
-    "snapshot_file_count": 1843,
-    "license_refs": [
-      "LICENSE (Apache-2.0; Copyright 2026 ResearAI)",
-      "MEDICAL_FORK_MANIFEST.json (controlled fork; upstream base a7853fda3432d37f6dee91fa6e66330f564bd8be)",
-      "docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md"
-    ],
-    "capability_classification": "external_source_archive_only"
-  },
   "author_audit": {
-    "import_commit_author_policy": "mas_maintainer_only",
     "coauthor_trailers_allowed": false,
-    "unwanted_upstream_author_identity_allowed": false,
-    "default_branch_contributor_check_required": true
+    "default_branch_contributor_check_required": true,
+    "import_commit_author_policy": "mas_maintainer_only",
+    "unwanted_upstream_author_identity_allowed": false
   },
   "capabilities": [
     {
+      "authority_claims": [],
       "capability_id": "runtime_execution",
       "classification": "mas_owned",
-      "mds_role": "oracle_fixture_source",
       "mas_owner": "Runtime OS",
-      "authority_claims": []
+      "mds_role": "oracle_fixture_source"
     },
     {
+      "authority_claims": [],
       "capability_id": "artifact_inventory",
       "classification": "fixture_only",
-      "mds_role": "backend_oracle_only",
       "mas_owner": "Artifact OS",
-      "authority_claims": []
+      "mds_role": "backend_oracle_only"
     },
     {
+      "authority_claims": [],
       "capability_id": "paper_contract_health",
       "classification": "fixture_only",
-      "mds_role": "mechanical_oracle_only",
       "mas_owner": "Quality OS",
-      "authority_claims": []
+      "mds_role": "mechanical_oracle_only"
     },
     {
+      "authority_claims": [],
       "capability_id": "manuscript_coverage",
       "classification": "fixture_only",
-      "mds_role": "mechanical_compat_fixture",
       "mas_owner": "Quality OS",
-      "authority_claims": []
+      "mds_role": "mechanical_compat_fixture"
     },
     {
+      "authority_claims": [],
       "capability_id": "prompt_stage_discipline",
       "classification": "mas_owned",
-      "mds_role": "source_material_only",
       "mas_owner": "Quality OS",
-      "authority_claims": []
+      "mds_role": "source_material_only"
     },
     {
+      "authority_claims": [],
       "capability_id": "memory_and_lesson_store",
       "classification": "retire",
-      "mds_role": "intake_reference_only",
       "mas_owner": "Evaluation OS",
-      "authority_claims": []
+      "mds_role": "intake_reference_only"
     }
   ],
+  "default_operation_requires_external_mds": false,
+  "import_mode": "no_history_snapshot_only",
   "remaining_surface_inventory": {
-    "surface": "mds_remaining_surface_inventory",
-    "schema_version": 1,
-    "owner": "MedAutoScience",
-    "mds_final_role": "frozen_source_archive_or_historical_fixture_only",
-    "default_operation_requires_external_mds": false,
-    "default_diagnostic_requires_external_mds": false,
-    "upstream_history_import_allowed": false,
     "allowed_classifications": [
       "mas_owned",
       "rewrite_in_mas",
       "fixture_only",
       "retire",
-      "external_source_archive_only"
-    ],
-    "remaining_surfaces": [
-      {
-        "surface_id": "runtime_core_daemon",
-        "title": "Runtime core daemon",
-        "classification": "mas_owned",
-        "mds_source_surface": "daemon/session runtime core",
-        "mas_target_owner": "Runtime OS",
-        "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "MAS Runtime OS owns turn lifecycle scheduling, completion normalization, and stale-run recovery; external MDS daemon is not a default dependency.",
-        "owner_boundary": "Runtime Turn Lifecycle Kernel owns per-turn continuation; progress_projection/domain_health_diagnostic consume MAS-owned runtime truth and act as supervisor/reconcile surfaces.",
-        "parity_proof": {
-          "proof_kind": "turn_lifecycle_kernel",
-          "mas_contract": "mas_runtime_core exposes schedule_turn, complete_turn_and_normalize, inspect_turn_lifecycle, and user-message-triggered scheduling.",
-          "mds_oracle": "MDS daemon schedule_turn plus _normalize_status_after_turn behavior is retained as regression semantics.",
-          "acceptance": "Runner completion clears active_run_id/worker_running, prioritizes queued user messages, schedules delayed auto_continue through the kernel timer, and stops at human/terminal gates."
-        },
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "quest_lifecycle",
-        "title": "Quest lifecycle",
-        "classification": "mas_owned",
-        "mds_source_surface": "quest layout and lifecycle behavior",
-        "mas_target_owner": "Runtime OS",
-        "mds_final_role": "historical_oracle_fixture_only",
-        "cutover_contract": "MAS runtime/quests and runtime_lifecycle.sqlite own quest lifecycle and materialization.",
-        "owner_boundary": "Legacy quest data can be replayed or imported only through explicit restore/import diagnostics.",
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "worker_runner_lifecycle",
-        "title": "Worker and runner lifecycle",
-        "classification": "mas_owned",
-        "mds_source_surface": "worker runners and liveness loops",
-        "mas_target_owner": "Runtime OS",
-        "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "MAS-owned runner lifecycle exposes worker state, run receipts, leases, idempotency keys, and per-quest serialization without requiring MDS worker processes.",
-        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces; domain_health_diagnostic may redrive recovery through schedule_turn but does not become the turn owner.",
-        "parity_proof": {
-          "proof_kind": "worker_runner_receipts",
-          "mas_contract": "MasTurnRunner records started/queued/finished receipts, worker leases, claimed user messages, and run ids.",
-          "mds_oracle": "MDS one-worker-per-quest turn worker and active_run_id lifecycle are retained as behavior fixtures.",
-          "acceptance": "An active worker only queues additional turn requests, current-turn completion drains pending worker reasons after queued user messages, stale JSON liveness is reconciled to not live, and recovery redrive creates a MAS turn receipt."
-        },
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "channels_connectors_transport",
-        "title": "Channels, connectors, and transport",
-        "classification": "rewrite_in_mas",
-        "mds_source_surface": "runtime connector and transport layer",
-        "mas_target_owner": "Runtime OS",
-        "mds_final_role": "explicit_legacy_diagnostic_only",
-        "cutover_contract": "MAS runtime transport owns active communication; MDS connectors remain diagnostic fixtures.",
-        "owner_boundary": "Transport observations cannot write study truth, quality truth, or publication authority.",
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "mcp_surface",
-        "title": "MCP surface",
-        "classification": "retire",
-        "mds_source_surface": "MDS MCP entrypoints",
-        "mas_target_owner": "MAS MCP",
-        "mds_final_role": "retired_surface",
-        "cutover_contract": "Active MCP commands route through MAS; old MDS MCP names fail closed or stay explicit legacy diagnostics.",
-        "owner_boundary": "MCP exposes MAS truth refs and does not make MDS a backend legacy_restore_import.",
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "tui_web_visual_status",
-        "title": "TUI and Web visual status",
-        "classification": "rewrite_in_mas",
-        "mds_source_surface": "TUI/Web status dashboard",
-        "mas_target_owner": "Progress Portal",
-        "mds_final_role": "explicit_legacy_diagnostic_only",
-        "cutover_contract": "MAS Progress Portal is the default visual status surface; old MDS WebUI is diagnostic only.",
-        "owner_boundary": "Visual status consumes MAS progress payloads and cannot reinterpret study truth.",
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "gitops_workspace_state",
-        "title": "GitOps workspace state",
-        "classification": "retire",
-        "mds_source_surface": "workspace root Git and quest Git operations",
-        "mas_target_owner": "Runtime lifecycle",
-        "mds_final_role": "retired_surface",
-        "cutover_contract": "MAS runtime lifecycle uses SQLite/read-model/restore proof, not default root Git or quest Git.",
-        "owner_boundary": "Git history can remain only as archived restore material outside active lifecycle authority.",
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "skills_overlay_templates",
-        "title": "Skills and overlay templates",
-        "classification": "fixture_only",
-        "mds_source_surface": "skills, prompts, and overlay templates",
-        "mas_target_owner": "MAS app skill",
-        "mds_final_role": "historical_fixture_only",
-        "cutover_contract": "Reusable templates may become MAS fixtures; no global MDS skill injection or default entry remains.",
-        "owner_boundary": "Templates cannot authorize quality, runtime action, or publication readiness.",
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "team_multiagent_coordination",
-        "title": "Team and multi-agent coordination",
-        "classification": "fixture_only",
-        "mds_source_surface": "team orchestration and multi-agent patterns",
-        "mas_target_owner": "Controller",
-        "mds_final_role": "historical_oracle_fixture_only",
-        "cutover_contract": "MAS controller owns coordination semantics; MDS team behavior can only seed parity fixtures.",
-        "owner_boundary": "Coordination fixtures cannot write user-visible next action or controller decisions.",
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      },
-      {
-        "surface_id": "upstream_source_archive",
-        "title": "Upstream source archive",
-        "classification": "external_source_archive_only",
-        "mds_source_surface": "full external MDS source snapshot",
-        "mas_target_owner": "Governance",
-        "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "Full source history stays outside MAS default branch and contributor graph.",
-        "owner_boundary": "Archive refs are provenance only and cannot be imported as runtime, WebUI, or quality authority.",
-        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
-        "authority_claims": [],
-        "imports_upstream_history": false,
-        "default_runtime_dependency_allowed": false,
-        "quality_authority_allowed": false,
-        "publication_ready_authority_allowed": false,
-        "required_cutover_gates": [
-          "mas_side_contract_exists",
-          "mds_oracle_fixture_exists",
-          "quality_gate_not_relaxed",
-          "rollback_surface_exists",
-          "old_mds_authority_surface_retired_or_marked_oracle"
-        ]
-      }
+      "external_source_archive_only",
+      "opl_owned_runtime_control_mas_domain_refs",
+      "opl_runtime_control_with_mas_refs",
+      "retired_mas_runtime_surface"
     ],
     "classification_summary": {
-      "surface_count": 10,
-      "mas_owned": 3,
-      "rewrite_in_mas": 2,
+      "external_source_archive_only": 1,
       "fixture_only": 2,
+      "mas_owned": 2,
+      "opl_owned_runtime_control_mas_domain_refs": 0,
+      "opl_runtime_control_with_mas_refs": 1,
       "retire": 2,
-      "external_source_archive_only": 1
-    }
+      "retired_mas_runtime_surface": 1,
+      "rewrite_in_mas": 1,
+      "surface_count": 10
+    },
+    "default_diagnostic_requires_external_mds": false,
+    "default_operation_requires_external_mds": false,
+    "mds_final_role": "frozen_source_archive_or_historical_fixture_only",
+    "owner": "MedAutoScience",
+    "remaining_surfaces": [
+      {
+        "authority_claims": [],
+        "classification": "retired_mas_runtime_surface",
+        "cutover_contract": "OPL stage runtime owns queue, attempt continuation, completion transport, and stale-run recovery; external MDS daemon is not a default dependency.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "one-person-lab",
+        "mds_final_role": "external_source_archive_only",
+        "mds_source_surface": "daemon/session runtime core",
+        "owner_boundary": "MAS consumes OPL typed closeout, owner receipt, typed blocker, or publication authority refs; it does not own a generic runtime core daemon.",
+        "parity_proof": {
+          "acceptance": "Provider completion alone cannot advance domain truth; typed closeout or MAS owner receipt/blocker is required.",
+          "mas_contract": "runtime_transport/mas_runtime_core* is physically retired; OPL provider stage runtime plus MAS DomainIntent adapter form the active boundary.",
+          "mds_oracle": "MDS daemon schedule_turn plus _normalize_status_after_turn behavior is retained as regression semantics.",
+          "proof_kind": "retired_runtime_surface_parity"
+        },
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "runtime_core_daemon",
+        "title": "Runtime core daemon"
+      },
+      {
+        "authority_claims": [],
+        "classification": "mas_owned",
+        "cutover_contract": "OPL stage runtime owns generic quest lifecycle and materialization; MAS keeps domain authority refs, owner receipts, typed blockers, and explicit restore/import diagnostics.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "MedAutoScience domain authority refs",
+        "mds_final_role": "historical_fixture_only",
+        "mds_source_surface": "quest layout and lifecycle behavior",
+        "owner_boundary": "Legacy quest data can be replayed or imported only through explicit restore/import diagnostics; MAS does not own a generic lifecycle SQLite or materialization engine.",
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "quest_lifecycle",
+        "title": "Quest lifecycle"
+      },
+      {
+        "authority_claims": [],
+        "classification": "mas_owned",
+        "cutover_contract": "OPL runner lifecycle exposes worker state, run receipts, leases, idempotency keys, and per-quest serialization; MAS consumes closeout refs and signs owner receipts or typed blockers.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "MedAutoScience domain authority refs",
+        "mds_final_role": "external_source_archive_only",
+        "mds_source_surface": "worker runners and liveness loops",
+        "owner_boundary": "Controller-authorized runtime actions stay in OPL runtime control surfaces; MAS controller/domain-authority refs may request route-back or typed blocker handling but do not become turn owner.",
+        "parity_proof": {
+          "acceptance": "An active worker only queues additional turn requests, stale JSON liveness is reconciled to not live by OPL, and recovery redrive returns MAS owner receipt or typed blocker refs.",
+          "mas_contract": "OPL current-control-state records started/queued/finished receipts, worker leases, claimed user messages, and run ids; MAS only consumes closeout refs.",
+          "mds_oracle": "MDS one-worker-per-quest turn worker and active_run_id lifecycle are retained as behavior fixtures.",
+          "proof_kind": "worker_runner_receipts"
+        },
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "worker_runner_lifecycle",
+        "title": "Worker and runner lifecycle"
+      },
+      {
+        "authority_claims": [],
+        "classification": "opl_runtime_control_with_mas_refs",
+        "cutover_contract": "OPL stage runtime owns active communication; MAS exposes owner-route refs, owner receipts, typed blockers, and artifact/source/quality refs.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "MedAutoScience domain authority refs",
+        "mds_final_role": "explicit_archive_import_ref_only",
+        "mds_source_surface": "runtime connector and transport layer",
+        "owner_boundary": "Transport observations cannot write study truth, quality truth, or publication authority.",
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "channels_connectors_transport",
+        "title": "Channels, connectors, and transport"
+      },
+      {
+        "authority_claims": [],
+        "classification": "retire",
+        "cutover_contract": "Active MCP commands route through MAS; old MDS MCP names fail closed or stay explicit archive import references.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "MAS MCP",
+        "mds_final_role": "retired_surface",
+        "mds_source_surface": "MDS MCP entrypoints",
+        "owner_boundary": "MCP exposes MAS truth refs and does not make MDS a backend runnable substitute.",
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "mcp_surface",
+        "title": "MCP surface"
+      },
+      {
+        "authority_claims": [],
+        "classification": "rewrite_in_mas",
+        "cutover_contract": "MAS Progress Portal is the default visual status surface; old MDS WebUI is diagnostic only.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "Progress Portal",
+        "mds_final_role": "explicit_archive_import_ref_only",
+        "mds_source_surface": "TUI/Web status dashboard",
+        "owner_boundary": "Visual status consumes MAS progress payloads and cannot reinterpret study truth.",
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "tui_web_visual_status",
+        "title": "TUI and Web visual status"
+      },
+      {
+        "authority_claims": [],
+        "classification": "retire",
+        "cutover_contract": "OPL owns runtime lifecycle/current-control-state; MAS keeps refs-only restore/provenance and domain authority locator refs.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "Domain authority refs index",
+        "mds_final_role": "retired_surface",
+        "mds_source_surface": "workspace root Git and quest Git operations",
+        "owner_boundary": "Git history can remain only as archived restore material outside active lifecycle authority.",
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "gitops_workspace_state",
+        "title": "GitOps workspace state"
+      },
+      {
+        "authority_claims": [],
+        "classification": "fixture_only",
+        "cutover_contract": "Reusable templates may become MAS fixtures; no global MDS skill injection or default entry remains.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "MAS app skill",
+        "mds_final_role": "historical_fixture_only",
+        "mds_source_surface": "skills, prompts, and overlay templates",
+        "owner_boundary": "Templates cannot authorize quality, runtime action, or publication readiness.",
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "skills_overlay_templates",
+        "title": "Skills and overlay templates"
+      },
+      {
+        "authority_claims": [],
+        "classification": "fixture_only",
+        "cutover_contract": "MAS controller owns coordination semantics; MDS team behavior can only seed parity fixtures.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "Controller",
+        "mds_final_role": "historical_fixture_only",
+        "mds_source_surface": "team orchestration and multi-agent patterns",
+        "owner_boundary": "Coordination fixtures cannot write user-visible next action or controller decisions.",
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "team_multiagent_coordination",
+        "title": "Team and multi-agent coordination"
+      },
+      {
+        "authority_claims": [],
+        "classification": "external_source_archive_only",
+        "cutover_contract": "Full source history stays outside MAS default branch and contributor graph.",
+        "default_runtime_dependency_allowed": false,
+        "imports_upstream_history": false,
+        "mas_target_owner": "Governance",
+        "mds_final_role": "external_source_archive_only",
+        "mds_source_surface": "full external MDS source snapshot",
+        "owner_boundary": "Archive refs are provenance only and cannot be imported as runtime, WebUI, or quality authority.",
+        "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
+        "publication_ready_authority_allowed": false,
+        "quality_authority_allowed": false,
+        "required_cutover_gates": [
+          "mas_side_contract_exists",
+          "mds_oracle_fixture_exists",
+          "quality_gate_not_relaxed",
+          "rollback_surface_exists",
+          "old_mds_authority_surface_retired_or_marked_oracle"
+        ],
+        "surface_id": "upstream_source_archive",
+        "title": "Upstream source archive"
+      }
+    ],
+    "schema_version": 1,
+    "surface": "mds_remaining_surface_inventory",
+    "upstream_history_import_allowed": false
   },
   "retained_capability_ids": [
     "runtime_execution",
@@ -341,5 +332,20 @@
     "manuscript_coverage",
     "prompt_stage_discipline",
     "memory_and_lesson_store"
-  ]
+  ],
+  "schema_version": 1,
+  "source_provenance": {
+    "capability_classification": "external_source_archive_only",
+    "license_refs": [
+      "LICENSE (Apache-2.0; Copyright 2026 ResearAI)",
+      "MEDICAL_FORK_MANIFEST.json (controlled fork; upstream base a7853fda3432d37f6dee91fa6e66330f564bd8be)",
+      "docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md"
+    ],
+    "snapshot_archive_format": "git archive --format=tar HEAD",
+    "snapshot_file_count": 1843,
+    "snapshot_sha256": "f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b",
+    "upstream_ref": "med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc",
+    "upstream_repo": "med-deepscientist"
+  },
+  "surface": "mds_no_history_snapshot_manifest"
 }

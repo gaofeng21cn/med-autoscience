@@ -4,7 +4,7 @@
 
 ## 1. Sidecar bridge 在 MedAutoScience 的定位
 
-1. **主线 runtime 默认是 MAS-owned runtime/artifact/quality surfaces。** Sidecar bridge 只是让 OPL provider-backed family runtime 进入 MAS owner surface 的受控入口，不能取代主线 runtime 处理模型训练、评估或结果收敛流程。外部 `MedDeepScientist` 只可作为显式 backend audit、historical fixture / explicit archive import reference 或 parity oracle reference，不是默认执行前置。
+1. **主线 runtime 控制面默认归 OPL；MAS 保留 artifact/quality/domain authority surfaces。** Sidecar bridge 只是让 OPL provider-backed family runtime 进入 MAS owner surface 的受控入口，不能取代 MAS artifact/quality/domain owner chain 处理模型训练、评估或结果收敛授权。外部 `MedDeepScientist` 只可作为显式 backend audit、historical fixture / explicit archive import reference 或 parity oracle reference，不是默认执行前置。
 2. **Sidecar 不是随意“绕过主线”的后门。** 任何 sidecar 调用都应报告其 trigger、task ref、owner route 与 dispatch receipt，这样人类审阅者可以追溯为什么进入 sidecar bridge 以及它的输出对主线决策有哪些影响。
 
 ## 2. Sidecar bridge 契约

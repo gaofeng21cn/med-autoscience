@@ -56,7 +56,7 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
                 "domain_truth_owner": "med-autoscience",
                 "queue_owner": "one-person-lab",
                 "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
-                "recommended_task_kind": "domain_route/reconcile-apply",
+                "recommended_task_kind": "domain_route/owner-handoff",
                 "study_id": study_id,
                 "quest_id": study_id,
                 "runtime_state_path": str(runtime_state_path),
@@ -82,7 +82,7 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
     tasks = [
         task
         for task in export["pending_family_tasks"]
-        if task["task_kind"] == "domain_route/reconcile-apply"
+        if task["task_kind"] == "domain_route/owner-handoff"
         and task["dedupe_key"] == (
             "mas:diabetes:002-dm-china-us-mortality-attribution:"
             "owner-route-handoff:quest_waiting_opl_runtime_owner_route"
@@ -128,7 +128,7 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
     assert task["payload"]["stage_graph_handoff"] == graph_handoff
     evidence_payload = task["domain_dispatch_evidence_record_payload"]
     assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
-    assert evidence_payload["task_kind"] == "domain_route/reconcile-apply"
+    assert evidence_payload["task_kind"] == "domain_route/owner-handoff"
     assert evidence_payload["study_id"] == study_id
     assert task["source_fingerprint"]
     assert evidence_payload["source_fingerprint"] == task["source_fingerprint"]
@@ -138,7 +138,7 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
         for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "profile_name")
     } == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
+        "task_kind": "domain_route/owner-handoff",
         "study_id": study_id,
         "source_fingerprint": task["source_fingerprint"],
         "profile_name": profile.name,

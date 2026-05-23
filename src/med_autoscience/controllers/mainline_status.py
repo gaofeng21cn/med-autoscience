@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from med_autoscience.runtime_backend import MAS_RUNTIME_OWNER, MAS_RUNTIME_SUBSTRATE
+from med_autoscience.opl_runtime_contract import OPL_HOSTED_STAGE_RUNTIME_ID, OPL_RUNTIME_OWNER
 from med_autoscience.controllers.mainline_status_parts.labels import _non_empty_text
 from med_autoscience.controllers.mainline_status_parts.program_surfaces import (
     build_phase2_user_product_loop,
@@ -86,7 +86,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
         "owner": "MedAutoScience",
         "summary": (
             "调用方应把研究入口、task intake、controller outer loop、进度真相、论文质量门控、"
-            "runtime recovery 与 program/mainline 解释都读作 MAS-owned capability；"
+            "domain recovery handoff 与 program/mainline 解释都读作 MAS-owned domain capability；"
             "MDS 只保留 frozen archive / historical fixture / explicit archive import reference 角色。"
         ),
         "mas_owned_capabilities": [
@@ -208,10 +208,10 @@ def _active_tranche_owner_truth() -> dict[str, Any]:
             {
                 "lane_id": "autonomy",
                 "title": "Autonomy lane",
-                "owner": "MAS controller/runtime",
+                "owner": "MAS domain controller + OPL runtime manager",
                 "summary": (
-                    "自治推进、runtime recovery、progress freshness 与 human gate 原因继续由 MAS "
-                    "controller-owned durable surfaces 解释。"
+                    "自治推进、domain recovery handoff、progress freshness 与 human gate 原因继续由 MAS "
+                    "domain-authority refs 解释；queue、attempt、provider resume/relaunch 由 OPL 控制面持有。"
                 ),
                 "truth_surfaces": [
                     "progress_projection",
@@ -380,16 +380,16 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 {
                     "name": "doctor",
                     "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
-                    "purpose": "先看 workspace / MAS runtime contract readiness。",
+                    "purpose": "先看 workspace / MAS domain refs boundary readiness。",
                 },
                 {
-                    "name": "runtime_supervision_status",
-                    "command": "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>",
-                    "purpose": "读取 OPL-owned supervision projection 与 legacy runtime tombstone。",
+                    "name": "study_progress",
+                    "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --format json",
+                    "purpose": "读取 MAS domain progress 与 OPL current-control-state handoff refs。",
                 },
                 {
                     "name": "domain_health_diagnostic",
-                    "command": "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply-supervisor-platform-repair --apply",
+                    "command": "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> --profile <profile> --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply",
                     "purpose": "验证 supervisor tick、恢复动作和 runtime reconciliation。",
                 },
             ],
@@ -495,8 +495,8 @@ def read_mainline_status() -> dict[str, Any]:
             ),
             "runtime_topology": {
                 "domain_agent": "Med Auto Science",
-                "runtime_owner": MAS_RUNTIME_OWNER,
-                "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
+                "runtime_owner": OPL_RUNTIME_OWNER,
+                "runtime_substrate": OPL_HOSTED_STAGE_RUNTIME_ID,
                 "research_backend": (
                     "MAS domain owner receipts / artifact authority refs / quality verdict refs; "
                     "generic runtime lifecycle handoff to OPL"

@@ -13,7 +13,7 @@
   - `OPL scheduler replacement` = 默认 outer supervision scheduler owner；默认 adapter 是 `opl_family_runtime_provider`
   - `MAS supervision scheduler contract` = paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker、safe action refs 和 legacy tombstone/provenance projection；MAS-owned `local` scheduler / LaunchAgent install path 已物理退役，`local` 不再作为 active CLI manager 暴露；Hermes gateway cron 只作 explicit legacy diagnostic adapter
   - `OPL provider-backed stage runtime` = 默认 generic runtime owner / substrate
-  - `MAS Runtime OS` = MAS domain runtime adapter、owner receipt、typed blocker、runtime event refs、guarded apply 与 diagnostic surface
+  - MAS domain authority refs = DomainIntent / owner route、owner receipt、typed blocker、artifact/source/quality refs、guarded apply receipt 与 diagnostic explanation
   - `MedDeepScientist` = frozen source archive、historical fixture、explicit archive import reference / backend audit reference
 - 旧 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle，不再是长期产品方向。
 - 当前 formal-entry matrix：
@@ -22,7 +22,7 @@
   - `internal_controller_surface = controller`
 - 当前仓库产品主线继续按 `Auto-only` 理解。
 - future `Human-in-the-loop`：作为 compatible sibling 或 upper-layer product，复用同一 substrate，而不是把本仓改成同仓双模。
-- explicit external `hermes_agent` executor/proof evidence 必须显式接入；旧 Hermes runtime repo / workspace / daemon truth 只作 history/provenance/diagnostic。当前默认 repo-side contract 以 OPL provider-backed stage runtime + MAS domain adapter + OPL scheduler replacement 为准，MAS-owned local one-shot tick 只保留显式 legacy diagnostic / cleanup 语义。
+- explicit external `hermes_agent` executor/proof evidence 必须显式接入；旧 Hermes runtime repo / workspace / daemon truth 只作 history/provenance/diagnostic。当前默认 repo-side contract 以 OPL provider-backed stage runtime + MAS domain authority refs + OPL scheduler replacement 为准，MAS-owned local one-shot tick 只保留显式 legacy diagnostic / cleanup 语义。
 
 ## 2. Execution Handle Contract
 
@@ -54,7 +54,7 @@
 
 ### `quest_id`
 
-- 角色：MAS Runtime OS 下的正式 managed execution handle
+- 角色：OPL/MAS handoff 下的正式 managed execution handle；runtime attempt lifecycle 归 OPL，MAS 只持 domain authority refs
 - 典型落点：
   - `runtime_binding.yaml`
   - `progress_projection`
@@ -72,7 +72,7 @@
 - 典型落点：
   - `runtime_liveness_audit.active_run_id`
   - `bash_session_audit` / `runtime_audit`
-  - `quest.yaml` / runtime session snapshots
+  - OPL current-control-state refs / historical runtime session snapshots
 - 边界：
   - 只有 quest 处于 live execution 时才有意义
   - 它描述的是 quest 内部当前活跃 run，而不是上层 managed quest 身份
@@ -129,7 +129,7 @@
 
 - `Hermes gateway cron` 只负责 wakeup，不负责伪造 study judgment truth
 - OPL provider-backed stage runtime 负责默认 generic runtime/backend contract
-- `MAS Runtime OS` 负责 domain adapter / owner receipt / typed blocker / runtime event refs / diagnostic contract
+- MAS domain authority refs 负责 DomainIntent / owner route、owner receipt、typed blocker、artifact/source/quality refs 与 diagnostic explanation contract
 - `MedDeepScientist` 不拥有上层 judgment truth 或默认 runtime truth
 - study-owned artifact 与 quest-owned artifact 不能混写
 - 当 runtime 不可达或 contract 不满足时，必须 fail-closed，而不是本地写旁路冒充成功

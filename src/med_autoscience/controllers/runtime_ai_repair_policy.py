@@ -67,7 +67,7 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
                 "hard_coded_study_allowlist_required": False,
             },
             "same_tick_actions": [
-                "runtime owner-route-reconcile --apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe",
+                "owner-route-reconcile --apply-safe-actions --developer-supervisor-mode developer_apply_safe",
                 "runtime domain-action-request-materialize --mode developer_apply_safe --apply",
                 "runtime domain-owner-action-dispatch --mode developer_apply_safe --apply",
             ],

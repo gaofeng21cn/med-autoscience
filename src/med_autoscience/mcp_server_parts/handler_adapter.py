@@ -55,7 +55,7 @@ def optional_path(arguments: dict[str, Any], key: str) -> Path | None:
     return Path(value)
 
 
-def optional_mapping(value: Any, *, field_name: str = "control_plane_snapshot") -> dict[str, Any] | None:
+def optional_mapping(value: Any, *, field_name: str = "authority_snapshot") -> dict[str, Any] | None:
     if value is None:
         return None
     if not isinstance(value, dict):

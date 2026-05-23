@@ -76,7 +76,7 @@ def test_refresh_controller_decision_uses_status_domain_transition_when_outer_ti
     }
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: stale_tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:
@@ -173,7 +173,7 @@ def test_refresh_controller_decision_does_not_bypass_human_gate_with_status_doma
     }
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: stale_tick_request)
 
     def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:

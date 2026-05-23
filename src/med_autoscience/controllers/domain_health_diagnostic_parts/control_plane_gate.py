@@ -4,12 +4,12 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import control_plane_route_gate, domain_health_diagnostic_work_units
+from med_autoscience.controllers import authority_route_gate, domain_health_diagnostic_work_units
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 
 
 CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY = (
-    "control_plane_snapshot 已阻断外环 dispatch；domain_health_diagnostic 只记录审计和 ledger。"
+    "authority_snapshot 已阻断外环 dispatch；domain_health_diagnostic 只记录审计和 ledger。"
 )
 FAIL_CLOSED_BLOCKING_REASONS = frozenset(
     {
@@ -20,11 +20,8 @@ FAIL_CLOSED_BLOCKING_REASONS = frozenset(
 )
 RUNTIME_RECOVERY_ACTIONS = frozenset(
     {
-        "ensure_study_runtime",
-        "relaunch_runtime",
-        "recover_runtime",
-        "resume_runtime",
-        "resume_same_study_line",
+        "request_opl_stage_attempt",
+        "request_opl_stage_attempt_relaunch",
     }
 )
 
@@ -131,10 +128,10 @@ def _authorized_dispatch_route(
     controller_route_context = _controller_route_context(tick_request)
     if controller_route_context is None:
         return None
-    gate = control_plane_route_gate.authorize_control_plane_route(
+    gate = authority_route_gate.authorize_authority_route(
         route_action,
         {
-            "control_plane_snapshot": snapshot,
+            "authority_snapshot": snapshot,
             "controller_route_context": controller_route_context,
         },
     )
@@ -146,16 +143,16 @@ def control_plane_dispatch_block(
     status_payload: Mapping[str, Any],
     tick_request: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    snapshot = status_payload.get("control_plane_snapshot")
+    snapshot = status_payload.get("authority_snapshot")
     if not isinstance(snapshot, Mapping):
         return {
             "outcome": "control_plane_dispatch_blocked",
-            "reason": "control_plane_snapshot is missing; domain_health_diagnostic dispatch fails closed",
+            "reason": "authority_snapshot is missing; domain_health_diagnostic dispatch fails closed",
             "no_op_acknowledged": True,
-            "dedupe_scope": "control_plane_snapshot_dispatch_gate",
+            "dedupe_scope": "authority_snapshot_dispatch_gate",
             "operator_summary": CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
-            "control_plane_snapshot": None,
-            "control_plane_blocking_reasons": ["control_plane_snapshot_missing"],
+            "authority_snapshot": None,
+            "control_plane_blocking_reasons": ["authority_snapshot_missing"],
         }
 
     gate = snapshot.get("dispatch_gate")
@@ -202,17 +199,17 @@ def control_plane_dispatch_block(
         return None
     return {
         "outcome": "control_plane_dispatch_blocked",
-        "reason": "control_plane_snapshot dispatch gate blocked domain_health_diagnostic outer-loop dispatch",
+        "reason": "authority_snapshot dispatch gate blocked domain_health_diagnostic outer-loop dispatch",
         "no_op_acknowledged": True,
-        "dedupe_scope": "control_plane_snapshot_dispatch_gate",
+        "dedupe_scope": "authority_snapshot_dispatch_gate",
         "operator_summary": CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
-        "control_plane_snapshot": dict(snapshot),
+        "authority_snapshot": dict(snapshot),
         "control_plane_blocking_reasons": blocking_reasons,
     }
 
 
 def runtime_recovery_blocked_by_control_plane(status_payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    snapshot = status_payload.get("control_plane_snapshot")
+    snapshot = status_payload.get("authority_snapshot")
     if not isinstance(snapshot, Mapping):
         return None
     route_authorization = snapshot.get("route_authorization")
@@ -227,8 +224,8 @@ def runtime_recovery_blocked_by_control_plane(status_payload: Mapping[str, Any])
         blocking_reasons.append("runtime_recovery_not_authorized")
     return {
         "outcome": "control_plane_runtime_recovery_blocked",
-        "reason": "control_plane_snapshot route_authorization blocked runtime recovery",
-        "control_plane_snapshot": dict(snapshot),
+        "reason": "authority_snapshot route_authorization blocked runtime recovery",
+        "authority_snapshot": dict(snapshot),
         "control_plane_blocking_reasons": list(dict.fromkeys(blocking_reasons)),
     }
 

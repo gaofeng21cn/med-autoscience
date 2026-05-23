@@ -4,10 +4,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.owner_route_reconcile_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.owner_route_reconcile_parts import completion_evidence
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
-from med_autoscience.controllers.owner_route_reconcile_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.owner_route_reconcile_parts.owner_tokens import owner_token
 from med_autoscience.controllers.owner_route_reconcile_parts import pending_user_messages
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
@@ -53,8 +51,8 @@ def worker_running(status: Mapping[str, Any]) -> bool:
 
 def blocking_reasons(status: Mapping[str, Any], progress: Mapping[str, Any]) -> list[str]:
     runtime_health = _mapping(status.get("runtime_health_snapshot"))
-    control_plane = _mapping(status.get("control_plane_snapshot"))
-    progress_control = _mapping(progress.get("control_plane_snapshot"))
+    control_plane = _mapping(status.get("authority_snapshot"))
+    progress_control = _mapping(progress.get("authority_snapshot"))
     return list(
         dict.fromkeys(
             [
@@ -94,19 +92,11 @@ def supervisor_only(status: Mapping[str, Any], progress: Mapping[str, Any]) -> b
     return "execution_owner_guard.supervisor_only" in set(blocking_reasons(status, progress))
 
 
-def runtime_platform_repair_required(
-    status: Mapping[str, Any], progress: Mapping[str, Any], *, gate_specificity: Mapping[str, Any] | None = None
-) -> bool:
+def opl_stage_attempt_admission_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     if completion_evidence.completed_current_truth(status, progress):
         return False
     if parked_truth.current_truth(status, progress):
         return False
-    if gate_specificity_part.should_defer_runtime_platform_repair(
-        gate_specificity
-    ) and gate_specificity_part.controller_specificity_terminal(status):
-        return False
-    if abnormal_stopped_runtime.repair_required(status, progress):
-        return True
     no_live_worker = not active_run_id(status, progress) or not worker_running(status)
     return retry_exhausted(status, progress) and no_live_worker and _text(status.get("quest_status")) in {"active", "running"}
 
@@ -201,7 +191,7 @@ def current_controller_owner_handoff_redrive_required(
     )
 
 
-def runtime_platform_repair_apply_required(
+def opl_stage_attempt_handoff_required(
     *,
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
@@ -209,20 +199,20 @@ def runtime_platform_repair_apply_required(
     study_root: Any,
     gate_specificity: Mapping[str, Any] | None = None,
 ) -> bool:
-    if runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
+    if opl_stage_attempt_admission_required(status, progress):
         return True
     if _controller_work_unit_pending_redrive_required(status):
         return True
     if _external_supervisor_bounded_redrive_required(status, progress):
         return True
-    if _pending_user_message_platform_redrive_required(status):
+    if _pending_user_message_opl_handoff_required(status):
         return True
     if _publication_gate_closeout_targets_resolved_redrive_required(
         status=status,
         gate_specificity=gate_specificity,
     ):
         return True
-    if _runtime_platform_repair_redrive_pending(status):
+    if _opl_stage_attempt_redrive_pending(status):
         return True
     if current_controller_owner_handoff_redrive_required(
         status=status,
@@ -256,7 +246,7 @@ def current_controller_route_redrive_required(
             status=status,
             gate_specificity=gate_specificity,
         )
-        or _runtime_platform_repair_redrive_pending(status)
+        or _opl_stage_attempt_redrive_pending(status)
     ):
         return False
     return (
@@ -268,7 +258,7 @@ def current_controller_route_redrive_required(
     )
 
 
-def _pending_user_message_platform_redrive_required(status: Mapping[str, Any]) -> bool:
+def _pending_user_message_opl_handoff_required(status: Mapping[str, Any]) -> bool:
     if _text(status.get("quest_status")) != "waiting_for_user":
         return False
     if active_run_id(status, {}) is not None or worker_running(status):
@@ -278,7 +268,7 @@ def _pending_user_message_platform_redrive_required(status: Mapping[str, Any]) -
         _text(continuation_state.get("continuation_policy")) == "auto"
         and _text(continuation_state.get("continuation_anchor")) == "user_message_queue"
         and _text(continuation_state.get("continuation_reason"))
-        == "runtime_platform_repair_resume_existing_pending_user_message"
+        == "opl_owner_route_resume_existing_pending_user_message"
         and int(continuation_state.get("pending_user_message_count") or 0) > 0
     )
 
@@ -307,7 +297,7 @@ def _publication_gate_closeout_targets_resolved_redrive_required(
     )
 
 
-def _runtime_platform_repair_redrive_pending(status: Mapping[str, Any]) -> bool:
+def _opl_stage_attempt_redrive_pending(status: Mapping[str, Any]) -> bool:
     if _text(status.get("quest_status")) != "waiting_for_user":
         return False
     if active_run_id(status, {}) is not None or worker_running(status):
@@ -429,8 +419,8 @@ __all__ = [
     "live_activity_timeout_current_controller_redrive_required",
     "retry_exhausted",
     "runtime_recovery_lifecycle_resolved",
-    "runtime_platform_repair_apply_required",
-    "runtime_platform_repair_required",
+    "opl_stage_attempt_admission_required",
+    "opl_stage_attempt_handoff_required",
     "supervisor_only",
     "worker_running",
 ]

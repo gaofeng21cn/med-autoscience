@@ -32,7 +32,7 @@ def execute_quality_repair_batch(
             study_root=profile.studies_root / study_id,
             quest_id=quest_root.name,
             source="domain_owner_action_dispatch",
-            control_plane_route_context=_control_plane_route_context(dispatch),
+            authority_route_context=_authority_route_context(dispatch),
         )
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
         return {
@@ -77,7 +77,7 @@ def execute_quality_repair_batch(
     }
 
 
-def _control_plane_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+def _authority_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     source_action = _mapping(dispatch.get("source_action"))
     owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))

@@ -42,11 +42,11 @@ MAS 的状态读取、runtime 修复、publication gate、AI reviewer 与 dispat
 - `idempotency_key`
 - `source_refs`
 
-consumer 和 dispatch executor 只能传播并执行 route 允许的动作。request handoff 和 default executor dispatch 都必须携带同一个 route、`idempotency_key` 和 allowed action；缺 route、route stale 或 next owner 不匹配时只能落账 blocked，不得写 owner request 或调用 owner workflow。宏观状态为 `parked` 且原因是 `external_info`、`stop_loss`、`user_stop` 时，stale runtime recovery、platform repair 和 external supervisor escalation 必须让位给 controller stop / human gate truth。
+consumer 和 dispatch executor 只能传播并执行 route 允许的动作。request handoff 和 default executor dispatch 都必须携带同一个 route、`idempotency_key` 和 allowed action；缺 route、route stale 或 next owner 不匹配时只能落账 blocked，不得写 owner request 或调用 owner workflow。宏观状态为 `parked` 且原因是 `external_info`、`stop_loss`、`user_stop` 时，stale runtime recovery、legacy platform-repair token 和 external supervisor escalation 必须让位给 controller stop / human gate truth；MAS 只能产出 typed blocker / owner-route handoff refs，provider repair lifecycle 归 OPL。
 
 ## 复扫规则
 
-一次 scan 的 apply 结果必须在同一轮 projection 里生效：已应用的 platform repair 不再残留为待处理队列；若修复后下一 owner 是 AI reviewer、publication gate 或用户信息补齐，返回面必须暴露这个 owner。下一轮 scan 只能基于同一 `source_fingerprint` 和 owner receipt 判断是否重复执行，不能跨 run epoch 或旧 gate 指纹污染新状态。
+一次 scan 的 apply 结果必须在同一轮 projection 里生效：已应用的 domain-authority handoff / OPL repair result 不再残留为待处理 refs；若修复后下一 owner 是 AI reviewer、publication gate 或用户信息补齐，返回面必须暴露这个 owner。下一轮 scan 只能基于同一 `source_fingerprint` 和 owner receipt 判断是否重复执行，不能跨 run epoch 或旧 gate 指纹污染新状态。
 
 ## 工程依据
 

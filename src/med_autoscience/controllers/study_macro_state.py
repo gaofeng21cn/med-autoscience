@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.runtime_protocol import lifecycle_refs_adapter
 
 
 SCHEMA_VERSION = 1
@@ -193,17 +192,15 @@ def materialize_study_macro_state_snapshot(
     payload = _snapshot_payload(snapshot)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    index_result = lifecycle_refs_adapter.record_study_macro_state_snapshot(
-        study_root=resolved_study_root,
-        snapshot=payload,
-        snapshot_path=snapshot_path,
-        db_path=db_path,
-    )
-    return {
+    result: dict[str, Any] = {
         "surface": "study_macro_state_materialization",
         "snapshot_path": str(snapshot_path.resolve()),
-        "index": index_result,
+        "index": None,
+        "index_status": "file_authority_only",
     }
+    if db_path is not None:
+        result["ignored_db_path"] = str(Path(db_path).expanduser().resolve())
+    return result
 
 
 def _state(
@@ -353,9 +350,7 @@ def _is_runtime_repair_queued(
 ) -> bool:
     allowed = {_text(item) for item in route.get("allowed_actions") or []}
     allowed.discard(None)
-    if "runtime_platform_repair" in allowed:
-        return True
-    if _text(route.get("next_owner")) == "mas_controller" and _text(route.get("owner_reason")) in {
+    if _text(route.get("next_owner")) == "one-person-lab" and _text(route.get("owner_reason")) in {
         "runtime_controller_redrive_required",
         "abnormal_stopped_runtime_resume_required",
     }:

@@ -13,7 +13,7 @@ from opl_harness_shared.product_entry_program_companions import (
     build_source_provenance_surface as _build_shared_source_provenance_surface,
 )
 
-from med_autoscience.runtime_backend import MAS_RUNTIME_OWNER, MAS_RUNTIME_SUBSTRATE
+from med_autoscience.opl_runtime_contract import OPL_HOSTED_STAGE_RUNTIME_ID, OPL_RUNTIME_OWNER
 
 
 def build_backend_deconstruction_lane(
@@ -74,8 +74,8 @@ def build_platform_target() -> dict[str, Any]:
         ),
         north_star_topology={
             "domain_agent": "Med Auto Science",
-            "runtime_owner": MAS_RUNTIME_OWNER,
-            "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
+            "runtime_owner": OPL_RUNTIME_OWNER,
+            "runtime_substrate": OPL_HOSTED_STAGE_RUNTIME_ID,
             "controlled_research_backend": (
                 "MAS domain owner receipts / Artifact authority refs / Quality verdict refs; "
                 "generic runtime lifecycle handoff to OPL"
@@ -302,10 +302,10 @@ def build_phase2_user_product_loop() -> dict[str, Any]:
 
 def build_phase3_clearance_lane() -> dict[str, Any]:
     doctor_command = "uv run python -m med_autoscience.cli doctor --profile <profile>"
-    supervisor_service_command = "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>"
+    supervisor_service_command = "uv run python -m med_autoscience.cli study-progress --profile <profile> --format json"
     refresh_supervision_command = (
         "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> "
-        "--profile <profile> --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+        "--profile <profile> --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
     )
     launch_study_command = (
         "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>"
@@ -319,12 +319,12 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
             "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
             "与 paper-progress SLO 由 MAS surface 承接，generic cadence/provider SLO 归 OPL runtime manager。"
         ),
-        recommended_step_id="mas_runtime_contract",
+        recommended_step_id="mas_domain_refs_boundary",
         recommended_command=doctor_command,
         clearance_targets=[
             _build_shared_clearance_target(
-                target_id="mas_runtime_contract",
-                title="Check MAS runtime and legacy hosted-runtime tombstone contract",
+                target_id="mas_domain_refs_boundary",
+                title="Check MAS domain refs and legacy runtime tombstone boundary",
                 commands=[doctor_command],
             ),
             _build_shared_clearance_target(
@@ -346,9 +346,9 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
         ],
         clearance_loop=[
             _build_shared_product_entry_program_step(
-                step_id="mas_runtime_contract",
-                title="确认 MAS runtime contract ready，旧 hosted runtime 仅保留 tombstone/provenance",
-                surface_kind="doctor_runtime_contract",
+                step_id="mas_domain_refs_boundary",
+                title="确认 MAS domain refs boundary ready，旧 hosted runtime 仅保留 tombstone/provenance",
+                surface_kind="doctor_domain_refs_boundary",
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_step(
@@ -359,7 +359,7 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
-                title="刷新 MAS domain runtime projection",
+                title="刷新 MAS domain refs projection",
                 surface_kind="domain_health_diagnostic_refresh",
                 command=refresh_supervision_command,
             ),

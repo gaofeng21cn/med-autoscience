@@ -39,34 +39,10 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_reports_stopped_contro
             },
         },
     }
-    recovered_status = {
-        **stopped_guard_status,
-        "quest_status": "running",
-        "runtime_liveness_audit": {
-            "status": "live",
-            "active_run_id": "run-recovered",
-            "runtime_audit": {
-                "status": "live",
-                "active_run_id": "run-recovered",
-                "worker_running": True,
-                "worker_pending": False,
-                "stop_requested": False,
-            },
-        },
-        "autonomous_runtime_notice": {
-            "active_run_id": "run-recovered",
-        },
-    }
-
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or stopped_guard_status,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: calls.append(("ensure", source)) or recovered_status,
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -75,10 +51,10 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_reports_stopped_contro
         controller_runners={},
         apply=False,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert calls == [("status", "001-risk"), ("status", "001-risk")]
+    assert calls == [("status", "001-risk")]
     assert result["managed_study_auto_recoveries"] == []
     assert result["managed_study_actions"] == [
         {
@@ -130,30 +106,11 @@ def test_run_domain_health_diagnostic_for_runtime_rechecks_managed_study_immedia
             },
         },
     }
-    reroute_status = {
-        **live_status,
-        "decision": "resume",
-        "reason": "quest_stale_decision_after_write_stage_ready",
-        "publication_supervisor_state": {
-            "supervisor_phase": "write_stage_ready",
-            "phase_owner": "publication_gate",
-            "upstream_scientific_anchor_ready": True,
-            "bundle_tasks_downstream_only": False,
-            "current_required_action": "continue_write_stage",
-            "deferred_downstream_actions": ["continue_bundle_stage"],
-            "controller_stage_note": "write stage is clear and should continue",
-        },
-    }
-
-    def fake_ensure(*, profile, study_root, source):
-        calls.append(("ensure", source))
-        if source == "domain_health_diagnostic":
-            return live_status
-        if source == "domain_health_diagnostic_controller_reroute":
-            return reroute_status
-        raise AssertionError(f"unexpected ensure source: {source}")
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or live_status,
+    )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [quest_root])
     monkeypatch.setattr(
         module,
@@ -184,27 +141,21 @@ def test_run_domain_health_diagnostic_for_runtime_rechecks_managed_study_immedia
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert calls == [
-        ("ensure", "domain_health_diagnostic"),
-        ("ensure", "domain_health_diagnostic_controller_reroute"),
-    ]
-    assert result["managed_study_actions"] == [
-        {
-            "study_id": "001-risk",
-            "decision": "resume",
-            "reason": "quest_stale_decision_after_write_stage_ready",
-        }
-    ]
+    assert calls == [("status", "001-risk"), ("status", "001-risk")]
+    assert result["managed_study_actions"][0]["study_id"] == "001-risk"
+    assert result["managed_study_actions"][0]["decision"] == "blocked"
+    assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
     assert result["managed_study_auto_recoveries"] == [
         {
             "study_id": "001-risk",
-            "preflight_decision": "noop",
-            "preflight_reason": "quest_already_running",
-            "applied_decision": "resume",
-            "applied_reason": "quest_stale_decision_after_write_stage_ready",
+            "preflight_decision": "blocked",
+            "preflight_reason": "quest_waiting_opl_runtime_owner_route",
+            "applied_decision": "blocked",
+            "applied_reason": "quest_waiting_opl_runtime_owner_route",
             "source": "domain_health_diagnostic_controller_reroute",
         }
     ]
@@ -229,9 +180,9 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_tracks_stopped_auto_co
         ),
         "quest_status": "stopped",
         "execution": {
-            "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+            "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "001-risk",
             "auto_resume": True,
@@ -274,19 +225,9 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_tracks_stopped_auto_co
     }
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or resumed_stopped_status,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: calls.append(("ensure", source)) or resumed_stopped_status,
-    )
-    monkeypatch.setattr(
-        module,
-        "_refresh_managed_study_status_after_ensure",
-        lambda *, profile, study_root, status_payload: status_payload,
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -295,7 +236,7 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_tracks_stopped_auto_co
         controller_runners={},
         apply=False,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert calls == [("status", "001-risk")]
@@ -307,7 +248,10 @@ def test_run_domain_health_diagnostic_for_runtime_dry_run_tracks_stopped_auto_co
             "reason": "quest_waiting_on_invalid_blocking",
         }
     ]
-    assert result["managed_study_supervision"][0]["health_status"] == "recovering"
+    handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
+    assert handoff["status"] == "handoff_required"
+    assert handoff["runtime_owner"] == "one-person-lab"
+    assert handoff["typed_blocker"]["blocker_type"] == "opl_runtime_owner_handoff_required"
 
 def test_run_domain_health_diagnostic_for_runtime_does_not_project_blocked_explicit_rerun_as_recovering(
     tmp_path: Path,
@@ -331,9 +275,9 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_project_blocked_expli
         "quest_root": str(quest_root),
         "quest_status": "stopped",
         "execution": {
-            "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+            "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "001-risk",
             "auto_resume": True,
@@ -367,14 +311,9 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_project_blocked_expli
     }
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: blocked_stopped_status,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda **kwargs: pytest.fail("ensure_study_runtime should not run for blocked explicit rerun status"),
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -383,7 +322,7 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_project_blocked_expli
         controller_runners={},
         apply=False,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_actions"] == [
@@ -394,4 +333,7 @@ def test_run_domain_health_diagnostic_for_runtime_does_not_project_blocked_expli
         }
     ]
     assert result["managed_study_auto_recoveries"] == []
-    assert result["managed_study_supervision"][0]["health_status"] == "inactive"
+    handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
+    assert handoff["status"] == "handoff_required"
+    assert handoff["runtime_owner"] == "one-person-lab"
+    assert handoff["mas_materializes_runtime_supervision"] is False

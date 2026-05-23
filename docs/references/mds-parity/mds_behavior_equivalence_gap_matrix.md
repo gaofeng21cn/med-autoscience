@@ -159,7 +159,7 @@ Guard 口径：
 
 - `outer supervision latency`: 当前默认由 OPL scheduler replacement / provider SLO projection 解释；legacy local adapter 不再运行 300 秒 scheduler one-shot，也不再提供 status/remove cleanup path，Hermes gateway cron 只作 legacy diagnostic cleanup。它只影响旧证据读取/清理，不再影响正常 turn-to-turn continuation。
 - `progress visibility UX`: Progress Portal 已替代默认进度查看入口，并已有 per-study Portal page、Route/Decision Trail read-only helper、conversation read model 与 soak evidence keys。它仍保持 `partially_equivalent`，因为真实多论文 workspace 的长期用户体验、route input 完整性和交互深度仍需 evidence-gated polish。
-- `interactive console`: 独立 Live Console UI shell、profile-level session read model、snapshot / loopback SSE stream、clean-room contract 和 terminal attach owner gate 已作为 `live-console-parity` / `terminal-attach-gate` landed。它不是旧 MDS resident WebSocket terminal attach 的 1:1 复刻；Portal `--enable-actions` 已补齐 pause/resume/stop 的 MAS runtime owner apply；terminal attach/input/resize/detach 由 MAS owner contract 决定，无 owner 时 fail closed。
+- `interactive console`: MAS 私有 Live Console、conversation/session read model 和 terminal attach owner gate 已从当前控制面物理退役，只保留 history/provenance。它不是旧 MDS resident WebSocket terminal attach 的 1:1 复刻；运行 terminal/log/provider drilldown 必须来自 OPL `current_control_state` 或 provider attempt projection，MAS 只暴露 progress/domain refs、owner receipt 或 typed blocker。
 - `connector background delivery`: 旧 MDS 的 QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background delivery 仍不属于 MAS 默认 monolith；当前只保留 durable handoff refs。
 - `in-memory session API`: MAS 选择 durable read model 与 receipt，不恢复旧 MDS in-memory session store。
 

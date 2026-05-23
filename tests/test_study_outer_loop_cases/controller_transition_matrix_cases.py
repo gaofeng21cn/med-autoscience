@@ -936,7 +936,7 @@ def test_domain_transition_arbitration_candidates_ai_reviewer_prose_quality_gap(
             "entry_mode": "full_research",
             "execution": {
                 "engine": "med-deepscientist",
-                "runtime_backend": "mas_runtime_core",
+                "runtime_backend": "opl_provider_backed_stage_runtime",
                 "decision_policy": "autonomous",
             },
             "quest_id": "quest-001",

@@ -329,7 +329,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+                "summary": "OPL current_control_state refs-only handoff 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -343,7 +343,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             "status": "not_loaded",
             "loaded": False,
             "job_exists": True,
-            "summary": "MAS scheduler local adapter runtime supervision 已注册，但当前未处于调度中。",
+            "summary": "OPL current_control_state refs-only handoff 未就绪。",
         },
     )
     monkeypatch.setattr(
@@ -434,8 +434,8 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "decision_mode": "intervene_now",
                     "needs_intervention": True,
                     "focus_scope": "workspace",
-                    "summary": "OPL runtime manager 托管监管存在缺口。",
-                    "reason_summary": "OPL runtime manager 托管监管存在缺口。",
+                    "summary": "OPL current_control_state refs-only handoff 未就绪。",
+                    "reason_summary": "OPL current_control_state refs-only handoff 未就绪。",
                     "primary_step_id": "refresh_supervision",
                     "primary_surface_kind": "domain_health_diagnostic_refresh",
                     "primary_command": (
@@ -443,7 +443,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                        + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
                     ),
                 },
                 "recommended_command": (
@@ -451,19 +451,19 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     + str(profile.runtime_root)
                     + " --profile "
                     + str(profile_ref.resolve())
-                    + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                    + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
                 ),
                 "recommended_commands": [
                     {
                         "step_id": "refresh_supervision",
-                        "title": "刷新 OPL runtime manager domain route tick",
+                        "title": "刷新 OPL current_control_state refs-only handoff",
                         "surface_kind": "domain_health_diagnostic_refresh",
                         "command": (
                             "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                             + str(profile.runtime_root)
                             + " --profile "
                             + str(profile_ref.resolve())
-                            + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                            + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
                         ),
                     }
                 ],
@@ -471,19 +471,19 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "contract_kind": "study_recovery_contract",
                     "lane_id": "workspace_supervision_gap",
                     "action_mode": "refresh_supervision",
-                    "summary": "OPL runtime manager 托管监管存在缺口。",
+                    "summary": "OPL current_control_state refs-only handoff 未就绪。",
                     "recommended_step_id": "refresh_supervision",
                     "steps": [
                         {
                             "step_id": "refresh_supervision",
-                            "title": "刷新 OPL runtime manager domain route tick",
+                            "title": "刷新 OPL current_control_state refs-only handoff",
                             "surface_kind": "domain_health_diagnostic_refresh",
                             "command": (
                                 "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root "
                                 + str(profile.runtime_root)
                                 + " --profile "
                                 + str(profile_ref.resolve())
-                                + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+                                + " --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
                             ),
                         }
                     ],
@@ -630,7 +630,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["workspace_status"] == "attention_required"
     assert payload["mainline_snapshot"]["current_stage_id"] == "f4_blocker_closeout"
     assert payload["mainline_snapshot"]["current_program_phase_id"] == "phase_1_mainline_established"
-    assert "OPL runtime manager 托管监管存在缺口。" in payload["workspace_alerts"]
+    assert "OPL current_control_state refs-only handoff 未就绪。" in payload["workspace_alerts"]
     assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in payload["workspace_alerts"]
     assert any("距离上一次明确研究推进已经超过 12 小时" in item for item in payload["workspace_alerts"])
     assert payload["workspace_supervision"]["service"]["status"] == "not_loaded"
@@ -640,25 +640,26 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["operator_brief"] == {
         "surface_kind": "workspace_operator_brief",
         "verdict": "attention_required",
-        "summary": "MAS scheduler local adapter runtime supervision 已注册，但当前未处于调度中。",
+        "summary": "OPL current_control_state refs-only handoff 未就绪。",
         "should_intervene_now": True,
         "focus_scope": "workspace",
         "focus_study_id": None,
         "recommended_step_id": "inspect_supervision_service",
         "recommended_command": (
-            "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile "
+            "uv run python -m med_autoscience.cli study-progress --profile "
             + str(profile_ref.resolve())
+            + " --format json"
         ),
     }
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["title"] == "先检查 OPL scheduler replacement"
     assert payload["attention_queue"][0]["recommended_command"].endswith(
-        "runtime-ensure-supervision --profile " + str(profile_ref.resolve())
+        "study-progress --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert any(
         item["study_id"] == "001-risk"
         and item["code"] == "study_supervision_gap"
-        and item["recommended_command"].endswith("--ensure-study-runtimes --apply-supervisor-platform-repair --apply")
+        and item["recommended_command"].endswith("--request-opl-stage-attempts --request-opl-owner-route-reconcile --apply")
         for item in payload["attention_queue"]
     )
     assert any(
@@ -672,7 +673,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
     assert payload["studies"][0]["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
     assert payload["studies"][0]["operator_verdict"]["decision_mode"] == "intervene_now"
-    assert payload["studies"][0]["recommended_command"].endswith("--ensure-study-runtimes --apply-supervisor-platform-repair --apply")
+    assert payload["studies"][0]["recommended_command"].endswith("--request-opl-stage-attempts --request-opl-owner-route-reconcile --apply")
     assert payload["studies"][0]["recovery_contract"]["action_mode"] == "refresh_supervision"
     assert payload["studies"][1]["intervention_lane"]["lane_id"] == "quality_floor_blocker"
     assert payload["studies"][1]["operator_verdict"]["summary"] == "图表推进陷入重复打磨循环，当前 run 应被拉回主线。"
@@ -744,7 +745,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
             workspace_domain_route_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+                "summary": "OPL current_control_state refs-only handoff 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -757,7 +758,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
             "status": "loaded",
             "loaded": True,
             "job_exists": True,
-            "summary": "MAS scheduler local adapter runtime supervision 已在线。",
+            "summary": "OPL current_control_state refs-only handoff 已在线。",
             "drift_reasons": [],
         },
     )

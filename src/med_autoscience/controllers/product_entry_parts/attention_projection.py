@@ -38,7 +38,6 @@ def _attention_item(
     research_runtime_control_projection: dict[str, Any] | None = None,
     study_truth_snapshot: dict[str, Any] | None = None,
     medical_paper_readiness: dict[str, Any] | None = None,
-    runtime_reconcile_trigger: dict[str, Any] | None = None,
     outer_supervision_slo: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
@@ -63,7 +62,6 @@ def _attention_item(
         "research_runtime_control_projection": dict(research_runtime_control_projection or {}) or None,
         "study_truth_snapshot": dict(study_truth_snapshot or {}) or None,
         "medical_paper_readiness": dict(medical_paper_readiness or {}) or None,
-        "runtime_reconcile_trigger": dict(runtime_reconcile_trigger or {}) or None,
         "outer_supervision_slo": dict(outer_supervision_slo or {}) or None,
     }
 
@@ -437,7 +435,6 @@ def _study_attention_runtime_context(item: Mapping[str, Any]) -> dict[str, Any]:
         "autonomy_contract": dict(item.get("autonomy_contract") or {}),
         "autonomy_soak_status": dict(item.get("autonomy_soak_status") or {}),
         "research_runtime_control_projection": dict(item.get("research_runtime_control_projection") or {}),
-        "runtime_reconcile_trigger": dict(item.get("runtime_reconcile_trigger") or {}),
         "outer_supervision_slo": dict(item.get("outer_supervision_slo") or {}),
         "study_truth_snapshot": dict(item.get("study_truth_snapshot") or {}),
     }
@@ -565,8 +562,6 @@ def _runtime_state_attention_item(
     commands: Mapping[str, str],
 ) -> dict[str, Any] | None:
     lane_id = _non_empty_text(context.get("lane_id"))
-    if _runtime_reconcile_requestable(context):
-        return _runtime_reconcile_attention_item(context)
     if lane_id == "auto_runtime_parked" or bool(dict(context.get("auto_runtime_parked") or {}).get("parked")):
         return _auto_runtime_parked_attention_item(context)
     if lane_id != "workspace_supervision_gap" and context.get("supervisor_tick_status") not in {"stale", "missing", "invalid"}:
@@ -621,35 +616,6 @@ def _standard_study_attention_item(
         scope="study",
         study_id=study_id,
         **_attention_common_payload(context),
-    )
-
-
-def _runtime_reconcile_requestable(context: Mapping[str, Any]) -> bool:
-    trigger = dict(context.get("runtime_reconcile_trigger") or {})
-    slo = dict(context.get("outer_supervision_slo") or {})
-    return trigger.get("safe_to_request") is True or _non_empty_text(slo.get("state")) in {"due", "stale", "missing"}
-
-
-def _runtime_reconcile_attention_item(context: Mapping[str, Any]) -> dict[str, Any]:
-    trigger = dict(context.get("runtime_reconcile_trigger") or {})
-    slo = dict(context.get("outer_supervision_slo") or {})
-    payload = _attention_common_payload(context)
-    payload["runtime_reconcile_trigger"] = trigger
-    payload["outer_supervision_slo"] = slo
-    return _attention_item(
-        code="study_runtime_reconcile_requestable",
-        title=f"{context.get('study_id')} 可以请求一次 safe runtime reconcile",
-        summary=_non_empty_text(trigger.get("summary"))
-        or _non_empty_text(slo.get("summary"))
-        or "runtime/session 信号已陈旧，当前可先请求 controller-owned one-shot reconcile dry-run。",
-        recommended_step_id="request_runtime_reconcile",
-        recommended_command=_non_empty_text(trigger.get("recommended_command"))
-        or _non_empty_text(slo.get("recommended_command"))
-        or context.get("preferred_command")
-        or context.get("progress_command"),
-        scope="study",
-        study_id=str(context.get("study_id") or "unknown-study"),
-        **payload,
     )
 
 

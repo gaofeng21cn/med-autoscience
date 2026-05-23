@@ -90,12 +90,7 @@ def test_watch_runtime_sends_recovery_resolution_after_previous_manual_intervent
             return {"status": "ok", "interaction_id": "interaction-recovered"}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: live_status,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: live_status,
     )
@@ -121,13 +116,16 @@ def test_watch_runtime_sends_recovery_resolution_after_previous_manual_intervent
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     latest_alert = json.loads(previous_alert_path.read_text(encoding="utf-8"))
 
-    assert result["managed_study_supervision"][0]["health_status"] == "live"
-    assert result["managed_study_supervision"][0]["last_transition"] == "live_confirmed"
+    handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
+    assert handoff["status"] == "handoff_required"
+    assert handoff["runtime_owner"] == "one-person-lab"
+    assert handoff["mas_runtime_read_model_retired"] is True
+    assert handoff["typed_blocker"]["owner"] == "one-person-lab"
     assert len(interactions) == 1
     assert interactions[0]["payload"]["kind"] == "milestone"
     assert "已恢复在线" in str(interactions[0]["payload"]["message"])
@@ -268,14 +266,14 @@ def test_run_managed_supervisor_tick_uses_profile_runtime_root_and_always_enable
         controller_runners=None,
         apply: bool,
         profile,
-        ensure_study_runtimes: bool = False,
-        apply_supervisor_platform_repair: bool = False,
+        request_opl_stage_attempts: bool = False,
+        request_opl_owner_route_reconcile: bool = False,
     ) -> dict[str, object]:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
         called["profile"] = profile
-        called["ensure_study_runtimes"] = ensure_study_runtimes
-        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
+        called["request_opl_stage_attempts"] = request_opl_stage_attempts
+        called["request_opl_owner_route_reconcile"] = request_opl_owner_route_reconcile
         return {"mode": "managed_supervisor_tick"}
 
     monkeypatch.setattr(module, "run_domain_health_diagnostic_for_runtime", fake_run_domain_health_diagnostic_for_runtime)
@@ -287,6 +285,6 @@ def test_run_managed_supervisor_tick_uses_profile_runtime_root_and_always_enable
         "runtime_root": profile.runtime_root,
         "apply": True,
         "profile": profile,
-        "ensure_study_runtimes": True,
-        "apply_supervisor_platform_repair": True,
+        "request_opl_stage_attempts": True,
+        "request_opl_owner_route_reconcile": True,
     }

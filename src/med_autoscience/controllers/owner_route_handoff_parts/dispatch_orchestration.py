@@ -11,7 +11,6 @@ import yaml
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 from .. import domain_owner_action_dispatch
-from .. import domain_route_reconcile
 from .. import opl_provider_ready_adapter
 from .. import paper_repair_executor
 from .. import publication_aftercare
@@ -33,17 +32,15 @@ FORBIDDEN_PAYLOAD_FLAGS = (
     "memory_write_router_accept",
 )
 ALLOWED_TASK_KINDS = {
-    "domain_route/recover": "domain_route_recover",
-    "domain_route/reconcile-apply": "domain_route_reconcile_apply",
-    "autonomy/continue": "domain_route_reconcile_apply",
+    "domain_route/owner-handoff": "domain_route_owner_handoff",
     "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/guarded-apply": "paper_autonomy_guarded_apply",
     DEFAULT_EXECUTOR_DISPATCH_TASK_KIND: "default_executor_dispatch_request",
-    publication_aftercare.ANALYSIS_QUEUE_TASK_KIND: "domain_route_reconcile_apply",
+    publication_aftercare.ANALYSIS_QUEUE_TASK_KIND: "domain_route_owner_handoff",
     publication_aftercare.REVIEWER_REFRESH_TASK_KIND: "ai_reviewer_recheck_execute_dispatch",
-    "paper_autonomy/gate-replay": "domain_route_reconcile_apply",
-    "paper_autonomy/route-decision": "domain_route_reconcile_apply",
+    "paper_autonomy/gate-replay": "domain_route_owner_handoff",
+    "paper_autonomy/route-decision": "domain_route_owner_handoff",
     "safe_reconcile/dry-run": "safe_reconcile_dry_run",
     "study_progress/read": "study_progress_read",
     "status/read": "status_read",
@@ -118,10 +115,8 @@ def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id
     study_part = f" --studies {study_id}" if study_id else ""
     if action_type == "domain_route_recover":
         return f"uv run python -m med_autoscience.cli owner-route-reconcile{profile_part}{study_part}"
-    if action_type == "safe_reconcile_dry_run":
-        return f"uv run python -m med_autoscience.cli domain-route-reconcile{profile_part}{study_part} --mode developer_apply_safe --dry-run"
-    if action_type == "domain_route_reconcile_apply":
-        return f"uv run python -m med_autoscience.cli domain-route-reconcile{profile_part}{study_part} --mode developer_apply_safe --apply"
+    if action_type in {"safe_reconcile_dry_run", "domain_route_owner_handoff"}:
+        return f"uv run python -m med_autoscience.cli owner-route-reconcile{profile_part}{study_part} --developer-supervisor-mode external_observe"
     if action_type == "study_progress_read":
         return f"uv run python -m med_autoscience.cli study-progress{profile_part}{study_part} --format json"
     return f"uv run python -m med_autoscience.cli product-entry-status{profile_part} --format json"
@@ -153,21 +148,6 @@ def _owner_capability_fingerprint(*, action_type: str) -> str:
     }
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()[:20]
     return f"mas-sidecar-owner-capability:{digest}"
-
-
-def _execute_reconcile_apply(
-    *,
-    profile: WorkspaceProfile | None,
-    study_id: str | None,
-) -> dict[str, Any] | None:
-    if profile is None:
-        return None
-    return domain_route_reconcile.reconcile_domain_routes(
-        profile=profile,
-        study_ids=(study_id,) if study_id else (),
-        mode="developer_apply_safe",
-        apply=True,
-    )
 
 
 def _execute_paper_repair(
@@ -202,7 +182,7 @@ def _execute_paper_repair(
         study_root=study_root,
         repair_work_unit=work_unit,
         review_finding=_mapping(payload.get("review_finding")),
-        control_plane_route_context=_mapping(payload.get("control_plane_route_context")) or None,
+        authority_route_context=_mapping(payload.get("authority_route_context")) or None,
         route_context=_mapping(payload.get("route_context")) or None,
         apply=True,
     )
@@ -308,7 +288,8 @@ def _base_dispatch_receipt(
         "task_kind": task_kind,
         "generated_at": generated_at,
         "source_task_ref": str(task_path),
-        "will_start_llm_worker": False,
+        "opl_attempt_admission_requested": False,
+        "opl_attempt_admission_status": "not_requested",
         "dispatch": {
             "action_type": action_type,
             "study_id": study_id,
@@ -337,8 +318,8 @@ def _apply_dispatch_action(
     study_id: str | None,
     task: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if action_type == "domain_route_reconcile_apply":
-        return _with_reconcile_apply(receipt=receipt, profile=profile, study_id=study_id)
+    if action_type == "domain_route_owner_handoff":
+        return _with_domain_route_owner_handoff(receipt=receipt, task=task, study_id=study_id)
     if action_type == "paper_repair_executor_dispatch":
         return _with_paper_repair(receipt=receipt, profile=profile, study_id=study_id, task=task)
     if action_type == "ai_reviewer_recheck_execute_dispatch":
@@ -351,11 +332,12 @@ def _apply_dispatch_action(
             task=task,
         )
     if action_type == "default_executor_dispatch_request":
-        receipt["will_start_llm_worker"] = True
+        receipt["opl_attempt_admission_requested"] = True
+        receipt["opl_attempt_admission_status"] = "requested"
         receipt["dispatch"]["execution_policy"] = "opl_default_executor_stage_attempt_admission"
         receipt["dispatch"]["result"] = {
             "surface": "default_executor_dispatch_request_admission",
-            "status": "admitted",
+            "status": "opl_attempt_admission_requested",
             "study_id": study_id,
             "next_owner": _text(_mapping(task.get("payload")).get("next_executable_owner")) or "write",
             "dispatch_ref": _text(_mapping(task.get("payload")).get("dispatch_ref")),
@@ -365,16 +347,29 @@ def _apply_dispatch_action(
     return receipt
 
 
-def _with_reconcile_apply(
+def _with_domain_route_owner_handoff(
     *,
     receipt: dict[str, Any],
-    profile: WorkspaceProfile | None,
+    task: Mapping[str, Any],
     study_id: str | None,
 ) -> dict[str, Any]:
-    result = _execute_reconcile_apply(profile=profile, study_id=study_id)
-    receipt["will_start_llm_worker"] = bool(_mapping(result).get("will_start_llm"))
-    receipt["dispatch"]["execution_policy"] = "mas_owner_reconcile_apply"
-    receipt["dispatch"]["result"] = result
+    payload = _mapping(task.get("payload"))
+    receipt["opl_attempt_admission_requested"] = True
+    receipt["opl_attempt_admission_status"] = "requested"
+    receipt["dispatch"]["execution_policy"] = "opl_route_hydration_stage_attempt_admission"
+    receipt["dispatch"]["result"] = {
+        "surface": "domain_route_owner_handoff_admission",
+        "status": "opl_attempt_admission_requested",
+        "study_id": study_id,
+        "route_target": _text(payload.get("route_target")),
+        "continuation_reason": _text(payload.get("continuation_reason")),
+        "owner_route_handoff_ref": _text(payload.get("owner_route_handoff_ref")),
+        "controller_decision_ref": _text(payload.get("controller_decision_ref")),
+        "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint")),
+        "authority_boundary": "mas_domain_route_refs_only_opl_stage_attempt_owner",
+        "mas_executes_reconcile_apply": False,
+        "provider_completion_is_domain_completion": False,
+    }
     return receipt
 
 
@@ -386,7 +381,9 @@ def _with_paper_repair(
     task: Mapping[str, Any],
 ) -> dict[str, Any]:
     result = _execute_paper_repair(profile=profile, study_id=study_id, task=task)
-    receipt["will_start_llm_worker"] = _mapping(result).get("execution_status") == "handoff_ready"
+    if _mapping(result).get("execution_status") == "handoff_ready":
+        receipt["opl_attempt_admission_requested"] = True
+        receipt["opl_attempt_admission_status"] = "requested"
     receipt["dispatch"]["execution_policy"] = "mas_owner_paper_repair_execute"
     receipt["dispatch"]["result"] = result
     if _mapping(result).get("execution_status") == "handoff_ready":
@@ -404,7 +401,6 @@ def _with_ai_reviewer_recheck(
     study_id: str | None,
 ) -> dict[str, Any]:
     result = _execute_ai_reviewer_recheck(profile=profile, study_id=study_id)
-    receipt["will_start_llm_worker"] = bool(_mapping(result).get("executed_count"))
     receipt["dispatch"]["execution_policy"] = "mas_owner_ai_reviewer_execute_dispatch"
     receipt["dispatch"]["result"] = result
     return receipt
@@ -423,7 +419,6 @@ def _with_guarded_apply(
         task_id=str(receipt.get("task_id") or "unknown_task"),
         task=task,
     )
-    receipt["will_start_llm_worker"] = False
     receipt["dispatch"]["execution_policy"] = "mas_owner_provider_hosted_guarded_apply"
     receipt["dispatch"]["result"] = result
     return receipt

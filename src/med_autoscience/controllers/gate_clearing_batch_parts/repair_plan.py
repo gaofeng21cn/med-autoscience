@@ -323,7 +323,7 @@ def build_gate_clearing_repair_units(
                     profile=profile,
                     sync_submission_minimal_delivery=route_bound(
                         function=sync_submission_minimal_delivery,
-                        control_plane_route_context=resolved_route_context,
+                        authority_route_context=resolved_route_context,
                     ),
                     path_fingerprints=path_fingerprints,
                     settle_window_ns=current_package_authority_settle_window_ns,
@@ -356,7 +356,7 @@ def build_gate_clearing_repair_units(
                     create_submission_minimal_package,
                     paper_root=paper_root,
                     profile=profile,
-                    control_plane_route_context=resolved_route_context,
+                    authority_route_context=resolved_route_context,
                 ),
             )
         )

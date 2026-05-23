@@ -63,11 +63,12 @@ def test_monorepo_scaffold_contracts_define_only_allowed_cross_module_refs() -> 
     eval_hygiene = _load_contract("eval_hygiene")
 
     assert "runtime_startup_projection" in controller["emits_refs"]
-    assert "runtime_startup_projection" in runtime["consumes_refs"]
+    assert "opl_current_control_state_ref" in runtime["consumes_refs"]
+    assert "opl_provider_attempt_ref" in runtime["consumes_refs"]
     assert "controller_summary_ref" in controller["emits_refs"]
     assert "controller_summary_ref" in eval_hygiene["consumes_refs"]
-    assert "runtime_status_ref" in runtime["emits_refs"]
-    assert "runtime_status_ref" in eval_hygiene["consumes_refs"]
+    assert "domain_health_diagnostic_ref" in runtime["emits_refs"]
+    assert "typed_blocker_ref" in runtime["emits_refs"]
     assert "runtime_escalation_record_ref" in runtime["emits_refs"]
     assert "runtime_escalation_record_ref" in eval_hygiene["consumes_refs"]
     assert controller["communication_rules"] == EXPECTED_RULES
@@ -81,6 +82,8 @@ def test_monorepo_scaffold_contracts_preserve_authority_firewalls() -> None:
     eval_hygiene = _load_contract("eval_hygiene")
 
     assert "publication_authority_ownership" not in runtime["owns"]
+    assert "generic_queue_owner" in runtime["forbids"]
+    assert "provider_liveness_ownership" in runtime["forbids"]
     assert "runtime_private_state_mutation" in controller["forbids"]
     assert "controller_truth_mutation" in eval_hygiene["forbids"]
     assert "runtime_truth_mutation" in eval_hygiene["forbids"]

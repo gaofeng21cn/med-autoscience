@@ -4,7 +4,7 @@ from pathlib import Path
 
 from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import (
     _record_auto_runtime_parked_projection,
-    _record_runtime_worker_activity,
+    _record_opl_domain_activity_ref,
     _record_supervisor_tick_audit,
 )
 from med_autoscience.controllers.study_runtime_decision_parts.runtime_events.ownership_and_continuation import (
@@ -18,9 +18,6 @@ from med_autoscience.controllers.study_runtime_decision_parts.runtime_events.run
 from med_autoscience.controllers.study_runtime_decision_parts.runtime_health_dominance import (
     _record_runtime_health_dominance,
     _record_runtime_recovery_lifecycle_if_required,
-)
-from med_autoscience.controllers.study_runtime_decision_parts.status_finalization import (
-    _refresh_runtime_supervision_from_status_if_needed,
 )
 from med_autoscience.controllers.study_runtime_decision_parts.status_projection_shell_parts.read_model_projection_assembly import (
     attach_status_read_model_projections,
@@ -40,7 +37,6 @@ def finalize_status_projection_shell(
     quest_root: Path,
     quest_runtime: quest_state.QuestRuntimeSnapshot,
     runtime_context: study_runtime_protocol.StudyRuntimeContext,
-    runtime_backend,
     router,
     entry_mode: str | None,
     sync_runtime_summary: bool,
@@ -50,11 +46,6 @@ def finalize_status_projection_shell(
     if quest_runtime.runtime_liveness_audit is not None or quest_runtime.bash_session_audit is not None:
         router._record_quest_runtime_audits(status=status, quest_runtime=quest_runtime)
     _record_runtime_recovery_lifecycle_if_required(status)
-    router._record_autonomous_runtime_notice_if_required(
-        status=status,
-        runtime_root=runtime_context.runtime_root,
-        launch_report_path=runtime_context.launch_report_path,
-    )
     _record_execution_owner_guard(status=status, quest_root=quest_root)
     _record_supervisor_tick_audit(status=status, study_root=study_root)
     _record_runtime_health_dominance(
@@ -75,24 +66,16 @@ def finalize_status_projection_shell(
             status=status,
             runtime_context=runtime_context,
         )
-    _refresh_runtime_supervision_from_status_if_needed(
-        status=status,
-        study_root=study_root,
-        runtime_context=runtime_context,
-        router=router,
-        sync_runtime_summary=sync_runtime_summary,
-    )
     _record_runtime_event(
         status=status,
         runtime_context=runtime_context,
-        runtime_backend=runtime_backend,
     )
     _record_family_orchestration_companion(
         status=status,
         study_root=study_root,
         runtime_context=runtime_context,
     )
-    _record_runtime_worker_activity(status)
+    _record_opl_domain_activity_ref(status)
     _record_auto_runtime_parked_projection(status)
     attach_status_read_model_projections(
         status=status,

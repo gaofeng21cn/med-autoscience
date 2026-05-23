@@ -137,7 +137,7 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
         called["source"] = source
         return {"decision": "create_and_start", "study_id": study_id, "quest_id": study_id}
 
-    monkeypatch.setattr(cli.study_runtime_router, "ensure_study_runtime", fake_ensure)
+    monkeypatch.setattr(cli.domain_status_projection, "ensure_study_runtime", fake_ensure)
 
     exit_code = cli.main(
         [
@@ -172,7 +172,7 @@ def test_ensure_study_runtime_command_serializes_typed_controller_result(monkeyp
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "ensure_study_runtime",
         lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
@@ -222,7 +222,7 @@ def test_progress_projection_command_dispatches_controller(monkeypatch, tmp_path
         called["entry_mode"] = entry_mode
         return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
 
-    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
 
     exit_code = cli.main(
         [
@@ -250,7 +250,7 @@ def test_progress_projection_command_serializes_typed_controller_result(monkeypa
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **kwargs: typed_surface.ProgressProjectionStatus.from_payload(
             {
@@ -293,7 +293,7 @@ def test_quality_repair_batch_command_dispatches_controller(monkeypatch, tmp_pat
     called: dict[str, object] = {}
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **kwargs: {
             "study_id": kwargs["study_id"],
@@ -346,7 +346,7 @@ def test_gate_clearing_batch_command_dispatches_controller(monkeypatch, tmp_path
     write_profile(profile_path, workspace_root=tmp_path / "workspace")
     called: dict[str, object] = {}
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_root": str(tmp_path / "workspace" / "studies" / "001-risk"),
@@ -470,7 +470,7 @@ def test_grouped_progress_projection_alias_dispatches_controller(monkeypatch, tm
         called["entry_mode"] = entry_mode
         return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
 
-    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
 
     exit_code = cli.main(
         [

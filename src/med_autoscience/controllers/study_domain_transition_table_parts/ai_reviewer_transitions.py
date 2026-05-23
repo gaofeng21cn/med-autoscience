@@ -189,7 +189,7 @@ def _route_back_transition(
         decision_type="route_back_same_line",
         route_target=route_target,
         next_work_unit=next_work_unit,
-        controller_action="ensure_study_runtime",
+        controller_action="request_opl_stage_attempt",
         owner=route_target,
         typed_blocker=None,
         guard_boundary=_guard_boundary(required_owner_surface=str(publication_eval_relative_path)),

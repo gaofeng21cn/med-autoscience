@@ -106,8 +106,8 @@ def _workspace_substrate_refs(*, profile: WorkspaceProfile) -> list[dict[str, An
         _opaque_ref(role="studies_root", ref=profile.studies_root),
         _opaque_ref(role="portfolio_root", ref=profile.portfolio_root),
         _opaque_ref(
-            role="lifecycle_refs_sqlite",
-            ref=profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite",
+            role="domain_authority_refs_index",
+            ref=profile.workspace_root / "artifacts" / "runtime" / "domain_authority_refs.sqlite",
         ),
         _opaque_ref(
             role="sidecar_dispatch_receipt_root",

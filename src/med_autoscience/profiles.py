@@ -14,11 +14,11 @@ from med_autoscience.overlay.constants import (
 )
 from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
-from med_autoscience.runtime_backend import (
-    DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+from med_autoscience.opl_runtime_contract import (
     EXTERNAL_MDS_ALLOWED_USES,
-    registered_managed_runtime_backend_ids,
-    runtime_backend_default_operation_contract,
+    OPL_HOSTED_STAGE_RUNTIME_ID,
+    engine_id_for_runtime_ref,
+    opl_runtime_default_operation_contract,
 )
 
 SUPPORTED_STARTUP_ANCHOR_POLICIES = (
@@ -62,7 +62,7 @@ class WorkspaceProfile:
     default_submission_targets: tuple[dict[str, object], ...]
     hermes_agent_repo_root: Path | None = None
     hermes_home_root: Path = field(default_factory=lambda: (Path.home() / ".hermes").resolve())
-    managed_runtime_backend_id: str = DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+    opl_runtime_ref: str = OPL_HOSTED_STAGE_RUNTIME_ID
     medical_overlay_bootstrap_mode: str = "ensure_ready"
     default_startup_anchor_policy: str = "scout_first_for_continue_existing_state"
     legacy_code_execution_policy: str = "forbid_without_user_approval"
@@ -196,24 +196,22 @@ def _optional_developer_supervisor_mode(payload: dict[str, object]) -> str:
     return mode
 
 
-def _optional_managed_runtime_backend_id(payload: dict[str, object]) -> str:
-    backend_id = _optional_string_with_default(
+def _optional_opl_runtime_ref(payload: dict[str, object]) -> str:
+    runtime_ref = _optional_string_with_default(
         payload,
-        "managed_runtime_backend_id",
-        default=DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+        "opl_runtime_ref",
+        default=OPL_HOSTED_STAGE_RUNTIME_ID,
     )
-    _reject_legacy_default_backend(backend_id=backend_id)
-    if backend_id not in registered_managed_runtime_backend_ids():
-        supported = ", ".join(registered_managed_runtime_backend_ids())
-        raise TypeError(f"managed_runtime_backend_id must be one of: {supported}")
-    return backend_id
+    _reject_legacy_default_backend(runtime_ref=runtime_ref)
+    engine_id_for_runtime_ref(runtime_ref)
+    return runtime_ref
 
 
-def _reject_legacy_default_backend(*, backend_id: str) -> None:
-    if backend_id == "med_deepscientist":
+def _reject_legacy_default_backend(*, runtime_ref: str) -> None:
+    if runtime_ref == "med_deepscientist":
         allowed = ", ".join(EXTERNAL_MDS_ALLOWED_USES)
         raise TypeError(
-            "managed_runtime_backend_id cannot be med_deepscientist; "
+            "opl_runtime_ref cannot be med_deepscientist; "
             f"MDS is retained only for frozen source provenance or historical fixture references: {allowed}"
         )
 
@@ -342,7 +340,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
     )
     hermes_agent_repo_root = _optional_path(payload, "hermes_agent_repo_root", profile_dir=profile_dir)
     hermes_home_root = _optional_path(payload, "hermes_home_root", profile_dir=profile_dir)
-    managed_runtime_backend_id = _optional_managed_runtime_backend_id(payload)
+    opl_runtime_ref = _optional_opl_runtime_ref(payload)
     return WorkspaceProfile(
         name=profile_name,
         workspace_root=workspace_root,
@@ -353,7 +351,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         med_deepscientist_repo_root=med_deepscientist_repo_root,
         hermes_agent_repo_root=hermes_agent_repo_root,
         hermes_home_root=hermes_home_root or (Path.home() / ".hermes").resolve(),
-        managed_runtime_backend_id=managed_runtime_backend_id,
+        opl_runtime_ref=opl_runtime_ref,
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
         enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),
@@ -424,8 +422,8 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "explicit_archive_import_ref": explicit_archive_import_ref,
         "hermes_agent_repo_root": str(profile.hermes_agent_repo_root) if profile.hermes_agent_repo_root else None,
         "hermes_home_root": str(profile.hermes_home_root),
-        "managed_runtime_backend_id": profile.managed_runtime_backend_id,
-        "runtime_backend_contract": runtime_backend_default_operation_contract(profile.managed_runtime_backend_id),
+        "opl_runtime_ref": profile.opl_runtime_ref,
+        "opl_runtime_contract": opl_runtime_default_operation_contract(profile.opl_runtime_ref),
         "publication": {
             "default_publication_profile": profile.default_publication_profile,
             "default_citation_style": profile.default_citation_style,

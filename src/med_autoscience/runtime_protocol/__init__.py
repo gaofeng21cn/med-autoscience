@@ -77,10 +77,6 @@ from .quest_state import (
     read_recent_stdout_lines,
     resolve_active_stdout_path,
 )
-from .quest_materializer import (
-    materialize_quest_workspace,
-)
-from .user_message import enqueue_user_message
 
 __all__ = [
     "PaperRootContext",
@@ -102,7 +98,6 @@ __all__ = [
     "build_hydration_payload",
     "build_workspace_runtime_layout",
     "build_workspace_runtime_layout_for_profile",
-    "enqueue_user_message",
     "resolve_artifact_manifest",
     "resolve_artifact_manifest_from_main_result",
     "resolve_latest_paper_root",
@@ -117,7 +112,6 @@ __all__ = [
     "is_legacy_restore_import_context",
     "iter_active_quests",
     "load_runtime_state",
-    "materialize_quest_workspace",
     "QuestRuntimeSnapshot",
     "quest_status",
     "read_recent_stdout_lines",

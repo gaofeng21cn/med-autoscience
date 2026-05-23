@@ -189,7 +189,7 @@ def test_paper_repair_executor_routes_quality_repair_batch_callable_without_stru
             "study_root": study_root.resolve(),
             "quest_id": "quest-005",
             "source": "paper_repair_executor",
-            "control_plane_route_context": None,
+            "authority_route_context": None,
             "route_context": None,
         }
     ]

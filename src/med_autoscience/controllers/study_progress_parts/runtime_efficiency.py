@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import control_plane_facts, work_unit_ledger
+from med_autoscience.controllers import opl_runtime_refs, work_unit_ledger
 
 from .shared import _display_text, _mapping_copy, _non_empty_text, _read_json_object
 
@@ -24,7 +24,7 @@ def _float_value(value: object) -> float:
 
 
 def _status_active_run_id(status: dict[str, Any]) -> str | None:
-    return control_plane_facts.active_run_id(status)
+    return opl_runtime_refs.active_run_id(status)
 
 
 def _compact_evidence_items(evidence_index: dict[str, Any] | None) -> list[dict[str, Any]]:

@@ -61,7 +61,7 @@ def test_progress_portal_html_renders_human_first_workspace_dashboard_without_lo
     assert "medautosci runtime live-console --profile &lt;profile&gt; --serve" not in html
     assert "系统字段与来源" in html
     assert "workspace_cockpit.progress_freshness" in html
-    assert "uv run python -m med_autoscience.cli runtime domain-route-reconcile --profile &lt;profile&gt;" in html
+    assert "uv run python -m med_autoscience.cli owner-route-reconcile --profile &lt;profile&gt;" in html
     assert "来源" in html
     assert "用途" in html
     assert "期望输出" in html

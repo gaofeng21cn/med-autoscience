@@ -10,8 +10,8 @@ def writable_route_context(
     runtime_recovery_allowed: bool = True,
 ) -> dict[str, Any]:
     return {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "control_state": "ready",
             "canonical_next_action": "continue_bundle_stage",
             "authority_refs": {

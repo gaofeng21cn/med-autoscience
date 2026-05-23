@@ -84,20 +84,14 @@ def selected_dispatches(
     scan_payload: Mapping[str, Any] | None,
     supported_action_types: frozenset[str],
     dispatch_relative_root: Path,
-    managed_runtime_dispatches: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     current_dispatches = current_consumer_dispatches(
         study_id=study_id,
         consumer_payload=consumer_payload,
         consumer_latest_path=consumer_latest_path,
     )
-    if not current_dispatches and managed_runtime_dispatches:
-        return managed_runtime_dispatches
     if not action_types:
-        return _with_managed_runtime_dispatches(
-            current_dispatches=current_dispatches,
-            managed_runtime_dispatches=managed_runtime_dispatches,
-        )
+        return current_dispatches
     requested = set(action_types)
     selected = [payload for payload in current_dispatches if _text(payload.get("action_type")) in requested]
     selected_keys = {
@@ -129,26 +123,6 @@ def selected_dispatches(
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
-    return _with_managed_runtime_dispatches(
-        current_dispatches=selected,
-        managed_runtime_dispatches=managed_runtime_dispatches,
-    )
-
-
-def _with_managed_runtime_dispatches(
-    *,
-    current_dispatches: list[dict[str, Any]],
-    managed_runtime_dispatches: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    if not managed_runtime_dispatches:
-        return current_dispatches
-    selected = list(current_dispatches)
-    selected_action_types = {_text(payload.get("action_type")) for payload in selected}
-    for payload in managed_runtime_dispatches:
-        action_type = _text(payload.get("action_type"))
-        if action_type not in selected_action_types:
-            selected.append(payload)
-            selected_action_types.add(action_type)
     return selected
 
 

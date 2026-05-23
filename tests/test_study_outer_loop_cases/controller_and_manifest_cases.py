@@ -32,7 +32,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -43,7 +43,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "ensure_study_runtime",
         lambda **kwargs: (
             seen.setdefault("ensure_kwargs", kwargs),
@@ -137,15 +137,15 @@ def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_ru
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -154,7 +154,7 @@ def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_ru
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "ensure_study_runtime",
         lambda **_: {
             "decision": "resume",
@@ -206,16 +206,16 @@ def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_c
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "quest_root": str(quest_root),
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -223,7 +223,7 @@ def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_c
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "ensure_study_runtime",
         lambda **_: {
             "decision": "resume",
@@ -272,7 +272,7 @@ def test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_r
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -281,16 +281,16 @@ def test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_r
             "decision": "resume",
             "reason": "publication_quality_gap",
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "ensure_study_runtime",
         lambda **_: {
             "decision": "resume",
@@ -348,16 +348,16 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mi
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "quest_root": str(quest_root),
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -411,16 +411,16 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_supervisor_tick_i
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "quest_root": str(quest_root),
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -467,7 +467,7 @@ def test_study_outer_loop_tick_rejects_publication_eval_ref_outside_eval_owned_l
     charter_ref = _write_charter(study_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -523,7 +523,7 @@ def test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_l
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -534,7 +534,7 @@ def test_study_outer_loop_tick_accepts_freshened_publication_eval_id_on_stable_l
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "ensure_study_runtime",
         lambda **kwargs: (
             seen.setdefault("ensure_kwargs", kwargs),
@@ -590,7 +590,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_escalation_artifact_mis
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -618,7 +618,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_escalation_artifact_mis
             reason="Publication eval keeps the study on the same line.",
         )
 def test_study_outer_loop_tick_reexports_from_router(monkeypatch) -> None:
-    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    router = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     sentinel = {"status": "delegated"}
 
@@ -650,7 +650,7 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -660,12 +660,6 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )
-    monkeypatch.setattr(
-        module.study_runtime_router.managed_runtime_transport,
-        "stop_quest",
-        lambda **kwargs: pytest.fail("stop_quest should not run before human confirmation"),
-    )
-
     result = module.study_outer_loop_tick(
         profile=profile,
         study_id="001-risk",
@@ -764,7 +758,7 @@ def test_study_outer_loop_tick_rejects_human_gate_for_autonomous_scientific_deci
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "001-risk",
@@ -775,7 +769,7 @@ def test_study_outer_loop_tick_rejects_human_gate_for_autonomous_scientific_deci
         },
     )
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "ensure_study_runtime",
         lambda **kwargs: pytest.fail("ordinary scientific decisions must stay autonomous"),
     )

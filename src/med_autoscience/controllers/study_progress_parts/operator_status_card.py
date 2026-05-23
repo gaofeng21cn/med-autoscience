@@ -37,7 +37,7 @@ def _operator_status_handling_state(
     if bool((auto_runtime_parked or {}).get("parked")):
         return _non_empty_text((auto_runtime_parked or {}).get("parked_state")) or "auto_runtime_parked"
     if lane_id == "workspace_supervision_gap":
-        return "runtime_supervision_recovering"
+        return "opl_runtime_owner_handoff_recovering"
     if lane_id == "publication_gate_specificity_required":
         return "publication_gate_specificity_required"
     if lane_id == "completion_evidence_required":
@@ -81,18 +81,18 @@ def _operator_status_truth_snapshot(
     controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     domain_health_diagnostic_payload: dict[str, Any] | None,
-    runtime_supervision_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
 ) -> tuple[str | None, str | None]:
     latest_event_source, latest_event_time = _latest_event_snapshot(latest_events)
     candidates_by_state = {
-        "runtime_supervision_recovering": (
+        "opl_runtime_owner_handoff_recovering": (
             ("supervisor_tick_audit", _non_empty_text((supervisor_tick_audit or {}).get("latest_recorded_at"))),
-            ("runtime_supervision", _non_empty_text((runtime_supervision_payload or {}).get("recorded_at"))),
+            ("opl_runtime_owner_handoff", _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("recorded_at"))),
             (latest_event_source, latest_event_time),
         ),
         "runtime_recovering": (
-            ("runtime_supervision", _non_empty_text((runtime_supervision_payload or {}).get("recorded_at"))),
+            ("opl_runtime_owner_handoff", _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("recorded_at"))),
             ("supervisor_tick_audit", _non_empty_text((supervisor_tick_audit or {}).get("latest_recorded_at"))),
             (latest_event_source, latest_event_time),
         ),
@@ -150,7 +150,7 @@ def _operator_status_human_surface_summary(handling_state: str) -> tuple[str, st
         return "stale", "completed study 的 completion evidence 合同还未闭环；不能重开写作或 runtime repair。"
     if handling_state == "waiting_user_decision":
         return "pending_decision", "当前主要等待人工判断，给人看的稿件状态以论文门控为准。"
-    if handling_state in {"runtime_supervision_recovering", "runtime_recovering"}:
+    if handling_state in {"opl_runtime_owner_handoff_recovering", "runtime_recovering"}:
         return "monitoring_runtime", "当前优先看结构化监管真相，给人看的稿件表面还不是主判断面。"
     return "current", "给人看的稿件表面当前没有额外刷新告警。"
 
@@ -159,7 +159,7 @@ def _operator_status_verdict(handling_state: str) -> str:
     parked_verdict = parked_status_verdict(handling_state)
     if parked_verdict is not None:
         return parked_verdict
-    if handling_state == "runtime_supervision_recovering":
+    if handling_state == "opl_runtime_owner_handoff_recovering":
         return "MAS 正在恢复外环监管，当前 study 仍处在受管修复中。"
     if handling_state == "runtime_recovering":
         return "MAS 正在处理 runtime recovery，当前 study 仍处在受管修复中。"
@@ -180,10 +180,10 @@ def _operator_status_owner_summary(handling_state: str) -> str:
     parked_summary = parked_owner_summary(handling_state)
     if parked_summary is not None:
         return parked_summary
-    if handling_state == "runtime_supervision_recovering":
+    if handling_state == "opl_runtime_owner_handoff_recovering":
         return "MAS 正在恢复 workspace 级监管心跳，托管执行仍由 runtime 持有。"
     if handling_state == "runtime_recovering":
-        return "MAS 正在根据 runtime supervision 真相继续处理恢复。"
+        return "MAS 正在根据 OPL runtime owner handoff 真相继续处理恢复。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "MAS 正在根据 publication gate 真相刷新给人看的投稿包镜像。"
     if handling_state == "publication_gate_specificity_required":
@@ -251,10 +251,10 @@ def _operator_status_focus_summary(
 def _operator_status_next_confirmation_signal(handling_state: str, intervention_lane: dict[str, Any]) -> str:
     if is_parked_handling_state(handling_state):
         return "看是否出现新的用户反馈、外部条件解除或显式 resume/rerun/relaunch。"
-    if handling_state == "runtime_supervision_recovering":
+    if handling_state == "opl_runtime_owner_handoff_recovering":
         return "看 supervisor tick 是否回到 fresh，并确认监管缺口告警从 attention queue 消失。"
     if handling_state == "runtime_recovering":
-        return "看 runtime_supervision/latest.json 的 health_status 回到 live，并确认 meaningful artifact delta 刷新。"
+        return "看 opl_runtime_owner_handoff/latest.json 的 health_status 回到 live，并确认 meaningful artifact delta 刷新。"
     if handling_state == "paper_surface_refresh_in_progress":
         return "看 artifacts/controller/current_package_freshness/latest.json 是否写出 fresh proof，再看 current_package 和 submission_minimal 是否同步到同一 authority signature。"
     if handling_state == "publication_gate_specificity_required":
@@ -352,7 +352,7 @@ def _operator_status_card(
     controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
     domain_health_diagnostic_payload: dict[str, Any] | None,
-    runtime_supervision_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     auto_runtime_parked: dict[str, Any] | None,
@@ -373,7 +373,7 @@ def _operator_status_card(
         controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
         domain_health_diagnostic_payload=domain_health_diagnostic_payload,
-        runtime_supervision_payload=runtime_supervision_payload,
+        opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
         supervisor_tick_audit=supervisor_tick_audit,
     )
     human_surface_freshness, human_surface_summary = _operator_status_human_surface_summary(handling_state)

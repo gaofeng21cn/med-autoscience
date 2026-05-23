@@ -64,7 +64,7 @@ def _runtime_recovery_status(
             "attempt_state": "recovering",
             "blocking_reasons": ["quest_marked_running_but_no_live_session"],
         },
-        "control_plane_snapshot": {
+        "authority_snapshot": {
             "dispatch_gate": {"state": "open", "dispatch_allowed": True, "blocking_reasons": []},
             "route_authorization": {"runtime_recovery_allowed": True},
             "blocking_reasons": [],
@@ -76,12 +76,12 @@ def _runtime_recovery_status(
             "authorized": True,
             "action": "runtime_recovery",
             "work_unit_id": "runtime_recovery",
-            "controller_action_type": "ensure_study_runtime",
+            "controller_action_type": "request_opl_stage_attempt",
             "control_surface": "domain_health_diagnostic",
         }
     if supervisor_only:
         payload["execution_owner_guard"] = {"supervisor_only": True, "active_run_id": "run-live"}
-        payload["control_plane_snapshot"]["blocking_reasons"] = ["execution_owner_guard.supervisor_only"]
+        payload["authority_snapshot"]["blocking_reasons"] = ["execution_owner_guard.supervisor_only"]
     return payload
 
 
@@ -100,7 +100,7 @@ def _live_controller_work_unit_status(
         else "submission_authority_sync_closure"
     )
     route_target = "analysis-campaign" if repair_kind == "analysis_claim_evidence_redrive" else "controller"
-    controller_actions = ["run_quality_repair_batch"] if repair_kind == "analysis_claim_evidence_redrive" else ["ensure_study_runtime"]
+    controller_actions = ["run_quality_repair_batch"] if repair_kind == "analysis_claim_evidence_redrive" else ["request_opl_stage_attempt"]
     return {
         **make_progress_projection_payload(
             study_id=study_id,
@@ -129,7 +129,7 @@ def _live_controller_work_unit_status(
                 "active_run_id": active_run_id,
             },
         },
-        "control_plane_snapshot": {
+        "authority_snapshot": {
             "dispatch_gate": {
                 "state": "open",
                 "dispatch_allowed": True,

@@ -22,10 +22,10 @@ from med_autoscience.controllers.workspace_init_parts.retired_entries import (
     retired_workspace_service_paths,
 )
 from med_autoscience.profiles import WorkspaceProfile, load_profile
-from med_autoscience.runtime_backend import (
-    DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
-    controlled_research_backend_metadata_for_backend_id,
-    engine_id_for_backend_id,
+from med_autoscience.opl_runtime_contract import (
+    OPL_HOSTED_STAGE_RUNTIME_ID,
+    controlled_research_backend_metadata_for_runtime_ref,
+    engine_id_for_runtime_ref,
 )
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
 
@@ -76,7 +76,9 @@ def run_workspace_monolith_migration(*, profile_path: Path, apply: bool) -> dict
         "target_topology": {
             "runtime_home": str(target_runtime_home),
             "runtime_quests_root": str(target_quests_root),
-            "runtime_os": "MAS Runtime OS",
+            "runtime_owner": "one-person-lab",
+            "domain_refs_owner": "MedAutoScience",
+            "runtime_role": "OPL provider-backed stage runtime with MAS domain authority refs",
         },
         "migrated": inventory["migrated"],
         "skipped": inventory["skipped"],
@@ -205,7 +207,7 @@ def _build_inventory(
             "new_runtime_root": str(target_quests_root.parent),
             "old_quest_root": str(old_quest_root),
             "new_quest_root": str(new_quest_root),
-            "reason": "legacy_binding_to_mas_runtime_os",
+            "reason": "legacy_binding_to_opl_provider_stage_runtime_and_mas_domain_refs",
             "runtime_status": status,
             "auto_wakeup": False,
         }
@@ -402,10 +404,8 @@ def _render_retired_launchd_readme() -> str:
     return (
         "# Retired Workspace-Local Scheduler\n\n"
         "This workspace-local LaunchAgent wrapper is retired.\n\n"
-        "Default scheduler lifecycle is delegated to the OPL provider/runtime manager via:\n\n"
-        "- `medautosci runtime ensure-supervision --profile <profile>`\n"
-        "- `medautosci runtime supervision-status --profile <profile>`\n"
-        "- `medautosci runtime remove-supervision --profile <profile>`\n\n"
+        "Default stage/runtime lifecycle is delegated to OPL current_control_state refs-only handoff.\n\n"
+        "Use MAS `domain-health-diagnostic` only for domain health refs, owner receipts, and typed blockers.\n\n"
         "`local` is physical-retired tombstone/provenance-only. Do not reinstall "
         "workspace-local LaunchAgent wrappers from this directory or expose local cleanup commands.\n"
     )
@@ -431,16 +431,20 @@ def _write_runtime_binding_for_item(
     binding_path = study_root / "runtime_binding.yaml"
     previous = _read_yaml_mapping(binding_path)
     sanitized_previous = _sanitize_runtime_binding_previous(previous)
-    research_backend_id, research_engine_id = controlled_research_backend_metadata_for_backend_id(
-        DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+    research_backend_id, research_engine_id = controlled_research_backend_metadata_for_runtime_ref(
+        OPL_HOSTED_STAGE_RUNTIME_ID
     )
+    runtime_engine_id = engine_id_for_runtime_ref(OPL_HOSTED_STAGE_RUNTIME_ID)
     payload = {
         **sanitized_previous,
         "schema_version": 1,
-        "engine": engine_id_for_backend_id(DEFAULT_MANAGED_RUNTIME_BACKEND_ID),
-        "runtime_backend_id": DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
-        "runtime_backend": DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
-        "runtime_engine_id": engine_id_for_backend_id(DEFAULT_MANAGED_RUNTIME_BACKEND_ID),
+        "engine": runtime_engine_id,
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "runtime_substrate": OPL_HOSTED_STAGE_RUNTIME_ID,
+        "opl_runtime_ref": OPL_HOSTED_STAGE_RUNTIME_ID,
+        "runtime_ref": OPL_HOSTED_STAGE_RUNTIME_ID,
+        "runtime_engine_id": runtime_engine_id,
         "research_backend_id": research_backend_id,
         "research_backend": research_backend_id,
         "research_engine_id": research_engine_id,
@@ -497,8 +501,12 @@ def _write_migrated_quest_snapshot(*, item: Mapping[str, Any], recorded_at: str)
         "runtime_root": str(new_quest_root.parent),
         "historical_fixture_ref": historical_fixture_ref,
     }
-    runtime_state = {
+    opl_runtime_state_handoff = {
         **sanitized_runtime_state,
+        "surface_kind": "opl_runtime_state_migration_handoff",
+        "effect": "refs_only",
+        "queue_owner": "one-person-lab",
+        "mas_writes_runtime_state": False,
         "quest_id": quest_id,
         "study_id": study_id,
         "status": status,
@@ -515,7 +523,10 @@ def _write_migrated_quest_snapshot(*, item: Mapping[str, Any], recorded_at: str)
         },
     }
     _write_yaml(new_quest_root / "quest.yaml", quest_payload)
-    _write_json(new_quest_root / ".ds" / "runtime_state.json", runtime_state)
+    _write_json(
+        new_quest_root / "artifacts" / "runtime" / "opl_runtime_state_migration_handoff.json",
+        opl_runtime_state_handoff,
+    )
 
 
 def _sanitize_runtime_binding_previous(previous: Mapping[str, Any]) -> dict[str, Any]:

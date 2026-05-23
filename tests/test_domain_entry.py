@@ -181,15 +181,15 @@ def test_domain_entry_rejects_missing_required_fields(tmp_path: Path) -> None:
         )
 
 
-def test_domain_entry_dispatches_control_plane_operations(monkeypatch, tmp_path: Path) -> None:
+def test_domain_entry_dispatches_authority_operations(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.domain_entry")
     workspace_root = tmp_path / "workspace"
 
     monkeypatch.setattr(
-        module.control_plane_migration_audit,
+        module.workspace_authority_migration_audit,
         "run_migration_audit",
         lambda *, workspace_roots, dry_run: {
-            "surface": "control_plane_migration_audit",
+            "surface": "workspace_authority_migration_audit",
             "workspace_roots": [str(path) for path in workspace_roots],
             "dry_run": dry_run,
         },
@@ -197,14 +197,14 @@ def test_domain_entry_dispatches_control_plane_operations(monkeypatch, tmp_path:
 
     payload = module.MedAutoScienceDomainEntry().dispatch(
         {
-            "command": "control-plane-migration-audit",
+            "command": "workspace-authority-migration-audit",
             "workspace_roots": [str(workspace_root)],
         }
     )
 
     assert payload == {
-        "command": "control-plane-migration-audit",
-        "surface": "control_plane_migration_audit",
+        "command": "workspace-authority-migration-audit",
+        "surface": "workspace_authority_migration_audit",
         "workspace_roots": [str(workspace_root)],
         "dry_run": True,
     }
@@ -218,7 +218,7 @@ def test_domain_entry_dispatches_lifecycle_report_scan_options(monkeypatch, tmp_
         module.artifact_lifecycle_operations_report,
         "run_lifecycle_operations_report",
         lambda *, workspace_roots, deep, max_files, max_seconds: {
-            "surface": "control_plane_lifecycle_report",
+            "surface": "artifact_lifecycle_report",
             "workspace_roots": [str(path) for path in workspace_roots],
             "scan_policy": {
                 "deep_scan_enabled": deep,
@@ -230,7 +230,7 @@ def test_domain_entry_dispatches_lifecycle_report_scan_options(monkeypatch, tmp_
 
     payload = module.MedAutoScienceDomainEntry().dispatch(
         {
-            "command": "control-plane-lifecycle-report",
+            "command": "artifact-lifecycle-report",
             "workspace_roots": [str(workspace_root)],
             "deep": True,
             "max_files": 13,
@@ -239,8 +239,8 @@ def test_domain_entry_dispatches_lifecycle_report_scan_options(monkeypatch, tmp_
     )
 
     assert payload == {
-        "command": "control-plane-lifecycle-report",
-        "surface": "control_plane_lifecycle_report",
+        "command": "artifact-lifecycle-report",
+        "surface": "artifact_lifecycle_report",
         "workspace_roots": [str(workspace_root)],
         "scan_policy": {
             "deep_scan_enabled": True,
@@ -250,74 +250,51 @@ def test_domain_entry_dispatches_lifecycle_report_scan_options(monkeypatch, tmp_
     }
 
 
-def test_domain_entry_dispatches_cleanup_apply_control_plane_snapshot(monkeypatch, tmp_path: Path) -> None:
+def test_domain_entry_rejects_control_plane_cleanup_apply(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.domain_entry")
     workspace_root = tmp_path / "workspace"
-    snapshot = {"surface": "control_plane_snapshot"}
-    captured: dict[str, object] = {}
 
-    def fake_run_cleanup_apply(*, workspace_roots, apply, control_plane_snapshot=None):
-        captured["workspace_roots"] = list(workspace_roots)
-        captured["apply"] = apply
-        captured["control_plane_snapshot"] = control_plane_snapshot
-        return {
-            "surface": "control_plane_cleanup_apply",
-            "workspace_roots": [str(path) for path in workspace_roots],
-            "apply": apply,
-        }
-
-    monkeypatch.setattr(module.control_plane_cleanup_apply, "run_cleanup_apply", fake_run_cleanup_apply)
-
-    payload = module.MedAutoScienceDomainEntry().dispatch(
-        {
+    with pytest.raises(ValueError, match="不支持的 domain entry command"):
+        module.MedAutoScienceDomainEntry().dispatch({
             "command": "control-plane-cleanup-apply",
             "workspace_roots": [str(workspace_root)],
             "apply": True,
-            "control_plane_snapshot": snapshot,
-        }
-    )
-
-    assert captured == {
-        "workspace_roots": [workspace_root],
-        "apply": True,
-        "control_plane_snapshot": snapshot,
-    }
-    assert payload["surface"] == "control_plane_cleanup_apply"
+        })
 
 
-def test_domain_entry_dispatches_backfill_apply_control_plane_snapshot(monkeypatch, tmp_path: Path) -> None:
+def test_domain_entry_dispatches_backfill_apply_authority_snapshot(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.domain_entry")
     workspace_root = tmp_path / "workspace"
-    snapshot = {"surface": "control_plane_snapshot"}
+    snapshot = {"surface": "authority_snapshot"}
     captured: dict[str, object] = {}
 
-    def fake_run_backfill_apply(*, workspace_roots, apply, control_plane_snapshot=None):
+    def fake_run_backfill_apply(*, workspace_roots, apply, authority_snapshot=None):
         captured["workspace_roots"] = list(workspace_roots)
         captured["apply"] = apply
-        captured["control_plane_snapshot"] = control_plane_snapshot
+        captured["authority_snapshot"] = authority_snapshot
         return {
-            "surface": "control_plane_backfill_apply",
+            "surface": "delivery_authority_backfill_apply",
             "workspace_roots": [str(path) for path in workspace_roots],
             "apply": apply,
         }
 
-    monkeypatch.setattr(module.control_plane_backfill_apply, "run_backfill_apply", fake_run_backfill_apply)
+    monkeypatch.setattr(module.delivery_authority_backfill_apply, "run_backfill_apply", fake_run_backfill_apply)
 
     payload = module.MedAutoScienceDomainEntry().dispatch(
         {
-            "command": "control-plane-backfill-apply",
+            "command": "delivery-authority-backfill-apply",
             "workspace_roots": [str(workspace_root)],
             "apply": True,
-            "control_plane_snapshot": snapshot,
+            "authority_snapshot": snapshot,
         }
     )
 
     assert captured == {
         "workspace_roots": [workspace_root],
         "apply": True,
-        "control_plane_snapshot": snapshot,
+        "authority_snapshot": snapshot,
     }
-    assert payload["surface"] == "control_plane_backfill_apply"
+    assert payload["surface"] == "delivery_authority_backfill_apply"
 
 
 def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:

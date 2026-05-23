@@ -46,10 +46,9 @@ def workspace_commands(
         "bootstrap": f"{_command_prefix(profile_ref)} bootstrap --profile {_profile_arg(profile_ref)}",
         "supervisor_tick": (
             f"{_command_prefix(profile_ref)} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+            f"--profile {_profile_arg(profile_ref)} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
         ),
-        "service_install": f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",
-        "service_status": f"{_command_prefix(profile_ref)} runtime-supervision-status --profile {_profile_arg(profile_ref)}",
+        "service_status": f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} --format json",
     }
 
 
@@ -73,6 +72,6 @@ def user_loop_commands(
         "watch_progress_template": f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>",
         "refresh_supervision": (
             f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
+            f"--profile {profile_arg} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
         ),
     }

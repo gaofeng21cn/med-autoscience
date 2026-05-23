@@ -13,7 +13,6 @@ from typing import Any
 import yaml
 
 from med_autoscience import display_registry
-from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers.statistical_discipline_runtime import validate_statistical_reviewer_audit
 from med_autoscience.policies import medical_disclosure_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
@@ -24,15 +23,8 @@ from med_autoscience.runtime_protocol import (
     quest_state,
     report_store as runtime_protocol_report_store,
     resolve_paper_root_context,
-    user_message,
 )
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
-
-
-managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
-    runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
-)
-managed_runtime_transport = managed_runtime_backend
 
 
 @dataclass

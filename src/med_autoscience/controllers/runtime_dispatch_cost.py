@@ -156,29 +156,9 @@ def executor_action_cost(
             reason="default_executor_dispatch_writer_handoff_ready",
             action_fingerprint=action_fingerprint,
         )
-    if action_type == "runtime_platform_repair" and runtime_platform_repair_started_worker(execution):
-        return codex_worker_dispatch_contract(
-            reason="runtime_platform_repair_started_codex_worker",
-            action_fingerprint=action_fingerprint,
-        )
     return controller_apply_contract(
         reason="default_executor_dispatch_controller_apply",
         action_fingerprint=action_fingerprint,
-    )
-
-
-def runtime_platform_repair_started_worker(execution: Mapping[str, Any]) -> bool:
-    owner_result = _mapping(execution.get("owner_result"))
-    candidates: list[Mapping[str, Any]] = [owner_result]
-    for key in ("resume_result", "ensure_runtime_result", "runtime_platform_repair_apply", "owner_result"):
-        nested = _mapping(owner_result.get(key))
-        if nested:
-            candidates.append(nested)
-    return any(
-        candidate.get("started") is True
-        or candidate.get("worker_running") is True
-        or (_text(candidate.get("active_run_id")) is not None and _text(candidate.get("status")) in {"running", "scheduled"})
-        for candidate in candidates
     )
 
 
@@ -206,5 +186,4 @@ __all__ = [
     "executor_action_cost",
     "observe_only_contract",
     "reconcile_dry_run_contract",
-    "runtime_platform_repair_started_worker",
 ]

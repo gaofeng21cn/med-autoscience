@@ -16,10 +16,10 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     boundary = manifest["functional_consumer_boundary"]
 
     assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
-    assert boundary["status"] == "opl_consumes_generic_surfaces_mas_retains_domain_authority_pack"
+    assert boundary["status"] == "opl_consumes_generic_surfaces_mas_supplies_domain_authority_pack"
     assert boundary["consumer_role"] == "domain_authority_pack_thin_program_surface"
     assert boundary["generic_surface_owner"] == "one-person-lab"
-    assert boundary["no_active_caller_required"] is True
+    assert boundary["no_resurrection_required"] is True
     assert boundary["mas_does_not_own"] == [
         "generic_scheduler",
         "generic_daemon",
@@ -32,7 +32,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "generic_artifact_lifecycle",
         "generic_observability",
     ]
-    assert set(boundary["mas_retains"]) == {
+    assert set(boundary["mas_domain_authority_surfaces"]) == {
         "study_truth",
         "publication_quality_verdict",
         "artifact_authority",
@@ -75,7 +75,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     handoff = boundary["generated_surface_handoff"]
     assert handoff["surface_kind"] == "mas_generated_surface_handoff"
     assert handoff["generated_surface_owner"] == "one-person-lab"
-    assert handoff["current_mas_role"] == "handwritten_migration_bridge"
+    assert handoff["current_mas_role"] == "domain_handler_and_refs_projection_source"
     assert handoff["long_term_mas_owner"] is False
     assert handoff["mas_handwritten_shell_expansion_allowed"] is False
     handoff_by_id = {item["surface_id"]: item for item in handoff["handoff_surfaces"]}
@@ -99,7 +99,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert generated_default["default_caller_owner"] == "one-person-lab"
     assert generated_default["mas_handwritten_shell_default_caller_allowed"] is False
     assert generated_default["mas_handwritten_shell_expansion_allowed"] is False
-    assert generated_default["all_default_callers_migrated"] is True
+    assert generated_default["all_default_surfaces_generated"] is True
     assert generated_default["physical_delete_is_not_implied"] is True
     readiness = generated_default["opl_default_caller_readiness_evidence"]
     assert readiness["surface_kind"] == "mas_opl_default_caller_readiness_evidence"
@@ -107,7 +107,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert readiness["status"] == "ready_domain_evidence_required"
     assert readiness["structural_replacement_evidence_ready"] is True
     assert readiness["replacement_parity"] == "ready"
-    assert readiness["active_caller_cutover"] == "ready"
+    assert readiness["default_surface_cutover"] == "ready"
     assert readiness["physical_delete_authorized"] is False
     assert readiness["authority_boundary"]["can_claim_domain_ready"] is False
     assert readiness["authority_boundary"]["can_claim_quality_verdict"] is False
@@ -127,12 +127,12 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         item["surface_id"]: item for item in generated_default["surface_boundaries"]
     }
     assert set(generated_surfaces) == set(generated_default["default_caller_surfaces"])
-    assert generated_surfaces["cli"]["mas_retained_role"] == "domain_handler_target"
+    assert generated_surfaces["cli"]["mas_allowed_role"] == "domain_handler_target"
     assert generated_surfaces["mcp"]["parity_ref"] == "mcp_descriptor_parity"
     assert generated_surfaces["product_entry"]["default_caller_owner"] == "one-person-lab"
-    assert generated_surfaces["sidecar"]["mas_retained_role"] == "domain_owner_route_handoff_adapter"
-    assert generated_surfaces["status"]["mas_retained_role"] == "domain_truth_status_projection"
-    assert generated_surfaces["workbench"]["mas_retained_role"] == "domain_projection_refs"
+    assert generated_surfaces["sidecar"]["mas_allowed_role"] == "domain_owner_route_handoff_refs"
+    assert generated_surfaces["status"]["mas_allowed_role"] == "domain_truth_status_projection"
+    assert generated_surfaces["workbench"]["mas_allowed_role"] == "domain_projection_refs"
     assert all(item["mas_generic_owner_allowed"] is False for item in generated_surfaces.values())
     assert generated_default["allowed_mas_program_roles_after_cutover"] == [
         "direct_skill_target",
@@ -141,7 +141,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "typed_blocker",
         "ai_first_validator",
         "diagnostic",
-        "refs_only_adapter",
+        "domain_authority_refs",
     ]
     authority = boundary["minimal_authority_function_manifest"]
     assert authority["surface_kind"] == "mas_minimal_authority_function_manifest"
@@ -153,7 +153,6 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "ai_first_stage_gate",
         "ai_first_record_validator",
         "mechanical_guard",
-        "refs_only_adapter",
     ]
     assert authority["verdict_function_model_retired"] is True
     assert authority["gate_validator_ref"] == (
@@ -251,7 +250,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert artifact_auth["program_role"] == "materializer"
     assert function_by_id["owner_receipt_signer"]["judgment_mode"] == "mechanical_guard"
     assert function_by_id["medical_helper_implementation"]["judgment_mode"] == "mechanical_guard"
-    assert authority["all_other_program_surfaces"] == "opl_generated_or_migration_bridge"
+    assert authority["all_other_program_surfaces"] == "opl_generated_or_domain_refs_projection_source"
     assert authority["forbidden_long_term_mas_shell_owners"] == [
         "cli",
         "mcp",
@@ -273,13 +272,12 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "generic_queue_attempt_retry_dead_letter",
         "generic_transition_runner",
     ]
-    assert classification["refs_only_adapter"] == [
-        "lifecycle_refs_adapter",
+    assert classification["domain_authority_refs"] == [
+        "domain_authority_refs_index",
         "paper_work_unit_outbox_index",
         "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell",
         "artifact_lifecycle_storage_audit_shell",
-        "terminal_attach_transport",
     ]
     assert set(classification["minimal_authority_function"]) == {
         "study_truth",
@@ -301,7 +299,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_without_active_caller",
+        "scheduler_legacy_residue_tombstone_provenance",
     }
     assert set(classification["legacy_cleanup_physical_retired"]) == {
         "local_launchd_scheduler_install_path",
@@ -309,43 +307,52 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "workspace_local_watch_service_wrappers",
     }
     inventory = boundary["functional_module_inventory"]
-    assert len(inventory) == 19
+    assert len(inventory) == 18
     by_id = {item["module_id"]: item for item in inventory}
-    lifecycle_item = by_id["lifecycle_refs_adapter"]
+    lifecycle_item = by_id["domain_authority_refs_index"]
     assert lifecycle_item["code_paths"] == [
-        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
-        "src/med_autoscience/runtime_protocol/study_runtime.py",
-        "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
+        "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
+        "src/med_autoscience/opl_domain_pack/",
+        "src/med_autoscience/controllers/owner_route_handoff_parts/substrate_adapter.py",
     ]
-    assert lifecycle_item["active_caller_status"] == "refs_only_domain_owner_route_handoff_adapter_active"
+    assert lifecycle_item["current_ref_status"] == (
+        "domain_authority_refs_index_no_runtime_lifecycle_owner"
+    )
     assert lifecycle_item["migration_action"] == (
-        "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index"
+        "declare_domain_authority_refs_index_and_consume_opl_current_control_state"
     )
     refs_only_retirement_gates = {
-        item["module_id"]: item for item in boundary["refs_only_adapter_retirement_gates"]
+        item["module_id"]: item for item in boundary["domain_authority_refs_retirement_gates"]
     }
-    assert set(refs_only_retirement_gates) == set(classification["refs_only_adapter"])
-    for module_id in classification["refs_only_adapter"]:
+    assert set(refs_only_retirement_gates) == set(classification["domain_authority_refs"])
+    for module_id in classification["domain_authority_refs"]:
         gate = by_id[module_id]["retirement_gate"]
         assert gate == refs_only_retirement_gates[module_id]
-        assert gate["classification"] == "refs_only_adapter"
-        assert gate["active_caller_count"] > 0
-        assert gate["active_caller_proof"]
+        assert gate["classification"] == "domain_authority_refs"
+        assert gate["domain_ref_consumer_count"] > 0
+        assert gate["domain_ref_consumer_refs"]
         assert gate["generic_owner_claim_allowed"] is False
         assert gate["can_emit_paper_closure_verdict"] is False
         assert gate["can_emit_generic_owner_verdict"] is False
         assert "paper_closure_verdict" in gate["must_not_emit"]
-        assert "active_caller_count=0" in gate["delete_or_tombstone_after"]
+        if module_id == "domain_authority_refs_index":
+            assert "domain_authority_refs_replaced_by_opl_generated_ref_index" in gate[
+                "delete_or_tombstone_after"
+            ]
+        else:
+            assert gate["delete_or_tombstone_after"]
+            assert all("active_caller_count" not in item for item in gate["delete_or_tombstone_after"])
     assert set(lifecycle_item["forbidden_mas_roles"]) == {
         "generic_persistence_engine",
         "generic_lifecycle_engine",
+        "generic_runtime_lifecycle_owner",
         "generic_restore_retention_owner",
     }
     assert by_id["owner_route_reconcile_materialize_dispatch_shell"]["migration_action"] == (
-        "declare_domain_route_policy_and_consume_opl_runtime_manager_loop"
+        "declare_owner_route_policy_and_consume_opl_runtime_manager_loop"
     )
     wrapper_item = by_id["generic_cli_mcp_product_wrappers"]
-    assert wrapper_item["active_callers"] == [
+    assert wrapper_item["domain_ref_consumers"] == [
         "MAS CLI",
         "MCP tool handlers",
         "skill direct domain entry",
@@ -358,20 +365,20 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert by_id["publication_quality_verdict"]["cannot_absorb_reason"] == (
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )
-    assert by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
     assert by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
     assert by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
     assert by_id["local_launchd_scheduler_install_path"]["trigger_allowed"] is False
     assert by_id["local_launchd_scheduler_install_path"]["write_install_proof_allowed"] is False
+    assert by_id["local_launchd_scheduler_install_path"]["resurrection_allowed"] is False
     assert by_id["local_launchd_scheduler_install_path"]["classification"] == (
         "legacy_cleanup_physical_retired"
     )
-    assert by_id["local_launchd_scheduler_install_path"]["no_active_caller_gate"][
-        "active_caller_allowed"
-    ] is False
+    assert by_id["local_launchd_scheduler_install_path"]["no_resurrection_gate"][
+        "default_caller_count"
+    ] == 0
     assert boundary["functional_module_inventory_summary"]["classification_counts"] == {
         "declarative_pack_generated_surface": 7,
-        "refs_only_adapter": 6,
+        "domain_authority_refs": 5,
         "minimal_authority_function": 3,
         "legacy_cleanup_physical_retired": 3,
     }
@@ -380,7 +387,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_without_active_caller",
+        "scheduler_legacy_residue_tombstone_provenance",
     ]
     assert boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
     assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
@@ -415,14 +422,14 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_without_active_caller",
+        "scheduler_legacy_residue_tombstone_provenance",
     ]
     assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
     assert followthrough_summary["remaining_functional_followthrough_gates"] == []
     assert followthrough_summary["closed_functional_structure_gate_ids"] == [
-        "generated_surface_active_caller_cutover",
-        "refs_only_adapter_thinning",
+        "generated_surface_default_owner_cutover",
+        "domain_authority_refs_thinning",
         "legacy_cleanup_physical_retirement",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
@@ -467,7 +474,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         assert item["physical_delete_gate"]
         assert item["evidence_refs"]
     assert physical_groups["lifecycle_refs_residue"]["current_role"] == (
-        "refs_only_domain_receipt_locator_and_lifecycle_ref_index"
+        "refs_only_domain_authority_receipt_locator_index"
     )
     assert physical_evidence["active_path_residue_cleanup_gates_ref"] == (
         "functional_consumer_boundary.active_path_residue_cleanup_gates"
@@ -481,31 +488,44 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "worker_lease_residency_projection",
         "lifecycle_refs_sqlite_index",
         "workbench_shell_domain_projection_refs",
-        "owner_route_handoff_adapter",
+        "owner_route_handoff_domain_ref_entry",
         "status_projection_domain_truth_refs",
         "legacy_supervisor_scheduler_tombstone",
     }
-    retained_residue_ids = {
+    physically_retired_residue_ids = {
         "runtime_transport_core_bridge",
         "runtime_turn_runner_closeout_adapter",
         "worker_lease_residency_projection",
         "lifecycle_refs_sqlite_index",
+    }
+    for residue_id in physically_retired_residue_ids:
+        gate = cleanup_gates[residue_id]
+        assert gate["current_disposition"] == "physically_retired"
+        assert gate["current_role"] == "none_physically_retired_no_alias"
+        assert gate["current_paths"] == []
+        assert gate["physical_delete_completed"] is True
+        assert gate["physical_delete_permitted"] is True
+        assert gate["resurrection_alias_or_wrapper_allowed"] is False
+        assert gate["archive_permitted"] is False
+        assert gate["tombstone_permitted"] is False
+        assert "paper_closure_verdict" in gate["must_not_emit"]
+    domain_ref_residue_ids = {
         "workbench_shell_domain_projection_refs",
-        "owner_route_handoff_adapter",
+        "owner_route_handoff_domain_ref_entry",
         "status_projection_domain_truth_refs",
     }
-    for residue_id in retained_residue_ids:
+    for residue_id in domain_ref_residue_ids:
         gate = cleanup_gates[residue_id]
-        assert gate["current_disposition"] == "retain_with_explicit_cleanup_gate"
-        assert gate["active_caller_count"] > 0
-        assert gate["no_active_caller_proven"] is False
+        assert gate["current_disposition"] == "domain_projection_refs_only_no_runtime_control_alias"
+        assert gate["domain_ref_consumer_count"] > 0
+        assert gate["stale_surface_scan_clean"] is False
         assert gate["physical_delete_permitted"] is False
         assert gate["archive_permitted"] is False
         assert gate["rename_permitted"] is False
         assert gate["tombstone_permitted"] is False
-        assert gate["no_alias_facade_compat_wrapper_allowed"] is True
+        assert gate["no_resurrection_alias_or_wrapper_allowed"] is False
         assert gate["delete_or_tombstone_after"] == [
-            "active_caller_count=0",
+            "stale_surface_scan_clean",
             "opl_replacement_parity_proven",
             "domain_receipt_parity_proven",
             "focused_tests_green",
@@ -515,15 +535,14 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         assert "paper_closure_verdict" in gate["must_not_emit"]
     tombstone_gate = cleanup_gates["legacy_supervisor_scheduler_tombstone"]
     assert tombstone_gate["current_disposition"] == "tombstone_only"
-    assert tombstone_gate["active_caller_count"] == 0
-    assert tombstone_gate["no_active_caller_proven"] is True
+    assert tombstone_gate["stale_surface_scan_clean"] is True
     assert tombstone_gate["physical_delete_permitted"] is False
     assert tombstone_gate["tombstone_permitted"] is True
     assert "mas_owned_generic_persistence_engine" in physical_evidence["forbidden_claims"]
-    assert "compat_alias_or_facade_retained_for_retired_runtime_path" in physical_evidence[
+    assert "resurrection_alias_or_wrapper_for_retired_runtime_path" in physical_evidence[
         "forbidden_claims"
     ]
-    assert "physical_delete_already_completed" in physical_evidence["forbidden_claims"]
+    assert "physical_delete_claim_without_replacement_proof" in physical_evidence["forbidden_claims"]
     retirement_matrix = boundary["physical_retirement_gate_matrix"]
     assert retirement_matrix["surface_kind"] == "mas_generated_caller_retirement_gate_matrix"
     assert retirement_matrix["status"] == "physical_delete_blocked_until_all_gate_inputs_hold"
@@ -535,7 +554,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "opl_default_caller_readiness_evidence"
     )
     assert retirement_matrix["physical_delete_requires_all_gates"] == [
-        "active_caller_count=0",
+        "stale_surface_scan_clean",
         "opl_replacement_parity",
         "mas_owner_receipt_parity",
         "focused_tests_green",
@@ -545,44 +564,24 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
     assert set(candidates) == {
         "runtime_transport",
-        "lifecycle_refs_sqlite",
+        "domain_authority_refs_index",
         "workbench_shell",
         "owner_route_handoff",
         "status_projection",
     }
     for surface_id, candidate in candidates.items():
-        assert candidate["active_default_caller_count"] == 0
-        assert candidate["active_default_caller_zero_proven"] is True
-        assert candidate["active_caller_zero_proven"] is False
         assert candidate["physical_delete_permitted"] is False
-        assert candidate["delete_gate_status"].startswith("blocked_")
-        assert candidate["retained_as"] in {
-            "domain_receipt_adapter_or_standalone_diagnostic",
-            "refs_only_lifecycle_ref_index",
-            "domain_projection_refs_for_opl_workbench",
-            "domain_owner_route_handoff_adapter",
-            "domain_truth_status_projection",
-        }, surface_id
-        assert candidate["no_active_caller_proof"]["default_callers"] == []
-        assert candidate["no_active_caller_proof"]["full_active_caller_status"] == (
-            "not_proven_retained_domain_or_diagnostic_adapter"
-        )
-        assert candidate["no_active_caller_proof"]["physical_delete_allowed"] is False
-        assert candidate["gate_results"]["active_caller_count=0"] is False
-        assert candidate["gate_results"]["opl_default_caller_readiness"] == (
-            "ready_domain_evidence_required"
-        )
-        assert candidate["gate_results"]["focused_tests_green"] == "focused_lane_required"
+        assert candidate["mas_default_runtime_owner_allowed"] is False
+        assert candidate["gate_results"]["opl_default_caller_readiness"]
         assert candidate["gate_results"]["tombstone_refs_landed"] in {
             "required_before_delete",
             "landed_for_retired_legacy_only",
+            "not_required_for_no_alias_physical_retirement",
         }
-    assert candidates["runtime_transport"]["active_caller_status"] == (
-        "domain_receipt_adapter_active"
-    )
+    assert candidates["runtime_transport"]["current_ref_status"] == "physical_retired_no_alias"
     assert "src/med_autoscience/runtime_transport/" in candidates["runtime_transport"]["code_paths"]
-    assert candidates["lifecycle_refs_sqlite"]["retained_as"] == (
-        "refs_only_lifecycle_ref_index"
+    assert candidates["domain_authority_refs_index"]["current_ref_status"] == (
+        "domain_authority_refs_index_active_no_runtime_lifecycle_owner"
     )
     assert candidates["workbench_shell"]["gate_results"]["opl_replacement_parity"] == (
         "structural_default_caller_ready_generated_workbench_default_required"
@@ -592,28 +591,28 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     )
     assert candidates["owner_route_handoff"]["deletion_readiness_worklist_ref"] == (
         "functional_consumer_boundary.active_path_residue_cleanup_gates."
-        "owner_route_handoff_adapter.deletion_readiness_worklist"
+        "owner_route_handoff_domain_ref_entry.deletion_readiness_worklist"
     )
     assert (
         "owner_route_handoff_response.forbidden_write_guard_proof"
         in candidates["owner_route_handoff"]["no_forbidden_write_proof_refs"]
     )
-    assert candidates["status_projection"]["retained_as"] == "domain_truth_status_projection"
+    assert candidates["status_projection"]["mas_role"] == "domain_truth_status_projection"
     assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
         "domain_projection_refs_for_opl_workbench"
     )
-    assert cleanup_gates["workbench_shell_domain_projection_refs"]["active_caller_count"] == 3
-    assert cleanup_gates["owner_route_handoff_adapter"]["current_role"] == (
-        "domain_owner_route_handoff_adapter"
+    assert cleanup_gates["workbench_shell_domain_projection_refs"]["domain_ref_consumer_count"] == 3
+    assert cleanup_gates["owner_route_handoff_domain_ref_entry"]["current_role"] == (
+        "domain_owner_route_handoff_refs"
     )
-    assert cleanup_gates["owner_route_handoff_adapter"]["active_caller_count"] == 1
-    sidecar_worklist = cleanup_gates["owner_route_handoff_adapter"]["deletion_readiness_worklist"]
-    assert sidecar_worklist["surface_kind"] == "mas_owner_route_handoff_adapter_deletion_readiness"
-    assert sidecar_worklist["status"] == "blocked_active_domain_owner_route_handoff_caller_present"
+    assert cleanup_gates["owner_route_handoff_domain_ref_entry"]["domain_ref_consumer_count"] == 1
+    sidecar_worklist = cleanup_gates["owner_route_handoff_domain_ref_entry"]["deletion_readiness_worklist"]
+    assert sidecar_worklist["surface_kind"] == "mas_owner_route_handoff_domain_ref_entry_deletion_readiness"
+    assert sidecar_worklist["status"] == "blocked_domain_owner_route_handoff_ref_consumer_present_no_runtime_control_owner"
     assert sidecar_worklist["can_delete"] is False
-    assert sidecar_worklist["active_caller_count"] == 1
+    assert sidecar_worklist["domain_ref_consumer_count"] == 1
     assert {item["gate"] for item in sidecar_worklist["missing_gate_inputs"]} == {
-        "active_caller_count=0",
+        "opl_generated_sidecar_consumes_domain_refs",
         "opl_replacement_parity_proven",
         "domain_receipt_parity_proven",
         "focused_tests_green",
@@ -629,13 +628,15 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
         "domain_truth_status_projection"
     )
-    assert cleanup_gates["status_projection_domain_truth_refs"]["active_caller_count"] == 2
-    assert retirement_matrix["no_active_caller_summary"] == {
-        "active_default_caller_count": 0,
-        "active_default_caller_zero_proven": True,
-        "full_active_caller_zero_proven": False,
+    assert cleanup_gates["status_projection_domain_truth_refs"]["domain_ref_consumer_count"] == 2
+    assert retirement_matrix["no_resurrection_summary"] == {
+        "all_runtime_control_surfaces_retired_or_opl_owned": True,
+        "default_runtime_owner": "one-person-lab",
+        "mas_default_runtime_owner_allowed": False,
         "physical_delete_candidate_count": 5,
-        "physical_delete_ready_count": 0,
+        "physical_delete_ready_count": 1,
+        "physically_retired_surface_ids": ["runtime_transport"],
+        "remaining_surfaces_are_domain_refs_not_runtime_control": True,
     }
     tombstones = boundary["retired_legacy_residue_tombstones"]
     assert {item["residue_id"] for item in tombstones} == set(
@@ -643,31 +644,32 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     )
     for item in tombstones:
         assert item["current_role"] == "history_tombstone_provenance_only"
-        assert item["active_caller_count"] == 0
-        assert item["active_caller_allowed"] is False
+        assert item["domain_ref_consumer_count"] == 0
         assert item["default_entry_allowed"] is False
-        assert item["retirement_gate"] == "no_active_caller_proven_move_to_tombstone"
+        assert item["retirement_gate"] == "no_resurrection_tombstone"
         assert "paper_closure_verdict" in item["must_not_emit"]
     assert by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
-    lifecycle_role = boundary["lifecycle_refs_adapter_role"]
-    assert lifecycle_role["classification"] == "refs_only_adapter"
-    assert lifecycle_role["current_mas_role"] == "domain_lifecycle_ref_index_adapter"
-    assert lifecycle_role["authority"] == "refs_only_index_not_generic_persistence_engine"
+    lifecycle_role = boundary["domain_authority_refs_index_role"]
+    assert lifecycle_role["classification"] == "domain_authority_refs"
+    assert lifecycle_role["current_mas_role"] == "domain_authority_receipt_and_locator_ref_index"
+    assert lifecycle_role["authority"] == (
+        "refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine"
+    )
     assert lifecycle_role["owner"] == "one-person-lab"
     assert lifecycle_role["mas_may_index_domain_receipts"] is True
     assert lifecycle_role["mas_may_claim_generic_persistence_engine"] is False
-    assert lifecycle_role["mas_consumes_opl_lifecycle_index_refs"] is True
+    assert lifecycle_role["mas_consumes_opl_current_control_state_refs"] is True
     assert lifecycle_role["mas_may_write_domain_truth"] is False
     assert set(lifecycle_role["forbidden_mas_roles"]) == {
         "generic_persistence_engine",
         "generic_lifecycle_engine",
+        "generic_runtime_lifecycle_owner",
         "generic_restore_retention_owner",
     }
     assert lifecycle_role["replacement_expectation"]["expected_replacements"] == [
         "opl_runtime_lifecycle_index_contract",
         "opl_artifact_lifecycle_storage_audit_shell",
         "opl_app_workbench_shell",
-        "opl_terminal_attach_transport",
         "opl_provider_scheduler_lifecycle",
         "opl_queue_attempt_retry_dead_letter",
         "opl_generic_transition_runner",
@@ -701,7 +703,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     )
     assert "product_entry_manifest.functional_consumer_boundary" in boundary["proof_surfaces"]
     assert "mas_owned_generic_queue" in boundary["forbidden_regressions"]
-    assert boundary["no_active_caller_proof"] == {
+    assert boundary["no_resurrection_proof"] == {
         "status": "legacy_local_scheduler_physical_retired",
         "default_caller_count": 0,
         "default_manager": "opl",

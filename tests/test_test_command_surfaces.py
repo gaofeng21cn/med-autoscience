@@ -11,7 +11,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATIONS_COMMANDS
+from med_autoscience.authority_operation_command_catalog import AUTHORITY_OPERATION_COMMANDS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,32 +20,32 @@ REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "e3fd0b6be41e858958d42ea400a3e63
 REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_control_plane_regression.py",
     "tests/test_control_plane_structure.py",
-    "tests/test_study_control_plane_kernel.py",
-    "tests/test_control_plane_state_machine.py",
+    "tests/test_domain_authority_snapshot.py",
+    "tests/test_autonomy_state_surface.py",
     "tests/test_study_runtime_typed_surface_cases/status_type_cases.py",
-    "tests/test_control_plane_route_gate.py",
+    "tests/test_authority_route_gate.py",
     "tests/test_artifact_lifecycle_inventory.py",
     "tests/test_artifact_retention_operations_plan.py",
     "tests/test_artifact_lifecycle_operations_report.py",
     "tests/test_runtime_protocol_paper_artifacts.py",
     "tests/test_study_delivery_sync.py",
     "tests/test_runtime_storage_maintenance.py",
-    "tests/test_control_plane_cleanup_apply.py",
-    "tests/test_control_plane_migration_audit.py",
-    "tests/test_cli_cases/public_entry_commands.py::test_migration_audit_command_dispatches_read_only_controller",
-    "tests/test_cli_cases/public_entry_commands.py::test_cleanup_apply_command_dispatches_controller",
+    "tests/test_workspace_authority_migration_audit.py",
+    "tests/test_delivery_authority_backfill_apply.py",
+    "tests/test_cli_cases/public_entry_commands.py::test_workspace_authority_migration_audit_command_dispatches_read_only_controller",
+    "tests/test_cli_cases/public_entry_commands.py::test_control_plane_cleanup_apply_is_not_public",
     "tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller_options",
-    "tests/test_cli_cases/control_plane_operation_commands.py",
-    "tests/test_mcp_server.py::test_mcp_product_entry_description_documents_control_plane_operations_surfaces",
-    "tests/test_mcp_server.py::test_mcp_product_entry_schema_accepts_control_plane_operations_options",
-    "tests/test_mcp_server.py::test_mcp_product_entry_can_call_migration_audit",
-    "tests/test_mcp_server.py::test_mcp_product_entry_can_call_cleanup_apply",
+    "tests/test_cli_cases/authority_operation_commands.py",
+    "tests/test_mcp_server.py::test_mcp_product_entry_description_documents_authority_operation_surfaces",
+    "tests/test_mcp_server.py::test_mcp_product_entry_schema_accepts_authority_operation_options",
+    "tests/test_mcp_server.py::test_mcp_product_entry_can_call_workspace_authority_migration_audit",
+    "tests/test_mcp_server.py::test_mcp_product_entry_rejects_cleanup_apply_mode",
     "tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report_with_scan_options",
-    "tests/test_test_command_surfaces.py::test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces",
-    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_control_plane_operation_modes",
-    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_control_plane_operation_commands",
-    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_calls_continuous_soak_summary",
-    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_calls_continuous_soak_summary",
+    "tests/test_test_command_surfaces.py::test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces",
+    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_authority_operation_modes",
+    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_authority_operation_commands",
+    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summary",
+    "tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_calls_artifact_lifecycle_continuous_soak_summary",
     "tests/test_truth_projection_surfaces.py",
 )
 PARALLEL_FULL_LANES = (
@@ -72,7 +72,7 @@ def _assert_command_surface_matches_catalog(
     actual_commands: set[str],
 ) -> None:
     assert expected_commands == actual_commands, (
-        f"control-plane command catalog/{surface} drift: "
+        f"authority command catalog/{surface} drift: "
         f"missing_from_{surface}={sorted(expected_commands - actual_commands)} "
         f"missing_from_catalog={sorted(actual_commands - expected_commands)}"
     )
@@ -91,7 +91,7 @@ def _assert_mcp_modes_cover_catalog(*, expected: tuple[object, ...], actual_mode
         and mode not in {getattr(spec, "mcp_mode") for spec in expected}
     )
     assert not missing_commands and not unexpected_modes, (
-        "control-plane command catalog/mcp drift: "
+        "authority command catalog/mcp drift: "
         f"missing_commands_from_mcp={missing_commands} "
         f"unexpected_control_plane_mcp_modes={unexpected_modes}"
     )
@@ -623,10 +623,8 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     focused_lanes = manifest["focused_lanes"]
     expected = {
         "control-plane-autonomy": "read_only_inventory_and_observability",
-        "domain-route-reconcile": "scan_consume_execute_rescan_contract",
         "workspace-monolith-migration": "dry_run_before_real_workspace_apply",
         "outer-supervision-slo": "scheduler_bound_read_model_safe_reconcile_projection",
-        "portal-console-soak": "read_only_display_evidence",
         "paper-autonomy-stability-evidence": "read_only_evidence_no_publication_authority",
     }
 
@@ -642,8 +640,7 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
 
     assert "tests/test_real_paper_autonomy_soak_inventory.py" in focused_lanes["control-plane-autonomy"]["paths"]
     assert "tests/test_real_paper_autonomy_soak_inventory.py" in focused_lanes["workspace-monolith-migration"]["paths"]
-    assert "tests/test_runtime_reconcile_trigger.py" in focused_lanes["outer-supervision-slo"]["paths"]
-    assert "tests/test_runtime_live_console_ui.py" in focused_lanes["portal-console-soak"]["paths"]
+    assert "tests/test_opl_current_control_state_projection.py" in focused_lanes["outer-supervision-slo"]["paths"]
     assert "tests/test_paper_autonomy_stability_evidence.py" in focused_lanes["paper-autonomy-stability-evidence"]["paths"]
     assert focused_lanes["outer-supervision-slo"]["resident_daemon_allowed"] is False
     assert focused_lanes["outer-supervision-slo"]["active_path_role"] == (
@@ -673,10 +670,11 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
         "focused_cli_status_tests",
         "git_diff_check",
     ]
-    assert focused_lanes["portal-console-soak"]["implementation_status"] == "landed"
     assert focused_lanes["paper-autonomy-stability-evidence"]["completion_claim_rule"] == (
         "landed_only_when_real_evidence_has_no_blockers"
     )
+    assert "owner-route-reconcile" not in focused_lanes
+    assert "portal_console_soak_retired" not in focused_lanes
 
 
 def test_focused_lane_manifest_exposes_paper_progress_degradation_closeout_guard() -> None:
@@ -842,7 +840,7 @@ def test_family_lane_test_files_are_marker_scoped_to_avoid_full_lane_overlap() -
     assert "pytestmark = pytest.mark.family" in agent_lab_longline
 
 
-def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces() -> None:
+def test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces() -> None:
     from med_autoscience import cli, domain_entry_contract, mcp_server
 
     parser = cli.build_parser()
@@ -859,18 +857,19 @@ def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_sch
     supported_command_enum = set(
         schema["$defs"]["domainEntryContract"]["properties"]["supported_commands"]["items"]["enum"]
     )
-    catalog_commands = {spec.command for spec in CONTROL_PLANE_OPERATIONS_COMMANDS}
-    schema_control_plane_commands = {
-        command for command in supported_command_enum if command.startswith("control-plane-")
-    }
+    catalog_commands = {spec.command for spec in AUTHORITY_OPERATION_COMMANDS}
+    assert not any(command.startswith("control-plane-") for command in cli_commands)
+    assert not any(command.startswith("control-plane-") for command in supported_command_enum)
+    assert "cleanup_apply" not in mcp_modes
+    assert "safe_cache_cleanup_apply" not in mcp_modes
 
     _assert_command_surface_matches_catalog(
         surface="cli",
         expected_commands=catalog_commands,
-        actual_commands={command for command in cli_commands if command.startswith("control-plane-")},
+        actual_commands={command for command in cli_commands if command in catalog_commands},
     )
     _assert_mcp_modes_cover_catalog(
-        expected=CONTROL_PLANE_OPERATIONS_COMMANDS,
+        expected=AUTHORITY_OPERATION_COMMANDS,
         actual_modes=mcp_modes,
     )
     _assert_command_surface_matches_catalog(
@@ -879,7 +878,7 @@ def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_sch
         actual_commands={
             command
             for command in product_entry_manifest_contract["supported_commands"]
-            if command.startswith("control-plane-")
+            if command in catalog_commands
         },
     )
     _assert_command_surface_matches_catalog(
@@ -888,23 +887,23 @@ def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_sch
         actual_commands={
             item["command"]
             for item in domain_catalog["command_contracts"]
-            if item["command"].startswith("control-plane-")
+            if item["command"] in catalog_commands
         },
     )
     _assert_command_surface_matches_catalog(
         surface="schema",
         expected_commands=catalog_commands,
-        actual_commands=schema_control_plane_commands,
+        actual_commands={command for command in supported_command_enum if command in catalog_commands},
     )
 
     manifest_contracts = {
         item["command"]: item
         for item in product_entry_manifest_contract["command_contracts"]
-        if item["command"].startswith("control-plane-")
+        if item["command"] in catalog_commands
     }
-    for spec in CONTROL_PLANE_OPERATIONS_COMMANDS:
+    for spec in AUTHORITY_OPERATION_COMMANDS:
         assert manifest_contracts.get(spec.command) == spec.command_contract(), (
-            "control-plane command contract drift: "
+            "authority command contract drift: "
             f"command={spec.command!r} "
             f"manifest_contract={manifest_contracts.get(spec.command)!r} "
             f"catalog_contract={spec.command_contract()!r}"

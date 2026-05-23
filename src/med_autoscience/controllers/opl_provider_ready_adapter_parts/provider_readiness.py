@@ -9,7 +9,7 @@ from med_autoscience.controllers.domain_slo_scheduler_projection_parts.generated
     build_generated_default_caller_boundary,
     build_physical_retirement_gate_matrix,
 )
-from med_autoscience.runtime_backend import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
+from med_autoscience.opl_runtime_contract import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
 
 
 TARGET_DOMAIN_ID = "medautoscience"
@@ -716,7 +716,7 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         "surface_kind": "mas_legacy_retirement_tombstone_proof",
         "version": "mas-legacy-retirement-tombstone-proof.v1",
         "target_domain_id": TARGET_DOMAIN_ID,
-        "status": "no_active_default_caller_proven",
+        "status": "no_resurrection_proof_recorded",
         "active_default_callers": [],
         "generated_default_caller_boundary": build_generated_default_caller_boundary(
             schema_version=SCHEMA_VERSION,
@@ -753,14 +753,14 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         "removal_policy": {
             "delete_or_tombstone_when": [
                 "generated_default_caller_boundary_proven",
-                "active_caller_count=0",
+                "stale_surface_scan_clean",
                 "opl_replacement_parity",
                 "mas_owner_receipt_parity",
                 "focused_tests_green",
                 "tombstone_refs_landed",
             ],
             "current_action": (
-                "retain_domain_receipt_adapter_refs_only_adapter_diagnostic_or_tombstone_until_gate_closes"
+                "keep_domain_authority_refs_or_tombstone_only_until_no_resurrection_gate_closes"
             ),
             "history_actions": ["legacy_active_path_tombstones_landed"],
         },

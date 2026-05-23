@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_control_plane_kernel, study_progress, study_truth_kernel
+from med_autoscience.controllers import domain_authority_snapshot, study_progress, study_truth_kernel
 from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 
 
@@ -24,7 +24,7 @@ def attach_status_read_model_projections(
         status_payload=status.to_dict(),
         recorded_at=recorded_at,
     )
-    status.extras["control_plane_snapshot"] = study_control_plane_kernel.build_control_plane_snapshot(
+    status.extras["authority_snapshot"] = domain_authority_snapshot.build_authority_snapshot(
         status.to_dict()
     )
     if include_progress_projection:

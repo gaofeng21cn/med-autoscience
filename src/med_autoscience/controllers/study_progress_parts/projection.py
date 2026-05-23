@@ -5,12 +5,11 @@ from med_autoscience.controllers import (
     paper_authority_migration,
     domain_action_request_lifecycle,
     artifact_runtime_proof,
-    control_plane_facts,
+    opl_runtime_refs,
     medical_paper_ops_health,
     medical_paper_readiness,
     open_auto_research_projection,
     paper_progress_stall,
-    runtime_reconcile_trigger,
     outer_supervision_slo,
     study_truth_kernel,
 )
@@ -119,16 +118,15 @@ def build_study_progress_projection(
     controller_decision_path = input_paths.controller_decision_path
     runtime_escalation_path = input_paths.runtime_escalation_path
     domain_health_diagnostic_path = input_paths.domain_health_diagnostic_path
-    runtime_supervision_path = input_paths.runtime_supervision_path
+    opl_runtime_owner_handoff_path = input_paths.opl_runtime_owner_handoff_path
     gate_clearing_batch_path = input_paths.gate_clearing_batch_path
     bash_summary_path = input_paths.bash_summary_path
     details_projection_path = input_paths.details_projection_path
 
     runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
-    runtime_supervision_seed_payload = _read_json_object(runtime_supervision_path)
     runtime_health_status = (
         _non_empty_text(runtime_health_snapshot.get("attempt_state"))
-        or _non_empty_text((runtime_supervision_seed_payload or {}).get("health_status"))
+        or _non_empty_text(status.get("runtime_liveness_status"))
     )
     surface_payloads = read_projection_surface_payloads(
         study_root=resolved_study_root,
@@ -142,7 +140,7 @@ def build_study_progress_projection(
     gate_clearing_batch_payload = surface_payloads.gate_clearing_batch_payload
     controller_confirmation_summary_path = surface_payloads.controller_confirmation_summary_path
     controller_confirmation_summary = surface_payloads.controller_confirmation_summary
-    runtime_supervision_payload = surface_payloads.runtime_supervision_payload
+    opl_runtime_owner_handoff_payload = surface_payloads.opl_runtime_owner_handoff_payload
     runtime_escalation_payload = surface_payloads.runtime_escalation_payload
     domain_health_diagnostic_payload = surface_payloads.domain_health_diagnostic_payload
     publication_eval_payload = surface_payloads.publication_eval_payload
@@ -154,7 +152,7 @@ def build_study_progress_projection(
     status = _status_absorbing_live_runtime_surfaces(
         status=status,
         study_id=resolved_study_id,
-        runtime_supervision_payload=runtime_supervision_payload,
+        opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
         launch_report_payload=launch_report_payload,
     )
     gate_specificity_request_path, gate_specificity_request = _read_gate_specificity_request(
@@ -177,7 +175,7 @@ def build_study_progress_projection(
     family_checkpoint_lineage = status_context.family_checkpoint_lineage
     runtime_health_snapshot = status_context.runtime_health_snapshot
     study_truth_snapshot = status_context.study_truth_snapshot
-    control_plane_snapshot = status_context.control_plane_snapshot
+    authority_snapshot = status_context.authority_snapshot
     manual_finish_contract = status_context.manual_finish_contract
     medical_writing_quality_surfaces = medical_writing_quality_surface_status(study_root=resolved_study_root)
     medical_paper_readiness_surface = medical_paper_readiness.build_medical_paper_readiness_surface(
@@ -249,7 +247,7 @@ def build_study_progress_projection(
     )
     if _manual_finish_active(manual_finish_contract):
         needs_physician_decision = False
-    runtime_facts = control_plane_facts.resolve_control_plane_facts(
+    runtime_facts = opl_runtime_refs.resolve_opl_runtime_refs(
         status,
         supervisor_tick_audit=supervisor_tick_audit,
     )
@@ -274,7 +272,6 @@ def build_study_progress_projection(
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,
         continuation_state=continuation_state,
-        runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         task_intake_progress_override=task_intake_progress_override,
@@ -301,7 +298,6 @@ def build_study_progress_projection(
         gate_clearing_batch_payload=gate_clearing_batch_payload,
         publication_eval_payload=publication_eval_payload,
         runtime_facts=runtime_facts,
-        runtime_supervision_payload=runtime_supervision_payload,
         quest_root=quest_root,
     )
     current_stage_summary = _display_text(_stage_summary(
@@ -310,7 +306,6 @@ def build_study_progress_projection(
         publication_supervisor_state=publication_supervisor_state,
         publication_eval_payload=publication_eval_payload,
         latest_progress_message=latest_progress_message,
-        runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         task_intake_progress_override=task_intake_progress_override,
@@ -347,7 +342,6 @@ def build_study_progress_projection(
                 controller_decision_payload=controller_decision_payload,
                 pending_user_interaction=pending_user_interaction,
                 interaction_arbitration=interaction_arbitration,
-                runtime_supervision_payload=runtime_supervision_payload,
                 supervisor_tick_audit=supervisor_tick_audit,
                 progress_freshness=progress_freshness,
                 manual_finish_contract=manual_finish_contract,
@@ -367,7 +361,6 @@ def build_study_progress_projection(
         status=status,
         autonomous_runtime_notice=autonomous_runtime_notice,
         continuation_state=continuation_state,
-        runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         task_intake_progress_override=task_intake_progress_override,
@@ -399,7 +392,6 @@ def build_study_progress_projection(
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,
         continuation_state=continuation_state,
-        runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         task_intake_progress_override=task_intake_progress_override,
@@ -441,8 +433,10 @@ def build_study_progress_projection(
     latest_events = _latest_events(
         launch_report_payload=launch_report_payload,
         launch_report_path=launch_report_path,
-        runtime_supervision_payload=runtime_supervision_payload,
-        runtime_supervision_path=runtime_supervision_path if runtime_supervision_payload is not None else None,
+        opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
+        opl_runtime_owner_handoff_path=(
+            opl_runtime_owner_handoff_path if opl_runtime_owner_handoff_payload is not None else None
+        ),
         runtime_escalation_payload=runtime_escalation_payload,
         runtime_escalation_path=runtime_escalation_path,
         publication_eval_payload=publication_eval_payload,
@@ -467,7 +461,7 @@ def build_study_progress_projection(
         profile=profile,
         profile_ref=profile_ref,
         study_id=resolved_study_id,
-        supervision_status=_mapping_copy(status.get("workspace_runtime_supervision")),
+        supervision_status=_mapping_copy(status.get("workspace_opl_runtime_owner_handoff")),
         generated_at=_non_empty_text(status.get("generated_at")),
     )
     status_with_outer_slo = {
@@ -476,11 +470,6 @@ def build_study_progress_projection(
         "progress_freshness": progress_freshness,
         "autonomy_slo": autonomy_slo_status,
     }
-    runtime_reconcile_trigger_projection = runtime_reconcile_trigger.build_runtime_reconcile_trigger_projection(
-        status_payload=status_with_outer_slo,
-        profile_ref=str(profile_ref) if profile_ref is not None else None,
-        study_id=resolved_study_id,
-    )
     paper_progress_stall_projection = paper_progress_stall.build_paper_progress_stall_read_model(
         status_payload=status_with_outer_slo,
         progress_payload={
@@ -531,7 +520,6 @@ def build_study_progress_projection(
         controller_confirmation_summary=controller_confirmation_summary,
         controller_decision_payload=controller_decision_payload,
         domain_health_diagnostic_payload=domain_health_diagnostic_payload,
-        runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         auto_runtime_parked=auto_runtime_parked,
@@ -575,8 +563,8 @@ def build_study_progress_projection(
         quest_id=quest_id,
         study_root=resolved_study_root,
         launch_report_path=launch_report_path,
-        runtime_supervision_path=runtime_supervision_path,
-        runtime_supervision_payload=runtime_supervision_payload,
+        opl_runtime_owner_handoff_path=opl_runtime_owner_handoff_path,
+        opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
         runtime_escalation_path=runtime_escalation_path,
         domain_health_diagnostic_path=domain_health_diagnostic_path,
         recovery_contract=recovery_contract,
@@ -676,7 +664,9 @@ def build_study_progress_projection(
         ),
         publication_eval_ref=str(publication_eval_path),
         controller_decision_ref=str(controller_decision_path),
-        runtime_supervision_ref=str(runtime_supervision_path) if runtime_supervision_payload is not None else None,
+        opl_runtime_owner_handoff_ref=(
+            str(opl_runtime_owner_handoff_path) if opl_runtime_owner_handoff_payload is not None else None
+        ),
         domain_health_diagnostic_ref=str(domain_health_diagnostic_path) if domain_health_diagnostic_path is not None else None,
     )
     ai_first_observability_snapshots = ai_first_observability.build_ai_first_observability_snapshots_from_study_root(
@@ -724,8 +714,8 @@ def build_study_progress_projection(
         controller_confirmation_summary_path=controller_confirmation_summary_path,
         controller_confirmation_summary=controller_confirmation_summary,
         controller_module_surface=controller_module_surface,
-        runtime_supervision_path=runtime_supervision_path,
-        runtime_supervision_payload=runtime_supervision_payload,
+        opl_runtime_owner_handoff_path=opl_runtime_owner_handoff_path,
+        opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
         runtime_escalation_path=runtime_escalation_path,
         domain_health_diagnostic_path=domain_health_diagnostic_path,
         runtime_module_surface=runtime_module_surface,
@@ -814,10 +804,9 @@ def build_study_progress_projection(
         ai_first_operations_dashboard=ai_first_operations_dashboard,
         study_truth_snapshot=study_truth_snapshot,
         runtime_health_snapshot=runtime_health_snapshot,
-        control_plane_snapshot=control_plane_snapshot,
+        authority_snapshot=authority_snapshot,
         module_surfaces=module_surfaces,
         runtime_efficiency=runtime_efficiency,
-        runtime_reconcile_trigger=runtime_reconcile_trigger_projection,
         paper_progress_stall=paper_progress_stall_projection,
         outer_supervision_slo=outer_supervision_slo_projection,
         autonomy_slo_status=autonomy_slo_status,
@@ -916,7 +905,7 @@ def read_study_progress(
         study_id=study_id,
         study_root=study_root,
     )
-    status = study_runtime_router.progress_projection(
+    status = domain_status_projection.progress_projection(
         profile=profile,
         study_id=resolved_study_id,
         study_root=resolved_study_root,

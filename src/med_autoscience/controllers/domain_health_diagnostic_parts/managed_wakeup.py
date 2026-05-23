@@ -9,8 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import (
-    control_plane_facts,
-    runtime_supervision,
+    opl_runtime_refs,
 )
 
 
@@ -23,7 +22,12 @@ _HARD_AUTO_RECOVERY_REASONS = frozenset(
         "quest_stopped_by_controller_guard",
     }
 )
-_RUNTIME_RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped"})
+_OPL_STAGE_ATTEMPT_REQUEST_STATES = frozenset(
+    {
+        "opl_stage_attempt_admission_required",
+        "opl_stage_attempt_requested",
+    }
+)
 _EXPLICIT_WAKEUP_REASONS = frozenset(
     {
         "quest_user_paused_requires_explicit_wakeup",
@@ -64,9 +68,12 @@ def _serialize_managed_study_action(
     if runtime_health_snapshot is not None:
         serialized["runtime_health_epoch"] = _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch"))
         serialized["runtime_health_snapshot"] = runtime_health_snapshot
-    control_plane_snapshot = _control_plane_snapshot_summary(payload.get("control_plane_snapshot"))
-    if control_plane_snapshot is not None:
-        serialized["control_plane_snapshot"] = control_plane_snapshot
+    authority_snapshot = _authority_snapshot_summary(payload.get("authority_snapshot"))
+    if authority_snapshot is not None:
+        serialized["authority_snapshot"] = authority_snapshot
+    resume_postcondition = _resume_postcondition_summary(payload.get("resume_postcondition"))
+    if resume_postcondition is not None:
+        serialized["resume_postcondition"] = resume_postcondition
     return serialized
 
 
@@ -149,7 +156,7 @@ def _runtime_health_snapshot_summary(value: object) -> dict[str, Any] | None:
     return summary or None
 
 
-def _control_plane_snapshot_summary(value: object) -> dict[str, Any] | None:
+def _authority_snapshot_summary(value: object) -> dict[str, Any] | None:
     if not isinstance(value, Mapping):
         return None
     keys = (
@@ -164,6 +171,30 @@ def _control_plane_snapshot_summary(value: object) -> dict[str, Any] | None:
         "quality_gate_relaxation_allowed",
     )
     summary = {key: value[key] for key in keys if key in value}
+    return summary or None
+
+
+def _resume_postcondition_summary(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    keys = (
+        "effective",
+        "status",
+        "failure_mode",
+        "snapshot_status",
+        "active_run_id",
+        "scheduled",
+        "started",
+        "queued",
+        "blocked_reason",
+        "terminal_reason",
+        "terminal_source",
+        "typed_blocker",
+    )
+    summary = {key: value[key] for key in keys if key in value}
+    typed_blocker = summary.get("typed_blocker")
+    if isinstance(typed_blocker, Mapping):
+        summary["typed_blocker"] = dict(typed_blocker)
     return summary or None
 
 
@@ -239,19 +270,19 @@ def _outer_loop_dispatch_blocked_by_explicit_wakeup_contract(
 
 
 def _payload_active_run_id(payload: Mapping[str, Any]) -> str | None:
-    return control_plane_facts.active_run_id(payload)
+    return opl_runtime_refs.active_run_id(payload)
 
 
 def _payload_runtime_liveness_status(payload: Mapping[str, Any]) -> str | None:
-    return control_plane_facts.runtime_liveness_status(payload)
+    return opl_runtime_refs.runtime_liveness_status(payload)
 
 
 def _payload_strict_live(payload: Mapping[str, Any]) -> bool:
-    return control_plane_facts.strict_live(payload)
+    return opl_runtime_refs.strict_live(payload)
 
 
-def _should_refresh_managed_study_status_after_ensure(payload: Mapping[str, Any]) -> bool:
-    if _non_empty_text(payload.get("decision")) not in _RUNTIME_RECOVERY_DECISIONS:
+def _should_refresh_managed_study_status_after_stage_request(payload: Mapping[str, Any]) -> bool:
+    if _non_empty_text(payload.get("status")) not in _OPL_STAGE_ATTEMPT_REQUEST_STATES:
         return False
     return not _payload_strict_live(payload)
 
@@ -413,7 +444,25 @@ def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | Any
         if _non_empty_text(payload.get("reason")) not in _HARD_AUTO_RECOVERY_REASONS:
             return False
         return not _payload_strict_live(payload)
-    return runtime_supervision.is_auto_continuation_recovery_pending(payload)
+    return _is_auto_continuation_recovery_pending(payload)
+
+
+def _is_auto_continuation_recovery_pending(payload: Mapping[str, Any]) -> bool:
+    refs = opl_runtime_refs.resolve_opl_runtime_refs(payload)
+    if refs.strict_live:
+        return False
+    quest_status = _non_empty_text(payload.get("quest_status"))
+    if quest_status not in {"running", "active"}:
+        return False
+    supervisor_tick_audit = payload.get("supervisor_tick_audit")
+    supervisor_tick_status = (
+        _non_empty_text(supervisor_tick_audit.get("status"))
+        if isinstance(supervisor_tick_audit, Mapping)
+        else None
+    )
+    if supervisor_tick_status not in {"missing", "stale", "invalid"}:
+        return False
+    return refs.active_run_id is None
 
 
 def _serialize_managed_study_auto_recovery(

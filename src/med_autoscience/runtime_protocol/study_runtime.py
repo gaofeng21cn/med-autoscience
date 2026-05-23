@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from med_autoscience import runtime_backend as runtime_backend_contract
+from med_autoscience import opl_runtime_contract
 from med_autoscience import startup_literature
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime_escalation_record import (
@@ -20,7 +20,6 @@ from med_autoscience.runtime_escalation_record import (
 )
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
-from . import lifecycle_refs_adapter
 from .layout import build_workspace_runtime_layout_for_profile
 from .workspace_literature_status import workspace_literature_status
 from .study_runtime_models import (
@@ -133,35 +132,21 @@ def _launch_report_runtime_projection(status: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _runtime_binding_backend_metadata(status: dict[str, Any]) -> tuple[str, str]:
+def _runtime_binding_opl_metadata(status: dict[str, Any]) -> tuple[str, str]:
     execution = status.get("execution")
     execution_mapping = execution if isinstance(execution, dict) else None
-    explicit_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution_mapping)
-    if explicit_backend_id is not None:
-        backend = runtime_backend_contract.try_get_managed_runtime_backend(explicit_backend_id)
-        if backend is None:
-            raise ValueError(f"unknown managed runtime backend in status execution: {explicit_backend_id}")
-        runtime_engine_id = str(
-            (execution_mapping or {}).get("runtime_engine_id")
-            or (execution_mapping or {}).get("engine")
-            or getattr(backend, "ENGINE_ID", "")
-        ).strip()
-        if not runtime_engine_id:
-            raise ValueError(f"managed runtime backend `{explicit_backend_id}` is missing ENGINE_ID")
-        return explicit_backend_id, runtime_engine_id
-    backend = runtime_backend_contract.resolve_managed_runtime_backend(execution_mapping)
-    if backend is not None:
-        runtime_backend_id = str(getattr(backend, "BACKEND_ID", "")).strip()
-        runtime_engine_id = str(
-            (execution_mapping or {}).get("runtime_engine_id")
-            or (execution_mapping or {}).get("engine")
-            or getattr(backend, "ENGINE_ID", "")
-        ).strip()
-        if not runtime_backend_id or not runtime_engine_id:
-            raise ValueError("managed runtime backend metadata must expose BACKEND_ID and ENGINE_ID")
-        return runtime_backend_id, runtime_engine_id
-    default_backend_id = runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
-    return default_backend_id, runtime_backend_contract.engine_id_for_backend_id(default_backend_id)
+    runtime_ref = (
+        opl_runtime_contract.explicit_opl_runtime_ref(execution_mapping)
+        or opl_runtime_contract.OPL_HOSTED_STAGE_RUNTIME_ID
+    )
+    runtime_engine_id = str(
+        (execution_mapping or {}).get("runtime_engine_id")
+        or (execution_mapping or {}).get("engine")
+        or opl_runtime_contract.engine_id_for_runtime_ref(runtime_ref)
+    ).strip()
+    if not runtime_engine_id:
+        raise ValueError(f"OPL runtime ref `{runtime_ref}` is missing runtime_engine_id")
+    return runtime_ref, runtime_engine_id
 
 
 def _runtime_escalation_record_path(quest_root: Path) -> Path:
@@ -246,12 +231,6 @@ def write_runtime_event_record(
     payload = persisted_record.to_dict()
     _write_json(path, payload)
     _write_json(path.parent / "latest.json", payload)
-    lifecycle_refs_adapter.record_runtime_event(
-        quest_root=quest_root,
-        event=payload,
-        artifact_path=path,
-        latest_path=path.parent / "latest.json",
-    )
     return RuntimeEventRecord.from_payload(payload)
 
 
@@ -530,26 +509,29 @@ def write_runtime_binding(
     last_action: str,
     source: str,
     recorded_at: str,
-    runtime_backend_id: str = runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+    opl_runtime_ref: str = opl_runtime_contract.OPL_HOSTED_STAGE_RUNTIME_ID,
     runtime_engine_id: str | None = None,
     research_backend_id: str | None = None,
     research_engine_id: str | None = None,
 ) -> None:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     resolved_study_root = Path(study_root).expanduser().resolve()
-    resolved_runtime_engine_id = runtime_engine_id or runtime_backend_contract.engine_id_for_backend_id(
-        runtime_backend_id
+    resolved_runtime_engine_id = runtime_engine_id or opl_runtime_contract.engine_id_for_runtime_ref(
+        opl_runtime_ref
     )
-    resolved_research_backend_id, resolved_research_engine_id = runtime_backend_contract.controlled_research_backend_metadata_for_backend_id(
-        runtime_backend_id
+    resolved_research_backend_id, resolved_research_engine_id = opl_runtime_contract.controlled_research_backend_metadata_for_runtime_ref(
+        opl_runtime_ref
     )
     _write_yaml(
         runtime_binding_path,
         {
             "schema_version": 1,
             "engine": resolved_runtime_engine_id,
-            "runtime_backend_id": runtime_backend_id,
-            "runtime_backend": runtime_backend_id,
+            "runtime_owner": opl_runtime_contract.OPL_RUNTIME_OWNER,
+            "domain_owner": opl_runtime_contract.MAS_DOMAIN_OWNER,
+            "runtime_substrate": opl_runtime_contract.OPL_HOSTED_STAGE_RUNTIME_ID,
+            "opl_runtime_ref": opl_runtime_ref,
+            "runtime_ref": opl_runtime_ref,
             "runtime_engine_id": resolved_runtime_engine_id,
             "research_backend_id": research_backend_id or resolved_research_backend_id,
             "research_backend": research_backend_id or resolved_research_backend_id,
@@ -592,7 +574,7 @@ def persist_runtime_artifacts(
         resolved_quest_id = str(quest_id or "").strip()
         if not resolved_quest_id:
             raise ValueError("quest_id is required when last_action is provided")
-        runtime_backend_id, runtime_engine_id = _runtime_binding_backend_metadata(status)
+        opl_runtime_ref, runtime_engine_id = _runtime_binding_opl_metadata(status)
         research_backend_id = str(status.get("execution", {}).get("research_backend_id") or "").strip() or None
         research_engine_id = str(status.get("execution", {}).get("research_engine_id") or "").strip() or None
         write_runtime_binding(
@@ -604,7 +586,7 @@ def persist_runtime_artifacts(
             last_action=last_action,
             source=source,
             recorded_at=recorded_at,
-            runtime_backend_id=runtime_backend_id,
+            opl_runtime_ref=opl_runtime_ref,
             runtime_engine_id=runtime_engine_id,
             research_backend_id=research_backend_id,
             research_engine_id=research_engine_id,

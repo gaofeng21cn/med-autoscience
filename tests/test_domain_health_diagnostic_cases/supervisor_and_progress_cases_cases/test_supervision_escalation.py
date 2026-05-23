@@ -54,9 +54,9 @@ def test_watch_runtime_writes_study_supervision_report_and_escalates_after_conse
             "study_root": str(study_root),
             "entry_mode": "full_research",
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "001-risk",
                 "auto_resume": True,
@@ -84,11 +84,7 @@ def test_watch_runtime_writes_study_supervision_report_and_escalates_after_conse
             },
         }
 
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda *, profile, study_root, source: failing_status(),
-    )
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: failing_status())
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     first = module.run_domain_health_diagnostic_for_runtime(
@@ -96,28 +92,27 @@ def test_watch_runtime_writes_study_supervision_report_and_escalates_after_conse
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     second = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    first_supervision = first["managed_study_supervision"][0]
-    second_supervision = second["managed_study_supervision"][0]
-    latest_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    first_handoff = first["managed_study_opl_runtime_owner_handoffs"][0]
+    second_handoff = second["managed_study_opl_runtime_owner_handoffs"][0]
+    latest_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
     latest_payload = json.loads(latest_path.read_text(encoding="utf-8"))
     escalation_path = quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
 
-    assert first_supervision["health_status"] == "degraded"
-    assert first_supervision["consecutive_failure_count"] == 1
-    assert second_supervision["health_status"] == "escalated"
-    assert second_supervision["consecutive_failure_count"] == 2
-    assert second_supervision["needs_human_intervention"] is True
-    assert latest_payload["health_status"] == "escalated"
+    assert first_handoff["status"] == "handoff_required"
+    assert second_handoff["status"] == "handoff_required"
+    assert second_handoff["runtime_owner"] == "one-person-lab"
+    assert second_handoff["typed_blocker"]["blocker_type"] == "opl_runtime_owner_handoff_required"
+    assert latest_payload["mas_runtime_read_model_retired"] is True
     assert latest_payload["next_action_summary"]
     assert escalation_path.exists()
     escalation_payload = json.loads(escalation_path.read_text(encoding="utf-8"))

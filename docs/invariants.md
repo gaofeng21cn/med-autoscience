@@ -16,7 +16,7 @@
 - `OPL` 是 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架，持有 family-level session/runtime/projection、stage attempt、queue、wakeup、approval/retry/dead-letter 与 shared modules/contracts/indexes；它不把 MAS 改写为内部模块或研究 owner。
 - `OPL Runtime Manager`、native helper 与高频状态索引只能缓存、探测和投影 MAS 已暴露的 durable truth surface；不得成为 MAS scheduler kernel、session store、memory store、study truth、publication gate、artifact authority、concrete executor owner，或替代 `progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、evidence ledger、review ledger。
 - MAS 的目标态高于当前实现分布。当前仓内 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/Skill/product-entry/sidecar/status wrapper 只能作为迁移输入；不得因为已有 active caller 或当前能跑就写成长期合理。
-- MAS 作为标准 OPL Agent 的长期形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。通用 transport、ledger、index、lifecycle、runner、workbench、observability 和 wrapper 必须上收到 OPL primitive / pack compiler / App shell，或收薄成 refs-only adapter / diagnostic cleanup path。
+- MAS 作为标准 OPL Agent 的长期形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。通用 transport、ledger、index、lifecycle、runner、workbench、observability 和 wrapper 必须上收到 OPL primitive / pack compiler / App shell，或收薄成 domain authority refs / diagnostic provenance path。
 - 文档和计划必须先设理想态，再找差距；差距不是妥协清单。处理清楚 active caller、替代 surface、provenance 和必要证据后，旧模块、旧接口、旧测试、旧目录、旧文案和兼容面默认删除、archive 或 tombstone。
 
 ## MAS Domain Authority 与 AI-first 质量
@@ -37,7 +37,7 @@
 - lifecycle refs SQLite store 只做 refs index、read model、receipt 和幂等检索，不替代 paper/manuscript/package、publication eval、controller decision、user intervention memory、restore metadata 或 dataset manifest。
 - 开发 checkout 只保存 repo source、docs、schema/contract、locator/index、receipt ref、restore/retention policy 与 authority-function descriptor。真实 workspace state、runtime artifact、receipt instance、paper/package/export artifact、临时 build/cache/venv/pycache/pytest cache/install sync 副产物必须写入受控 study workspace/runtime artifact root 或用户级 runtime state。
 - `runtime/authority_functions/` 的语义只限最小 MAS authority function anchor；它不得变成 runtime artifact root、generic lifecycle engine、session store、scheduler、runner、queue、workbench 或 memory body store。
-- OPL 上收通用 workspace/file lifecycle primitive 后，MAS 私有 scheduler/runner/session/workbench 残留只能作为迁移输入、refs-only adapter、diagnostic 或 tombstone；不得继续定义长期结构。
+- OPL 上收通用 workspace/file lifecycle primitive 后，MAS 私有 scheduler/runner/session/workbench 残留只能作为迁移输入、domain authority refs、diagnostic provenance 或 tombstone；不得继续定义长期结构。
 
 ## MDS / DeepScientist 与 legacy 进入规则
 

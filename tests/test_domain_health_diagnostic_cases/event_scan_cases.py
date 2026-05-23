@@ -72,7 +72,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_continue_
             study_id="001-risk",
             decision="blocked",
             reason="quest_stopped_requires_explicit_rerun",
-            include_control_plane_snapshot=True,
+            include_authority_snapshot=True,
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",
@@ -92,21 +92,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_continue_
             "current_required_action": "continue_write_stage",
         },
     }
-    ensure_calls: list[tuple[str, bool]] = []
-
-    def fake_ensure(**kwargs):
-        ensure_calls.append((str(kwargs.get("source") or "").strip(), bool(kwargs.get("allow_stopped_relaunch"))))
-        if kwargs.get("source") == "domain_health_diagnostic":
-            return status_payload
-        if kwargs.get("source") == "domain_health_diagnostic_outer_loop_wakeup":
-            return {
-                "decision": "relaunch_stopped",
-                "reason": "quest_stopped_requires_explicit_rerun",
-            }
-        raise AssertionError(f"unexpected ensure source: {kwargs.get('source')}")
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     first = module.run_domain_health_diagnostic_for_runtime(
@@ -114,44 +100,26 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_continue_
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
     second = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     latest_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     payload = json.loads(latest_path.read_text(encoding="utf-8"))
-    watch_latest = json.loads(
-        (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").read_text(encoding="utf-8")
-    )
 
-    assert ensure_calls == [
-        ("domain_health_diagnostic", False),
-        ("domain_health_diagnostic_outer_loop_wakeup", True),
-        ("domain_health_diagnostic", False),
-    ]
     assert first["managed_study_actions"][0]["study_id"] == "001-risk"
     assert second["managed_study_actions"][0]["study_id"] == "001-risk"
-    assert first["managed_study_outer_loop_dispatches"] == [
-        {
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "decision_type": "continue_same_line",
-            "route_target": "write",
-            "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
-            "controller_action_type": "ensure_study_runtime_relaunch_stopped",
-            "study_decision_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
-            "dispatch_status": "executed",
-            "source": "domain_health_diagnostic_outer_loop_wakeup",
-        }
-    ]
+    assert first["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert first["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert first["managed_study_outer_loop_dispatches"] == []
     assert second["managed_study_outer_loop_dispatches"] == []
-    assert watch_latest["managed_study_outer_loop_dispatch"] == first["managed_study_outer_loop_dispatches"][0]
+    assert not (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").exists()
     assert payload["decision_type"] == "continue_same_line"
     assert payload["requires_human_confirmation"] is False
     assert payload["reason"] == "Controller should continue the same study line."
@@ -159,7 +127,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_continue_
     assert payload["runtime_escalation_ref"] == runtime_escalation_ref
     assert payload["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime_relaunch_stopped",
+            "action_type": "request_opl_stage_attempt_relaunch",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
@@ -181,7 +149,7 @@ def test_watch_runtime_executes_matching_gate_clearing_batch_request(
             study_id="001-risk",
             decision="blocked",
             reason="study_completion_publishability_gate_blocked",
-            include_control_plane_snapshot=True,
+            include_authority_snapshot=True,
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",
@@ -206,7 +174,7 @@ def test_watch_runtime_executes_matching_gate_clearing_batch_request(
         ],
         "reason": "Run deterministic gate-clearing batch first.",
     }
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(
         outer_loop,
         "_execute_controller_action",
@@ -234,8 +202,7 @@ def test_watch_runtime_executes_matching_gate_clearing_batch_request(
         }
 
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: tick_request)
-    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "study_outer_loop_tick", fake_outer_loop_tick)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -243,7 +210,7 @@ def test_watch_runtime_executes_matching_gate_clearing_batch_request(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert calls == ["domain_health_diagnostic_outer_loop_wakeup"]
@@ -414,7 +381,7 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
             study_id="001-risk",
             decision="noop",
             reason="quest_already_running",
-            include_control_plane_snapshot=True,
+            include_authority_snapshot=True,
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",
@@ -440,26 +407,12 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
         "decision": "blocked",
         "reason": "quest_waiting_for_submission_metadata",
     }
-    ensure_calls: list[tuple[str, bool]] = []
-    stop_calls: list[dict[str, object]] = []
     stopped = False
-
-    def fake_ensure(**kwargs):
-        ensure_calls.append((str(kwargs.get("source") or "").strip(), bool(kwargs.get("allow_stopped_relaunch"))))
-        return initial_status
 
     def fake_status(**kwargs):
         return stopped_status if stopped else initial_status
 
-    def fake_stop_quest(**kwargs):
-        nonlocal stopped
-        stopped = True
-        stop_calls.append(kwargs)
-        return {"ok": True, "quest_id": "quest-001", "status": "stopped", "snapshot": {"status": "stopped"}}
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", fake_status)
-    monkeypatch.setattr(module.study_runtime_router.managed_runtime_transport, "stop_quest", fake_stop_quest)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", fake_status)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
     monkeypatch.setattr(module.study_outer_loop, "_utc_now", lambda: "2026-04-05T05:58:00+00:00")
 
@@ -468,36 +421,20 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
+    stopped = True
     second = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
 
-    assert ensure_calls == [
-        ("domain_health_diagnostic", False),
-        ("domain_health_diagnostic", False),
-    ]
-    assert len(stop_calls) == 1
-    assert first["managed_study_outer_loop_dispatches"] == [
-        {
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "decision_type": "continue_same_line",
-            "route_target": "finalize",
-            "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
-            "controller_action_type": "stop_runtime",
-            "study_decision_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
-            "dispatch_status": "executed",
-            "source": "domain_health_diagnostic_outer_loop_wakeup",
-        }
-    ]
+    assert first["managed_study_outer_loop_dispatches"] == []
     assert second["managed_study_outer_loop_dispatches"] == []
     assert payload["controller_actions"] == [
         {
@@ -536,7 +473,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_bounded_a
             study_id="001-risk",
             decision="blocked",
             reason="quest_stopped_requires_explicit_rerun",
-            include_control_plane_snapshot=True,
+            include_authority_snapshot=True,
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",
@@ -557,18 +494,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_bounded_a
         },
     }
 
-    def fake_ensure(**kwargs):
-        if kwargs.get("source") == "domain_health_diagnostic":
-            return status_payload
-        if kwargs.get("source") == "domain_health_diagnostic_outer_loop_wakeup":
-            return {
-                "decision": "relaunch_stopped",
-                "reason": "quest_stopped_requires_explicit_rerun",
-            }
-        raise AssertionError(f"unexpected ensure source: {kwargs.get('source')}")
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -576,34 +502,21 @@ def test_watch_runtime_materializes_outer_loop_decision_for_autonomous_bounded_a
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
-    watch_latest = json.loads(
-        (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").read_text(encoding="utf-8")
-    )
 
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
-    assert result["managed_study_outer_loop_dispatches"] == [
-        {
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "decision_type": "bounded_analysis",
-            "route_target": "analysis-campaign",
-            "route_key_question": "What is the narrowest supplementary analysis still required before the paper line can continue?",
-            "controller_action_type": "ensure_study_runtime_relaunch_stopped",
-            "study_decision_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
-            "dispatch_status": "executed",
-            "source": "domain_health_diagnostic_outer_loop_wakeup",
-        }
-    ]
-    assert watch_latest["managed_study_outer_loop_dispatch"] == result["managed_study_outer_loop_dispatches"][0]
+    assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert result["managed_study_outer_loop_dispatches"] == []
+    assert not (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").exists()
     assert payload["decision_type"] == "bounded_analysis"
     assert payload["requires_human_confirmation"] is False
     assert payload["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime_relaunch_stopped",
+            "action_type": "request_opl_stage_attempt_relaunch",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
@@ -664,7 +577,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_quality_re_review(
             study_id="001-risk",
             decision="blocked",
             reason="quest_stopped_requires_explicit_rerun",
-            include_control_plane_snapshot=True,
+            include_authority_snapshot=True,
         ),
         "study_root": str(study_root),
         "quest_id": "quest-001",
@@ -685,18 +598,7 @@ def test_watch_runtime_materializes_outer_loop_decision_for_quality_re_review(
         },
     }
 
-    def fake_ensure(**kwargs):
-        if kwargs.get("source") == "domain_health_diagnostic":
-            return status_payload
-        if kwargs.get("source") == "domain_health_diagnostic_outer_loop_wakeup":
-            return {
-                "decision": "relaunch_stopped",
-                "reason": "quest_stopped_requires_explicit_rerun",
-            }
-        raise AssertionError(f"unexpected ensure source: {kwargs.get('source')}")
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -704,28 +606,15 @@ def test_watch_runtime_materializes_outer_loop_decision_for_quality_re_review(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     payload = json.loads((study_root / "artifacts" / "controller_decisions" / "latest.json").read_text(encoding="utf-8"))
-    watch_latest = json.loads(
-        (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").read_text(encoding="utf-8")
-    )
 
-    assert result["managed_study_outer_loop_dispatches"] == [
-        {
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "decision_type": "continue_same_line",
-            "route_target": "review",
-            "route_key_question": "当前 blocking issues 是否已真正闭环",
-            "controller_action_type": "ensure_study_runtime_relaunch_stopped",
-            "study_decision_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
-            "dispatch_status": "executed",
-            "source": "domain_health_diagnostic_outer_loop_wakeup",
-        }
-    ]
-    assert watch_latest["managed_study_outer_loop_dispatch"] == result["managed_study_outer_loop_dispatches"][0]
+    assert result["managed_study_actions"][0]["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert result["managed_study_actions"][0]["resume_postcondition"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert result["managed_study_outer_loop_dispatches"] == []
+    assert not (quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json").exists()
     assert payload["decision_type"] == "continue_same_line"
     assert payload["route_target"] == "review"
     assert payload["route_key_question"] == "当前 blocking issues 是否已真正闭环"
@@ -758,7 +647,6 @@ def test_watch_runtime_fails_closed_when_outer_loop_candidate_lacks_stable_chart
         },
     }
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **kwargs: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     with pytest.raises(ValueError, match="study charter"):
@@ -767,7 +655,7 @@ def test_watch_runtime_fails_closed_when_outer_loop_candidate_lacks_stable_chart
             controller_runners={},
             apply=True,
             profile=profile,
-            ensure_study_runtimes=True,
+            request_opl_stage_attempts=True,
         )
 
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
@@ -807,13 +695,7 @@ def test_watch_runtime_skips_outer_loop_materialization_when_human_gate_or_actio
             "current_required_action": current_required_action,
         },
     }
-    ensure_calls: list[str] = []
-
-    def fake_ensure(**kwargs):
-        ensure_calls.append(str(kwargs.get("source") or "").strip())
-        return status_payload
-
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -821,12 +703,11 @@ def test_watch_runtime_skips_outer_loop_materialization_when_human_gate_or_actio
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
     assert result["managed_study_actions"][0]["study_id"] == "001-risk"
     assert result["managed_study_outer_loop_dispatches"] == []
-    assert ensure_calls == ["domain_health_diagnostic"]
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
     watch_latest_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     assert not watch_latest_path.exists()

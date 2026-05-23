@@ -97,18 +97,6 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
         "refresh_data_assets",
         lambda *, workspace_root: {"status": {"layout_ready": True}},
     )
-    monkeypatch.setattr(
-        cli.domain_slo_scheduler_projection,
-        "ensure_supervision",
-        lambda **kwargs: {
-            "surface_kind": "workspace_runtime_supervision_replacement_result",
-            "action": "delegated_to_opl_provider_scheduler",
-            "manager": kwargs["manager"],
-            "trigger_now": kwargs["trigger_now"],
-            "write_install_proof": False,
-            "requested_write_install_proof": kwargs["write_install_proof"],
-        },
-    )
 
     exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])
     captured = capsys.readouterr()

@@ -3,15 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATION_COMMANDS_BY_COMMAND
+from med_autoscience.authority_operation_command_catalog import AUTHORITY_OPERATION_COMMANDS_BY_COMMAND
 from med_autoscience.controllers import (
     artifact_lifecycle_operations_report,
-    control_plane_backfill_apply,
-    control_plane_cleanup_apply,
-    control_plane_migration_audit,
+    delivery_authority_backfill_apply,
     product_entry,
     study_progress,
-    study_runtime_router,
+    domain_status_projection,
+    workspace_authority_migration_audit,
 )
 from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
 from med_autoscience.profiles import WorkspaceProfile, load_profile
@@ -35,8 +34,8 @@ class MedAutoScienceDomainEntry:
 
         _assert_required_fields(command=command, required_fields=spec.required_fields, request=request)
 
-        if command in CONTROL_PLANE_OPERATION_COMMANDS_BY_COMMAND:
-            payload = _dispatch_control_plane_operation(command, request)
+        if command in AUTHORITY_OPERATION_COMMANDS_BY_COMMAND:
+            payload = _dispatch_authority_operation(command, request)
             return _with_command(command, payload)
 
         profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
@@ -95,7 +94,7 @@ def _dispatch_profile_command(
             entry_mode=_optional_text(request.get("entry_mode")),
         ),
         "progress-projection": lambda: product_entry._serialize_runtime_status(
-            study_runtime_router.progress_projection(
+            domain_status_projection.progress_projection(
                 profile=profile,
                 study_id=str(request["study_id"]),
                 entry_mode=_optional_text(request.get("entry_mode")),
@@ -172,12 +171,12 @@ def _sequence_value(value: Any) -> tuple[Any, ...]:
 def _workspace_roots_value(value: Any) -> tuple[Path, ...]:
     roots = _sequence_value(value)
     if not roots:
-        raise ValueError("control-plane operation 缺少 workspace_roots。")
+        raise ValueError("authority operation 缺少 workspace_roots。")
     paths: list[Path] = []
     for item in roots:
         text = str(item).strip()
         if not text:
-            raise ValueError("control-plane operation workspace_roots 不能包含空值。")
+            raise ValueError("authority operation workspace_roots 不能包含空值。")
         paths.append(Path(text).expanduser())
     return tuple(paths)
 
@@ -204,30 +203,24 @@ def _optional_mapping_value(value: Any) -> Mapping[str, Any] | None:
     return value if isinstance(value, Mapping) else None
 
 
-def _dispatch_control_plane_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
+def _dispatch_authority_operation(command: str, request: Mapping[str, Any]) -> dict[str, Any]:
     workspace_roots = _workspace_roots_value(request.get("workspace_roots"))
-    if command == "control-plane-migration-audit":
-        return control_plane_migration_audit.run_migration_audit(
+    if command == "workspace-authority-migration-audit":
+        return workspace_authority_migration_audit.run_migration_audit(
             workspace_roots=workspace_roots,
             dry_run=True,
         )
-    if command == "control-plane-cleanup-apply":
-        return control_plane_cleanup_apply.run_cleanup_apply(
+    if command == "delivery-authority-backfill-apply":
+        return delivery_authority_backfill_apply.run_backfill_apply(
             workspace_roots=workspace_roots,
             apply=_bool_value(request.get("apply")),
-            control_plane_snapshot=_optional_mapping_value(request.get("control_plane_snapshot")),
+            authority_snapshot=_optional_mapping_value(request.get("authority_snapshot")),
         )
-    if command == "control-plane-backfill-apply":
-        return control_plane_backfill_apply.run_backfill_apply(
-            workspace_roots=workspace_roots,
-            apply=_bool_value(request.get("apply")),
-            control_plane_snapshot=_optional_mapping_value(request.get("control_plane_snapshot")),
-        )
-    if command == "control-plane-lifecycle-report":
+    if command == "artifact-lifecycle-report":
         return artifact_lifecycle_operations_report.run_lifecycle_operations_report(
             workspace_roots=workspace_roots,
             deep=_bool_value(request.get("deep")),
             max_files=_optional_int_value(request.get("max_files")),
             max_seconds=_optional_float_value(request.get("max_seconds")),
         )
-    raise ValueError(f"不支持的 control-plane operation command: {command}")
+    raise ValueError(f"不支持的 authority operation command: {command}")

@@ -12,7 +12,7 @@ from tests import conftest as tests_conftest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR = 139
+AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR = 132
 NESTED_STRUCTURE_PARENT_NAMES = {"cases", "modules", "parts"}
 TEST_LANE_MANIFEST_PATH = REPO_ROOT / "contracts" / "test-lane-manifest.json"
 
@@ -28,12 +28,6 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_projection_error_isolation.py",
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_quality_lane.py",
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
-    },
-    "tests/test_study_runtime_router.py": {
-        "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_stale_lifecycle_currentness.py",
-        "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_story_surface_delta_routes.py",
-        "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_failed_reviewer_revision_explicit_relaunch.py",
-        "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_stopped_domain_transition_relaunch.py",
     },
     "tests/test_domain_health_diagnostic.py": {
         "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
@@ -64,18 +58,6 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
 NESTED_CASE_REEXPORT_SURFACES = {
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": (
         AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/product_entry_cases/cockpit_status_and_entry_status_focus.py"]
-    ),
-    "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases.py": (
-        {
-            "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_failed_reviewer_revision_explicit_relaunch.py",
-            "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_stopped_domain_transition_relaunch.py",
-        }
-    ),
-    "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases.py": (
-        {
-            "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_stale_lifecycle_currentness.py",
-            "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_story_surface_delta_routes.py",
-        }
     ),
     "tests/test_domain_health_diagnostic_cases/runtime_status_cases.py": {
         "tests/test_domain_health_diagnostic_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
@@ -113,10 +95,6 @@ AGGREGATE_ENTRYPOINT_REEXPORT_SURFACES = {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases.py",
     },
-    "tests/test_study_runtime_router.py": {
-        "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases.py",
-        "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases.py",
-    },
 }
 
 REPRESENTATIVE_NESTED_CASES = {
@@ -128,15 +106,6 @@ REPRESENTATIVE_NESTED_CASES = {
     ),
     "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_work_unit_dedupe.py": (
         "test_work_unit_dedupe_accepts_closed_attempt_result"
-    ),
-    "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_stopped_domain_transition_relaunch.py": (
-        "test_allow_stopped_relaunch_reopens_current_domain_transition_routeback"
-    ),
-    "tests/test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_failed_reviewer_revision_explicit_relaunch.py": (
-        "test_explicit_stopped_relaunch_reopens_failed_reviewer_revision_invalid_blocking"
-    ),
-    "tests/test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_stale_lifecycle_currentness.py": (
-        "test_progress_projection_ignores_stale_publication_gate_recheck_lifecycle_for_current_write_route"
     ),
 }
 
@@ -327,8 +296,6 @@ def _aggregate_collection_failure_message(
 def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert set(tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS) == {
         "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
-        "test_study_runtime_router_cases/submission_metadata_waiting_cases_cases/test_*.py",
-        "test_study_runtime_router_cases/publication_gate_recheck_lifecycle_cases_cases/test_*.py",
         "test_domain_health_diagnostic_cases/*_cases_cases/test_*.py",
     }
     assert tests_conftest.collect_ignore_glob == list(
@@ -460,7 +427,6 @@ def test_nested_case_modules_are_not_default_collection_surfaces() -> None:
 def test_aggregate_collection_surfaces_still_collect_nested_cases() -> None:
     collected_ids = _collectable_test_ids(
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-        "tests/test_study_runtime_router.py",
         "tests/test_domain_health_diagnostic.py",
     )
     collected_output = "\n".join(collected_ids)
@@ -477,7 +443,6 @@ def test_representative_nested_case_modules_only_collect_through_aggregate_entry
     direct_result = _collect_only(*REPRESENTATIVE_NESTED_CASES)
     aggregate_collected_ids = _collectable_test_ids(
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-        "tests/test_study_runtime_router.py",
         "tests/test_domain_health_diagnostic.py",
     )
     aggregate_output = "\n".join(aggregate_collected_ids)
@@ -492,7 +457,6 @@ def test_representative_nested_case_modules_only_collect_through_aggregate_entry
 def test_aggregate_collection_surfaces_keep_collection_count_above_known_coverage_floor() -> None:
     collected_lines = _collectable_test_ids(
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-        "tests/test_study_runtime_router.py",
         "tests/test_domain_health_diagnostic.py",
     )
 

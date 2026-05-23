@@ -28,7 +28,6 @@ def build_runtime_workbench_projection(
     source_refs: list[str],
     conditions: Mapping[str, Any],
     study_workbench: Mapping[str, Any],
-    live_console: Mapping[str, Any],
 ) -> dict[str, Any]:
     studies = [
         _workbench_study_row(
@@ -75,7 +74,6 @@ def build_runtime_workbench_projection(
                 or _non_empty_text(_mapping(progress.get("supervision")).get("active_run_id"))
                 or _non_empty_text(runtime.get("active_run_id"))
             ),
-            live_console=live_console,
         ),
         "authority": {
             "opl_role": "projection_consumer_and_action_transport_only",
@@ -156,8 +154,6 @@ def _selected_workbench_study(
     study_workbench: Mapping[str, Any],
 ) -> dict[str, Any]:
     runtime_projection = _mapping(study_workbench.get("runtime"))
-    continuity = _mapping(progress.get("runtime_continuity"))
-    runtime_session = _mapping(continuity.get("runtime_session"))
     active_run_id = (
         _non_empty_text(runtime_projection.get("active_run_id"))
         or _non_empty_text(_mapping(progress.get("supervision")).get("active_run_id"))
@@ -178,11 +174,10 @@ def _selected_workbench_study(
         "current_stage": _non_empty_text(user_visible.get("current_stage")),
         "active_run_id": active_run_id,
         "worker_state": _first_non_empty_text(
-            runtime_session.get("worker_state"),
             runtime_projection.get("health_status"),
             runtime.get("health_status"),
         ),
-        "last_seen_at": _first_non_empty_text(runtime_session.get("last_seen_at"), freshness.get("latest_event_at")),
+        "last_seen_at": _first_non_empty_text(freshness.get("latest_event_at")),
         "freshness": dict(freshness),
         "blocker_summary": "; ".join(_string_list(user_visible.get("current_blockers"))) or None,
         "next_action_summary": _non_empty_text(user_visible.get("next_system_action")),
@@ -521,9 +516,6 @@ def _workbench_links(
             if selected
             else PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE.format(study_id=study_id)
         ),
-        "conversation_read_model_ref": "artifacts/runtime/conversation_read_model/latest.json",
-        "live_console_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
-        "terminal_attach_status_ref": "artifacts/runtime/terminal_attach/read_model/latest.json",
         "artifact_refs": list(artifact_refs or []),
     }
 
@@ -549,7 +541,7 @@ def _workbench_actions() -> dict[str, dict[str, Any]]:
     return {
         action: {
             "allowed": False,
-            "owner": "mas_runtime_owner",
+            "owner": "one-person-lab",
             "endpoint_ref": None,
             "idempotency_required": True,
             "confirmation_required": action in {"stop", "reconcile_apply"},
@@ -562,18 +554,16 @@ def _workbench_terminal_projection(
     *,
     study_id: str,
     active_run_id: str | None,
-    live_console: Mapping[str, Any],
 ) -> dict[str, Any]:
-    available = bool(active_run_id and live_console.get("available"))
     return {
-        "mode": "read_only_tail" if available else "unavailable",
-        "reason": None if available else "no_attach_capable_live_run",
+        "mode": "external_control_plane_required",
+        "reason": "terminal_and_log_projection_owned_by_opl_current_control_state",
         "study_id": study_id,
         "active_run_id": active_run_id,
         "endpoints": None,
         "token_required": True,
         "lease_required": True,
-        "audit_ref": "artifacts/runtime/terminal_attach/receipts.jsonl",
+        "audit_ref": "OPL current_control_state projection",
     }
 
 

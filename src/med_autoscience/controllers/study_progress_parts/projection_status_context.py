@@ -23,7 +23,7 @@ class ProjectionStatusContext:
     family_checkpoint_lineage: dict[str, Any]
     runtime_health_snapshot: dict[str, Any]
     study_truth_snapshot: dict[str, Any]
-    control_plane_snapshot: dict[str, Any]
+    authority_snapshot: dict[str, Any]
     manual_finish_contract: dict[str, Any] | None
 
 
@@ -44,7 +44,7 @@ def build_projection_status_context(
         family_checkpoint_lineage=_dict_field(status, "family_checkpoint_lineage"),
         runtime_health_snapshot=_mapping_copy(status.get("runtime_health_snapshot")),
         study_truth_snapshot=_mapping_copy(status.get("study_truth_snapshot")),
-        control_plane_snapshot=_mapping_copy(status.get("control_plane_snapshot")),
+        authority_snapshot=_mapping_copy(status.get("authority_snapshot")),
         manual_finish_contract=manual_finish_contract,
     )
 

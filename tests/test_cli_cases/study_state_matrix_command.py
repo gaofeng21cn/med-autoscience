@@ -46,7 +46,7 @@ def test_study_state_matrix_command_projects_macro_state_without_writing(
             },
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
 
     exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
@@ -78,7 +78,7 @@ def test_study_state_matrix_markdown_uses_short_macro_status(
     (study_root / "study.yaml").write_text("study_id: 004-invasive\n", encoding="utf-8")
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "004-invasive",
@@ -140,7 +140,7 @@ def test_study_state_matrix_marks_stop_line_milestone_package_without_reopening_
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "004-dpcc",
@@ -182,7 +182,7 @@ def test_study_state_matrix_top_active_run_uses_macro_truth_when_status_top_leve
     (study_root / "study.yaml").write_text("study_id: 002-dm\n", encoding="utf-8")
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "002-dm",
@@ -238,7 +238,7 @@ def test_study_state_matrix_prefers_materialized_macro_state_surface(
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "004-dm",
@@ -282,7 +282,7 @@ def test_study_state_matrix_projects_publication_gate_blocker_transition(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "003-gate",
@@ -395,7 +395,7 @@ def test_study_state_matrix_projects_ai_reviewer_re_eval_transition(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "002-review",
@@ -454,7 +454,7 @@ def test_study_state_matrix_projects_ai_reviewer_required_before_finalize(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "003-dpcc",
@@ -512,7 +512,7 @@ def test_study_state_matrix_projects_ai_reviewer_required_before_gate_replay(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "003-dpcc",
@@ -584,7 +584,7 @@ def test_study_state_matrix_routes_ai_reviewer_backed_blocked_eval_to_publicatio
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "obesity-atlas",
@@ -663,7 +663,7 @@ def test_study_state_matrix_hands_off_delivered_bundle_stage_package_even_with_a
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "002-dm",
@@ -723,7 +723,7 @@ def test_study_state_matrix_bundle_stage_ignores_stale_publication_gate_review_u
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "002-dm",
@@ -769,7 +769,7 @@ def test_study_state_matrix_projects_artifact_delta_live_apply_transition(
     )
 
     monkeypatch.setattr(
-        cli.study_runtime_router,
+        cli.domain_status_projection,
         "progress_projection",
         lambda **_: {
             "study_id": "003-artifact",
@@ -846,7 +846,7 @@ def test_study_state_matrix_fails_closed_for_human_gate_stop_loss_and_conflict_n
             "active_run_id": None,
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
 
     exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
@@ -920,7 +920,7 @@ def test_study_state_matrix_projects_delivered_package_and_unclassified_fail_clo
             "active_run_id": None,
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
 
     exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
@@ -959,7 +959,7 @@ def test_study_state_matrix_fails_closed_per_study_progress_projection_error(
             "active_run_id": "run-still-running",
         }
 
-    monkeypatch.setattr(cli.study_runtime_router, "progress_projection", fake_status)
+    monkeypatch.setattr(cli.domain_status_projection, "progress_projection", fake_status)
 
     exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()

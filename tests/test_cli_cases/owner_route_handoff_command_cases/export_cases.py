@@ -17,7 +17,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         {"state": "breach", "breach_reason": "worker_recovery"},
     )
     _write_json(
-        study_root / "artifacts" / "runtime" / "recovery_intent" / "latest.json",
+        study_root / "artifacts" / "runtime" / "owner_receipt_handoff" / "latest.json",
         {"current_action": "safe_reconcile_ready", "retry_budget": {"remaining": 2}},
     )
     _write_json(
@@ -108,12 +108,13 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "generic_runner",
         "generic_workbench",
     }
-    assert set(boundary["mas_retains"]) >= {
+    assert set(boundary["mas_domain_authority_surfaces"]) >= {
         "study_truth",
         "publication_quality_verdict",
         "artifact_authority",
         "publication_route_memory_body",
         "owner_receipt",
+        "typed_blocker",
         "safe_action_refs",
     }
     assert boundary["declarative_pack_compiler_input"]["compiler_owner"] == "one-person-lab"
@@ -129,8 +130,9 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "test_lane_harness",
     ]
     assert boundary["generated_surface_handoff"]["current_mas_role"] == (
-        "handwritten_migration_bridge"
+        "domain_handler_and_refs_projection_source"
     )
+    assert boundary["generated_surface_handoff"]["mas_handwritten_shell_expansion_allowed"] is False
     assert boundary["generated_surface_handoff"]["long_term_mas_owner"] is False
     assert boundary["minimal_authority_function_manifest"]["function_ids"] == [
         "publication_quality_verdict",
@@ -144,11 +146,15 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     inventory_by_id = {
         item["module_id"]: item for item in boundary["functional_module_inventory"]
     }
-    assert len(inventory_by_id) == 19
-    assert inventory_by_id["lifecycle_refs_adapter"]["migration_action"] == (
-        "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index"
+    assert len(inventory_by_id) == 18
+    assert inventory_by_id["domain_authority_refs_index"]["migration_action"] == (
+        "declare_domain_authority_refs_index_and_consume_opl_current_control_state"
     )
-    assert inventory_by_id["publication_quality_verdict"]["migration_action"] == "retain_in_mas"
+    assert inventory_by_id["domain_authority_refs_index"]["current_ref_status"] == (
+        "domain_authority_refs_index_no_runtime_lifecycle_owner"
+    )
+    assert inventory_by_id["publication_quality_verdict"]["migration_action"] == "authority_stays_in_mas"
+    assert inventory_by_id["publication_quality_verdict"]["classification"] == "minimal_authority_function"
     assert payload["profile"]["profile_ref"] == str(profile_path)
     assert payload["workspace"]["workspace_root"] == str(workspace_root)
     substrate = payload["opl_substrate_adapter"]
@@ -209,8 +215,11 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert runtime_handoff == provider["runtime_transport_handoff_projection"]
     assert runtime_handoff["status"] == "opl_generic_runtime_owner_mas_domain_bridge_only"
     assert runtime_handoff["generic_runtime_owner"] == "one-person-lab"
-    assert runtime_handoff["mas_runtime_core_role"] == (
-        "domain_owner_receipt_adapter_or_standalone_diagnostic"
+    assert runtime_handoff["domain_intent_adapter_role"] == (
+        "refs_only_owner_route_typed_blocker_and_owner_receipt_handoff"
+    )
+    assert runtime_handoff["retired_runtime_transport_surfaces"][0]["retirement_status"] == (
+        "physically_retired_no_alias"
     )
     assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_as_generic_provider"] is False
     assert runtime_handoff["generated_default_caller_boundary"] == payload[
@@ -219,17 +228,18 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert runtime_handoff["physical_retirement_gate_matrix"] == payload[
         "functional_consumer_boundary"
     ]["physical_retirement_gate_matrix"]
-    assert runtime_handoff["physical_retirement_gate_matrix"]["no_active_caller_summary"] == {
-        "active_default_caller_count": 0,
-        "active_default_caller_zero_proven": True,
-        "full_active_caller_zero_proven": False,
-        "physical_delete_candidate_count": 5,
-        "physical_delete_ready_count": 0,
-    }
+    no_resurrection_summary = runtime_handoff["physical_retirement_gate_matrix"]["no_resurrection_summary"]
+    assert no_resurrection_summary["default_runtime_owner"] == "one-person-lab"
+    assert no_resurrection_summary["mas_default_runtime_owner_allowed"] is False
+    assert no_resurrection_summary["all_runtime_control_surfaces_retired_or_opl_owned"] is True
+    assert no_resurrection_summary["physical_delete_candidate_count"] == 5
+    assert no_resurrection_summary["physical_delete_ready_count"] == 1
+    assert no_resurrection_summary["physically_retired_surface_ids"] == ["runtime_transport"]
+    assert no_resurrection_summary["remaining_surfaces_are_domain_refs_not_runtime_control"] is True
     assert "generic_worker_residency_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "legacy_provider" not in provider["provider_topology"]
     assert "legacy_provider_classification" not in provider["provider_topology"]
-    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_active_default_caller_proven"
+    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_resurrection_proof_recorded"
     assert provider["executor_requirements"] == {
         "adapter_owner": "one-person-lab",
         "generic_executor_adapter_owner": "one-person-lab",
@@ -253,8 +263,8 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     )
     family_supervision = payload["family_runtime_supervision"]
     assert family_supervision["repair_command"] == (
-        f"medautosci runtime domain-route-reconcile --profile {profile_path} "
-        "--mode developer_apply_safe --dry-run"
+        f"medautosci owner-route-reconcile --profile {profile_path} "
+        "--developer-supervisor-mode developer_apply_safe"
     )
     assert family_supervision["local_scheduler_tombstone_ref"] == (
         "contracts/runtime/legacy-active-path-tombstones.json#mas-local-scheduler"
@@ -272,16 +282,19 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert family_supervision["read_only_authority_boundary"]["mas_local_scheduler_role"] == (
         "physical_retired_tombstone_provenance_only"
     )
-    assert payload["studies"][0]["study_id"] == "001-risk"
-    assert payload["studies"][0]["runtime_supervision"]["state"] == "running"
-    assert payload["studies"][0]["slo_status"]["state"] == "breach"
-    assert payload["studies"][0]["recovery_intent"]["current_action"] == "safe_reconcile_ready"
-    assert payload["pending_family_tasks"][0]["domain_id"] == "medautoscience"
-    assert payload["pending_family_tasks"][0]["task_kind"] == "domain_route/reconcile-apply"
-    assert payload["pending_family_tasks"][0]["payload"]["profile"] == str(profile_path)
-    assert payload["pending_family_tasks"][0]["payload"]["study_id"] == "001-risk"
-    assert payload["pending_family_tasks"][0]["requires_approval"] is False
-    assert payload["pending_family_tasks"][0]["dedupe_key"].startswith("mas:nfpitnet:001-risk:autonomy-continuation:")
+    study_projection = payload["studies"][0]
+    assert study_projection["study_id"] == "001-risk"
+    assert "runtime_supervision" not in study_projection
+    assert "slo_status" not in study_projection
+    assert "owner_receipt_handoff" not in study_projection
+    assert study_projection["controller_decisions"]["decision_id"] == "decision-001"
+    assert any(
+        ref["role"] == "controller_decisions" and ref["exists"] is True
+        for ref in study_projection["domain_owned_source_refs"]
+    )
+    assert study_projection["autonomy_continuation"]["status"] == "retired_runtime_liveness_scheduler_signal"
+    assert study_projection["autonomy_continuation"]["replacement_owner"] == "one-person-lab"
+    assert payload["pending_family_tasks"] == []
 
 
 def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path: Path, capsys) -> None:
@@ -430,7 +443,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert managed_state["authority_boundary"]["can_write_domain_truth"] is False
     tombstone = payload["legacy_retirement_tombstone_proof"]
     assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
-    assert tombstone["status"] == "no_active_default_caller_proven"
+    assert tombstone["status"] == "no_resurrection_proof_recorded"
     assert tombstone["active_default_callers"] == []
     assert {item["surface_id"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
         "hermes_agent_executor_adapter",
@@ -691,7 +704,7 @@ def test_sidecar_export_projects_controller_route_back_as_pending_task(
     route_tasks = [
         task
         for task in payload["pending_family_tasks"]
-        if task["task_kind"] == "domain_route/reconcile-apply"
+        if task["task_kind"] == "domain_route/owner-handoff"
     ]
     assert len(route_tasks) == 1
     task = route_tasks[0]
@@ -727,7 +740,7 @@ def test_sidecar_export_projects_controller_route_back_as_pending_task(
     ]
     evidence_payload = task["domain_dispatch_evidence_record_payload"]
     assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
-    assert evidence_payload["task_kind"] == "domain_route/reconcile-apply"
+    assert evidence_payload["task_kind"] == "domain_route/owner-handoff"
     assert evidence_payload["study_id"] == "002-dm-china-us-mortality-attribution"
     assert evidence_payload["source_fingerprint"] == task["source_fingerprint"]
     assert evidence_payload["domain_source_fingerprint"] == task["source_fingerprint"]
@@ -737,7 +750,7 @@ def test_sidecar_export_projects_controller_route_back_as_pending_task(
         for key in ("domain_id", "task_kind", "study_id", "source_fingerprint", "profile_name")
     } == {
         "domain_id": "medautoscience",
-        "task_kind": "domain_route/reconcile-apply",
+        "task_kind": "domain_route/owner-handoff",
         "study_id": "002-dm-china-us-mortality-attribution",
         "source_fingerprint": task["source_fingerprint"],
         "profile_name": "nfpitnet",

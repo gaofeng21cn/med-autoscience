@@ -11,8 +11,8 @@ from med_autoscience.study_decision_record import StudyDecisionRecord
 
 
 _CONTROLLER_DECISION_RUNTIME_AUTHORIZATION_ACTIONS = {
-    "ensure_study_runtime",
-    "ensure_study_runtime_relaunch_stopped",
+    "request_opl_stage_attempt",
+    "request_opl_stage_attempt_relaunch",
     "run_gate_clearing_batch",
     "run_quality_repair_batch",
     "return_to_ai_reviewer_workflow",

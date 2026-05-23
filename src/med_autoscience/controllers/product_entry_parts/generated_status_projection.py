@@ -31,9 +31,9 @@ def _build_runtime_inventory_surface(
     availability = "ready" if ready_to_try_now else "blocked"
     health_status = "healthy" if ready_to_try_now else "attention_required"
     summary = (
-        "MAS runtime inventory 已连接 MAS runtime contract 与 OPL supervision projection，当前可通过 workspace cockpit 持续监管并续跑 study。"
+        "MAS domain refs inventory 已连接 OPL runtime-control projection，workspace cockpit 只展示监管 refs 与 owner handoff。"
         if ready_to_try_now
-        else "MAS runtime inventory 当前存在 blocking preflight，需要先恢复 runtime/监督前置状态。"
+        else "MAS domain refs inventory 当前存在 blocking preflight，需要先恢复 OPL control-state 或 MAS domain refs 前置状态。"
     )
     return _build_shared_runtime_inventory(
         summary=summary,
@@ -63,7 +63,7 @@ def _build_runtime_inventory_surface(
             "profile_name": profile.name,
         },
         domain_projection={
-            "managed_runtime_backend_id": runtime.get("managed_runtime_backend_id"),
+            "opl_runtime_ref": runtime.get("opl_runtime_ref"),
             "managed_runtime_contract": dict(managed_runtime_contract),
             "recommended_loop_surface": operator_loop_surface.get("surface_kind"),
         },
@@ -174,7 +174,10 @@ def _build_session_continuity_surface(
         checkpoint_summary=checkpoint_summary if checkpoint_summary else None,
         human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
         domain_projection={
-            "runtime_supervision_path_template": "studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json",
+            "opl_runtime_owner_handoff_path_template": (
+                "studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
+            ),
+            "domain_health_diagnostic_path_template": "studies/<study_id>/artifacts/domain_health_diagnostic/latest.json",
             "publication_eval_path_template": "studies/<study_id>/artifacts/publication_eval/latest.json",
             "controller_decision_path_template": "studies/<study_id>/artifacts/controller_decisions/latest.json",
         },
@@ -272,10 +275,10 @@ def _build_artifact_inventory_surface(
             "summary": "domain health diagnostic event companion for supervision freshness.",
         },
         {
-            "file_id": "runtime_supervision_latest",
-            "label": "Runtime supervision (latest)",
-            "path": "studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json",
-            "summary": "MAS domain runtime projection refs; generic scheduler and lifecycle ownership stay in OPL.",
+            "file_id": "opl_runtime_owner_handoff_latest",
+            "label": "OPL runtime owner handoff (latest)",
+            "path": "studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
+            "summary": "MAS refs-only handoff requiring OPL current_control_state hydration.",
         },
         {
             "file_id": "publication_eval_latest",

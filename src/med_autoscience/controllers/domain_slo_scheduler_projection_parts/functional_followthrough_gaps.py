@@ -11,10 +11,10 @@ FUNCTIONAL_STRUCTURE_GAP_CLASSIFICATION = "functional_structure_followthrough_ga
 
 FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
     {
-        "gate_id": "generated_surface_active_caller_cutover",
+        "gate_id": "generated_surface_default_owner_cutover",
         "owner": "one-person-lab",
         "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
-        "evidence_required": "OPL generated surfaces available, active callers migrated, focused no-regression lane green",
+        "evidence_required": "OPL generated surfaces own default shells, MAS exposes domain refs/handlers only, focused no-regression lane green",
         "closure_status": "closed",
         "closure_proof_refs": [
             "contracts/generated_surface_handoff.json",
@@ -24,14 +24,14 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "functional_structure_gap": False,
     },
     {
-        "gate_id": "refs_only_adapter_thinning",
+        "gate_id": "domain_authority_refs_thinning",
         "owner": "med-autoscience",
         "mas_role": "export_body_free_locator_receipt_blocker_refs_only",
         "evidence_required": "SQLite/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
         "closure_status": "closed",
         "closure_proof_refs": [
-            "functional_module_inventory.refs_only_adapter",
-            "lifecycle_refs_adapter_role.refs_only_index_not_generic_persistence_engine",
+            "functional_module_inventory.domain_authority_refs",
+            "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
             "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain",
         ],
         "functional_structure_gap": False,
@@ -40,10 +40,10 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "gate_id": "legacy_cleanup_physical_retirement",
         "owner": "med-autoscience",
         "mas_role": "remove_or_tombstone_legacy_launchagent_and_workspace_local_wrapper_surfaces",
-        "evidence_required": "no-active-caller scan, old generated artifact absent/remove proof, provenance retained, focused cleanup tests green",
+        "evidence_required": "stale-surface scan, old generated artifact absent/remove proof, provenance refs recorded, focused cleanup tests green",
         "closure_status": "closed",
         "closure_proof_refs": [
-            "no_active_caller_proof.default_caller_count=0",
+            "stale_surface_scan_clean.default_runtime_owner=opl",
             "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
             "functional_module_inventory.legacy_cleanup_physical_retired",
         ],
@@ -69,9 +69,9 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
         "closure_status": "closed",
         "closure_proof_refs": [
-            "lifecycle_refs_adapter_role.mas_consumes_opl_lifecycle_index_refs=true",
+            "domain_authority_refs_index_role.mas_consumes_opl_current_control_state_refs=true",
             "artifact_lifecycle_storage_audit_shell.proof_refs",
-            "OPL family-runtime-lifecycle-index read model",
+            "OPL current_control_state read model",
         ],
         "functional_structure_gap": False,
     },
@@ -118,12 +118,11 @@ OPL_REPLACEMENT_EXPECTATION_AUDIT = {
         "opl_runtime_lifecycle_index_contract",
         "opl_artifact_lifecycle_storage_audit_shell",
         "opl_app_workbench_shell",
-        "opl_terminal_attach_transport",
         "opl_provider_scheduler_lifecycle",
         "opl_queue_attempt_retry_dead_letter",
         "opl_generic_transition_runner",
     ],
-    "mas_allowed_role_until_replacement": "domain_lifecycle_refs_adapter_refs_only",
+    "mas_allowed_role_until_replacement": "domain_authority_refs_index_refs_only",
 }
 
 
@@ -180,12 +179,12 @@ def build_functional_followthrough_gap_summary(
         "closed_functional_structure_gate_ids": closure_gate_ids,
         "closed_functional_structure_gates": closed_functional_structure_gates,
         "classification_counts": dict(classification_counts),
-        "legacy_cleanup_items_require_no_active_caller_gate": list(legacy_cleanup_items),
+        "legacy_cleanup_items_require_no_resurrection_guard": list(legacy_cleanup_items),
         "legacy_cleanup_items_physical_retired": list(legacy_physical_retired_items),
         "legacy_cleanup_items_tombstoned": list(legacy_tombstone_items),
         "legacy_cleanup_items_are_diagnostic_provenance_guards": bool(legacy_cleanup_items),
         "legacy_cleanup_item_role": (
-            "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller"
+            "cleanup_diagnostic_provenance_drift_guard_no_resurrection"
             if legacy_cleanup_items
             else "history_tombstone_provenance_only"
         ),
@@ -199,9 +198,9 @@ def build_functional_followthrough_gap_summary(
             "declarative_pack_compiler_input",
             "generated_surface_handoff",
             "minimal_authority_function_manifest",
-            "no_active_caller_proof",
+            "stale_surface_scan_clean",
             "opl_functional_harness_consumer_coverage",
-            "opl_generated_interface_active_caller_target_proof",
+            "opl_generated_interface_default_owner_target_proof",
             "opl_app_operator_workbench_drilldown",
             "opl_lifecycle_index_cleanup_restore_ledger",
         ],

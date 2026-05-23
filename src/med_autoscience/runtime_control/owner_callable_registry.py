@@ -22,17 +22,6 @@ class OwnerCallable:
 
 _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
     OwnerCallable(
-        owner="MAS/controller",
-        action_type="runtime_platform_repair",
-        callable_surface="owner_route_reconcile.scan_domain_routes(apply_runtime_platform_repair=True)",
-        required_inputs=("owner_route", "runtime_health_snapshot", "controller_decisions/latest.json"),
-        required_outputs=("artifacts/supervision/consumer/runtime_platform_repair.json",),
-        artifact_delta_predicate="owner_route_advances_or_runtime_repair_receipt",
-        gate_replay_target=None,
-        idempotency_scope="study_quest_owner_route",
-        source_fingerprint_scope="owner_route.source_fingerprint",
-    ),
-    OwnerCallable(
         owner="ai_reviewer",
         action_type="return_to_ai_reviewer_workflow",
         callable_surface="ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",

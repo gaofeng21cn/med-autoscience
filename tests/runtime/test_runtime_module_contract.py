@@ -29,23 +29,32 @@ def test_runtime_contract_declares_execution_authority_boundary() -> None:
         "communication_rules",
     }
     assert contract["module"] == "runtime"
-    assert contract["status"] == "scaffold"
+    assert contract["status"] == "retired_private_runtime_control_boundary"
     assert contract["owns"] == [
-        "quest_execution_truth",
-        "runtime_session_truth",
-        "runtime_artifact_truth",
-        "runtime_escalation_record",
+        "domain_authority_refs",
+        "owner_receipt_refs",
+        "typed_blocker_refs",
+        "runtime_escalation_record_refs",
     ]
     assert contract["consumes_refs"] == [
-        "runtime_startup_projection",
+        "opl_current_control_state_ref",
+        "opl_provider_attempt_ref",
         "runtime_policy_summary_ref",
     ]
     assert contract["emits_refs"] == [
-        "runtime_status_ref",
-        "runtime_artifact_ref",
+        "domain_health_diagnostic_ref",
+        "owner_route_ref",
+        "typed_blocker_ref",
         "runtime_escalation_record_ref",
     ]
     assert contract["forbids"] == [
+        "quest_execution_truth",
+        "runtime_session_truth",
+        "runtime_artifact_truth",
+        "generic_queue_owner",
+        "generic_attempt_ledger_owner",
+        "generic_runtime_lifecycle_owner",
+        "provider_liveness_ownership",
         "publication_authority_ownership",
         "controller_truth_mutation",
         "eval_verdict_ownership",

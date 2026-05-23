@@ -116,7 +116,7 @@ def _current_stage(
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
     continuation_state: dict[str, Any],
-    runtime_supervision_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     task_intake_progress_override: dict[str, Any] | None,
@@ -126,7 +126,7 @@ def _current_stage(
     runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
     runtime_health_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
     runtime_health_attempt_state = _non_empty_text(runtime_health_snapshot.get("attempt_state"))
-    runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+    runtime_health_status = _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("health_status"))
     live_managed_runtime = live_managed_runtime_present(
         status=status,
         autonomous_runtime_notice=autonomous_runtime_notice,
@@ -162,7 +162,7 @@ def _current_stage(
     if runtime_health_status == "escalated" and not live_managed_runtime:
         return "managed_runtime_escalated"
     if _supervisor_tick_gap_present(supervisor_tick_audit):
-        return "managed_runtime_supervision_gap"
+        return "managed_opl_runtime_owner_handoff_gap"
     if decision == "blocked":
         return "runtime_blocked"
     if isinstance(publication_supervisor_state, dict) and _non_empty_text(
@@ -217,7 +217,7 @@ def _stage_summary(
     publication_supervisor_state: dict[str, Any],
     publication_eval_payload: dict[str, Any] | None,
     latest_progress_message: str | None,
-    runtime_supervision_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     task_intake_progress_override: dict[str, Any] | None,
@@ -252,17 +252,17 @@ def _stage_summary(
             else "托管运行时当前处在健康监管状态。"
         )
         summary = (
-            _non_empty_text((runtime_supervision_payload or {}).get("clinician_update"))
-            or _non_empty_text((runtime_supervision_payload or {}).get("summary"))
+            _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("clinician_update"))
+            or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("summary"))
             or fallback_summary
         )
-        next_action_summary = _non_empty_text((runtime_supervision_payload or {}).get("next_action_summary"))
+        next_action_summary = _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("next_action_summary"))
         if current_stage == "managed_runtime_escalated" and next_action_summary is not None:
             if "人工介入" not in summary:
                 summary = f"{summary} 当前需要人工介入。"
             return f"{summary} {next_action_summary}"
         return summary
-    if current_stage == "managed_runtime_supervision_gap":
+    if current_stage == "managed_opl_runtime_owner_handoff_gap":
         summary = (
             _non_empty_text((supervisor_tick_audit or {}).get("summary"))
             or "MedAutoScience 外环监管心跳异常，当前不能把托管运行视为被持续监管。"
@@ -473,7 +473,7 @@ def _next_system_action(
     status: dict[str, Any],
     autonomous_runtime_notice: dict[str, Any],
     continuation_state: dict[str, Any],
-    runtime_supervision_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     task_intake_progress_override: dict[str, Any] | None,
@@ -513,8 +513,8 @@ def _next_system_action(
     decision = _non_empty_text(status.get("decision"))
     if finalize_milestone_parking_active(status):
         return finalize_milestone_parking_summary(status)
-    runtime_next_action = _non_empty_text((runtime_supervision_payload or {}).get("next_action_summary"))
-    runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+    runtime_next_action = _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("next_action_summary"))
+    runtime_health_status = _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("health_status"))
     live_managed_runtime = _live_managed_runtime_present(
         status=status,
         autonomous_runtime_notice=autonomous_runtime_notice,
@@ -591,7 +591,7 @@ def _current_blockers(
     controller_decision_payload: dict[str, Any] | None,
     pending_user_interaction: dict[str, Any],
     interaction_arbitration: dict[str, Any] | None,
-    runtime_supervision_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     progress_freshness: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
@@ -625,12 +625,12 @@ def _current_blockers(
                 blockers,
                 _non_empty_text((progress_freshness or {}).get("summary")),
             )
-    runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+    runtime_health_status = _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("health_status"))
     if runtime_health_status in {"degraded", "escalated"}:
         _append_unique(
             blockers,
-            _non_empty_text((runtime_supervision_payload or {}).get("summary"))
-            or _non_empty_text((runtime_supervision_payload or {}).get("clinician_update")),
+            _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("summary"))
+            or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("clinician_update")),
         )
     if task_intake_progress_override:
         _append_unique(blockers, _non_empty_text(task_intake_progress_override.get("blocker_summary")))
@@ -737,7 +737,7 @@ def _intervention_lane(
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
     continuation_state: dict[str, Any],
-    runtime_supervision_payload: dict[str, Any] | None,
+    opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     task_intake_progress_override: dict[str, Any] | None,
@@ -746,7 +746,7 @@ def _intervention_lane(
 ) -> dict[str, Any]:
     blocker_summary = _non_empty_text(current_blockers[0] if current_blockers else None)
     progress_status = _non_empty_text((progress_freshness or {}).get("status"))
-    runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+    runtime_health_status = _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("health_status"))
     live_managed_runtime = _live_managed_runtime_present(
         status=status,
         autonomous_runtime_notice=autonomous_runtime_notice,
@@ -875,8 +875,8 @@ def _intervention_lane(
             "title": "优先处理 runtime recovery",
             "severity": "critical" if runtime_health_status in {"degraded", "escalated"} else "warning",
             "summary": (
-                _non_empty_text((runtime_supervision_payload or {}).get("summary"))
-                or _non_empty_text((runtime_supervision_payload or {}).get("clinician_update"))
+                _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("summary"))
+                or _non_empty_text((opl_runtime_owner_handoff_payload or {}).get("clinician_update"))
                 or current_stage_summary
                 or blocker_summary
                 or next_system_action

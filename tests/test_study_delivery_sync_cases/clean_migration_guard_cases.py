@@ -8,8 +8,8 @@ from .shared import dump_json, make_delivery_workspace
 
 def _open_bundle_route_context() -> dict[str, object]:
     return {
-        "control_plane_snapshot": {
-            "surface": "control_plane_snapshot",
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
             "dispatch_gate": {
                 "state": "open",
                 "dispatch_allowed": True,

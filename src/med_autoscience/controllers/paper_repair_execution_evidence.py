@@ -433,7 +433,7 @@ def _controller_progress_refs(
         payload = _mapping(item)
         if _text(payload.get("unit_id")) != "sync_submission_minimal_delivery":
             continue
-        if _text(payload.get("status")) in {"control_plane_route_blocked", "failed", "missing", "skipped_failed_dependency"}:
+        if _text(payload.get("status")) in {"authority_route_blocked", "failed", "missing", "skipped_failed_dependency"}:
             continue
         result = _mapping(payload.get("result"))
         for key in ("delivery_manifest_path", "current_package_zip", "current_package_root"):

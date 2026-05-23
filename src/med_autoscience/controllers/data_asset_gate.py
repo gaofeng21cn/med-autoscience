@@ -10,8 +10,9 @@ from typing import Any
 import yaml
 
 from med_autoscience.controllers import data_assets
+from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
 from med_autoscience.policies import data_asset_gate as data_asset_gate_policy
-from med_autoscience.runtime_protocol import quest_state, user_message
+from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
 
@@ -225,11 +226,12 @@ def run_controller(
     json_path, md_path = write_gate_files(quest_root, report)
     intervention = None
     if apply and report["status"] in {"blocked", "advisory"}:
-        intervention = user_message.enqueue_user_message(
+        intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=data_asset_gate_policy.build_intervention_message(report),
             source=source,
+            evidence_refs=[str(json_path)],
         )
     return {
         "report_json": str(json_path),
@@ -242,8 +244,9 @@ def run_controller(
         "historical_comparator_dataset_ids": report["historical_comparator_dataset_ids"],
         "unresolved_dataset_ids": report["unresolved_dataset_ids"],
         "public_support_dataset_ids": report["public_support_dataset_ids"],
-        "intervention_enqueued": bool(intervention),
-        "message_id": intervention.get("message_id") if intervention else None,
+        "intervention_enqueued": False,
+        "message_id": None,
+        "intervention_handoff": intervention,
         "source": source,
     }
 

@@ -12,7 +12,7 @@ def _assert_manifest_runtime_identity(*, module, payload, profile, profile_ref) 
 def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -> None:
     assert payload["runtime"]["domain_owner"] == "med-autoscience"
     assert payload["runtime"]["executor_owner"] == "controlled_research_backend"
-    assert payload["runtime"]["runtime_substrate"] == "opl_provider_backed_stage_runtime"
+    assert payload["runtime"]["runtime_substrate"] == "opl_hosted_stage_runtime"
     assert payload["managed_runtime_contract"] == {
         "shared_contract_ref": "contracts/opl-framework/managed-runtime-three-layer-contract.json",
         "runtime_owner": "one-person-lab",
@@ -42,7 +42,7 @@ def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -
 
 def _assert_runtime_inventory(*, module, payload, profile, profile_ref) -> None:
     assert payload["runtime_inventory"]["executor_owner"] == "controlled_research_backend"
-    assert payload["runtime_inventory"]["substrate"] == "opl_provider_backed_stage_runtime"
+    assert payload["runtime_inventory"]["substrate"] == "opl_hosted_stage_runtime"
     assert payload["runtime_inventory"]["availability"] == "ready"
     assert payload["runtime_inventory"]["health_status"] == "healthy"
     assert payload["runtime_inventory"]["status_surface"]["ref_kind"] == "workspace_locator"
@@ -57,7 +57,8 @@ def _assert_session_and_progress_projection(*, module, payload, profile, profile
     assert payload["runtime_inventory"]["recovery_surface"]["ref"] == "/managed_runtime_contract/recovery_contract_surface"
     assert payload["runtime_inventory"]["workspace_binding"]["workspace_root"] == str(profile.workspace_root)
     assert payload["runtime_inventory"]["workspace_binding"]["profile_name"] == profile.name
-    assert payload["runtime_inventory"]["domain_projection"]["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
+    assert payload["runtime_inventory"]["domain_projection"]["opl_runtime_ref"] == profile.opl_runtime_ref
+    assert payload["runtime_inventory"]["domain_projection"]["recommended_loop_surface"] == "workspace_cockpit"
     assert payload["session_continuity"]["surface_kind"] == "session_continuity"
 
 def _assert_research_runtime_control_projection(*, module, payload, profile, profile_ref) -> None:
@@ -125,7 +126,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
                 "refs.medical_prose_review_path",
                 "refs.retrospective_medical_prose_audit_path",
                 "refs.controller_decision_path",
-                "refs.runtime_supervision_path",
+                "refs.opl_runtime_owner_handoff_path",
                 "refs.domain_health_diagnostic_report_path",
             ],
             "pickup_refs_field": "research_runtime_control_projection.artifact_pickup_surface.pickup_refs",
@@ -184,10 +185,10 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert policy["target_domain_id"] == "med-autoscience"
     assert {entry["storage_role"] for entry in policy["authority_surfaces"]} == {"file_authority"}
     assert "publication_eval_latest" in {entry["surface_id"] for entry in policy["authority_surfaces"]}
-    assert policy["lifecycle_ref_indexes"][0]["storage_role"] == "refs_only_lifecycle_ref_index"
+    assert policy["lifecycle_ref_indexes"][0]["storage_role"] == "refs_only_domain_authority_ref_index"
     assert policy["lifecycle_ref_indexes"][0]["owner"] == "one-person-lab"
-    assert policy["lifecycle_ref_indexes"][0]["surface_role"] == "domain_lifecycle_refs_adapter"
-    assert policy["lifecycle_ref_indexes"][0]["ref"]["ref"] == "artifacts/runtime/runtime_lifecycle.sqlite"
+    assert policy["lifecycle_ref_indexes"][0]["surface_role"] == "domain_authority_refs_index"
+    assert policy["lifecycle_ref_indexes"][0]["ref"]["ref"] == "artifacts/runtime/domain_authority_refs.sqlite"
     assert policy["projection_caches"][0]["storage_role"] == "projection_cache"
     assert policy["explicit_archive_import_refs"][0]["storage_role"] == "explicit_archive_import_ref_only"
 

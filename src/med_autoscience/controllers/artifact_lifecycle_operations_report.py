@@ -53,7 +53,7 @@ from med_autoscience.controllers.storage_governance_history import build_storage
 
 
 SCHEMA_VERSION = 1
-SURFACE_KIND = "control_plane_lifecycle_report"
+SURFACE_KIND = "artifact_lifecycle_report"
 _SOURCE_BUCKETS = (
     "runtime",
     "dataset",
@@ -122,7 +122,7 @@ def _mutation_policy() -> dict[str, Any]:
     return {
         "read_only": True,
         "writes_workspace": False,
-        "cleanup_apply_supported": False,
+        "physical_cleanup_owned_by": "one-person-lab",
         "physical_cleanup_performed": False,
     }
 

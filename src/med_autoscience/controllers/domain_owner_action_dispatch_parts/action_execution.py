@@ -17,7 +17,7 @@ from .. import (
     paper_authority_migration,
     publication_gate,
     quest_hydration,
-    study_runtime_router,
+    domain_status_projection,
 )
 from .action_execution_parts import methodology_reframe_decision
 from .action_execution_parts import provenance_limited_harmonization
@@ -95,7 +95,7 @@ def _publication_eval_latest_path(study_root: Path) -> Path:
 
 def quest_root_from_status(profile: WorkspaceProfile, study_id: str) -> Path | None:
     try:
-        status = study_runtime_router.progress_projection(profile=profile, study_id=study_id, study_root=None, entry_mode=None)
+        status = domain_status_projection.progress_projection(profile=profile, study_id=study_id, study_root=None, entry_mode=None)
     except Exception:
         return None
     status_payload = dict(status) if isinstance(status, Mapping) else status.to_dict()
@@ -162,43 +162,6 @@ def _publication_gate_report_with_refs(*, report: Mapping[str, Any], state: Any,
     }
 
 
-def execute_runtime_platform_repair(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    apply: bool,
-    supported_mode: str,
-) -> dict[str, Any]:
-    if not apply:
-        return {
-            "execution_status": "dry_run",
-            "blocked_reason": None,
-            "owner_callable_surface": "runtime owner-route-reconcile --apply-runtime-platform-repair",
-        }
-    from .. import owner_route_reconcile
-
-    result = owner_route_reconcile.scan_domain_routes(
-        profile=profile,
-        study_ids=(study_id,),
-        apply_safe_actions=True,
-        apply_runtime_platform_repair=True,
-        developer_supervisor_mode=supported_mode,
-        persist_surfaces=False,
-    )
-    study_payload = next(
-        (study for study in result.get("studies", []) if isinstance(study, Mapping) and _text(study.get("study_id")) == study_id),
-        {},
-    )
-    apply_result = _mapping(study_payload.get("runtime_platform_repair_apply"))
-    executed = _text(apply_result.get("dispatch_status")) == "applied"
-    return {
-        "execution_status": "executed" if executed else "blocked",
-        "blocked_reason": None if executed else _text(apply_result.get("reason")) or "runtime_platform_repair_not_applied",
-        "owner_callable_surface": "owner_route_reconcile.scan_domain_routes(apply_runtime_platform_repair=True)",
-        "owner_result": apply_result or result,
-    }
-
-
 def execute_current_package_freshness(
     *,
     profile: WorkspaceProfile,
@@ -241,7 +204,7 @@ def _run_current_package_gate_clearing_batch(
         study_root=_study_root(profile, study_id),
         quest_id=quest_root.name,
         source="domain_owner_action_dispatch",
-        control_plane_route_context={
+        authority_route_context={
             "controller_route_context": {
                 "control_surface": "gate_clearing_batch",
                 "controller_action_type": "run_gate_clearing_batch",
@@ -979,7 +942,6 @@ __all__ = [
     "execute_publication_gate_specificity",
     "execute_provenance_limited_harmonization_audit",
     "execute_recover_transport_model_provenance",
-    "execute_runtime_platform_repair",
     "execute_unit_harmonized_external_validation_rerun",
     "quest_root_from_status",
 ]

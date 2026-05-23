@@ -37,7 +37,7 @@ def _owner_route(
     }
 
 
-def _runtime_platform_repair_action(study_id: str, quest_id: str) -> dict[str, object]:
+def _retired_runtime_platform_repair_action(study_id: str, quest_id: str) -> dict[str, object]:
     route = _owner_route(
         study_id=study_id,
         quest_id=quest_id,
@@ -87,7 +87,7 @@ def _write_consumer_scan(profile, study_id: str, quest_id: str) -> None:
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_runtime_platform_repair_action(study_id, quest_id)],
+            "action_queue": [_retired_runtime_platform_repair_action(study_id, quest_id)],
         },
     )
 
@@ -131,8 +131,11 @@ def test_materialize_domain_action_requests_allows_user_configured_developer_mod
     }
     assert result["github_gate"]["allowed"] is False
     assert result["apply_allowed"] is True
-    assert result["repair_tasks"][0]["dispatch_status"] == "applied"
-    assert (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").is_file()
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
+    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
 
 
 def test_materialize_domain_action_requests_honors_user_config_disabled_over_apply_safe_default(
@@ -173,8 +176,10 @@ def test_materialize_domain_action_requests_honors_user_config_disabled_over_app
         "reason": "developer_supervisor_disabled_by_user_config",
     }
     assert result["apply_allowed"] is False
-    assert result["repair_tasks"][0]["dispatch_status"] == "blocked"
-    assert result["repair_tasks"][0]["blocked_reason"] == "developer_supervisor_disabled_by_user_config"
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
 
 
@@ -228,5 +233,8 @@ def test_materialize_domain_action_requests_uses_profile_github_username_for_pul
         "source": "profile_developer_mode_pull_request",
         "reason": "github_user_requires_pull_request_route",
     }
-    assert result["repair_tasks"][0]["dispatch_status"] == "applied"
-    assert (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").is_file()
+    assert result["runtime_repair_task_count"] == 0
+    assert result["runtime_repair_tasks_retired"] is True
+    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
+    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()

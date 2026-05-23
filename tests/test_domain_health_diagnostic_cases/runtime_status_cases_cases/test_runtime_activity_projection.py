@@ -38,9 +38,9 @@ def test_watch_runtime_projects_live_worker_stale_artifact_delta_as_recovering(
         "quest_root": str(quest_root),
         "quest_status": "running",
         "execution": {
-            "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+            "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "quest-001",
             "auto_resume": True,
@@ -69,8 +69,7 @@ def test_watch_runtime_projects_live_worker_stale_artifact_delta_as_recovering(
         },
     }
 
-    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
-    monkeypatch.setattr(module.study_runtime_router, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
     monkeypatch.setattr(module.study_outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -79,14 +78,11 @@ def test_watch_runtime_projects_live_worker_stale_artifact_delta_as_recovering(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    supervision = result["managed_study_supervision"][0]
-    assert supervision["health_status"] == "recovering"
-    assert supervision["runtime_liveness_status"] == "live"
-    assert supervision["worker_running"] is True
-    assert supervision["active_run_id"] == "run-stale"
-    assert supervision["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "activity_timeout"
-    assert supervision["summary"] != "托管运行时在线，研究仍在自动推进。"
-
+    handoff = result["managed_study_opl_runtime_owner_handoffs"][0]
+    assert handoff["status"] == "handoff_required"
+    assert handoff["runtime_owner"] == "one-person-lab"
+    assert handoff["mas_runtime_read_model_retired"] is True
+    assert handoff["typed_blocker"]["blocker_type"] == "opl_runtime_owner_handoff_required"

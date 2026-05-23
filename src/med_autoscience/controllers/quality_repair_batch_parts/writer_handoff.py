@@ -54,7 +54,7 @@ def build_writer_worker_handoff(
     source_summary_artifact_path: str | None,
     repair_execution_evidence_path: Path,
     blocked_repair_reason: str,
-    control_plane_route_context: Mapping[str, Any] | None,
+    authority_route_context: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
     owner_route = _writer_handoff_owner_route(
@@ -62,7 +62,7 @@ def build_writer_worker_handoff(
         quest_id=quest_id,
         source_eval_id=source_eval_id,
         blocked_repair_reason=blocked_repair_reason,
-        control_plane_route_context=control_plane_route_context,
+        authority_route_context=authority_route_context,
     )
     dispatch_path = (
         profile.studies_root
@@ -175,20 +175,20 @@ def _writer_handoff_owner_route(
     quest_id: str,
     source_eval_id: str | None,
     blocked_repair_reason: str,
-    control_plane_route_context: Mapping[str, Any] | None,
+    authority_route_context: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     current_route = _current_owner_route_for_writer_handoff(
         study_id=study_id,
         quest_id=quest_id,
         source_eval_id=source_eval_id,
         blocked_repair_reason=blocked_repair_reason,
-        control_plane_route_context=control_plane_route_context,
+        authority_route_context=authority_route_context,
     )
     if current_route:
         return current_route
     controller_context = (
-        dict(control_plane_route_context.get("controller_route_context") or {})
-        if isinstance(control_plane_route_context, Mapping)
+        dict(authority_route_context.get("controller_route_context") or {})
+        if isinstance(authority_route_context, Mapping)
         else {}
     )
     work_unit_id = _non_empty_text(controller_context.get("work_unit_id")) or "medical_prose_write_repair"
@@ -228,11 +228,11 @@ def _current_owner_route_for_writer_handoff(
     quest_id: str,
     source_eval_id: str | None,
     blocked_repair_reason: str,
-    control_plane_route_context: Mapping[str, Any] | None,
+    authority_route_context: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    if not isinstance(control_plane_route_context, Mapping):
+    if not isinstance(authority_route_context, Mapping):
         return {}
-    route = owner_route_part.ensure_owner_route_v2(_mapping(control_plane_route_context.get("current_owner_route")))
+    route = owner_route_part.ensure_owner_route_v2(_mapping(authority_route_context.get("current_owner_route")))
     if not route:
         return {}
     if _non_empty_text(route.get("study_id")) != study_id:
@@ -257,7 +257,7 @@ def _current_owner_route_for_writer_handoff(
         route=route,
         route_reason=route_reason,
         blocked_repair_reason=blocked_repair_reason,
-        control_plane_route_context=control_plane_route_context,
+        authority_route_context=authority_route_context,
     ):
         return {}
     return _bridged_story_surface_owner_route(
@@ -265,7 +265,7 @@ def _current_owner_route_for_writer_handoff(
         source_eval_id=source_eval_id,
         blocked_repair_reason=blocked_repair_reason,
         route_reason=route_reason,
-        control_plane_route_context=control_plane_route_context,
+        authority_route_context=authority_route_context,
     )
 
 
@@ -274,12 +274,12 @@ def _current_route_can_bridge_to_story_surface_handoff(
     route: Mapping[str, Any],
     route_reason: str | None,
     blocked_repair_reason: str,
-    control_plane_route_context: Mapping[str, Any],
+    authority_route_context: Mapping[str, Any],
 ) -> bool:
     if route_reason != RUNTIME_OWNER_ROUTE_REASON or blocked_repair_reason != BLOCKED_REASON:
         return False
     if not is_story_surface_delta_write_work_unit(
-        _controller_work_unit_id(control_plane_route_context=control_plane_route_context, route=route)
+        _controller_work_unit_id(authority_route_context=authority_route_context, route=route)
     ):
         return False
     return all(
@@ -299,11 +299,11 @@ def _bridged_story_surface_owner_route(
     source_eval_id: str | None,
     blocked_repair_reason: str,
     route_reason: str | None,
-    control_plane_route_context: Mapping[str, Any],
+    authority_route_context: Mapping[str, Any],
 ) -> dict[str, Any]:
     bridged = dict(route)
     source_refs = dict(_mapping(route.get("source_refs")))
-    work_unit_id = _controller_work_unit_id(control_plane_route_context=control_plane_route_context, route=route)
+    work_unit_id = _controller_work_unit_id(authority_route_context=authority_route_context, route=route)
     if source_eval_id is not None:
         source_refs["source_eval_id"] = source_eval_id
     if work_unit_id is not None:
@@ -340,10 +340,10 @@ def _bridged_story_surface_owner_route(
 
 def _controller_work_unit_id(
     *,
-    control_plane_route_context: Mapping[str, Any],
+    authority_route_context: Mapping[str, Any],
     route: Mapping[str, Any],
 ) -> str | None:
-    controller_context = _mapping(control_plane_route_context.get("controller_route_context"))
+    controller_context = _mapping(authority_route_context.get("controller_route_context"))
     source_refs = _mapping(route.get("source_refs"))
     return (
         _non_empty_text(controller_context.get("work_unit_id"))

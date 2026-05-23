@@ -54,8 +54,8 @@ def test_create_submission_minimal_package_route_gate_blocks_materialization(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
         route_context={
-            "control_plane_snapshot": {
-                "surface": "control_plane_snapshot",
+            "authority_snapshot": {
+                "surface": "authority_snapshot",
                 "dispatch_gate": {
                     "state": "blocked",
                     "dispatch_allowed": False,
@@ -75,9 +75,9 @@ def test_create_submission_minimal_package_route_gate_blocks_materialization(
         },
     )
 
-    assert result["status"] == "control_plane_route_blocked"
-    assert result["control_plane_route_gate"]["allowed"] is False
-    assert "dispatch_gate_blocked" in result["control_plane_route_gate"]["blocking_reasons"]
+    assert result["status"] == "authority_route_blocked"
+    assert result["authority_route_gate"]["allowed"] is False
+    assert "dispatch_gate_blocked" in result["authority_route_gate"]["blocking_reasons"]
     assert not (paper_root / "submission_minimal").exists()
 
 
@@ -445,7 +445,7 @@ def test_create_submission_minimal_package_authority_ignores_post_gate_evidence_
     monkeypatch.setattr(
         package_builder,
         "replay_post_submission_minimal_sync",
-        lambda *, paper_root, publication_profile, control_plane_route_context=None: {"status": "synced"},
+        lambda *, paper_root, publication_profile, authority_route_context=None: {"status": "synced"},
     )
 
     manifest = module.create_submission_minimal_package(

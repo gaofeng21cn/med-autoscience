@@ -49,9 +49,9 @@ def test_watch_runtime_does_not_auto_recover_package_ready_handoff(
             "quest_root": str(quest_root),
             "quest_status": "active",
             "execution": {
-                "engine": "mas-runtime-core",
-                "runtime_backend_id": "mas_runtime_core",
-                "runtime_engine_id": "mas-runtime-core",
+                "engine": "opl-provider-backed-stage-runtime",
+                "runtime_backend_id": "opl_provider_backed_stage_runtime",
+                "runtime_engine_id": "opl-provider-backed-stage-runtime",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "001-risk",
                 "auto_resume": True,
@@ -77,14 +77,9 @@ def test_watch_runtime_does_not_auto_recover_package_ready_handoff(
         }
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or parked_status(),
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda **kwargs: pytest.fail("package-ready parked handoff must not auto-recover"),
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -93,10 +88,10 @@ def test_watch_runtime_does_not_auto_recover_package_ready_handoff(
         controller_runners={},
         apply=False,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert calls == [("status", "001-risk"), ("status", "001-risk")]
+    assert calls == [("status", "001-risk")]
     assert result["managed_study_actions"] == [
         {
             "study_id": "001-risk",
@@ -155,14 +150,9 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
     calls: list[tuple[str, str]] = []
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        module.domain_status_projection,
         "progress_projection",
         lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or no_live_status,
-    )
-    monkeypatch.setattr(
-        module.study_runtime_router,
-        "ensure_study_runtime",
-        lambda **kwargs: (_ for _ in ()).throw(AssertionError("flapping circuit breaker must suppress blind resume")),
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -171,10 +161,10 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
         controller_runners={},
         apply=False,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert calls == [("status", "001-risk"), ("status", "001-risk")]
+    assert calls == [("status", "001-risk")]
     assert result["managed_study_auto_recoveries"] == []
     assert result["managed_study_recovery_holds"] == [
         {
@@ -211,7 +201,7 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
     ]
     assert not (study_root / "artifacts" / "runtime" / "recovery_probe" / "latest.json").exists()
 
-def test_domain_health_diagnostic_apply_can_run_supervisor_platform_repair_tick(
+def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -229,7 +219,7 @@ def test_domain_health_diagnostic_apply_can_run_supervisor_platform_repair_tick(
         calls.append(kwargs)
         return {
             "surface": "portable_owner_route_reconcile",
-            "apply_runtime_platform_repair": kwargs["apply_runtime_platform_repair"],
+            "apply_safe_actions": kwargs["apply_safe_actions"],
             "study_count": len(kwargs["study_ids"]),
         }
 
@@ -240,23 +230,22 @@ def test_domain_health_diagnostic_apply_can_run_supervisor_platform_repair_tick(
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
-        apply_supervisor_platform_repair=True,
+        request_opl_stage_attempts=True,
+        request_opl_owner_route_reconcile=True,
     )
 
     assert len(calls) == 1
     assert calls[0]["profile"] == profile
     assert calls[0]["study_ids"] == ("001-risk",)
     assert calls[0]["apply_safe_actions"] is True
-    assert calls[0]["apply_runtime_platform_repair"] is True
     assert calls[0]["developer_supervisor_mode"] == "developer_apply_safe"
-    assert result["supervisor_platform_repair"] == {
+    assert result["opl_owner_route_reconcile_request"] == {
         "surface": "portable_owner_route_reconcile",
-        "apply_runtime_platform_repair": True,
+        "apply_safe_actions": True,
         "study_count": 1,
     }
 
-def test_domain_health_diagnostic_does_not_run_supervisor_platform_repair_by_default(
+def test_domain_health_diagnostic_does_not_request_opl_owner_route_reconcile_by_default(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -271,7 +260,7 @@ def test_domain_health_diagnostic_does_not_run_supervisor_platform_repair_by_def
     monkeypatch.setattr(
         module.owner_route_reconcile,
         "scan_domain_routes",
-        lambda **kwargs: pytest.fail("runtime watch must not apply platform repair unless explicitly enabled"),
+        lambda **kwargs: pytest.fail("runtime watch must not request owner-route reconcile unless explicitly enabled"),
     )
 
     result = module.run_domain_health_diagnostic_for_runtime(
@@ -279,10 +268,10 @@ def test_domain_health_diagnostic_does_not_run_supervisor_platform_repair_by_def
         controller_runners={},
         apply=True,
         profile=profile,
-        ensure_study_runtimes=True,
+        request_opl_stage_attempts=True,
     )
 
-    assert "supervisor_platform_repair" not in result
+    assert "opl_owner_route_reconcile_request" not in result
 
 def test_hard_auto_recovery_ignores_stale_continuation_run_id() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup")

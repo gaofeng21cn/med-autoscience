@@ -13,13 +13,12 @@ class RuntimeControlPorts:
     """Controller-facing operations used by runtime watch orchestration."""
 
     get_status: Callable[..., dict[str, Any]]
-    ensure_runtime: Callable[..., dict[str, Any]]
+    request_opl_stage_attempt: Callable[..., dict[str, Any]]
     build_outer_loop_request: Callable[..., dict[str, Any] | None]
     dispatch_outer_loop: Callable[..., dict[str, Any]]
     materialize_non_dispatching_decision: Callable[..., dict[str, Any]]
-    refresh_status_after_ensure: Callable[..., dict[str, Any]]
-    materialize_supervision: Callable[..., dict[str, Any] | None]
-    deliver_alert: Callable[..., dict[str, Any] | None]
+    refresh_status_after_stage_request: Callable[..., dict[str, Any]]
+    materialize_opl_runtime_owner_handoff: Callable[..., dict[str, Any] | None]
     reconcile_health: Callable[..., Any]
     materialize_autonomy_slo: Callable[..., dict[str, Any]]
     read_ready_ai_repair: Callable[..., dict[str, Any] | None]
@@ -37,14 +36,14 @@ def runtime_status_payload(
     return dict(ports.get_status(profile=profile, study_root=study_root))
 
 
-def ensure_runtime(
+def request_opl_stage_attempt(
     *,
     ports: RuntimeControlPorts,
     profile: WorkspaceProfile,
     study_root: Path,
     source: str,
 ) -> dict[str, Any]:
-    return dict(ports.ensure_runtime(profile=profile, study_root=study_root, source=source))
+    return dict(ports.request_opl_stage_attempt(profile=profile, study_root=study_root, source=source))
 
 
 def build_outer_loop_request(
@@ -71,6 +70,6 @@ __all__ = [
     "RuntimeControlPorts",
     "build_outer_loop_request",
     "dispatch_outer_loop",
-    "ensure_runtime",
+    "request_opl_stage_attempt",
     "runtime_status_payload",
 ]

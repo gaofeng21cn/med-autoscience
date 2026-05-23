@@ -908,7 +908,7 @@ def test_quality_repair_batch_writer_handoff_inherits_current_owner_route(
         study_root=study_root,
         quest_id=quest_id,
         source="test-source",
-        control_plane_route_context={
+        authority_route_context={
             "current_owner_route": current_owner_route,
             "controller_route_context": {
                 "control_surface": "quality_repair_batch",

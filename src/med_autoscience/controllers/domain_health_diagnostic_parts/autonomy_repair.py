@@ -11,27 +11,7 @@ from med_autoscience.profiles import WorkspaceProfile
 
 
 AI_DOCTOR_REPAIR_SOURCE = "domain_health_diagnostic_ai_doctor_repair"
-AUTO_APPLY_CONTROLLER_REPAIR_KINDS = frozenset(
-    {
-        "analysis_claim_evidence_redrive",
-        "bounded_work_unit_redrive",
-    }
-)
-EXECUTED_RUNTIME_RECOVERY_DECISIONS = frozenset(
-    {
-        "create_and_start",
-        "create_only",
-        "resume",
-        "relaunch_stopped",
-    }
-)
-RUNTIME_RECOVERY_REASONS = frozenset(
-    {
-        "quest_marked_running_but_no_live_session",
-        "quest_waiting_on_invalid_blocking",
-        "quest_stopped_by_controller_guard",
-    }
-)
+AUTO_APPLY_CONTROLLER_REPAIR_KINDS = frozenset()
 REPAIR_LIFECYCLE_RELATIVE_PATH = Path("artifacts/autonomy/repair_lifecycle/latest.json")
 EXTERNAL_SUPERVISOR_BLOCK_REASONS = frozenset(
     {
@@ -339,12 +319,12 @@ def _execution_owner_supervisor_only(status_payload: Mapping[str, Any]) -> bool:
     guard = _mapping(status_payload.get("execution_owner_guard"))
     if guard.get("supervisor_only") is True:
         return True
-    control_plane = _mapping(status_payload.get("control_plane_snapshot"))
+    control_plane = _mapping(status_payload.get("authority_snapshot"))
     return "execution_owner_guard.supervisor_only" in _string_items(control_plane.get("blocking_reasons"))
 
 
 def _runtime_recovery_authorized(status_payload: Mapping[str, Any]) -> bool:
-    control_plane = _mapping(status_payload.get("control_plane_snapshot"))
+    control_plane = _mapping(status_payload.get("authority_snapshot"))
     dispatch_gate = _mapping(control_plane.get("dispatch_gate"))
     if dispatch_gate and (
         _non_empty_text(dispatch_gate.get("state")) != "open"
@@ -360,7 +340,7 @@ def _repair_authorization(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         value = payload.get(key)
         if isinstance(value, Mapping):
             return value
-    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    control_plane = _mapping(payload.get("authority_snapshot"))
     for key in ("controller_repair_authorization", "controller_repair_authorization_ref"):
         value = control_plane.get(key)
         if isinstance(value, Mapping):
@@ -368,14 +348,14 @@ def _repair_authorization(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     return {}
 
 
-def _repair_authorization_allows_runtime_recovery(payload: Mapping[str, Any]) -> bool:
+def _repair_authorization_requests_opl_runtime_handoff(payload: Mapping[str, Any]) -> bool:
     authorization = _repair_authorization(payload)
     if not authorization:
         return False
     if authorization.get("authorized") is not True:
         return False
     action = _non_empty_text(authorization.get("action"))
-    if action not in {"runtime_recovery", "ensure_study_runtime", "recover_runtime", "relaunch_runtime"}:
+    if action not in {"runtime_recovery", "request_opl_stage_attempt", "recover_runtime", "relaunch_runtime"}:
         return False
     work_unit_id = _non_empty_text(authorization.get("work_unit_id"))
     if work_unit_id and work_unit_id != "runtime_recovery":
@@ -384,7 +364,11 @@ def _repair_authorization_allows_runtime_recovery(payload: Mapping[str, Any]) ->
     if control_surface and control_surface != "domain_health_diagnostic":
         return False
     controller_action_type = _non_empty_text(authorization.get("controller_action_type"))
-    if controller_action_type and controller_action_type not in {"ensure_study_runtime", "domain_health_diagnostic"}:
+    if controller_action_type and controller_action_type not in {
+        "request_opl_stage_attempt",
+        "request_opl_stage_attempt_relaunch",
+        "domain_health_diagnostic",
+    }:
         return False
     authorized_study_id = _non_empty_text(authorization.get("study_id"))
     if authorized_study_id and authorized_study_id != _non_empty_text(payload.get("study_id")):
@@ -395,20 +379,23 @@ def _repair_authorization_allows_runtime_recovery(payload: Mapping[str, Any]) ->
     return True
 
 
-def _has_controller_owned_runtime_recovery(status_payload: Mapping[str, Any]) -> bool:
+def _has_opl_runtime_recovery_handoff(status_payload: Mapping[str, Any]) -> bool:
     reason = _non_empty_text(status_payload.get("reason"))
     runtime_health = _mapping(status_payload.get("runtime_health_snapshot"))
     runtime_action = _non_empty_text(runtime_health.get("canonical_runtime_action"))
-    attempt_state = _non_empty_text(runtime_health.get("attempt_state"))
     runtime_reasons = _string_items(runtime_health.get("blocking_reasons"))
-    if runtime_action in {"recover_runtime", "relaunch_runtime"} and (
-        attempt_state in {"recovering", "probe_required"} or "runtime_recovery_retry_budget_exhausted" in runtime_reasons
-    ):
+    if runtime_action in {"recover_runtime", "relaunch_runtime"}:
         return True
-    control_reasons = _string_items(_mapping(status_payload.get("control_plane_snapshot")).get("blocking_reasons"))
-    if reason in RUNTIME_RECOVERY_REASONS:
+    control_reasons = _string_items(_mapping(status_payload.get("authority_snapshot")).get("blocking_reasons"))
+    if reason in {
+        "quest_marked_running_but_no_live_session",
+        "quest_waiting_on_invalid_blocking",
+        "quest_stopped_by_controller_guard",
+    }:
         return True
     if "runtime_recovery_retry_budget_exhausted" in control_reasons:
+        return True
+    if "runtime_recovery_retry_budget_exhausted" in runtime_reasons:
         return True
     return False
 
@@ -520,11 +507,7 @@ def _status_allows_mas_controller_live_work_unit_repair(
 
 
 def _status_allows_mas_controller_ai_doctor_repair(status_payload: Mapping[str, Any]) -> bool:
-    return (
-        _runtime_recovery_authorized(status_payload)
-        and _repair_authorization_allows_runtime_recovery(status_payload)
-        and _has_controller_owned_runtime_recovery(status_payload)
-    )
+    return False
 
 
 def status_allows_ai_doctor_repair(status_payload: Mapping[str, Any]) -> bool:
@@ -537,11 +520,13 @@ def status_allows_ai_doctor_repair(status_payload: Mapping[str, Any]) -> bool:
 def _status_block_reason(status_payload: Mapping[str, Any]) -> str:
     if not _runtime_recovery_authorized(status_payload):
         return "runtime_recovery_not_authorized"
-    if not _repair_authorization_allows_runtime_recovery(status_payload):
+    if not _repair_authorization_requests_opl_runtime_handoff(status_payload):
         return "controller_repair_authorization_missing"
     if _execution_owner_supervisor_only(status_payload):
         return "execution_owner_guard_supervisor_only"
-    return "ai_doctor_repair_requires_controller_authorized_runtime_recovery"
+    if _has_opl_runtime_recovery_handoff(status_payload):
+        return "opl_runtime_owner_handoff_required"
+    return "ai_doctor_repair_requires_opl_runtime_owner_handoff"
 
 
 def _repair_targets_status(*, repair_payload: Mapping[str, Any], status_payload: Mapping[str, Any]) -> bool:
@@ -560,12 +545,12 @@ def _repair_targets_status(*, repair_payload: Mapping[str, Any], status_payload:
 
 
 def _runtime_recovery_executed(payload: Mapping[str, Any]) -> bool:
-    return _non_empty_text(payload.get("decision")) in EXECUTED_RUNTIME_RECOVERY_DECISIONS
+    return False
 
 
 def _runtime_retry_exhausted(payload: Mapping[str, Any]) -> bool:
     runtime_health = _mapping(payload.get("runtime_health_snapshot"))
-    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    control_plane = _mapping(payload.get("authority_snapshot"))
     reasons = {
         *_string_items(runtime_health.get("blocking_reasons")),
         *_string_items(control_plane.get("blocking_reasons")),
@@ -586,6 +571,11 @@ def _repair_next_owner(*, result: Mapping[str, Any], action: Mapping[str, Any]) 
         return "mas_controller"
     if reason == "execution_owner_guard_supervisor_only":
         return "supervisor_only"
+    if reason in {
+        "opl_runtime_owner_handoff_required",
+        "ai_doctor_repair_requires_opl_runtime_owner_handoff",
+    }:
+        return "one-person-lab"
     owner = _non_empty_text(action.get("owner"))
     return owner or _non_empty_text(result.get("owner"))
 
@@ -694,23 +684,6 @@ def _apply_ai_doctor_repair_action(
             dispatch_status="not_dispatched",
             reason=block_reason,
         )
-    if _runtime_recovery_payload_satisfies_repair(
-        repair_payload=repair_payload,
-        runtime_recovery_payload=runtime_recovery_payload,
-    ):
-        return _serialize_ai_doctor_repair_result(
-            repair_payload=repair_payload,
-            action=action,
-            state="applied",
-            dispatch_status="executed",
-        )
-    if _status_allows_mas_controller_live_work_unit_repair(status_payload, action):
-        return _serialize_ai_doctor_repair_result(
-            repair_payload=repair_payload,
-            action=action,
-            state="applied",
-            dispatch_status="executed",
-        )
     if not _status_allows_mas_controller_ai_doctor_repair(status_payload):
         return _serialize_ai_doctor_repair_result(
             repair_payload=repair_payload,
@@ -746,8 +719,8 @@ def _ai_doctor_repair_preflight_block_reason(
     if not auto_apply_allowed or action.get("quality_gate_relaxation_allowed") is True:
         return "ai_doctor_repair_not_auto_applicable"
     if action_type != "controller_repair" or owner != "mas_controller":
-        return "ai_doctor_repair_requires_controller_owned_runtime_recovery"
-    if repair_kind not in AUTO_APPLY_CONTROLLER_REPAIR_KINDS or risk not in {"low", "medium"}:
+        return "ai_doctor_repair_requires_opl_runtime_owner_handoff"
+    if repair_kind not in {"analysis_claim_evidence_redrive", "bounded_work_unit_redrive"} or risk not in {"low", "medium"}:
         return "ai_doctor_repair_action_not_in_runtime_recovery_allowlist"
     return None
 
@@ -757,12 +730,7 @@ def _runtime_recovery_payload_satisfies_repair(
     repair_payload: Mapping[str, Any],
     runtime_recovery_payload: Mapping[str, Any] | None,
 ) -> bool:
-    return bool(
-        runtime_recovery_payload is not None
-        and _repair_targets_status(repair_payload=repair_payload, status_payload=runtime_recovery_payload)
-        and _runtime_recovery_executed(runtime_recovery_payload)
-        and _status_allows_mas_controller_ai_doctor_repair(runtime_recovery_payload)
-    )
+    return False
 
 
 def apply_ready_ai_doctor_repair(
