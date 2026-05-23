@@ -1,21 +1,43 @@
 # MAS 理想目标态差距与完善计划
 
 Owner: `MedAutoScience`
-Purpose: `ideal_state_gap_plan`
+Purpose: `single_active_truth_plan`
 State: `active_plan`
 Machine boundary: 本文是人读 gap / completion plan。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、product-entry manifest、sidecar receipt、runtime/controller durable surfaces、真实 workspace 与 generated artifact proof。
 Date: `2026-05-23`
 
 ## 文档读法
 
-- 本文只维护 MAS 当前定位、当前边界、当前差距分类和完善顺序；dated 过程证据、阶段 follow-through 和 closeout 记录归档到 [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)。
+- 本文是 MAS 当前唯一 single Active Truth plan：只维护当前完成进度、功能/结构差距、测试/证据差距、下一轮 `/goal` prompt 和 active/history 折回规则。
+- dated 过程证据、阶段 follow-through、closeout 记录、具体 attempt / receipt id 和命令流水归档到 [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)，不回流为 active backlog。
 - MAS 的 north-star 目标态回到 [MAS 理想目标态](../references/positioning/mas_ideal_state.md)。本文不重复目标态长叙述，也不维护 OPL、MAG、RCA、MDS/DeepScientist 或 OPL App 的执行计划。
+- [MAS 当前开发线路](./current-development-lines.md) 只作为内容线索引；若它与本文冲突，以本文为准，并把仍有效内容折回本文、核心 canonical docs 或对应 history/tombstone。
 - 差距按目标态判断，不按当前 MAS 代码是否仍可运行判断。通用 runtime、runner、queue、session、lifecycle refs SQLite、workspace/source intake、memory/artifact transport、workbench、observability、CLI/MCP/Skill/product-entry/sidecar/status wrapper 必须进入 OPL 上收、generated surface 替换、refs-only 收薄或退役分类。
 - `minimal authority` 只表示 MAS 持有医学 stage 质控、publication quality、artifact mutation authorization、publication-route memory accept/reject、source readiness、owner receipt 和 typed blocker 等领域裁决边界；它不表示 MAS 应继续维护通用运行平台。
 - 过时模块、接口、测试、fixture、CLI alias、wrapper、facade 和 docs 入口不做兼容保留。MDS/DeepScientist、local scheduler、LaunchAgent、supervisor 默认面、旧 runtime_transport / lifecycle refs SQLite generic owner 读法等，一旦 active caller 已迁出且 OPL parity / MAS receipt parity / no-active-caller proof 成立，直接删除、archive 或 tombstone；测试同步改成禁止复活旧面，而不是维护旧调用路径。
 - T2E reporting / display legacy alias 已按 direct retirement 执行：`kaplan_meier_grouped -> time_to_event_risk_group_summary` requirement key rewrite 和 `cumulative_incidence_grouped` payload 在 risk-group summary binding 下的 materialization fallback 都已删除；当前路径必须由 `time_to_event_direct_migration` 重新物化 canonical input，旧 payload 进入 fail-closed / typed blocker。
 - submission-target `publication_profile` 输入 alias 已退役：workspace profile / study / quest / resolved target 输入必须使用 `exporter_profile`，不再把 `publication_profile` fallback 成 exporter profile；`publication_profile` 只保留为已解析 package/export profile 输出字段与 submission manifest 领域字段。
 - 当前 source scan 确认：`runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease、`lifecycle_refs_adapter.py`、`product_entry_parts/workspace_cockpit/`、`owner_route_handoff*` 和若干 managed / legacy / compatibility tests 仍在 active source 中可见。它们当前只能按 `retained_adapter_with_delete_gate`、`diagnostic_or_regression_oracle_with_no_default_caller` 或 `history_tombstone_provenance_only` 读取；文件边界继续收薄只是降低迁移风险，不是长期保留理由。后续计划必须优先关闭 active caller 和 replacement parity，满足门槛后直接删除或 tombstone 这些旧壳。
+
+## Active Owner Discovery
+
+| 项 | 当前结论 |
+| --- | --- |
+| Existing active truth owner | 本文是 MAS current progress、功能/结构差距、测试/证据差距和下一轮 `/goal` prompt 的唯一 owner。 |
+| Ideal-state reference | [MAS 理想目标态](../references/positioning/mas_ideal_state.md)；OPL family 级目标与通用 runtime/workbench/App owner 回 OPL 仓维护。 |
+| Duplicate / competing active docs | [MAS 当前开发线路](./current-development-lines.md) 只保留内容线索引；P1/P2/P0 owner 文档只维护各自边界与 contract，不维护第二总 backlog。已完成过程语义折回 [history/program](../history/program/README.md)。 |
+| Foldback rule | 关闭的差距从本文移除或改写为当前完成进度；只在防止旧语义复活时留下 compact tombstone pointer。 |
+
+## 当前完成进度
+
+| Area | Current status | Live evidence | Notes |
+| --- | --- | --- | --- |
+| MAS standard semantic pack / generated surface handoff | `done_with_evidence_tail` | `agent/`、`contracts/pack_compiler_input.json`、`contracts/stage_control_plane.json`、product-entry stage descriptor | `agent/` 是 canonical medical research semantic pack；OPL 可生成/托管 descriptors。真实 stage attempt、独立 reviewer/auditor receipt 仍是 evidence tail。 |
+| Functional privatization / generic-owner boundary | `done_with_delete_gates` | `contracts/functional_privatization_audit.json`、`contracts/production_acceptance/mas-production-acceptance.json`、`docs/status.md` | 未分类 generic owner 回流关闭；retained runtime/workbench/lifecycle shells 只能按 refs-only adapter、diagnostic、direct handler target 或 tombstone 读取。 |
+| Legacy alias / retired surface cleanup | `done_for_current_aliases` | `docs/status.md`、`contracts/runtime/legacy-active-path-tombstones.json`、focused fail-closed tests | T2E legacy display alias 和 submission-target `publication_profile` 输入 alias 已 direct-retired；旧输入 fail closed。 |
+| Owner-route / dispatch currentness | `active_current_truth` | `docs/decisions.md` 2026-05-22/23 decisions、owner-route protocol contracts、sidecar export/dispatch behavior | 当前多项 DM002/DM003 修复只授权 MAS owner-route transport/currentness，不写 paper truth、publication eval、controller decision 或 package truth。 |
+| Physical source morphology | `open_functional_structure_tail` | current source paths: `runtime_transport/`、`mas_runtime_core*`、turn runner、worker lease、`lifecycle_refs_adapter.py`、workbench/status/owner-route handoff shells | 默认 owner 已归 OPL/Temporal，但 active domain/diagnostic callers 尚未全部清零；删除必须等 OPL parity、MAS receipt parity、focused tests、no-forbidden-write proof 和 tombstone refs。 |
+| Real paper-line / workspace evidence | `open_evidence_tail` | `paper_line_guarded_apply_evidence`、`body_free_evidence_packets`、production acceptance contract | Ref packet shape 与 OPL refs-only ledger consumption 已落地；仍缺多条真实 paper-line owner receipt / stable typed blocker、artifact/memory/human-gate receipt 和 provider long-soak。 |
 
 ## 当前定位
 
@@ -209,6 +231,33 @@ MAS production acceptance receipt 已把 conformance 不能声明 live/domain-re
 3. 用 `real_paper_line_canary` 验证 OPL attempt -> MAS sidecar -> MAS owner chain。canary 必须返回 owner receipt、progress delta、gate replay、route decision、human gate、stop-loss 或 stable typed blocker，不能只返回 provider completion。
 4. canary 通过或稳定 typed-block 后，再扩展 `memory_artifact_human_gate_long_soak`。这一步只关闭测试/证据 tail，不回写成结构 closure，也不替 AI reviewer / publication gate / artifact authority 宣布 ready。
 5. 每个物理删除动作都必须带 no-active-caller、replacement parity、domain receipt parity、focused tests、no-forbidden-write proof 和 provenance/tombstone refs；满足即删除、archive 或 tombstone，不新增兼容 alias。删除旧面时同步删除或改写只保护旧路径的兼容测试，当前测试只锁定 machine-readable contract、CLI/API 行为、generated manifest、owner receipt、typed blocker、fail-closed 或 tombstone semantics。
+
+## 下一轮 Agent Prompt
+
+可直接作为 `/goal` 使用：
+
+```text
+使用 MAS / OPL Doc Governance，继续治理 /Users/gaofeng/workspace/med-autoscience 的 Active Truth 与目标态收敛。写入范围仅限 med-autoscience；先读 AGENTS.md、TASTE.md、README*、docs/README.md、docs/project.md、docs/status.md、docs/architecture.md、docs/invariants.md、docs/decisions.md、docs/active/mas-ideal-state-gap-plan.md、docs/active/current-development-lines.md，并按 live contracts/source/tests/CLI/read-model 核实当前事实。
+
+目标：围绕 single Active Truth plan 推进一轮最小可验证收口，优先处理 `runtime_transport_sqlite_physical_retirement` 与 `workbench_sidecar_status_retirement` 的 active caller / parity / tombstone 删除门。不要把真实 evidence tail 误写成功能未落地，也不要把 conformance、descriptor ready、provider completion 或 refs-only ledger 记录写成 publication-ready、domain-ready、artifact mutation authorization 或 paper closure。
+
+必须执行：1. 读取 `contracts/functional_privatization_audit.json`、`contracts/production_acceptance/mas-production-acceptance.json`、`contracts/stage_control_plane.json`、product-entry manifest、sidecar export/read-model 和相关 tests，确认 retained adapter / diagnostic / direct handler target 的 active caller。2. 对已满足 no-active-caller、OPL parity、MAS receipt parity、focused tests、no-forbidden-write proof 和 tombstone/provenance refs 的旧 wrapper、alias、facade、compat test 或文档入口直接删除、archive 或 tombstone；未满足的只更新删除门，不新增兼容面。3. 把关闭项折回本文件的当前完成进度；把过程证据折回 docs/history/program 或对应 history/tombstone；保持 `docs/active/current-development-lines.md` 只是内容线索引。
+
+非目标：不修改 OPL/MAG/RCA/MDS 仓；不写真实 study workspace artifact、paper body、publication_eval/latest.json、controller_decisions/latest.json、current_package、memory body 或 artifact body；不恢复 MDS/DeepScientist、Hermes/local scheduler、old runtime_transport、publication_profile 输入 alias、T2E legacy display alias 或任何 compatibility shim。
+
+验证命令：至少运行 `python3 /Users/gaofeng/workspace/opl-doc-governance/scripts/opl_doc_doctor.py doctor . --format json`、`git diff --check` 和 `scripts/verify.sh`。若修改 machine-readable contract、action metadata、schema 或 runtime semantics，追加 `make test-meta`；若只是 docs-only，仍运行 repo native 最小验证并说明其结果。
+
+完成门槛：main checkout 干净或只包含本轮目标变更；closed gaps 已从本文件移除或改写为当前完成进度；功能/结构差距与测试/证据差距仍分开；active docs 没有 dated closeout/process diary；历史材料只在 history/tombstone 中保留；最终提交到当前 main。
+```
+
+## History / Tombstone Foldback
+
+| 内容 | Foldback target | 当前规则 |
+| --- | --- | --- |
+| dated closeout、attempt / receipt id、命令流水、旧 phase checklist | `docs/history/program/` 或对应 `docs/history/<area>/` | 只保留 provenance；不得作为 current truth 或 active backlog。 |
+| 已被 current owner surface 替代的旧 runtime/workbench/scheduler/alias 文案 | `docs/history/**` tombstone / provenance，或 machine-readable tombstone refs | active docs 只写当前 owner、删除门和 no-resurrection guard。 |
+| 已关闭功能/结构 gap | 本文 `当前完成进度`，必要时加 compact tombstone pointer | 不保留旧 checklist chronology。 |
+| 仍缺 live evidence 的能力 | 本文 `当前测试/证据差距` | 不回写成结构未完成，也不写成 production/domain ready。 |
 
 ## 当前不能写成
 

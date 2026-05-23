@@ -1,5 +1,10 @@
 # 不可变约束（Invariants）
 
+Owner: `MedAutoScience`
+Purpose: `stable_invariants`
+State: `active_policy`
+Machine boundary: 本文是人读不可变约束。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
+
 以下约束是仓库运行语义的最低不变集，任何变更都不得破坏。
 
 ## 运行真相与默认入口

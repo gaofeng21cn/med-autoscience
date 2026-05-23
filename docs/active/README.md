@@ -5,7 +5,7 @@ Purpose: `active_execution_and_gap_index`
 State: `active_support`
 Machine boundary: 人读索引。机器真相继续归 contracts、schemas、source、runtime ledgers、study workspaces、publication artifacts 与 owner receipts。
 
-本目录是 OPL-family canonical 目录中承接 MAS 当前执行、当前计划、当前差距和 active baton 的位置。dated closeout、过程流水、旧 full record 和 superseded plan 进入 `docs/history/**`。
+本目录是 OPL-family canonical 目录中承接 MAS 当前执行、当前计划、当前差距和 active baton 的位置。当前唯一 single Active Truth owner 是 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)：它维护当前完成进度、功能/结构差距、测试/证据差距和下一轮 `/goal` prompt。dated closeout、过程流水、旧 full record 和 superseded plan 进入 `docs/history/**`。
 
 旧 `docs/program/` active-baton 层已物理退役。当前 MAS 执行地图、论文自治目标、framework migration owner、产品化依托、stage 形式计划和 landed foundation guard 文档都进入本目录。`program_id` 与 `human_doc:program_*` 只作为语义 ID 保留，不代表物理 `docs/program/` 目录。
 
@@ -29,7 +29,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 | 层次 | 文档 | 当前作用 |
 | --- | --- | --- |
 | 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前定位、当前边界、功能/结构差距、测试/证据差距、完善顺序和禁止误写口径。 |
-| 当前执行地图 | [MAS Current Development Lines](./current-development-lines.md) | 把所有仍有效线路归为 landed foundation、functional follow-through gate 或 production evidence gate；不要按 P0/P1/P2/P3 旧编号开平行计划。 |
+| 当前内容线索引 | [MAS Current Development Lines](./current-development-lines.md) | 把仍有效内容线归为 landed foundation、functional follow-through gate 或 production evidence gate；不维护第二 backlog，若与 gap plan 冲突以 gap plan 为准。 |
 | 文档组合 / 历史归位 | [Program Portfolio Consolidation](./program_portfolio_consolidation.md) | 只说明 active program 文档唯一职责、历史记录去向和 direct retirement rule；不替代 gap plan，也不作为第二 backlog。 |
 | 目标 / 验收 owner | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 只定义 MAS 论文自治验收合同和 AI-first quality gate；dated evidence 与 full record 回 history。 |
 | Framework migration owner | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | 只维护 MAS 侧 provider/sidecar/legacy-retirement 边界和 live paper apply gate；OPL framework owner 回 OPL 仓。 |

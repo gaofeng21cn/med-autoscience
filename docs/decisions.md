@@ -1,5 +1,10 @@
 # 关键决策记录
 
+Owner: `MedAutoScience`
+Purpose: `decision_log`
+State: `active_decision_record`
+Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
+
 ## 2026-05-23：AI reviewer default-executor handoff 必须保留 runtime-health currentness basis
 
 - 决策：`paper_repair_executor` 生成 `return_to_ai_reviewer_workflow` default-executor handoff 时，必须把 controller route context / current owner route 中的 `runtime_health_epoch` 写入 owner route 和 `source_refs`；managed-runtime controller authorization 合成 dispatch 时，也必须从 runtime authorization 或 runtime health snapshot 继承同一 currentness basis。

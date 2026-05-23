@@ -4,6 +4,7 @@ Status: `production_residency_proof_landed; mas_proof_ingestion_landed; watchdog
 Date: `2026-05-14`
 Owner: `MedAutoScience domain owner receipts + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL stage-led、以 Agent executor 为最小执行单位 runtime framework 之间的边界、优先级和退役门槛。
+State: `active_support`
 Machine boundary: 本文是人读 program owner。机器真相继续归 MAS controller/runtime surfaces、OPL provider contracts、sidecar receipts、attempt ledgers、durable schemas、CLI/API behavior 和 live workspace evidence。
 完整历史记录：[2026-05-11 OPL Temporal MAS Runtime Retirement full record](../history/program/opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)。
 
@@ -43,7 +44,7 @@ cutover 或物理退役前仍未完成：
 - OPL stage attempt 下真实长时 domain activity soak；OPL Codex runner 的 repo/test harness 已具备 `dry_run`、`live_dry_run` 与 `codex_cli` process supervision，但 MAS paper-line provider-hosted 连续运行证据仍未完成；
 - 至少一条真实 MAS paper-line provider-hosted guarded apply soak 仍要在 live workspace gate 允许时闭合：链路为 OPL attempt -> MAS owner receipt -> artifact delta / gate replay / reviewer judgment / human gate / stop-loss / typed blocker；
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
-- provider parity 证明之后，旧 scheduler/Hermes/MDS/legacy alias 的物理删除或 history/tombstone 归档仍需按 no-active-reference 证据逐项执行；已满足删除口径的 wrapper / alias 不再保留兼容入口或可调用测试。
+- provider parity 证明之后，旧 scheduler/Hermes/MDS/legacy alias 的物理删除或 history/tombstone 归档仍需按 no-active-reference 证据逐项执行；已满足删除口径的 wrapper / alias 不再保留旧入口或可调用测试。
 
 这些剩余项现在按 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 的一步到位 physical/source morphology closure 路线执行，不再拆成另一份 P2 大计划，也不再沿旧 phase checklist 漂移。P2 只持有 framework/runtime owner 边界；`runtime_transport`、SQLite lifecycle、workbench、sidecar 和 status projection 这类仍存在的文件只能写成 retained adapter / diagnostic / direct handler target with deletion gate，不能写成已物理清零或 MAS generic runtime owner：
 
@@ -106,7 +107,7 @@ P2 对 OPL production functional closure 的职责是提供 MAS domain-owned evi
 4. 用替代证据清理旧 local/Hermes/MDS/default alias surface，不把旧兼容性无限期保留；满足删除口径时直接删除，不新增兼容 wrapper；
 5. 最后做真实 MAS paper-line guarded apply soak，验证迁移后的目标形态；当前 read-only soak 与 MAS-owned guarded apply proof surface 是进入 live apply 的前置证据，不是最终投稿级完成证据。
 
-因此，当前优先级不是先 paper soak，也不是无证据清空历史层。清理属于迁移收口条件：删除前必须证明无 default caller、无 fixture/provenance 必需、已有 replacement diagnostic/history link；证明成立后就直接删除，不再把兼容入口当作维护目标。
+因此，当前优先级不是先 paper soak，也不是无证据清空历史层。清理属于迁移收口条件：删除前必须证明无 default caller、无 fixture/provenance 必需、已有 replacement diagnostic/history link；证明成立后就直接删除，不再把旧入口当作维护目标。
 
 ## 边界
 
