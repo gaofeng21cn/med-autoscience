@@ -77,8 +77,8 @@
 
 `MDS` 的迁移期角色收敛为三类：
 
-1. **受控 research backend**
-   承担当前仍在运行中的 inner research execution 与存量 study 兼容面。
+1. **受控 research backend / historical fixture**
+   只在显式 archive import、backend audit、parity oracle 或旧 study provenance 语境中承担对照读取；默认运行职责回到 MAS direct path 或 OPL-hosted path。
 2. **行为等价 oracle**
    作为迁移过程中的对照线，帮助 `MAS` 判断关键研究行为、长期运行语义和 durable surface 是否守住等价性。
 3. **上游 intake buffer**
