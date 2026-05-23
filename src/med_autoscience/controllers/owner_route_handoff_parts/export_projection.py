@@ -149,8 +149,8 @@ def export_family_sidecar(
         "lifecycle_guarded_apply_proof": (
             opl_provider_ready_adapter.build_lifecycle_guarded_apply_proof_surface()
         ),
-        "runtime_transport_handoff_projection": (
-            functional_closure["provider_ready_contract"]["runtime_transport_handoff_projection"]
+        "opl_unique_control_plane_handoff": (
+            functional_closure["provider_ready_contract"]["opl_unique_control_plane_handoff"]
         ),
         "legacy_retirement_tombstone_proof": opl_provider_ready_adapter.build_legacy_retirement_tombstone_proof(),
         "workspace_runtime_evidence_receipt": functional_closure["workspace_runtime_evidence_receipt"],

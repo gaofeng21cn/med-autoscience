@@ -729,7 +729,7 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         "replacement_parity_refs": [
             "/opl_provider_ready_contract/provider_topology",
             "/opl_provider_ready_contract/managed_temporal_state_consistency",
-            "/opl_provider_ready_contract/runtime_transport_handoff_projection",
+            "/opl_provider_ready_contract/opl_unique_control_plane_handoff",
             "/product_entry_manifest/functional_consumer_boundary",
             "contracts/runtime/legacy-active-path-tombstones.json",
         ],

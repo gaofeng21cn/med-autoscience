@@ -211,8 +211,10 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
     assert provider["provider_topology"]["target_provider"] == "temporal"
     assert provider["provider_topology"]["provider_attempt_is_truth"] is False
-    runtime_handoff = payload["runtime_transport_handoff_projection"]
-    assert runtime_handoff == provider["runtime_transport_handoff_projection"]
+    runtime_handoff = payload["opl_unique_control_plane_handoff"]
+    assert "runtime_transport_handoff_projection" not in payload
+    assert "runtime_transport_handoff_projection" not in provider
+    assert runtime_handoff == provider["opl_unique_control_plane_handoff"]
     assert runtime_handoff["status"] == "opl_generic_runtime_owner_mas_domain_bridge_only"
     assert runtime_handoff["generic_runtime_owner"] == "one-person-lab"
     assert runtime_handoff["domain_intent_adapter_role"] == (
@@ -222,6 +224,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "physically_retired_no_alias"
     )
     assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_as_generic_provider"] is False
+    assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_contract_surface"] is False
     assert runtime_handoff["generated_default_caller_boundary"] == payload[
         "functional_consumer_boundary"
     ]["generated_default_caller_boundary"]
