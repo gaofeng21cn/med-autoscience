@@ -75,3 +75,128 @@ def test_owner_route_protocol_marks_unregistered_reason_non_dispatchable() -> No
     assert route["owner_reason_contract"]["registered"] is False
     assert route["owner_route_attempt_protocol"]["dispatchable"] is False
     assert route["allowed_actions"] == []
+
+
+def test_default_executor_attempt_envelope_declares_domain_intent_and_authority_boundary() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "quest_id": "quest-dm002",
+        "truth_epoch": "publication-eval::dm002::current",
+        "route_epoch": "publication-eval::dm002::current",
+        "runtime_health_epoch": "runtime-health::dm002::current",
+        "source_fingerprint": "truth-source::dm002::current",
+        "work_unit_fingerprint": "work-unit::dm002::current-publication-hardening",
+        "current_owner": "mas_controller",
+        "next_owner": "write",
+        "owner_reason": "manuscript_story_surface_delta_missing",
+        "failure_signature": "manuscript_story_surface_delta_missing",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "idempotency_key": "owner-route::dm002::write::current-publication-hardening",
+        "source_refs": {
+            "source_eval_id": "publication-eval::dm002::current",
+            "work_unit_id": "dm002_current_publication_hardening_after_ai_reviewer_eval",
+            "work_unit_fingerprint": "work-unit::dm002::current-publication-hardening",
+            "study_truth_epoch": "publication-eval::dm002::current",
+            "runtime_health_epoch": "runtime-health::dm002::current",
+        },
+    }
+
+    envelope = protocol.default_executor_attempt_envelope(
+        dispatch={
+            "action_type": "run_quality_repair_batch",
+            "next_executable_owner": "write",
+            "owner_route": owner_route,
+            "allowed_write_surfaces": ["paper/draft.md", "paper/build/review_manuscript.md"],
+            "forbidden_surfaces": ["artifacts/publication_eval/latest.json"],
+            "required_closeout_packet": {
+                "typed_closeout_required_for_completion": True,
+                "free_text_closeout_accepted": False,
+                "accepted_surface_kinds": ["stage_attempt_closeout_packet"],
+                "completion_boundary": {"provider_completion_is_domain_ready": False},
+            },
+            "provider_completion": "succeeded",
+            "running_worker": True,
+            "queue_status": "succeeded",
+            "retry_budget_remaining": 0,
+        }
+    )
+
+    assert envelope["dispatchable"] is True
+    assert envelope["authority_boundary"] == {
+        "opl_owns": [
+            "queue",
+            "attempt",
+            "retry",
+            "dead_letter",
+            "provider_liveness",
+        ],
+        "mas_owns": [
+            "domain_truth",
+            "ai_reviewer",
+            "publication_gate",
+            "artifact_authority",
+            "owner_receipt",
+            "typed_blocker",
+        ],
+    }
+    assert envelope["runtime_completion_guard"] == {
+        "provider_completion_is_domain_completion": False,
+        "provider_completion_is_stage_state": False,
+        "running_worker_is_stage_state": False,
+        "queue_succeeded_is_domain_completion": False,
+        "retry_budget_is_domain_completion": False,
+        "stage_state_owner": "one-person-lab",
+        "domain_completion_owner": "med-autoscience",
+        "domain_completion_requires": [
+            "mas_owner_receipt_ref",
+            "mas_typed_blocker_ref",
+            "ai_reviewer_or_publication_gate_ref",
+        ],
+    }
+    domain_intent = envelope["domain_intent"]
+    assert domain_intent["surface_kind"] == "mas_domain_intent_v1"
+    assert domain_intent["source_fingerprint"] == "truth-source::dm002::current"
+    assert domain_intent["route_epoch"] == "publication-eval::dm002::current"
+    assert domain_intent["truth_epoch"] == "publication-eval::dm002::current"
+    assert domain_intent["idempotency_key"] == "owner-route::dm002::write::current-publication-hardening"
+    assert domain_intent["owner_route_currentness_basis"] == envelope["owner_route_currentness_basis"]
+    assert domain_intent["required_closeout_packet"] == envelope["required_closeout_packet"]
+    assert domain_intent["lifecycle_contract"]["fail_closed_when_missing"] is True
+    assert domain_intent["missing_required_fields"] == []
+
+
+def test_default_executor_attempt_envelope_fails_closed_without_domain_intent_required_fields() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    envelope = protocol.default_executor_attempt_envelope(
+        dispatch={
+            "action_type": "return_to_ai_reviewer_workflow",
+            "next_executable_owner": "ai_reviewer",
+            "owner_route": {
+                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                "next_owner": "ai_reviewer",
+                "owner_reason": "ai_reviewer_request_pending",
+                "failure_signature": "ai_reviewer_request_pending",
+                "allowed_actions": ["return_to_ai_reviewer_workflow"],
+                "source_refs": {"work_unit_id": "ai_reviewer_medical_prose_quality_review"},
+            },
+            "required_closeout_packet": {
+                "typed_closeout_required_for_completion": True,
+                "free_text_closeout_accepted": False,
+            },
+        }
+    )
+
+    assert envelope["dispatchable"] is False
+    assert set(envelope["domain_intent"]["missing_required_fields"]) >= {
+        "source_fingerprint",
+        "route_epoch",
+        "truth_epoch",
+        "idempotency_key",
+        "owner_route_currentness_basis.work_unit_fingerprint",
+        "owner_route_currentness_basis.runtime_health_epoch",
+    }

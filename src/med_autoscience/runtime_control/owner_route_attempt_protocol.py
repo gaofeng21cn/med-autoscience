@@ -26,6 +26,37 @@ DEFAULT_FORBIDDEN_SURFACES = [
     "artifacts/publication_eval/latest.json",
     "artifacts/controller_decisions/latest.json",
 ]
+AUTHORITY_BOUNDARY = {
+    "opl_owns": [
+        "queue",
+        "attempt",
+        "retry",
+        "dead_letter",
+        "provider_liveness",
+    ],
+    "mas_owns": [
+        "domain_truth",
+        "ai_reviewer",
+        "publication_gate",
+        "artifact_authority",
+        "owner_receipt",
+        "typed_blocker",
+    ],
+}
+RUNTIME_COMPLETION_GUARD = {
+    "provider_completion_is_domain_completion": False,
+    "provider_completion_is_stage_state": False,
+    "running_worker_is_stage_state": False,
+    "queue_succeeded_is_domain_completion": False,
+    "retry_budget_is_domain_completion": False,
+    "stage_state_owner": "one-person-lab",
+    "domain_completion_owner": "med-autoscience",
+    "domain_completion_requires": [
+        "mas_owner_receipt_ref",
+        "mas_typed_blocker_ref",
+        "ai_reviewer_or_publication_gate_ref",
+    ],
+}
 
 
 def owner_reason_contract(
@@ -125,6 +156,8 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
         "dispatchable": bool(reason_contract["registered"] and allowed_actions),
         "priority_class": reason_contract["priority_class"],
         "currentness_contract": route["currentness_contract"]["status"],
+        "authority_boundary": _authority_boundary(),
+        "runtime_completion_guard": _runtime_completion_guard(),
         "completion_boundary": default_executor_typed_closeout_contract(
             action_type=action_type or "domain_owner_action"
         )["completion_boundary"],
@@ -157,6 +190,11 @@ def default_executor_attempt_envelope(
         required_closeout_packet=required_closeout_packet,
         action_type=action_type,
     )
+    domain_intent = _domain_intent(
+        route=route,
+        basis=basis,
+        required_closeout_packet=required_closeout_packet,
+    )
     core_fields = {
         "domain_owner": domain_owner,
         "action_type": action_type,
@@ -168,6 +206,9 @@ def default_executor_attempt_envelope(
         "forbidden_surfaces": _list_field(dispatch, prompt_contract, "forbidden_surfaces"),
         "required_closeout_packet": closeout_packet_for_transport(required_closeout_packet),
         "completion_boundary": completion_boundary,
+        "authority_boundary": _authority_boundary(),
+        "runtime_completion_guard": _runtime_completion_guard(),
+        "domain_intent": domain_intent,
     }
     dispatchable = (
         bool(reason_contract["registered"])
@@ -179,6 +220,7 @@ def default_executor_attempt_envelope(
         and bool(basis.get("runtime_health_epoch"))
         and bool(core_fields["source_fingerprint"])
         and action_type in set(reason_contract["allowed_actions"])
+        and not domain_intent["missing_required_fields"]
     )
     return {
         "version": PROTOCOL_VERSION,
@@ -509,6 +551,65 @@ def _completion_boundary(
     )["completion_boundary"]
 
 
+def _domain_intent(
+    *,
+    route: Mapping[str, Any],
+    basis: Mapping[str, Any],
+    required_closeout_packet: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = {
+        "surface_kind": "mas_domain_intent_v1",
+        "source_fingerprint": _text(route.get("source_fingerprint")),
+        "route_epoch": _text(route.get("route_epoch")),
+        "truth_epoch": _text(route.get("truth_epoch")),
+        "idempotency_key": _text(route.get("idempotency_key")),
+        "owner_route_currentness_basis": dict(basis),
+        "required_closeout_packet": closeout_packet_for_transport(required_closeout_packet),
+        "lifecycle_contract": {
+            "fail_closed_when_missing": True,
+            "provider_completion_is_domain_completion": False,
+            "queue_attempt_retry_liveness_owner": "one-person-lab",
+            "domain_completion_owner": "med-autoscience",
+        },
+    }
+    payload["missing_required_fields"] = _domain_intent_missing_fields(payload)
+    return payload
+
+
+def _domain_intent_missing_fields(payload: Mapping[str, Any]) -> list[str]:
+    basis = _mapping(payload.get("owner_route_currentness_basis"))
+    checks = {
+        "source_fingerprint": payload.get("source_fingerprint"),
+        "route_epoch": payload.get("route_epoch"),
+        "truth_epoch": payload.get("truth_epoch"),
+        "idempotency_key": payload.get("idempotency_key"),
+        "owner_route_currentness_basis.work_unit_id": basis.get("work_unit_id"),
+        "owner_route_currentness_basis.work_unit_fingerprint": basis.get("work_unit_fingerprint"),
+        "owner_route_currentness_basis.truth_epoch": basis.get("truth_epoch"),
+        "owner_route_currentness_basis.runtime_health_epoch": basis.get("runtime_health_epoch"),
+        "owner_route_currentness_basis.owner_reason": basis.get("owner_reason"),
+    }
+    return [field for field, value in checks.items() if _text(value) is None]
+
+
+def _authority_boundary() -> dict[str, list[str]]:
+    return {
+        "opl_owns": list(AUTHORITY_BOUNDARY["opl_owns"]),
+        "mas_owns": list(AUTHORITY_BOUNDARY["mas_owns"]),
+    }
+
+
+def _runtime_completion_guard() -> dict[str, Any]:
+    return {
+        **{
+            key: value
+            for key, value in RUNTIME_COMPLETION_GUARD.items()
+            if key != "domain_completion_requires"
+        },
+        "domain_completion_requires": list(RUNTIME_COMPLETION_GUARD["domain_completion_requires"]),
+    }
+
+
 def _list_field(
     dispatch: Mapping[str, Any],
     prompt_contract: Mapping[str, Any],
@@ -540,8 +641,10 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "AUTHORITY_BOUNDARY",
     "PRIORITY_LATTICE",
     "PROTOCOL_VERSION",
+    "RUNTIME_COMPLETION_GUARD",
     "closeout_packet_for_transport",
     "currentness_basis",
     "currentness_contract",
