@@ -227,7 +227,7 @@ def test_study_cycle_profiler_uses_current_manual_finishing_state_over_window_ch
     )
 
     assert profile_payload["current_state_summary"]["state"] == "auto_runtime_parked"
-    assert profile_payload["current_state_summary"]["legacy_current_stage"] == "manual_finishing"
+    assert "legacy_current_stage" not in profile_payload["current_state_summary"]
     assert profile_payload["current_state_summary"]["parked_state"] == "external_metadata_pending"
     assert profile_payload["gate_blocker_summary"]["current_blockers"] == []
     assert profile_payload["eta_confidence_band"]["classification"] == "external_metadata_pending"
