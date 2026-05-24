@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.medical_material_passport import SOURCE_ADAPTER_REJECTION_REASONS
+
 SURFACE_KIND = "mas_ars_learning_projection"
 SOURCE_REPOSITORY = "https://github.com/Imbad0202/academic-research-skills"
 SOURCE_HEAD = "d564d26da39de039ba71d9b51f43e6a25fe9b149"
@@ -63,6 +65,21 @@ def build_ars_learning_projection() -> dict[str, Any]:
                 "consumer_role": "body_free_handoff_refs_for_opl_stage_runtime",
                 "authority": "projection_only",
             },
+            {
+                "pattern_id": "medical_material_passport_source_handoff",
+                "source_pattern": "material_passport_literature_corpus_adapter_and_rejection_log",
+                "mas_mapping": "medical_material_passport_refs_and_source_adapter_contract",
+                "source_refs": [
+                    "source_readiness_refs",
+                    "claim_evidence_refs",
+                    "review_contract_refs",
+                    "artifact_rebuild_refs",
+                    "human_decision_refs",
+                    "owner_receipt_refs",
+                ],
+                "consumer_role": "source_workspace_evidence_handoff_refs",
+                "authority": "projection_only",
+            },
         ],
         "truth_surface_mapping": {
             "claim_support_audit_refs": [
@@ -90,11 +107,30 @@ def build_ars_learning_projection() -> dict[str, Any]:
                 "artifacts/publication_eval/latest.json",
                 "artifacts/controller_decisions/latest.json",
             ],
+            "medical_material_passport_refs": [
+                "medical_material_passport.sections.source_readiness_refs",
+                "medical_material_passport.sections.claim_evidence_refs",
+                "medical_material_passport.sections.review_contract_refs",
+                "medical_material_passport.sections.artifact_rebuild_refs",
+                "medical_material_passport.sections.human_decision_refs",
+                "medical_material_passport.sections.owner_receipt_refs",
+            ],
+        },
+        "source_adapter_contract": {
+            "surface_kind": "mas_source_adapter_output",
+            "schema_version": "mas-source-adapter-output.v1",
+            "contract_ref": "med_autoscience.medical_material_passport.build_source_adapter_output",
+            "records_write_mas_truth": False,
+            "always_emit_rejection_log": True,
+            "closed_reasons": list(SOURCE_ADAPTER_REJECTION_REASONS),
+            "entry_level_reject_continues": True,
+            "adapter_level_failure_loud": True,
         },
         "metadata_policy": {
             "body_included": False,
             "ars_passport_is_truth": False,
             "ars_passport_body_exported": False,
+            "medical_material_passport_body_exported": False,
             "data_access_metadata_authority": "study_charter_and_evidence_ledger",
             "oversight_metadata_authority": "study_charter_review_ledger_and_human_gate",
             "claim_support_authority": "evidence_ledger_review_ledger_and_ai_reviewer_backed_publication_eval",
@@ -149,6 +185,7 @@ __all__ = [
     "DOC_REF",
     "SOURCE_HEAD",
     "SOURCE_REPOSITORY",
+    "SOURCE_ADAPTER_REJECTION_REASONS",
     "SURFACE_KIND",
     "build_ars_learning_projection",
 ]
