@@ -35,7 +35,9 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_domain_health_diagnostic_script,
 )
 from med_autoscience.controllers.workspace_init_parts.retired_entries import (
+    retired_empty_dir_cleanup_reason,
     retired_file_cleanup_reason,
+    retired_workspace_service_dir_paths,
     retired_workspace_service_paths,
 )
 from med_autoscience.controllers.workspace_init_parts.legacy_entries import legacy_managed_runtime_entry_reason
@@ -661,6 +663,7 @@ def init_workspace(
     removed_files: list[str] = []
     retained_retired_files: list[str] = []
     retired_service_paths = retired_workspace_service_paths(workspace_root)
+    retired_service_dir_paths = retired_workspace_service_dir_paths(workspace_root)
     rendered_file_paths = {item.path for item in files}
     explicit_retired_paths = [path for path in retired_service_paths if path not in rendered_file_paths]
 
@@ -668,6 +671,12 @@ def init_workspace(
         created_directories = [str(path) for path in directories if not path.exists()]
         for path in explicit_retired_paths:
             reason = retired_file_cleanup_reason(path)
+            if reason is not None:
+                removed_files.append(str(path))
+            elif path.exists():
+                retained_retired_files.append(str(path))
+        for path in retired_service_dir_paths:
+            reason = retired_empty_dir_cleanup_reason(path)
             if reason is not None:
                 removed_files.append(str(path))
             elif path.exists():
@@ -692,6 +701,13 @@ def init_workspace(
             reason = retired_file_cleanup_reason(path)
             if reason is not None:
                 path.unlink()
+                removed_files.append(str(path))
+            elif path.exists():
+                retained_retired_files.append(str(path))
+        for path in retired_service_dir_paths:
+            reason = retired_empty_dir_cleanup_reason(path)
+            if reason is not None:
+                path.rmdir()
                 removed_files.append(str(path))
             elif path.exists():
                 retained_retired_files.append(str(path))

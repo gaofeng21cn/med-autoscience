@@ -30,6 +30,7 @@ def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: P
     for path in (install_service, service_status, uninstall_service):
         assert not path.exists()
     assert not (workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner").exists()
+    assert not (workspace_root / "ops" / "medautoscience" / "supervisor").exists()
     scan_domain_routes = workspace_root / "ops" / "medautoscience" / "bin" / "owner-route-reconcile"
     assert scan_domain_routes.is_file()
     assert os.access(scan_domain_routes, os.X_OK)
@@ -152,6 +153,48 @@ def test_init_workspace_removes_retired_service_wrapper_family(tmp_path: Path) -
         assert str(path) in result["removed_files"]
         assert str(path) not in result["retained_retired_files"]
         assert not path.exists()
+
+
+def test_init_workspace_removes_empty_retired_supervisor_directories(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "empty-retired-supervisor-dirs"
+    supervisor_root = workspace_root / "ops" / "medautoscience" / "supervisor"
+
+    for dirname in ("cron", "launchd", "systemd"):
+        (supervisor_root / dirname).mkdir(parents=True, exist_ok=True)
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="empty-retired-supervisor-dirs",
+        dry_run=False,
+        force=False,
+    )
+
+    assert str(supervisor_root / "cron") in result["removed_files"]
+    assert str(supervisor_root / "launchd") in result["removed_files"]
+    assert str(supervisor_root / "systemd") in result["removed_files"]
+    assert str(supervisor_root) in result["removed_files"]
+    assert not supervisor_root.exists()
+
+
+def test_init_workspace_retains_non_empty_retired_supervisor_directory(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "custom-retired-supervisor-dir"
+    supervisor_root = workspace_root / "ops" / "medautoscience" / "supervisor"
+    custom_note = supervisor_root / "README.md"
+    custom_note.parent.mkdir(parents=True, exist_ok=True)
+    custom_note.write_text("custom local note\n", encoding="utf-8")
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="custom-retired-supervisor-dir",
+        dry_run=False,
+        force=False,
+    )
+
+    assert str(supervisor_root) in result["retained_retired_files"]
+    assert str(supervisor_root) not in result["removed_files"]
+    assert custom_note.exists()
 
 
 def test_init_workspace_retains_same_name_custom_service_file_without_retired_markers(tmp_path: Path) -> None:

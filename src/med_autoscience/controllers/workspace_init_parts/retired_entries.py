@@ -35,11 +35,25 @@ RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES: tuple[tuple[str, ...], ...] = (
     ),
 )
 
+RETIRED_WORKSPACE_SERVICE_DIR_SUFFIXES: tuple[tuple[str, ...], ...] = (
+    ("ops", "medautoscience", "supervisor", "cron"),
+    ("ops", "medautoscience", "supervisor", "launchd"),
+    ("ops", "medautoscience", "supervisor", "systemd"),
+    ("ops", "medautoscience", "supervisor"),
+)
+
 
 def retired_workspace_service_paths(workspace_root: Path) -> list[Path]:
     return [
         Path(workspace_root).joinpath(*suffix)
         for suffix in RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES
+    ]
+
+
+def retired_workspace_service_dir_paths(workspace_root: Path) -> list[Path]:
+    return [
+        Path(workspace_root).joinpath(*suffix)
+        for suffix in RETIRED_WORKSPACE_SERVICE_DIR_SUFFIXES
     ]
 
 
@@ -51,6 +65,20 @@ def retired_file_cleanup_reason(path: Path) -> str | None:
     except (OSError, UnicodeDecodeError):
         return None
     return retired_workspace_service_entry_reason(path=path, existing_content=existing_content)
+
+
+def retired_empty_dir_cleanup_reason(path: Path) -> str | None:
+    if not path.exists() or not path.is_dir():
+        return None
+    if not any(path.parts[-len(suffix) :] == suffix for suffix in RETIRED_WORKSPACE_SERVICE_DIR_SUFFIXES):
+        return None
+    try:
+        next(path.iterdir())
+    except StopIteration:
+        return "retired_empty_workspace_service_directory"
+    except OSError:
+        return None
+    return None
 
 
 def retired_workspace_service_entry_reason(*, path: Path, existing_content: str) -> str | None:
