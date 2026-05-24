@@ -348,14 +348,7 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert "medautosci runtime ensure-supervision --profile <profile>" not in med_readme_text
     assert "medautosci runtime supervision-status --profile <profile>" not in med_readme_text
     assert "medautosci runtime remove-supervision --profile <profile>" not in med_readme_text
-    launchd_readme_text = (
-        workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md"
-    ).read_text(encoding="utf-8")
-    assert "Retired Workspace-Local Scheduler" in launchd_readme_text
-    assert "install-watch-runtime-service --manager launchd" not in launchd_readme_text
-    assert "medautosci runtime ensure-supervision --profile <profile>" not in launchd_readme_text
-    assert "medautosci runtime supervision-status --profile <profile>" not in launchd_readme_text
-    assert "medautosci runtime remove-supervision --profile <profile>" not in launchd_readme_text
+    assert not (workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md").exists()
     for name in (
         "install-watch-runtime-service",
         "watch-runtime-service-status",

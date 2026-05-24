@@ -287,7 +287,13 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     runtime_bridge_readme = workspace_root / "ops" / "mas" / "README.md"
     assert runtime_bridge_readme.is_file()
-    assert "ops/med-deepscientist" not in runtime_bridge_readme.read_text(encoding="utf-8")
+    runtime_bridge_readme_text = runtime_bridge_readme.read_text(encoding="utf-8")
+    assert "MAS domain refs 运维薄入口脚本" in runtime_bridge_readme_text
+    assert "OPL current-control-state" in runtime_bridge_readme_text
+    assert "只调用 MAS domain refs / diagnostic surface" in runtime_bridge_readme_text
+    assert "ops/med-deepscientist" not in runtime_bridge_readme_text
+    assert "ensure-study-runtime" not in runtime_bridge_readme_text
+    assert "MAS-first runtime 运维面" not in runtime_bridge_readme_text
 
     progress_portal_html = workspace_root / "ops" / "mas" / "progress" / "index.html"
     assert progress_portal_html.is_file()

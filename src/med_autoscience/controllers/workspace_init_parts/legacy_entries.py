@@ -6,6 +6,7 @@ from pathlib import Path
 def legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -> str | None:
     suffix = path.parts[-4:]
     for detector in (
+        legacy_generated_workspace_guidance_reason,
         legacy_mas_bridge_entry_reason,
         legacy_medautoscience_shared_entry_reason,
         legacy_supervisor_entry_reason,
@@ -14,6 +15,103 @@ def legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) ->
         reason = detector(path=path, suffix=suffix, existing_content=existing_content)
         if reason is not None:
             return reason
+    return None
+
+
+def legacy_generated_workspace_guidance_reason(
+    *,
+    path: Path,
+    suffix: tuple[str, ...],
+    existing_content: str,
+) -> str | None:
+    _ = suffix
+    if path.name == "AGENTS.md" and "这个文件由 `medautosci init-workspace` 自动生成" in existing_content:
+        current_required_tokens = (
+            "ops/medautoscience/bin/progress-projection",
+            "ops/medautoscience/bin/domain-health-diagnostic",
+            "OPL current-control-state refs",
+        )
+        if any(token not in existing_content for token in current_required_tokens):
+            return "legacy_generated_workspace_agents_guidance"
+        return None
+    if path.name == "WORKSPACE_AUTOSCIENCE_RULES.md" and (
+        "这个文件由 `medautosci init-workspace` 自动生成" in existing_content
+    ):
+        current_required_tokens = (
+            "默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载",
+            "`local` 已物理退役为 tombstone/provenance-only",
+        )
+        legacy_tokens = (
+            "Hermes-backed",
+            "Hermes-hosted supervision tick",
+            "MAS supervisor loop",
+            "watch-runtime",
+        )
+        if any(token not in existing_content for token in current_required_tokens) or any(
+            token in existing_content for token in legacy_tokens
+        ):
+            return "legacy_generated_workspace_autoscience_rules"
+        return None
+    if path.name == "README.md" and "这个 workspace 由 `medautosci init-workspace` 初始化" in existing_content:
+        current_required_tokens = (
+            "OPL stage 控制面",
+            "ops/medautoscience/bin/progress-portal",
+            "MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口",
+        )
+        legacy_tokens = (
+            "ensure-study-runtime",
+            "install-watch-runtime-service",
+            "watch-runtime-service-status",
+            "med-deepscientist repo",
+            "MDS launcher",
+            "med-deepscientist/bin",
+        )
+        if any(token not in existing_content for token in current_required_tokens) or any(
+            token in existing_content for token in legacy_tokens
+        ):
+            return "legacy_generated_workspace_readme"
+        return None
+    if len(path.parts) >= 3 and path.parts[-3:] == ("ops", "medautoscience", "README.md"):
+        if "这个目录是当前 workspace 面向用户和 Agent 的本地入口层" not in existing_content:
+            return None
+        current_required_tokens = (
+            "bin/domain-health-diagnostic",
+            "bin/progress-projection",
+            "OPL current_control_state refs-only handoff",
+        )
+        legacy_tokens = (
+            "bin/watch-runtime",
+            "bin/supervisor-reconcile",
+            "bin/supervisor-consume",
+            "bin/supervisor-execute-dispatch",
+            "runtime ensure-supervision",
+            "runtime supervision-status",
+            "runtime remove-supervision",
+        )
+        if any(token not in existing_content for token in current_required_tokens) or any(
+            token in existing_content for token in legacy_tokens
+        ):
+            return "legacy_generated_medautoscience_readme"
+        return None
+    if len(path.parts) >= 3 and path.parts[-3:] == ("ops", "mas", "README.md"):
+        if "MAS" not in existing_content or "运维薄入口脚本" not in existing_content:
+            return None
+        current_required_tokens = (
+            "MAS domain refs 运维薄入口脚本",
+            "OPL current-control-state",
+            "只调用 MAS domain refs / diagnostic surface",
+        )
+        legacy_tokens = (
+            "MAS-first runtime 运维面",
+            "ensure-study-runtime",
+            "MAS CLI / read-model / controlled pause surface",
+            "外部 MDS launcher",
+            "daemon 或 WebUI",
+        )
+        if any(token not in existing_content for token in current_required_tokens) or any(
+            token in existing_content for token in legacy_tokens
+        ):
+            return "legacy_generated_mas_bridge_readme"
     return None
 
 

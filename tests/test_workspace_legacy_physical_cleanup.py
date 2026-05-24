@@ -111,9 +111,10 @@ def test_workspace_legacy_physical_cleanup_reports_safe_wrapper_without_deleting
     report = cleanup.build_workspace_legacy_physical_cleanup_audit(profile_path=profile_path)
 
     wrappers = report["retired_workspace_service_wrappers"]
-    assert wrappers["candidate_count"] == 4
+    assert wrappers["candidate_count"] >= 4
     assert wrappers["cleanup_ready_count"] == 1
-    assert wrappers["items"][0]["candidate_action"] == "delete_safe"
+    wrapper_items = {item["path"]: item for item in wrappers["items"]}
+    assert wrapper_items[str(wrapper)]["candidate_action"] == "delete_safe"
     assert wrapper.exists()
     assert report["authority_boundary"]["writes_workspace"] is False
 

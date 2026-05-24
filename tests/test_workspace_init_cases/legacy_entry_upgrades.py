@@ -282,6 +282,186 @@ def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp
     assert 'run_medautosci study delivery-sync "$@"' in sync_delivery.read_text(encoding="utf-8")
 
 
+def test_init_workspace_upgrades_generated_guidance_and_removes_private_control_wrappers(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "legacy-private-control"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="legacy-private",
+        dry_run=False,
+        force=False,
+    )
+
+    agents_path = workspace_root / "AGENTS.md"
+    readme_path = workspace_root / "README.md"
+    rules_path = workspace_root / "WORKSPACE_AUTOSCIENCE_RULES.md"
+    ops_readme_path = workspace_root / "ops" / "medautoscience" / "README.md"
+    mas_readme_path = workspace_root / "ops" / "mas" / "README.md"
+    bin_root = workspace_root / "ops" / "medautoscience" / "bin"
+    supervisor_root = workspace_root / "ops" / "medautoscience" / "supervisor"
+    legacy_wrappers = [
+        bin_root / "ensure-study-runtime",
+        bin_root / "domain-route-scan",
+        bin_root / "domain-route-reconcile",
+        bin_root / "supervisor-scan",
+        bin_root / "supervisor-reconcile",
+        bin_root / "supervisor-consume",
+        bin_root / "supervisor-execute-dispatch",
+        supervisor_root / "cron" / "supervisor-scan.cron",
+        supervisor_root / "launchd" / "README.md",
+        supervisor_root / "systemd" / "medautoscience-supervisor-scan.service",
+        supervisor_root / "systemd" / "medautoscience-supervisor-scan.timer",
+    ]
+
+    agents_path.write_text(
+        "# legacy-private Workspace Rules\n\n"
+        "这个文件由 `medautosci init-workspace` 自动生成，用于声明当前 workspace 的本地约束、MAS 入口语义与基座回灌要求。\n\n"
+        "默认通过 `ops/medautoscience/bin/show-profile`、`ops/medautoscience/bin/bootstrap`、"
+        "`ops/medautoscience/bin/enter-study` 与 `ops/medautoscience/bin/watch-runtime` 调用 MAS 工作流。\n\n"
+        "动手前必须查询对应 study 的 `study-runtime-status`。\n",
+        encoding="utf-8",
+    )
+    readme_path.write_text(
+        "# legacy-private Research Workspace\n\n"
+        "这个 workspace 由 `medautosci init-workspace` 初始化。\n\n"
+        "通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
+        "运行 `ops/medautoscience/bin/install-watch-runtime-service` 管理 Hermes-hosted supervision job。\n",
+        encoding="utf-8",
+    )
+    rules_path.write_text(
+        "# Workspace Autoscience Rules\n\n"
+        "这个文件由 `medautosci init-workspace` 自动生成，用于声明新 workspace 默认继承的运行约束。\n\n"
+        "- 边界明确且 startup-ready 后，默认切入 `Hermes-backed` managed runtime 的自动持续推进。\n"
+        "- live managed runtime 需要持续在线的 Hermes-hosted supervision tick；默认由 Hermes gateway cron 托管 "
+        "`ops/medautoscience/bin/watch-runtime` 的单次 tick。\n",
+        encoding="utf-8",
+    )
+    ops_readme_path.write_text(
+        "# MedAutoScience Workspace Entry\n\n"
+        "这个目录是当前 workspace 面向用户和 Agent 的本地入口层。\n\n"
+        "推荐的长时监管入口：\n\n"
+        "- `bin/watch-runtime`\n"
+        "- `bin/supervisor-reconcile`\n"
+        "- `bin/supervisor-consume`\n"
+        "- `bin/supervisor-execute-dispatch`\n\n"
+        "MAS scheduler supervision job 由 canonical CLI 管理："
+        "`medautosci runtime ensure-supervision --profile <profile>`、"
+        "`medautosci runtime supervision-status --profile <profile>` 与 "
+        "`medautosci runtime remove-supervision --profile <profile>`。\n",
+        encoding="utf-8",
+    )
+    mas_readme_path.write_text(
+        "# MAS Runtime Bridge\n\n"
+        "这个目录保留当前 workspace 的 MAS-native 运维薄入口脚本。\n\n"
+        "它是 MAS-first runtime 运维面，不是研究入口。\n\n"
+        "请遵守下面的边界：\n\n"
+        "- 研究 quest 的创建、恢复、门禁判断统一走 `MedAutoScience`。\n"
+        "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、"
+        "`ops/medautoscience/bin/bootstrap`、`ensure-study-runtime` 等受管入口。\n"
+        "- 如果需要查看或维护 runtime，本目录下脚本只调用 MAS CLI / read-model / controlled pause surface，"
+        "不调用外部 MDS launcher、daemon 或 WebUI。\n",
+        encoding="utf-8",
+    )
+    for path in legacy_wrappers:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    (bin_root / "ensure-study-runtime").write_text(
+        "#!/usr/bin/env bash\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n'
+        'run_medautosci ensure-study-runtime --profile "${PROFILE_PATH}" "$@"\n',
+        encoding="utf-8",
+    )
+    (bin_root / "domain-route-scan").write_text(
+        "#!/usr/bin/env bash\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n'
+        'run_medautosci runtime domain-route-scan --profile "${PROFILE_PATH}" "$@"\n',
+        encoding="utf-8",
+    )
+    (bin_root / "domain-route-reconcile").write_text(
+        "#!/usr/bin/env bash\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n'
+        'run_medautosci runtime domain-route-reconcile --profile "${PROFILE_PATH}" --mode developer_apply_safe --apply "$@"\n',
+        encoding="utf-8",
+    )
+    (bin_root / "supervisor-scan").write_text(
+        "#!/usr/bin/env bash\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n'
+        'run_medautosci runtime supervisor-scan --profile "${PROFILE_PATH}" "$@"\n',
+        encoding="utf-8",
+    )
+    (bin_root / "supervisor-reconcile").write_text(
+        "#!/usr/bin/env bash\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n'
+        'run_medautosci runtime supervisor-reconcile --profile "${PROFILE_PATH}" --mode developer_apply_safe --apply "$@"\n',
+        encoding="utf-8",
+    )
+    (bin_root / "supervisor-consume").write_text(
+        "#!/usr/bin/env bash\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n'
+        'run_medautosci runtime supervisor-consume --profile "${PROFILE_PATH}" --mode developer_apply_safe --apply "$@"\n',
+        encoding="utf-8",
+    )
+    (bin_root / "supervisor-execute-dispatch").write_text(
+        "#!/usr/bin/env bash\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n'
+        'run_medautosci runtime supervisor-execute-dispatch --profile "${PROFILE_PATH}" --mode developer_apply_safe --apply "$@"\n',
+        encoding="utf-8",
+    )
+    (supervisor_root / "cron" / "supervisor-scan.cron").write_text(
+        "* * * * * ops/medautoscience/bin/supervisor-scan\n",
+        encoding="utf-8",
+    )
+    (supervisor_root / "launchd" / "README.md").write_text(
+        "ops/medautoscience/bin/install-watch-runtime-service --manager launchd\n",
+        encoding="utf-8",
+    )
+    (supervisor_root / "systemd" / "medautoscience-supervisor-scan.service").write_text(
+        "ExecStart=ops/medautoscience/bin/supervisor-scan\n",
+        encoding="utf-8",
+    )
+    (supervisor_root / "systemd" / "medautoscience-supervisor-scan.timer").write_text(
+        "Description=Run MedAutoScience portable supervisor scan hourly\n",
+        encoding="utf-8",
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="legacy-private",
+        dry_run=False,
+        force=False,
+    )
+
+    for path in legacy_wrappers:
+        assert str(path) in result["removed_files"]
+        assert not path.exists()
+    for path in (agents_path, readme_path, rules_path, ops_readme_path, mas_readme_path):
+        assert str(path) in result["upgraded_files"]
+    agents_text = agents_path.read_text(encoding="utf-8")
+    readme_text = readme_path.read_text(encoding="utf-8")
+    rules_text = rules_path.read_text(encoding="utf-8")
+    ops_readme_text = ops_readme_path.read_text(encoding="utf-8")
+    mas_readme_text = mas_readme_path.read_text(encoding="utf-8")
+    for text in (agents_text, readme_text, rules_text, ops_readme_text, mas_readme_text):
+        assert "watch-runtime" not in text
+        assert "study-runtime-status" not in text
+        assert "ensure-study-runtime" not in text
+        assert "install-watch-runtime-service" not in text
+        assert "supervisor-reconcile" not in text
+        assert "supervisor-consume" not in text
+        assert "supervisor-execute-dispatch" not in text
+    assert "ops/medautoscience/bin/progress-projection" in agents_text
+    assert "ops/medautoscience/bin/domain-health-diagnostic" in agents_text
+    assert "OPL current-control-state refs" in agents_text
+    assert "OPL stage 控制面" in readme_text
+    assert "MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口" in readme_text
+    assert "默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载" in rules_text
+    assert "OPL current_control_state refs-only handoff" in ops_readme_text
+    assert "MAS domain refs 运维薄入口脚本" in mas_readme_text
+    assert "OPL current-control-state" in mas_readme_text
+    assert "只调用 MAS domain refs / diagnostic surface" in mas_readme_text
+    assert "MAS-first runtime 运维面" not in mas_readme_text
+
+
 def test_init_workspace_upgrades_shared_script_that_still_invokes_bare_uv(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "legacy-uv-workspace"

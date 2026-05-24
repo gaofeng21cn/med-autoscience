@@ -10,6 +10,29 @@ RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES: tuple[tuple[str, ...], ...] = (
     ("ops", "medautoscience", "bin", "watch-runtime-service-status"),
     ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"),
     ("ops", "medautoscience", "bin", "watch-runtime-service-runner"),
+    ("ops", "medautoscience", "bin", "ensure-study-runtime"),
+    ("ops", "medautoscience", "bin", "domain-route-scan"),
+    ("ops", "medautoscience", "bin", "domain-route-reconcile"),
+    ("ops", "medautoscience", "bin", "supervisor-scan"),
+    ("ops", "medautoscience", "bin", "supervisor-reconcile"),
+    ("ops", "medautoscience", "bin", "supervisor-consume"),
+    ("ops", "medautoscience", "bin", "supervisor-execute-dispatch"),
+    ("ops", "medautoscience", "supervisor", "cron", "supervisor-scan.cron"),
+    ("ops", "medautoscience", "supervisor", "launchd", "README.md"),
+    (
+        "ops",
+        "medautoscience",
+        "supervisor",
+        "systemd",
+        "medautoscience-supervisor-scan.service",
+    ),
+    (
+        "ops",
+        "medautoscience",
+        "supervisor",
+        "systemd",
+        "medautoscience-supervisor-scan.timer",
+    ),
 )
 
 
@@ -31,8 +54,7 @@ def retired_file_cleanup_reason(path: Path) -> str | None:
 
 
 def retired_workspace_service_entry_reason(*, path: Path, existing_content: str) -> str | None:
-    suffix = path.parts[-4:]
-    if suffix not in RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES:
+    if not any(path.parts[-len(suffix) :] == suffix for suffix in RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES):
         return None
     generated_or_legacy_markers = (
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"',
@@ -40,12 +62,25 @@ def retired_workspace_service_entry_reason(*, path: Path, existing_content: str)
         "run_medautosci study-runtime-status",
         "run_medautosci runtime domain-health-diagnostic",
         "run_medautosci watch",
+        "run_medautosci ensure-study-runtime",
+        "run_medautosci runtime domain-route-scan",
+        "run_medautosci runtime domain-route-reconcile",
+        "run_medautosci runtime supervisor-scan",
+        "run_medautosci runtime supervisor-reconcile",
+        "run_medautosci runtime supervisor-consume",
+        "run_medautosci runtime supervisor-execute-dispatch",
+        "ops/medautoscience/bin/supervisor-scan",
         "--runtime-root",
         "WATCH_RUNTIME_RUNNER",
         "watch-runtime-service-runner",
+        "install-watch-runtime-service",
+        "watch-runtime-service-status",
+        "uninstall-watch-runtime-service",
         "runtime ensure-supervision",
         "runtime supervision-status",
         "runtime remove-supervision",
+        "medautoscience-supervisor-scan.service",
+        "portable supervisor scan",
         "launchctl bootstrap",
         "systemctl --user",
     )

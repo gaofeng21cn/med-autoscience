@@ -287,6 +287,14 @@ def _is_medautoscience_config_path(path: Path) -> bool:
     return len(path.parts) >= 3 and path.parts[-3:] == ("ops", "medautoscience", "config.env")
 
 
+def _is_generated_workspace_guidance_path(path: Path) -> bool:
+    return path.name in {"README.md", "AGENTS.md", "WORKSPACE_AUTOSCIENCE_RULES.md"} or (
+        len(path.parts) >= 3 and path.parts[-3:] == ("ops", "medautoscience", "README.md")
+    ) or (
+        len(path.parts) >= 3 and path.parts[-3:] == ("ops", "mas", "README.md")
+    )
+
+
 def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
     if not item.path.exists():
         return "create"
@@ -298,6 +306,9 @@ def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
         return "skip"
     if legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
         return "upgrade"
+    if _is_generated_workspace_guidance_path(item.path) and existing_content != item.content:
+        if legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
+            return "upgrade"
     if _is_workspace_profile_path(item.path) and existing_content != item.content:
         return "upgrade"
     if _is_medautoscience_config_path(item.path) and existing_content != item.content:
@@ -650,10 +661,12 @@ def init_workspace(
     removed_files: list[str] = []
     retained_retired_files: list[str] = []
     retired_service_paths = retired_workspace_service_paths(workspace_root)
+    rendered_file_paths = {item.path for item in files}
+    explicit_retired_paths = [path for path in retired_service_paths if path not in rendered_file_paths]
 
     if dry_run:
         created_directories = [str(path) for path in directories if not path.exists()]
-        for path in retired_service_paths:
+        for path in explicit_retired_paths:
             reason = retired_file_cleanup_reason(path)
             if reason is not None:
                 removed_files.append(str(path))
@@ -675,7 +688,7 @@ def init_workspace(
             if not path.exists():
                 path.mkdir(parents=True, exist_ok=True)
                 created_directories.append(str(path))
-        for path in retired_service_paths:
+        for path in explicit_retired_paths:
             reason = retired_file_cleanup_reason(path)
             if reason is not None:
                 path.unlink()
