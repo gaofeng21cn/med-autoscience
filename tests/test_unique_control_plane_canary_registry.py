@@ -32,7 +32,7 @@ def test_unique_control_plane_canary_registry_covers_dm002_dm003_categories() ->
     assert registry["surface_kind"] == "opl_unique_control_plane_canary_registry"
     assert registry["registry_id"] == "opl-unique-control-plane-canary-registry-dm002-dm003-v1"
     assert registry["migration_semantics"] == {
-        "program": "mas_duplicate_runtime_retirement",
+        "program": "standard_agent_purity_guard",
         "canonical_control_plane_owner": "OPL",
         "domain_owner": "MedAutoScience",
         "duplicate_mas_runtime_claimed": False,
@@ -43,7 +43,7 @@ def test_unique_control_plane_canary_registry_covers_dm002_dm003_categories() ->
     for canary in canaries:
         assert canary["canary_id"].startswith("opl-unique-control-plane-canary:")
         assert set(canary["target_studies"]) <= {"DM002", "DM003"}
-        assert canary["semantic_role"] == "mas_duplicate_runtime_retirement_regression"
+        assert canary["semantic_role"] == "standard_agent_purity_regression_guard"
         assert canary["mas_fixture_refs"]
         assert canary["opl_transport_fixture_refs"]
         assert canary["owner_route_regression_refs"]

@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from tests.standard_agent_purity_helpers import (
+    assert_standard_agent_purity_boundary,
+    assert_standard_agent_purity_handoff,
+)
+
 from .shared import *  # noqa: F403,F401
 
 def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, capsys) -> None:
@@ -100,6 +105,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     boundary = payload["functional_consumer_boundary"]
     assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
     assert boundary["generic_surface_owner"] == "one-person-lab"
+    assert_standard_agent_purity_boundary(boundary)
     assert set(boundary["mas_does_not_own"]) >= {
         "generic_scheduler",
         "generic_daemon",
@@ -149,7 +155,10 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     inventory_by_id = {
         item["module_id"]: item for item in boundary["functional_module_inventory"]
     }
-    assert len(inventory_by_id) == 18
+    assert len(inventory_by_id) == 15
+    assert "local_launchd_scheduler_install_path" not in inventory_by_id
+    assert "workspace_local_watch_service_wrappers" not in inventory_by_id
+    assert "domain_health_diagnostic_loop_shell" not in inventory_by_id
     assert inventory_by_id["domain_authority_refs_index"]["migration_action"] == (
         "declare_domain_authority_refs_index_and_consume_opl_current_control_state"
     )
@@ -223,32 +232,16 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert runtime_handoff["domain_intent_adapter_role"] == (
         "refs_only_owner_route_typed_blocker_and_owner_receipt_handoff"
     )
-    assert runtime_handoff["retired_runtime_transport_surfaces"][0]["retirement_status"] == (
-        "package_absent_physically_retired_no_alias"
-    )
+    assert_standard_agent_purity_handoff(runtime_handoff)
     assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_as_generic_provider"] is False
     assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_contract_surface"] is False
     assert runtime_handoff["generated_default_caller_boundary"] == payload[
         "functional_consumer_boundary"
     ]["generated_default_caller_boundary"]
-    assert runtime_handoff["physical_retirement_gate_matrix"] == payload[
-        "functional_consumer_boundary"
-    ]["physical_retirement_gate_matrix"]
-    no_resurrection_summary = runtime_handoff["physical_retirement_gate_matrix"]["no_resurrection_summary"]
-    assert no_resurrection_summary["default_runtime_owner"] == "one-person-lab"
-    assert no_resurrection_summary["mas_default_runtime_owner_allowed"] is False
-    assert no_resurrection_summary["all_runtime_control_surfaces_retired_or_opl_owned"] is True
-    assert no_resurrection_summary["physical_delete_candidate_count"] == 6
-    assert no_resurrection_summary["physical_delete_ready_count"] == 2
-    assert no_resurrection_summary["physically_retired_surface_ids"] == [
-        "runtime_transport",
-        "lifecycle_refs_sqlite_index",
-    ]
-    assert no_resurrection_summary["remaining_surfaces_are_domain_refs_not_runtime_control"] is True
     assert "generic_worker_residency_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "legacy_provider" not in provider["provider_topology"]
     assert "legacy_provider_classification" not in provider["provider_topology"]
-    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_active_default_caller_proven"
+    assert "retired_surface_history_projection" not in provider
     assert provider["executor_requirements"] == {
         "adapter_owner": "one-person-lab",
         "generic_executor_adapter_owner": "one-person-lab",
@@ -277,22 +270,13 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         f"medautosci owner-route-reconcile --profile {profile_path} "
         "--developer-supervisor-mode developer_apply_safe"
     )
-    assert family_handoff["local_scheduler_tombstone_ref"] == (
-        "contracts/runtime/legacy-active-path-tombstones.json#mas-local-scheduler"
-    )
-    assert family_handoff["consumer_migration"]["active_path_role"] == (
-        "opl_replacement_default"
-    )
-    assert family_handoff["consumer_migration"]["replacement_owner"] == "one-person-lab"
-    assert family_handoff["consumer_migration"]["replacement_owner_surface"] == (
-        "opl_provider_runtime_manager"
-    )
+    assert "local_scheduler_tombstone_ref" not in family_handoff
+    assert "consumer_migration" not in family_handoff
+    assert family_handoff["standard_agent_purity"]["status"] == "pure_standard_agent_active"
     assert family_handoff["read_only_authority_boundary"]["runtime_owner"] == "one-person-lab"
     assert family_handoff["read_only_authority_boundary"]["scheduler_owner"] == "one-person-lab"
     assert family_handoff["read_only_authority_boundary"]["domain_owner"] == "med-autoscience"
-    assert family_handoff["read_only_authority_boundary"]["mas_local_scheduler_role"] == (
-        "physical_retired_tombstone_provenance_only"
-    )
+    assert "mas_local_scheduler_role" not in family_handoff["read_only_authority_boundary"]
     study_projection = payload["studies"][0]
     assert study_projection["study_id"] == "001-risk"
     assert "runtime_supervision" not in study_projection
@@ -452,17 +436,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert managed_state["opl_status_projection"]["worker_state"] == "ready"
     assert managed_state["opl_status_projection"]["attempt_query_ready"] is True
     assert managed_state["authority_boundary"]["can_write_domain_truth"] is False
-    tombstone = payload["legacy_retirement_tombstone_proof"]
-    assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
-    assert tombstone["status"] == "no_active_default_caller_proven"
-    assert tombstone["active_default_callers"] == []
-    assert {item["surface_id"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
-        "hermes_agent_executor_adapter",
-        "hermes_scheduler_hosted_runtime",
-        "mds_deepscientist_backend",
-        "workspace_local_scheduler",
-    }
-    assert tombstone["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert "retired_surface_history_projection" not in payload
     assert read_model["provider_completion_semantics"] == {
         "provider_completion_is_paper_closure": False,
         "queue_completion_is_paper_closure": False,
@@ -486,9 +460,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert by_line["p0_live_paper_autonomy_acceptance"]["typed_blockers"][0]["blocker_id"] == (
         "provider_hosted_live_paper_apply_pending"
     )
-    assert by_line["legacy_residue_retirement"]["status"] == (
-        "no_active_default_caller_proven_cleanup_policy_satisfied"
-    )
+    assert by_line["standard_agent_purity_projection"]["status"] == "standard_agent_purity_landed"
     guarded_apply_tasks = [
         task for task in payload["pending_family_tasks"]
         if task["task_kind"] == "paper_autonomy/guarded-apply"

@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `legacy_domain_supervision_tombstone_and_owner_receipt_provenance`
 State: `legacy_tombstone_reference`
-Machine boundary: 本文只保留旧 MAS supervision loop 的 provenance、退役门和 no-resurrection 约束。当前机器真相继续归 MAS contracts、schema、CLI/MCP/API payload、`progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json`、sidecar receipt、owner receipt / typed blocker 和真实 workspace artifact。通用 provider workflow、queue、attempt ledger、retry/dead-letter、operator projection、memory/artifact locator 与 App/workbench shell 归 OPL Framework / shared family layer。
+Machine boundary: 本文只保留旧 MAS supervision loop 的 provenance、退役门和 standard Agent purity 约束。当前机器真相继续归 MAS contracts、schema、CLI/MCP/API payload、`progress_projection`、`domain_health_diagnostic`、`publication_eval/latest.json`、`controller_decisions/latest.json`、sidecar receipt、owner receipt / typed blocker 和真实 workspace artifact。通用 provider workflow、queue、attempt ledger、retry/dead-letter、operator projection、memory/artifact locator 与 App/workbench shell 归 OPL Framework / shared family layer。
 
 这份文档冻结旧 `MedAutoScience` domain supervision 面的退役合同，也就是哪些历史 surface 只能作为 provenance / migration input 读取，以及哪些语义不得复活。当前 active 合同是 OPL `current_control_state` / provider attempt projection 承担 runtime/stage 控制面，MAS 只输出 DomainIntent、owner route refs、owner receipt、typed blocker、artifact/source/quality refs 和 diagnostic explanation。
 
@@ -122,7 +122,7 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - `fresh` 表示最新 OPL provider tick / current-control-state reconcile 仍在 freshness window 内；`due` 表示可以请求 OPL 重新 hydrate/reconcile；`stale` 表示外环监管已经陈旧；`missing` 表示缺 OPL control state 或 MAS owner refs；`blocked` 表示 OPL scheduler/provider、旧 service drift 或 MAS domain blocker 本身阻塞。
 - 该 read model 投影到 OPL `current_control_state` handoff refs、`owner-route-reconcile` receipt、`runtime_reconcile_trigger`、`study_progress`、workspace cockpit、Product Entry 和 Progress Portal；不再投影到 MAS runtime-supervision CLI。
 - 它只允许页面或 CLI 显示推荐命令，或由已有 controller/supervisor safe surface 做 dry-run/apply；读入口刷新不能直接 relaunch worker、写 runtime truth、写 paper/current_package、写 `publication_eval/latest.json` 或写 `controller_decisions/latest.json`。
-- 它不改变当前 owner 分工：默认 scheduler owner 是 OPL provider/runtime manager；`local` 和 Hermes 只属于 retired tombstone/provenance refs；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。OPL-hosted production wakeup 由 OPL provider 持有；MAS 只保留 domain SLO explanation、owner receipt、typed blocker 和 refs-only projection，以 [OPL Unique Control Plane Boundary Contract](./opl_unique_control_plane_boundary_contract.md) 为准。
+- 它不改变当前 owner 分工：默认 scheduler owner 是 OPL provider/runtime manager；`local` 和 Hermes 只属于 retired tombstone/provenance refs；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。OPL-hosted production wakeup 由 OPL provider 持有；MAS 只保留 domain SLO explanation、owner receipt、typed blocker 和 refs-only projection；历史语境见 [OPL unique control plane tombstone history](../../history/runtime/opl_unique_control_plane_boundary_contract.md)。
 
 这条外环和内层 attempt lifecycle 的分界是固定的：attempt start/query、worker liveness、typed closeout、retry/dead-letter、human gate transport 和 continuation 都由 OPL stage runtime 处理。MAS 只在 closeout refs 回来后签 owner receipt、typed blocker、route-back 或 artifact/source/quality authority refs；它不再维护 per-turn scheduler、worker lease 或 runtime session owner。
 

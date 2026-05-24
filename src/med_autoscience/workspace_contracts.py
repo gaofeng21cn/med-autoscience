@@ -20,7 +20,7 @@ def legacy_external_runtime_tombstone_contract() -> dict[str, object]:
     return {
         "surface_kind": "legacy_external_runtime_tombstone",
         "runtime_kind": "hermes_agent",
-        "status": "retired_no_resurrection",
+        "status": "retired_no_active_replacement",
         "ready": False,
         "read_only": True,
         "default_runtime_owner": "one-person-lab",

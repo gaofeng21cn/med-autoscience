@@ -232,10 +232,10 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
             workspace_domain_route_contract={
-                "status": "retired_legacy_service_present",
+                "status": "retired_workspace_service_present",
                 "loaded": False,
                 "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL current_control_state refs-only handoff；仅保留 tombstone/provenance refs。",
-                "drift_reasons": ["retired_legacy_service_loaded"],
+                "drift_reasons": ["retired_workspace_service_loaded"],
             },
         ),
     )
@@ -244,13 +244,13 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",
-            "status": "retired_legacy_service_present",
+            "status": "retired_workspace_service_present",
             "loaded": False,
             "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL current_control_state refs-only handoff；仅保留 tombstone/provenance refs。",
-            "drift_reasons": ["retired_legacy_service_loaded"],
-            "legacy_service": {"loaded": True, "service_exists": True},
-            "legacy_service_role": "retired_cleanup_evidence",
-            "retired_legacy_cleanup_required": True,
+            "drift_reasons": ["retired_workspace_service_loaded"],
+            "retired_workspace_service": {"loaded": True, "service_exists": True},
+            "retired_workspace_service_role": "retired_cleanup_evidence",
+            "retired_workspace_cleanup_required": True,
         },
     )
     monkeypatch.setattr(
@@ -339,7 +339,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
     assert payload["workspace_status"] == "blocked"
-    assert payload["workspace_supervision"]["service"]["status"] == "retired_legacy_service_present"
+    assert payload["workspace_supervision"]["service"]["status"] == "retired_workspace_service_present"
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["recommended_command"].endswith(
         "study progress --profile " + str(profile_ref.resolve()) + " --format json"
@@ -364,10 +364,10 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
             workspace_domain_route_contract={
-                "status": "retired_legacy_service_present",
+                "status": "retired_workspace_service_present",
                 "loaded": False,
                 "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL current_control_state refs-only handoff；仅保留 tombstone/provenance refs。",
-                "drift_reasons": ["retired_legacy_service_loaded"],
+                "drift_reasons": ["retired_workspace_service_loaded"],
             },
         ),
     )

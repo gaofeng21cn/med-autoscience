@@ -1,13 +1,13 @@
-# OPL Unique Control Plane Canary Registry
+# Standard Agent Purity Canary Registry
 
 Owner: `MedAutoScience`
-Purpose: `mas_duplicate_runtime_retirement_canary_registry`
+Purpose: `standard_agent_purity_canary_registry`
 State: `active_support`
 Machine boundary: 本文是人读说明。可执行 registry truth 以 `contracts/unique_control_plane_canary_registry.json` 和 `med_autoscience.controllers.unique_control_plane_canary_registry` 为准。
 
 ## 当前边界
 
-该 registry 服务 `MAS duplicate runtime retirement / OPL unique control plane canary`。它只把 DM002/DM003 暴露过的 currentness、stale dispatch、provider terminal sync、owner precedence、paper delta missing、quality authority stale 风险整理成 OPL Agent Lab 可执行回归素材。
+该 registry 服务 `standard_agent_purity_guard / OPL unique control plane canary`。它只把 DM002/DM003 暴露过的 currentness、stale dispatch、provider terminal sync、owner precedence、paper delta missing、quality authority stale 风险整理成 OPL Agent Lab 可执行回归素材。
 
 MAS 在这里不声明自有 control plane。OPL 是 canonical control plane owner；MAS 继续持有医学 study truth、publication quality verdict、artifact authority、owner route facts 和 owner receipt authority。
 

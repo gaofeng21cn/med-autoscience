@@ -7,7 +7,6 @@ from typing import Any, Iterable, Mapping
 from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
 from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.generated_caller_retirement import (
     build_generated_default_caller_boundary,
-    build_physical_retirement_gate_matrix,
 )
 from med_autoscience.opl_runtime_contract import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
 
@@ -676,99 +675,6 @@ def build_managed_temporal_state_consistency_read_model(
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
             "provider_completion_is_paper_closure": False,
-        },
-    }
-
-def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
-    retired_surfaces = [
-        {
-            "surface_id": "hermes_agent_executor_adapter",
-            "classification": "explicit_optional_executor_adapter",
-            "default_caller": False,
-            "retention_reason": "proof_or_diagnostics_only",
-            "replacement_ref": "/opl_provider_ready_contract/executor_requirements",
-        },
-        {
-            "surface_id": "hermes_scheduler_hosted_runtime",
-            "classification": "retired_no_default_caller",
-            "default_caller": False,
-            "retention_reason": "tombstoned_history_reference_only",
-            "replacement_ref": "/opl_provider_ready_contract/provider_topology",
-            "tombstone_ref": "contracts/runtime/legacy-active-path-tombstones.json",
-        },
-        {
-            "surface_id": "mds_deepscientist_backend",
-            "classification": "fixture_or_provenance_only",
-            "default_caller": False,
-            "retention_reason": "historical_fixture_and_parity_oracle",
-            "replacement_ref": "/standard_domain_agent_skeleton",
-        },
-        {
-            "surface_id": "workspace_local_scheduler",
-            "classification": "tombstone_provenance_only",
-            "default_caller": False,
-            "retention_reason": "history_tombstone_or_explicit_offline_fixture_only",
-            "replacement_ref": "/managed_temporal_state_consistency",
-            "tombstone_ref": "contracts/runtime/legacy-active-path-tombstones.json",
-        },
-    ]
-    return {
-        "surface_kind": "mas_legacy_retirement_tombstone_proof",
-        "version": "mas-legacy-retirement-tombstone-proof.v1",
-        "target_domain_id": TARGET_DOMAIN_ID,
-        "status": "no_active_default_caller_proven",
-        "active_default_callers": [],
-        "generated_default_caller_boundary": build_generated_default_caller_boundary(
-            schema_version=SCHEMA_VERSION,
-            replacement_owner=OPL_OWNER,
-        ),
-        "physical_retirement_gate_matrix": build_physical_retirement_gate_matrix(
-            schema_version=SCHEMA_VERSION,
-            replacement_owner=OPL_OWNER,
-        ),
-        "replacement_parity_refs": [
-            "/opl_provider_ready_contract/provider_topology",
-            "/opl_provider_ready_contract/managed_temporal_state_consistency",
-            "/opl_provider_ready_contract/opl_unique_control_plane_handoff",
-            "/product_entry_manifest/functional_consumer_boundary",
-            "contracts/runtime/legacy-active-path-tombstones.json",
-        ],
-        "no_regression_evidence_refs": [
-            "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py::test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers",
-            "tests/test_cli_cases/owner_route_handoff_command_cases/export_cases.py::test_owner_route_handoff_export_exposes_managed_temporal_state_consistency",
-        ],
-        "retired_or_tombstoned_surfaces": retired_surfaces,
-        "tombstone_refs": [
-            "contracts/runtime/legacy-active-path-tombstones.json",
-            "docs/history/runtime/legacy_active_path_tombstones.md",
-        ],
-        "history_refs": [
-            "docs/active/opl_temporal_mas_runtime_retirement_program.md",
-            "docs/decisions.md#2026-05-16-opl-unique-control-plane-boundary-retirement",
-        ],
-        "physical_tombstone_refs": [
-            "contracts/runtime/legacy-active-path-tombstones.json",
-            "docs/history/runtime/legacy_active_path_tombstones.md",
-        ],
-        "removal_policy": {
-            "delete_or_tombstone_when": [
-                "generated_default_caller_boundary_proven",
-                "active_caller_count=0",
-                "opl_replacement_parity",
-                "mas_owner_receipt_parity",
-                "focused_tests_green",
-                "tombstone_refs_landed",
-            ],
-            "current_action": (
-                "physical_retired_no_alias_keep_domain_authority_refs_or_tombstone_provenance_only"
-            ),
-            "history_actions": ["legacy_active_path_tombstones_landed"],
-        },
-        "authority_boundary": {
-            "proof_role": "caller_inventory_and_tombstone_read_model",
-            "can_write_domain_truth": False,
-            "can_authorize_publication_quality": False,
-            "can_authorize_submission_readiness": False,
         },
     }
 

@@ -15,6 +15,7 @@ from med_autoscience.opl_domain_pack.family_adoption import (
     build_family_stage_control_plane,
 )
 from med_autoscience.opl_standard_pack import build_standard_pack
+from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 
 
 pytestmark = pytest.mark.meta
@@ -102,13 +103,6 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "publication_route_memory_accept_reject_stage_gate_boundary",
         "source_readiness_stage_gate_boundary",
     ]
-    assert generated["pack_compiler_input"]["backward_readable_minimal_authority_ids"] == [
-        "publication_quality_verdict_authorizer",
-        "ai_reviewer_quality_decision_authorizer",
-        "artifact_mutation_authorizer",
-        "publication_route_memory_accept_reject_decider",
-        "source_readiness_verdict_authorizer",
-    ]
     assert generated["pack_compiler_input"]["requires_ai_first_record"] is True
     independent_policy = generated["pack_compiler_input"][
         "independent_executor_reviewer_agent_policy"
@@ -131,6 +125,22 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         item["program_may_emit_pass_ready_verdict"] is False
         for item in generated["pack_compiler_input"]["stage_quality_gate_boundaries"]
     )
+    assert {
+        key
+        for item in generated["pack_compiler_input"]["stage_quality_gate_boundaries"]
+        for key in item
+    } == {
+        "boundary_id",
+        "program_role",
+        "judgment_mode",
+        "decision_output_owner",
+        "program_may_emit_pass_ready_verdict",
+        "requires_ai_first_record",
+        "trace_refs",
+        "required_record_refs",
+        "route_back_semantics",
+        "typed_blocker_semantics",
+    }
     policy = generated["private_functional_surface_policy"]
     assert policy["allowed_private_surface_classes"] == [
         "ai_first_stage_quality_gate_boundary",
@@ -284,7 +294,7 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert followthrough["closed_functional_structure_gate_ids"] == [
         "generated_surface_default_owner_cutover",
         "domain_authority_refs_thinning",
-        "legacy_cleanup_physical_retirement",
+        "standard_agent_purity_guard",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
     ]
@@ -295,7 +305,16 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "provider_slo_long_soak",
     ]
     audit = generated["functional_privatization_audit"]
+    assert audit["classification_buckets"] == [
+        "declarative_pack_generated_surface",
+        "domain_authority_refs",
+        "minimal_authority_function",
+    ]
+    assert audit["standard_agent_purity_policy"] == (
+        "default_surfaces_must_remain_standard_agent_purity_guarded"
+    )
     functional_boundary = audit["functional_consumer_boundary"]
+    assert_standard_agent_purity_boundary(functional_boundary)
     runtime_role = functional_boundary["domain_authority_refs_index_role"]
     assert runtime_role["classification"] == "domain_authority_refs"
     assert runtime_role["authority"] == (
@@ -339,58 +358,11 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert storage_thinning["does_not_claim_physical_delete"] is True
     assert storage_thinning["does_not_claim_generic_cleanup_policy_owner"] is True
     assert storage_thinning["does_not_touch_publication_or_package_authority"] is True
-    cleanup_gates = {
-        item["residue_id"]: item for item in functional_boundary["active_path_residue_cleanup_gates"]
-    }
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["current_role"] == (
-        "none_physically_retired_no_alias"
-    )
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["physical_delete_completed"] is True
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["resurrection_alias_or_wrapper_allowed"] is False
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["current_paths"] == []
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["archive_permitted"] is False
-    assert cleanup_gates["runtime_turn_runner_closeout_adapter"]["tombstone_permitted"] is False
-    assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
-        "domain_projection_refs_for_opl_workbench"
-    )
-    assert cleanup_gates["workbench_shell_domain_projection_refs"][
-        "physical_delete_permitted"
-    ] is False
-    assert cleanup_gates["owner_route_handoff_domain_ref_entry"]["current_role"] == (
-        "domain_owner_route_handoff_refs"
-    )
-    sidecar_worklist = cleanup_gates["owner_route_handoff_domain_ref_entry"]["deletion_readiness_worklist"]
-    assert sidecar_worklist["can_delete"] is False
-    assert sidecar_worklist["domain_ref_consumer_count"] == 1
-    sidecar_paths = cleanup_gates["owner_route_handoff_domain_ref_entry"]["current_paths"]
-    assert "src/med_autoscience/controllers/owner_route_handoff.py" in sidecar_paths
-    assert (
-        "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py"
-        in sidecar_paths
-    )
-    assert (
-        "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py"
-        in sidecar_paths
-    )
-    sidecar_thinning = cleanup_gates["owner_route_handoff_domain_ref_entry"]["latest_thinning_evidence"]
-    assert sidecar_thinning["status"] == (
-        "sidecar_export_projection_split_to_parts_no_runtime_control_alias"
-    )
-    assert sidecar_thinning["does_not_claim_physical_delete"] is True
-    assert sidecar_thinning["does_not_claim_domain_receipt_parity"] is True
-    assert "no_forbidden_write_proof" in {
-        item["gate"] for item in sidecar_worklist["missing_gate_inputs"]
-    }
-    assert "publication_ready" in sidecar_worklist["must_not_claim"]
-    assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
-        "domain_truth_status_projection"
-    )
-    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"][
-        "current_disposition"
-    ] == "tombstone_only"
-    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"][
-        "stale_surface_scan_clean"
-    ] is True
+    followthrough = functional_boundary["functional_followthrough_gap_summary"]
+    assert "standard_agent_purity_guard" in followthrough[
+        "closed_functional_structure_gate_ids"
+    ]
+    assert followthrough["remaining_functional_followthrough_gate_ids"] == []
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:
@@ -464,6 +436,10 @@ def test_opl_default_callers_have_mas_deletion_evidence_without_authorizing_dele
     assert by_surface["domain_action_adapter"]["active_caller_module_id"] == (
         "owner_route_reconcile_materialize_dispatch_shell"
     )
+    assert set(by_surface["domain_action_adapter"]["canonical_target_surface_ids"]) == {
+        "domain_action_adapter",
+        "domain_action_adapter_export_dispatch",
+    }
     for gate in report["surface_gates"]:
         worklist = gate["deletion_evidence_worklist"]
         assert worklist["domain_owner_receipt_or_typed_blocker"]["status"] == "observed"

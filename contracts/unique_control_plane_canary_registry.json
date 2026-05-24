@@ -9,7 +9,7 @@
     "DM003"
   ],
   "migration_semantics": {
-    "program": "mas_duplicate_runtime_retirement",
+    "program": "standard_agent_purity_guard",
     "canonical_control_plane_owner": "OPL",
     "domain_owner": "MedAutoScience",
     "duplicate_mas_runtime_claimed": false
@@ -21,8 +21,8 @@
       "target_studies": [
         "DM002"
       ],
-      "semantic_role": "mas_duplicate_runtime_retirement_regression",
-      "failure_class": "currentness_duplicate_runtime_retirement_canary",
+      "semantic_role": "standard_agent_purity_regression_guard",
+      "failure_class": "currentness_standard_agent_purity_canary",
       "migration_boundary": {
         "canonical_control_plane_owner": "OPL",
         "mas_role": "domain_truth_quality_and_owner_receipt_authority",
@@ -103,8 +103,8 @@
       "target_studies": [
         "DM002"
       ],
-      "semantic_role": "mas_duplicate_runtime_retirement_regression",
-      "failure_class": "stale_dispatch_duplicate_runtime_retirement_canary",
+      "semantic_role": "standard_agent_purity_regression_guard",
+      "failure_class": "stale_dispatch_standard_agent_purity_canary",
       "migration_boundary": {
         "canonical_control_plane_owner": "OPL",
         "mas_role": "domain_truth_quality_and_owner_receipt_authority",
@@ -185,8 +185,8 @@
       "target_studies": [
         "DM003"
       ],
-      "semantic_role": "mas_duplicate_runtime_retirement_regression",
-      "failure_class": "provider_terminal_sync_duplicate_runtime_retirement_canary",
+      "semantic_role": "standard_agent_purity_regression_guard",
+      "failure_class": "provider_terminal_sync_standard_agent_purity_canary",
       "migration_boundary": {
         "canonical_control_plane_owner": "OPL",
         "mas_role": "domain_truth_quality_and_owner_receipt_authority",
@@ -267,8 +267,8 @@
       "target_studies": [
         "DM003"
       ],
-      "semantic_role": "mas_duplicate_runtime_retirement_regression",
-      "failure_class": "owner_precedence_duplicate_runtime_retirement_canary",
+      "semantic_role": "standard_agent_purity_regression_guard",
+      "failure_class": "owner_precedence_standard_agent_purity_canary",
       "migration_boundary": {
         "canonical_control_plane_owner": "OPL",
         "mas_role": "domain_truth_quality_and_owner_receipt_authority",
@@ -350,8 +350,8 @@
         "DM002",
         "DM003"
       ],
-      "semantic_role": "mas_duplicate_runtime_retirement_regression",
-      "failure_class": "paper_delta_missing_duplicate_runtime_retirement_canary",
+      "semantic_role": "standard_agent_purity_regression_guard",
+      "failure_class": "paper_delta_missing_standard_agent_purity_canary",
       "migration_boundary": {
         "canonical_control_plane_owner": "OPL",
         "mas_role": "domain_truth_quality_and_owner_receipt_authority",
@@ -433,8 +433,8 @@
         "DM002",
         "DM003"
       ],
-      "semantic_role": "mas_duplicate_runtime_retirement_regression",
-      "failure_class": "quality_authority_stale_duplicate_runtime_retirement_canary",
+      "semantic_role": "standard_agent_purity_regression_guard",
+      "failure_class": "quality_authority_stale_standard_agent_purity_canary",
       "migration_boundary": {
         "canonical_control_plane_owner": "OPL",
         "mas_role": "domain_truth_quality_and_owner_receipt_authority",

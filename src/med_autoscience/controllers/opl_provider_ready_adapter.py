@@ -23,7 +23,6 @@ from med_autoscience.controllers.opl_provider_ready_adapter_parts.provider_readi
     PROVIDER_HOSTED_PROOF_SURFACE,
     TARGET_DOMAIN_ID,
     build_forbidden_write_guard_proof,
-    build_legacy_retirement_tombstone_proof,
     build_managed_temporal_state_consistency_read_model,
     build_provider_availability_from_opl_proof,
     build_provider_guarded_soak_read_model,
@@ -105,7 +104,6 @@ def build_opl_provider_ready_contract(
         "owner_receipt_contract": build_owner_receipt_contract_surface(
             provider_availability=provider_availability,
         ),
-        "legacy_retirement_tombstone_proof": build_legacy_retirement_tombstone_proof(),
         "workspace_runtime_artifact_root_locator": _workspace_runtime_artifact_root_locator(profile=profile),
         "workspace_runtime_evidence_receipt": build_workspace_runtime_evidence_receipt_surface(profile=profile),
         "lifecycle_inventory": build_opl_lifecycle_inventory_surface(),
@@ -236,7 +234,6 @@ __all__ = [
     "build_domain_agent_skeleton_mapping_surface",
     "build_forbidden_write_guard_proof",
     "build_functional_closure_status_projection",
-    "build_legacy_retirement_tombstone_proof",
     "build_lifecycle_apply_requests_surface",
     "build_lifecycle_guarded_apply_proof_surface",
     "build_managed_temporal_state_consistency_read_model",

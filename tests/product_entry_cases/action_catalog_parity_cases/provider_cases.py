@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
+
 from .shared import *  # noqa: F403,F401
 
 def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers(
@@ -370,56 +372,26 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     assert residency_read_model["status"] == "ready"
     assert all(item["status"] == "receipt_observed" for item in residency_read_model["checks"])
     assert residency_read_model["authority_boundary"]["can_write_domain_truth"] is False
-    tombstone = manifest["legacy_retirement_tombstone_proof"]
-    assert tombstone == manifest["opl_provider_ready_contract"]["legacy_retirement_tombstone_proof"]
-    assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
-    assert tombstone["status"] == "no_active_default_caller_proven"
-    assert tombstone["active_default_callers"] == []
-    assert {item["classification"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
-        "explicit_optional_executor_adapter",
-        "retired_no_default_caller",
-        "fixture_or_provenance_only",
-        "tombstone_provenance_only",
-    }
-    assert tombstone["physical_tombstone_refs"] == [
-        "contracts/runtime/legacy-active-path-tombstones.json",
-        "docs/history/runtime/legacy_active_path_tombstones.md",
-    ]
-    assert tombstone["replacement_parity_refs"] == [
-        "/opl_provider_ready_contract/provider_topology",
-        "/opl_provider_ready_contract/managed_temporal_state_consistency",
-        "/opl_provider_ready_contract/opl_unique_control_plane_handoff",
-        "/product_entry_manifest/functional_consumer_boundary",
-        "contracts/runtime/legacy-active-path-tombstones.json",
-    ]
-    assert tombstone["no_regression_evidence_refs"] == [
-        "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py::test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers",
-        "tests/test_cli_cases/owner_route_handoff_command_cases/export_cases.py::test_owner_route_handoff_export_exposes_managed_temporal_state_consistency",
-    ]
-    assert tombstone["tombstone_refs"] == tombstone["physical_tombstone_refs"]
-    assert tombstone["history_refs"] == [
-        "docs/active/opl_temporal_mas_runtime_retirement_program.md",
-        "docs/decisions.md#2026-05-16-opl-unique-control-plane-boundary-retirement",
-    ]
-    assert "legacy_active_path_tombstones_landed" in tombstone["removal_policy"]["history_actions"]
-    assert tombstone["authority_boundary"]["can_authorize_submission_readiness"] is False
+    assert_standard_agent_purity_boundary(manifest["functional_consumer_boundary"])
+    assert "retired_surface_history_projection" not in manifest
+    assert "retired_surface_history_projection" not in manifest["opl_provider_ready_contract"]
 
-    generated_default = manifest["functional_consumer_boundary"]["generated_default_caller_boundary"]
-    assert tombstone["generated_default_caller_boundary"] == generated_default
-    assert tombstone["physical_retirement_gate_matrix"] == manifest["functional_consumer_boundary"][
-        "physical_retirement_gate_matrix"
-    ]
-    assert tombstone["removal_policy"]["delete_or_tombstone_when"] == [
-        "generated_default_caller_boundary_proven",
-        "active_caller_count=0",
-        "opl_replacement_parity",
-        "mas_owner_receipt_parity",
-        "focused_tests_green",
-        "tombstone_refs_landed",
-    ]
-    assert tombstone["removal_policy"]["current_action"] == (
-        "physical_retired_no_alias_keep_domain_authority_refs_or_tombstone_provenance_only"
-    )
+
+def test_default_manifest_keeps_history_projection_out_of_current_surface(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    assert_standard_agent_purity_boundary(manifest["functional_consumer_boundary"])
+    assert manifest["functional_consumer_boundary"]["standard_agent_purity"][
+        "history_detail_in_default_read_model"
+    ] is False
+    assert "retired_surface_history_projection" not in manifest
+    assert "retired_surface_history_projection" not in manifest["opl_provider_ready_contract"]
 
 
 def test_product_entry_manifest_exposes_provider_residency_typed_blocker(
@@ -502,7 +474,7 @@ def test_provider_residency_read_model_requires_all_opl_receipts() -> None:
     ]
 
 
-def test_product_entry_manifest_omits_retired_legacy_residue_audit_surface(
+def test_product_entry_manifest_omits_history_only_retirement_audit_surface(
     tmp_path: Path,
 ) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
@@ -511,23 +483,10 @@ def test_product_entry_manifest_omits_retired_legacy_residue_audit_surface(
     profile_ref = tmp_path / "profile.local.toml"
 
     manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
-    assert "legacy_residue_audit" not in manifest
-
-    tombstone = manifest["legacy_retirement_tombstone_proof"]
-    assert tombstone["status"] == "no_active_default_caller_proven"
-    assert tombstone["active_default_callers"] == []
-    assert tombstone["tombstone_refs"] == [
-        "contracts/runtime/legacy-active-path-tombstones.json",
-        "docs/history/runtime/legacy_active_path_tombstones.md",
-    ]
+    forbidden_history_only_audit_key = "retired_surface_history_projection"
+    assert forbidden_history_only_audit_key not in manifest
 
     boundary = manifest["functional_consumer_boundary"]
-    tombstones = boundary["retired_legacy_residue_tombstones"]
-    assert {item["residue_id"] for item in tombstones} == {
-        "mas_generic_workbench_shell",
-        "legacy_scheduler_default_aliases",
-        "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_tombstone_provenance",
-    }
-    assert all(item["active_caller_count"] == 0 for item in tombstones)
-    assert all(item["current_role"] == "history_tombstone_provenance_only" for item in tombstones)
+    assert_standard_agent_purity_boundary(boundary)
+    assert boundary["standard_agent_purity"]["status"] == "pure_standard_agent_active"
+    assert boundary["standard_agent_purity"]["history_detail_in_default_read_model"] is False

@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration_active_path_inventory import (
-    ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
-    PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT,
-    PHYSICAL_THINNING_EVIDENCE,
-)
-
 FUNCTIONAL_SURFACE_CLASSIFICATION = {
     "declarative_pack_generated_surface": [
         "workspace_source_intake_shell", "workbench_portal_generic_shell", "owner_route_reconcile_materialize_dispatch_shell",
@@ -30,17 +24,6 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
         "memory_writeback_decision",
         "typed_blocker",
         "safe_action_refs",
-    ],
-    "legacy_cleanup_tombstone_provenance": [
-        "mas_generic_workbench_shell",
-        "legacy_scheduler_default_aliases",
-        "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_tombstone_provenance",
-    ],
-    "legacy_cleanup_physical_retired": [
-        "local_launchd_scheduler_install_path",
-        "domain_health_diagnostic_loop_shell",
-        "workspace_local_watch_service_wrappers",
     ],
 }
 DEFAULT_CALLER_DELETION_BRIDGE_MODULE_IDS = {
@@ -143,70 +126,6 @@ DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
         ],
     },
 }
-RETIRED_LEGACY_RESIDUE_TOMBSTONES = (
-    {
-        "residue_id": "mas_generic_workbench_shell",
-        "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
-        "current_role": "history_tombstone_provenance_only",
-        "domain_ref_consumer_count": 0,
-        "active_caller_count": 0,
-        "resurrection_allowed": False,
-        "default_entry_allowed": False,
-        "tombstone_refs": [
-            "docs/history/runtime/legacy_active_path_tombstones.md",
-            "contracts/runtime/legacy-active-path-tombstones.json",
-        ],
-        "retirement_gate": "no_resurrection_tombstone",
-        "must_not_emit": ["generic_workbench_owner", "paper_closure_verdict"],
-    },
-    {
-        "residue_id": "legacy_scheduler_default_aliases",
-        "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
-        "current_role": "history_tombstone_provenance_only",
-        "domain_ref_consumer_count": 0,
-        "active_caller_count": 0,
-        "resurrection_allowed": False,
-        "default_entry_allowed": False,
-        "tombstone_refs": [
-            "docs/history/runtime/legacy_active_path_tombstones.md",
-            "contracts/runtime/legacy-active-path-tombstones.json",
-        ],
-        "retirement_gate": "no_resurrection_tombstone",
-        "must_not_emit": ["generic_scheduler_owner", "paper_closure_verdict"],
-    },
-    {
-        "residue_id": "daemonish_terminal_attach_status_as_runtime_owner",
-        "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
-        "current_role": "history_tombstone_provenance_only",
-        "domain_ref_consumer_count": 0,
-        "active_caller_count": 0,
-        "resurrection_allowed": False,
-        "default_entry_allowed": False,
-        "tombstone_refs": [
-            "docs/history/runtime/legacy_active_path_tombstones.md",
-            "contracts/runtime/legacy-active-path-tombstones.json",
-        ],
-        "retirement_gate": "no_resurrection_tombstone",
-        "must_not_emit": ["generic_terminal_runtime_owner", "paper_closure_verdict"],
-    },
-    {
-        "residue_id": "scheduler_legacy_residue_tombstone_provenance",
-        "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
-        "current_role": "history_tombstone_provenance_only",
-        "domain_ref_consumer_count": 0,
-        "active_caller_count": 0,
-        "resurrection_allowed": False,
-        "default_entry_allowed": False,
-        "tombstone_refs": [
-            "docs/history/runtime/legacy_active_path_tombstones.md",
-            "contracts/runtime/legacy-active-path-tombstones.json",
-        ],
-        "retirement_gate": "no_resurrection_tombstone",
-        "must_not_emit": ["generic_scheduler_owner", "paper_closure_verdict"],
-    },
-)
-
-
 def _domain_authority_refs_retirement_gate(module_id: str, current_ref_status: str) -> dict[str, object]:
     gate = DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE[module_id]
     return {
@@ -652,98 +571,6 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "cannot_absorb_reason": "Canonical manuscript/package mutation and submission authority are MAS artifact authority.",
         "mas_domain_authority_refs": ["artifact_authority", "current_package_authority"],
     },
-    {
-        "module_id": "local_launchd_scheduler_install_path",
-        "owner": "none_active",
-        "classification": "legacy_cleanup_physical_retired",
-        "migration_class": "provenance_or_fixture",
-        "code_paths": [
-            "contracts/runtime/legacy-active-path-tombstones.json",
-            "docs/history/runtime/legacy_active_path_tombstones.md",
-        ],
-        "domain_ref_consumers": [],
-        "current_ref_status": "physical_retired_tombstone_only",
-        "migration_action": "retain_history_tombstone_provenance_only",
-        "retention_reason": (
-            "Local LaunchAgent code is physically retired; provenance remains only for history "
-            "and no-resurrection proof."
-        ),
-        "resurrection_allowed": False,
-        "default_caller_count": 0,
-        "install_allowed": False,
-        "status_allowed": False,
-        "remove_allowed": False,
-        "trigger_allowed": False,
-        "write_install_proof_allowed": False,
-        "tombstone_required": True,
-        "physical_retired": True,
-        "no_resurrection_gate": {
-            "default_caller_count": 0,
-            "resurrection_allowed": False,
-            "remaining_physical_delete_blockers": [],
-        },
-    },
-    {
-        "module_id": "workspace_local_watch_service_wrappers",
-        "owner": "none_active",
-        "classification": "legacy_cleanup_physical_retired",
-        "migration_class": "provenance_or_fixture",
-        "code_paths": [
-            "src/med_autoscience/controllers/workspace_init_parts/retired_entries.py",
-            "contracts/runtime/legacy-active-path-tombstones.json",
-            "docs/history/runtime/legacy_active_path_tombstones.md",
-        ],
-        "domain_ref_consumers": ["workspace init retired-entry cleanup only"],
-        "current_ref_status": "cleanup_controller_physically_retired_tombstone_only",
-        "migration_action": "retain init retired-entry cleanup plus history/tombstone refs only",
-        "retention_reason": (
-            "Workspace-local watch service cleanup is now handled by init retired-entry detection; "
-            "dedicated legacy cleanup controller and CLI surfaces are physically retired."
-        ),
-        "resurrection_allowed": False,
-        "tombstone_required": True,
-        "physical_retired": True,
-        "no_resurrection_gate": {
-            "default_caller_count": 0,
-            "resurrection_allowed": False,
-            "delete_or_tombstone_only_after": [
-                "opl_replacement_proof",
-                "focused_cleanup_test_green",
-                "fixture_or_provenance_dependency_absent_or_refs_only",
-            ],
-        },
-    },
-    {
-        "module_id": "domain_health_diagnostic_loop_shell",
-        "owner": "none_active",
-        "classification": "legacy_cleanup_physical_retired",
-        "migration_class": "provenance_or_fixture",
-        "code_paths": [
-            "src/med_autoscience/controllers/domain_health_diagnostic.py",
-            "src/med_autoscience/cli_parts/parser.py",
-            "src/med_autoscience/controllers/workspace_init_parts/shell_rendering.py",
-        ],
-        "domain_ref_consumers": [],
-        "current_ref_status": "retired_no_resurrection",
-        "migration_action": "remove repo-local runtime watch loop and keep one-shot MAS domain diagnostic tick",
-        "retention_reason": "Generic cadence and long-loop ownership belongs to OPL provider/runtime manager; MAS keeps one-shot runtime health and owner-route diagnostic tick only.",
-        "resurrection_allowed": False,
-        "tombstone_required": True,
-        "physical_retired": True,
-        "no_resurrection_gate": {
-            "default_caller_count": 0,
-            "resurrection_allowed": False,
-            "replacement_owner": "one-person-lab",
-            "replacement_surface": "opl_provider_runtime_manager",
-            "no_compat_alias_allowed": True,
-            "focused_test_refs": [
-                "tests/test_domain_health_diagnostic_cases/cli_cases.py",
-                "tests/test_cli_cases/public_entry_commands.py",
-                "tests/test_workspace_init_cases/workspace_creation.py",
-                "tests/test_workspace_init_cases/legacy_entry_upgrades.py",
-            ],
-        },
-    },
 )
 
 FUNCTIONAL_MODULE_INVENTORY = tuple(
@@ -752,11 +579,7 @@ FUNCTIONAL_MODULE_INVENTORY = tuple(
 
 
 __all__ = [
-    "ACTIVE_PATH_RESIDUE_CLEANUP_GATES",
-    "PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT",
     "FUNCTIONAL_MODULE_INVENTORY",
     "FUNCTIONAL_SURFACE_CLASSIFICATION",
-    "PHYSICAL_THINNING_EVIDENCE",
     "DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE",
-    "RETIRED_LEGACY_RESIDUE_TOMBSTONES",
 ]

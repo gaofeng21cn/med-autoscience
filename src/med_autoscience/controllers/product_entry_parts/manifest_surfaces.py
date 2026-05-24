@@ -298,6 +298,7 @@ def build_product_entry_manifest(
         opl_provider_ready_adapter.build_standard_domain_agent_skeleton_surface()
     )
     workspace_runtime_evidence_receipt = opl_provider_ready_contract["workspace_runtime_evidence_receipt"]
+    functional_consumer_boundary = consumer_migration.build_functional_consumer_boundary()
     functional_closure_status_projection = (
         opl_provider_ready_adapter.build_functional_closure_status_projection(
             provider_residency_read_model=provider_residency_read_model,
@@ -308,10 +309,8 @@ def build_product_entry_manifest(
             owner_receipt_contract=opl_provider_ready_contract["owner_receipt_contract"],
             lifecycle_guarded_apply_proof=opl_provider_ready_contract["lifecycle_guarded_apply_proof"],
             workspace_runtime_evidence_receipt=workspace_runtime_evidence_receipt,
-            legacy_retirement_tombstone_proof=(
-                opl_provider_ready_contract["legacy_retirement_tombstone_proof"]
-            ),
             standard_domain_agent_skeleton=standard_domain_agent_skeleton,
+            standard_agent_purity=functional_consumer_boundary["standard_agent_purity"],
             domain_memory_descriptor=domain_memory_descriptor,
         )
     )
@@ -424,7 +423,7 @@ def build_product_entry_manifest(
             "source_provenance": source_provenance,
             "phase5_platform_target": phase5_platform_target,
             "product_positioning": _build_product_positioning(),
-            "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),
+            "functional_consumer_boundary": functional_consumer_boundary,
             "opl_family_persistence_lifecycle_owner_route_adoption": (
                 opl_family_persistence_lifecycle_owner_route_adoption
             ),
@@ -439,9 +438,6 @@ def build_product_entry_manifest(
             "lifecycle_guarded_apply_proof": opl_provider_ready_contract["lifecycle_guarded_apply_proof"],
             "managed_temporal_state_consistency": (
                 opl_provider_ready_contract["managed_temporal_state_consistency"]
-            ),
-            "legacy_retirement_tombstone_proof": (
-                opl_provider_ready_contract["legacy_retirement_tombstone_proof"]
             ),
             "opl_domain_agent_skeleton_mapping": opl_provider_ready_contract["domain_agent_skeleton_mapping"],
             "standard_domain_agent_skeleton": standard_domain_agent_skeleton,

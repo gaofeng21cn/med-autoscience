@@ -76,7 +76,8 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 
 - `bootstrap/README.md`
 - `docs/runtime/control/controllers.md`
-- `docs/runtime/control/runtime_supervision_loop.md`
+- `docs/runtime/contracts/runtime_boundary.md`
+- `docs/runtime/domain_authority_refs_index_guard.md`
 - `docs/runtime/display/progress_portal.md`
 - `docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md`
 

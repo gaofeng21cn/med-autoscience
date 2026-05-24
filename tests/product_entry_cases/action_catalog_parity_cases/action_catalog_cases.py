@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
+
 from .shared import *  # noqa: F403,F401
 
 def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_path: Path) -> None:
@@ -251,12 +253,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert boundary["status"] == "opl_consumes_generic_surfaces_mas_supplies_domain_authority_pack"
     assert boundary["consumer_role"] == "domain_authority_pack_thin_program_surface"
     assert boundary["generic_surface_owner"] == "one-person-lab"
-    assert boundary["no_active_caller_required"] is True
-    assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
-    assert boundary["no_active_caller_proof"]["default_manager"] == "opl"
-    retirement_proof = boundary["legacy_local_scheduler_physical_retirement_proof"]
-    assert retirement_proof["install_allowed"] is False
-    assert retirement_proof["cleanup_status"] == "tombstone_only"
+    assert_standard_agent_purity_boundary(boundary)
     assert boundary["domain_authority_refs_index_role"]["mas_may_claim_generic_persistence_engine"] is False
     assert boundary["mas_does_not_own"] == [
         "generic_scheduler",

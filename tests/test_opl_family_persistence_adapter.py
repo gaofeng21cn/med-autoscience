@@ -4,6 +4,10 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.standard_agent_purity_helpers import (
+    assert_standard_agent_purity_boundary,
+    assert_standard_agent_purity_handoff,
+)
 from tests.study_runtime_test_helpers import make_profile
 
 
@@ -141,10 +145,8 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert runtime_handoff["domain_intent_adapter_role"] == (
         "refs_only_owner_route_typed_blocker_and_owner_receipt_handoff"
     )
-    retired = {item["path"]: item for item in runtime_handoff["retired_runtime_transport_surfaces"]}
-    assert retired["src/med_autoscience/runtime_transport/mas_runtime_core.py"]["retirement_status"] == (
-        "package_absent_physically_retired_no_alias"
-    )
+    assert_standard_agent_purity_handoff(runtime_handoff)
+    assert_standard_agent_purity_boundary(payload["functional_consumer_boundary"])
     assert runtime_handoff["default_caller_policy"] == {
         "default_online_runtime_owner": "one-person-lab",
         "default_provider": "temporal",
@@ -168,38 +170,6 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert runtime_handoff["generated_default_caller_boundary"] == payload[
         "functional_consumer_boundary"
     ]["generated_default_caller_boundary"]
-    assert runtime_handoff["physical_retirement_gate_matrix"] == payload[
-        "functional_consumer_boundary"
-    ]["physical_retirement_gate_matrix"]
-    retirement_candidates = {
-        item["surface_id"]: item
-        for item in runtime_handoff["physical_retirement_gate_matrix"]["retirement_candidates"]
-    }
-    assert retirement_candidates["runtime_transport"]["stale_surface_scan_clean"] is True
-    assert retirement_candidates["runtime_transport"]["physical_delete_permitted"] is True
-    assert retirement_candidates["runtime_transport"]["no_resurrection_proof"][
-        "physical_delete_allowed"
-    ] is True
-    assert retirement_candidates["runtime_transport"]["code_paths"] == []
-    assert retirement_candidates["runtime_transport"]["current_ref_status"] == "physical_retired_no_alias"
-    assert retirement_candidates["runtime_transport"]["gate_results"] == {
-        "stale_surface_scan_clean": True,
-        "opl_replacement_parity": "satisfied_or_not_runtime_candidate",
-        "opl_default_caller_readiness": "ready",
-        "mas_owner_receipt_parity": "satisfied_or_not_runtime_candidate",
-        "focused_tests_green": "focused_lane_tracks_no_resurrection",
-        "tombstone_refs_landed": "not_required_for_no_alias_physical_retirement",
-    }
-    assert retirement_candidates["lifecycle_refs_sqlite_index"]["physical_delete_permitted"] is True
-    assert retirement_candidates["lifecycle_refs_sqlite_index"]["current_ref_status"] == (
-        "physical_retired_no_alias_replaced_by_domain_authority_refs_index"
-    )
-    assert retirement_candidates["lifecycle_refs_sqlite_index"]["latest_thinning_evidence"] == {
-        "status": "runtime_lifecycle_sqlite_adapter_physically_absent",
-        "replacement_surface": "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
-        "does_not_claim_generic_persistence_owner": True,
-        "does_not_claim_paper_closure": True,
-    }
     assert "domain_authority_refs_index" in runtime_handoff["opl_replacement_surfaces"]
     assert "generic_queue_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "generic_persistence_engine_owner" in runtime_handoff["forbidden_mas_roles"]
@@ -212,77 +182,6 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert code_path_roles[
         "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py"
     ]["current_role"] == "refs_only_domain_authority_refs_index"
-    cleanup_gates = {
-        item["residue_id"]: item
-        for item in runtime_handoff["physical_cleanup_gate"]["active_path_residue_cleanup_gates"]
-    }
-    assert runtime_handoff["physical_cleanup_gate"][
-        "no_alias_facade_compat_wrapper_allowed"
-    ] is False
-    assert set(cleanup_gates) == {
-        "runtime_transport_core_bridge",
-        "runtime_turn_runner_closeout_adapter",
-        "worker_lease_residency_projection",
-        "lifecycle_refs_sqlite_index",
-        "workbench_shell_domain_projection_refs",
-        "owner_route_handoff_domain_ref_entry",
-        "status_projection_domain_truth_refs",
-        "legacy_supervisor_scheduler_tombstone",
-    }
-    assert cleanup_gates["runtime_transport_core_bridge"]["current_role"] == "none_physically_retired_no_alias"
-    assert cleanup_gates["runtime_transport_core_bridge"]["current_paths"] == []
-    assert cleanup_gates["runtime_transport_core_bridge"]["retirement_proof_status"] == "stale_surface_scan_clean"
-    assert cleanup_gates["runtime_transport_core_bridge"]["retired_absent_surfaces"] == [
-        "src/med_autoscience/runtime_transport/",
-    ]
-    assert cleanup_gates["runtime_transport_core_bridge"]["no_resurrection_guard"] is True
-    assert cleanup_gates["runtime_transport_core_bridge"]["physical_delete_permitted"] is True
-    assert cleanup_gates["runtime_transport_core_bridge"]["physical_delete_completed"] is True
-    assert cleanup_gates["lifecycle_refs_sqlite_index"]["current_role"] == (
-        "none_physically_retired_no_alias"
-    )
-    assert cleanup_gates["lifecycle_refs_sqlite_index"]["current_paths"] == []
-    assert cleanup_gates["lifecycle_refs_sqlite_index"]["physical_delete_completed"] is True
-    assert cleanup_gates["lifecycle_refs_sqlite_index"]["retired_absent_surfaces"] == [
-        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
-        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
-    ]
-    lane_d_closeout = runtime_handoff["physical_cleanup_gate"]["lane_d_closeout"]
-    assert lane_d_closeout["status"] == "retired_runtime_control_surfaces_plus_domain_refs_boundary"
-    assert lane_d_closeout["delete_or_archive_authorized"] is False
-    assert lane_d_closeout["tombstone_new_active_residue_authorized"] is False
-    assert lane_d_closeout["resurrection_alias_or_wrapper_allowed"] is False
-    assert {
-        "runtime_transport_core_bridge",
-        "runtime_turn_runner_closeout_adapter",
-        "worker_lease_residency_projection",
-        "lifecycle_refs_sqlite_index",
-        "legacy_supervisor_scheduler_tombstone",
-    } <= set(lane_d_closeout["tombstone_only_residue_ids"])
-    assert {
-        "workbench_shell_domain_projection_refs",
-        "owner_route_handoff_domain_ref_entry",
-        "status_projection_domain_truth_refs",
-    } <= set(lane_d_closeout["opl_owned_gap_or_domain_ref_residue_ids"])
-    assert cleanup_gates["workbench_shell_domain_projection_refs"]["current_role"] == (
-        "domain_projection_refs_for_opl_workbench"
-    )
-    assert cleanup_gates["owner_route_handoff_domain_ref_entry"]["physical_delete_permitted"] is False
-    sidecar_worklist = cleanup_gates["owner_route_handoff_domain_ref_entry"]["deletion_readiness_worklist"]
-    assert sidecar_worklist["status"] == "blocked_domain_owner_route_handoff_ref_consumer_present_no_runtime_control_owner"
-    assert "artifacts/publication_eval/latest.json" in sidecar_worklist["must_not_write"]
-    assert (
-        "owner_route_handoff_response.forbidden_write_guard_proof"
-        in sidecar_worklist["no_forbidden_write_proof_refs"]
-    )
-    assert cleanup_gates["status_projection_domain_truth_refs"]["current_role"] == (
-        "domain_truth_status_projection"
-    )
-    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"]["current_role"] == (
-        "history_tombstone_provenance_only"
-    )
-    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"]["no_resurrection_guard"] is True
-    assert cleanup_gates["legacy_supervisor_scheduler_tombstone"]["tombstone_permitted"] is True
     assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
     assert provider["truth_source_precedence"]["opl_provider_attempt_history"] == "transport_receipt_only"
     assert provider["truth_source_precedence"]["paper_progress_requires_mas_artifact_delta_or_gate_owner"] is True

@@ -37,15 +37,15 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "functional_structure_gap": False,
     },
     {
-        "gate_id": "legacy_cleanup_physical_retirement",
+        "gate_id": "standard_agent_purity_guard",
         "owner": "med-autoscience",
-        "mas_role": "remove_or_tombstone_legacy_launchagent_and_workspace_local_wrapper_surfaces",
-        "evidence_required": "stale-surface scan, old generated artifact absent/remove proof, provenance refs recorded, focused cleanup tests green",
+        "mas_role": "keep_active_default_surfaces_in_standard_opl_agent_shape",
+        "evidence_required": "default read models expose purity guard, refs-only projection, and no active legacy callers or compatibility aliases",
         "closure_status": "closed",
         "closure_proof_refs": [
-            "stale_surface_scan_clean.default_runtime_owner=opl",
-            "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
-            "functional_module_inventory.legacy_cleanup_physical_retired",
+            "functional_consumer_boundary.standard_agent_purity",
+            "opl_unique_control_plane_handoff.standard_agent_purity",
+            "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_guard",
         ],
         "functional_structure_gap": False,
     },
@@ -140,9 +140,6 @@ def _closure_gate_is_closed(gate: Mapping[str, Any]) -> bool:
 def build_functional_followthrough_gap_summary(
     *,
     classification_counts: Mapping[str, int],
-    legacy_cleanup_items: Sequence[str],
-    legacy_physical_retired_items: Sequence[str] = (),
-    legacy_tombstone_items: Sequence[str] = (),
 ) -> dict[str, Any]:
     closure_gates = [dict(item) for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES]
     closed_functional_structure_gates = [
@@ -179,18 +176,6 @@ def build_functional_followthrough_gap_summary(
         "closed_functional_structure_gate_ids": closure_gate_ids,
         "closed_functional_structure_gates": closed_functional_structure_gates,
         "classification_counts": dict(classification_counts),
-        "legacy_cleanup_items_require_no_resurrection_guard": list(legacy_cleanup_items),
-        "legacy_cleanup_items_physical_retired": list(legacy_physical_retired_items),
-        "legacy_cleanup_items_tombstoned": list(legacy_tombstone_items),
-        "legacy_cleanup_items_are_diagnostic_provenance_guards": bool(legacy_cleanup_items),
-        "legacy_cleanup_item_role": (
-            "cleanup_diagnostic_provenance_drift_guard_no_resurrection"
-            if legacy_cleanup_items
-            else "history_tombstone_provenance_only"
-        ),
-        "legacy_cleanup_items_are_remaining_active_gaps": False,
-        "legacy_cleanup_items_have_default_entry": False,
-        "legacy_cleanup_items_have_standard_template_refs": bool(legacy_cleanup_items),
         "remaining_evidence_gate_ids": evidence_gate_ids,
         "remaining_evidence_gates": [dict(item) for item in REMAINING_EVIDENCE_GATES],
         "cleared_by_surfaces": [

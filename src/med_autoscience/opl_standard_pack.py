@@ -87,13 +87,6 @@ MINIMAL_AUTHORITY_FUNCTIONS = [
     "owner_receipt_signer",
     "medical_native_helper_implementation",
 ]
-BACKWARD_READABLE_MINIMAL_AUTHORITY_IDS = [
-    "publication_quality_verdict_authorizer",
-    "ai_reviewer_quality_decision_authorizer",
-    "artifact_mutation_authorizer",
-    "publication_route_memory_accept_reject_decider",
-    "source_readiness_verdict_authorizer",
-]
 FORBIDDEN_MECHANICAL_DECISION_SURFACES = [
     "script_exit_code_as_publication_quality_verdict",
     "function_return_value_as_ai_reviewer_quality_decision",
@@ -130,7 +123,6 @@ INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY = {
 STAGE_QUALITY_GATE_BOUNDARIES = [
     {
         "boundary_id": "publication_quality_stage_gate_boundary",
-        "legacy_readable_id": "publication_quality_verdict_authorizer",
         "program_role": "validator",
         "judgment_mode": "ai_first_stage_gate",
         "decision_output_owner": "independent_reviewer_auditor_agent",
@@ -148,7 +140,6 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
     },
     {
         "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
-        "legacy_readable_id": "ai_reviewer_quality_decision_authorizer",
         "program_role": "validator",
         "judgment_mode": "ai_first_stage_gate",
         "decision_output_owner": "independent_reviewer_auditor_agent",
@@ -165,7 +156,6 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
     },
     {
         "boundary_id": "artifact_mutation_stage_gate_boundary",
-        "legacy_readable_id": "artifact_mutation_authorizer",
         "program_role": "materializer",
         "judgment_mode": "ai_first_record_validator",
         "decision_output_owner": "independent_reviewer_auditor_agent",
@@ -183,7 +173,6 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
     },
     {
         "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
-        "legacy_readable_id": "publication_route_memory_accept_reject_decider",
         "program_role": "guard",
         "judgment_mode": "ai_first_stage_gate",
         "decision_output_owner": "independent_reviewer_auditor_agent",
@@ -201,7 +190,6 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
     },
     {
         "boundary_id": "source_readiness_stage_gate_boundary",
-        "legacy_readable_id": "source_readiness_verdict_authorizer",
         "program_role": "validator",
         "judgment_mode": "ai_first_stage_gate",
         "decision_output_owner": "independent_reviewer_auditor_agent",
@@ -333,7 +321,6 @@ def _pack_compiler_input() -> dict[str, Any]:
         },
         "boundary_ids": MINIMAL_AUTHORITY_FUNCTIONS[:5],
         "stage_quality_gate_boundaries": STAGE_QUALITY_GATE_BOUNDARIES,
-        "backward_readable_minimal_authority_ids": BACKWARD_READABLE_MINIMAL_AUTHORITY_IDS,
         "forbidden_mechanical_decision_surfaces": FORBIDDEN_MECHANICAL_DECISION_SURFACES,
         "independent_executor_reviewer_agent_policy": INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY,
         "requires_ai_first_record": True,
@@ -584,20 +571,18 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
         "owner": TARGET_DOMAIN_ID,
         "state": "manifest_projected_for_opl_unified_audit",
         "classification_policy": (
-            "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof"
+            "classify_private_functional_surfaces_as_standard_pack_refs_or_minimal_authority"
         ),
         "opl_unified_audit_read_model": True,
         "claims_generic_runtime_removed_from_mas": True,
         "claims_opl_unique_control_plane": True,
         "claims_opl_replacement_exists": True,
-        "no_resurrection_policy": "retired_surfaces_must_remain_tombstone_or_provenance_only",
+        "standard_agent_purity_policy": "default_surfaces_must_remain_standard_agent_purity_guarded",
         "claims_production_long_run_soak_complete": False,
         "classification_buckets": [
             "declarative_pack_generated_surface",
             "domain_authority_refs",
             "minimal_authority_function",
-            "legacy_cleanup_tombstone_provenance",
-            "legacy_cleanup_physical_retired",
         ],
         "functional_consumer_boundary": dict(functional_boundary),
         "privatized_functional_module_audit": {
@@ -607,20 +592,20 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
             "owner": TARGET_DOMAIN_ID,
             "state": "manifest_projected_for_opl_unified_audit",
             "classification_policy": (
-                "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof"
+                "classify_private_functional_surfaces_as_standard_pack_refs_or_minimal_authority"
             ),
             "opl_unified_audit_read_model": True,
             "claims_generic_runtime_removed_from_mas": True,
             "claims_opl_unique_control_plane": True,
             "claims_opl_replacement_exists": True,
-            "no_resurrection_policy": "retired_surfaces_must_remain_tombstone_or_provenance_only",
+            "standard_agent_purity_policy": (
+                "default_surfaces_must_remain_standard_agent_purity_guarded"
+            ),
             "claims_production_long_run_soak_complete": False,
             "classification_buckets": [
                 "declarative_pack_generated_surface",
                 "domain_authority_refs",
                 "minimal_authority_function",
-                "legacy_cleanup_tombstone_provenance",
-                "legacy_cleanup_physical_retired",
             ],
         },
         "functional_followthrough_gap_summary": dict(functional_boundary["functional_followthrough_gap_summary"]),
@@ -665,7 +650,6 @@ def _private_functional_surface_policy() -> dict[str, Any]:
         "ai_first_stage_gate_function_ids": list(AI_FIRST_STAGE_GATE_FUNCTION_IDS),
         "ai_first_record_validator_function_ids": list(AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS),
         "mechanical_guard_function_ids": list(MECHANICAL_GUARD_FUNCTION_IDS),
-        "backward_readable_legacy_ids": BACKWARD_READABLE_MINIMAL_AUTHORITY_IDS,
         "forbidden_primary_allowed_private_surface_models": [
             "domain_truth_verdict_authorizer",
             "*_authorizer",

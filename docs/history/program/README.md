@@ -8,9 +8,8 @@
 - [MAS Current Development Lines](../../active/current-development-lines.md)
 - [AI-first Paper Autonomy Closure Program](../../active/ai_first_paper_autonomy_closure_program.md)
 - [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md)
-- [OPL Temporal MAS Runtime Retirement Program](../../active/opl_temporal_mas_runtime_retirement_program.md)
 - [MAS 单项目 MDS 吸收 Program](../../active/mas_single_project_mds_absorb_program.md)
-- [Runtime Lifecycle SQLite 迁移 Program](../../active/runtime_lifecycle_sqlite_migration_program.md)
+- [Domain Authority Refs Index Guard](../../runtime/domain_authority_refs_index_guard.md)
 
 周期性支持线快照：
 
@@ -39,6 +38,7 @@
 - [Integration harness activation package](./integration_harness_activation_package.md)
 - [MAS/MDS absorb full record 2026-05-10](./mas_single_project_mds_absorb_program_2026_05_10_full_record.md)
 - [OPL App MAS Runtime Workbench full record 2026-05-11](./opl_app_mas_runtime_workbench_program_2026_05_11_full_record.md)
+- [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md)
 - [OPL Temporal MAS Runtime Retirement full record 2026-05-11](./opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)
 - [Runtime lifecycle SQLite migration full record 2026-05-08](./runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md)
 

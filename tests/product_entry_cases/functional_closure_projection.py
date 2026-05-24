@@ -46,7 +46,7 @@ def test_product_entry_manifest_projects_current_development_lines_closure(
         "stage_surface_standardization",
         "p1_app_runtime_workbench",
         "p0_live_paper_autonomy_acceptance",
-        "legacy_residue_retirement",
+        "standard_agent_purity_projection",
         "standard_skeleton_physicalization",
         "p3_foundation_guard",
     }
@@ -75,10 +75,8 @@ def test_product_entry_manifest_projects_current_development_lines_closure(
         "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::"
         "test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker"
     ) in paper_line["evidence_refs"]
-    assert by_line["legacy_residue_retirement"]["status"] == (
-        "no_active_default_caller_proven_cleanup_policy_satisfied"
-    )
-    assert by_line["legacy_residue_retirement"]["typed_blockers"] == []
+    assert by_line["standard_agent_purity_projection"]["status"] == "standard_agent_purity_landed"
+    assert by_line["standard_agent_purity_projection"]["typed_blockers"] == []
     assert by_line["standard_skeleton_physicalization"]["status"] == (
         "repo_source_anchors_landed_ongoing_slot_discipline"
     )

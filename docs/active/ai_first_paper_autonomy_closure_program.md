@@ -55,8 +55,8 @@ Worker liveness、queue item、status refresh、provider completion、只读 pro
 ## 与其他 owner 文档的关系
 
 - P1 / Workbench 产品化读 [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md)。
-- P2 / OPL framework、provider、sidecar、legacy retirement 读 [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md)。
+- OPL framework、provider、sidecar 和 standard Agent runtime boundary 读 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)、[MAS 当前开发线路](./current-development-lines.md) 和 [Runtime Boundary](../runtime/contracts/runtime_boundary.md)。
 - P3 / MDS provenance、monolith closeout、archive/parity guard 读 [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md)。
-- P3a / `domain_authority_refs_index`、retired-runtime SQLite/file provenance、restore proof 和 stale runtime-control drift guard 读 [Domain Authority Refs Index Guard](./runtime_lifecycle_sqlite_migration_program.md)。
+- P3a / `domain_authority_refs_index`、retired-runtime SQLite/file provenance、restore proof 和 stale runtime-control drift guard 读 [Domain Authority Refs Index Guard](../runtime/domain_authority_refs_index_guard.md)。
 
 新增实现细节先按 [Program Portfolio Consolidation](./program_portfolio_consolidation.md) 和 [MAS 当前开发线路](./current-development-lines.md) 归类，再落到实际 owner 文档；本文只保留论文自治目标、验收口径和 live evidence gate。

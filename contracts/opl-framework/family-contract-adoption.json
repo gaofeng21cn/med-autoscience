@@ -318,7 +318,7 @@
     "closed_functional_structure_gate_ids": [
       "generated_surface_default_owner_cutover",
       "domain_authority_refs_thinning",
-      "legacy_cleanup_physical_retirement",
+      "standard_agent_purity_guard",
       "opl_app_workbench_drilldown",
       "lifecycle_locator_retention_restore_ledger_reconciliation"
     ],
@@ -327,7 +327,7 @@
       "declarative_pack_compiler_input",
       "generated_surface_handoff",
       "minimal_authority_function_manifest",
-      "no_resurrection_proof",
+      "standard_agent_purity_guard",
       "opl_functional_harness_consumer_coverage",
       "opl_generated_interface_default_owner_target_proof",
       "opl_app_operator_workbench_drilldown",

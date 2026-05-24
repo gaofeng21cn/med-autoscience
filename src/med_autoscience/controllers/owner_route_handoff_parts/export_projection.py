@@ -10,7 +10,6 @@ from med_autoscience.profiles import WorkspaceProfile
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
 from ..study_domain_transition_table_parts import family_transition_spec
-from ..opl_unique_control_plane_boundary_parts import consumer_migration
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
 from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
@@ -128,7 +127,7 @@ def export_family_sidecar(
             text=text,
             mapping=mapping,
         ),
-        "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),
+        "functional_consumer_boundary": functional_closure["functional_consumer_boundary"],
         "ars_learning_projection": build_ars_learning_projection(),
         "family_transition_spec_descriptor": (
             family_transition_spec.build_family_transition_spec_descriptor()
@@ -152,7 +151,6 @@ def export_family_sidecar(
         "opl_unique_control_plane_handoff": (
             functional_closure["provider_ready_contract"]["opl_unique_control_plane_handoff"]
         ),
-        "legacy_retirement_tombstone_proof": opl_provider_ready_adapter.build_legacy_retirement_tombstone_proof(),
         "workspace_runtime_evidence_receipt": functional_closure["workspace_runtime_evidence_receipt"],
         "standard_domain_agent_skeleton": functional_closure["standard_domain_agent_skeleton"],
         "mas_functional_closure_status_projection": (
@@ -171,24 +169,19 @@ def export_family_sidecar(
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",
             },
             "repair_command": f"medautosci owner-route-reconcile --profile {profile_ref} --developer-supervisor-mode developer_apply_safe",
-            "local_scheduler_tombstone_ref": (
-                "contracts/runtime/legacy-active-path-tombstones.json#mas-local-scheduler"
-            ),
             "safe_reconcile_hint": (
                 "Use OPL provider/runtime manager wakeup plus medautosci sidecar dispatch; "
-                "MAS local scheduler is physical-retired tombstone/provenance only."
+                "MAS default surfaces stay in standard OPL Agent shape."
             ),
-            "consumer_migration": consumer_migration.build_consumer_migration_contract(
-                adapter_id="opl_family_runtime_provider_wakeup_to_mas_sidecar",
-                manager="opl_provider_runtime_manager",
-            ),
+            "standard_agent_purity": functional_closure["functional_consumer_boundary"][
+                "standard_agent_purity"
+            ],
             "domain_owned_source_refs": _aggregate_domain_refs(studies),
             "read_only_authority_boundary": {
                 "projection_owner": "one-person-lab",
                 "domain_owner": "med-autoscience",
                 "runtime_owner": "one-person-lab",
                 "scheduler_owner": "one-person-lab",
-                "mas_local_scheduler_role": consumer_migration.LOCAL_TOMBSTONE_PATH_ROLE,
                 "authority": "read_only_projection",
                 "forbidden_authorities": authority_boundary_payload()["forbidden_authorities"],
             },

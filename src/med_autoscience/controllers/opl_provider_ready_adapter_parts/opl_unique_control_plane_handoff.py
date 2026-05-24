@@ -2,13 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration_inventory import (
-    ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
-    PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT,
-)
 from med_autoscience.controllers.opl_unique_control_plane_boundary_parts.generated_caller_retirement import (
     build_generated_default_caller_boundary,
-    build_physical_retirement_gate_matrix,
 )
 
 
@@ -55,30 +50,6 @@ _ALLOWED_DOMAIN_ACTIONS = [
     "standalone_diagnostic",
 ]
 
-_RETIRED_RUNTIME_TRANSPORT_SURFACES = [
-    {
-        "path": "src/med_autoscience/runtime_transport/mas_runtime_core.py",
-        "retired_role": "domain_direct_runtime_bridge_and_standalone_diagnostic",
-        "retirement_status": "package_absent_physically_retired_no_alias",
-        "long_term_owner": OPL_OWNER,
-        "replacement_surface": "OPL current_control_state provider/stage runtime",
-    },
-    {
-        "path": "src/med_autoscience/runtime_transport/mas_runtime_core_turn_runner.py",
-        "retired_role": "stage_turn_closeout_receipt_adapter",
-        "retirement_status": "package_absent_physically_retired_no_alias",
-        "long_term_owner": OPL_OWNER,
-        "replacement_surface": "src/med_autoscience/controllers/study_runtime_execution_parts/controller_authorization_receipts.py",
-    },
-    {
-        "path": "src/med_autoscience/runtime_transport/mas_runtime_core_worker_leases.py",
-        "retired_role": "worker_residency_projection_provenance",
-        "retirement_status": "package_absent_physically_retired_no_alias",
-        "long_term_owner": OPL_OWNER,
-        "replacement_surface": "one-person-lab provider liveness projection",
-    },
-]
-
 _CODE_PATH_ROLES = [
     {
         "path": "OPL current_control_state provider/stage runtime",
@@ -112,6 +83,43 @@ _CODE_PATH_ROLES = [
     },
 ]
 
+_STANDARD_AGENT_PURITY = {
+    "surface_kind": "mas_standard_opl_agent_purity",
+    "schema_version": SCHEMA_VERSION,
+    "status": "pure_standard_agent_active",
+    "agent_shape": "declarative_medical_pack_minimal_authority_functions_refs_only_projection",
+    "default_runtime_owner": OPL_OWNER,
+    "generated_surface_owner": OPL_OWNER,
+    "domain_owner": DOMAIN_OWNER,
+    "active_generic_owner_claim_allowed": False,
+    "default_caller_count": 0,
+    "runtime_package_residue_count": 0,
+    "active_compatibility_aliases": [],
+    "mas_repo_runtime_role": "domain_authority_target_only",
+    "mas_retained_surface_classes": [
+        "declarative_medical_pack",
+        "minimal_authority_functions",
+        "domain_authority_refs",
+    ],
+    "domain_projection_policy": "refs_receipts_blockers_only_no_body_verdict_or_blob",
+    "history_policy": {
+        "default_read_model_exposes_history_details": False,
+        "history_detail_owner": "docs/history and explicit runtime tombstone contracts",
+    },
+    "forbidden_active_claims": [
+        "mas_generic_runtime_owner",
+        "mas_generic_scheduler_owner",
+        "mas_generic_queue_owner",
+        "mas_generic_attempt_ledger_owner",
+        "mas_generic_worker_residency_owner",
+        "mas_generic_persistence_engine_owner",
+        "mas_generic_lifecycle_engine_owner",
+        "mas_generic_workbench_owner",
+        "compatibility_alias_for_retired_runtime",
+        "provider_completion_is_domain_completion",
+    ],
+}
+
 
 def build_opl_unique_control_plane_handoff() -> dict[str, Any]:
     return {
@@ -122,7 +130,7 @@ def build_opl_unique_control_plane_handoff() -> dict[str, Any]:
         "generic_runtime_owner": OPL_OWNER,
         "domain_owner": DOMAIN_OWNER,
         "domain_intent_adapter_role": "refs_only_owner_route_typed_blocker_and_owner_receipt_handoff",
-        "retired_runtime_transport_surfaces": [dict(item) for item in _RETIRED_RUNTIME_TRANSPORT_SURFACES],
+        "standard_agent_purity": dict(_STANDARD_AGENT_PURITY),
         "active_domain_allowed_actions": list(_ALLOWED_DOMAIN_ACTIONS),
         "forbidden_mas_roles": list(_FORBIDDEN_MAS_ROLES),
         "opl_replacement_surfaces": list(_OPL_REPLACEMENT_SURFACES),
@@ -150,29 +158,6 @@ def build_opl_unique_control_plane_handoff() -> dict[str, Any]:
             "mas_runtime_transport_active_as_generic_provider": False,
             "mas_runtime_transport_active_contract_surface": False,
             "mas_runtime_transport_package_absent": True,
-        },
-        "physical_retirement_gate_matrix": build_physical_retirement_gate_matrix(
-            schema_version=SCHEMA_VERSION,
-            replacement_owner=OPL_OWNER,
-        ),
-        "physical_cleanup_gate": {
-            "delete_or_archive_when_stale_surface_scan_clean": True,
-            "requires_opl_replacement_parity": True,
-            "requires_no_resurrection_proof": True,
-            "requires_domain_receipt_parity": True,
-            "history_tombstone_required": True,
-            "no_alias_facade_compat_wrapper_allowed": False,
-            "active_path_residue_cleanup_gates": [
-                {
-                    key: list(value) if isinstance(value, list) else value
-                    for key, value in item.items()
-                }
-                for item in ACTIVE_PATH_RESIDUE_CLEANUP_GATES
-            ],
-            "lane_d_closeout": {
-                key: list(value) if isinstance(value, list) else value
-                for key, value in PHYSICAL_MORPHOLOGY_LANE_D_CLOSEOUT.items()
-            },
         },
         "authority_boundary": {
             "opl_owns_runtime_transport": True,

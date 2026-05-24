@@ -310,7 +310,7 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["closed_functional_structure_gate_ids"] == [
         "generated_surface_default_owner_cutover",
         "domain_authority_refs_thinning",
-        "legacy_cleanup_physical_retirement",
+        "standard_agent_purity_guard",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
     ]

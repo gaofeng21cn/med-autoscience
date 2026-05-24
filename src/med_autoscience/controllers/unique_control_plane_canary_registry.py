@@ -35,8 +35,8 @@ def _canary(
         "canary_id": canary_id,
         "category": category,
         "target_studies": target_studies,
-        "semantic_role": "mas_duplicate_runtime_retirement_regression",
-        "failure_class": f"{category}_duplicate_runtime_retirement_canary",
+        "semantic_role": "standard_agent_purity_regression_guard",
+        "failure_class": f"{category}_standard_agent_purity_canary",
         "migration_boundary": {
             "canonical_control_plane_owner": "OPL",
             "mas_role": "domain_truth_quality_and_owner_receipt_authority",
@@ -86,7 +86,7 @@ REGISTRY: dict[str, Any] = {
     "updated_at": "2026-05-23",
     "target_studies": ["DM002", "DM003"],
     "migration_semantics": {
-        "program": "mas_duplicate_runtime_retirement",
+        "program": "standard_agent_purity_guard",
         "canonical_control_plane_owner": "OPL",
         "domain_owner": "MedAutoScience",
         "duplicate_mas_runtime_claimed": False,
