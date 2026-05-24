@@ -188,6 +188,42 @@ def _load_json_dict(path: Path) -> dict[str, object]:
     payload = _read_json_mapping(path)
     return payload if payload is not None else {}
 
+
+def _opl_current_control_state_handoff_path(*, study_root: Path) -> Path:
+    resolved_study_root = study_root.expanduser().resolve()
+    if resolved_study_root.parent.name == "studies":
+        workspace_root = resolved_study_root.parent.parent
+    else:
+        workspace_root = resolved_study_root.parent
+    return workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+
+
+def _opl_current_control_state_study_entry(
+    payload: dict[str, object],
+    *,
+    study_id: str,
+) -> dict[str, object] | None:
+    for item in payload.get("studies") or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("study_id") or "").strip() == study_id:
+            return dict(item)
+    return None
+
+
+def _current_control_state_health_status(study_entry: dict[str, object]) -> str | None:
+    runtime_health = study_entry.get("runtime_health")
+    if isinstance(runtime_health, dict):
+        health_status = str(runtime_health.get("health_status") or "").strip()
+        if health_status:
+            return health_status
+    for key in ("status", "quest_status", "blocked_reason"):
+        value = str(study_entry.get(key) or "").strip()
+        if value:
+            return value
+    return None
+
+
 def _supervisor_tick_required(status: ProgressProjectionStatus) -> bool:
     execution = status.execution
     return (
@@ -201,7 +237,7 @@ def _record_supervisor_tick_audit(
     status: ProgressProjectionStatus,
     study_root: Path,
 ) -> None:
-    latest_report_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    latest_report_path = _opl_current_control_state_handoff_path(study_root=study_root)
     required = _supervisor_tick_required(status)
     payload: dict[str, object] = {
         "required": required,
@@ -228,7 +264,7 @@ def _record_supervisor_tick_audit(
         payload.update(
             {
                 "status": "missing",
-                "reason": "opl_runtime_owner_handoff_missing",
+                "reason": "opl_current_control_state_handoff_missing",
                 "summary": "OPL current_control_state handoff 缺失，当前不能确认 stage/runtime owner 已接管。",
                 "next_action_summary": "需要刷新 OPL current_control_state handoff，再继续 stage/runtime owner 监管。",
                 "latest_recorded_at": None,
@@ -239,16 +275,32 @@ def _record_supervisor_tick_audit(
         status.record_supervisor_tick_audit(payload)
         return
 
-    payload["last_known_health_status"] = str(latest_report.get("status") or "").strip() or None
-    recorded_at = _normalize_timestamp(latest_report.get("recorded_at"))
+    study_entry = _opl_current_control_state_study_entry(latest_report, study_id=status.study_id)
+    if study_entry is None:
+        payload.update(
+            {
+                "status": "missing",
+                "reason": "opl_current_control_state_study_handoff_missing",
+                "summary": "OPL current_control_state handoff 中缺少当前 study，当前不能确认 stage/runtime owner 已接管。",
+                "next_action_summary": "需要刷新 OPL current_control_state handoff，使当前 study 进入 workspace-level handoff 投影。",
+                "latest_recorded_at": str(latest_report.get("generated_at") or "").strip() or None,
+                "seconds_since_latest_recorded_at": None,
+                "last_known_health_status": None,
+            }
+        )
+        status.record_supervisor_tick_audit(payload)
+        return
+
+    payload["last_known_health_status"] = _current_control_state_health_status(study_entry)
+    recorded_at = _normalize_timestamp(latest_report.get("generated_at") or latest_report.get("recorded_at"))
     if recorded_at is None:
         payload.update(
             {
                 "status": "invalid",
-                "reason": "opl_runtime_owner_handoff_timestamp_invalid",
+                "reason": "opl_current_control_state_handoff_timestamp_invalid",
                 "summary": "最近一次 OPL current_control_state handoff 缺少可解析时间戳，当前不能确认 owner handoff 是否仍然新鲜。",
                 "next_action_summary": "需要刷新 OPL current_control_state handoff durable surface，然后重新确认 owner handoff 状态。",
-                "latest_recorded_at": str(latest_report.get("recorded_at") or "").strip() or None,
+                "latest_recorded_at": str(latest_report.get("generated_at") or latest_report.get("recorded_at") or "").strip() or None,
                 "seconds_since_latest_recorded_at": None,
             }
         )
@@ -263,7 +315,7 @@ def _record_supervisor_tick_audit(
         payload.update(
             {
                 "status": "stale",
-                "reason": "opl_runtime_owner_handoff_stale",
+                "reason": "opl_current_control_state_handoff_stale",
                 "summary": "OPL current_control_state handoff 已陈旧，当前不能确认 stage/runtime owner 仍在接管。",
                 "next_action_summary": "需要先刷新 OPL current_control_state handoff，再继续 stage/runtime owner 监管。",
             }
@@ -274,7 +326,7 @@ def _record_supervisor_tick_audit(
     payload.update(
         {
             "status": "fresh",
-            "reason": "opl_runtime_owner_handoff_fresh",
+            "reason": "opl_current_control_state_handoff_fresh",
             "summary": "OPL current_control_state handoff 新鲜，当前 stage/runtime owner 仍由 OPL 接管。",
             "next_action_summary": "继续按 OPL current_control_state 监管当前 stage/runtime lifecycle。",
         }
