@@ -5,6 +5,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers.medical_prose_story_surface_parts.journal_routable_story_delta import (
+    current_writer_story_delta_is_journal_routable,
+)
+from med_autoscience.controllers.story_surface_work_units import (
+    is_story_surface_delta_write_work_unit,
+)
+
 
 def preserve_current_writer_story_delta(
     *,
@@ -39,7 +46,10 @@ def current_writer_story_delta_is_preservable(
     source_eval_id: str | None,
     previous_quality_repair_batch: Mapping[str, Any] | None,
 ) -> bool:
-    if work_unit_id != medical_prose_write_repair_work_unit_id:
+    if not (
+        is_story_surface_delta_write_work_unit(work_unit_id)
+        or work_unit_id == medical_prose_write_repair_work_unit_id
+    ):
         return False
     if not _previous_batch_can_anchor_writer_story_delta(
         previous_quality_repair_batch,
@@ -74,7 +84,7 @@ def current_writer_story_delta_is_preservable(
         return False
     if any(contains_forbidden_manuscript_terms(text) for text in story_texts):
         return False
-    return len(set(story_texts)) == 1 and _current_writer_story_delta_is_journal_routable(story_texts[0])
+    return len(set(story_texts)) == 1 and current_writer_story_delta_is_journal_routable(story_texts[0])
 
 
 def _previous_batch_can_anchor_writer_story_delta(
@@ -114,35 +124,6 @@ def _previous_batch_story_surface_refs(
     if not isinstance(refs, list):
         return []
     return [ref for ref in refs if isinstance(ref, Mapping)]
-
-
-def _current_writer_story_delta_is_journal_routable(text: str) -> bool:
-    required_sections = (
-        "## Abstract",
-        "## Introduction",
-        "## Methods",
-        "## Results",
-        "## Discussion",
-        "## Limitations",
-        "## Conclusion",
-    )
-    required_domain_phrases = (
-        "Phenotype derivation",
-        "Data quality",
-        "Statistical analysis",
-    )
-    gap_terminology_phrases = (
-        "recorded medication-coverage gap",
-        "recorded medication coverage gap",
-        "recorded treatment-review gap",
-        "potential treatment-review gap",
-    )
-    lowered = text.lower()
-    return (
-        all(phrase.lower() in lowered for phrase in required_sections)
-        and all(phrase.lower() in lowered for phrase in required_domain_phrases)
-        and any(phrase.lower() in lowered for phrase in gap_terminology_phrases)
-    )
 
 
 def _path_fingerprint(path: Path) -> dict[str, Any] | None:

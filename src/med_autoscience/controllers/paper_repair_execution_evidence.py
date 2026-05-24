@@ -580,7 +580,7 @@ def _story_surface_currentness_delta_refs(
     )
     if not previous_surface_refs:
         return []
-    if work_unit_id == _MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID and not current_writer_story_delta_is_preservable(
+    if is_story_surface_delta_write_work_unit(work_unit_id) and not current_writer_story_delta_is_preservable(
         paper_root=study_root / "paper",
         work_unit_id=work_unit_id,
         medical_prose_write_repair_work_unit_id=_MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,

@@ -14,6 +14,9 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_cu
     eval_bound_current_story_delta_source_basis,
 )
 from med_autoscience.controllers.quality_repair_batch_parts import medical_prose_story_surface
+from med_autoscience.controllers.story_surface_work_units import (
+    is_story_surface_delta_write_work_unit,
+)
 
 
 _REVIEW_LEDGER_RELATIVE_PATH = Path("review") / "review_ledger.json"
@@ -373,7 +376,10 @@ def _should_materialize_ai_reviewer_request(
     source_eval_id: str | None,
     previous_quality_repair_batch: Mapping[str, Any] | None,
 ) -> bool:
-    if work_unit_id != medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
+    if not (
+        is_story_surface_delta_write_work_unit(work_unit_id)
+        or work_unit_id == medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID
+    ):
         return bool(changed_refs)
     if _changed_refs_include_manuscript_story_surface(
         paper_root=paper_root,

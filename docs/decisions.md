@@ -454,6 +454,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 暴露出一个更隐蔽的失真：系统把“当前稿确实就是 reviewer 正在看的一版”误当成“write owner 已产出新稿”，进而在 evidence 层给出 `progress_delta_candidate` 和 recheck request。这样会让论文进度看起来向前推进，实际并没有新的稿件质量增量。
 - 影响：这是 MAS write-owner / AI reviewer currentness boundary 修复。它保持 current manuscript 不被覆盖，但不把 currentness 误记为 write delta，也不授权写 `publication_eval/latest.json`、`controller_decisions/latest.json`、current package 或 submission package。
 
+## 2026-05-24：story-surface write work unit 共享 writer-delta preservation
+
+- 决策：`current_writer_story_delta_is_preservable` 不再只服务 `medical_prose_write_repair`，而是服务所有注册到 `STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS` 的 write-owner story-surface work unit。DM002 的 `dm002_current_publication_hardening_after_current_ai_reviewer_eval`、`dm002_current_publication_hardening_after_ai_reviewer_eval` 与 `manuscript_story_repair` 只要满足同一 `source_eval_id`、上一轮 story-surface blocker、两份 canonical manuscript surface 同步变化且内容一致、无运行态术语、具备医学论文基本结构和领域族别检查，就必须保留当前 writer-owned 正文，不得回退到旧 generator 模板。
+- 决策：journal-routable guard 使用通用医学论文章节与 reporting structure，再叠加领域族别检查。DPCC treatment-gap 稿件继续要求 phenotype derivation、data quality、statistical analysis 和 recorded medication-coverage / treatment-review / potential treatment-review gap 语义；DM002 external-validation 稿件要求 external validation / validation cohort、discrimination、calibration、95% CI / uncertainty、Cox / prediction score 和 NHANES / development-validation source 语义。
+- 决策：AI reviewer-bound current manuscript guard 保持限界：`eval_bound_currentness` 仍只防止 `medical_prose_write_repair` 覆盖当前 AI reviewer 绑定稿，不能把 current reviewer-bound manuscript 扩展成其他 story-surface work unit 的完成证据。其他 story-surface work unit 必须通过上一轮 blocked batch 指纹变化来证明真实 writer delta。
+- 理由：DM002 暴露出当前 AI reviewer hardening work unit 已由 write owner 改出更接近医学期刊的 external-validation 正文，但 `quality_repair_batch` 因 preservation guard 只认 `medical_prose_write_repair` 且 routable 规则绑定 DPCC 术语，把当前正文覆盖回旧 DM002 模板。这是 MAS writer owner / quality repair currentness 缺陷，不是 OPL queue/provider 或单篇论文手工修稿问题。
+- 影响：这是 MAS manuscript autonomy / quality repair currentness 能力修复。它只阻止旧模板覆盖已授权 canonical story-surface delta，并允许生成 AI reviewer recheck request；不授权写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。
+
 ## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
 
 - 决策：`quality_repair_batch_writer_handoff` 生成 `run_quality_repair_batch` dispatch 时，必须同步物化 `artifacts/supervision/requests/quality_repair_batch/latest.json`，并把 `prompt_contract.request_packet_ref` 指向该 request surface。后续 dispatcher 以 request+dispatch 双面 currentness 为主。

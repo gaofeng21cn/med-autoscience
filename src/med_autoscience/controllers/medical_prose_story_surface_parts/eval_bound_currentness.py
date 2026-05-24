@@ -4,6 +4,9 @@ import hashlib
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from med_autoscience.controllers.medical_prose_story_surface_parts.journal_routable_story_delta import (
+    current_writer_story_delta_is_journal_routable,
+)
 
 def eval_bound_current_story_delta_refs(
     *,
@@ -157,7 +160,7 @@ def _eval_bound_current_story_delta(
         story_texts.append(text)
     if len(set(story_texts)) != 1:
         return None
-    if not _current_writer_story_delta_is_journal_routable(story_texts[0]):
+    if not current_writer_story_delta_is_journal_routable(story_texts[0]):
         return None
     return {
         "source_eval_id": eval_id,
@@ -177,35 +180,6 @@ def _medical_prose_currentness(publication_eval_payload: Mapping[str, Any]) -> d
         return {}
     prose_currentness = currentness_checks.get("medical_prose_review")
     return dict(prose_currentness) if isinstance(prose_currentness, Mapping) else {}
-
-
-def _current_writer_story_delta_is_journal_routable(text: str) -> bool:
-    required_sections = (
-        "## Abstract",
-        "## Introduction",
-        "## Methods",
-        "## Results",
-        "## Discussion",
-        "## Limitations",
-        "## Conclusion",
-    )
-    required_domain_phrases = (
-        "Phenotype derivation",
-        "Data quality",
-        "Statistical analysis",
-    )
-    gap_terminology_phrases = (
-        "recorded medication-coverage gap",
-        "recorded medication coverage gap",
-        "recorded treatment-review gap",
-        "potential treatment-review gap",
-    )
-    lowered = text.lower()
-    return (
-        all(phrase.lower() in lowered for phrase in required_sections)
-        and all(phrase.lower() in lowered for phrase in required_domain_phrases)
-        and any(phrase.lower() in lowered for phrase in gap_terminology_phrases)
-    )
 
 
 def _path_fingerprint(path: Path) -> dict[str, Any]:
