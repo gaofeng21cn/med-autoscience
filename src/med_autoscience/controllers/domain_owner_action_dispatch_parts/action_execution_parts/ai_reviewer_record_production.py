@@ -35,7 +35,7 @@ def build_ai_reviewer_record_production_request(
         "required_currentness_refs": required_currentness_refs,
         "required_input_refs": required_inputs,
         "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
-        "owner_callable_surface": "publication materialize-ai-reviewer-eval-record",
+        "owner_callable_surface": "publication materialize-ai-reviewer-record",
         "record_must_consume_refs": required_currentness_refs,
         "followup_actions": [
             "domain-action-request-materialize",

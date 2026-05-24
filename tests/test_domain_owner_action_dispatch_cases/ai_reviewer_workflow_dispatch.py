@@ -372,7 +372,7 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_record_stale_after_uni
     assert production_request["required_output_surface"] == (
         "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
     )
-    assert production_request["owner_callable_surface"] == "publication materialize-ai-reviewer-eval-record"
+    assert production_request["owner_callable_surface"] == "publication materialize-ai-reviewer-record"
     assert production_request["stale_record_ref"] == str(stale_record_path)
     assert production_request["required_currentness_refs"] == required_currentness_refs
     assert production_request["record_must_consume_refs"] == required_currentness_refs
