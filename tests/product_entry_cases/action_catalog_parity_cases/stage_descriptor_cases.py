@@ -135,9 +135,11 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "claim_citation_support_audit",
         "data_access_and_oversight_metadata",
         "evidence_handoff_passport",
+        "medical_material_passport_source_handoff",
     ]
     assert ars_projection["metadata_policy"]["ars_passport_is_truth"] is False
     assert ars_projection["metadata_policy"]["ars_passport_body_exported"] is False
+    assert ars_projection["metadata_policy"]["medical_material_passport_body_exported"] is False
     assert ars_projection["truth_surface_mapping"]["verdict_refs"] == [
         "artifacts/publication_eval/latest.json",
         "artifacts/controller_decisions/latest.json",
