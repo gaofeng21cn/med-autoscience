@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-24：default-executor task identity 必须绑定 owner-route source fingerprint
+
+- 决策：`domain_owner/default-executor-dispatch` 的 OPL queue `dedupe_key` 必须包含 MAS owner-route `source_fingerprint`。同一 study、action type 和 dispatch authority 下，只要 owner-route currentness、runtime-health epoch、work-unit fingerprint 或源证据版本变化，`sidecar export` 必须生成不同 dedupe identity，让 OPL 可重新水合当前 owner-authorized attempt。
+- 决策：该规则只改变 MAS -> OPL handoff task identity；不放宽 Owner-Route Attempt Protocol 的 fail-closed 条件，也不允许凭旧 dispatch authority、裸 ready dispatch 或历史 queue completion 跳过 currentness proof。
+- 理由：DM002 暴露出当前 `dm002_current_publication_hardening_after_ai_reviewer_eval` write route 已由 MAS 导出为合法 default-executor handoff，但旧 dedupe key 只含 `action_type` 与 `dispatch_authority`。OPL 因历史同 key succeeded task 正确执行 idempotent no-op，导致新的 source/currentness 版本无法入队。根因是 MAS sidecar task identity 未表达 owner-route currentness，不是 OPL queue/provider lifecycle，也不是 DM002 paper surface 可手工修补的问题。
+- 影响：这是 MAS sidecar/owner-route transport identity 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。OPL 仍只负责 queue、dedupe、retry 和 typed closeout transport；论文质量、publishability 和 package freshness 仍由 MAS owner receipts、AI reviewer-backed eval 与 publication gate 判定。
+
 ## 2026-05-23：AI reviewer default-executor handoff 必须保留 runtime-health currentness basis
 
 - 决策：`paper_repair_executor` 生成 `return_to_ai_reviewer_workflow` default-executor handoff 时，必须把 controller route context / current owner route 中的 `runtime_health_epoch` 写入 owner route 和 `source_refs`；managed-runtime controller authorization 合成 dispatch 时，也必须从 runtime authorization 或 runtime health snapshot 继承同一 currentness basis。

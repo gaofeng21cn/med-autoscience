@@ -128,10 +128,11 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
     assert task["queue_owner"] == "one-person-lab"
     assert task["profile_name"] == "nfpitnet"
     assert task["requires_approval"] is False
-    assert task["dedupe_key"] == (
+    assert task["dedupe_key"].startswith(
         "mas:nfpitnet:002-dm-china-us-mortality-attribution:"
-        "default-executor:run_quality_repair_batch:quality_repair_batch_writer_handoff"
+        "default-executor:run_quality_repair_batch:quality_repair_batch_writer_handoff:"
     )
+    assert task["dedupe_key"].endswith(task["source_fingerprint"])
     assert task["payload"] == {
         "profile": str(profile_path),
         "study_id": "002-dm-china-us-mortality-attribution",
@@ -273,6 +274,62 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
         "provider_completion_is_domain_ready": False,
         "typed_blocker_is_domain_ready": False,
     }
+
+
+def test_default_executor_dispatch_dedupe_key_tracks_owner_route_currentness(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_default_executor_dispatch(
+        dispatch_path=dispatch_path,
+        study_root=study_root,
+        include_owner_route=True,
+    )
+
+    first_exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    first_payload = json.loads(capsys.readouterr().out)
+    assert first_exit_code == 0
+    first_task = next(
+        task
+        for task in first_payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    )
+
+    dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    dispatch["prompt_contract"]["owner_route"]["work_unit_fingerprint"] = (
+        "medical-prose-routeback::write::fp::rerun"
+    )
+    dispatch["prompt_contract"]["owner_route"]["runtime_health_epoch"] = "runtime-health-event-003"
+    dispatch["prompt_contract"]["owner_route"]["source_refs"]["runtime_health_epoch"] = (
+        "runtime-health-event-003"
+    )
+    _write_json(dispatch_path, dispatch)
+
+    second_exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    second_payload = json.loads(capsys.readouterr().out)
+    assert second_exit_code == 0
+    second_task = next(
+        task
+        for task in second_payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    )
+
+    assert second_task["source_fingerprint"] != first_task["source_fingerprint"]
+    assert second_task["dedupe_key"] != first_task["dedupe_key"]
+    assert second_task["source_fingerprint"] in second_task["dedupe_key"]
 
 
 def test_sidecar_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, capsys) -> None:

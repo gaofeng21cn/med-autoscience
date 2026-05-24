@@ -77,7 +77,7 @@ def default_executor_dispatch_tasks(
                 "requires_approval": False,
                 "dedupe_key": (
                     f"mas:{profile.name}:{study_id}:default-executor:"
-                    f"{action_type}:{dispatch_authority}"
+                    f"{action_type}:{dispatch_authority}:{source_fingerprint}"
                 ),
                 "source_fingerprint": source_fingerprint,
                 "payload": {
