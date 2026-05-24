@@ -607,39 +607,6 @@ def test_ai_reviewer_publication_eval_workflow_fails_closed_when_required_ref_mi
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
-def test_ai_reviewer_publication_eval_workflow_fails_closed_when_claim_alignment_blocks(
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
-    study_root = tmp_path / "study"
-    refs = _refs(study_root)
-    _write_ai_reviewer_currentness_inputs(study_root)
-    _write_ai_reviewer_alignment_inputs(study_root, evidence_id="evidence-renamed")
-
-    try:
-        module.run_ai_reviewer_publication_eval_workflow(
-            study_root=study_root,
-            manuscript_ref=refs["manuscript"],
-            evidence_ref=refs["evidence_ledger"],
-            review_ref=refs["review_ledger"],
-            charter_ref=refs["study_charter"],
-            additional_refs={
-                "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
-                "claim_evidence_map": refs["claim_evidence_map"],
-                "medical_prose_review": refs["medical_prose_review"],
-                "publication_gate_projection": refs["publication_gate_projection"],
-            },
-            record=_publication_eval_record(study_root),
-        )
-    except ValueError as exc:
-        assert "publication_quality_readiness.missing_required_fields must be empty" in str(exc)
-        assert "claim_evidence_alignment" in str(exc)
-    else:
-        raise AssertionError("workflow accepted AI reviewer trace with blocked claim-evidence alignment")
-
-    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
-
-
 def test_ai_reviewer_publication_eval_workflow_fails_closed_without_future_facing_limitations_plan(
     tmp_path: Path,
 ) -> None:

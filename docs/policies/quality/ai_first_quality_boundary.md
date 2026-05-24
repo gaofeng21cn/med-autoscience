@@ -33,6 +33,7 @@
 
 - 新增质量 read-model 时，先决定它消费的是 AI reviewer judgment 还是 mechanical projection。
 - 如果消费 AI reviewer judgment，入口必须 fail-closed 检查 `assessment_provenance.owner=ai_reviewer` 和 `ai_reviewer_required=false`。
+- `medical_publication_ai_reviewer_os_v1` 的结构化 trace 可以携带 `claim_evidence_alignment.status=blocked` 或 `publication_quality_readiness.status=blocked`，前提是缺口字段、blocker 和 `route_back_same_line` 决策完整。blocked trace 只允许物化 reviewer-owned route-back eval，不得被解释为 publication-ready、submission-ready 或 bundle-stage 放行。
 - 如果入口会投影 `finalize`、`bundle-only remaining`、`human-review ready` 或 `submission-facing closure`，还必须确认 `quality_assessment.medical_journal_prose_quality.status=ready`。缺失、`underdefined`、`partial` 或 `blocked` 都表示 AI reviewer 主观稿件质量尚未闭合，只能 route back 到同一论文线的 `review` / AI reviewer workflow。
 - 如果消费 mechanical projection，输出文案必须明确它只是 projection，不得写成科学审稿结论。
 - MAS private authority surface 必须声明 `judgment_mode`。`ai_first_stage_gate` 和 `ai_first_record_validator` 必须消费独立 reviewer/auditor record；`mechanical_guard` 和 `domain_authority_refs` 不得输出医学 ready/pass、publication readiness、source readiness、route acceptance 或 artifact quality verdict。

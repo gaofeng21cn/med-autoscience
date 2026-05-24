@@ -49,6 +49,10 @@ def _normalized_route_target(value: object) -> str:
     return _ROUTE_TARGET_ALIASES.get(text, text)
 
 
+def _list_has_items(value: object) -> bool:
+    return isinstance(value, list) and bool(value)
+
+
 def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> dict[str, Any] | None:
     if not isinstance(publication_eval_payload, dict):
         return None
@@ -186,8 +190,9 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
         errors.append(
             "reviewer_operating_system.claim_evidence_alignment.absorbed_as must be mas_native_claim_evidence_alignment_gate"
         )
-    if _text(claim_alignment.get("status")) != "ready":
-        errors.append("reviewer_operating_system.claim_evidence_alignment.status must be ready")
+    claim_alignment_status = _text(claim_alignment.get("status"))
+    if claim_alignment_status not in {"ready", "blocked"}:
+        errors.append("reviewer_operating_system.claim_evidence_alignment.status must be ready or blocked")
     if claim_alignment.get("fail_closed_when_missing") is not True:
         errors.append("reviewer_operating_system.claim_evidence_alignment.fail_closed_when_missing must be true")
     if claim_alignment.get("body_included") is not False:
@@ -200,22 +205,35 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
         errors.append("reviewer_operating_system.claim_evidence_alignment.may_authorize_quality_verdict must be false")
     if claim_alignment.get("can_write_domain_truth") is not False:
         errors.append("reviewer_operating_system.claim_evidence_alignment.can_write_domain_truth must be false")
-    if claim_alignment.get("missing_required_fields") not in ([], ()):
-        errors.append("reviewer_operating_system.claim_evidence_alignment.missing_required_fields must be empty")
-    if claim_alignment.get("blockers") not in ([], ()):
-        errors.append("reviewer_operating_system.claim_evidence_alignment.blockers must be empty")
     if not isinstance(claim_alignment.get("claim_count"), int) or claim_alignment.get("claim_count") < 1:
         errors.append("reviewer_operating_system.claim_evidence_alignment.claim_count must be positive")
-    if claim_alignment.get("aligned_claim_count") != claim_alignment.get("claim_count"):
-        errors.append("reviewer_operating_system.claim_evidence_alignment.aligned_claim_count must equal claim_count")
+    if not isinstance(claim_alignment.get("aligned_claim_count"), int) or claim_alignment.get("aligned_claim_count") < 0:
+        errors.append("reviewer_operating_system.claim_evidence_alignment.aligned_claim_count must be non-negative")
+    elif isinstance(claim_alignment.get("claim_count"), int) and claim_alignment.get("aligned_claim_count") > claim_alignment.get("claim_count"):
+        errors.append("reviewer_operating_system.claim_evidence_alignment.aligned_claim_count must not exceed claim_count")
+    if claim_alignment_status == "ready":
+        if claim_alignment.get("missing_required_fields") not in ([], ()):
+            errors.append("reviewer_operating_system.claim_evidence_alignment.missing_required_fields must be empty when ready")
+        if claim_alignment.get("blockers") not in ([], ()):
+            errors.append("reviewer_operating_system.claim_evidence_alignment.blockers must be empty when ready")
+        if claim_alignment.get("aligned_claim_count") != claim_alignment.get("claim_count"):
+            errors.append("reviewer_operating_system.claim_evidence_alignment.aligned_claim_count must equal claim_count when ready")
+    elif claim_alignment_status == "blocked" and not (
+        _list_has_items(claim_alignment.get("missing_required_fields"))
+        or _list_has_items(claim_alignment.get("blockers"))
+    ):
+        errors.append(
+            "reviewer_operating_system.claim_evidence_alignment blocked status requires missing_required_fields or blockers"
+        )
 
     readiness = _mapping(payload.get("publication_quality_readiness"))
     if readiness.get("surface_kind") != "publication_quality_authority_kernel_v1":
         errors.append(
             "reviewer_operating_system.publication_quality_readiness.surface_kind must be publication_quality_authority_kernel_v1"
         )
-    if _text(readiness.get("status")) != "ready":
-        errors.append("reviewer_operating_system.publication_quality_readiness.status must be ready")
+    readiness_status = _text(readiness.get("status"))
+    if readiness_status not in {"ready", "blocked"}:
+        errors.append("reviewer_operating_system.publication_quality_readiness.status must be ready or blocked")
     if not _text(readiness.get("current_manuscript_digest")):
         errors.append(
             "reviewer_operating_system.publication_quality_readiness.current_manuscript_digest must be non-empty"
@@ -244,9 +262,13 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
         errors.append(
             "reviewer_operating_system.publication_quality_readiness.fail_closed_when_missing must be true"
         )
-    if readiness.get("missing_required_fields") not in ([], ()):
+    if readiness_status == "ready" and readiness.get("missing_required_fields") not in ([], ()):
         errors.append(
-            "reviewer_operating_system.publication_quality_readiness.missing_required_fields must be empty"
+            "reviewer_operating_system.publication_quality_readiness.missing_required_fields must be empty when ready"
+        )
+    if readiness_status == "blocked" and not _list_has_items(readiness.get("missing_required_fields")):
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness blocked status requires missing_required_fields"
         )
 
     future_limitations_plan = _list_of_mappings(payload.get("future_facing_limitations_plan"))
@@ -289,6 +311,12 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
         errors.append("reviewer_operating_system.route_back_decision.recommended_action must be non-empty")
     if not _text(route_back_decision.get("rationale")):
         errors.append("reviewer_operating_system.route_back_decision.rationale must be non-empty")
+    if (
+        claim_alignment_status == "blocked" or readiness_status == "blocked"
+    ) and _text(route_back_decision.get("recommended_action")) not in _ACTION_TYPES_THAT_ROUTE_BACK:
+        errors.append(
+            "reviewer_operating_system.route_back_decision.recommended_action must route back when readiness is blocked"
+        )
 
     return errors
 
