@@ -15,6 +15,7 @@ _ALLOWED_REVIEWER_OS_FIELDS = frozenset(
         "rubric_scores",
         "decision_matrix",
         "currentness_checks",
+        "claim_evidence_alignment",
         "publication_quality_readiness",
         "future_facing_limitations_plan",
         "provenance_checks",
@@ -162,6 +163,40 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
             "reviewer_operating_system.currentness_checks.current_package_freshness.source_eval_id must be non-empty"
         )
 
+    claim_alignment = _mapping(payload.get("claim_evidence_alignment"))
+    if claim_alignment.get("surface_kind") != "claim_evidence_alignment_gate_v1":
+        errors.append(
+            "reviewer_operating_system.claim_evidence_alignment.surface_kind must be claim_evidence_alignment_gate_v1"
+        )
+    if _text(claim_alignment.get("source_project")) != "academic-research-skills":
+        errors.append("reviewer_operating_system.claim_evidence_alignment.source_project must be academic-research-skills")
+    if _text(claim_alignment.get("absorbed_as")) != "mas_native_claim_evidence_alignment_gate":
+        errors.append(
+            "reviewer_operating_system.claim_evidence_alignment.absorbed_as must be mas_native_claim_evidence_alignment_gate"
+        )
+    if _text(claim_alignment.get("status")) != "ready":
+        errors.append("reviewer_operating_system.claim_evidence_alignment.status must be ready")
+    if claim_alignment.get("fail_closed_when_missing") is not True:
+        errors.append("reviewer_operating_system.claim_evidence_alignment.fail_closed_when_missing must be true")
+    if claim_alignment.get("body_included") is not False:
+        errors.append("reviewer_operating_system.claim_evidence_alignment.body_included must be false")
+    if claim_alignment.get("may_authorize_publication_readiness") is not False:
+        errors.append(
+            "reviewer_operating_system.claim_evidence_alignment.may_authorize_publication_readiness must be false"
+        )
+    if claim_alignment.get("may_authorize_quality_verdict") is not False:
+        errors.append("reviewer_operating_system.claim_evidence_alignment.may_authorize_quality_verdict must be false")
+    if claim_alignment.get("can_write_domain_truth") is not False:
+        errors.append("reviewer_operating_system.claim_evidence_alignment.can_write_domain_truth must be false")
+    if claim_alignment.get("missing_required_fields") not in ([], ()):
+        errors.append("reviewer_operating_system.claim_evidence_alignment.missing_required_fields must be empty")
+    if claim_alignment.get("blockers") not in ([], ()):
+        errors.append("reviewer_operating_system.claim_evidence_alignment.blockers must be empty")
+    if not isinstance(claim_alignment.get("claim_count"), int) or claim_alignment.get("claim_count") < 1:
+        errors.append("reviewer_operating_system.claim_evidence_alignment.claim_count must be positive")
+    if claim_alignment.get("aligned_claim_count") != claim_alignment.get("claim_count"):
+        errors.append("reviewer_operating_system.claim_evidence_alignment.aligned_claim_count must equal claim_count")
+
     readiness = _mapping(payload.get("publication_quality_readiness"))
     if readiness.get("surface_kind") != "publication_quality_authority_kernel_v1":
         errors.append(
@@ -180,6 +215,10 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     if not _text(readiness.get("evidence_ledger_digest")):
         errors.append(
             "reviewer_operating_system.publication_quality_readiness.evidence_ledger_digest must be non-empty"
+        )
+    if not _text(readiness.get("claim_evidence_alignment_digest")):
+        errors.append(
+            "reviewer_operating_system.publication_quality_readiness.claim_evidence_alignment_digest must be non-empty"
         )
     if _text(readiness.get("rubric_version")) != DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]:
         errors.append(

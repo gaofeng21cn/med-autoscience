@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.claim_evidence_alignment import (
+    build_claim_evidence_alignment_gate,
+)
 from med_autoscience.policies import (
     DEFAULT_PUBLICATION_CRITIQUE_POLICY,
     build_ai_reviewer_operating_system_contract,
@@ -253,6 +256,10 @@ def _publication_quality_readiness(
     evidence_digest = "sha256:" + hashlib.sha256(
         json.dumps(evidence_ledger, ensure_ascii=False, sort_keys=True).encode("utf-8")
     ).hexdigest()
+    claim_alignment = _mapping(trace.get("claim_evidence_alignment"))
+    claim_alignment_digest = "sha256:" + hashlib.sha256(
+        json.dumps(claim_alignment, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
     eval_id = _text(record_payload.get("eval_id")) or "unknown-eval"
     manuscript_digest = _text(prose_currentness.get("manuscript_digest"))
     request_digest = _text(prose_currentness.get("request_digest"))
@@ -262,6 +269,7 @@ def _publication_quality_readiness(
             ("current_manuscript_digest", manuscript_digest),
             ("review_request_digest", request_digest),
             ("evidence_ledger_digest", evidence_digest),
+            ("claim_evidence_alignment_digest", claim_alignment_digest if _text(claim_alignment.get("status")) == "ready" else ""),
         )
         if not value
     ]
@@ -271,6 +279,7 @@ def _publication_quality_readiness(
         "current_manuscript_digest": manuscript_digest,
         "review_request_digest": request_digest,
         "evidence_ledger_digest": evidence_digest,
+        "claim_evidence_alignment_digest": claim_alignment_digest,
         "rubric_version": DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"],
         "owner_attempt_id": f"ai-reviewer-publication-eval::{eval_id}",
         "fail_closed_when_missing": True,
@@ -650,6 +659,11 @@ def build_ai_reviewer_publication_eval_workflow_trace(
             record_payload=record_payload,
             ref_bundle=ref_bundle,
             workflow_currentness_mode=workflow_currentness_mode,
+        ),
+        "claim_evidence_alignment": build_claim_evidence_alignment_gate(
+            study_root=resolved_study_root,
+            claim_evidence_map_ref=ref_bundle["claim_evidence_map"],
+            evidence_ledger_ref=ref_bundle["evidence_ledger"],
         ),
         "future_facing_limitations_plan": _future_facing_limitations_plan(record_payload),
         "provenance_checks": {
