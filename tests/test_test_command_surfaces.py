@@ -601,6 +601,10 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert '"${clean_python[@]}" -m med_autoscience.cli doctor stage-route-contract >/dev/null' in script
     assert 'printf \'{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\\n\'' in script
     assert '"${clean_python[@]}" -m med_autoscience.mcp_server' in script
+    assert "AUTHORITY_OPERATION_MCP_MODES" in script
+    assert 'export AUTHORITY_OPERATION_MCP_MODES_JSON="${authority_operation_mcp_modes_json}"' in script
+    assert 'required_modes = set(json.loads(os.environ["AUTHORITY_OPERATION_MCP_MODES_JSON"]))' in script
+    assert 'retired_modes = {"migration_audit", "cleanup_apply", "lifecycle_report", "safe_cache_cleanup_apply"}' in script
     assert "uv run --directory" not in script
     assert '"plugins" / "mas" / ".codex-plugin" / "plugin.json"' in script
     assert '"plugins" / "mas" / "skills" / "mas" / "SKILL.md"' in script

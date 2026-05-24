@@ -22,7 +22,15 @@ clean_python=("${repo_root}/scripts/run-python-clean.sh")
 "${clean_python[@]}" -m med_autoscience.cli --help >/dev/null
 "${clean_python[@]}" -m med_autoscience.cli doctor stage-route-contract >/dev/null
 mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | "${clean_python[@]}" -m med_autoscience.mcp_server)"
+authority_operation_mcp_modes_json="$("${clean_python[@]}" - <<'PY'
+import json
+from med_autoscience.authority_operation_command_catalog import AUTHORITY_OPERATION_MCP_MODES
+
+print(json.dumps(AUTHORITY_OPERATION_MCP_MODES))
+PY
+)"
 export MCP_TOOLS_JSON="${mcp_tools_json}"
+export AUTHORITY_OPERATION_MCP_MODES_JSON="${authority_operation_mcp_modes_json}"
 
 python3 - <<'PY'
 import json
@@ -51,10 +59,14 @@ mcp_tools = {
     for item in json.loads(os.environ["MCP_TOOLS_JSON"])["result"]["tools"]
 }
 product_entry_modes = set(mcp_tools["product_entry"]["inputSchema"]["properties"]["mode"]["enum"])
-required_modes = {"migration_audit", "cleanup_apply", "lifecycle_report"}
+required_modes = set(json.loads(os.environ["AUTHORITY_OPERATION_MCP_MODES_JSON"]))
 missing_modes = sorted(required_modes - product_entry_modes)
 if missing_modes:
     raise SystemExit(f"medautosci-mcp product_entry mode enum missing: {missing_modes}")
+retired_modes = {"migration_audit", "cleanup_apply", "lifecycle_report", "safe_cache_cleanup_apply"}
+resurrected_modes = sorted(retired_modes & product_entry_modes)
+if resurrected_modes:
+    raise SystemExit(f"medautosci-mcp product_entry mode enum resurrected: {resurrected_modes}")
 
 print(json.dumps({
     "ok": True,
