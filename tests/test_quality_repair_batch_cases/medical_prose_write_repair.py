@@ -723,6 +723,10 @@ def test_medical_prose_write_repair_uses_explicit_route_context_when_gate_result
             "dm002_current_publication_hardening_after_ai_reviewer_eval",
             "dm002_current_ai_reviewer_publication_hardening_live_draft_f93aae_20260522T203041Z",
         ),
+        (
+            "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+            "dm002_current_ai_reviewer_publication_eval_live_draft_2dcd51592c6a_20260524T175827Z",
+        ),
     ],
 )
 def test_dm002_publication_paper_repair_updates_external_validation_manuscript(

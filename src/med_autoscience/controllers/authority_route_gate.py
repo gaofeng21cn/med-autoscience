@@ -52,6 +52,7 @@ _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     ),
     "dm002_same_line_publication_paper_repair": frozenset({"paper_write"}),
     "dm002_current_publication_hardening_after_ai_reviewer_eval": frozenset({"paper_write"}),
+    "dm002_current_publication_hardening_after_current_ai_reviewer_eval": frozenset({"paper_write"}),
     "display_reporting_contract_repair": frozenset({"bundle_build"}),
     "figure_results_trace_repair": frozenset({"paper_write"}),
     "local_architecture_overview_repair": frozenset({"bundle_build"}),

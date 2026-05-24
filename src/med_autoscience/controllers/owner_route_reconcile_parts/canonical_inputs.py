@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_macro_state, study_progress, domain_status_projection
 from med_autoscience.controllers import paper_authority_migration
+from med_autoscience.controllers import ai_reviewer_publication_eval_records
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -53,6 +54,14 @@ def publication_eval_payload(status: Mapping[str, Any], progress: Mapping[str, A
     publication_eval_path = _text(refs.get("publication_eval_path"))
     if publication_eval_path is not None:
         from_path = _read_json_object(Path(publication_eval_path)) or {}
+        study_root = _study_root_from(status, progress)
+        if study_root is not None:
+            latest_record = ai_reviewer_publication_eval_records.latest_current_ai_reviewer_publication_eval_record(
+                study_root=study_root,
+                current_publication_eval=from_path,
+            )
+            if latest_record is not None:
+                return latest_record[0]
         if _text(_mapping(from_path.get("assessment_provenance")).get("owner")) == "ai_reviewer":
             return from_path
     from_status = _mapping(status.get("publication_eval"))

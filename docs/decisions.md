@@ -993,6 +993,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出新 AI reviewer record 已正式落盘，但 materializer 在 action queue 为空时不会重刷 existing request，导致 default executor 继续读取 stale request 并误报 `ai_reviewer_record_stale_after_current_manuscript`。刷新必须复用 lifecycle currentness validator，不得手写 JSON 或放宽 record currentness。
 - 影响：materializer result 公开 `ai_reviewer_request_refreshes` / `ai_reviewer_request_refresh_count`；apply 模式只在 developer-safe owner boundary 内写 `artifacts/supervision/requests/ai_reviewer/latest.json`，仍不写 `publication_eval/latest.json`、paper、current_package 或质量结论。
 
+## 2026-05-24：current AI reviewer response record 可驱动 owner-route 而不改写 latest eval
+
+- 决策：当 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 是 AI reviewer owner 产物、质量维度完整、future-facing plan 存在、`current_manuscript` digest 与当前 canonical manuscript 匹配，并且时间戳晚于 `publication_eval/latest.json` 时，owner-route/read-model 可把该 record 作为当前 publication eval projection source。该路径只更新 projection 和 owner-route provenance，不改写 `publication_eval/latest.json`。
+- 决策：current record 中的 `dm002_current_publication_hardening_after_current_ai_reviewer_eval` 与既有 DM002 hardening work unit 属于同一类 write-owner story-surface repair，必须注册到 story-surface work unit、upstream publishability repair、authority route gate 和 DM002 writer materializer。owner-route `source_refs.publication_eval_path` 必须指向实际授权的 AI reviewer record，而不是旧 stable latest eval。
+- 理由：DM002 暴露出 AI reviewer 已对当前稿件产出新 blocked/write route record，但 controller projection 仍锚旧 `publication_eval/latest.json`，导致 action queue 或后续 dispatch 可能按 stale reviewer verdict 工作。正确修复面是 MAS currentness/read-model 和 work-unit registry，不是手工 patch study truth 或 delivery package。
+- 影响：OPL queue/provider 仍只消费 MAS owner-route task；MAS 继续禁止通过该路径写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或宣布 submission-ready。论文是否 ready 仍由后续 AI reviewer-backed publication gate 判定。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。

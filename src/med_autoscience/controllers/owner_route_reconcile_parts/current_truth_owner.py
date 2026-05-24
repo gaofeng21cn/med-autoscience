@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers import provenance_limited_harmonization_owner_result
+from med_autoscience.controllers import ai_reviewer_publication_eval_records
 from med_autoscience.controllers.story_surface_work_units import (
     is_story_surface_delta_write_work_unit,
 )
@@ -186,7 +187,10 @@ def current_ai_reviewer_write_routeback_route(
         "publication_eval_id": source_eval_id,
         "publication_eval_ref": {
             "eval_id": source_eval_id,
-            "artifact_path": str((resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve()),
+            "artifact_path": ai_reviewer_publication_eval_records.projection_source_ref(
+                publication_eval_payload,
+                (resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve(),
+            ),
         },
         "next_work_unit": dict(next_work_unit),
         "blocking_work_units": [dict(next_work_unit)] if next_work_unit else [],
@@ -205,15 +209,23 @@ def _ai_reviewer_write_routeback_current(publication_eval_payload: Mapping[str, 
     reviewer_os = _mapping(publication_eval_payload.get("reviewer_operating_system"))
     currentness = _mapping(reviewer_os.get("currentness_checks"))
     prose = _mapping(currentness.get("medical_prose_review"))
-    if _text(prose.get("status")) != "current":
+    current_manuscript = _mapping(currentness.get("current_manuscript"))
+    prose_current = _text(prose.get("status")) == "current"
+    manuscript_current = _text(current_manuscript.get("status")) == "current"
+    if not prose_current and not manuscript_current:
         return False
-    if prose.get("route_back_required") is not True:
+    if prose_current and prose.get("route_back_required") is not True:
         return False
     if _text(prose.get("route_target")) not in {None, "write"}:
         return False
-    for key in ("request_digest", "manuscript_ref", "manuscript_digest"):
-        if _text(prose.get(key)) is None:
-            return False
+    if prose_current:
+        for key in ("request_digest", "manuscript_ref", "manuscript_digest"):
+            if _text(prose.get(key)) is None:
+                return False
+    if manuscript_current:
+        for key in ("manuscript_ref", "manuscript_digest"):
+            if _text(current_manuscript.get(key)) is None:
+                return False
     return _publication_story_repair_action(publication_eval_payload) is not None
 
 

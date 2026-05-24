@@ -288,6 +288,14 @@ def _required_output_surface(action: Mapping[str, Any], action_type: str) -> str
     )
 
 
+def _default_executor_forbidden_surfaces(owner_route: Mapping[str, Any]) -> list[str]:
+    forbidden = list(FORBIDDEN_SURFACES)
+    for item in _mapping(owner_route.get("owner_reason_contract")).get("forbidden_surfaces") or []:
+        if (surface := _text(item)) is not None and surface not in forbidden:
+            forbidden.append(surface)
+    return forbidden
+
+
 def _executor_prompt(
     *,
     action_type: str,
@@ -326,6 +334,7 @@ def _default_executor_dispatch(
     idempotency_key = _text(owner_route.get("idempotency_key"))
     repeat_key = repeat_suppression.repeat_key(owner_route)
     typed_closeout_contract = default_executor_typed_closeout_contract(action_type=action_type)
+    forbidden_surfaces = _default_executor_forbidden_surfaces(owner_route)
     prompt_contract = {
         "study_id": study_id,
         "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
@@ -346,7 +355,7 @@ def _default_executor_dispatch(
         "source_scan_latest": str(_scan_latest_path(profile)),
         "required_closeout_packet": typed_closeout_contract,
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
-        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "forbidden_surfaces": list(forbidden_surfaces),
         "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "paper_package_mutation_allowed": False,
@@ -399,7 +408,7 @@ def _default_executor_dispatch(
         "prompt_contract": prompt_contract,
         "required_closeout_packet": typed_closeout_contract,
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
-        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "forbidden_surfaces": list(forbidden_surfaces),
         "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
     }
     owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
