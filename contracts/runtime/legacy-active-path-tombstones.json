@@ -30,6 +30,38 @@
       "retained_context": "history, tombstone, or explicit offline fixture reference only"
     }
   ],
+  "legacy_control_receipt_exclusion_policy": {
+    "surface_id": "paper_work_unit_outbox_legacy_control_receipt_exclusion",
+    "status": "active_tombstone_provenance_filter",
+    "applies_to": "paper_work_unit_outbox_duplicate_source_fingerprint_guard",
+    "marker_source": "retired private control surface identifiers in this tombstone contract",
+    "source_fields": [
+      "action_type",
+      "lane",
+      "worker_start_ref",
+      "intent"
+    ],
+    "legacy_markers": [
+      "runtime_supervisor",
+      "runtime-supervisor",
+      "runtime supervisor-",
+      "portable_runtime_supervisor_scan",
+      "supervision_scheduler",
+      "mas_supervision_scheduler",
+      "supervisor-scan",
+      "supervisor-consume",
+      "supervisor-execute-dispatch",
+      "runtime_platform_repair"
+    ],
+    "authority_boundary": {
+      "read_only": true,
+      "history_provenance_only": true,
+      "can_create_runtime_entrypoint": false,
+      "can_claim_generic_runtime_owner": false,
+      "can_write_domain_truth": false,
+      "can_authorize_publication_quality": false
+    }
+  },
   "no_active_default_caller_proof": {
     "active_default_callers": [],
     "default_cli_mcp_product_entry_or_skill_caller_count": 0,

@@ -12,6 +12,9 @@ from med_autoscience.runtime_protocol import domain_authority_refs_index
 SCHEMA_VERSION = 1
 RECEIPTS_RELATIVE_PATH = Path("artifacts/runtime/paper_work_unit_outbox/receipts.jsonl")
 WORKER_STARTS_RELATIVE_PATH = Path("artifacts/runtime/paper_work_unit_outbox/worker_starts.jsonl")
+LEGACY_TOMBSTONE_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[3] / "contracts" / "runtime" / "legacy-active-path-tombstones.json"
+)
 
 
 def enqueue_paper_work_unit(
@@ -228,11 +231,52 @@ def _started_receipt_for_source_fingerprint(
     source_fingerprint: str,
 ) -> dict[str, Any] | None:
     for receipt in receipts:
+        if _is_legacy_private_control_receipt(receipt):
+            continue
         if _text(receipt.get("source_fingerprint")) != source_fingerprint:
             continue
         if receipt.get("started_worker") is True and _text(receipt.get("worker_start_ref")) is not None:
             return receipt
     return None
+
+
+def _is_legacy_private_control_receipt(receipt: Mapping[str, Any]) -> bool:
+    markers = _legacy_control_receipt_markers()
+    if not markers:
+        return False
+    rendered = _stable_json(_legacy_control_receipt_payload(receipt))
+    return any(marker in rendered for marker in markers)
+
+
+def _legacy_control_receipt_payload(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    intent = receipt.get("intent")
+    return {
+        "action_type": receipt.get("action_type"),
+        "lane": receipt.get("lane"),
+        "worker_start_ref": receipt.get("worker_start_ref"),
+        "intent": intent if isinstance(intent, Mapping) else {},
+    }
+
+
+def _legacy_control_receipt_markers() -> tuple[str, ...]:
+    policy = _legacy_control_receipt_exclusion_policy()
+    if policy.get("status") != "active_tombstone_provenance_filter":
+        return ()
+    boundary = policy.get("authority_boundary")
+    if not isinstance(boundary, Mapping) or boundary.get("history_provenance_only") is not True:
+        return ()
+    return tuple(marker for marker in _string_list(policy.get("legacy_markers")) if marker)
+
+
+def _legacy_control_receipt_exclusion_policy() -> dict[str, Any]:
+    try:
+        contract = json.loads(LEGACY_TOMBSTONE_CONTRACT_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(contract, Mapping):
+        return {}
+    policy = contract.get("legacy_control_receipt_exclusion_policy")
+    return dict(policy) if isinstance(policy, Mapping) else {}
 
 
 def _append_jsonl(path: Path, payload: Mapping[str, Any]) -> None:
@@ -279,6 +323,12 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = value.strip() if isinstance(value, str) else ""
     return text or None
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in (_text(entry) for entry in value) if item is not None]
 
 
 def _require_text(label: str, value: object) -> str:

@@ -6,6 +6,9 @@ import sqlite3
 from pathlib import Path
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
 def _intent(*, unit_id: str = "analysis_claim_evidence_repair", target: str = "claim:C1") -> dict[str, object]:
     return {
         "study_id": "001-risk",
@@ -20,6 +23,17 @@ def _intent(*, unit_id: str = "analysis_claim_evidence_repair", target: str = "c
             "target": target,
         },
     }
+
+
+def _legacy_control_marker() -> str:
+    contract = json.loads(
+        (REPO_ROOT / "contracts" / "runtime" / "legacy-active-path-tombstones.json").read_text(encoding="utf-8")
+    )
+    policy = contract["legacy_control_receipt_exclusion_policy"]
+    assert policy["applies_to"] == "paper_work_unit_outbox_duplicate_source_fingerprint_guard"
+    markers = policy["legacy_markers"]
+    assert markers
+    return markers[0]
 
 
 def test_enqueue_replays_semantically_equivalent_receipt_for_same_idempotency_key_and_intent(
@@ -134,6 +148,48 @@ def test_enqueue_suppresses_duplicate_worker_start_for_same_source_fingerprint(t
     assert duplicate_source["worker_start_ref"] == "worker::run-001"
     assert duplicate_source["duplicate_of_receipt_id"] == first["receipt_id"]
     assert [item["worker_start_ref"] for item in outbox.worker_starts(study_root=study_root)] == ["worker::run-001"]
+
+
+def test_tombstoned_legacy_control_receipt_does_not_suppress_current_worker_start(tmp_path: Path) -> None:
+    outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    retired_marker = _legacy_control_marker()
+
+    outbox.enqueue_paper_work_unit(
+        study_root=study_root,
+        quest_root=quest_root,
+        idempotency_key="paper-work-unit::legacy",
+        intent={
+            **_intent(),
+            "action_type": retired_marker,
+            "retired_surface_marker": retired_marker,
+        },
+        worker_start_ref=f"controller-apply::{retired_marker}::legacy",
+        recorded_at="2026-05-10T00:00:00+00:00",
+    )
+
+    current = outbox.enqueue_paper_work_unit(
+        study_root=study_root,
+        quest_root=quest_root,
+        idempotency_key="paper-work-unit::current",
+        intent={
+            **_intent(unit_id="opl_stage_attempt_admission"),
+            "action_type": "request_opl_stage_attempt",
+            "owner": "one-person-lab",
+            "callable_surface": "opl_stage_attempt.request_admission",
+        },
+        worker_start_ref="opl-worker::current",
+        recorded_at="2026-05-10T00:01:00+00:00",
+    )
+
+    assert current["receipt_status"] == "started"
+    assert current["started_worker"] is True
+    assert current["worker_start_ref"] == "opl-worker::current"
+    assert [item["worker_start_ref"] for item in outbox.worker_starts(study_root=study_root)] == [
+        f"controller-apply::{retired_marker}::legacy",
+        "opl-worker::current",
+    ]
 
 
 def test_repeat_suppression_does_not_block_owner_handoff_dispatch_or_execution() -> None:
