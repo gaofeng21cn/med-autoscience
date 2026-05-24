@@ -418,7 +418,7 @@ def test_current_medical_prose_review_routeback_bypasses_repeat_suppression_for_
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

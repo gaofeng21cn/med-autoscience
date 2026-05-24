@@ -134,7 +134,7 @@ def test_execute_dispatch_runs_current_package_freshness_when_stalled_and_previo
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -372,7 +372,7 @@ def test_execute_dispatch_reruns_when_freshness_proof_source_eval_is_stale(
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

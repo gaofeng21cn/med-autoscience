@@ -84,7 +84,7 @@ def test_execute_dispatch_accepts_current_action_queue_owner_route(monkeypatch, 
     dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -219,7 +219,7 @@ def test_execute_dispatch_blocks_retired_runtime_platform_repair_before_stall_cu
     _write_json(dispatch_path, dispatch)
     _write_scan_latest(profile, study_id, dict(dispatch["owner_route"]))
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

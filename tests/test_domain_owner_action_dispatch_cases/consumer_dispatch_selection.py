@@ -6,6 +6,7 @@ from pathlib import Path
 
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
+    owner_route as _owner_route,
     write_json as _write_json,
     write_scan_latest as _write_scan_latest,
 )
@@ -233,3 +234,157 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
     assert execution["blocked_reason"] is None
     assert execution["owner_route"]["work_unit_fingerprint"] == "truth-snapshot::current-ai-reviewer"
     assert called == [str(study_root)]
+
+
+def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_stale_consumer_inline(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    quest_root = profile.runtime_root / f"quest-{study_id}"
+    quest_root.mkdir(parents=True, exist_ok=True)
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    route.update(
+        {
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "work_unit_fingerprint": "dm002-current-write-handoff",
+            "idempotency_key": "owner-route::dm002::current-write-handoff",
+        }
+    )
+    stale_stall = {
+        "surface_kind": "paper_progress_stall",
+        "terminal": True,
+        "action_fingerprint": "paper_progress_stall::legacy-inline",
+    }
+    stale_consumer_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    stale_consumer_dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
+    stale_consumer_dispatch["paper_progress_stall"] = stale_stall
+    stale_consumer_dispatch["prompt_contract"]["paper_progress_stall"] = stale_stall
+    stale_consumer_dispatch["action_id"] = "legacy-inline-dispatch"
+
+    persisted_handoff = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    persisted_handoff["refs"] = {"dispatch_path": str(dispatch_path)}
+    persisted_handoff["dispatch_authority"] = "quality_repair_batch_writer_handoff"
+    persisted_handoff["source_action"] = {
+        "surface": "quality_repair_batch",
+        "blocked_reason": "manuscript_story_surface_delta_missing",
+        "next_work_unit": {"unit_id": "medical_prose_write_repair", "lane": "write"},
+    }
+    persisted_handoff["medical_claim_authoring_allowed"] = True
+    persisted_handoff["prompt_contract"]["medical_claim_authoring_allowed"] = True
+    persisted_handoff["prompt_contract"]["allowed_write_surfaces"] = [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    ]
+    persisted_handoff["prompt_contract"]["forbidden_surfaces"] = [
+        "manuscript/**",
+        "current_package/**",
+        "paper/current_package/**",
+        "manuscript/current_package/**",
+        "src/med_autoscience/platform/**",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+    ]
+    _write_json(dispatch_path, persisted_handoff)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "quality_repair_batch" / "latest.json",
+        {
+            "request_kind": "run_quality_repair_batch",
+            "status": "requested",
+            "study_id": study_id,
+            "request_owner": "write",
+            "expected_owner": "write",
+            "next_executable_owner": "write",
+            "dispatch_authority": "quality_repair_batch_writer_handoff",
+            "owner_route": route,
+        },
+    )
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "paper_progress_stall": stale_stall,
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [stale_consumer_dispatch],
+        },
+    )
+    monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
+    called: dict[str, object] = {}
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert execution["prompt_contract"]["medical_claim_authoring_allowed"] is True
+    assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
+    assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"

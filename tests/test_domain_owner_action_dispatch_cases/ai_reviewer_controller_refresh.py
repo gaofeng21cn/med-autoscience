@@ -251,7 +251,7 @@ def test_refresh_controller_decision_prepares_opl_runtime_owner_handoff(
         raise AssertionError("MAS must not resume OPL-owned runtime workers")
 
     monkeypatch.setattr(outer_loop, "materialize_non_dispatching_outer_loop_decision", fake_materialize_non_dispatching_outer_loop_decision)
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -430,7 +430,7 @@ def test_refresh_controller_decision_redrives_existing_pending_user_messages(
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -577,7 +577,7 @@ def test_refresh_controller_decision_preserves_live_worker_state(
         raise AssertionError("MAS must not touch a live OPL-owned worker")
 
     monkeypatch.setattr(outer_loop, "materialize_non_dispatching_outer_loop_decision", fake_materialize_non_dispatching_outer_loop_decision)
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,

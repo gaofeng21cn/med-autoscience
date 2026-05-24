@@ -335,7 +335,7 @@ def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_pa
     dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -469,7 +469,7 @@ def test_execute_dispatch_does_not_empty_spin_consumed_quality_repair_writer_han
     dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -590,7 +590,7 @@ def test_quality_repair_writer_handoff_rejects_package_write_surface(
     dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -677,7 +677,7 @@ def test_quality_repair_writer_handoff_retries_after_guard_block(
     dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
     _write_json(dispatch_path, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

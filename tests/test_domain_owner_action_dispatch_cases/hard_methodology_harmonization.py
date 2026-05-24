@@ -66,7 +66,7 @@ def test_execute_dispatch_hands_terminal_hard_methodology_route_to_analysis_owne
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -208,7 +208,7 @@ def test_explicit_harmonization_dispatch_survives_empty_consumer_latest_with_own
         }
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -307,7 +307,7 @@ def test_execute_dispatch_hands_model_provenance_route_to_source_owner(
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -440,7 +440,7 @@ def test_execute_dispatch_routes_terminal_source_provenance_blocker_to_decision_
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -637,7 +637,7 @@ def test_execute_dispatch_materializes_provenance_limited_harmonization_audit(
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

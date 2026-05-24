@@ -102,7 +102,7 @@ def dispatch(
 
 def write_scan_latest(profile, study_id: str, owner_route: dict[str, object]) -> None:
     write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

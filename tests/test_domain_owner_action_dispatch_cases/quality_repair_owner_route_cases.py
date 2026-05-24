@@ -65,7 +65,7 @@ def test_execute_quality_repair_batch_from_persisted_dispatch_and_owner_request(
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -224,7 +224,7 @@ def test_execute_quality_repair_batch_honors_write_owner_route_despite_terminal_
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -341,7 +341,7 @@ def test_execute_quality_repair_batch_uses_current_terminal_stall_when_dispatch_
     )
     _write_json(dispatch_path, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -494,7 +494,7 @@ def test_execute_quality_repair_batch_allows_registered_dm002_write_route_under_
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -629,7 +629,7 @@ def test_execute_quality_repair_batch_prefers_fresh_persisted_dispatch_over_stal
         },
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

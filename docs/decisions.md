@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-24：request-bound writer handoff 优先于同路径 stale consumer inline
+
+- 决策：`domain-owner-action-dispatch` 处理同一 `refs.dispatch_path`、同一 `action_type=run_quality_repair_batch` 的 consumer inline dispatch 与 study-local persisted dispatch 时，若 persisted dispatch 是 `quality_repair_batch_writer_handoff`，并且同一 study 的 `artifacts/supervision/requests/quality_repair_batch/latest.json` 证明该 request 仍为当前 write-owner request，则必须选择 persisted writer handoff。旧 consumer inline 不能仅因仍匹配 `paper_progress_stall` 指纹而压过当前 request-bound handoff。
+- 决策：该优先级只适用于 `next_executable_owner=write`、`source_action.surface=quality_repair_batch`、`blocked_reason=manuscript_story_surface_delta_missing`、owner route 允许 `run_quality_repair_batch` 的 writer handoff。其他 action、其他 owner、无 owner request、publication verdict、delivery/package/current-package 写入仍走原 currentness selection 和 fail-closed guard。
+- 理由：DM002 暴露出 study-local `run_quality_repair_batch.json` 已经是允许 canonical paper story surface 写入的 writer handoff，但 workspace consumer latest 仍保留旧 inline payload：禁 `paper/**`、`medical_claim_authoring_allowed=false`。dispatcher 选择旧 inline 后返回 `forbidden_surfaces_incomplete`，导致合法 write-owner handoff 无法进入 MAS callable。根因是 MAS dispatcher selection 把旧 projection stall currentness 当成了 owner request currentness，不是 OPL queue/provider lifecycle，也不是单篇 paper surface 可手工修补的问题。
+- 影响：这是 MAS owner-dispatch read-model/currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只保证当前 owner-authorized writer handoff 能进入 MAS quality repair callable；论文质量、publishability 和 package freshness 仍由 canonical manuscript delta、AI reviewer-backed eval、publication gate 与后续 owner receipt 判定。
+
 ## 2026-05-24：default-executor task identity 必须绑定 owner-route source fingerprint
 
 - 决策：`domain_owner/default-executor-dispatch` 的 OPL queue `dedupe_key` 必须包含 MAS owner-route `source_fingerprint`。同一 study、action type 和 dispatch authority 下，只要 owner-route currentness、runtime-health epoch、work-unit fingerprint 或源证据版本变化，`sidecar export` 必须生成不同 dedupe identity，让 OPL 可重新水合当前 owner-authorized attempt。

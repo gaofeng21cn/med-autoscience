@@ -81,7 +81,7 @@ def test_execute_dispatch_uses_pending_ai_reviewer_request_when_scan_route_loses
         "idempotency_key": "owner-route::003::truth-event-000010::none::none::ce59b7999efe6df2",
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

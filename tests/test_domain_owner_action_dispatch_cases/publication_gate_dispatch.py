@@ -196,7 +196,7 @@ def test_execute_dispatch_runs_publication_gate_owner_when_terminal_stall_handof
     )
     _write_current_dispatch(dispatch_path, profile, dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

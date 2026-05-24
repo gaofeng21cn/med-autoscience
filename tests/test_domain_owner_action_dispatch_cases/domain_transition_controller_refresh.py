@@ -123,7 +123,7 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -269,7 +269,7 @@ def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_f
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -424,8 +424,8 @@ def test_refresh_domain_transition_forces_fresh_turn_when_live_prompt_is_stale(
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime)
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fake_request_opl_stage_attempt)
+    monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime, raising=False)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fake_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
@@ -568,8 +568,8 @@ def test_refresh_domain_transition_does_not_restart_when_live_prompt_matches_aut
         "materialize_non_dispatching_outer_loop_decision",
         fake_materialize_non_dispatching_outer_loop_decision,
     )
-    monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime)
-    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt)
+    monkeypatch.setattr(module.domain_status_projection, "pause_study_runtime", fail_pause_study_runtime, raising=False)
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
 
     result = module.refresh_controller_decisions_for_current_publication_eval(
         profile=profile,
