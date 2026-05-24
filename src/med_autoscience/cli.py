@@ -16,6 +16,7 @@ from med_autoscience.cli_public_surface import (
     normalize_public_command_argv,
 )
 from med_autoscience.figure_routes import supported_required_route_help
+from med_autoscience.json_payload import json_safe
 from med_autoscience.medical_prose_review_request import materialize_ai_medical_prose_review_from_response
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
@@ -163,10 +164,18 @@ def _load_json_object_file(path: str | Path) -> dict[str, object]:
 
 def _serialize_study_runtime_result(result: Any) -> dict[str, Any]:
     if isinstance(result, dict):
-        return dict(result)
+        payload = dict(result)
+        safe_payload = json_safe(payload)
+        if not isinstance(safe_payload, dict):
+            raise TypeError("study runtime controller result must serialize to a dict")
+        return safe_payload
     study_runtime_types = _load_controller("study_runtime_types")
     if isinstance(result, study_runtime_types.ProgressProjectionStatus):
-        return result.to_dict()
+        payload = result.to_dict()
+        safe_payload = json_safe(payload)
+        if not isinstance(safe_payload, dict):
+            raise TypeError("study runtime controller result must serialize to a dict")
+        return safe_payload
     raise TypeError("study runtime controller result must be dict or ProgressProjectionStatus")
 
 

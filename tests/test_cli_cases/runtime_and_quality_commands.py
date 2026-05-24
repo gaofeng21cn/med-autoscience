@@ -253,6 +253,43 @@ def test_progress_projection_command_serializes_typed_controller_result(monkeypa
     assert exit_code == 0
     assert '"decision": "noop"' in captured.out
     assert '"study_id": "001-risk"' in captured.out
+def test_progress_projection_command_serializes_nested_path_values(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    monkeypatch.setattr(
+        cli.domain_status_projection,
+        "progress_projection",
+        lambda **kwargs: {
+            "decision": "blocked",
+            "study_id": kwargs["study_id"],
+            "publication_supervisor_state": {
+                "surface_refs": [
+                    {
+                        "path": tmp_path / "workspace" / "studies" / "001-risk" / "paper" / "draft.md",
+                    }
+                ],
+            },
+        },
+    )
+
+    exit_code = cli.main(
+        [
+            "progress-projection",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["publication_supervisor_state"]["surface_refs"][0]["path"].endswith(
+        "/workspace/studies/001-risk/paper/draft.md"
+    )
 def test_quality_repair_batch_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

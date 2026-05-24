@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.json_payload import json_safe
 from med_autoscience.mcp_server_parts.study_progress_projection import (
     compact_open_auto_research_soak_for_mcp,
     compact_study_progress_projection,
@@ -15,12 +16,17 @@ from .tool_result_rendering import json_text, tool_text_result
 
 def serialize_study_runtime_result(result: dict[str, Any] | Any) -> dict[str, Any]:
     if isinstance(result, dict):
-        return dict(result)
+        payload = dict(result)
+        safe_payload = json_safe(payload)
+        if isinstance(safe_payload, dict):
+            return safe_payload
     to_dict = getattr(result, "to_dict", None)
     if callable(to_dict):
         payload = to_dict()
         if isinstance(payload, dict):
-            return dict(payload)
+            safe_payload = json_safe(payload)
+            if isinstance(safe_payload, dict):
+                return safe_payload
     raise TypeError("study runtime controller result must be dict or ProgressProjectionStatus")
 
 
