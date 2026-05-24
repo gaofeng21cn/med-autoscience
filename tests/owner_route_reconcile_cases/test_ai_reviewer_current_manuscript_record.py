@@ -356,3 +356,179 @@ def test_record_production_domain_transition_supersedes_stale_story_surface_bloc
     assert study["next_owner"] == "ai_reviewer"
     assert study["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+
+
+def test_record_production_domain_transition_survives_opl_admission_wait(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    reconcile = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text("# Draft\n\nCurrent manuscript with updated intervals.\n", encoding="utf-8")
+    stale_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260522T223001Z_publication_eval_record.json"
+    )
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::stale-record",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": {"medical_journal_prose_quality": {"status": "blocked"}},
+        "recommended_actions": [
+            {
+                "action_id": "return-to-write",
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "work_unit_fingerprint": "stale-write-route",
+                "next_work_unit": {
+                    "unit_id": "dm002_same_line_publication_paper_repair",
+                    "lane": "write",
+                    "summary": "Old write route that must not outrank current AI reviewer record production.",
+                },
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                "stale_record_ref": str(stale_record_path),
+                "required_currentness_refs": [str(manuscript_path)],
+            },
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(manuscript_path), "present": True, "valid": True},
+                    "evidence_ledger": {
+                        "path": str(study_root / "paper" / "evidence_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "review_ledger": {
+                        "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "study_charter": {
+                        "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_manuscript_blueprint": {
+                        "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "claim_evidence_map": {
+                        "path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_prose_review": {
+                        "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "publication_gate_projection": {
+                        "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                },
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "owner": "ai_reviewer",
+            "next_work_unit": {
+                "unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "lane": "review",
+                "summary": "Produce a current AI reviewer publication-eval record before dispatching the publication-eval workflow.",
+            },
+        },
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-event-dm002-admission",
+            "canonical_runtime_action": "external_supervisor_required",
+            "attempt_state": "escalated",
+            "retry_budget_remaining": 0,
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002-admission",
+            "source_signature": "truth-snapshot-dm002-admission",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_runtime_escalated",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "quality_review_loop": {"closure_state": "review_required"},
+    }
+    monkeypatch.setattr(
+        reconcile,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = reconcile.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    action = study["action_queue"][0]
+    assert action["reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert action["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert action["record_only_surface"] is True
+    assert study["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert study["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["owner_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert study["owner_route"]["owner_reason_contract"]["registered"] is True
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert study["owner_route"]["owner_route_attempt_protocol"]["dispatchable"] is True

@@ -26,6 +26,9 @@
         "mcp",
         "skill",
         "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
         "sidecar",
         "status",
         "workbench",
@@ -1302,11 +1305,10 @@
         "mcp",
         "skill",
         "product_entry",
-        "sidecar",
-        "status",
-        "workbench",
-        "projection_shell",
-        "test_lane_harness"
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
+        "workbench"
       ],
       "mas_handwritten_shell_default_caller_allowed": false,
       "mas_handwritten_shell_expansion_allowed": false,
@@ -1327,7 +1329,7 @@
           "product_entry",
           "product_status",
           "product_session",
-          "sidecar",
+          "domain_action_adapter",
           "workbench"
         ],
         "default_caller_owner": "one-person-lab",
@@ -1402,22 +1404,32 @@
         {
           "default_caller_owner": "one-person-lab",
           "default_runtime_owner": "one-person-lab",
-          "mas_allowed_role": "domain_owner_route_handoff_refs",
+          "mas_allowed_role": "domain_truth_status_projection",
           "mas_generic_owner_allowed": false,
-          "parity_ref": "sidecar_descriptor_parity",
+          "parity_ref": "product_status_descriptor_parity",
           "physical_delete_is_not_implied": true,
-          "surface_id": "sidecar",
-          "target_role": "opl_generated_sidecar_handoff_surface"
+          "surface_id": "product_status",
+          "target_role": "opl_generated_status_read_model_surface"
         },
         {
           "default_caller_owner": "one-person-lab",
           "default_runtime_owner": "one-person-lab",
-          "mas_allowed_role": "domain_truth_status_projection",
+          "mas_allowed_role": "domain_handler_target",
           "mas_generic_owner_allowed": false,
-          "parity_ref": "status_descriptor_parity",
+          "parity_ref": "product_session_descriptor_parity",
           "physical_delete_is_not_implied": true,
-          "surface_id": "status",
-          "target_role": "opl_generated_status_wrapper_over_mas_truth_refs"
+          "surface_id": "product_session",
+          "target_role": "opl_generated_product_session_surface"
+        },
+        {
+          "default_caller_owner": "one-person-lab",
+          "default_runtime_owner": "one-person-lab",
+          "mas_allowed_role": "domain_action_adapter",
+          "mas_generic_owner_allowed": false,
+          "parity_ref": "domain_action_adapter_descriptor_parity",
+          "physical_delete_is_not_implied": true,
+          "surface_id": "domain_action_adapter",
+          "target_role": "opl_generated_domain_action_adapter_dispatch_shell"
         },
         {
           "default_caller_owner": "one-person-lab",
@@ -1428,26 +1440,6 @@
           "physical_delete_is_not_implied": true,
           "surface_id": "workbench",
           "target_role": "opl_hosted_workbench_shell_consuming_mas_refs"
-        },
-        {
-          "default_caller_owner": "one-person-lab",
-          "default_runtime_owner": "one-person-lab",
-          "mas_allowed_role": "domain_projection_builder",
-          "mas_generic_owner_allowed": false,
-          "parity_ref": "projection_descriptor_parity",
-          "physical_delete_is_not_implied": true,
-          "surface_id": "projection_shell",
-          "target_role": "opl_generated_projection_shell"
-        },
-        {
-          "default_caller_owner": "one-person-lab",
-          "default_runtime_owner": "one-person-lab",
-          "mas_allowed_role": "focused_contract_harness",
-          "mas_generic_owner_allowed": false,
-          "parity_ref": "test_lane_harness_parity",
-          "physical_delete_is_not_implied": true,
-          "surface_id": "test_lane_harness",
-          "target_role": "opl_generated_harness_consumer_over_mas_pack"
         }
       ],
       "surface_kind": "mas_generated_default_caller_boundary"
@@ -1507,6 +1499,16 @@
           "current_role": "domain_owner_route_refs_export_dispatch_source",
           "surface_id": "sidecar",
           "target_role": "opl_generated_sidecar_handoff_surface"
+        },
+        {
+          "current_paths": [
+            "src/med_autoscience/controllers/owner_route_reconcile.py",
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          ],
+          "current_role": "domain_action_adapter",
+          "surface_id": "domain_action_adapter_export_dispatch",
+          "target_role": "opl_generated_domain_action_adapter_handoff_surface"
         },
         {
           "current_paths": [
@@ -1615,6 +1617,9 @@
         "mcp",
         "skill",
         "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
         "sidecar",
         "status",
         "workbench",

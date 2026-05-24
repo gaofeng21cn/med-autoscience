@@ -58,6 +58,9 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "mcp",
         "skill",
         "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
         "sidecar",
         "status",
         "workbench",
@@ -74,12 +77,29 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert handoff["long_term_mas_owner"] is False
     assert handoff["mas_handwritten_shell_expansion_allowed"] is False
     handoff_by_id = {item["surface_id"]: item for item in handoff["handoff_surfaces"]}
-    assert set(handoff_by_id) == set(pack_input["compiler_outputs_expected"])
+    assert set(handoff_by_id) == {
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "sidecar",
+        "domain_action_adapter_export_dispatch",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    }
     assert handoff_by_id["cli"]["target_role"] == "opl_generated_command_surface"
     assert handoff_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
     assert handoff_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
     assert handoff_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
     assert handoff_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
+    assert handoff_by_id["domain_action_adapter_export_dispatch"]["current_role"] == (
+        "domain_action_adapter"
+    )
+    assert handoff_by_id["domain_action_adapter_export_dispatch"]["target_role"] == (
+        "opl_generated_domain_action_adapter_handoff_surface"
+    )
     assert handoff_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
     assert handoff_by_id["workbench"]["target_role"] == (
         "opl_hosted_workbench_shell_consuming_mas_refs"
@@ -93,13 +113,42 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert generated_default["mas_handwritten_shell_expansion_allowed"] is False
     assert generated_default["all_default_surfaces_generated"] is True
     assert generated_default["physical_delete_is_not_implied"] is True
+    readiness = generated_default["opl_default_caller_readiness_evidence"]
+    assert readiness["surface_kind"] == "mas_opl_default_caller_readiness_evidence"
+    assert readiness["source_surface_kind"] == "opl_agent_generated_default_caller_readiness_report"
+    assert readiness["status"] == "ready_domain_evidence_required"
+    assert readiness["structural_replacement_evidence_ready"] is True
+    assert readiness["replacement_parity"] == "ready"
+    assert readiness["default_surface_cutover"] == "ready"
+    assert readiness["physical_delete_authorized"] is False
+    assert readiness["authority_boundary"]["can_claim_domain_ready"] is False
+    assert readiness["authority_boundary"]["can_claim_quality_verdict"] is False
+    assert readiness["authority_boundary"]["can_authorize_physical_delete"] is False
+    assert generated_default["default_caller_surfaces"] == [
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
+        "workbench",
+    ]
     generated_surfaces = {
         item["surface_id"]: item for item in generated_default["surface_boundaries"]
     }
     assert set(generated_surfaces) == set(generated_default["default_caller_surfaces"])
     assert generated_surfaces["mcp"]["parity_ref"] == "mcp_descriptor_parity"
-    assert generated_surfaces["sidecar"]["mas_allowed_role"] == "domain_owner_route_handoff_refs"
-    assert generated_surfaces["status"]["mas_allowed_role"] == "domain_truth_status_projection"
+    assert generated_surfaces["product_entry"]["default_caller_owner"] == "one-person-lab"
+    assert generated_surfaces["product_status"]["mas_allowed_role"] == (
+        "domain_truth_status_projection"
+    )
+    assert generated_surfaces["product_session"]["mas_allowed_role"] == "domain_handler_target"
+    assert generated_surfaces["domain_action_adapter"]["mas_allowed_role"] == "domain_action_adapter"
+    assert generated_surfaces["domain_action_adapter"]["parity_ref"] == (
+        "domain_action_adapter_descriptor_parity"
+    )
+    assert generated_surfaces["workbench"]["mas_allowed_role"] == "domain_projection_refs"
     assert all(item["mas_generic_owner_allowed"] is False for item in generated_surfaces.values())
 
     authority = boundary["minimal_authority_function_manifest"]
@@ -120,7 +169,20 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     ]
     assert authority["function_count"] == 7
     assert authority["all_other_program_surfaces"] == "opl_generated_or_domain_refs_projection_source"
-
+    assert authority["forbidden_long_term_mas_shell_owners"] == [
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
     classification = boundary["functional_surface_classification"]
     assert set(classification) == {
         "declarative_pack_generated_surface",

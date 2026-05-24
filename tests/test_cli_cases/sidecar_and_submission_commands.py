@@ -797,9 +797,11 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     assert '"selected_action": "noop"' in captured.out
     assert '"supervision_bootstrap"' in captured.out
     assert '"manager": "opl"' in captured.out
+    assert '"effect": "refs_only"' in captured.out
     assert '"trigger_now": false' in captured.out
+    assert '"mas_runtime_scheduler_not_active_callable"' in captured.out
     assert '"write_install_proof": true' not in captured.out
-    assert '"requested_write_install_proof": true' in captured.out
+    assert '"requested_write_install_proof": true' not in captured.out
     assert '"impact_report"' in captured.out
     assert '"startup_data_readiness"' in captured.out
     assert '"studies"' not in captured.out

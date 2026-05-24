@@ -1,12 +1,14 @@
 # OPL Temporal MAS Runtime Retirement Program
 
-Status: `production_residency_proof_landed; mas_proof_ingestion_landed; watchdog_kernel_migrated; live_paper_apply_pending; content-level owner doc`
+Status: `history_provenance`
 Date: `2026-05-14`
 Owner: `MedAutoScience domain owner receipts + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL stage-led、以 Agent executor 为最小执行单位 runtime framework 之间的边界、优先级和退役门槛。
-State: `active_support`
+State: `history_provenance`
 Machine boundary: 本文是人读 program owner。MAS 机器真相继续归 controller/domain-authority refs surfaces、sidecar receipts、durable schemas、CLI/API behavior 和 live workspace evidence；OPL provider contracts、current-control-state 与 attempt ledgers 持有 runtime 控制面。
-完整历史记录：[2026-05-11 OPL Temporal MAS Runtime Retirement full record](../history/program/opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)。
+完整历史记录：[2026-05-11 OPL Temporal MAS Runtime Retirement full record](./opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)。
+
+Current owner surfaces: [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md), [MAS 当前开发线路](../../active/current-development-lines.md), and [Runtime Boundary](../../runtime/contracts/runtime_boundary.md).
 
 ## 当前角色
 

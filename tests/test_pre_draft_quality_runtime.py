@@ -5,6 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from tests.reviewer_os_fixture_helpers import (
+    claim_evidence_alignment_digest,
+    ready_claim_evidence_alignment_gate,
+)
+
 
 REQUIRED_READINESS_IDS = [
     "clinical_question",
@@ -170,6 +175,10 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
         }
         for dimension in dimensions
     }
+    claim_alignment = ready_claim_evidence_alignment_gate(
+        claim_evidence_map_ref=input_bundle["claim_evidence_map"],
+        evidence_ledger_ref=input_bundle["evidence_ledger"],
+    )
     return {
         "contract_id": "medical_publication_ai_reviewer_os_v1",
         "input_bundle": input_bundle,
@@ -196,6 +205,22 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
                 "status": "fresh",
                 "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-01T00:00:00+00:00",
             },
+        },
+        "claim_evidence_alignment": claim_alignment,
+        "publication_quality_readiness": {
+            "surface_kind": "publication_quality_authority_kernel_v1",
+            "status": "ready",
+            "current_manuscript_digest": "sha256:test-manuscript",
+            "review_request_digest": "sha256:test-medical-prose-review-request",
+            "evidence_ledger_digest": "sha256:" + "d" * 64,
+            "claim_evidence_alignment_digest": claim_evidence_alignment_digest(claim_alignment),
+            "rubric_version": "medical_publication_critique_v1",
+            "owner_attempt_id": (
+                "ai-reviewer-publication-eval::"
+                "publication-eval::001-risk::quest-001::2026-05-01T00:00:00+00:00"
+            ),
+            "fail_closed_when_missing": True,
+            "missing_required_fields": [],
         },
         "future_facing_limitations_plan": [
             {

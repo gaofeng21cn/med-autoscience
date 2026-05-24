@@ -499,3 +499,16 @@ _JOURNAL_REQUIRED_REVIEWER_OUTPUTS: dict[str, tuple[tuple[str, str], ...]] = {
         ("owner_receipt_ref", "mas_analysis_owner_receipt_or_typed_blocker"),
     ),
 }
+
+_REVIEWER_PRECOMMITMENT_PACK_IDS: tuple[str, ...] = (
+    "ai_native_expert_judgment_pack",
+    "medical_claim_evidence_pack",
+    "journal_response_pack",
+    "data_availability_fair_pack",
+    "citation_integrity_pack",
+    "figure_evidence_contract_pack",
+    "manuscript_argument_pack",
+    "paper_reader_grounding_pack",
+    "paper_presentation_pack",
+    "statistical_reporting_pack",
+)

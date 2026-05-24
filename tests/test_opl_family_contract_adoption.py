@@ -328,7 +328,11 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["generated_or_hosted_surfaces"] == [
         "CLI",
         "MCP",
+        "Skill",
         "product-entry",
+        "product-status",
+        "product-session",
+        "domain-action-adapter",
         "sidecar",
         "status",
         "workbench",
@@ -349,7 +353,11 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["forbidden_long_term_mas_shell_owners"] == [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
         "sidecar",
         "status",
         "workbench",
@@ -382,6 +390,7 @@ def test_mas_ars_learning_projection_declares_external_patterns_without_boundary
         "claim_citation_support_audit",
         "data_access_and_oversight_metadata",
         "evidence_handoff_passport",
+        "medical_material_passport_source_handoff",
     ]
     assert projection["maps_to_opl_shared_primitive"] == "family-stage-integrity-metadata.v1"
     assert projection["mas_role"] == "domain_projection_and_thin_adapter_only"
@@ -398,6 +407,25 @@ def test_mas_ars_learning_projection_declares_external_patterns_without_boundary
         "review_ledger_body",
         "publication_verdict_body",
         "paper_or_package_blob",
+    }
+    assert projection["source_adapter_contract"] == {
+        "surface_kind": "mas_source_adapter_output",
+        "schema_version": "mas-source-adapter-output.v1",
+        "contract_ref": "med_autoscience.medical_material_passport.build_source_adapter_output",
+        "records_write_mas_truth": False,
+        "always_emit_rejection_log": True,
+        "closed_reasons": [
+            "missing_required_field",
+            "invalid_field_format",
+            "duplicate_citation_key",
+            "unresolvable_source_pointer",
+            "year_unparseable",
+            "authors_unparseable",
+            "adapter_error",
+            "other",
+        ],
+        "entry_level_reject_continues": True,
+        "adapter_level_failure_loud": True,
     }
     assert projection["authority_boundary"] == {
         "ars_role": "external_pattern_source_only",

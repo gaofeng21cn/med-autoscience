@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from tests.reviewer_os_fixture_helpers import claim_evidence_map_payload, evidence_ledger_payload, review_ledger_payload
+
 
 def _sha256_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -264,6 +266,31 @@ def _write_ai_reviewer_currentness_inputs(
             "current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
         },
     )
+    _write_ai_reviewer_alignment_inputs(study_root)
+
+
+def _write_ai_reviewer_alignment_inputs(study_root: Path, *, evidence_id: str = "evidence-primary") -> None:
+    refs = _refs(study_root)
+    _write_json(Path(refs["claim_evidence_map"]), claim_evidence_map_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(
+        Path(refs["evidence_ledger"]),
+        evidence_ledger_payload(evidence_ledger_ref=refs["evidence_ledger"], evidence_id=evidence_id),
+    )
+    _write_json(Path(refs["review_ledger"]), review_ledger_payload(revision_log_path=study_root / "paper" / "revision_log.json"))
+    _write_json(
+        Path(refs["study_charter"]),
+        {
+            "charter_id": "charter::001-risk::v1",
+            "publication_objective": "Submit a clinically restrained manuscript.",
+        },
+    )
+    _write_json(
+        Path(refs["publication_gate_projection"]),
+        {
+            "surface": "publication_gate_projection",
+            "status": "ready",
+        },
+    )
 
 
 def _write_relative_ai_reviewer_currentness_inputs(
@@ -314,6 +341,28 @@ def _write_relative_ai_reviewer_currentness_inputs(
             "current_package_zip": "manuscript/current_package.zip",
         },
     )
+    _write_relative_ai_reviewer_alignment_inputs(study_root)
+
+
+def _write_relative_ai_reviewer_alignment_inputs(study_root: Path) -> None:
+    refs = _relative_refs()
+    _write_json(study_root / refs["claim_evidence_map"], claim_evidence_map_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(study_root / refs["evidence_ledger"], evidence_ledger_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(study_root / refs["review_ledger"], review_ledger_payload(revision_log_path="paper/revision_log.json"))
+    _write_json(
+        study_root / refs["study_charter"],
+        {
+            "charter_id": "charter::001-risk::v1",
+            "publication_objective": "Submit a clinically restrained manuscript.",
+        },
+    )
+    _write_json(
+        study_root / refs["publication_gate_projection"],
+        {
+            "surface": "publication_gate_projection",
+            "status": "ready",
+        },
+    )
 
 
 def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer_os_trace(
@@ -358,18 +407,25 @@ def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer
     ] == latest["eval_id"]
     quality_readiness = latest["reviewer_operating_system"]["publication_quality_readiness"]
     prose_currentness = latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
+    alignment_gate = latest["reviewer_operating_system"]["claim_evidence_alignment"]
+    assert alignment_gate["status"] == "ready"
+    assert alignment_gate["claim_count"] == 1
+    assert alignment_gate["aligned_claim_count"] == 1
+    assert alignment_gate["may_authorize_quality_verdict"] is False
     assert quality_readiness == {
         "surface_kind": "publication_quality_authority_kernel_v1",
         "status": "ready",
         "current_manuscript_digest": prose_currentness["manuscript_digest"],
         "review_request_digest": prose_currentness["request_digest"],
         "evidence_ledger_digest": quality_readiness["evidence_ledger_digest"],
+        "claim_evidence_alignment_digest": quality_readiness["claim_evidence_alignment_digest"],
         "rubric_version": "medical_publication_critique_v1",
         "owner_attempt_id": quality_readiness["owner_attempt_id"],
         "fail_closed_when_missing": True,
         "missing_required_fields": [],
     }
     assert quality_readiness["evidence_ledger_digest"].startswith("sha256:")
+    assert quality_readiness["claim_evidence_alignment_digest"].startswith("sha256:")
     assert quality_readiness["owner_attempt_id"].startswith("ai-reviewer-publication-eval::")
     assert latest["reviewer_operating_system"]["route_back_decision"] == {
         "recommended_action": "continue_same_line",
@@ -547,6 +603,39 @@ def test_ai_reviewer_publication_eval_workflow_fails_closed_when_required_ref_mi
         assert "missing input ref for publication_gate_projection" in str(exc)
     else:
         raise AssertionError("workflow accepted incomplete reviewer OS input refs")
+
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_ai_reviewer_publication_eval_workflow_fails_closed_when_claim_alignment_blocks(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    _write_ai_reviewer_currentness_inputs(study_root)
+    _write_ai_reviewer_alignment_inputs(study_root, evidence_id="evidence-renamed")
+
+    try:
+        module.run_ai_reviewer_publication_eval_workflow(
+            study_root=study_root,
+            manuscript_ref=refs["manuscript"],
+            evidence_ref=refs["evidence_ledger"],
+            review_ref=refs["review_ledger"],
+            charter_ref=refs["study_charter"],
+            additional_refs={
+                "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+                "claim_evidence_map": refs["claim_evidence_map"],
+                "medical_prose_review": refs["medical_prose_review"],
+                "publication_gate_projection": refs["publication_gate_projection"],
+            },
+            record=_publication_eval_record(study_root),
+        )
+    except ValueError as exc:
+        assert "publication_quality_readiness.missing_required_fields must be empty" in str(exc)
+        assert "claim_evidence_alignment" in str(exc)
+    else:
+        raise AssertionError("workflow accepted AI reviewer trace with blocked claim-evidence alignment")
 
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 

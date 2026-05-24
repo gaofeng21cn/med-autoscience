@@ -213,6 +213,76 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "safe_action_refs",
     }
 
+    pack_input = lane["declarative_pack_compiler_input"]
+    assert pack_input["surface_kind"] == "mas_declarative_pack_compiler_input"
+    assert pack_input["compiler_owner"] == "one-person-lab"
+    assert pack_input["pack_id"] == "mas-medical-research-pack"
+    assert [item["input_id"] for item in pack_input["input_refs"]] == [
+        "domain_descriptor",
+        "stage_graph",
+        "action_intents",
+        "domain_transition_table",
+        "publication_route_memory_policy",
+        "artifact_authority_policy",
+        "source_readiness_policy",
+        "receipt_schema",
+        "no_forbidden_write_contract",
+    ]
+    assert pack_input["compiler_outputs_expected"] == [
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
+    assert pack_input["mas_long_term_code_owner"] == "minimal_authority_functions_only"
+    assert pack_input["must_not_generate_or_claim_domain_authority"] is True
+    generated = lane["generated_surface_handoff"]
+    assert generated["surface_kind"] == "mas_generated_surface_handoff"
+    assert generated["generated_surface_owner"] == "one-person-lab"
+    assert generated["current_mas_role"] == "domain_handler_and_refs_projection_source"
+    assert generated["long_term_mas_owner"] is False
+    assert generated["mas_handwritten_shell_expansion_allowed"] is False
+    generated_by_id = {item["surface_id"]: item for item in generated["handoff_surfaces"]}
+    assert set(generated_by_id) == {
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "sidecar",
+        "domain_action_adapter_export_dispatch",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    }
+    assert generated_by_id["cli"]["target_role"] == "opl_generated_command_surface"
+    assert generated_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
+    assert generated_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
+    assert generated_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
+    assert generated_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
+    assert generated_by_id["domain_action_adapter_export_dispatch"]["current_role"] == (
+        "domain_action_adapter"
+    )
+    assert generated_by_id["domain_action_adapter_export_dispatch"]["target_role"] == (
+        "opl_generated_domain_action_adapter_handoff_surface"
+    )
+    assert generated_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
+    assert generated_by_id["workbench"]["target_role"] == (
+        "opl_hosted_workbench_shell_consuming_mas_refs"
+    )
+    assert generated_by_id["projection_shell"]["target_role"] == "opl_generated_projection_shell"
+    assert generated_by_id["test_lane_harness"]["target_role"] == (
+        "opl_generated_harness_consumer_over_mas_pack"
+    )
+
     consumer_migration = importlib.import_module(
         "med_autoscience.controllers.opl_unique_control_plane_boundary_parts.consumer_migration"
     )
@@ -222,9 +292,114 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "declarative_pack_compiler_input"
     ]
     assert runtime_boundary["generated_surface_handoff"] == lane["generated_surface_handoff"]
-    assert runtime_boundary["minimal_authority_function_manifest"] == lane[
-        "minimal_authority_function_manifest"
+
+    minimal_authority = lane["minimal_authority_function_manifest"]
+    assert minimal_authority["function_ids"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+        "owner_receipt_signer",
+        "medical_helper_implementation",
     ]
+    assert minimal_authority["function_count"] == 7
+    assert minimal_authority["forbidden_mechanical_decision_surfaces"] == [
+        "script_exit_code_as_publication_quality_verdict",
+        "function_return_value_as_ai_reviewer_quality_decision",
+        "test_pass_as_artifact_mutation_authorization",
+        "queue_completion_as_publication_route_memory_accept_reject",
+        "file_presence_as_source_readiness_verdict",
+    ]
+    independent_policy = minimal_authority["independent_executor_reviewer_agent_policy"]
+    assert independent_policy["required"] is True
+    assert independent_policy["separate_invocation_required"] is True
+    assert independent_policy["separate_context_record_required"] is True
+    assert independent_policy["separate_task_record_required"] is True
+    assert independent_policy["separate_receipt_required"] is True
+    assert independent_policy["self_review_closes_quality_gate"] is False
+    assert independent_policy["codex_cli_may_serve_both_roles_only_as_separate_invocations"] is True
+    boundary_by_id = {
+        item["boundary_id"]: item for item in minimal_authority["stage_quality_gate_boundaries"]
+    }
+    assert set(boundary_by_id) == set(minimal_authority["boundary_ids"])
+    assert boundary_by_id["publication_quality_stage_gate_boundary"]["program_role"] == "validator"
+    assert boundary_by_id["artifact_mutation_stage_gate_boundary"]["program_role"] == "materializer"
+    assert boundary_by_id[
+        "publication_route_memory_accept_reject_stage_gate_boundary"
+    ]["program_role"] == "guard"
+    for item in boundary_by_id.values():
+        assert item["requires_ai_first_record"] is True
+        assert item["route_back_semantics"].startswith("route_back_to_")
+        assert item["typed_blocker_semantics"].endswith("_blocker")
+        assert item["required_record_refs"]
+        assert any(
+            "stage_quality_pack:" in ref
+            or ref in {"AI reviewer workflow", "AI reviewer-backed publication eval"}
+            for ref in item["trace_refs"]
+        )
+    assert minimal_authority["all_other_program_surfaces"] == "opl_generated_or_domain_refs_projection_source"
+    assert minimal_authority["forbidden_long_term_mas_shell_owners"] == [
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
+
+    classification = lane["functional_surface_classification"]
+    assert set(classification) == {
+        "declarative_pack_generated_surface",
+        "domain_authority_refs",
+        "minimal_authority_function",
+    }
+    assert classification["declarative_pack_generated_surface"] == [
+        "workspace_source_intake_shell",
+        "workbench_portal_generic_shell",
+        "owner_route_reconcile_materialize_dispatch_shell",
+        "generic_cli_mcp_product_wrappers",
+        "generic_daemon_or_scheduler_lifecycle",
+        "generic_queue_attempt_retry_dead_letter",
+        "generic_transition_runner",
+    ]
+    assert classification["domain_authority_refs"] == [
+        "domain_authority_refs_index",
+        "paper_work_unit_outbox_index",
+        "runtime_storage_maintenance",
+        "publication_route_memory_locator_transport_shell",
+        "artifact_lifecycle_storage_audit_shell",
+    ]
+    assert set(classification["minimal_authority_function"]) == set(lane["mas_domain_authority_surfaces"]) | {
+        "progress_projection",
+        "domain_health_diagnostic",
+        "ai_reviewer_workflow",
+        "publication_gate",
+    }
+    assert "legacy_cleanup_no_active_caller_gate" not in classification
+    assert "legacy_cleanup_tombstone_provenance" not in classification
+    assert "legacy_cleanup_physical_retired" not in classification
+    assert lane["functional_module_inventory_ref"] == (
+        "product_entry_manifest.functional_consumer_boundary.functional_module_inventory"
+    )
+    assert lane["functional_module_inventory_expected_count"] == 15
+    assert lane["functional_module_inventory_required_fields"] == [
+        "module_id",
+        "classification",
+        "code_paths",
+        "domain_ref_consumers",
+        "current_ref_status",
+        "migration_action",
+    ]
+    assert runtime_boundary["declarative_pack_compiler_input"] == pack_input
+    assert runtime_boundary["generated_surface_handoff"] == generated
+    assert runtime_boundary["minimal_authority_function_manifest"] == minimal_authority
     assert runtime_boundary["functional_surface_classification"] == lane[
         "functional_surface_classification"
     ]
