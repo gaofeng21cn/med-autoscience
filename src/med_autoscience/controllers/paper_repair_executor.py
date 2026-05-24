@@ -23,6 +23,10 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
     materialize_ai_reviewer_request,
     stable_ai_reviewer_request_path,
 )
+from med_autoscience.controllers.paper_repair_executor_parts.authority_contract import (
+    authority_boundary as _authority_boundary,
+    would_write as _would_write,
+)
 from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_results import (
     owner_result_blocker,
     owner_result_executed,
@@ -227,15 +231,30 @@ def _dispatch_quality_repair_batch_callable(
             review_finding=None,
             typed_blocker="owner_callable_context_missing",
         )
-    owner_result = quality_repair_batch.run_quality_repair_batch(
-        profile=profile,
-        study_id=study_id,
-        study_root=study_root,
-        quest_id=quest_id,
-        source=SURFACE,
-        authority_route_context=authority_route_context,
-        route_context=route_context,
-    )
+    try:
+        owner_result = quality_repair_batch.run_quality_repair_batch(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            quest_id=quest_id,
+            source=SURFACE,
+            authority_route_context=authority_route_context,
+            route_context=route_context,
+        )
+    except PermissionError as exc:
+        return _blocked_result(
+            generated_at=generated_at,
+            study_id=study_id,
+            quest_id=quest_id,
+            study_root=study_root,
+            work_unit=work_unit,
+            review_finding={
+                "surface": SURFACE,
+                "blocked_reason": "authority_route_blocked",
+                "message": str(exc),
+            },
+            typed_blocker="authority_route_blocked",
+        )
     return _owner_callable_result(
         generated_at=generated_at,
         accepted=owner_result_executed(owner_result),
@@ -892,33 +911,6 @@ def _write_owner_receipt(*, study_root: Path, receipt: Mapping[str, Any]) -> Pat
     _write_json(path, receipt)
     _write_json(study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json", receipt)
     return path
-
-
-def _would_write(work_unit_type: str) -> list[str]:
-    if work_unit_type == "claim_downgrade":
-        return ["paper/draft.md", "paper/evidence_ledger.json", "paper/review/review_ledger.json"]
-    if work_unit_type == "text_repair":
-        return ["paper/draft.md", "paper/review/review_ledger.json"]
-    if work_unit_type == "evidence_ledger_repair":
-        return ["paper/evidence_ledger.json"]
-    if work_unit_type == "review_ledger_repair":
-        return ["paper/review/review_ledger.json"]
-    if work_unit_type == "analysis_repair":
-        return ["paper/draft.md", "paper/evidence_ledger.json"]
-    if work_unit_type == "route_decision":
-        return ["paper/evidence_ledger.json", "paper/review/review_ledger.json"]
-    return []
-
-
-def _authority_boundary() -> dict[str, Any]:
-    return {
-        "domain_truth_owner": "med-autoscience",
-        "quality_gate_owner": "med-autoscience",
-        "artifact_authority_owner": "med-autoscience",
-        "writes_current_package": False,
-        "quality_authorized": False,
-        "submission_authorized": False,
-    }
 
 
 def _manuscript_path(study_root: Path) -> Path:

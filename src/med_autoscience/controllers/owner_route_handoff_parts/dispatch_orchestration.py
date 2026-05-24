@@ -363,8 +363,13 @@ def _with_paper_repair(
     if _mapping(result).get("execution_status") == "handoff_ready":
         receipt["dispatch"]["downstream_worker_handoff"] = _mapping(result).get("writer_worker_handoff")
     if _mapping(result).get("accepted") is False:
-        receipt["accepted"] = False
-        receipt["reason"] = _text(_mapping(result).get("typed_blocker")) or "paper_repair_executor_blocked"
+        typed_blocker = _text(_mapping(result).get("typed_blocker")) or "paper_repair_executor_blocked"
+        if typed_blocker == "authority_route_blocked":
+            receipt["accepted"] = True
+            receipt["stable_typed_blocker"] = typed_blocker
+        else:
+            receipt["accepted"] = False
+            receipt["reason"] = typed_blocker
     return receipt
 
 

@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-24：authority gate refusal 必须成为 MAS stable typed blocker
+
+- 决策：`paper_autonomy/repair-recheck` 进入 MAS paper repair owner callable 后，若当前 authority route 明确拒绝 `paper_write`，`paper_repair_executor` 必须把该拒绝转换为 `authority_route_blocked` typed blocker。该 blocker 要保留原 authority reason，例如 `dispatch_gate_blocked`、`opl_current_control_state.handoff_required` 或 `publication_supervisor_state.bundle_tasks_downstream_only`，并返回 MAS owner receipt 语义，而不是把 Python `PermissionError` 泄漏给 OPL provider。
+- 决策：`sidecar dispatch` 对 `authority_route_blocked` 这类 stable domain blocker 应签出 accepted dispatch receipt，并在 receipt 中投影 `stable_typed_blocker`。OPL queue 只能把它当作 MAS owner 已给出的 domain blocker，不应按 CLI traceback 继续 retry/dead-letter。
+- 理由：DM002 暴露出 paper repair recheck 在 supervisor-only / downstream-only authority gate 下被正确拒绝，但 MAS sidecar 把拒绝传播为 CLI 失败，导致 OPL 重试三次并 dead-letter。根因是 MAS owner boundary 未把 domain authority refusal 稳定化为 typed blocker，不是 OPL retry 策略、queue 数据或单篇论文 truth surface 可手工修补的问题。
+- 影响：这是 MAS owner receipt / sidecar dispatch contract 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只保证 authority gate 下的 paper repair refusal 可被 OPL、Agent Lab 和前台 supervisor 正确认领；论文质量、publishability、package refresh 和 submission-facing readiness 仍由后续 owner route、AI reviewer-backed eval 与 publication gate 判定。
+
 ## 2026-05-24：request-bound writer handoff 优先于同路径 stale consumer inline
 
 - 决策：`domain-owner-action-dispatch` 处理同一 `refs.dispatch_path`、同一 `action_type=run_quality_repair_batch` 的 consumer inline dispatch 与 study-local persisted dispatch 时，若 persisted dispatch 是 `quality_repair_batch_writer_handoff`，并且同一 study 的 `artifacts/supervision/requests/quality_repair_batch/latest.json` 证明该 request 仍为当前 write-owner request，则必须选择 persisted writer handoff。旧 consumer inline 不能仅因仍匹配 `paper_progress_stall` 指纹而压过当前 request-bound handoff。
