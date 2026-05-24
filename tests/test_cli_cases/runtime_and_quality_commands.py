@@ -528,7 +528,7 @@ def test_product_entry_status_command_dispatches_product_entry_controller(monkey
     def fake_build_product_entry_status(*, profile, profile_ref) -> dict:
         called["profile"] = profile
         called["profile_ref"] = profile_ref
-        return {"surface_kind": "product_entry_status", "summary": {"entry_status_command": "uv run python -m med_autoscience.cli product-entry-status"}}
+        return {"surface_kind": "product_entry_status", "summary": {"entry_status_command": "uv run python -m med_autoscience.cli product entry_status"}}
 
     monkeypatch.setattr(cli.product_entry, "build_product_entry_status", fake_build_product_entry_status)
 

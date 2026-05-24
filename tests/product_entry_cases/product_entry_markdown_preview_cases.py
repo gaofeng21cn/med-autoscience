@@ -37,7 +37,7 @@ def test_render_product_entry_status_markdown_hides_preview_raw_summary_keys() -
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     queue_item = {
         "title": "001-risk 当前处在等待系统自动复评",
-        "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+        "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
         "operator_status_card": {
             "handling_state": "monitor_only",
             "user_visible_verdict": "当前在等系统自动复评；你现在不用介入。",

@@ -499,7 +499,7 @@ def _alert_item(text: str) -> dict[str, str | None]:
         source = "product_entry_preflight.medical_overlay_ready"
         purpose = "提示医学论文运行前置能力尚未全部 ready。"
         expected = "doctor/product-entry preflight 应通过或给出具体 medical overlay blocker。"
-        recommended_command = "uv run python -m med_autoscience.cli doctor --profile <profile>"
+        recommended_command = "uv run python -m med_autoscience.cli doctor report --profile <profile>"
     elif "meaningful artifact delta" in text or "worker liveness" in text or "12 小时" in text:
         source = "workspace_cockpit.progress_freshness"
         purpose = "提示监管心跳不能单独证明论文实际推进。"

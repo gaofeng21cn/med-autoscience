@@ -118,8 +118,9 @@ def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id
     if action_type in {"safe_reconcile_dry_run", "domain_route_owner_handoff"}:
         return f"uv run python -m med_autoscience.cli owner-route-reconcile{profile_part}{study_part} --developer-supervisor-mode external_observe"
     if action_type == "study_progress_read":
-        return f"uv run python -m med_autoscience.cli study-progress{profile_part}{study_part} --format json"
-    return f"uv run python -m med_autoscience.cli product-entry-status{profile_part} --format json"
+        study_selector = f" --study-id {study_id}" if study_id else ""
+        return f"uv run python -m med_autoscience.cli study progress{profile_part}{study_selector} --format json"
+    return f"uv run python -m med_autoscience.cli product entry_status{profile_part} --format json"
 
 
 def _file_digest(path: Path) -> str:

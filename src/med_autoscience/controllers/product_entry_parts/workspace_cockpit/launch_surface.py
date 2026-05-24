@@ -8,6 +8,7 @@ from med_autoscience.controllers.product_entry_parts.shared import (
     SCHEMA_VERSION,
     WorkspaceProfile,
     _append_human_status_lines,
+    _command,
     _command_prefix,
     _non_empty_text,
     _profile_arg,
@@ -69,14 +70,14 @@ def launch_study(
     )
     commands = {
         "progress": (
-            f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} "
+            f"{_command(profile_ref, 'study-progress', '--profile', _profile_arg(profile_ref))} "
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "status": (
             f"{_command_prefix(profile_ref)} study progress-projection --profile {_profile_arg(profile_ref)} "
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
-        "cockpit": f"{_command_prefix(profile_ref)} workspace-cockpit --profile {_profile_arg(profile_ref)}",
+        "cockpit": _command(profile_ref, "workspace-cockpit", "--profile", _profile_arg(profile_ref)),
         "owner_route_handoff": (
             f"{_command_prefix(profile_ref)} owner-route-reconcile "
             f"--profile {_profile_arg(profile_ref)} {_study_selector(study_id=resolved_study_id)} "

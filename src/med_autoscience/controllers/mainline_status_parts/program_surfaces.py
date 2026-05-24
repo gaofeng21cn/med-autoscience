@@ -175,7 +175,7 @@ def build_platform_target() -> dict[str, Any]:
             "phase_4_backend_deconstruction",
         ],
         recommended_phase_command=(
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_stage_runtime_platform_maturation"
+            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_5_stage_runtime_platform_maturation"
         ),
         land_now=[
             "repo-tracked product-entry shell and family orchestration companions",
@@ -286,32 +286,32 @@ def build_phase2_user_product_loop_lane(
 
 def build_phase2_user_product_loop() -> dict[str, Any]:
     return build_phase2_user_product_loop_lane(
-        entry_status_command="uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
-        workspace_cockpit_command="uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>",
+        entry_status_command="uv run python -m med_autoscience.cli product entry_status --profile <profile>",
+        workspace_cockpit_command="uv run python -m med_autoscience.cli workspace cockpit --profile <profile>",
         submit_task_command=(
-            "uv run python -m med_autoscience.cli submit-study-task --profile <profile> "
+            "uv run python -m med_autoscience.cli study submit-task --profile <profile> "
             "--study-id <study_id> --task-intent '<task_intent>'"
         ),
-        launch_study_command="uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+        launch_study_command="uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
         study_progress_command=(
-            "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>"
+            "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id>"
         ),
         controller_decisions_ref="studies/<study_id>/artifacts/controller_decisions/latest.json",
     )
 
 
 def build_phase3_clearance_lane() -> dict[str, Any]:
-    doctor_command = "uv run python -m med_autoscience.cli doctor --profile <profile>"
-    supervisor_service_command = "uv run python -m med_autoscience.cli study-progress --profile <profile> --format json"
+    doctor_command = "uv run python -m med_autoscience.cli doctor report --profile <profile>"
+    supervisor_service_command = "uv run python -m med_autoscience.cli study progress --profile <profile> --format json"
     refresh_supervision_command = (
         "uv run python -m med_autoscience.cli runtime domain-health-diagnostic --runtime-root <runtime_root> "
         "--profile <profile> --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
     )
     launch_study_command = (
-        "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>"
+        "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>"
     )
     study_progress_command = (
-        "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>"
+        "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id>"
     )
     return _build_shared_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
@@ -399,7 +399,7 @@ def build_phase3_clearance_lane() -> dict[str, Any]:
             ),
         ],
         recommended_phase_command=(
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
+            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_3_multi_workspace_host_clearance"
         ),
     )
 
@@ -447,6 +447,6 @@ def build_phase4_backend_deconstruction() -> dict[str, Any]:
         ],
         deconstruction_map_ref="program:med_deepscientist_deconstruction_map",
         recommended_phase_command=(
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
+            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_4_backend_deconstruction"
         ),
     )

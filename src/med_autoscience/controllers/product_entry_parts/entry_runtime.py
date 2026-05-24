@@ -58,17 +58,22 @@ def build_product_entry(
     single_project_boundary = dict(mainline_snapshot.get("single_project_boundary") or {})
     capability_owner_boundary = dict(mainline_snapshot.get("capability_owner_boundary") or {})
     commands = {
-        "workspace_cockpit": f"{_command_prefix(profile_ref)} workspace-cockpit --profile {_profile_arg(profile_ref)}",
+        "workspace_cockpit": _command(
+            profile_ref,
+            "workspace-cockpit",
+            "--profile",
+            _profile_arg(profile_ref),
+        ),
         "submit_study_task": (
-            f"{_command_prefix(profile_ref)} submit-study-task --profile {_profile_arg(profile_ref)} "
+            f"{_command(profile_ref, 'submit-study-task', '--profile', _profile_arg(profile_ref))} "
             f"{_study_selector(study_id=resolved_study_id)} --task-intent '<task_intent>'"
         ),
         "launch_study": (
-            f"{_command_prefix(profile_ref)} launch-study --profile {_profile_arg(profile_ref)} "
+            f"{_command(profile_ref, 'launch-study', '--profile', _profile_arg(profile_ref))} "
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "study_progress": (
-            f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} "
+            f"{_command(profile_ref, 'study-progress', '--profile', _profile_arg(profile_ref))} "
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
         "progress_projection": (
@@ -319,7 +324,7 @@ def _study_reactivation_command(
     stopped_relaunch: bool,
 ) -> str:
     command = (
-        f"{_command_prefix(profile_ref)} launch-study --profile {_profile_arg(profile_ref)} "
+        f"{_command(profile_ref, 'launch-study', '--profile', _profile_arg(profile_ref))} "
         f"{_study_selector(study_id=study_id)}"
     )
     if stopped_relaunch:

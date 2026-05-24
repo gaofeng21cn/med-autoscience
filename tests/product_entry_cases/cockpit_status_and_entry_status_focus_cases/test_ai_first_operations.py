@@ -254,7 +254,7 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
                 },
             },
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),

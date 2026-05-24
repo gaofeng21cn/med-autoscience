@@ -42,9 +42,11 @@ def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path
 
     assert payload["surface_kind"] == "product_entry_preflight"
     assert len(captured["checks"]) == 7
-    assert str(captured["recommended_check_command"]).endswith("doctor --profile " + str(profile_ref.resolve()))
+    assert str(captured["recommended_check_command"]).endswith(
+        "doctor report --profile " + str(profile_ref.resolve())
+    )
     assert str(captured["recommended_start_command"]).endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
 
 def test_build_product_entry_guardrails_uses_shared_builder(monkeypatch, tmp_path: Path) -> None:
@@ -84,7 +86,9 @@ def test_build_phase3_clearance_lane_uses_shared_builder(monkeypatch, tmp_path: 
     payload = module._build_phase3_clearance_lane(profile=profile, profile_ref=profile_ref)
 
     assert payload["surface_kind"] == "phase3_host_clearance_lane"
-    assert str(captured["recommended_command"]).endswith("doctor --profile " + str(profile_ref.resolve()))
+    assert str(captured["recommended_command"]).endswith(
+        "doctor report --profile " + str(profile_ref.resolve())
+    )
     assert len(captured["clearance_targets"]) == 3
     assert len(captured["clearance_loop"]) == 5
     assert len(captured["proof_surfaces"]) == 5

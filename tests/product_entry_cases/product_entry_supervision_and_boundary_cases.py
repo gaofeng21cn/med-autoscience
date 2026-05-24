@@ -17,6 +17,27 @@ _module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
 
+_RETIRED_FLAT_COMMAND_TOKENS = (
+    " product-entry-status ",
+    " workspace-cockpit ",
+    " submit-study-task ",
+    " launch-study ",
+    " study-progress ",
+    " product-entry-manifest ",
+)
+
+
+def _walk_strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for child in value.values():
+            yield from _walk_strings(child)
+    elif isinstance(value, (list, tuple)):
+        for child in value:
+            yield from _walk_strings(child)
+
+
 def test_build_product_entry_status_projects_product_entry_over_current_workspace_loop(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile_ref = tmp_path / "profile.local.toml"
@@ -54,7 +75,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
                 "focus_study_id": None,
                 "recommended_step_id": "submit_task",
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli submit-study-task --profile "
+                    "uv run python -m med_autoscience.cli study submit-task --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --task-intent '<task_intent>'"
                 ),
@@ -78,32 +99,32 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["user_interaction_contract"]["user_commands_required"] is False
     assert payload["product_entry_surface"]["shell_key"] == "product_entry_status"
     assert payload["product_entry_surface"]["command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
     assert payload["operator_loop_actions"]["open_loop"]["command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["entry_surfaces"]["entry_status"]["command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["entry_surfaces"]["cockpit"]["command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["entry_surfaces"]["direct_entry_builder"]["command"].endswith(
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
     )
     assert payload["summary"]["entry_status_command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["summary"]["recommended_command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
     assert payload["product_entry_overview"]["progress_surface"]["surface_kind"] == "study_progress"
     assert payload["product_entry_overview"]["resume_surface"]["surface_kind"] == "launch_study"
     assert payload["product_entry_overview"]["resume_surface"]["command"].endswith(
-        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+        "study launch --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
     )
     assert payload["product_entry_readiness"]["surface_kind"] == "product_entry_readiness"
     assert payload["product_entry_readiness"]["verdict"] == "runtime_ready_not_standalone_product"
@@ -112,10 +133,10 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["product_entry_preflight"]["surface_kind"] == "product_entry_preflight"
     assert payload["product_entry_preflight"]["ready_to_try_now"] is True
     assert payload["product_entry_preflight"]["recommended_check_command"].endswith(
-        "doctor --profile " + str(profile_ref.resolve())
+        "doctor report --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_preflight"]["recommended_start_command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_preflight"]["blocking_check_ids"] == []
     assert [check["check_id"] for check in payload["product_entry_preflight"]["checks"]] == [
@@ -128,10 +149,10 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         "workspace_domain_route_contract_ready",
     ]
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["phase2_user_product_loop"]["single_path"][2]["surface_kind"] == "study_task_intake"
     assert payload["phase2_user_product_loop"]["proof_surfaces"][1]["surface_kind"] == "workspace_cockpit"
@@ -144,7 +165,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         "focus_study_id": None,
         "recommended_step_id": "submit_task",
         "recommended_command": (
-            "uv run python -m med_autoscience.cli submit-study-task --profile "
+            "uv run python -m med_autoscience.cli study submit-task --profile "
             + str(profile_ref.resolve())
             + " --study-id <study_id> --task-intent '<task_intent>'"
         ),
@@ -158,6 +179,17 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["product_entry_guardrails"]["recovery_loop"][1]["step_id"] == "refresh_supervision"
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
     assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_domain_refs_boundary"
+    command_strings = [
+        item
+        for item in _walk_strings(payload)
+        if "uv run python -m med_autoscience.cli" in item
+    ]
+    assert command_strings
+    assert not [
+        item
+        for item in command_strings
+        if any(token in f" {item} " for token in _RETIRED_FLAT_COMMAND_TOKENS)
+    ]
     assert payload["phase3_clearance_lane"]["clearance_targets"][1]["target_id"] == "supervisor_service"
     assert payload["phase3_clearance_lane"]["clearance_loop"][1]["step_id"] == "supervisor_service"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
@@ -270,13 +302,13 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
                 "primary_step_id": "inspect_progress",
                 "primary_surface_kind": "study_progress",
                 "primary_command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id 001-risk"
                 ),
             },
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),
@@ -310,7 +342,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
     assert payload["workspace_supervision"]["service"]["status"] == "retired_legacy_service_present"
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["recommended_command"].endswith(
-        "study-progress --profile " + str(profile_ref.resolve()) + " --format json"
+        "study progress --profile " + str(profile_ref.resolve()) + " --format json"
     )
 
 def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_owner_drift(
@@ -352,7 +384,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
                 "focus_study_id": None,
                 "recommended_step_id": "submit_task",
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli submit-study-task --profile "
+                    "uv run python -m med_autoscience.cli study submit-task --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --task-intent '<task_intent>'"
                 ),

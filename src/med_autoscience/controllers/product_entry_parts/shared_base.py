@@ -113,6 +113,7 @@ from .boundary_surfaces import (
     _validate_single_project_boundary,
 )
 from .command_surfaces import (
+    _command,
     _command_prefix,
     _json_surface_command,
     _profile_arg,
@@ -482,8 +483,8 @@ def _build_product_entry_preflight(
     doctor_report: Any,
     profile_ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    doctor_command = f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}"
-    start_command = f"{_command_prefix(profile_ref)} product-entry-status --profile {_profile_arg(profile_ref)}"
+    doctor_command = _command(profile_ref, "doctor", "--profile", _profile_arg(profile_ref))
+    start_command = _command(profile_ref, "product-entry-status", "--profile", _profile_arg(profile_ref))
     workspace_domain_route_contract = _doctor_workspace_domain_route_contract(doctor_report)
     runtime_contract_ready = _doctor_opl_provider_stage_runtime_ready(doctor_report)
     checks = [
@@ -550,7 +551,13 @@ def _build_product_entry_preflight(
                 else _non_empty_text(workspace_domain_route_contract.get("summary"))
                 or "OPL current-control-state handoff 尚未 ready。"
             ),
-            command=f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} --format json",
+            command=_command(
+                profile_ref,
+                "study-progress",
+                "--profile",
+                _profile_arg(profile_ref),
+                "--format json",
+            ),
         ),
     ]
     blocking_check_ids = [
@@ -585,7 +592,13 @@ def _build_product_entry_guardrails(
 ) -> dict[str, Any]:
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
-    progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
+    progress_command = _command(
+        profile_ref,
+        "study-progress",
+        "--profile",
+        profile_arg,
+        "--study-id <study_id>",
+    )
     refresh_command = (
         f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
         f"--profile {profile_arg} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
@@ -619,7 +632,13 @@ def _build_product_entry_guardrails(
                 guardrail_id="runtime_recovery_required",
                 trigger="study-progress intervention_lane / OPL current_control_state handoff / workspace-cockpit attention queue",
                 symptom="OPL stage/runtime owner handoff 或 MAS domain diagnostic 显示运行恢复失败，当前必须优先处理 runtime recovery。",
-                recommended_command=f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+                recommended_command=_command(
+                    profile_ref,
+                    "launch-study",
+                    "--profile",
+                    profile_arg,
+                    "--study-id <study_id>",
+                ),
             ),
             _build_shared_guardrail_class(
                 guardrail_id="quality_floor_blocker",
@@ -631,7 +650,7 @@ def _build_product_entry_guardrails(
         recovery_loop=[
             _build_shared_product_entry_program_step(
                 step_id="inspect_workspace_inbox",
-                command=f"{prefix} workspace-cockpit --profile {profile_arg}",
+                command=_command(profile_ref, "workspace-cockpit", "--profile", profile_arg),
                 surface_kind="workspace_cockpit",
             ),
             _build_shared_product_entry_program_step(
@@ -646,7 +665,13 @@ def _build_product_entry_guardrails(
             ),
             _build_shared_product_entry_program_step(
                 step_id="continue_or_relaunch",
-                command=f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+                command=_command(
+                    profile_ref,
+                    "launch-study",
+                    "--profile",
+                    profile_arg,
+                    "--study-id <study_id>",
+                ),
                 surface_kind="launch_study",
             ),
         ],

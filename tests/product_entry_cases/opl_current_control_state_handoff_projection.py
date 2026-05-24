@@ -140,7 +140,7 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
             },
             "supervision": {"active_run_id": "run-001", "health_status": "external_supervisor_required"},
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),
@@ -159,9 +159,9 @@ def test_workspace_cockpit_and_product_entry_surface_opl_current_control_state_h
             "target_domain_id": "med-autoscience",
             "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
             "summary": {
-                "entry_status_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
-                "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
-                "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "entry_status_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
+                "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
+                "operator_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
             },
             "user_interaction_contract": {
                 "entry_owner": "opl_product_entry_or_domain_gui",

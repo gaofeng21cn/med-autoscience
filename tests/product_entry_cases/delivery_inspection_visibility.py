@@ -94,7 +94,7 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
             "next_system_action": "Inspect delivery mirrors.",
             "delivery_inspection": _delivery_inspection("001-risk"),
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),

@@ -94,7 +94,7 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
                 "primary_step_id": "inspect_study_progress",
                 "primary_surface_kind": "study_progress",
                 "primary_command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id 001-risk"
                 ),
@@ -140,7 +140,7 @@ def test_workspace_cockpit_projects_quality_execution_lane_into_attention_and_br
                 },
             },
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),

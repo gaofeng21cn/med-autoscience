@@ -9,21 +9,21 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         ),
         "recommended_step_id": "mas_domain_refs_boundary",
         "recommended_command": (
-            "uv run python -m med_autoscience.cli doctor --profile "
+            "uv run python -m med_autoscience.cli doctor report --profile "
             + str(profile_ref.resolve())
         ),
         "clearance_targets": [
                 {
                     "target_id": "mas_domain_refs_boundary",
                     "title": "Check MAS domain refs and legacy runtime tombstone boundary",
-                    "commands": ["uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve())],
+                    "commands": ["uv run python -m med_autoscience.cli doctor report --profile " + str(profile_ref.resolve())],
                 },
             {
                 "target_id": "supervisor_service",
                 "title": "Inspect OPL current-control-state refs through MAS progress",
                 "commands": [
                     (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --format json"
                     ),
@@ -41,12 +41,12 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                 "title": "Prove live study recovery and supervision",
                 "commands": [
                     (
-                        "uv run python -m med_autoscience.cli launch-study --profile "
+                        "uv run python -m med_autoscience.cli study launch --profile "
                         + str(profile_ref.resolve())
                         + " --study-id <study_id>"
                     ),
                     (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --study-id <study_id>"
                     ),
@@ -59,7 +59,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                     "title": "确认 MAS domain refs boundary ready，旧 hosted runtime 仅保留 tombstone/provenance",
                     "surface_kind": "doctor_domain_refs_boundary",
                     "command": (
-                        "uv run python -m med_autoscience.cli doctor --profile "
+                        "uv run python -m med_autoscience.cli doctor report --profile "
                         + str(profile_ref.resolve())
                 ),
             },
@@ -68,7 +68,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                 "title": "确认 OPL replacement 与 MAS domain projection 在线",
                 "surface_kind": "opl_current_control_state_handoff",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
@@ -90,7 +90,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                 "title": "证明 live study recovery / progress supervision 成立",
                 "surface_kind": "launch_study",
                 "command": (
-                    "uv run python -m med_autoscience.cli launch-study --profile "
+                    "uv run python -m med_autoscience.cli study launch --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id>"
                 ),
@@ -100,7 +100,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                 "title": "读取 study-progress proof",
                 "surface_kind": "study_progress",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id>"
                 ),
@@ -109,7 +109,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "proof_surfaces": [
             {
                 "surface_kind": "doctor.runtime_contract",
-                "command": "uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve()),
+                "command": "uv run python -m med_autoscience.cli doctor report --profile " + str(profile_ref.resolve()),
             },
             {
                 "surface_kind": "progress_projection.autonomous_runtime_notice",
@@ -133,7 +133,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
         ],
         "recommended_phase_command": (
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
+            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_3_multi_workspace_host_clearance"
         ),
     }
     assert payload["phase4_backend_deconstruction"] == {
@@ -179,7 +179,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         ],
         "deconstruction_map_ref": "program:med_deepscientist_deconstruction_map",
         "recommended_phase_command": (
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
+            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_4_backend_deconstruction"
         ),
     }
     phase5 = payload["phase5_platform_target"]
@@ -249,22 +249,22 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "future upstream source intake beyond historical fixture/provenance refs",
     ]
     assert phase5["recommended_phase_command"] == (
-        "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_stage_runtime_platform_maturation"
+        "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_5_stage_runtime_platform_maturation"
     )
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_shell"]["product_entry_status"]["command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_shell"]["submit_study_task"]["command"].endswith(
-        "submit-study-task --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --task-intent '<task_intent>'"
+        "study submit-task --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --task-intent '<task_intent>'"
     )
     assert payload["product_entry_shell"]["launch_study"]["command"].endswith(
-        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+        "study launch --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
     )
     assert payload["product_entry_shell"]["study_progress"]["command"].endswith(
-        "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
+        "study progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
     )
     assert payload["shared_handoff"]["direct_entry_builder"]["command"].endswith(
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
@@ -384,7 +384,7 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
 
 def _assert_phase5_platform_target(*, module, payload, profile, profile_ref) -> None:
     assert payload["product_entry_start"]["modes"][0]["command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
     assert payload["product_entry_start"]["modes"][2]["surface_kind"] == "launch_study"

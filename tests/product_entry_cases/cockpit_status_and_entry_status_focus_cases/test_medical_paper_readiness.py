@@ -63,7 +63,7 @@ def _base_progress_payload(*, study_id: str) -> dict[str, object]:
         "current_stage_summary": "当前 study 处于医学论文能力闭环监管。",
         "current_blockers": [],
         "next_system_action": "继续观察 readiness surface。",
-        "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id " + study_id,
+        "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id " + study_id,
         "supervision": {
             "browser_url": "http://127.0.0.1:20999",
             "quest_session_api_url": "http://127.0.0.1:20999/api/quests/" + study_id + "/session",

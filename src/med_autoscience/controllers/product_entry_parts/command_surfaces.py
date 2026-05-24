@@ -3,7 +3,15 @@ from __future__ import annotations
 import shlex
 from pathlib import Path
 
+from med_autoscience.cli_public_surface import GROUPED_COMMAND_ALIASES
+
 from .shared_labels import _non_empty_text
+
+
+_PUBLIC_COMMAND_NAMES = {
+    flat_command: f"{group} {subcommand}"
+    for (group, subcommand), flat_command in GROUPED_COMMAND_ALIASES.items()
+}
 
 
 def _quote_cli_arg(value: str | Path | None) -> str:
@@ -24,6 +32,16 @@ def _profile_arg(profile_ref: str | Path | None) -> str:
 def _command_prefix(profile_ref: str | Path | None) -> str:
     del profile_ref
     return "uv run python -m med_autoscience.cli"
+
+
+def _public_cli_command(flat_command: str) -> str:
+    return _PUBLIC_COMMAND_NAMES.get(flat_command, flat_command)
+
+
+def _command(profile_ref: str | Path | None, flat_command: str, *args: str) -> str:
+    parts = [_command_prefix(profile_ref), _public_cli_command(flat_command)]
+    parts.extend(arg for arg in args if arg)
+    return " ".join(parts)
 
 
 def _json_surface_command(command: str) -> str:

@@ -21,7 +21,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+        "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
         "surface_kind": "product_entry_status"
       },
       "summary": "当前 research product entry status，先暴露当前 product entry、workspace inbox 与 shared handoff 入口。",
@@ -30,11 +30,11 @@
           "tool_name": "product_entry_status"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+          "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
           "surface_kind": "product_entry_status"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+          "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "product_entry_status",
@@ -45,11 +45,11 @@
         },
         "product_entry": {
           "action_key": "product_entry_status",
-          "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+          "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
           "surface_kind": "product_entry_status"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+          "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
           "command_contract_id": "product_entry_status",
           "surface_kind": "product_entry_status"
         }
@@ -80,7 +80,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+        "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
         "surface_kind": "workspace_cockpit"
       },
       "summary": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
@@ -89,11 +89,11 @@
           "tool_name": "workspace_cockpit"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+          "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
           "surface_kind": "workspace_cockpit"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+          "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "workspace_cockpit",
@@ -104,11 +104,11 @@
         },
         "product_entry": {
           "action_key": "workspace_cockpit",
-          "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+          "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
           "surface_kind": "workspace_cockpit"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+          "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
           "command_contract_id": "workspace_cockpit",
           "surface_kind": "workspace_cockpit"
         }
@@ -141,7 +141,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+        "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
         "surface_kind": "study_task_intake"
       },
       "summary": "先把用户任务写成 durable study task intake，再启动研究执行。",
@@ -150,11 +150,11 @@
           "tool_name": "submit_study_task"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
           "surface_kind": "study_task_intake"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "study_task_intake",
@@ -165,11 +165,11 @@
         },
         "product_entry": {
           "action_key": "submit_study_task",
-          "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
           "surface_kind": "study_task_intake"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command": "uv run python -m med_autoscience.cli study submit-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
           "command_contract_id": "submit_study_task",
           "surface_kind": "study_task_intake"
         }
@@ -204,7 +204,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+        "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
         "surface_kind": "launch_study"
       },
       "summary": "写入 MAS domain handoff，由 OPL 唯一控制面 hydrate 成 stage attempt。",
@@ -213,11 +213,11 @@
           "tool_name": "launch_study"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+          "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
           "surface_kind": "launch_study"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+          "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "launch_study",
@@ -228,11 +228,11 @@
         },
         "product_entry": {
           "action_key": "launch_study",
-          "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+          "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
           "surface_kind": "launch_study"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+          "command": "uv run python -m med_autoscience.cli study launch --profile <profile> --study-id <study_id>",
           "command_contract_id": "launch_study",
           "surface_kind": "launch_study"
         }
@@ -264,7 +264,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+        "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
         "surface_kind": "study_progress"
       },
       "summary": "持续读取当前 study 的阶段摘要、阻塞、监督 freshness 与下一步。",
@@ -273,11 +273,11 @@
           "tool_name": "study_progress"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+          "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
           "surface_kind": "study_progress"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+          "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
           "descriptor_only": false,
           "public_runtime": true,
           "surface_kind": "study_progress",
@@ -288,11 +288,11 @@
         },
         "product_entry": {
           "action_key": "study_progress",
-          "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+          "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
           "surface_kind": "study_progress"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+          "command": "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
           "command_contract_id": "study_progress",
           "surface_kind": "study_progress"
         }
@@ -520,7 +520,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli mainline-status",
+        "command": "uv run python -m med_autoscience.cli doctor mainline-status",
         "surface_kind": "mainline_status"
       },
       "summary": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",
@@ -529,11 +529,11 @@
           "tool_name": "mainline_status"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli mainline-status",
+          "command": "uv run python -m med_autoscience.cli doctor mainline-status",
           "surface_kind": "mainline_status"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli mainline-status",
+          "command": "uv run python -m med_autoscience.cli doctor mainline-status",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mainline_status",
@@ -544,11 +544,11 @@
         },
         "product_entry": {
           "action_key": "mainline_status",
-          "command": "uv run python -m med_autoscience.cli mainline-status",
+          "command": "uv run python -m med_autoscience.cli doctor mainline-status",
           "surface_kind": "mainline_status"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli mainline-status",
+          "command": "uv run python -m med_autoscience.cli doctor mainline-status",
           "command_contract_id": "mainline_status",
           "surface_kind": "mainline_status"
         }
@@ -577,7 +577,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+        "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
         "surface_kind": "mainline_phase"
       },
       "summary": "查看某一阶段当前可用入口、退出条件与关键文档。",
@@ -586,11 +586,11 @@
           "tool_name": "mainline_phase"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+          "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
           "surface_kind": "mainline_phase"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+          "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
           "descriptor_only": true,
           "public_runtime": false,
           "surface_kind": "mainline_phase",
@@ -601,11 +601,11 @@
         },
         "product_entry": {
           "action_key": "mainline_phase",
-          "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+          "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
           "surface_kind": "mainline_phase"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+          "command": "uv run python -m med_autoscience.cli doctor mainline-phase --phase <current|next|phase_id>",
           "command_contract_id": "mainline_phase",
           "surface_kind": "mainline_phase"
         }
@@ -634,7 +634,7 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+        "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
         "surface_kind": "product_entry_manifest"
       },
       "summary": "Read MedAutoScience product-entry surfaces through one tool: product_entry_status, product_preflight, product_start, product_entry_manifest, build_product_entry, workspace_authority_migration_audit, storage_governance_report, delivery_authority_backfill_apply, artifact_lifecycle_report, artifact_lifecycle_continuous_soak_summary. workspace_authority_migration_audit is dry-run-only; storage_governance_report and artifact_lifecycle_report are read-only; delivery_authority_backfill_apply is MAS delivery-authority gated. Physical cleanup and safe-cache deletion are owned by OPL current-control-state, not MAS product-entry. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution.",
@@ -643,11 +643,11 @@
           "tool_name": "product_entry"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
           "surface_kind": "product_entry_manifest"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
           "descriptor_only": false,
           "public_runtime": true,
           "surface_kind": "product_entry_manifest",
@@ -658,11 +658,11 @@
         },
         "product_entry": {
           "action_key": "product_entry",
-          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
           "surface_kind": "product_entry_manifest"
         },
         "skill": {
-          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
           "command_contract_id": "product_entry",
           "surface_kind": "product_entry_manifest"
         }

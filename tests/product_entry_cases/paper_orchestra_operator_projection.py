@@ -107,7 +107,7 @@ def test_product_entry_surfaces_paper_orchestra_operator_projection_without_runt
                 },
             },
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),

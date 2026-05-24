@@ -7,11 +7,11 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
             "summary": "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research entry_status。",
             "ready_to_try_now": True,
             "recommended_check_command": (
-                "uv run python -m med_autoscience.cli doctor --profile "
+                "uv run python -m med_autoscience.cli doctor report --profile "
                 + str(profile_ref.resolve())
             ),
             "recommended_start_command": (
-                "uv run python -m med_autoscience.cli product-entry-status --profile "
+                "uv run python -m med_autoscience.cli product entry_status --profile "
                 + str(profile_ref.resolve())
             ),
             "blocking_check_ids": [],
@@ -23,7 +23,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "blocking": True,
                     "summary": "workspace 根目录已就位。",
                     "command": (
-                        "uv run python -m med_autoscience.cli doctor --profile "
+                        "uv run python -m med_autoscience.cli doctor report --profile "
                         + str(profile_ref.resolve())
                     ),
                 },
@@ -34,7 +34,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "blocking": True,
                     "summary": "runtime root 已就位。",
                     "command": (
-                        "uv run python -m med_autoscience.cli doctor --profile "
+                        "uv run python -m med_autoscience.cli doctor report --profile "
                         + str(profile_ref.resolve())
                     ),
                 },
@@ -45,7 +45,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "blocking": True,
                     "summary": "studies 根目录已就位。",
                     "command": (
-                        "uv run python -m med_autoscience.cli doctor --profile "
+                        "uv run python -m med_autoscience.cli doctor report --profile "
                         + str(profile_ref.resolve())
                     ),
                 },
@@ -56,7 +56,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "blocking": True,
                     "summary": "portfolio 根目录已就位。",
                     "command": (
-                        "uv run python -m med_autoscience.cli doctor --profile "
+                        "uv run python -m med_autoscience.cli doctor report --profile "
                         + str(profile_ref.resolve())
                     ),
                 },
@@ -67,7 +67,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "blocking": True,
                     "summary": "OPL provider stage runtime contract 已就位。",
                     "command": (
-                        "uv run python -m med_autoscience.cli doctor --profile "
+                        "uv run python -m med_autoscience.cli doctor report --profile "
                         + str(profile_ref.resolve())
                     ),
                 },
@@ -78,7 +78,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "blocking": True,
                     "summary": "medical overlay 已 ready。",
                     "command": (
-                        "uv run python -m med_autoscience.cli doctor --profile "
+                        "uv run python -m med_autoscience.cli doctor report --profile "
                         + str(profile_ref.resolve())
                     ),
                 },
@@ -89,7 +89,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "blocking": True,
                     "summary": "OPL current-control-state handoff 已 ready。",
                     "command": (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --format json"
                     ),
@@ -121,7 +121,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "trigger": "study-progress progress_freshness / workspace-cockpit attention queue",
                     "symptom": "当前 study 进度 stale 或 missing，疑似卡住、空转或没有新的明确推进证据。",
                     "recommended_command": (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --study-id <study_id>"
                     ),
@@ -131,7 +131,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "trigger": "study-progress needs_user_decision / controller decision gate",
                     "symptom": "当前已前移到用户或 publication release 的人工判断节点。",
                     "recommended_command": (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --study-id <study_id>"
                     ),
@@ -141,7 +141,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "trigger": "study-progress intervention_lane / OPL current_control_state handoff / workspace-cockpit attention queue",
                     "symptom": "OPL stage/runtime owner handoff 或 MAS domain diagnostic 显示运行恢复失败，当前必须优先处理 runtime recovery。",
                     "recommended_command": (
-                        "uv run python -m med_autoscience.cli launch-study --profile "
+                        "uv run python -m med_autoscience.cli study launch --profile "
                         + str(profile_ref.resolve())
                         + " --study-id <study_id>"
                     ),
@@ -151,7 +151,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "trigger": "study-progress intervention_lane / domain health diagnostic figure-loop alerts / publication gate",
                     "symptom": "研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
                     "recommended_command": (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --study-id <study_id>"
                     ),
@@ -160,7 +160,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
             "recovery_loop": [
                 {
                     "step_id": "inspect_workspace_inbox",
-                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile " + str(profile_ref.resolve()),
+                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile " + str(profile_ref.resolve()),
                     "surface_kind": "workspace_cockpit",
                 },
                 {
@@ -177,7 +177,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 {
                     "step_id": "inspect_study_progress",
                     "command": (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --study-id <study_id>"
                     ),
@@ -186,7 +186,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 {
                     "step_id": "continue_or_relaunch",
                     "command": (
-                        "uv run python -m med_autoscience.cli launch-study --profile "
+                        "uv run python -m med_autoscience.cli study launch --profile "
                         + str(profile_ref.resolve())
                         + " --study-id <study_id>"
                     ),

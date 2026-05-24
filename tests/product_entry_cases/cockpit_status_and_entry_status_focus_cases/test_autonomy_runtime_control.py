@@ -33,7 +33,7 @@ def test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough() ->
                 "focus_scope": "study",
                 "focus_study_id": "001-risk",
                 "recommended_step_id": "inspect_progress",
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
                 "current_focus": "看 publication_eval/latest.json 是否出现新的复评结论。",
             },
             "attention_queue": [
@@ -41,7 +41,7 @@ def test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough() ->
                     "title": "001-risk 当前处在等待系统自动复评",
                     "summary": "当前在等系统自动复评；你现在不用介入，先等待复评回写。",
                     "recommended_step_id": "inspect_study_progress",
-                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
                     "autonomy_soak_status": {
                         "summary": "最近一次自治外环已转到“论文写作与结果收紧”，当前关键问题是“当前同线稿件还差哪一步最窄修订？”。",
                     },
@@ -138,7 +138,7 @@ def test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_ga
                     },
                 },
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli study-progress "
+                    "uv run python -m med_autoscience.cli study progress "
                     "--profile profile.local.toml --study-id 001-risk"
                 ),
                 "recommended_commands": [],

@@ -86,31 +86,31 @@ def test_build_product_entry_status_projects_contract_bundle_from_manifest(
         },
         "product_entry_shell": {
             "product_entry_status": {
-                "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
+                "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
                 "surface_kind": "product_entry_status",
             },
             "workspace_cockpit": {
-                "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
                 "surface_kind": "workspace_cockpit",
             },
             "submit_study_task": {
-                "command": "uv run python -m med_autoscience.cli submit-study-task --profile profile.local.toml",
+                "command": "uv run python -m med_autoscience.cli study submit-task --profile profile.local.toml",
                 "surface_kind": "study_task_intake",
             },
             "launch_study": {
-                "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml",
+                "command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml",
                 "surface_kind": "progress_projection",
             },
             "study_progress": {
-                "command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml",
+                "command": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml",
                 "surface_kind": "study_progress",
             },
             "mainline_status": {
-                "command": "uv run python -m med_autoscience.cli mainline-status",
+                "command": "uv run python -m med_autoscience.cli doctor mainline-status",
                 "surface_kind": "mainline_status",
             },
             "mainline_phase": {
-                "command": "uv run python -m med_autoscience.cli mainline-phase",
+                "command": "uv run python -m med_autoscience.cli doctor mainline-phase",
                 "surface_kind": "mainline_phase",
             },
         },
@@ -125,14 +125,14 @@ def test_build_product_entry_status_projects_contract_bundle_from_manifest(
             },
         },
         "summary": {
-            "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"
+            "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"
         },
         "product_entry_preflight": {
             "surface_kind": "product_entry_preflight",
             "summary": "preflight ready",
             "ready_to_try_now": True,
             "recommended_check_command": "uv run python -m med_autoscience.cli doctor",
-            "recommended_start_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
+            "recommended_start_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
             "blocking_check_ids": [],
             "checks": [],
         },
@@ -173,7 +173,7 @@ def test_build_product_entry_status_projects_contract_bundle_from_manifest(
                 "focus_scope": "workspace",
                 "focus_study_id": None,
                 "recommended_step_id": "submit_task",
-                "recommended_command": "uv run python -m med_autoscience.cli submit-study-task --profile profile.local.toml",
+                "recommended_command": "uv run python -m med_autoscience.cli study submit-task --profile profile.local.toml",
             },
             "attention_queue": [],
             "ai_first_operations_state": {
@@ -226,9 +226,9 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
                 "user_interaction_mode": "natural_language_entry",
             },
             "summary": {
-                "entry_status_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
-                "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
-                "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "entry_status_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
+                "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
+                "operator_loop_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
             },
             "operator_brief": {
                 "verdict": "attention_required",
@@ -236,7 +236,7 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
                 "should_intervene_now": True,
                 "recommended_step_id": "handle_attention_item",
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk"
+                    "uv run python -m med_autoscience.cli study progress --profile profile.local.toml --study-id 001-risk"
                 ),
                 "focus_study_id": "001-risk",
                 "current_focus": "优先同步投稿包镜像。",
@@ -246,7 +246,7 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
                 "steps": [
                     {
                         "step_id": "open_product_entry",
-                        "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
+                        "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
                         "summary": "先打开前台入口。",
                     }
                 ]
@@ -254,26 +254,26 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
             "product_entry_overview": {
                 "summary": "当前 entry_status 已对齐 workspace truth。",
                 "progress_surface": {
-                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"
+                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml"
                 },
                 "resume_surface": {
-                    "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk"
+                    "command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml --study-id 001-risk"
                 },
             },
             "product_entry_start": {
                 "summary": "先进入 entry_status，再按需要恢复当前研究 loop。",
                 "resume_surface": {
-                    "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk"
+                    "command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml --study-id 001-risk"
                 },
             },
             "product_entry_preflight": {
                 "ready_to_try_now": True,
-                "recommended_check_command": "uv run python -m med_autoscience.cli doctor --profile profile.local.toml",
+                "recommended_check_command": "uv run python -m med_autoscience.cli doctor report --profile profile.local.toml",
             },
             "workspace_operator_brief": {
                 "verdict": "attention_required",
                 "summary": "当前 workspace 有关注项。",
-                "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "recommended_command": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
             },
             "workspace_ai_first_operations_state": {
                 "summary": "1 个 study 已接入 AI-first operations state；当前有质量授权和产物刷新信号需要处理。",
@@ -309,7 +309,7 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
                 {
                     "title": "001-risk 当前需要刷新投稿包镜像",
                     "recommended_command": (
-                        "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk"
+                        "uv run python -m med_autoscience.cli study progress --profile profile.local.toml --study-id 001-risk"
                     ),
                     "operator_status_card": {
                         "handling_state": "paper_surface_refresh_in_progress",
@@ -320,11 +320,11 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
             "phase2_user_product_loop": {
                 "summary": "当前先收口用户入口与研究 loop。",
                 "recommended_step_id": "continue_study",
-                "recommended_command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk",
+                "recommended_command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml --study-id 001-risk",
                 "single_path": [
                     {
                         "step_id": "continue_study",
-                        "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk",
+                        "command": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml --study-id 001-risk",
                     }
                 ],
             },
@@ -366,7 +366,7 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
             "phase5_platform_target": {},
             "entry_surfaces": {
                 "entry_status": {
-                    "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml"
+                    "command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml"
                 }
             },
         }
@@ -419,7 +419,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
             "current_blockers": ["论文叙事或方法/结果书写面仍有硬阻塞。"],
             "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),
@@ -429,7 +429,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
                     "title": "读取当前研究进度",
                     "surface_kind": "study_progress",
                     "command": (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --study-id 001-risk"
                     ),
@@ -447,7 +447,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
                         "title": "读取当前研究进度",
                         "surface_kind": "study_progress",
                         "command": (
-                            "uv run python -m med_autoscience.cli study-progress --profile "
+                            "uv run python -m med_autoscience.cli study progress --profile "
                             + str(profile_ref.resolve())
                             + " --study-id 001-risk"
                         ),
@@ -494,7 +494,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     assert payload["progress"]["progress_freshness"]["status"] == "fresh"
     assert payload["progress"]["recovery_contract"]["action_mode"] == "inspect_progress"
     assert payload["commands"]["progress"].endswith("--study-id 001-risk")
-    assert "workspace-cockpit" in payload["commands"]["cockpit"]
+    assert "workspace cockpit" in payload["commands"]["cockpit"]
 
     markdown = module.render_launch_study_markdown(payload)
     assert markdown.strip()
@@ -556,12 +556,12 @@ def test_launch_study_markdown_prefers_human_facing_labels() -> None:
             "recommended_commands": [
                 {
                     "title": "读取当前研究进度",
-                    "command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+                    "command": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml --study-id 001-risk",
                 }
             ],
         },
         "commands": {
-            "progress": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+            "progress": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml --study-id 001-risk",
         },
     }
 
@@ -764,7 +764,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert payload["return_surface_contract"]["study_progress_projection_contract"] == {
         "surface_kind": "study_progress_projection_contract",
         "command": (
-            "uv run python -m med_autoscience.cli study-progress --profile "
+            "uv run python -m med_autoscience.cli study progress --profile "
             + str(profile_ref.resolve())
             + " --study-id 001-risk --format json"
         ),
@@ -879,12 +879,12 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         },
         "command_templates": {
             "resume": (
-                "uv run python -m med_autoscience.cli launch-study --profile "
+                "uv run python -m med_autoscience.cli study launch --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),
             "check_progress": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk --format json"
             ),
@@ -985,7 +985,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "--study-id 001-risk --format json"
     )
     assert payload["commands"]["workspace_cockpit"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["commands"]["launch_study"].endswith("--study-id 001-risk")
     markdown = module.render_build_product_entry_markdown(payload)

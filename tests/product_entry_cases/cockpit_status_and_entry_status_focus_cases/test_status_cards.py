@@ -49,7 +49,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
             "summary": "当前有一项 study 需要先处理。",
             "should_intervene_now": True,
             "recommended_step_id": "inspect_study_progress",
-            "recommended_command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+            "recommended_command": "uv run python -m med_autoscience.cli study progress --profile profile.local.toml --study-id 001-risk",
             "focus_study_id": "001-risk",
             "current_focus": "先确认 figure loop 已停下。",
             "next_confirmation_signal": "看 checkpoint 是否刷新。",
@@ -59,7 +59,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
                 "title": "001-risk figure loop",
                 "summary": "图表推进陷入重复打磨循环。",
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli study-progress "
+                    "uv run python -m med_autoscience.cli study progress "
                     "--profile profile.local.toml --study-id 001-risk"
                 ),
                 "operator_status_card": {
@@ -69,16 +69,16 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
             }
         ],
         "user_loop": {
-            "open_workspace_cockpit": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+            "open_workspace_cockpit": "uv run python -m med_autoscience.cli workspace cockpit --profile profile.local.toml",
         },
         "phase2_user_product_loop": {
             "summary": "先打开 entry_status，再看 workspace inbox。",
             "recommended_step_id": "open_product_entry",
-            "recommended_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
+            "recommended_command": "uv run python -m med_autoscience.cli product entry_status --profile profile.local.toml",
             "operator_questions": [],
         },
         "commands": {
-            "doctor": "uv run python -m med_autoscience.cli doctor --profile profile.local.toml",
+            "doctor": "uv run python -m med_autoscience.cli doctor report --profile profile.local.toml",
         },
         "studies": [
             {
@@ -123,12 +123,12 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
                     "action_mode": "inspect_progress",
                 },
                 "recommended_command": (
-                    "uv run python -m med_autoscience.cli study-progress "
+                    "uv run python -m med_autoscience.cli study progress "
                     "--profile profile.local.toml --study-id 001-risk"
                 ),
                 "current_blockers": ["图表推进陷入重复打磨循环。"],
                 "commands": {
-                    "launch": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk",
+                    "launch": "uv run python -m med_autoscience.cli study launch --profile profile.local.toml --study-id 001-risk",
                 },
             }
         ],
@@ -234,7 +234,7 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
                 "primary_step_id": "inspect_study_progress",
                 "primary_surface_kind": "study_progress",
                 "primary_command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id 001-risk"
                 ),
@@ -251,7 +251,7 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
                 "user_visible_verdict": "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。",
             },
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),

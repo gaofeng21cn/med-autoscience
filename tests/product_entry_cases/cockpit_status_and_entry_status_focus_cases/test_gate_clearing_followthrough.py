@@ -25,7 +25,7 @@ def test_workspace_cockpit_projects_gate_clearing_followthrough_into_attention_a
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
     followthrough_command = (
-        "uv run python -m med_autoscience.cli study-progress --profile "
+        "uv run python -m med_autoscience.cli study progress --profile "
         + str(profile_ref.resolve())
         + " --study-id 001-risk"
     )

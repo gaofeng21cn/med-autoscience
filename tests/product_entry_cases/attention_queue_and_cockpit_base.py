@@ -36,7 +36,7 @@ def test_attention_queue_prefers_route_repair_focus_for_quality_blockers() -> No
                 },
                 "operator_verdict": {
                     "summary": "generic quality summary",
-                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "primary_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
                 },
                 "operator_status_card": {
                     "user_visible_verdict": "MAS 正在处理论文可发表性硬阻塞。",
@@ -49,7 +49,7 @@ def test_attention_queue_prefers_route_repair_focus_for_quality_blockers() -> No
                     "route_key_question": "当前稿面最窄的 claim-evidence 修复动作是什么？",
                     "summary": "当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“当前稿面最窄的 claim-evidence 修复动作是什么？”。",
                 },
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
             }
         ],
         commands={},
@@ -85,7 +85,7 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
                 "intervention_lane": {"lane_id": "monitor_only"},
                 "operator_verdict": {
                     "summary": "generic summary",
-                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "primary_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
                 },
                 "operator_status_card": {},
                 "same_line_route_truth": {
@@ -98,7 +98,7 @@ def test_attention_queue_uses_quality_execution_lane_for_generic_study_blocked()
                     "summary": "当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。",
                     "current_focus": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
                 },
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
             }
         ],
         commands={},
@@ -138,7 +138,7 @@ def test_attention_queue_projects_manual_finishing_as_package_handoff_without_ge
                 },
                 "operator_verdict": {
                     "summary": "旧的阻塞摘要不应覆盖人工收尾语义。",
-                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "primary_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
                 },
                 "operator_status_card": {
                     "handling_state": "package_ready_handoff",
@@ -151,7 +151,7 @@ def test_attention_queue_projects_manual_finishing_as_package_handoff_without_ge
                     "autonomy_state": "compatibility_guard",
                     "summary": "投稿包里程碑已达成；MAS 只保持人工收尾显式保护和监督入口。",
                 },
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
             }
         ],
         commands={},
@@ -192,12 +192,12 @@ def test_attention_queue_prefers_autonomy_contract_summary_for_runtime_recovery(
                 },
                 "operator_verdict": {
                     "summary": "generic runtime recovery summary",
-                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "primary_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
                 },
                 "operator_status_card": {
                     "user_visible_verdict": "MAS 正在恢复托管运行。",
                 },
-                "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                "recommended_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
             }
         ],
         commands={},
@@ -210,7 +210,7 @@ def test_attention_queue_prefers_autonomy_contract_summary_for_runtime_recovery(
 def test_attention_queue_prefers_gate_clearing_followthrough_for_quality_blockers() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     followthrough_command = (
-        "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk --format json"
+        "uv run python -m med_autoscience.cli study progress --profile profile.local.toml --study-id 001-risk --format json"
     )
 
     queue = module._attention_queue(
@@ -234,7 +234,7 @@ def test_attention_queue_prefers_gate_clearing_followthrough_for_quality_blocker
                 },
                 "operator_verdict": {
                     "summary": "generic gate-clearing summary",
-                    "primary_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
+                    "primary_command": "uv run python -m med_autoscience.cli study progress --study-id 001-risk",
                 },
                 "operator_status_card": {},
                 "quality_execution_lane": {
@@ -296,7 +296,7 @@ def test_study_item_normalizes_gate_clearing_batch_followthrough_from_progress_p
         "next_confirmation_signal": "看 publication_eval/latest.json 或最新 gate replay 是否继续收窄 blocker。",
         "recommended_step_id": "inspect_gate_clearing_followthrough",
         "recommended_command": (
-            "uv run python -m med_autoscience.cli study-progress --profile "
+            "uv run python -m med_autoscience.cli study progress --profile "
             + shlex.quote(str(profile_ref))
             + " --study-id 001-risk"
         ),
@@ -564,13 +564,13 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "primary_step_id": "inspect_study_progress",
                 "primary_surface_kind": "study_progress",
                 "primary_command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id 002-risk"
                 ),
             },
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 002-risk"
             ),
@@ -580,7 +580,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "title": "读取当前研究进度",
                     "surface_kind": "study_progress",
                     "command": (
-                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        "uv run python -m med_autoscience.cli study progress --profile "
                         + str(profile_ref.resolve())
                         + " --study-id 002-risk"
                     ),
@@ -598,7 +598,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                         "title": "读取当前研究进度",
                         "surface_kind": "study_progress",
                         "command": (
-                            "uv run python -m med_autoscience.cli study-progress --profile "
+                            "uv run python -m med_autoscience.cli study progress --profile "
                             + str(profile_ref.resolve())
                             + " --study-id 002-risk"
                         ),
@@ -646,7 +646,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         "focus_study_id": None,
         "recommended_step_id": "inspect_supervision_service",
         "recommended_command": (
-            "uv run python -m med_autoscience.cli study-progress --profile "
+            "uv run python -m med_autoscience.cli study progress --profile "
             + str(profile_ref.resolve())
             + " --format json"
         ),
@@ -654,7 +654,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["title"] == "先检查 OPL scheduler replacement"
     assert payload["attention_queue"][0]["recommended_command"].endswith(
-        "study-progress --profile " + str(profile_ref.resolve()) + " --format json"
+        "study progress --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert any(
         item["study_id"] == "001-risk"
@@ -679,29 +679,29 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["studies"][1]["operator_verdict"]["summary"] == "图表推进陷入重复打磨循环，当前 run 应被拉回主线。"
     assert payload["studies"][1]["recommended_commands"][0]["surface_kind"] == "study_progress"
     assert payload["studies"][1]["monitoring"]["browser_url"] == "http://127.0.0.1:20999"
-    assert "mainline-phase --phase current" in payload["user_loop"]["phase_status_current"]
-    assert "submit-study-task" in payload["user_loop"]["submit_task_template"]
-    assert "study-progress" in payload["user_loop"]["watch_progress_template"]
+    assert "doctor mainline-phase --phase current" in payload["user_loop"]["phase_status_current"]
+    assert "study submit-task" in payload["user_loop"]["submit_task_template"]
+    assert "study progress" in payload["user_loop"]["watch_progress_template"]
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
     assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_product_entry"
     assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["phase2_user_product_loop"]["single_path"][1]["step_id"] == "inspect_workspace_inbox"
     assert payload["phase2_user_product_loop"]["single_path"][4]["command"].endswith(
-        "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
+        "study progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
     )
     assert payload["phase2_user_product_loop"]["operator_questions"] == [
         {
             "question": "用户现在怎么启动 MAS？",
             "answer_surface_kind": "product_entry_status",
-            "command": "uv run python -m med_autoscience.cli product-entry-status --profile " + str(profile_ref.resolve()),
+            "command": "uv run python -m med_autoscience.cli product entry_status --profile " + str(profile_ref.resolve()),
         },
         {
             "question": "用户怎么给 study 下任务？",
             "answer_surface_kind": "study_task_intake",
             "command": (
-                "uv run python -m med_autoscience.cli submit-study-task --profile "
+                "uv run python -m med_autoscience.cli study submit-task --profile "
                 + str(profile_ref.resolve())
                 + " --study-id <study_id> --task-intent '<task_intent>'"
             ),
@@ -710,7 +710,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             "question": "用户怎么持续看进度和恢复建议？",
             "answer_surface_kind": "study_progress",
             "command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id <study_id> --format json"
             ),
@@ -828,7 +828,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
                 "conditions": [],
             },
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id "
                 + resolved_study_id

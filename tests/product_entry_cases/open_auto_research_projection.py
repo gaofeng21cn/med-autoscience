@@ -129,7 +129,7 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
                 },
             },
             "recommended_command": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id 001-risk"
             ),

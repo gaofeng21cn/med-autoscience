@@ -149,12 +149,12 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
         },
         "command_templates": {
             "resume": (
-                "uv run python -m med_autoscience.cli launch-study --profile "
+                "uv run python -m med_autoscience.cli study launch --profile "
                 + str(profile_ref.resolve())
                 + " --study-id <study_id>"
             ),
             "check_progress": (
-                "uv run python -m med_autoscience.cli study-progress --profile "
+                "uv run python -m med_autoscience.cli study progress --profile "
                 + str(profile_ref.resolve())
                 + " --study-id <study_id> --format json"
             ),

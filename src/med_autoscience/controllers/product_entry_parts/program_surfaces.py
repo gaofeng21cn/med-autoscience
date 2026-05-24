@@ -98,23 +98,37 @@ def _build_phase2_user_product_loop(
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
     lane = mainline_program_surfaces.build_phase2_user_product_loop_lane(
-        entry_status_command=f"{prefix} product-entry-status --profile {profile_arg}",
+        entry_status_command=_command(profile_ref, "product-entry-status", "--profile", profile_arg),
         workspace_cockpit_command=_json_surface_command(
-            f"{prefix} workspace-cockpit --profile {profile_arg}"
+            _command(profile_ref, "workspace-cockpit", "--profile", profile_arg)
         ),
         submit_task_command=(
-            f"{prefix} submit-study-task --profile {profile_arg} "
+            f"{_command(profile_ref, 'submit-study-task', '--profile', profile_arg)} "
             "--study-id <study_id> --task-intent '<task_intent>'"
         ),
-        launch_study_command=f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+        launch_study_command=_command(
+            profile_ref,
+            "launch-study",
+            "--profile",
+            profile_arg,
+            "--study-id <study_id>",
+        ),
         study_progress_command=_json_surface_command(
-            f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
+            _command(
+                profile_ref,
+                "study-progress",
+                "--profile",
+                profile_arg,
+                "--study-id <study_id>",
+            )
         ),
         controller_decisions_ref=str(
             profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"
         ),
     )
-    workflow_command = _json_surface_command(f"{prefix} workspace-cockpit --profile {profile_arg}")
+    workflow_command = _json_surface_command(
+        _command(profile_ref, "workspace-cockpit", "--profile", profile_arg)
+    )
     lane["workflow_steps"] = build_guarded_phase2_workflow_steps(workflow_command=workflow_command)
     return lane
 
@@ -126,14 +140,32 @@ def _build_phase3_clearance_lane(
 ) -> dict[str, Any]:
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
-    doctor_command = f"{prefix} doctor --profile {profile_arg}"
-    supervisor_service_command = f"{prefix} study-progress --profile {profile_arg} --format json"
+    doctor_command = _command(profile_ref, "doctor", "--profile", profile_arg)
+    supervisor_service_command = _command(
+        profile_ref,
+        "study-progress",
+        "--profile",
+        profile_arg,
+        "--format json",
+    )
     refresh_supervision_command = (
         f"{prefix} runtime domain-health-diagnostic --runtime-root {_quote_cli_arg(profile.runtime_root)} "
         f"--profile {profile_arg} --request-opl-stage-attempts --request-opl-owner-route-reconcile --apply"
     )
-    launch_study_command = f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>"
-    study_progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
+    launch_study_command = _command(
+        profile_ref,
+        "launch-study",
+        "--profile",
+        profile_arg,
+        "--study-id <study_id>",
+    )
+    study_progress_command = _command(
+        profile_ref,
+        "study-progress",
+        "--profile",
+        profile_arg,
+        "--study-id <study_id>",
+    )
     build_clearance_lane = _controller_override("_build_shared_clearance_lane", _build_shared_clearance_lane)
     return build_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
@@ -221,7 +253,7 @@ def _build_phase3_clearance_lane(
             ),
         ],
         recommended_phase_command=(
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
+            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_3_multi_workspace_host_clearance"
         ),
     )
 
@@ -273,7 +305,7 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
         ],
         deconstruction_map_ref="program:med_deepscientist_deconstruction_map",
         recommended_phase_command=(
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
+            "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_4_backend_deconstruction"
         ),
     )
 

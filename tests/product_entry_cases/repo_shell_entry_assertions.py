@@ -83,7 +83,7 @@ def _assert_executor_default_surface(*, module, payload, profile, profile_ref) -
     assert payload["workspace_locator"]["profile_name"] == profile.name
     assert payload["recommended_shell"] == "workspace_cockpit"
     assert payload["recommended_command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["schema_ref"] == "contracts/schemas/v1/product-entry-manifest.schema.json"
     assert payload["domain_entry_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
@@ -103,7 +103,7 @@ def _assert_entry_contract_surfaces(*, module, payload, profile, profile_ref) ->
     assert payload["user_interaction_contract"]["command_surfaces_for_agent_consumption_only"] is True
     assert payload["product_entry_surface"]["shell_key"] == "product_entry_status"
     assert payload["product_entry_surface"]["command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_surface"]["surface_kind"] == "product_entry_status"
     assert "research product entry status" in payload["product_entry_surface"]["summary"]
@@ -116,7 +116,7 @@ def _assert_entry_contract_surfaces(*, module, payload, profile, profile_ref) ->
     assert payload["operator_loop_actions"]["submit_task"]["requires"] == ["study_id", "task_intent"]
     assert payload["operator_loop_actions"]["continue_study"]["requires"] == ["study_id"]
     assert payload["operator_loop_actions"]["inspect_progress"]["command"].endswith(
-        "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
+        "study progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
     )
 
 def _assert_mainline_boundary_surface(*, module, payload, profile, profile_ref) -> None:
@@ -130,11 +130,11 @@ def _assert_mainline_boundary_surface(*, module, payload, profile, profile_ref) 
         "export_inspection_package",
     ]
     assert payload["product_entry_quickstart"]["steps"][0]["command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_quickstart"]["steps"][1]["requires"] == ["study_id", "task_intent"]
     assert payload["product_entry_quickstart"]["steps"][2]["command"].endswith(
-        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+        "study launch --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
     )
     assert payload["product_entry_quickstart"]["steps"][3]["surface_kind"] == "study_progress"
     assert payload["product_entry_quickstart"]["steps"][4]["surface_kind"] == (
@@ -186,11 +186,11 @@ def _assert_skill_catalog_projection(*, module, payload, profile, profile_ref) -
     assert payload["task_lifecycle"]["progress_surface"]["surface_kind"] == "workspace_cockpit"
     assert payload["task_lifecycle"]["progress_surface"]["step_id"] == "inspect_workspace_inbox"
     assert payload["task_lifecycle"]["progress_surface"]["command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["task_lifecycle"]["resume_surface"]["surface_kind"] == "launch_study"
     assert payload["task_lifecycle"]["resume_surface"]["command"].endswith(
-        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+        "study launch --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
     )
     assert payload["task_lifecycle"]["checkpoint_summary"]["surface_kind"] == "checkpoint_summary"
     assert payload["task_lifecycle"]["checkpoint_summary"]["status"] == "monitoring_required"
@@ -211,7 +211,7 @@ def _assert_skill_catalog_projection(*, module, payload, profile, profile_ref) -
     assert payload["task_lifecycle"]["domain_projection"]["current_program_phase_id"] == "phase_2_user_product_loop"
     assert payload["task_lifecycle"]["domain_projection"]["recommended_loop_surface"] == "workspace_cockpit"
     assert payload["task_lifecycle"]["domain_projection"]["recommended_loop_command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["skill_catalog"]["surface_kind"] == "skill_catalog"
     assert payload["skill_catalog"]["summary"] == payload["product_entry_status"]["summary"]
@@ -226,7 +226,7 @@ def _assert_automation_surface(*, module, payload, profile, profile_ref) -> None
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_shell_key"] == "product_entry_status"
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["supporting_shell_keys"] == [
         "workspace_cockpit",
@@ -255,12 +255,12 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
             "/progress_projection/domain_projection/research_runtime_control_projection/restore_point_surface"
         ),
         "recommended_resume_command": (
-            "uv run python -m med_autoscience.cli launch-study --profile "
+            "uv run python -m med_autoscience.cli study launch --profile "
             + str(profile_ref.resolve())
             + " --study-id <study_id>"
         ),
         "recommended_progress_command": (
-            "uv run python -m med_autoscience.cli study-progress --profile "
+            "uv run python -m med_autoscience.cli study progress --profile "
             + str(profile_ref.resolve())
             + " --study-id <study_id> --format json"
         ),
@@ -308,10 +308,10 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
     assert payload["product_entry_overview"]["surface_kind"] == "product_entry_overview"
     assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
     assert payload["product_entry_overview"]["entry_status_command"].endswith(
-        "product-entry-status --profile " + str(profile_ref.resolve())
+        "product entry_status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_overview"]["recommended_command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
 
 def _assert_automation_and_product_overview(*, module, payload, profile, profile_ref) -> None:
@@ -322,7 +322,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
     assert payload["product_entry_overview"]["progress_surface"] == {
         "surface_kind": "study_progress",
         "command": (
-            "uv run python -m med_autoscience.cli study-progress --profile "
+            "uv run python -m med_autoscience.cli study progress --profile "
             + str(profile_ref.resolve())
             + " --study-id <study_id> --format json"
         ),
@@ -331,7 +331,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
     assert payload["product_entry_overview"]["resume_surface"] == {
         "surface_kind": "launch_study",
         "command": (
-            "uv run python -m med_autoscience.cli launch-study --profile "
+            "uv run python -m med_autoscience.cli study launch --profile "
             + str(profile_ref.resolve())
             + " --study-id <study_id>"
         ),
@@ -367,12 +367,12 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
         ),
         "recommended_start_surface": "product_entry_status",
         "recommended_start_command": (
-            "uv run python -m med_autoscience.cli product-entry-status --profile "
+            "uv run python -m med_autoscience.cli product entry_status --profile "
             + str(profile_ref.resolve())
         ),
         "recommended_loop_surface": "workspace_cockpit",
         "recommended_loop_command": (
-            "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+            "uv run python -m med_autoscience.cli workspace cockpit --profile "
             + str(profile_ref.resolve())
             + " --format json"
         ),
@@ -386,7 +386,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
         "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
         "recommended_step_id": "open_product_entry",
         "recommended_command": (
-            "uv run python -m med_autoscience.cli product-entry-status --profile "
+            "uv run python -m med_autoscience.cli product entry_status --profile "
             + str(profile_ref.resolve())
         ),
         "single_path": [
@@ -395,7 +395,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "title": "先打开 MAS 产品入口",
                 "surface_kind": "product_entry_status",
                 "command": (
-                    "uv run python -m med_autoscience.cli product-entry-status --profile "
+                    "uv run python -m med_autoscience.cli product entry_status --profile "
                     + str(profile_ref.resolve())
                 ),
             },
@@ -404,7 +404,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "title": "确认当前 workspace inbox / attention queue",
                 "surface_kind": "workspace_cockpit",
                 "command": (
-                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    "uv run python -m med_autoscience.cli workspace cockpit --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
@@ -414,7 +414,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "title": "给目标 study 写 durable task intake",
                 "surface_kind": "study_task_intake",
                 "command": (
-                    "uv run python -m med_autoscience.cli submit-study-task --profile "
+                    "uv run python -m med_autoscience.cli study submit-task --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --task-intent '<task_intent>'"
                 ),
@@ -424,7 +424,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "title": "启动或续跑当前 study",
                 "surface_kind": "launch_study",
                 "command": (
-                    "uv run python -m med_autoscience.cli launch-study --profile "
+                    "uv run python -m med_autoscience.cli study launch --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id>"
                 ),
@@ -434,7 +434,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "title": "持续看进度、阻塞和恢复建议",
                 "surface_kind": "study_progress",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --format json"
                 ),
@@ -444,7 +444,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "title": "遇到人工 gate 时回到 progress / cockpit 做决策",
                 "surface_kind": "study_progress",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --format json"
                 ),
@@ -455,7 +455,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "question": "用户现在怎么启动 MAS？",
                 "answer_surface_kind": "product_entry_status",
                 "command": (
-                    "uv run python -m med_autoscience.cli product-entry-status --profile "
+                    "uv run python -m med_autoscience.cli product entry_status --profile "
                     + str(profile_ref.resolve())
                 ),
             },
@@ -463,7 +463,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "question": "用户怎么给 study 下任务？",
                 "answer_surface_kind": "study_task_intake",
                 "command": (
-                    "uv run python -m med_autoscience.cli submit-study-task --profile "
+                    "uv run python -m med_autoscience.cli study submit-task --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --task-intent '<task_intent>'"
                 ),
@@ -472,7 +472,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "question": "用户怎么持续看进度和恢复建议？",
                 "answer_surface_kind": "study_progress",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --format json"
                 ),
@@ -482,14 +482,14 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
             {
                 "surface_kind": "product_entry_status",
                 "command": (
-                    "uv run python -m med_autoscience.cli product-entry-status --profile "
+                    "uv run python -m med_autoscience.cli product entry_status --profile "
                     + str(profile_ref.resolve())
                 ),
             },
             {
                 "surface_kind": "workspace_cockpit",
                 "command": (
-                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    "uv run python -m med_autoscience.cli workspace cockpit --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
@@ -497,7 +497,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
             {
                 "surface_kind": "study_progress.operator_verdict",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --format json"
                 ),
@@ -505,7 +505,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
             {
                 "surface_kind": "study_progress.recovery_contract",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id <study_id> --format json"
                 ),
@@ -522,7 +522,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "summary": "运行 provider-backed 文献摄取，保留 provider provenance、检索日期和 citation ledger refs。",
                 "surface_kind": "medical_paper_readiness_action_card",
                 "command": (
-                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    "uv run python -m med_autoscience.cli workspace cockpit --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
@@ -537,7 +537,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "summary": "把路线选择、route-back 或 switch-line 决策写入 controller decision 投影。",
                 "surface_kind": "medical_paper_readiness_action_card",
                 "command": (
-                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    "uv run python -m med_autoscience.cli workspace cockpit --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
@@ -552,7 +552,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "summary": "逐项处理缺失值、precision、外部验证、多重性、临床效用和敏感性分析 blocker/waiver。",
                 "surface_kind": "medical_paper_readiness_action_card",
                 "command": (
-                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    "uv run python -m med_autoscience.cli workspace cockpit --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
@@ -567,7 +567,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "summary": "摄取 reviewer comments，生成 rebuttal action matrix、analysis repair 和 AI reviewer recheck。",
                 "surface_kind": "medical_paper_readiness_action_card",
                 "command": (
-                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    "uv run python -m med_autoscience.cli workspace cockpit --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
@@ -582,7 +582,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "summary": "检查目标期刊层、claim/display map、ledger 和 AI reviewer provenance 后再授权 full manuscript drafting。",
                 "surface_kind": "medical_paper_readiness_action_card",
                 "command": (
-                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    "uv run python -m med_autoscience.cli workspace cockpit --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
@@ -597,7 +597,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
                 "summary": "从真实或脱敏 study workspace 只读检查多 study soak ready/partial/blocked 状态。",
                 "surface_kind": "medical_paper_readiness_action_card",
                 "command": (
-                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    "uv run python -m med_autoscience.cli workspace cockpit --profile "
                     + str(profile_ref.resolve())
                     + " --format json"
                 ),
