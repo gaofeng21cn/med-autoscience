@@ -1,7 +1,7 @@
 # MAS 当前开发线路
 
 Status: `active content-level development map`
-Date: `2026-05-17`
+Date: `2026-05-24`
 Owner: `MedAutoScience`
 Purpose: 在 MAS monolith closeout 和 OPL stage-led framework 新定位之后，给出当前内容级开发线路图。
 State: `active_plan_index`
@@ -9,7 +9,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 
 ## 当前结论
 
-`docs/active/` 现在按内容线阅读，不按整份旧计划阅读。旧文档里的部分内容仍有效，但当前任务不是“把每个旧计划从头到尾做完”。
+`docs/active/` 现在按 single Active Truth plan 阅读。[MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 持有当前 `/goal` 范围和结构/证据差距；本文只保留内容线索引，避免再形成平行总计划。旧文档里的部分内容仍有效，但它们必须折回本索引、owner doc 或 history/provenance。
 
 当前执行优先级是 framework-first：OPL 承担通用 stage runtime、attempt、queue、retry/dead-letter、human-gate transport、projection 与 App/workbench shell；MAS 保留医学 study truth、stage semantics、AI reviewer / auditor quality gate、publication route、artifact authority、publication-route memory decision、owner receipt 和 typed blocker。
 
@@ -21,11 +21,11 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 - MAS 标准 Agent 结构面已经把 generated surface、domain authority refs、minimal authority function、legacy tombstone/provenance 和 active-source morphology 收敛到主参考口径；结构 closure 不等于真实 paper closure。
 - provider residency、guarded apply、publication-route memory inventory、Stage Deliverable Review Page / Index、workbench refs、legacy tombstone 和 AI-first authority boundary 都有 repo / contract / projection 基线，但真实 paper-line provider apply、domain activity long soak、human gate/resume、更多 memory/artifact receipts 和 App drilldown 仍是 evidence gate。
 
-dated proof、具体 attempt、receipt id、follow-through 流水和历史 closeout 只作为 provenance 读取，入口见 [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)、[Plan Completion Ledger](../history/program/plan_completion_ledger.md) 和对应 machine-readable contracts。本文只保留当前内容线、owner 文档、gate class、下一实施单元和禁止误写口径。
+当前 `/goal` 的实施线是 MAS 标准 OPL Agent 源码形态收口：runtime/control residue、product/status/workbench shell、compat/no-resurrection tests 和 active truth docs 并行推进，完成后吸收到 `main`。dated proof、具体 attempt、receipt id、follow-through 流水和历史 closeout 只作为 provenance 读取，入口见 [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)、[Plan Completion Ledger](../history/program/plan_completion_ledger.md) 和对应 machine-readable contracts。本文只保留当前内容线、owner 文档、gate class、当前实施单元和禁止误写口径。
 
 ## MAS 全线规划闭环
 
-本文是 MAS 当前开发规划的唯一入口。后续不要再为 MAS production closure、stage surface、paper autonomy、App workbench 或 legacy cleanup 新建平行总计划；新增工作先落到本文的内容线路，再跳到对应 owner 文档执行。
+本文是 MAS 当前内容线索引。当前执行目标、关闭门槛和 `/goal` 摘要由 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 持有；后续不要再为 MAS production closure、stage surface、paper autonomy、App workbench 或 legacy cleanup 新建平行总计划。新增工作先落到本文的内容线路，再跳到对应 owner 文档执行。
 
 当前 MAS 线已经完成规划分层；表格中 `结构/功能动作` 只写要改的 owner boundary、接口、模块、调用链或迁移动作，`证据/测试门槛` 只写证明方式、真实运行证据、receipt、soak、coverage 或 focused tests：
 

@@ -110,6 +110,17 @@ MAS 的 OPL 标准智能体目标态是：
 | `workbench_sidecar_status_retirement` | Product-entry/workspace cockpit/sidecar/status still provide direct MAS path, OPL handoff input or diagnostic read model. | OPL generated product/status/workbench shell is default/production caller; MAS retains only domain handler target, receipt signer, typed blocker and authority refs. | product-entry manifest/status tests, sidecar export/dispatch tests, App/workbench drilldown evidence. |
 | `legacy_cleanup_physical_retirement` | Local LaunchAgent scheduler and workspace-local watch wrappers are tombstone/provenance only. | No compatibility alias, wrapper or active diagnostic bridge reintroduced; old refs stay history/tombstone only. | legacy tombstone contract, OPL unique control plane boundary tests, stale surface scan. |
 
+## 2026-05-24 current `/goal` migration slice
+
+当前迁移切片按一次性源码形态收口执行，不再拆成长期 phase：`runtime_control_residue`、`product_status_workbench_shell`、`compat_no_resurrection_tests` 和 `active_truth_docs` 可以并行推进，但每个改动仍必须落回同一 owner 边界。
+
+| slice | inventory reading | closeout requirement |
+| --- | --- | --- |
+| `runtime_control_residue` | 本台账中 `runtime_transport_sqlite_physical_retirement`、runtime transport / turn runner / worker lease / lifecycle refs adapter 相关条目只能作为 tombstone/provenance、OPL handoff refs 或 no-resurrection guard 读取。 | current code/docs/tests 不得把 MAS 写成 scheduler、queue、attempt ledger、worker residency、runtime lifecycle 或 provider recovery owner；focused no-resurrection tests 和 tombstone refs 必须保持。 |
+| `product_status_workbench_shell` | product-entry、sidecar、status、workbench、owner-route handoff 和 progress projection 条目只允许输出 domain projection refs、owner receipt、typed blocker、authority refs 或 diagnostic refs。 | OPL generated/provider parity、MAS receipt parity、focused tests、no-forbidden-write proof 和 tombstone refs 成立后，旧 wrapper / alias / facade / compat path 直接删除或 tombstone。 |
+| `compat_no_resurrection_tests` | legacy / managed / old runtime wording 的测试只可证明 fail-closed、tombstone semantics、owner receipt 或 typed blocker。 | 不新增 compatibility alias、normalizer、fallback 或聚合测试来保护旧路径；只维护旧调用路径的测试应删除或改成 current-boundary test。 |
+| `active_truth_docs` | 本台账支撑 `docs/status.md` 和 `docs/active/mas-ideal-state-gap-plan.md` 的 current truth，不保存 dated closeout 流水。 | 结构源码收口与真实 paper-line evidence tail 分开写；不可把 repo tests、descriptor proof 或 provider completion 写成 publication-ready、paper closure、artifact mutation authorization 或 `current_package` 更新。 |
+
 ## 2026-05-21 product/workbench wrapper alias cleanup
 
 本轮最小真实清理只作用于 product-entry / workspace cockpit / workbench / Progress Portal projection shell：移除 `needs_physician_decision`、`legacy_needs_physician_decision_field`、`legacy_approval_gate_field`、`study_physician_decision_gate` 和 `study_needs_physician_decision` 这组旧 human-gate alias 的 product/workbench 输出与 fallback 消费，保留 `needs_user_decision` 作为唯一 product/workbench/Portal human-gate 字段；Progress Portal 当前 gate 文案只由 `needs_user_decision` 驱动，旧 `needs_physician_decision` 只作为上游 projection 历史字段、tombstone/provenance 或 fail-closed 测试输入读取。

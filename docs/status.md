@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-05-23**
+**更新时间：2026-05-24**
 
 Owner: `MedAutoScience`
 Purpose: `current_truth_summary`
@@ -94,13 +94,18 @@ MAS 已完成 owner/contract/read-model 收薄，并完成 domain route / domain
 - family transition materialization proof：`study_state_matrix` action 与 OPL generic matrix runner 已有 focused proof；后续真实 paper-line canary 仍需证明 matrix route/work-unit 能进入 MAS owner chain，并产出 owner receipt、typed blocker、progress delta、gate replay、human gate 或 stop-loss。
 - stage graph / route-as-transition proof：OPL 已有承载 route-as-transition 的 stage graph / transition runner / provider attempt 基础面；MAS 仍需用真实 paper-line 与指定 journal 格式整理 canary 回填 owner receipt、artifact authority receipt、independent reviewer/auditor record、human gate 或 stable typed blocker。该 proof 是 production evidence tail，不回写成 MAS 私有 runtime 或 publication-ready 结论。
 
-## 当前完善顺序
+## 当前 `/goal` 收口
 
-1. 并行推进 Codex pack canonicalization、OPL-generated default-owner cutover 和 runtime_transport / SQLite physical retirement gate 盘点；只关闭具备 no-resurrection、replacement parity、domain receipt parity 和 no-forbidden-write proof 的删除项。
-2. 同步推进 workbench / sidecar / status retirement：OPL generated product/status/workbench shell 成为 production/default caller 后，MAS 只保留 direct skill target、domain handler、receipt signer、typed blocker 和 authority refs。
-3. 跑真实 paper-line canary，验证 OPL provider attempt -> MAS sidecar -> MAS owner chain 能产出 owner receipt、progress delta、gate replay、route decision、human gate、stop-loss 或 stable typed blocker。
-4. canary 之后扩展 publication-route memory、artifact lifecycle、human gate/resume 和 provider SLO long-soak evidence；这些属于测试/证据 tail，不回写成结构 closure，也不替 publication gate、AI reviewer 或 artifact authority 宣布 ready。
-5. 每个物理删除动作都必须带 no-resurrection、replacement parity、domain receipt parity、focused tests、no-forbidden-write proof 和 provenance/tombstone refs；满足即删除、archive 或 tombstone，不新增兼容 alias。
+本轮只维护一个目标：把 MAS repo 本身收敛为标准 OPL Agent 的源码形态。并行 worktree / subagent 可以同时推进，但最终必须吸收到 `main`，并由同一组 current truth 文档、机器合同、源码和验证结果承接。
+
+| lane | 当前收口动作 | 完成口径 |
+| --- | --- | --- |
+| `runtime_control_residue` | 继续核对 runtime transport、turn runner、worker lease、lifecycle refs adapter、OPL unique control-plane handoff 与 functional privatization audit；发现 MAS generic runtime owner 语义即改回 OPL-owned handoff、MAS owner receipt、typed blocker 或 tombstone/provenance。 | 不再有 current caller / current wording 把 MAS 写成 scheduler、queue、attempt ledger、worker residency、runtime lifecycle 或 provider recovery owner；focused no-resurrection tests 通过。 |
+| `product_status_workbench_shell` | 收薄 product-entry / sidecar / status / workbench / owner-route projection shell，只保留 direct domain handler、projection refs、owner receipt、typed blocker、authority refs 或 diagnostic refs。 | 满足 OPL generated/provider parity、MAS receipt parity、focused tests、no-forbidden-write proof 和 tombstone refs 后，旧 wrapper / alias / facade / compat path 删除、archive 或 tombstone。 |
+| `compat_no_resurrection_tests` | 把 legacy / managed / old runtime wording 的测试改成 current contract、fail-closed、tombstone、owner receipt 或 typed blocker 断言；删除只保护旧路径的兼容测试。 | 测试保护当前边界，不保护历史调用路径；不新增 compatibility alias、normalizer 或 fallback。 |
+| `active_truth_docs` | 本页、[MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)、[当前开发线路](./active/current-development-lines.md) 和 private implementation inventory 同步 current truth。 | 结构收口、源码形态和证据 tail 分开写；dated proof / attempt 流水进入 history/provenance，不当作 current truth。 |
+
+真实 paper-line provider apply、publication-route memory receipt、artifact lifecycle receipt、human gate/resume、provider SLO long-soak 和 App/operator drilldown 仍是测试/证据差距。它们不阻塞本轮源码形态收口，也不能被本轮 repo tests 或 descriptor conformance 写成 publication-ready、paper closure、artifact mutation authorization 或 `current_package` 更新。
 
 ## 当前不能声明
 
