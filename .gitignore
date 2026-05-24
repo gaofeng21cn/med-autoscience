@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 .worktree/
 .worktrees/
+.codegraph/
 ops/
 dist/
 build/

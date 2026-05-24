@@ -144,7 +144,7 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
     assert payload["summary"]["can_claim_landed"] is False
     profile = payload["profiles"][0]
     assert profile["profile_readable"] is True
-    assert profile["reconcile_domain_routes_dry_run"]["can_complete"] is True
+    assert profile["owner_route_handoff_observation"]["can_complete"] is True
     assert profile["workspace_migration_dry_run"]["dry_run"] is True
     assert profile["workspace_migration_dry_run"]["writes_performed"] is False
     assert profile["real_workspace_soak_monitor"]["writes_performed"] is False
@@ -261,7 +261,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     assert evidence["read_only_contract"]["can_write_current_package"] is False
     assert evidence["summary"]["writes_performed"] is False
     profile = evidence["profiles"][0]
-    assert profile["portal_console_refs"]["status"] == "readable"
+    assert profile["progress_portal_refs"]["status"] == "readable"
     assert profile["safe_reconcile_dry_run"]["next_action"] == "review_safe_reconcile_dry_run_before_apply"
     study = profile["studies"][0]
     assert study["status_progress_readability"]["status"] == "readable"
@@ -314,3 +314,52 @@ def test_paper_autonomy_stability_evidence_cli_outputs_json(monkeypatch, tmp_pat
         "study_ids": ("001",),
     }
     assert json.loads(captured.out)["surface"] == "paper_autonomy_stability_evidence"
+
+
+def test_paper_progress_degradation_ignores_migrated_ai_reviewer_request_tombstone(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_progress_degradation_evidence")
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-active"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "ai_reviewer_required": True,
+            },
+            "verdict": {"overall_verdict": "mixed"},
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface_kind": "legacy_control_surface_tombstone",
+            "status": "migrated_to_provenance",
+            "active_path_role": "domain_action_request_packet",
+        },
+    )
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "fixture.workspace.toml"
+    _write_profile(workspace_root, profile_path)
+    profile = importlib.import_module("med_autoscience.profiles").load_profile(profile_path)
+
+    result = module.build_profile_progress_degradation_evidence(
+        profile_path=str(tmp_path / "profile.local.toml"),
+        profile=profile,
+        studies=[
+            {
+                "study_id": "001-active",
+                "study_root": str(study_root),
+                "status_progress_readable": True,
+                "readable_surface_count": 1,
+                "surface_refs": [{"relative_ref": "artifacts/runtime/runtime_status_summary.json", "readable": True}],
+            }
+        ],
+        reconcile={"study_receipts": []},
+        monitor={},
+    )
+
+    handoff = result["studies"][0]["publication_handoff_clarity"]
+    assert handoff["ai_reviewer"]["status"] == "blocked"
+    assert handoff["ai_reviewer"]["source"] == "publication_eval.assessment_provenance"
+    assert handoff["ai_reviewer"]["request_state"] == ""

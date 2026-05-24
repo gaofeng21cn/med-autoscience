@@ -93,6 +93,8 @@ def ai_reviewer_study_output_pending(*, profile: WorkspaceProfile, study_id: str
 
 def _request_record_newer_than_latest(*, study_root: Path, latest: Mapping[str, Any] | None) -> bool:
     request = _read_json_object(study_root / AI_REVIEWER_REQUEST_RELATIVE_PATH)
+    if _text(_mapping(request).get("surface_kind")) == "legacy_control_surface_tombstone":
+        return False
     record = _mapping(_mapping(request).get("ai_reviewer_record"))
     request_eval_id = _text(record.get("eval_id"))
     if request_eval_id is None:

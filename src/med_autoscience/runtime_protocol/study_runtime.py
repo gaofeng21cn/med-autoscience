@@ -501,7 +501,11 @@ def _read_ai_reviewer_request_from_status(status: dict[str, Any]) -> dict[str, A
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
-    return dict(payload) if isinstance(payload, dict) else {}
+    if not isinstance(payload, dict):
+        return {}
+    if str(payload.get("surface_kind") or "").strip() == "legacy_control_surface_tombstone":
+        return {}
+    return dict(payload)
 
 
 def _mapping(value: object) -> dict[str, Any]:

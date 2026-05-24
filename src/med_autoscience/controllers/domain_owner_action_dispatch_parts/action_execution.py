@@ -424,7 +424,7 @@ def execute_ai_reviewer_workflow(
     study_root = _study_root(profile, study_id)
     request_path = stable_ai_reviewer_request_path(study_root=study_root)
     request = _read_json_object(request_path)
-    if request is None:
+    if request is None or _text(_mapping(request).get("surface_kind")) == "legacy_control_surface_tombstone":
         return _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_request_missing", request_path=request_path)
     record, record_blocker = _ai_reviewer_record_for_execution(request=request, study_root=study_root)
     if record_blocker:

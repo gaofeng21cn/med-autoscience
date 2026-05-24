@@ -204,7 +204,11 @@ def read_ai_reviewer_request(*, study_root: str | Path) -> dict[str, Any] | None
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
-    return payload if isinstance(payload, dict) else None
+    if not isinstance(payload, dict):
+        return None
+    if _text(payload.get("surface_kind")) == "legacy_control_surface_tombstone":
+        return None
+    return payload
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:

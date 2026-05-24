@@ -555,7 +555,18 @@ def _owner_route_receipts_by_study(reconcile: Mapping[str, Any]) -> dict[str, Ma
 def _study_surface_payloads(study_root: Path | None) -> dict[str, Mapping[str, Any]]:
     if study_root is None:
         return {}
-    return {ref.as_posix(): _read_json_object(study_root / ref) for ref in STUDY_PROGRESS_REFS}
+    return {
+        ref.as_posix(): _active_surface_payload(ref=ref, payload=_read_json_object(study_root / ref))
+        for ref in STUDY_PROGRESS_REFS
+    }
+
+
+def _active_surface_payload(*, ref: Path, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    if _text(payload.get("surface_kind")) != "legacy_control_surface_tombstone":
+        return payload
+    if ref.as_posix() == "artifacts/supervision/requests/ai_reviewer/latest.json":
+        return {}
+    return payload
 
 
 def _publication_supervisor_state(payloads: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:

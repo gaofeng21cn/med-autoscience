@@ -182,6 +182,16 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     workspace_legacy_cleanup_apply_mode.add_argument("--dry-run", action="store_true")
     workspace_legacy_cleanup_apply_mode.add_argument("--apply", action="store_true")
 
+    workspace_legacy_control_surface_migration_parser = subparsers.add_parser(
+        "workspace-legacy-control-surface-migration"
+    )
+    workspace_legacy_control_surface_migration_parser.add_argument("--profile", required=True)
+    workspace_legacy_control_surface_migration_mode = (
+        workspace_legacy_control_surface_migration_parser.add_mutually_exclusive_group(required=True)
+    )
+    workspace_legacy_control_surface_migration_mode.add_argument("--dry-run", action="store_true")
+    workspace_legacy_control_surface_migration_mode.add_argument("--apply", action="store_true")
+
     paper_authority_clean_migration_parser = subparsers.add_parser("paper-authority-clean-migration")
     paper_authority_clean_migration_parser.add_argument("--profile", required=True)
     paper_authority_clean_migration_parser.add_argument("--studies", nargs="+")

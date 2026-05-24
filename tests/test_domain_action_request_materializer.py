@@ -97,7 +97,7 @@ def test_materialize_domain_action_requests_dry_run_ignores_retired_runtime_plat
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -147,7 +147,7 @@ def test_materialize_domain_action_requests_apply_does_not_write_retired_runtime
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -215,7 +215,7 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_runtime_
     )
     action["owner_route"] = route
     action["handoff_packet"]["owner_route"] = route
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -297,7 +297,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
         / "runtime_platform_repair.json"
     )
     consumer_path = profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(stale_dispatch_path, {"surface": "default_executor_dispatch_request", "dispatch_status": "ready"})
     _write_json(
         consumer_path,
@@ -359,7 +359,7 @@ def test_materialize_domain_action_requests_only_writes_current_owner_dispatch_f
         owner_reason="current_package_freshness_required",
         allowed_actions=["current_package_freshness_required", "return_to_ai_reviewer_workflow"],
     )
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -431,7 +431,7 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -468,7 +468,7 @@ def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -504,7 +504,7 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
     profile = make_profile(tmp_path)
     study_id = "001-dm-cvd-mortality-risk"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     gate_route = _owner_route(
         study_id=study_id,
         quest_id="quest-dm",
@@ -724,7 +724,7 @@ def test_materialize_domain_action_requests_request_handoff_requires_owner_route
         owner_reason="publication_gate_specificity_required",
         allowed_actions=[],
     )
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -781,7 +781,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dpcc")
-    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
     _write_json(
         latest_path,
         {
@@ -934,7 +934,7 @@ def test_materialize_domain_action_requests_does_not_repeat_suppress_pending_ai_
         },
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

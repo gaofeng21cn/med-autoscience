@@ -626,6 +626,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：AI-first 质量门需要真正的 second-pass reasoning 和可审计 provenance。把 executor summary 改名为 reviewer output，会让质量门退化成自证，削弱 MAS reviewer-first、publication gate 和 OPL stage-led 分工。
 - 影响：后续 stage skill、OPL generated surface、product-entry/sidecar projection、review ledger 和 focused tests 必须保留独立 reviewer/auditor invocation、task/context record 与 receipt chain；缺少独立记录时 fail closed 或 route back，不用规则分支、regex、普通脚本或自审补齐。
 
+## 2026-05-24：旧控制面 active workspace material 必须迁移为 provenance，不做旧入口兼容
+
+- 决策：旧论文工作区升级到当前 MAS 时，`artifacts/supervision/hourly/**`、`artifacts/supervision/reconcile/**`、`artifacts/supervision/consumer/**` 和 `studies/*/artifacts/supervision/requests/**` 中仍携带 `runtime_supervisor`、`supervision_scheduler`、旧 watch/status 等 token 的 active material，必须通过 `runtime workspace-legacy-control-surface-migration` 归档到 `artifacts/runtime/legacy_control_surface_migration/history/...`，原路径只留下 `legacy_control_surface_tombstone`。
+- 决策：active request packet 只有在存在当前 `opl_current_control_state`、`domain_action_request_materializer` consumer 或 `default_executor_dispatch_request` 替代证据时才可迁走；否则迁移器只报告需要重新物化当前 domain action request。迁移器不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper/current package、runtime queue 或医学 verdict。
+- 决策：`legacy_control_surface_tombstone` 是 provenance/path evidence，不能被 AI reviewer request lifecycle、startup hydration、dispatch executor、output readiness 或 paper progress degradation read-model 当成当前 request。reader 必须把该 tombstone 视为“无当前请求”，而不是兼容读取旧 request。
+- 理由：Obesity 工作区暴露出旧 `artifacts/supervision/requests/ai_reviewer/latest.json` 虽然已有当前 owner-route dispatch 替代，但原 request packet 仍在 active path 且带 `runtime_supervisor_scan`，会让新版 MAS 的 progress/startup/readiness 读面误以为旧私有控制面仍是当前入口。
+- 影响：`runtime/archives`、storage audit、turn closeout、migration history 和旧 artifact 中的旧 token 继续作为 history/provenance 保存；只有会被当前 CLI/MCP/product-entry/sidecar/read-model 读取或抑制当前动作的 active path 需要迁移。迁移不是兼容层，不新增 alias、fallback、regex 医学判断或旧 scheduler/runner 入口。
+
 ## 2026-05-17：旧论文项目迁移必须 clean paper-authority cutover，不做 legacy token 兼容读取
 
 - 决策：旧 MDS / 旧 MAS 论文项目迁移到新 MAS 时，`publication_eval/latest.json`、AI reviewer response record、`controller_decisions/latest.json`、`current_package_freshness/latest.json`、`manuscript/current_package/`、`current_package.zip` 与 delivery manifest 这类会冒充当前质量/交付结论的 surface，必须通过 `paper-authority-clean-migration` 从 active truth 位置归档到 `artifacts/migration/paper_authority_cutover/history/...`，旧产物只保留 provenance 角色。

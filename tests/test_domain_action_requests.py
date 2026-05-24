@@ -377,6 +377,28 @@ def test_ai_reviewer_request_lifecycle_projects_blocked_and_assessment_written(t
     assert assessment_written["can_authorize_finalize"] is False
 
 
+def test_ai_reviewer_request_lifecycle_ignores_legacy_control_surface_tombstone(tmp_path) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    request_path.parent.mkdir(parents=True)
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "legacy_control_surface_tombstone",
+                "status": "migrated_to_provenance",
+                "active_path_role": "domain_action_request_packet",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert read_ai_reviewer_request(study_root=study_root) is None
+    assert project_ai_reviewer_request_lifecycle(study_root=study_root) is None
+
+
 def test_ai_reviewer_request_lifecycle_resolves_stale_eval_review_ref_to_paper_review(tmp_path) -> None:
     study_root = tmp_path / "workspace" / "studies" / "obesity-atlas"
     paper_root = study_root / "paper"

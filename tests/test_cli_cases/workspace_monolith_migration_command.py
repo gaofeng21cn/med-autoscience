@@ -121,6 +121,47 @@ def test_workspace_legacy_physical_cleanup_apply_command_dispatches_controller(
     assert json.loads(captured.out)["mode"] == "apply"
 
 
+def test_runtime_workspace_legacy_control_surface_migration_command_dispatches_controller(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    called: dict[str, object] = {}
+
+    def fake_run_workspace_legacy_control_surface_migration(
+        *,
+        profile_path: Path,
+        apply: bool,
+    ) -> dict[str, object]:
+        called["profile_path"] = profile_path
+        called["apply"] = apply
+        return {"surface_kind": "workspace_legacy_control_surface_migration", "mode": "apply"}
+
+    monkeypatch.setattr(
+        cli.workspace_legacy_control_surface_migration,
+        "run_workspace_legacy_control_surface_migration",
+        fake_run_workspace_legacy_control_surface_migration,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "workspace-legacy-control-surface-migration",
+            "--profile",
+            str(profile_path),
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {"profile_path": profile_path, "apply": True}
+    assert json.loads(captured.out)["surface_kind"] == "workspace_legacy_control_surface_migration"
+
+
 def test_publication_clean_authority_migration_command_dispatches_controller(
     monkeypatch,
     tmp_path: Path,

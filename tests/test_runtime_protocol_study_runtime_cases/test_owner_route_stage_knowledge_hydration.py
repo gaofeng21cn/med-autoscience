@@ -64,3 +64,38 @@ def test_should_refresh_startup_hydration_while_blocked_reads_ai_reviewer_refere
         )
         is True
     )
+
+
+def test_should_refresh_startup_hydration_ignores_migrated_ai_reviewer_request_tombstone(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    study_root = tmp_path / "studies" / "S1"
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    request_path.parent.mkdir(parents=True, exist_ok=True)
+    request_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "legacy_control_surface_tombstone",
+                "status": "migrated_to_provenance",
+                "active_path_role": "domain_action_request_packet",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert (
+        module.should_refresh_startup_hydration_while_blocked(
+            {
+                "decision": "blocked",
+                "quest_exists": True,
+                "quest_status": "active",
+                "reason": "quest_waiting_opl_runtime_owner_route",
+                "study_root": str(study_root),
+            }
+        )
+        is False
+    )

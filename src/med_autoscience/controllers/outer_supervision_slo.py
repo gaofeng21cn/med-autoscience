@@ -33,7 +33,15 @@ def build_outer_supervision_slo_projection(
     interval = int(interval_seconds or _interval_from_status(supervision_status) or DEFAULT_INTERVAL_SECONDS)
     fresh_after_seconds = interval * FRESH_MULTIPLIER
     stale_after_seconds = interval * STALE_MULTIPLIER
-    reconcile = dict(reconcile_payload or _read_json_object(profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH) or {})
+    reconcile_source = "provided" if reconcile_payload is not None else "not_loaded"
+    reconcile = _current_reconcile_payload(
+        profile=profile,
+        reconcile_payload=reconcile_payload,
+    )
+    if reconcile and reconcile_payload is None:
+        reconcile_source = "current_payload_loaded"
+    elif reconcile_payload is None and (profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH).exists():
+        reconcile_source = "legacy_reconcile_path_ignored"
     supervision = dict(supervision_status or {})
     latest_run_at = _text(supervision.get("latest_run_recorded_at"))
     adapter_id = _adapter_id(supervision)
@@ -112,7 +120,8 @@ def build_outer_supervision_slo_projection(
         "missing_reasons": list(dict.fromkeys(missing_reasons)),
         "refs": {
             "supervision_status": "opl_current_control_state",
-            "reconcile_latest": str(profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH),
+            "legacy_reconcile_latest": str(profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH),
+            "current_reconcile_source": reconcile_source,
         },
         "handoff": {
             "replacement_owner": consumer_migration.REPLACEMENT_OWNER,
@@ -131,6 +140,32 @@ def build_outer_supervision_slo_projection(
             "workspace_local_service_restore": False,
         },
     }
+
+
+def _current_reconcile_payload(
+    *,
+    profile: WorkspaceProfile,
+    reconcile_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if reconcile_payload is not None:
+        return dict(reconcile_payload)
+    path = profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH
+    payload = _read_json_object(path)
+    if _is_current_reconcile_payload(payload):
+        return dict(payload or {})
+    return {}
+
+
+def _is_current_reconcile_payload(payload: Mapping[str, Any] | None) -> bool:
+    if not payload:
+        return False
+    if _text(payload.get("surface")) == "opl_current_control_state_handoff":
+        return True
+    if _text(payload.get("surface_kind")) == "owner_route_reconcile_receipt":
+        return True
+    if _text(payload.get("surface")) == "domain_route_reconcile_receipt":
+        return True
+    return False
 
 
 def _slo_state(
