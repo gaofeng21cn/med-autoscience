@@ -6,6 +6,11 @@ from typing import Any
 
 import pytest
 
+from tests.reviewer_os_fixture_helpers import (
+    claim_evidence_alignment_digest,
+    ready_claim_evidence_alignment_gate,
+)
+
 
 pytestmark = pytest.mark.meta
 
@@ -45,6 +50,10 @@ def _reviewer_operating_system() -> dict[str, Any]:
         }
         for dimension in QUALITY_DIMENSIONS
     }
+    claim_alignment = ready_claim_evidence_alignment_gate(
+        claim_evidence_map_ref=input_bundle["claim_evidence_map"],
+        evidence_ledger_ref=input_bundle["evidence_ledger"],
+    )
     return {
         "contract_id": "medical_publication_ai_reviewer_os_v1",
         "input_bundle": input_bundle,
@@ -69,12 +78,14 @@ def _reviewer_operating_system() -> dict[str, Any]:
                 "source_eval_id": PUBLICATION_EVAL_ID,
             },
         },
+        "claim_evidence_alignment": claim_alignment,
         "publication_quality_readiness": {
             "surface_kind": "publication_quality_authority_kernel_v1",
             "status": "ready",
             "current_manuscript_digest": manuscript_digest,
             "review_request_digest": request_digest,
             "evidence_ledger_digest": "sha256:" + "d" * 64,
+            "claim_evidence_alignment_digest": claim_evidence_alignment_digest(claim_alignment),
             "rubric_version": "medical_publication_critique_v1",
             "owner_attempt_id": f"ai-reviewer-publication-eval::{PUBLICATION_EVAL_ID}",
             "fail_closed_when_missing": True,

@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from tests.reviewer_os_fixture_helpers import claim_evidence_map_payload, evidence_ledger_payload, review_ledger_payload
+
 
 def _sha256_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -267,92 +269,14 @@ def _write_ai_reviewer_currentness_inputs(
     _write_ai_reviewer_alignment_inputs(study_root)
 
 
-def _write_ai_reviewer_alignment_inputs(
-    study_root: Path,
-    *,
-    evidence_id: str = "evidence-primary",
-) -> None:
+def _write_ai_reviewer_alignment_inputs(study_root: Path, *, evidence_id: str = "evidence-primary") -> None:
     refs = _refs(study_root)
-    _write_json(
-        Path(refs["claim_evidence_map"]),
-        {
-            "claims": [
-                {
-                    "claim_id": "claim-primary",
-                    "statement": "Primary manuscript claim is supported by the current analysis.",
-                    "status": "supported",
-                    "paper_role": "primary_result",
-                    "display_bindings": ["table-1"],
-                    "sections": ["Results"],
-                    "evidence_items": [
-                        {
-                            "item_id": "evidence-primary",
-                            "support_level": "direct",
-                            "source_paths": [refs["evidence_ledger"]],
-                        }
-                    ],
-                }
-            ]
-        },
-    )
+    _write_json(Path(refs["claim_evidence_map"]), claim_evidence_map_payload(evidence_ledger_ref=refs["evidence_ledger"]))
     _write_json(
         Path(refs["evidence_ledger"]),
-        {
-            "claims": [
-                {
-                    "claim_id": "claim-primary",
-                    "statement": "Primary manuscript claim is supported by the current analysis.",
-                    "status": "supported",
-                    "submission_scope": "manuscript",
-                    "evidence": [
-                        {
-                            "evidence_id": evidence_id,
-                            "kind": "analysis_result",
-                            "source_paths": [refs["evidence_ledger"]],
-                            "support_level": "direct",
-                            "summary": "Current analysis supports the primary claim.",
-                        }
-                    ],
-                    "gaps": [
-                        {
-                            "gap_id": "gap-none",
-                            "description": "No blocking claim-evidence gap remains.",
-                            "submission_impact": "none",
-                        }
-                    ],
-                    "recommended_actions": [
-                        {
-                            "action_id": "action-none",
-                            "priority": "none",
-                            "description": "No claim-evidence repair required.",
-                        }
-                    ],
-                }
-            ]
-        },
+        evidence_ledger_payload(evidence_ledger_ref=refs["evidence_ledger"], evidence_id=evidence_id),
     )
-    _write_json(
-        Path(refs["review_ledger"]),
-        {
-            "schema_version": 1,
-            "concerns": [
-                {
-                    "concern_id": "concern-closed",
-                    "reviewer_id": "ai-reviewer",
-                    "summary": "Claim-evidence alignment reviewed.",
-                    "severity": "minor",
-                    "status": "resolved",
-                    "owner_action": "Keep claims tied to current evidence refs.",
-                    "revision_links": [
-                        {
-                            "revision_id": "revision-claim-alignment",
-                            "revision_log_path": str(study_root / "paper" / "revision_log.json"),
-                        }
-                    ],
-                }
-            ],
-        },
-    )
+    _write_json(Path(refs["review_ledger"]), review_ledger_payload(revision_log_path=study_root / "paper" / "revision_log.json"))
     _write_json(
         Path(refs["study_charter"]),
         {
@@ -422,86 +346,9 @@ def _write_relative_ai_reviewer_currentness_inputs(
 
 def _write_relative_ai_reviewer_alignment_inputs(study_root: Path) -> None:
     refs = _relative_refs()
-    _write_json(
-        study_root / refs["claim_evidence_map"],
-        {
-            "claims": [
-                {
-                    "claim_id": "claim-primary",
-                    "statement": "Primary manuscript claim is supported by the current analysis.",
-                    "status": "supported",
-                    "paper_role": "primary_result",
-                    "display_bindings": ["table-1"],
-                    "sections": ["Results"],
-                    "evidence_items": [
-                        {
-                            "item_id": "evidence-primary",
-                            "support_level": "direct",
-                            "source_paths": [refs["evidence_ledger"]],
-                        }
-                    ],
-                }
-            ]
-        },
-    )
-    _write_json(
-        study_root / refs["evidence_ledger"],
-        {
-            "claims": [
-                {
-                    "claim_id": "claim-primary",
-                    "statement": "Primary manuscript claim is supported by the current analysis.",
-                    "status": "supported",
-                    "submission_scope": "manuscript",
-                    "evidence": [
-                        {
-                            "evidence_id": "evidence-primary",
-                            "kind": "analysis_result",
-                            "source_paths": [refs["evidence_ledger"]],
-                            "support_level": "direct",
-                            "summary": "Current analysis supports the primary claim.",
-                        }
-                    ],
-                    "gaps": [
-                        {
-                            "gap_id": "gap-none",
-                            "description": "No blocking claim-evidence gap remains.",
-                            "submission_impact": "none",
-                        }
-                    ],
-                    "recommended_actions": [
-                        {
-                            "action_id": "action-none",
-                            "priority": "none",
-                            "description": "No claim-evidence repair required.",
-                        }
-                    ],
-                }
-            ]
-        },
-    )
-    _write_json(
-        study_root / refs["review_ledger"],
-        {
-            "schema_version": 1,
-            "concerns": [
-                {
-                    "concern_id": "concern-closed",
-                    "reviewer_id": "ai-reviewer",
-                    "summary": "Claim-evidence alignment reviewed.",
-                    "severity": "minor",
-                    "status": "resolved",
-                    "owner_action": "Keep claims tied to current evidence refs.",
-                    "revision_links": [
-                        {
-                            "revision_id": "revision-claim-alignment",
-                            "revision_log_path": "paper/revision_log.json",
-                        }
-                    ],
-                }
-            ],
-        },
-    )
+    _write_json(study_root / refs["claim_evidence_map"], claim_evidence_map_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(study_root / refs["evidence_ledger"], evidence_ledger_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(study_root / refs["review_ledger"], review_ledger_payload(revision_log_path="paper/revision_log.json"))
     _write_json(
         study_root / refs["study_charter"],
         {
