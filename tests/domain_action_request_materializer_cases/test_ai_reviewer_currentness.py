@@ -160,6 +160,100 @@ def test_materialize_domain_action_requests_keeps_current_prose_routeback_dispat
     assert result["repeat_suppressed_count"] == 0
 
 
+def test_materialize_ai_reviewer_dispatch_inherits_owner_reason_forbidden_surfaces(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    dispatch_contract = importlib.import_module(
+        "med_autoscience.controllers.domain_owner_action_dispatch_parts.dispatch_contract"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    owner_forbidden_surfaces = [
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+    ]
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_record_stale_after_current_manuscript",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    route["owner_reason_contract"] = {
+        "registered": True,
+        "reason": "ai_reviewer_record_stale_after_current_manuscript",
+        "owner": "ai_reviewer",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "required_output": "artifacts/publication_eval/latest.json",
+        "forbidden_surfaces": [
+            "manuscript/**",
+            "current_package/**",
+            "paper/current_package/**",
+            "manuscript/current_package/**",
+            *owner_forbidden_surfaces,
+        ],
+        "priority_class": "ai_reviewer_currentness",
+    }
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "authority": "observability_only",
+                    "owner": "ai_reviewer",
+                    "reason": "ai_reviewer_record_stale_after_current_manuscript",
+                    "required_output_surface": "artifacts/publication_eval/latest.json",
+                    "owner_route": route,
+                    "handoff_packet": {
+                        "request_kind": "return_to_ai_reviewer_workflow",
+                        "authority": "observability_only",
+                        "request_owner": "ai_reviewer",
+                        "owner_route": route,
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    dispatch = result["default_executor_dispatches"][0]
+    prompt_forbidden_surfaces = set(dispatch["prompt_contract"]["forbidden_surfaces"])
+    for surface in owner_forbidden_surfaces:
+        assert surface in prompt_forbidden_surfaces
+    assert dispatch_contract.prompt_contract_error(
+        dispatch["prompt_contract"],
+        forbidden_surfaces=module.FORBIDDEN_SURFACES,
+    ) is None
+    persisted = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_dispatches"
+            / "return_to_ai_reviewer_workflow.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert set(persisted["prompt_contract"]["forbidden_surfaces"]) == prompt_forbidden_surfaces
+
+
 def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_request_to_latest_valid_record_without_new_queue_task(
     monkeypatch,
     tmp_path: Path,
