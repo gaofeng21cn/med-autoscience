@@ -60,6 +60,9 @@
         "residue_class": "runtime_transport",
         "residue_id": "runtime_transport_core_bridge",
         "resurrection_alias_or_wrapper_allowed": false,
+        "retired_absent_surfaces": [
+          "src/med_autoscience/runtime_transport/"
+        ],
         "retired_paths": [
           "src/med_autoscience/runtime_transport/mas_runtime_core.py",
           "src/med_autoscience/runtime_transport/mas_runtime_core_pause_resume.py",
@@ -110,6 +113,9 @@
         "residue_class": "runtime_transport",
         "residue_id": "runtime_turn_runner_closeout_adapter",
         "resurrection_alias_or_wrapper_allowed": false,
+        "retired_absent_surfaces": [
+          "src/med_autoscience/runtime_transport/"
+        ],
         "retired_paths": [
           "src/med_autoscience/runtime_transport/mas_runtime_core_turn_runner.py",
           "src/med_autoscience/runtime_transport/mas_runtime_core_turn_completion.py",
@@ -161,6 +167,9 @@
         "residue_class": "runtime_transport",
         "residue_id": "worker_lease_residency_projection",
         "resurrection_alias_or_wrapper_allowed": false,
+        "retired_absent_surfaces": [
+          "src/med_autoscience/runtime_transport/"
+        ],
         "retired_paths": [
           "src/med_autoscience/runtime_transport/mas_runtime_core_turn_residency.py",
           "src/med_autoscience/runtime_transport/mas_runtime_core_worker_leases.py",
@@ -218,6 +227,10 @@
         "residue_class": "sqlite_refs_index",
         "residue_id": "lifecycle_refs_sqlite_index",
         "resurrection_alias_or_wrapper_allowed": false,
+        "retired_absent_surfaces": [
+          "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
+          "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/"
+        ],
         "retired_paths": [
           "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
           "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
@@ -2802,9 +2815,7 @@
       ],
       "retirement_candidates": [
         {
-          "code_paths": [
-            "src/med_autoscience/runtime_transport/"
-          ],
+          "code_paths": [],
           "current_ref_status": "physical_retired_no_alias",
           "default_runtime_owner": "one-person-lab",
           "delete_gate_status": "closed_stale_surface_scan_clean",
@@ -2820,6 +2831,7 @@
           "latest_thinning_evidence": {
             "does_not_claim_paper_closure": true,
             "no_alias_guard_ref": "tests/test_adapter_retirement_boundary.py",
+            "retired_absent_surface": "src/med_autoscience/runtime_transport/",
             "status": "runtime_transport_package_physically_absent"
           },
           "mas_default_runtime_owner_allowed": false,
