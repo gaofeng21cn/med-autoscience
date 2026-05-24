@@ -690,12 +690,16 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "migration_class": "provenance_or_fixture",
         "code_paths": [
             "src/med_autoscience/controllers/workspace_init_parts/retired_entries.py",
-            "src/med_autoscience/controllers/workspace_legacy_physical_cleanup.py",
+            "contracts/runtime/legacy-active-path-tombstones.json",
+            "docs/history/runtime/legacy_active_path_tombstones.md",
         ],
-        "domain_ref_consumers": ["legacy cleanup/audit only"],
-        "current_ref_status": "retired_wrapper_cleanup_only",
-        "migration_action": "remove generated wrappers and keep history/tombstone refs only",
-        "retention_reason": "Needed only to detect and clean stale workspace-local service wrappers.",
+        "domain_ref_consumers": ["workspace init retired-entry cleanup only"],
+        "current_ref_status": "cleanup_controller_physically_retired_tombstone_only",
+        "migration_action": "retain init retired-entry cleanup plus history/tombstone refs only",
+        "retention_reason": (
+            "Workspace-local watch service cleanup is now handled by init retired-entry detection; "
+            "dedicated legacy cleanup controller and CLI surfaces are physically retired."
+        ),
         "resurrection_allowed": False,
         "tombstone_required": True,
         "physical_retired": True,

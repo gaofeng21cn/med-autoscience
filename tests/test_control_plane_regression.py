@@ -115,3 +115,49 @@ def test_external_upstream_parked_projection() -> None:
     assert projection["resource_release_expected"] is True
     assert projection["awaiting_explicit_wakeup"] is True
     assert projection["auto_execution_complete"] is False
+
+
+def test_outer_supervision_slo_ignores_legacy_reconcile_latest_file(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.outer_supervision_slo")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    profile = profiles.WorkspaceProfile(
+        name="workspace",
+        workspace_root=workspace_root,
+        runtime_root=workspace_root / "runtime" / "quests",
+        studies_root=workspace_root / "studies",
+        portfolio_root=workspace_root / "portfolio",
+        med_deepscientist_runtime_root=workspace_root / "legacy" / "runtime",
+        med_deepscientist_repo_root=workspace_root / "legacy" / "repo",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=False,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=(),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=(),
+        default_submission_targets=(),
+    )
+    legacy_reconcile = workspace_root / "artifacts" / "supervision" / "reconcile" / "latest.json"
+    legacy_reconcile.parent.mkdir(parents=True, exist_ok=True)
+    legacy_reconcile.write_text(
+        json.dumps(
+            {
+                "surface": "runtime_supervisor_reconcile_receipt",
+                "generated_at": "2026-05-24T00:00:00+00:00",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    projection = module.build_outer_supervision_slo_projection(
+        profile=profile,
+        generated_at="2026-05-24T00:01:00+00:00",
+    )
+
+    assert projection["state"] == "missing"
+    assert projection["latest_reconcile_domain_routes_at"] is None
+    assert projection["refs"]["current_reconcile_source"] == "legacy_reconcile_path_ignored"

@@ -69,10 +69,6 @@ domain_action_request_materializer = _LazyModuleProxy(lambda: _load_controller("
 domain_owner_action_dispatch = _LazyModuleProxy(lambda: _load_controller("domain_owner_action_dispatch"))
 owner_route_reconcile = _LazyModuleProxy(lambda: _load_controller("owner_route_reconcile"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
-workspace_legacy_physical_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_legacy_physical_cleanup"))
-workspace_legacy_control_surface_migration = _LazyModuleProxy(
-    lambda: _load_controller("workspace_legacy_control_surface_migration")
-)
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
 study_config_migration = _LazyModuleProxy(lambda: _load_controller("study_config_migration"))
 agent_lab_medical_manuscript_quality = _LazyModuleProxy(
@@ -571,29 +567,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "workspace-monolith-migrate":
         result = workspace_monolith_migration.run_workspace_monolith_migration(
-            profile_path=Path(args.profile),
-            apply=bool(args.apply),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "workspace-legacy-physical-cleanup-audit":
-        result = workspace_legacy_physical_cleanup.build_workspace_legacy_physical_cleanup_audit(
-            profile_path=Path(args.profile),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "workspace-legacy-physical-cleanup-apply":
-        result = workspace_legacy_physical_cleanup.apply_workspace_legacy_physical_cleanup(
-            profile_path=Path(args.profile),
-            apply=bool(args.apply),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "workspace-legacy-control-surface-migration":
-        result = workspace_legacy_control_surface_migration.run_workspace_legacy_control_surface_migration(
             profile_path=Path(args.profile),
             apply=bool(args.apply),
         )

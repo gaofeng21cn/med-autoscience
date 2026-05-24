@@ -51,115 +51,49 @@ def test_runtime_workspace_monolith_migrate_command_dispatches_controller(
     assert json.loads(captured.out)["mode"] == "apply"
 
 
-def test_workspace_legacy_physical_cleanup_audit_command_dispatches_controller(
-    monkeypatch,
+def test_retired_workspace_legacy_cleanup_commands_fail_closed(
     tmp_path: Path,
     capsys,
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path, workspace_root=tmp_path / "workspace")
-    called: dict[str, object] = {}
 
-    def fake_build_workspace_legacy_physical_cleanup_audit(*, profile_path: Path) -> dict[str, object]:
-        called["profile_path"] = profile_path
-        return {"surface_kind": "workspace_legacy_physical_cleanup_audit", "mode": "audit_only"}
-
-    monkeypatch.setattr(
-        cli.workspace_legacy_physical_cleanup,
-        "build_workspace_legacy_physical_cleanup_audit",
-        fake_build_workspace_legacy_physical_cleanup_audit,
+    retired_argvs = (
+        (
+            [
+                "workspace-legacy-physical-cleanup-audit",
+                "--profile",
+                str(profile_path),
+            ],
+            2,
+        ),
+        (
+            [
+                "workspace-legacy-physical-cleanup-apply",
+                "--profile",
+                str(profile_path),
+                "--apply",
+            ],
+            2,
+        ),
+        (
+            [
+                "runtime",
+                "workspace-legacy-control-surface-migration",
+                "--profile",
+                str(profile_path),
+                "--apply",
+            ],
+            "Grouped command requires a supported subcommand under `runtime`.",
+        ),
     )
 
-    exit_code = cli.main(
-        [
-            "workspace-legacy-physical-cleanup-audit",
-            "--profile",
-            str(profile_path),
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called == {"profile_path": profile_path}
-    assert json.loads(captured.out)["mode"] == "audit_only"
-
-
-def test_workspace_legacy_physical_cleanup_apply_command_dispatches_controller(
-    monkeypatch,
-    tmp_path: Path,
-    capsys,
-) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path, workspace_root=tmp_path / "workspace")
-    called: dict[str, object] = {}
-
-    def fake_apply_workspace_legacy_physical_cleanup(*, profile_path: Path, apply: bool) -> dict[str, object]:
-        called["profile_path"] = profile_path
-        called["apply"] = apply
-        return {"surface_kind": "workspace_legacy_physical_cleanup_apply", "mode": "apply"}
-
-    monkeypatch.setattr(
-        cli.workspace_legacy_physical_cleanup,
-        "apply_workspace_legacy_physical_cleanup",
-        fake_apply_workspace_legacy_physical_cleanup,
-    )
-
-    exit_code = cli.main(
-        [
-            "workspace-legacy-physical-cleanup-apply",
-            "--profile",
-            str(profile_path),
-            "--apply",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called == {"profile_path": profile_path, "apply": True}
-    assert json.loads(captured.out)["mode"] == "apply"
-
-
-def test_runtime_workspace_legacy_control_surface_migration_command_dispatches_controller(
-    monkeypatch,
-    tmp_path: Path,
-    capsys,
-) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path, workspace_root=tmp_path / "workspace")
-    called: dict[str, object] = {}
-
-    def fake_run_workspace_legacy_control_surface_migration(
-        *,
-        profile_path: Path,
-        apply: bool,
-    ) -> dict[str, object]:
-        called["profile_path"] = profile_path
-        called["apply"] = apply
-        return {"surface_kind": "workspace_legacy_control_surface_migration", "mode": "apply"}
-
-    monkeypatch.setattr(
-        cli.workspace_legacy_control_surface_migration,
-        "run_workspace_legacy_control_surface_migration",
-        fake_run_workspace_legacy_control_surface_migration,
-    )
-
-    exit_code = cli.main(
-        [
-            "runtime",
-            "workspace-legacy-control-surface-migration",
-            "--profile",
-            str(profile_path),
-            "--apply",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called == {"profile_path": profile_path, "apply": True}
-    assert json.loads(captured.out)["surface_kind"] == "workspace_legacy_control_surface_migration"
+    for argv, expected_code in retired_argvs:
+        with pytest.raises(SystemExit) as exc_info:
+            cli.main(argv)
+        assert exc_info.value.code == expected_code
+        capsys.readouterr()
 
 
 def test_publication_clean_authority_migration_command_dispatches_controller(
