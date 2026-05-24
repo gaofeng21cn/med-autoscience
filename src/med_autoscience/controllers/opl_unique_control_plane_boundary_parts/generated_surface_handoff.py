@@ -65,6 +65,16 @@ def build_generated_surface_handoff(
                 "target_role": "opl_generated_sidecar_handoff_surface",
             },
             {
+                "surface_id": "domain_action_adapter_export_dispatch",
+                "current_paths": [
+                    "src/med_autoscience/controllers/owner_route_reconcile.py",
+                    "src/med_autoscience/controllers/domain_action_request_materializer.py",
+                    "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+                ],
+                "current_role": "domain_action_adapter",
+                "target_role": "opl_generated_domain_action_adapter_handoff_surface",
+            },
+            {
                 "surface_id": "status",
                 "current_paths": [
                     "src/med_autoscience/controllers/product_entry_parts/",

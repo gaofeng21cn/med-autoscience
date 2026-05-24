@@ -328,7 +328,11 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["generated_or_hosted_surfaces"] == [
         "CLI",
         "MCP",
+        "Skill",
         "product-entry",
+        "product-status",
+        "product-session",
+        "domain-action-adapter",
         "sidecar",
         "status",
         "workbench",
@@ -349,7 +353,11 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["forbidden_long_term_mas_shell_owners"] == [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
         "sidecar",
         "status",
         "workbench",

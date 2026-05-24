@@ -123,6 +123,9 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "mcp",
         "skill",
         "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
         "sidecar",
         "status",
         "workbench",
@@ -221,7 +224,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "refs_only_owner_route_typed_blocker_and_owner_receipt_handoff"
     )
     assert runtime_handoff["retired_runtime_transport_surfaces"][0]["retirement_status"] == (
-        "physically_retired_no_alias"
+        "package_absent_physically_retired_no_alias"
     )
     assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_as_generic_provider"] is False
     assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_contract_surface"] is False

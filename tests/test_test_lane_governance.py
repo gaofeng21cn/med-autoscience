@@ -228,6 +228,9 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "mcp",
         "skill",
         "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
         "sidecar",
         "status",
         "workbench",
@@ -243,12 +246,29 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert generated["long_term_mas_owner"] is False
     assert generated["mas_handwritten_shell_expansion_allowed"] is False
     generated_by_id = {item["surface_id"]: item for item in generated["handoff_surfaces"]}
-    assert set(generated_by_id) == set(pack_input["compiler_outputs_expected"])
+    assert set(generated_by_id) == {
+        "cli",
+        "mcp",
+        "skill",
+        "product_entry",
+        "sidecar",
+        "domain_action_adapter_export_dispatch",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    }
     assert generated_by_id["cli"]["target_role"] == "opl_generated_command_surface"
     assert generated_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
     assert generated_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
     assert generated_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
     assert generated_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
+    assert generated_by_id["domain_action_adapter_export_dispatch"]["current_role"] == (
+        "domain_action_adapter"
+    )
+    assert generated_by_id["domain_action_adapter_export_dispatch"]["target_role"] == (
+        "opl_generated_domain_action_adapter_handoff_surface"
+    )
     assert generated_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
     assert generated_by_id["workbench"]["target_role"] == (
         "opl_hosted_workbench_shell_consuming_mas_refs"
@@ -324,6 +344,9 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "mcp",
         "skill",
         "product_entry",
+        "product_status",
+        "product_session",
+        "domain_action_adapter",
         "sidecar",
         "status",
         "workbench",

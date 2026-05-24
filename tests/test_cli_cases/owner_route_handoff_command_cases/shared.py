@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from .. import shared as _shared
+from tests.reviewer_os_fixture_helpers import (
+    claim_evidence_alignment_digest,
+    ready_claim_evidence_alignment_gate,
+)
 
 globals().update({
     name: value
@@ -73,6 +77,10 @@ def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
         "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
         "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
+    claim_alignment = ready_claim_evidence_alignment_gate(
+        claim_evidence_map_ref=input_bundle["claim_evidence_map"],
+        evidence_ledger_ref=input_bundle["evidence_ledger"],
+    )
     request_digest = "sha256:" + "a" * 64
     manuscript_digest = "sha256:" + "b" * 64
     rubric_scores = {
@@ -167,6 +175,7 @@ def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
         "reviewer_operating_system": {
             "contract_id": "medical_publication_ai_reviewer_os_v1",
             "input_bundle": input_bundle,
+            "claim_evidence_alignment": claim_alignment,
             "rubric_scores": rubric_scores,
             "decision_matrix": [
                 {
@@ -199,6 +208,7 @@ def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
                     "ai-reviewer-publication-eval::publication-eval::001-risk::quest-001::"
                     "2026-05-10T00:00:00+00:00"
                 ),
+                "claim_evidence_alignment_digest": claim_evidence_alignment_digest(claim_alignment),
                 "fail_closed_when_missing": True,
                 "missing_required_fields": [],
             },

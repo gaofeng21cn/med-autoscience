@@ -461,7 +461,7 @@ def test_opl_default_callers_have_mas_deletion_evidence_without_authorizing_dele
     assert report["deletion_gate"]["physical_delete_authorized"] is False
     by_surface = {gate["surface_id"]: gate for gate in report["surface_gates"]}
     assert by_surface["product_status"]["active_caller_module_id"] == "workbench_portal_generic_shell"
-    assert by_surface["sidecar"]["active_caller_module_id"] == (
+    assert by_surface["domain_action_adapter"]["active_caller_module_id"] == (
         "owner_route_reconcile_materialize_dispatch_shell"
     )
     for gate in report["surface_gates"]:
