@@ -503,6 +503,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         assert gate["current_disposition"] == "physically_retired"
         assert gate["current_role"] == "none_physically_retired_no_alias"
         assert gate["current_paths"] == []
+        assert gate["retired_absent_surfaces"]
         assert gate["physical_delete_completed"] is True
         assert gate["physical_delete_permitted"] is True
         assert gate["resurrection_alias_or_wrapper_allowed"] is False
@@ -585,7 +586,10 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         else:
             assert candidate["physical_delete_permitted"] is False
     assert candidates["runtime_transport"]["current_ref_status"] == "physical_retired_no_alias"
-    assert "src/med_autoscience/runtime_transport/" in candidates["runtime_transport"]["code_paths"]
+    assert candidates["runtime_transport"]["code_paths"] == []
+    assert candidates["runtime_transport"]["latest_thinning_evidence"]["retired_absent_surface"] == (
+        "src/med_autoscience/runtime_transport/"
+    )
     assert candidates["lifecycle_refs_sqlite_index"]["current_ref_status"] == (
         "physical_retired_no_alias_replaced_by_domain_authority_refs_index"
     )

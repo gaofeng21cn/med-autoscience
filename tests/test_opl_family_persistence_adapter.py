@@ -143,7 +143,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     )
     retired = {item["path"]: item for item in runtime_handoff["retired_runtime_transport_surfaces"]}
     assert retired["src/med_autoscience/runtime_transport/mas_runtime_core.py"]["retirement_status"] == (
-        "physically_retired_no_alias"
+        "package_absent_physically_retired_no_alias"
     )
     assert runtime_handoff["default_caller_policy"] == {
         "default_online_runtime_owner": "one-person-lab",
@@ -163,6 +163,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "mas_default_persistence_engine_allowed": False,
         "mas_runtime_transport_active_as_generic_provider": False,
         "mas_runtime_transport_active_contract_surface": False,
+        "mas_runtime_transport_package_absent": True,
     }
     assert runtime_handoff["generated_default_caller_boundary"] == payload[
         "functional_consumer_boundary"
@@ -179,6 +180,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert retirement_candidates["runtime_transport"]["no_resurrection_proof"][
         "physical_delete_allowed"
     ] is True
+    assert retirement_candidates["runtime_transport"]["code_paths"] == []
     assert retirement_candidates["runtime_transport"]["current_ref_status"] == "physical_retired_no_alias"
     assert retirement_candidates["runtime_transport"]["gate_results"] == {
         "stale_surface_scan_clean": True,
@@ -230,6 +232,9 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert cleanup_gates["runtime_transport_core_bridge"]["current_role"] == "none_physically_retired_no_alias"
     assert cleanup_gates["runtime_transport_core_bridge"]["current_paths"] == []
     assert cleanup_gates["runtime_transport_core_bridge"]["retirement_proof_status"] == "stale_surface_scan_clean"
+    assert cleanup_gates["runtime_transport_core_bridge"]["retired_absent_surfaces"] == [
+        "src/med_autoscience/runtime_transport/",
+    ]
     assert cleanup_gates["runtime_transport_core_bridge"]["no_resurrection_guard"] is True
     assert cleanup_gates["runtime_transport_core_bridge"]["physical_delete_permitted"] is True
     assert cleanup_gates["runtime_transport_core_bridge"]["physical_delete_completed"] is True
@@ -238,6 +243,10 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     )
     assert cleanup_gates["lifecycle_refs_sqlite_index"]["current_paths"] == []
     assert cleanup_gates["lifecycle_refs_sqlite_index"]["physical_delete_completed"] is True
+    assert cleanup_gates["lifecycle_refs_sqlite_index"]["retired_absent_surfaces"] == [
+        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
+        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
+    ]
     lane_d_closeout = runtime_handoff["physical_cleanup_gate"]["lane_d_closeout"]
     assert lane_d_closeout["status"] == "retired_runtime_control_surfaces_plus_domain_refs_boundary"
     assert lane_d_closeout["delete_or_archive_authorized"] is False
@@ -286,7 +295,8 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     lifecycle_index = next(
         item for item in inventory["framework_generic"] if item["item_id"] == "lifecycle_refs_sqlite_index"
     )
-    assert "lifecycle refs" in lifecycle_index["summary"]
+    assert "Retired MAS lifecycle refs adapter is physically absent" in lifecycle_index["summary"]
+    assert "domain_authority_refs_index refs only" in lifecycle_index["summary"]
     assert "generic persistence/lifecycle replacement contract" in lifecycle_index["summary"]
     assert {item["item_id"] for item in inventory["framework_generic"]} == {
         "provider_stage_attempt",
@@ -324,6 +334,10 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert standard_skeleton["skeleton"]["agent/stages"] == skeleton["skeleton"]["agent/stages"]
     assert (
         "workspace_runtime_artifact_root_locator"
+        in standard_skeleton["skeleton"]["contracts/runtime/lifecycle_adapters"]
+    )
+    assert (
+        "domain_authority_refs_index refs-only replacement for retired lifecycle refs adapter"
         in standard_skeleton["skeleton"]["contracts/runtime/lifecycle_adapters"]
     )
     default_slots = standard_skeleton["default_new_surface_slots"]

@@ -37,6 +37,9 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         "current_role": "none_physically_retired_no_alias",
         "current_disposition": "physically_retired",
         "retirement_proof_status": "stale_surface_scan_clean",
+        "retired_absent_surfaces": [
+            "src/med_autoscience/runtime_transport/",
+        ],
         "stale_surface_scan_clean": True,
         "no_resurrection_guard": True,
         "opl_replacement_parity_status": "opl_provider_handoff_active",
@@ -72,6 +75,9 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         "current_role": "none_physically_retired_no_alias",
         "current_disposition": "physically_retired",
         "retirement_proof_status": "stale_surface_scan_clean",
+        "retired_absent_surfaces": [
+            "src/med_autoscience/runtime_transport/",
+        ],
         "stale_surface_scan_clean": True,
         "no_resurrection_guard": True,
         "opl_replacement_parity_status": "typed_closeout_owned_by_opl_stage_attempt",
@@ -106,6 +112,9 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         "current_role": "none_physically_retired_no_alias",
         "current_disposition": "physically_retired",
         "retirement_proof_status": "stale_surface_scan_clean",
+        "retired_absent_surfaces": [
+            "src/med_autoscience/runtime_transport/",
+        ],
         "stale_surface_scan_clean": True,
         "no_resurrection_guard": True,
         "opl_replacement_parity_status": "provider_liveness_owned_by_opl",
@@ -143,6 +152,10 @@ ACTIVE_PATH_RESIDUE_CLEANUP_GATES = (
         "current_role": "none_physically_retired_no_alias",
         "current_disposition": "physically_retired",
         "retirement_proof_status": "stale_surface_scan_clean",
+        "retired_absent_surfaces": [
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
+        ],
         "stale_surface_scan_clean": True,
         "no_resurrection_guard": True,
         "opl_replacement_parity_status": "current_control_state_and_provider_attempt_ledger_owned_by_opl",

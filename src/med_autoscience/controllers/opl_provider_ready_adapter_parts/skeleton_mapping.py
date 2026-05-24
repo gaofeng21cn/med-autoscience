@@ -64,7 +64,7 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
             "contracts/runtime/lifecycle_adapters": [
                 "mas_opl_lifecycle_inventory",
                 "workspace_runtime_artifact_root_locator",
-                "lifecycle_refs_sqlite refs index",
+                "domain_authority_refs_index refs-only replacement for retired lifecycle refs adapter",
             ],
         },
     }

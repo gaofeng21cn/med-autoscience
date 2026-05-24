@@ -285,9 +285,7 @@ def build_physical_retirement_gate_matrix(
         "retirement_candidates": [
             _retirement_candidate(
                 surface_id="runtime_transport",
-                code_paths=[
-                    "src/med_autoscience/runtime_transport/",
-                ],
+                code_paths=[],
                 current_ref_status="physical_retired_no_alias",
                 mas_role="none",
                 delete_gate_status="closed_stale_surface_scan_clean",
@@ -297,6 +295,7 @@ def build_physical_retirement_gate_matrix(
                 physical_delete_permitted=True,
                 latest_thinning_evidence={
                     "status": "runtime_transport_package_physically_absent",
+                    "retired_absent_surface": "src/med_autoscience/runtime_transport/",
                     "no_alias_guard_ref": "tests/test_adapter_retirement_boundary.py",
                     "does_not_claim_paper_closure": True,
                 },

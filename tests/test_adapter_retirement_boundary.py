@@ -72,6 +72,7 @@ def test_legacy_manual_finishing_projection_field_is_not_resurrected() -> None:
 
 
 def test_mas_private_runtime_transport_modules_are_physically_retired() -> None:
+    assert not RUNTIME_TRANSPORT_ROOT.exists()
     for module_name in RETIRED_MAS_RUNTIME_TRANSPORT_MODULES:
         assert not (RUNTIME_TRANSPORT_ROOT / module_name).exists(), module_name
 

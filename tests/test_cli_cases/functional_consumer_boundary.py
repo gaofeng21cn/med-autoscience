@@ -209,6 +209,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert retirement_matrix["no_resurrection_summary"]["mas_default_runtime_owner_allowed"] is False
     assert retirement_matrix["no_resurrection_summary"]["physical_delete_ready_count"] == 2
     assert candidates["runtime_transport"]["physical_delete_permitted"] is True
+    assert candidates["runtime_transport"]["code_paths"] == []
     assert candidates["lifecycle_refs_sqlite_index"]["physical_delete_permitted"] is True
     assert candidates["lifecycle_refs_sqlite_index"]["latest_thinning_evidence"][
         "replacement_surface"
@@ -246,6 +247,9 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     retained_gate = cleanup_gates["runtime_transport_core_bridge"]
     assert retained_gate["current_disposition"] == "physically_retired"
     assert retained_gate["current_paths"] == []
+    assert retained_gate["retired_absent_surfaces"] == [
+        "src/med_autoscience/runtime_transport/",
+    ]
     assert retained_gate["stale_surface_scan_clean"] is True
     assert retained_gate["physical_delete_completed"] is True
     assert retained_gate["physical_delete_permitted"] is True
@@ -256,6 +260,10 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert "stale_surface_scan_clean" in retained_gate["delete_or_tombstone_after"]
     assert "paper_closure_verdict" in retained_gate["must_not_emit"]
     sqlite_gate = cleanup_gates["lifecycle_refs_sqlite_index"]
+    assert sqlite_gate["retired_absent_surfaces"] == [
+        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
+        "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
+    ]
     assert sqlite_gate["focused_test_refs"] == [
         "tests/test_opl_family_persistence_adapter.py",
         "tests/test_cli_cases/runtime_storage_commands.py",

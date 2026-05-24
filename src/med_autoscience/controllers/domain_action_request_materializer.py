@@ -52,7 +52,9 @@ FORBIDDEN_SURFACES = [
     "paper/current_package/**",
     "manuscript/current_package/**",
     "src/med_autoscience/platform/**",
-    "src/med_autoscience/runtime_transport/**",
+]
+RETIRED_ABSENT_SURFACES = [
+    "src/med_autoscience/runtime_transport/",
 ]
 ALLOWED_WRITE_SURFACES = [
     "artifacts/supervision/consumer/latest.json",
@@ -345,6 +347,7 @@ def _default_executor_dispatch(
         "required_closeout_packet": typed_closeout_contract,
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
@@ -397,6 +400,7 @@ def _default_executor_dispatch(
         "required_closeout_packet": typed_closeout_contract,
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
     }
     owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
         dispatch=dispatch_shell
@@ -540,6 +544,7 @@ def _request_task(
         "blocked_reason": blocked_reason,
         "dry_run": not apply,
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "github_gate": dict(_mapping(developer_mode_payload.get("github_user_gate"))),
         "effective_mode": _text(developer_mode_payload.get("mode")),
@@ -577,6 +582,7 @@ def _request_task(
                 "publication_eval",
                 "medical_claims",
             ],
+            "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
             "effective_mode": _text(developer_mode_payload.get("mode")),
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
@@ -826,6 +832,7 @@ def materialize_domain_action_requests(
         "ignored_actions": ignored_actions,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
+        "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
         "merge_cleanup_checklist": list(MERGE_CLEANUP_CHECKLIST),
         "written_files": written_files,
@@ -856,6 +863,7 @@ def materialize_domain_action_requests(
 __all__ = [
     "CONSUMER_LATEST_RELATIVE_PATH",
     "FORBIDDEN_SURFACES",
+    "RETIRED_ABSENT_SURFACES",
     "SCHEMA_VERSION",
     "SUPPORTED_REQUEST_ACTION_TYPES",
     "materialize_domain_action_requests",

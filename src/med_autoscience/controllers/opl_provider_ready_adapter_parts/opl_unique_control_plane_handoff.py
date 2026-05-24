@@ -59,21 +59,21 @@ _RETIRED_RUNTIME_TRANSPORT_SURFACES = [
     {
         "path": "src/med_autoscience/runtime_transport/mas_runtime_core.py",
         "retired_role": "domain_direct_runtime_bridge_and_standalone_diagnostic",
-        "retirement_status": "physically_retired_no_alias",
+        "retirement_status": "package_absent_physically_retired_no_alias",
         "long_term_owner": OPL_OWNER,
         "replacement_surface": "OPL current_control_state provider/stage runtime",
     },
     {
         "path": "src/med_autoscience/runtime_transport/mas_runtime_core_turn_runner.py",
         "retired_role": "stage_turn_closeout_receipt_adapter",
-        "retirement_status": "physically_retired_no_alias",
+        "retirement_status": "package_absent_physically_retired_no_alias",
         "long_term_owner": OPL_OWNER,
         "replacement_surface": "src/med_autoscience/controllers/study_runtime_execution_parts/controller_authorization_receipts.py",
     },
     {
         "path": "src/med_autoscience/runtime_transport/mas_runtime_core_worker_leases.py",
         "retired_role": "worker_residency_projection_provenance",
-        "retirement_status": "physically_retired_no_alias",
+        "retirement_status": "package_absent_physically_retired_no_alias",
         "long_term_owner": OPL_OWNER,
         "replacement_surface": "one-person-lab provider liveness projection",
     },
@@ -149,6 +149,7 @@ def build_opl_unique_control_plane_handoff() -> dict[str, Any]:
             "mas_default_persistence_engine_allowed": False,
             "mas_runtime_transport_active_as_generic_provider": False,
             "mas_runtime_transport_active_contract_surface": False,
+            "mas_runtime_transport_package_absent": True,
         },
         "physical_retirement_gate_matrix": build_physical_retirement_gate_matrix(
             schema_version=SCHEMA_VERSION,

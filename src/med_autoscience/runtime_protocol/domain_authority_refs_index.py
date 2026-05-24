@@ -64,6 +64,12 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "mas_generic_runtime_session_read_model",
             "mas_generic_quest_materializer",
             "mas_generic_lifecycle_refs_adapter",
+            "runtime_protocol.lifecycle_refs_adapter",
+            "runtime_protocol.lifecycle_refs_adapter_parts",
+        ],
+        "retired_absent_surfaces": [
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
+            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
         ],
         "forbidden_tables": [
             "runtime_events",

@@ -1,24 +1,19 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 
 import pytest
 
 
-def test_mas_runtime_transport_package_does_not_export_provider_callables() -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+RUNTIME_TRANSPORT_ROOT = REPO_ROOT / "src" / "med_autoscience" / "runtime_transport"
 
-    assert not hasattr(module, "__all__")
-    for name in (
-        "create_quest",
-        "resume_quest",
-        "relaunch_stopped_quest",
-        "pause_quest",
-        "chat_quest",
-        "schedule_turn",
-        "complete_turn_and_normalize",
-    ):
-        assert not hasattr(module, name)
+
+def test_mas_runtime_transport_package_is_physically_absent() -> None:
+    assert not RUNTIME_TRANSPORT_ROOT.exists()
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("med_autoscience.runtime_transport")
 
 
 def test_opl_provider_backed_stage_runtime_callable_module_is_absent() -> None:

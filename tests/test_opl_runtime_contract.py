@@ -46,6 +46,9 @@ def test_provider_admission_blocker_does_not_create_mas_provider_backend() -> No
 
 
 def test_retired_runtime_transport_modules_do_not_resurrect() -> None:
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("med_autoscience.runtime_transport")
+
     for module_name in (
         "med_autoscience.runtime_transport.opl_provider_backed_stage_runtime",
         "med_autoscience.runtime_transport.med_deepscientist",
