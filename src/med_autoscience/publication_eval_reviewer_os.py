@@ -55,13 +55,21 @@ def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> d
     reviewer_os = _mapping(publication_eval_payload.get("reviewer_operating_system"))
     currentness_checks = _mapping(reviewer_os.get("currentness_checks"))
     medical_prose_review = _mapping(currentness_checks.get("medical_prose_review"))
-    if _text(medical_prose_review.get("status")) != "current":
+    prose_current = _text(medical_prose_review.get("status")) == "current"
+    current_manuscript = _mapping(currentness_checks.get("current_manuscript"))
+    manuscript_current = _text(current_manuscript.get("status")) == "current"
+    if not prose_current and not manuscript_current:
         return None
-    if medical_prose_review.get("route_back_required") is not True:
+    if prose_current and medical_prose_review.get("route_back_required") is not True:
         return None
-    for field in ("request_digest", "manuscript_ref", "manuscript_digest"):
-        if not _text(medical_prose_review.get(field)):
-            return None
+    if prose_current:
+        for field in ("request_digest", "manuscript_ref", "manuscript_digest"):
+            if not _text(medical_prose_review.get(field)):
+                return None
+    if manuscript_current:
+        for field in ("manuscript_ref", "manuscript_digest"):
+            if not _text(current_manuscript.get(field)):
+                return None
     prose_route_target = _normalized_route_target(medical_prose_review.get("route_target"))
     if prose_route_target == "review":
         return None
@@ -78,6 +86,10 @@ def current_ai_reviewer_route_back_action(publication_eval_payload: object) -> d
         action_route_target = _normalized_route_target(action.get("route_target"))
         if not action_route_target or action_route_target == "review":
             continue
+        if manuscript_current and not prose_route_target:
+            payload = dict(action)
+            payload["route_target"] = action_route_target
+            return payload
         if action_route_target == prose_route_target or prose_route_target in {"", "analysis-campaign"}:
             payload = dict(action)
             payload["route_target"] = action_route_target

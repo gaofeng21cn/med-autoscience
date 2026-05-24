@@ -2,14 +2,202 @@ from __future__ import annotations
 
 import importlib
 import json
+import hashlib
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
+def _sha256_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_current_ai_reviewer_response_record_drives_write_route_without_latest_mutation(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    reconcile = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    canonical_inputs = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.canonical_inputs"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript with updated 95% CIs.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    old_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::old::2026-05-22T20:30:41+00:00::ai-reviewer",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "emitted_at": "2026-05-22T20:30:41+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": {"medical_journal_prose_quality": {"status": "blocked"}},
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "request_digest": "sha256:old",
+                    "manuscript_ref": str(manuscript_path),
+                    "manuscript_digest": "sha256:old",
+                    "route_back_required": True,
+                    "route_target": "write",
+                }
+            }
+        },
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "requires_controller_decision": True,
+                "route_target": "write",
+                "work_unit_fingerprint": "old-write-route",
+                "next_work_unit": {
+                    "unit_id": "old_publication_hardening",
+                    "lane": "write",
+                    "summary": "Old write route.",
+                },
+            }
+        ],
+    }
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(latest_path, old_eval)
+    current_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260524T175827Z_publication_eval_record.json"
+    )
+    current_record = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::new::2026-05-24T17:58:27+00:00::ai-reviewer",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "emitted_at": "2026-05-24T17:58:27+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": {
+            dimension: {"status": "blocked", "summary": f"{dimension} requires hardening."}
+            for dimension in (
+                "clinical_significance",
+                "evidence_strength",
+                "novelty_positioning",
+                "medical_journal_prose_quality",
+                "human_review_readiness",
+            )
+        },
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "External validation remains observational.",
+                "impact_on_claim": "Use restrained validation wording.",
+                "required_future_analysis_data_or_design": "Independent implementation validation.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "stale_for_live_manuscript",
+                    "used_as_context_not_clearance": True,
+                },
+                "current_manuscript": {
+                    "status": "current",
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": _sha256_text(manuscript_text),
+                    "reviewed_at": "2026-05-24T17:58:27+00:00",
+                },
+            }
+        },
+        "recommended_actions": [
+            {
+                "action_id": "route-back-same-line-current-publication-hardening-dm002-20260524T175827Z",
+                "action_type": "route_back_same_line",
+                "requires_controller_decision": True,
+                "route_target": "write",
+                "route_key_question": "Can the current manuscript be hardened without adding claims?",
+                "route_rationale": "Current AI reviewer response routes same-line manuscript repair to write.",
+                "work_unit_fingerprint": (
+                    "dm002_current_ai_reviewer_publication_eval_live_draft_"
+                    "2dcd51592c6a_20260524T175827Z"
+                ),
+                "next_work_unit": {
+                    "unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                    "lane": "write",
+                    "summary": "Harden the current manuscript against the current AI reviewer record.",
+                },
+            }
+        ],
+    }
+    _write_json(current_record_path, current_record)
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "publication_eval": old_eval,
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002-current-record",
+            "source_signature": "truth-source-dm002-current-record",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_opl_runtime_owner_handoff_gap",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(latest_path)},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "quality_review_loop": {"closure_state": "review_required"},
+    }
+    selected_publication_eval = canonical_inputs.publication_eval_payload(status_payload, progress_payload)
+    monkeypatch.setattr(
+        reconcile,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, selected_publication_eval),
+    )
+
+    result = reconcile.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["ai_reviewer_assessment"]["present"] is True
+    assert [action["action_type"] for action in study["action_queue"]] == ["run_quality_repair_batch"]
+    action = study["action_queue"][0]
+    assert action["next_work_unit"] == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    assert action["work_unit_fingerprint"].endswith("20260524T175827Z")
+    assert action["controller_route"]["publication_eval_id"] == current_record["eval_id"]
+    assert action["controller_route"]["publication_eval_ref"]["artifact_path"] == str(current_record_path.resolve())
+    assert study["owner_route"]["source_refs"]["source_eval_id"] == current_record["eval_id"]
+    assert study["owner_route"]["source_refs"]["publication_eval_path"] == str(current_record_path.resolve())
+    assert study["owner_route"]["next_owner"] == "write"
 
 
 def test_current_manuscript_stale_ai_reviewer_request_supersedes_write_route(

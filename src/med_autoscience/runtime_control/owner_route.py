@@ -102,7 +102,11 @@ def build_owner_route(
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": work_unit_fingerprint,
             "blocked_reason": owner_reason,
-            "publication_eval_path": _text(_mapping(progress.get("refs")).get("publication_eval_path")),
+            "publication_eval_path": _publication_eval_path(
+                status=status,
+                progress=progress,
+                actions=normalized_actions,
+            ),
             "quest_root": _text(status.get("quest_root")) or _text(progress.get("quest_root")),
             "study_macro_state": _macro_state_source_ref(status, progress),
         },
@@ -436,6 +440,24 @@ def _work_unit_id(
         if text := _text(action.get("work_unit_id")) or _work_unit_text(action.get("next_work_unit")):
             return text
     return None
+
+
+def _publication_eval_path(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    actions: list[Mapping[str, Any]],
+) -> str | None:
+    for action in actions:
+        controller_route = _mapping(action.get("controller_route"))
+        publication_eval_ref = _mapping(controller_route.get("publication_eval_ref"))
+        if text := _text(publication_eval_ref.get("artifact_path")):
+            return text
+        if text := _text(controller_route.get("publication_eval_path")):
+            return text
+    return _text(_mapping(progress.get("refs")).get("publication_eval_path")) or _text(
+        _mapping(status.get("refs")).get("publication_eval_path")
+    )
 
 
 def _work_unit_text(value: object) -> str | None:

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
+from med_autoscience.controllers import ai_reviewer_publication_eval_records
 from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.controllers.study_domain_transition_table_parts import family_transition_spec
 from med_autoscience.controllers.study_domain_transition_table_parts import publication_gate_lifecycle_transitions
@@ -43,6 +44,15 @@ def project_domain_transition(
 ) -> dict[str, Any]:
     root = Path(study_root).expanduser().resolve()
     publication_eval, publication_eval_ref = _read_relative_json(root, PUBLICATION_EVAL_RELATIVE_PATH)
+    current_ai_reviewer_record = ai_reviewer_publication_eval_records.latest_current_ai_reviewer_publication_eval_record(
+        study_root=root,
+        current_publication_eval=publication_eval,
+    )
+    if current_ai_reviewer_record is not None:
+        publication_eval, current_record_ref = current_ai_reviewer_record
+        publication_eval_ref = Path(
+            ai_reviewer_publication_eval_records.projection_source_ref(publication_eval, current_record_ref)
+        )
     controller_decision, controller_decision_ref = _read_relative_json(root, CONTROLLER_DECISION_RELATIVE_PATH)
     repair_evidence, repair_evidence_ref = _read_relative_json(root, REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH)
     work_unit_lifecycle, work_unit_lifecycle_ref = _read_relative_json(

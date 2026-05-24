@@ -3,6 +3,7 @@ from __future__ import annotations
 
 STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS = frozenset(
     {
+        "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
         "dm002_current_publication_hardening_after_ai_reviewer_eval",
         "manuscript_story_repair",
         "medical_prose_write_repair",
