@@ -20,7 +20,7 @@ AUTONOMY_STATES: tuple[str, ...] = (
     "recovering",
     "blocked_human",
     "blocked_external",
-    "blocked_platform",
+    "blocked_opl_runtime",
 )
 
 _STATE_SPECS: dict[str, dict[str, Any]] = {
@@ -96,8 +96,8 @@ _STATE_SPECS: dict[str, dict[str, Any]] = {
         "human_gate_required": True,
         "operator_summary": "An external provider or account blocker must be cleared before MAS resumes work.",
     },
-    "blocked_platform": {
-        "owner": "mas_platform_sre",
+    "blocked_opl_runtime": {
+        "owner": "one_person_lab_runtime_owner",
         "auto_recovery_allowed": False,
         "resource_release_expected": True,
         "long_write_turn_allowed": False,
@@ -152,10 +152,10 @@ def _state_from_runtime_failure(classification: Mapping[str, Any]) -> str | None
     diagnosis_code = _text(classification.get("diagnosis_code"))
     if action_mode in {"external_fix_required", "provider_backoff_and_recheck"}:
         return "blocked_external"
-    if action_mode in {"platform_repair_required", "platform_startup_backoff_and_recheck"}:
-        return "blocked_platform"
+    if action_mode in {"opl_runtime_handoff_required", "platform_startup_backoff_and_recheck"}:
+        return "blocked_opl_runtime"
     if blocker_class in {"platform_protocol_or_runner_bug", "platform_runtime_startup_noise"}:
-        return "blocked_platform"
+        return "blocked_opl_runtime"
     if action_mode == "wait_for_user_or_explicit_resume":
         return "blocked_human"
     if diagnosis_code == "daemon_no_live_worker":
@@ -171,8 +171,8 @@ def _state_from_auto_runtime_parked(projection: Mapping[str, Any]) -> str | None
     owner = _text(projection.get("parked_owner"))
     if owner == "external_provider":
         return "blocked_external"
-    if owner in {"mas_platform", "controller"}:
-        return "blocked_platform"
+    if owner in {"one_person_lab", "controller"}:
+        return "blocked_opl_runtime"
     return "blocked_human"
 
 

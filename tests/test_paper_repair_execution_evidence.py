@@ -22,6 +22,34 @@ def _set_mtime(path: Path, timestamp: int) -> None:
     os.utime(path, ns=ns)
 
 
+def _external_validation_story(version: str) -> str:
+    return "\n\n".join(
+        [
+            f"# External validation of a diabetes mortality score in NHANES ({version})",
+            "## Abstract",
+            "**Background:** External validation of diabetes mortality scores must separate risk ranking from absolute calibration.",
+            "**Methods:** A fixed Cox prediction model from a development cohort was applied to a NHANES validation cohort. Statistical analysis estimated c-index, calibration intercept, calibration slope, Brier score, observed 5-year mortality, and 95% CI intervals.",
+            "**Results:** The validation analysis retained moderate discrimination and showed clinically important calibration drift.",
+            "**Conclusions:** The mortality score needs local recalibration before absolute-risk use.",
+            "## Introduction",
+            "A risk score can rank patients across cohorts while misestimating absolute mortality in a new data source.",
+            "## Methods",
+            "### Study design and data source",
+            "The study used a development cohort and an external validation sample from NHANES adults with diabetes.",
+            "### Prediction model and statistical analysis",
+            "The Cox prediction model was evaluated with discrimination, calibration, bootstrap confidence interval estimates, and denominator-specific event rates.",
+            "## Results",
+            "The c-index supported discrimination, while calibration intercept and slope showed underprediction in the validation cohort.",
+            "## Discussion",
+            "External validation supports risk ordering research but not direct absolute-risk counseling without recalibration.",
+            "## Limitations",
+            "The validation sample used complete shared predictors and may not represent every diabetes care setting.",
+            "## Conclusion",
+            "The external validation found moderate discrimination with calibration drift, so population-specific recalibration is required.",
+        ]
+    ) + "\n"
+
+
 def test_missing_canonical_delta_blocks_meaningful_artifact_delta(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
     study_root = tmp_path / "studies" / "001-risk"
@@ -326,9 +354,11 @@ def test_quality_repair_batch_consumes_manuscript_story_surface_currentness_delt
     source_eval = study_root / "artifacts" / "publication_eval" / "latest.json"
     _set_mtime(source_eval, 1_700_000_000)
     draft = study_root / "paper" / "draft.md"
-    draft.parent.mkdir(parents=True, exist_ok=True)
-    draft.write_text("Clean external validation manuscript story before write-owner repair.\n", encoding="utf-8")
-    _set_mtime(draft, 1_699_999_900)
+    review_manuscript = study_root / "paper" / "build" / "review_manuscript.md"
+    for path in (draft, review_manuscript):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_external_validation_story("initial"), encoding="utf-8")
+        _set_mtime(path, 1_699_999_900)
     claim_map = _write_json(study_root / "paper" / "claim_evidence_map.json", {"schema_version": 1})
     evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
     review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
@@ -375,8 +405,9 @@ def test_quality_repair_batch_consumes_manuscript_story_surface_currentness_delt
     assert first_result["status"] == "handoff_ready"
     assert first_result["next_owner"] == "write"
     assert first_result["writer_worker_handoff"]["next_executable_owner"] == "write"
-    draft.write_text("Clean external validation manuscript story after write-owner repair.\n", encoding="utf-8")
-    _set_mtime(draft, 1_700_000_300)
+    for path in (draft, review_manuscript):
+        path.write_text(_external_validation_story("writer-updated"), encoding="utf-8")
+        _set_mtime(path, 1_700_000_300)
 
     result = quality_module.run_quality_repair_batch(
         profile=profile,
@@ -392,11 +423,17 @@ def test_quality_repair_batch_consumes_manuscript_story_surface_currentness_delt
     assert evidence["progress_delta_candidate"] is True
     changed_paths = {Path(ref["path"]).resolve() for ref in evidence["changed_artifact_refs"]}
     assert draft.resolve() in changed_paths
+    assert review_manuscript.resolve() in changed_paths
     assert evidence["manuscript_surface_hygiene"]["story_surface_delta_present"] is True
     story_refs = evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"]
-    assert story_refs[0]["reason"] == "surface_changed_since_previous_blocked_batch"
-    assert story_refs[0]["previous_surface_ref"] == str(draft.resolve())
-    assert story_refs[0]["fingerprint"]["content_sha256"]
+    story_paths = {Path(ref["path"]).resolve() for ref in story_refs}
+    assert story_paths == {draft.resolve(), review_manuscript.resolve()}
+    assert {ref["reason"] for ref in story_refs} == {"surface_changed_since_previous_blocked_batch"}
+    assert {ref["previous_surface_ref"] for ref in story_refs} == {
+        str(draft.resolve()),
+        str(review_manuscript.resolve()),
+    }
+    assert all(ref["fingerprint"]["content_sha256"] for ref in story_refs)
     assert evidence["evidence_ledger_ref"] == str(evidence_ledger.resolve())
     assert evidence["review_ledger_ref"] == str(review_ledger.resolve())
     assert evidence["ai_reviewer_recheck_request_ref"] == str(ai_request.resolve())

@@ -76,13 +76,13 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - family transition live receipt：`study_state_matrix` / OPL generic matrix runner 的 route/work-unit 能进入 MAS owner chain，并产出 owner receipt、typed blocker、progress delta、gate replay、human gate 或 stop-loss。
 - stage graph / route-as-transition proof：OPL 已有承载 route-as-transition 的 stage graph / transition runner / provider attempt 基础面；MAS 仍需用真实 paper-line 与指定 journal 格式整理 canary 回填 owner receipt、artifact authority receipt、independent reviewer/auditor record、human gate 或 stable typed blocker。
 
-## 当前 `/goal` 收口
+## 当前源码形态收口
 
-本轮目标是把 MAS repo 本身收敛为标准 OPL Agent 的源码形态。完成口径是 current docs、contracts、source 和 tests 都只保护当前标准 Agent 边界：declarative pack、OPL generated/hosted surfaces、minimal authority functions、domain authority refs、owner receipt、typed blocker 和 refs-only evidence。
+MAS repo 本身已收敛为标准 OPL Agent 的源码形态。当前 docs、contracts、source 和 tests 只保护当前标准 Agent 边界：declarative pack、OPL generated/hosted surfaces、minimal authority functions、domain authority refs、owner receipt、typed blocker 和 refs-only evidence。
 
 本轮不触碰真实 study workspace artifact、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body。
 
-真实 paper-line provider apply、publication-route memory receipt、artifact lifecycle receipt、human gate/resume、provider SLO long-soak 和 App/operator drilldown 仍是测试/证据差距。它们不阻塞本轮源码形态收口，也不能被本轮 repo tests 或 descriptor conformance 写成 publication-ready、paper closure、artifact mutation authorization 或 `current_package` 更新。
+真实 paper-line provider apply、publication-route memory receipt、artifact lifecycle receipt、human gate/resume、provider SLO long-soak 和 App/operator drilldown 仍是测试/证据差距。它们不改变当前源码形态已收口的结论，也不能被 repo tests 或 descriptor conformance 写成 publication-ready、paper closure、artifact mutation authorization 或 `current_package` 更新。
 
 ## 当前不能声明
 

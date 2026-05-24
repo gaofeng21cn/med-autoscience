@@ -7,6 +7,7 @@ from typing import Any
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
+from .test_quality_repair_batch_cases.claim_evidence_alignment_owner_route import *  # noqa: F403,F401
 from .test_quality_repair_batch_cases.specificity_targets import *  # noqa: F403,F401
 from .test_quality_repair_batch_cases.upstream_paper_owner_surface import *  # noqa: F403,F401
 
@@ -427,7 +428,7 @@ def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_subm
             "quest_id": quest_id,
             **route_context,
             "last_controller_decision_authorization": {
-                "source": "owner_route_reconcile_platform_repair",
+                "source": "owner_route_reconcile_opl_runtime_handoff",
                 "decision_id": "decision-003-current",
                 "work_unit_id": "submission_minimal_refresh",
                 "work_unit_fingerprint": "publication-blockers::current",

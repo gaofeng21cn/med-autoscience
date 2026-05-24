@@ -19,7 +19,7 @@ MAS 的状态读取、runtime 修复、publication gate、AI reviewer 与 dispat
 普通状态读取可以派生 shadow macro state；`study-state-matrix`、lifecycle report 和外部 operator 面优先读取 materialized macro state。没有该 surface 时才按当前 status/progress 派生，避免各入口各自重算成不同宏观状态。
 
 - `writer_state`: `live`、`queued`、`parked`、`conflict`
-- `user_next`: `watch`、`submit_info`、`repair`、`revise`、`none`、`inspect`
+- `user_next`: `watch`、`submit_info`、`repair`、`revise`、`runtime_handoff`、`none`、`inspect`
 - `reason`: `runtime`、`external_info`、`stop_loss`、`user_stop`、`quality`、`truth_conflict`、`unknown`
 
 具体差异写入 `details` 和 `conditions`：
@@ -28,7 +28,7 @@ MAS 的状态读取、runtime 修复、publication gate、AI reviewer 与 dispat
 - NF001、NF004、DM004 同归 `parked / none`，差异体现在 `reason`、`stop_origin`、`package_delivered` 和 `reopen_mode`。`package_delivered` 表达用户层里程碑包已经存在，不表达论文质量已清关。
 - DM004 的用户停止不是永久删除。它必须保留 `reopen_allowed=true` 与 `reopen_mode=new_plan_required`，以后有新方案时通过用户干预事件重开同一 study line 或派生新计划。
 - `stop_loss` 默认仍是可新计划重开：`reopen_allowed=true`、`reopen_mode=new_plan_required`。只有 owner-authorized `final_line_decision.decision in {abandon, final_abandon, close}` 且 `reopen_allowed=false` 时，macro state 才进入 `TerminalAbandon`，并允许后续 terminal file lifecycle dry-run 标记运行态历史精简候选。
-- DM002、DM003 只要有 live writer 或明确 runtime owner route，归入 `live / watch / runtime` 或 `queued / repair / runtime`。
+- DM002、DM003 只要有 live writer 或明确 domain owner route，归入 `live / watch / runtime`、`queued / repair / quality` 或 `queued / runtime_handoff / runtime`。后者只表达 MAS 已把 generic runtime lifecycle 交给 OPL，不表达 MAS 私有 runtime repair。
 
 ## Owner Route
 

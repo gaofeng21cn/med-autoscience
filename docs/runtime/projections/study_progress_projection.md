@@ -172,6 +172,7 @@
 - `投稿包已交付，等待外部投稿信息`：`package_delivered=true`、`writer_state=parked`、`user_next=submit_info`、`reason=external_info`。
 - `用户暂停/手动停驻`：当前无实际写入，需要显式恢复或新方案。
 - `质量修复/复审中`：质量、artifact 或 runtime 有明确修复 owner。
+- `等待 OPL runtime handoff`：generic runtime lifecycle 需要 OPL 接管；MAS 只输出 domain blocker / handoff refs。
 - `止损/终止`：当前论文线不再自动推进，需新计划或明确重开。
 
 入口层规则：

@@ -7,7 +7,7 @@ from typing import Any, Iterable, Mapping
 _RUNTIME_ACTION_MODES = frozenset(
     {
         "runtime_reconcile_then_resume",
-        "platform_repair_required",
+        "opl_runtime_handoff_required",
         "inspect_before_resume",
         "external_fix_required",
         "provider_backoff_and_recheck",

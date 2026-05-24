@@ -680,7 +680,7 @@ def test_submit_study_task_writes_structured_manual_hold_intake(tmp_path: Path) 
         study_id="004-risk",
         task_intake_kind="manual_hold",
         task_intent="保持当前论文线停驻，等待新方案和显式唤醒。",
-        constraints=("不得由 runtime_platform_repair 或 supervisor redrive 自动恢复写入。",),
+        constraints=("不得由 generic runtime repair 或 supervisor redrive 自动恢复写入。",),
     )
 
     latest_json = Path(payload["artifacts"]["latest_json"])
@@ -691,7 +691,6 @@ def test_submit_study_task_writes_structured_manual_hold_intake(tmp_path: Path) 
     assert written_payload["manual_hold_intake"]["kind"] == "manual_hold"
     assert written_payload["manual_hold_intake"]["auto_recovery_allowed"] is False
     assert payload["manual_hold_intake"]["opl_owner_route_auto_recovery_allowed"] is False
-    assert "runtime_platform_repair_redrive_allowed" not in payload["manual_hold_intake"]
     assert "Manual Hold Intake" in latest_markdown.read_text(encoding="utf-8")
 
 

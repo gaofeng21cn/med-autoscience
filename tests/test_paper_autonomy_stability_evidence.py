@@ -123,7 +123,7 @@ def test_paper_autonomy_stability_evidence_is_read_only_and_reports_blockers(
     monkeypatch.setattr(
         module.domain_action_request_materializer,
         "materialize_domain_action_requests",
-        lambda **_: {"surface": "domain_action_request_materializer", "request_tasks": [], "repair_tasks": []},
+        lambda **_: {"surface": "domain_action_request_materializer", "request_tasks": []},
     )
     monkeypatch.setattr(
         module.domain_owner_action_dispatch,
@@ -230,10 +230,10 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
                         "next_owner": f"mas_controller_{suffix}",
                         "idempotency_key": f"route-{suffix}",
                     },
-                    "action_queue": [{"study_id": "001-active", "action_type": "runtime_platform_repair"}],
+                    "action_queue": [{"study_id": "001-active", "action_type": "unsupported_supervisor_action"}],
                 }
             ],
-            "action_queue": [{"study_id": "001-active", "action_type": "runtime_platform_repair"}],
+            "action_queue": [{"study_id": "001-active", "action_type": "unsupported_supervisor_action"}],
         }
 
     fake_scan.seen = False
@@ -241,7 +241,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     monkeypatch.setattr(
         module.domain_action_request_materializer,
         "materialize_domain_action_requests",
-        lambda **_: {"surface": "domain_action_request_materializer", "request_tasks": [], "repair_tasks": []},
+        lambda **_: {"surface": "domain_action_request_materializer", "request_tasks": []},
     )
     monkeypatch.setattr(
         module.domain_owner_action_dispatch,

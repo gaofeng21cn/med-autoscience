@@ -15,7 +15,7 @@ AUTO_APPLY_CONTROLLER_REPAIR_KINDS = frozenset()
 REPAIR_LIFECYCLE_RELATIVE_PATH = Path("artifacts/autonomy/repair_lifecycle/latest.json")
 EXTERNAL_SUPERVISOR_BLOCK_REASONS = frozenset(
     {
-        "ai_doctor_platform_repair_requires_repo_level_fix",
+        "ai_doctor_opl_runtime_handoff_required",
         "runtime_recovery_not_authorized",
         "publication_gate_specificity_required",
     }
@@ -714,8 +714,8 @@ def _ai_doctor_repair_preflight_block_reason(
     auto_apply_allowed = action.get("auto_apply_allowed") is True
     if not _repair_targets_status(repair_payload=repair_payload, status_payload=status_payload):
         return "ai_doctor_repair_target_mismatch"
-    if action_type == "platform_repair":
-        return "ai_doctor_platform_repair_requires_repo_level_fix"
+    if action_type == "opl_runtime_blocker_handoff":
+        return "ai_doctor_opl_runtime_handoff_required"
     if not auto_apply_allowed or action.get("quality_gate_relaxation_allowed") is True:
         return "ai_doctor_repair_not_auto_applicable"
     if action_type != "controller_repair" or owner != "mas_controller":

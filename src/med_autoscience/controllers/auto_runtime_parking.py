@@ -22,7 +22,7 @@ PARKED_STATES = (
     "ai_reviewer_pending",
     "platform_startup_noise",
     "explicit_resume_pending",
-    "platform_repair_pending",
+    "opl_runtime_handoff_pending",
     "preflight_contract_pending",
 )
 
@@ -94,7 +94,7 @@ _PREFLIGHT_CONTRACT_REASONS = frozenset(
     }
 )
 
-_PLATFORM_REPAIR_REASONS = frozenset(
+_OPL_RUNTIME_HANDOFF_REASONS = frozenset(
     {
         "runtime_overlay_not_ready",
         "runtime_overlay_audit_failed_for_running_quest",
@@ -115,44 +115,44 @@ _STATE_LABELS = {
     "ai_reviewer_pending": "等待 AI reviewer",
     "platform_startup_noise": "平台启动噪声退避",
     "explicit_resume_pending": "等待显式恢复",
-    "platform_repair_pending": "等待 MAS/MDS 平台修复",
+    "opl_runtime_handoff_pending": "等待 OPL runtime handoff",
     "preflight_contract_pending": "等待运行前置合同满足",
 }
 
 _STATE_SUMMARIES = {
     "package_ready_handoff": (
-        "投稿包/人审包已到可交付节点；MAS/MDS 已释放自动运行资源，等待用户审阅、"
+        "投稿包/人审包已到可交付节点；MAS 已释放自动运行资源，等待用户审阅、"
         "显式 resume 或新的修订输入。"
     ),
     "publishability_stop_loss": (
-        "当前论文线已触发发表价值止损；MAS/MDS 已释放自动运行资源，除非重新定义独立研究问题、"
+        "当前论文线已触发发表价值止损；MAS 已释放自动运行资源，除非重新定义独立研究问题、"
         "study charter 与证据边界，否则不再继续打磨投稿包。"
     ),
-    "manual_hold": "当前论文线已按用户任务进入手动停驻；形成新方案并显式唤醒前，MAS/MDS 不会自动恢复写入。",
+    "manual_hold": "当前论文线已按用户任务进入手动停驻；形成新方案并显式唤醒前，MAS 不会自动恢复写入。",
     "external_metadata_pending": (
         "外部投稿元数据待补；稿件主体和投稿包骨架已生成，当前只差作者、单位、伦理、基金、COI、通讯作者等"
         "MAS/MDS 不能自行决定的外部投稿事实。"
     ),
     "waiting_user_decision": (
-        "当前需要用户做医学、策略、投稿或路线判断；MAS/MDS 不会越权继续自动运行。"
+        "当前需要用户做医学、策略、投稿或路线判断；MAS 不会越权继续自动运行。"
     ),
     "external_input_pending": (
         "当前缺少外部 secret、credential、受限数据路径或第三方事实输入；MAS/MDS 不能自行生成。"
     ),
     "external_upstream_pending": (
         "当前阻塞来自 Codex/API/provider/account/quota/rate-limit/5xx 等上游问题；"
-        "MAS/MDS 本机不会把它当作可本地修复问题继续空转。"
+        "MAS 本机不会把它当作可本地修复问题继续空转。"
     ),
     "ai_reviewer_pending": (
-        "当前运行已由 turn closeout 停驻给 AI reviewer；MAS/MDS 已释放运行资源，"
+        "当前运行已由 turn closeout 停驻给 AI reviewer；MAS 已释放运行资源，"
         "等待 AI reviewer 或 publication gate 生成可执行的科学锚点与证据目标。"
     ),
     "platform_startup_noise": (
         "当前阻塞来自 MDS worker 启动阶段的外部噪声或短暂启动抖动；"
-        "MAS/MDS 不会把它归因成论文质量问题。"
+        "MAS 不会把它归因成论文质量问题。"
     ),
     "explicit_resume_pending": "当前运行已停驻，等待用户显式 rerun、relaunch 或 resume。",
-    "platform_repair_pending": "当前阻塞属于 MAS/MDS 协议、runner、tool-call 或 wire-format 平台问题，需先工程修复。",
+    "opl_runtime_handoff_pending": "当前阻塞属于 OPL runtime、provider、tool-call 或 wire-format handoff 问题，需先工程修复。",
     "preflight_contract_pending": "当前 workspace/data/startup/reentry 前置合同仍未满足，自动运行应先停驻等待合同修复。",
 }
 
@@ -167,7 +167,7 @@ _NEXT_ACTIONS = {
     "ai_reviewer_pending": "等待 AI reviewer / publication gate 给出可授权的下一步科学目标。",
     "platform_startup_noise": "等待下一次启动退避检查；如噪声持续，再进入平台修复而不是论文质量修复。",
     "explicit_resume_pending": "等待显式 resume、rerun 或 relaunch。",
-    "platform_repair_pending": "先修复 MAS/MDS 平台问题并验证，再恢复运行。",
+    "opl_runtime_handoff_pending": "先修复 OPL runtime handoff 问题并验证，再恢复运行。",
     "preflight_contract_pending": "先补齐运行前置合同，再由 controller 重新判断是否恢复。",
 }
 
@@ -180,9 +180,9 @@ _OWNER_BY_STATE = {
     "external_input_pending": "user",
     "external_upstream_pending": "external_provider",
     "ai_reviewer_pending": "ai_reviewer",
-    "platform_startup_noise": "mas_platform",
+    "platform_startup_noise": "one_person_lab",
     "explicit_resume_pending": "user",
-    "platform_repair_pending": "mas_platform",
+    "opl_runtime_handoff_pending": "one_person_lab",
     "preflight_contract_pending": "controller",
 }
 
@@ -223,8 +223,8 @@ def _state_from_runtime_failure(classification: Mapping[str, Any]) -> str | None
         return "external_upstream_pending"
     if action_mode == "platform_startup_backoff_and_recheck":
         return "platform_startup_noise"
-    if action_mode == "platform_repair_required" or blocker_class == "platform_protocol_or_runner_bug":
-        return "platform_repair_pending"
+    if action_mode == "opl_runtime_handoff_required" or blocker_class == "platform_protocol_or_runner_bug":
+        return "opl_runtime_handoff_pending"
     if action_mode == "wait_for_user_or_explicit_resume":
         return "explicit_resume_pending"
     return None
@@ -275,7 +275,7 @@ def _state_from_reason(
         "blocked_closeout_owner_redrive",
         "controller_work_unit_pending_redrive",
         "domain_transition_runtime_redrive",
-        "platform_repair_decision_redrive",
+        "opl_runtime_handoff_decision_redrive",
         "pending_user_message_redrive",
     }:
         return None
@@ -338,8 +338,8 @@ def _state_from_reason(
         return "explicit_resume_pending"
     if reason in _PREFLIGHT_CONTRACT_REASONS and decision in {"blocked", "pause"}:
         return "preflight_contract_pending"
-    if reason in _PLATFORM_REPAIR_REASONS and decision in {"blocked", "pause"}:
-        return "platform_repair_pending"
+    if reason in _OPL_RUNTIME_HANDOFF_REASONS and decision in {"blocked", "pause"}:
+        return "opl_runtime_handoff_pending"
     if (
         manual_finish_guard_only(manual_finish_contract)
         and quest_status not in {"running", "retrying", "active"}

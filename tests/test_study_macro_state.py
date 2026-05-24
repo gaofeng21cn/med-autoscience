@@ -112,7 +112,7 @@ def test_paused_quest_ignores_stale_truth_active_run_id() -> None:
     assert derived["details"].get("active_run_id") is None
 
 
-def test_running_quest_with_retry_exhausted_no_worker_is_queued_for_runtime_repair() -> None:
+def test_running_quest_with_retry_exhausted_no_worker_requires_opl_runtime_handoff() -> None:
     derived = _derive(
         study_id="002-dm-china-us-mortality-attribution",
         status={
@@ -146,7 +146,7 @@ def test_running_quest_with_retry_exhausted_no_worker_is_queued_for_runtime_repa
     )
 
     assert derived["writer_state"] == "queued"
-    assert derived["user_next"] == "repair"
+    assert derived["user_next"] == "runtime_handoff"
     assert derived["reason"] == "runtime"
     assert derived["details"].get("active_run_id") is None
 
@@ -348,7 +348,7 @@ def test_running_and_repairable_studies_are_not_collapsed_into_parked_states() -
     assert live["user_next"] == "watch"
     assert live["reason"] == "runtime"
     assert queued["writer_state"] == "queued"
-    assert queued["user_next"] == "repair"
+    assert queued["user_next"] == "runtime_handoff"
     assert queued["reason"] == "runtime"
 
 
@@ -409,7 +409,7 @@ def test_macro_state_uses_short_primary_enums_and_conditions_for_detail() -> Non
 
     assert state["surface"] == "study_macro_state"
     assert state["writer_state"] in {"live", "queued", "parked", "conflict"}
-    assert state["user_next"] in {"watch", "submit_info", "repair", "revise", "none", "inspect"}
+    assert state["user_next"] in {"watch", "submit_info", "repair", "revise", "runtime_handoff", "none", "inspect"}
     assert len(state["writer_state"]) <= 12
     assert len(state["user_next"]) <= 16
     assert len(state["reason"]) <= 24

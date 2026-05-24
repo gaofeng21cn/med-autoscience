@@ -47,6 +47,7 @@ _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS = frozenset(
 
 _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "analysis_claim_evidence_repair": frozenset({"paper_write"}),
+    "claim_evidence_alignment_repair": frozenset({"paper_write"}),
     "controller_owned_publication_repair": frozenset(
         {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
     ),

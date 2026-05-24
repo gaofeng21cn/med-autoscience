@@ -139,12 +139,12 @@ def test_governor_routes_platform_protocol_failure_to_repo_repair() -> None:
                 "runtime_failure_classification": {
                     "diagnosis_code": "provider_invalid_params",
                     "blocker_class": "platform_protocol_or_runner_bug",
-                    "action_mode": "platform_repair_required",
+                    "action_mode": "opl_runtime_handoff_required",
                     "auto_recovery_allowed": False,
                 },
                 "slo_execution_plan": {
                     "state": "blocked_by_runtime_gate",
-                    "steps": [{"action_type": "platform_runtime_repair", "apply_mode": "platform_repair"}],
+                    "steps": [{"action_type": "opl_runtime_blocker_handoff", "apply_mode": "opl_runtime_owner_handoff"}],
                     "gate_relaxation_allowed": False,
                 },
                 "quality_constraint": {"gate_relaxation_allowed": False},
@@ -152,6 +152,6 @@ def test_governor_routes_platform_protocol_failure_to_repo_repair() -> None:
         }
     )
 
-    assert decision["governor_state"] == "blocked_platform_repair"
+    assert decision["governor_state"] == "blocked_opl_runtime_owner_handoff"
     assert decision["execution_permission"]["auto_dispatch_allowed"] is False
-    assert decision["operator_answer"]["who_owns_next_step"] == "mas_mds_platform_repair"
+    assert decision["operator_answer"]["who_owns_next_step"] == "one-person-lab"

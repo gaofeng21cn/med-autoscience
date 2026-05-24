@@ -35,7 +35,7 @@ def test_autonomy_state_surface_matrix_exposes_canonical_fields() -> None:
         "recovering",
         "blocked_human",
         "blocked_external",
-        "blocked_platform",
+        "blocked_opl_runtime",
     } <= set(catalog)
     for state, spec in catalog.items():
         assert spec["state"] == state
@@ -180,7 +180,7 @@ def test_autonomy_state_surface_maps_external_upstream_to_external_owner() -> No
     assert surface["runtime_failure_classification"]["external_blocker"] is True
 
 
-def test_autonomy_state_surface_maps_platform_repair_to_platform_owner() -> None:
+def test_autonomy_state_surface_maps_runtime_handoff_to_opl_owner() -> None:
     surface = _surface(
         {
             "decision": "blocked",
@@ -192,8 +192,8 @@ def test_autonomy_state_surface_maps_platform_repair_to_platform_owner() -> None
         }
     )
 
-    assert surface["current_state"] == "blocked_platform"
-    assert surface["owner"] == "mas_platform_sre"
+    assert surface["current_state"] == "blocked_opl_runtime"
+    assert surface["owner"] == "one_person_lab_runtime_owner"
     assert surface["auto_recovery_allowed"] is False
     assert surface["resource_release_expected"] is True
 

@@ -293,7 +293,7 @@ def _runtime_failure_action(
             "summary": "Resolve the external runtime/provider blocker before retrying MAS work.",
             "restore_rank": 0,
         }
-    if action_mode == "platform_repair_required":
+    if action_mode == "opl_runtime_handoff_required":
         return {
             "action_id": f"autonomy-slo-action::{study_id}::{diagnosis_code or blocker_class}",
             "study_id": study_id,
@@ -302,12 +302,12 @@ def _runtime_failure_action(
             "source_incident_type": blocker_class,
             "source_severity": "high",
             "next_work_unit_id": None,
-            "apply_mode": "platform_repair",
+            "apply_mode": "opl_runtime_owner_handoff",
             "quality_gate_relaxation_allowed": False,
-            "action_type": "platform_runtime_repair",
+            "action_type": "opl_runtime_blocker_handoff",
             "controller_surface": "domain_health_diagnostic",
             "priority": "now",
-            "summary": "Repair the MAS runtime protocol path before resuming the study.",
+            "summary": "Hand off the runtime/provider blocker to OPL before resuming the study.",
             "restore_rank": 0,
         }
     if action_mode == "wait_for_user_or_explicit_resume":
@@ -344,7 +344,7 @@ def _slo_execution_plan(
     action_mode = _text(runtime_failure_classification.get("action_mode"))
     if action_mode in {"external_fix_required", "provider_backoff_and_recheck"}:
         state = "blocked_by_external_runtime"
-    elif action_mode in {"platform_repair_required", "wait_for_user_or_explicit_resume"}:
+    elif action_mode in {"opl_runtime_handoff_required", "wait_for_user_or_explicit_resume"}:
         state = "blocked_by_runtime_gate"
     elif steps:
         state = "ready_for_controller_execution"

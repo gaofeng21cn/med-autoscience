@@ -497,7 +497,7 @@ def test_scan_domain_routes_defers_clean_cutover_rehydrate_when_scientific_ancho
         "quest_root": str(quest_root),
         "quest_status": "waiting_for_user",
         "active_run_id": None,
-        "reason": "quest_waiting_platform_repair_redrive",
+        "reason": "quest_waiting_opl_runtime_owner_route",
         "runtime_health_snapshot": {
             "canonical_runtime_action": "external_supervisor_required",
             "attempt_state": "escalated",

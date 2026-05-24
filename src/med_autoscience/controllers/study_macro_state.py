@@ -10,7 +10,7 @@ from typing import Any
 
 SCHEMA_VERSION = 1
 WRITER_STATES = ("live", "queued", "parked", "conflict")
-USER_NEXT_STATES = ("watch", "submit_info", "repair", "revise", "none", "inspect")
+USER_NEXT_STATES = ("watch", "submit_info", "repair", "revise", "runtime_handoff", "none", "inspect")
 REASONS = (
     "runtime",
     "external_info",
@@ -161,14 +161,14 @@ def derive_study_macro_state(
             ],
         )
 
-    if _is_runtime_repair_queued(status=status, progress=progress_payload, route=route, runtime_health=runtime_health):
+    if _is_opl_runtime_handoff_queued(status=status, progress=progress_payload, route=route, runtime_health=runtime_health):
         return _state(
             study_id=study_id,
             writer_state="queued",
-            user_next="repair",
+            user_next="runtime_handoff",
             reason="runtime",
             details=details,
-            conditions=[_condition("RuntimeRepairQueued", "true", "runtime owner route permits repair")],
+            conditions=[_condition("OplRuntimeHandoffQueued", "true", "runtime owner route requires OPL handoff")],
         )
 
     return _state(
@@ -341,7 +341,7 @@ def _is_terminal_abandon(final_line_decision: Mapping[str, Any]) -> bool:
     )
 
 
-def _is_runtime_repair_queued(
+def _is_opl_runtime_handoff_queued(
     *,
     status: Mapping[str, Any],
     progress: Mapping[str, Any],

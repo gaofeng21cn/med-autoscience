@@ -30,7 +30,7 @@ LEDGER_BLOCKING_STATES = frozenset(
     {
         "closed",
         "needs_specificity",
-        "platform_repair_required",
+        "opl_runtime_handoff_required",
         "await_artifact_delta",
         "await_artifact_delta_or_gate_replay",
         "gate_reread_required",

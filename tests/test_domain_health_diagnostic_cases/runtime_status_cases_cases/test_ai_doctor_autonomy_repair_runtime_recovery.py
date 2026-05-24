@@ -61,7 +61,7 @@ def test_watch_runtime_applies_ai_doctor_ready_recovery_action_for_no_live_runti
     assert lifecycle_latest["blocked_reason"] == "opl_runtime_owner_handoff_required"
     assert lifecycle_latest["next_owner"] == "one-person-lab"
 
-def test_watch_runtime_does_not_auto_apply_ai_doctor_platform_repair_action(
+def test_watch_runtime_does_not_auto_apply_ai_doctor_opl_runtime_handoff_action(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -75,9 +75,9 @@ def test_watch_runtime_does_not_auto_apply_ai_doctor_platform_repair_action(
         _ready_repair_payload(
             study_id="001-risk",
             quest_id="quest-001",
-            action_type="platform_repair",
-            repair_kind="repo_worktree_repair_proposal",
-            owner="mas_mds_platform_repair",
+            action_type="opl_runtime_blocker_handoff",
+            repair_kind="provider_or_runtime_blocker_handoff",
+            owner="one-person-lab",
             risk="high",
             auto_apply_allowed=False,
         ),
@@ -107,14 +107,14 @@ def test_watch_runtime_does_not_auto_apply_ai_doctor_platform_repair_action(
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "state": "blocked",
-            "action_type": "platform_repair",
-            "repair_kind": "repo_worktree_repair_proposal",
-            "owner": "mas_mds_platform_repair",
+            "action_type": "opl_runtime_blocker_handoff",
+            "repair_kind": "provider_or_runtime_blocker_handoff",
+            "owner": "one-person-lab",
             "auto_apply_allowed": False,
             "quality_gate_relaxation_allowed": False,
             "dispatch_status": "not_dispatched",
             "source": "domain_health_diagnostic_ai_doctor_repair",
-            "reason": "ai_doctor_platform_repair_requires_repo_level_fix",
+            "reason": "ai_doctor_opl_runtime_handoff_required",
         }
     ]
     repair_latest = json.loads(

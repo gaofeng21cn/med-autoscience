@@ -442,11 +442,11 @@ def _upstream_repair_specificity_targets(publication_eval_payload: Mapping[str, 
 
 
 def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any] | None:
-    merged: dict[str, Any] = {}
-    for context in contexts:
-        if isinstance(context, Mapping):
-            merged.update(dict(context))
-    return merged or None
+    return upstream_route_context.merge_route_contexts(
+        *contexts,
+        preferred_controller_work_unit_ids=frozenset({"claim_evidence_alignment_repair"}),
+        non_empty_text=_non_empty_text,
+    )
 
 
 def _has_explicit_controller_route_context(route_context: Mapping[str, Any] | None) -> bool:
@@ -897,10 +897,9 @@ def run_quality_repair_batch(
         gate_clearing_result,
         upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
     )
-    if upstream_work_unit_id is None:
-        route_work_unit_id = _route_context_work_unit_id(resolved_route_context)
-        if route_work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
-            upstream_work_unit_id = route_work_unit_id
+    route_work_unit_id = _route_context_work_unit_id(resolved_route_context)
+    if route_work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+        upstream_work_unit_id = route_work_unit_id
     upstream_unit_result = quality_repair_batch_upstream.run_upstream_paper_repair_unit(
         study_id=study_id,
         quest_id=quest_id,
@@ -915,6 +914,8 @@ def run_quality_repair_batch(
         gate_clearing_result=gate_clearing_result,
         upstream_unit_result=upstream_unit_result,
     )
+    if route_work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+        gate_clearing_result["explicit_publication_work_unit"] = {"unit_id": route_work_unit_id}
     gate_clearing_execution_summary = (
         dict(gate_clearing_result.get("execution_summary"))
         if isinstance(gate_clearing_result.get("execution_summary"), Mapping)

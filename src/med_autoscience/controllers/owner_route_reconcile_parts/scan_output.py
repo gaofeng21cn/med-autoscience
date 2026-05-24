@@ -44,7 +44,7 @@ def build_scan_domain_routes_payload(
         "developer_supervisor_mode": dict(developer_mode_payload),
         "apply_safe_actions": safe_actions_enabled,
         "runtime_apply_boundary": {
-            "mas_runtime_repair_apply_supported": False,
+            "mas_runtime_handoff_apply_supported": False,
             "runtime_control_owner": "one-person-lab",
             "provider_completion_is_domain_completion": False,
         },

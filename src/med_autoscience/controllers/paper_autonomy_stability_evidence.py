@@ -322,7 +322,7 @@ def _resolve_study_ids(
         for action in _sequence(source.get("action_queue")):
             if isinstance(action, Mapping) and (study_id := _text(action.get("study_id"))) is not None:
                 resolved.append(study_id)
-    for key in ("request_tasks", "repair_tasks", "default_executor_dispatches"):
+    for key in ("request_tasks", "default_executor_dispatches"):
         for item in _sequence(consumed.get(key)):
             if isinstance(item, Mapping) and (study_id := _text(item.get("study_id"))) is not None:
                 resolved.append(study_id)
@@ -349,7 +349,6 @@ def _step_receipts(
         {
             "step": "materialize_domain_requests",
             "surface": consumed.get("surface"),
-            "repair_task_count": consumed.get("repair_task_count"),
             "request_task_count": consumed.get("request_task_count"),
             "default_executor_dispatch_count": consumed.get("default_executor_dispatch_count"),
         },

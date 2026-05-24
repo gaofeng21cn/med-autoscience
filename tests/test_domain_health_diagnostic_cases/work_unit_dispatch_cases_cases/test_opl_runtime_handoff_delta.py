@@ -11,7 +11,7 @@ globals().update({
 })
 
 
-def test_watch_runtime_closes_platform_repair_when_inputs_show_gate_delta(
+def test_watch_runtime_closes_opl_runtime_handoff_when_inputs_show_gate_delta(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -66,10 +66,10 @@ def test_watch_runtime_closes_platform_repair_when_inputs_show_gate_delta(
     ledger.append_event(
         study_root=study_root,
         identity=identity,
-        event_type="platform_repair_required",
+        event_type="opl_runtime_handoff_required",
         payload={
             "source": "domain_health_diagnostic_outer_loop_wakeup",
-            "wakeup_outcome": "platform_repair_required",
+            "wakeup_outcome": "opl_runtime_handoff_required",
             "wakeup_reason": "outer-loop work unit redrive budget exhausted without result evidence",
         },
         recorded_at="2026-05-02T04:45:16+00:00",
@@ -78,7 +78,7 @@ def test_watch_runtime_closes_platform_repair_when_inputs_show_gate_delta(
     dump_json(
         latest_path,
         {
-            "outcome": "platform_repair_required",
+            "outcome": "opl_runtime_handoff_required",
             "work_unit_dispatch_key": identity.dispatch_key,
             "input_fingerprint": "old-input",
             "watched_inputs": {
@@ -138,7 +138,7 @@ def test_watch_runtime_closes_platform_repair_when_inputs_show_gate_delta(
     assert result["managed_study_no_op_suppressions"] == []
     assert wakeup_latest["outcome"] == "dispatched"
     assert [event["event_type"] for event in ledger_events] == [
-        "platform_repair_required",
+        "opl_runtime_handoff_required",
         "closed",
         "dispatched",
     ]
@@ -146,7 +146,7 @@ def test_watch_runtime_closes_platform_repair_when_inputs_show_gate_delta(
     assert ledger_events[1]["payload"]["gate_fingerprint_after"] != "old-gate"
 
 
-def test_watch_runtime_closes_platform_repair_when_inputs_show_controller_result_delta(
+def test_watch_runtime_closes_opl_runtime_handoff_when_inputs_show_controller_result_delta(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -201,10 +201,10 @@ def test_watch_runtime_closes_platform_repair_when_inputs_show_controller_result
     ledger.append_event(
         study_root=study_root,
         identity=identity,
-        event_type="platform_repair_required",
+        event_type="opl_runtime_handoff_required",
         payload={
             "source": "domain_health_diagnostic_outer_loop_wakeup",
-            "wakeup_outcome": "platform_repair_required",
+            "wakeup_outcome": "opl_runtime_handoff_required",
             "wakeup_reason": "outer-loop work unit redrive budget exhausted without result evidence",
         },
         recorded_at="2026-05-02T04:45:16+00:00",
@@ -213,7 +213,7 @@ def test_watch_runtime_closes_platform_repair_when_inputs_show_controller_result
     dump_json(
         latest_path,
         {
-            "outcome": "platform_repair_required",
+            "outcome": "opl_runtime_handoff_required",
             "work_unit_dispatch_key": identity.dispatch_key,
             "input_fingerprint": "old-input",
             "watched_inputs": {
@@ -322,10 +322,10 @@ def test_watch_runtime_closes_platform_repair_when_inputs_show_controller_result
     assert len(result["managed_study_outer_loop_dispatches"]) == 1
     assert result["managed_study_no_op_suppressions"] == []
     assert [event["event_type"] for event in ledger_events] == [
-        "platform_repair_required",
+        "opl_runtime_handoff_required",
         "closed",
         "dispatched",
     ]
     closed_payload = ledger_events[1]["payload"]
-    assert closed_payload["closure_reason"] == "meaningful_artifact_delta_after_platform_repair"
+    assert closed_payload["closure_reason"] == "meaningful_artifact_delta_after_opl_runtime_handoff"
     assert closed_payload["controller_result_artifact_deltas"]

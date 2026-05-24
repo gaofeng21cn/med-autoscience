@@ -36,7 +36,7 @@ STATE_MACHINE: tuple[dict[str, str], ...] = (
     {"state_id": "awaiting_human_gate", "resume_action": "wait_for_durable_decision"},
     {"state_id": "recovering", "resume_action": "recover_runtime"},
     {"state_id": "completed", "resume_action": "materialize_completion"},
-    {"state_id": "escalated", "resume_action": "surface_platform_repair"},
+    {"state_id": "escalated", "resume_action": "surface_opl_runtime_handoff"},
 )
 
 EVENT_REPLAY_CONTRACT: dict[str, Any] = {
@@ -111,7 +111,7 @@ RETRY_BUDGET_CONTRACT: dict[str, Any] = {
     "exhaustion_state": "escalated",
     "exhaustion_requires_surface": "runtime_escalation_record.json",
     "exhaustion_allowed_next_actions": [
-        "surface_platform_repair",
+        "surface_opl_runtime_handoff",
         "request_human_gate_decision",
         "request_route_redesign",
     ],

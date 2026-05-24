@@ -259,6 +259,100 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
     assert route_context["work_unit_id"] == "medical_prose_write_repair"
 
 
+def test_execute_dispatch_wraps_claim_alignment_route_as_controller_context(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    quest_root = profile.runtime_root / f"quest-{study_id}"
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    route.update(
+        {
+            "failure_signature": "claim_evidence_alignment_required",
+            "owner_reason": "claim_evidence_alignment_required",
+            "work_unit_fingerprint": "claim_evidence_alignment_repair::C1_missing",
+            "idempotency_key": "owner-route::dm002::claim-evidence-alignment",
+            "source_refs": {
+                "work_unit_id": "claim_evidence_alignment_repair",
+                "blocked_reason": "claim_evidence_alignment_required",
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "claim-evidence map and evidence ledger alignment or "
+            "typed blocker:claim_evidence_alignment_required"
+        ),
+        owner_route=route,
+    )
+    dispatch_payload["source_action"] = {
+        "action_type": "run_quality_repair_batch",
+        "reason": "claim_evidence_alignment_required",
+        "route_target": "write",
+        "work_unit_fingerprint": "claim_evidence_alignment_repair::C1_missing",
+        "next_work_unit": "claim_evidence_alignment_repair",
+    }
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": f"quest-{study_id}",
+            "quest_root": str(quest_root),
+        },
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    route_context = called["authority_route_context"]
+    assert route_context["controller_route_context"]["work_unit_id"] == "claim_evidence_alignment_repair"
+    assert route_context["controller_route_context"]["controller_action_type"] == "run_quality_repair_batch"
+    assert route_context["controller_route_context"]["source_eval_id"] is None
+    assert route_context["current_owner_route"]["owner_reason"] == "claim_evidence_alignment_required"
+
+
 def test_execute_dispatch_picks_quality_repair_writer_handoff_without_request_packet(
     monkeypatch,
     tmp_path: Path,

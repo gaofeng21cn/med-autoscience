@@ -354,9 +354,18 @@ _REASON_REGISTRY = {
     "ai_reviewer_record_incomplete": _ai_reviewer_entry(),
     "dm002_publication_eval_requires_ai_reviewer_and_canonical_refresh": _ai_reviewer_entry(),
     "manuscript_story_surface_delta_missing": _write_entry("DM003:medical_prose_route_back"),
+    "claim_evidence_alignment_required": _entry(
+        owner="write",
+        allowed_actions=["run_quality_repair_batch"],
+        required_output=(
+            "claim-evidence map and evidence ledger alignment or "
+            "typed blocker:claim_evidence_alignment_required"
+        ),
+        priority_class="write_route_back",
+        regression_refs=("DM002:claim_evidence_alignment",),
+    ),
     "run_quality_repair_batch": _write_entry("tests:legacy_action_reason_write_route"),
     "quest_waiting_opl_runtime_owner_route": _write_entry("DM002:runtime_redrive_route_back"),
-    "quest_waiting_platform_repair_redrive": _write_entry(),
     "controller_decision_route_back": _entry(
         owner="owner_route_next_owner",
         allowed_actions=["run_quality_repair_batch", "return_to_ai_reviewer_workflow"],
@@ -506,13 +515,6 @@ _REASON_REGISTRY = {
         required_output="OPL runtime owner handoff or typed blocker",
         priority_class="delivery_or_human_handoff",
         regression_refs=("tests/owner_route_reconcile_cases/test_failed_quest_autorepair.py",),
-    ),
-    "runtime_platform_repair": _entry(
-        owner="one-person-lab",
-        allowed_actions=[],
-        required_output="retired runtime repair tombstone or OPL runtime owner handoff",
-        priority_class="delivery_or_human_handoff",
-        regression_refs=("tests/test_domain_owner_action_dispatch_cases/runtime_platform_repair.py",),
     ),
     "opl_runtime_owner_route_required": _entry(
         owner="one-person-lab",

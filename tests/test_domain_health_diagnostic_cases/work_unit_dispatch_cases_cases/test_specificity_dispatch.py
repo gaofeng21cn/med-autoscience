@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_watch_runtime_does_not_dispatch_after_platform_repair_required(
+def test_watch_runtime_does_not_dispatch_after_opl_runtime_handoff_required(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -63,10 +63,10 @@ def test_watch_runtime_does_not_dispatch_after_platform_repair_required(
     ledger.append_event(
         study_root=study_root,
         identity=identity,
-        event_type="platform_repair_required",
+        event_type="opl_runtime_handoff_required",
         payload={
             "source": "domain_health_diagnostic_outer_loop_wakeup",
-            "wakeup_outcome": "platform_repair_required",
+            "wakeup_outcome": "opl_runtime_handoff_required",
             "wakeup_reason": "outer-loop work unit redrive budget exhausted without result evidence",
         },
         recorded_at="2026-05-02T04:45:16+00:00",
@@ -110,11 +110,11 @@ def test_watch_runtime_does_not_dispatch_after_platform_repair_required(
 
     assert calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
-    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "platform_repair_required"
-    assert wakeup_latest["outcome"] == "platform_repair_required"
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "opl_runtime_handoff_required"
+    assert wakeup_latest["outcome"] == "opl_runtime_handoff_required"
     assert [event["event_type"] for event in ledger_events] == [
-        "platform_repair_required",
-        "platform_repair_required",
+        "opl_runtime_handoff_required",
+        "opl_runtime_handoff_required",
     ]
 
 

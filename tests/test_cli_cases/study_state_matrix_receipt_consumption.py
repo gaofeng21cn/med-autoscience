@@ -220,7 +220,7 @@ def test_study_state_matrix_marks_default_executor_execution_receipt_supersessio
             "continuation_state": {
                 "continuation_policy": "auto",
                 "continuation_anchor": "decision",
-                "continuation_reason": "runtime_platform_repair_redrive",
+                "continuation_reason": "opl_runtime_owner_route_redrive",
             },
         },
     )

@@ -202,7 +202,7 @@ def classify_mds_failure_diagnosis(diagnosis: Mapping[str, Any]) -> dict[str, An
         requires_human_gate = True
     elif diagnosis_code in _PLATFORM_BUG_CODES:
         blocker_class = "platform_protocol_or_runner_bug"
-        action_mode = "platform_repair_required"
+        action_mode = "opl_runtime_handoff_required"
         auto_recovery_allowed = False
         external_blocker = False
         requires_human_gate = True

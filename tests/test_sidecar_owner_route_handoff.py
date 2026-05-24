@@ -60,7 +60,7 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
                 "study_id": study_id,
                 "quest_id": study_id,
                 "runtime_state_path": str(runtime_state_path),
-                "source": "owner_route_reconcile_platform_repair",
+                "source": "owner_route_reconcile_opl_runtime_handoff",
                 "reason": "quest_waiting_opl_runtime_owner_route",
                 "repair_kind": "controller_work_unit_pending_redrive",
                 "authority_boundary": {

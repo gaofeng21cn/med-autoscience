@@ -117,9 +117,36 @@ def route_context_work_unit_id(route_context: Mapping[str, Any] | None, *, non_e
     return None
 
 
+def merge_route_contexts(
+    *contexts: Mapping[str, Any] | None,
+    preferred_controller_work_unit_ids: frozenset[str],
+    non_empty_text,
+) -> dict[str, Any] | None:
+    merged: dict[str, Any] = {}
+    for context in contexts:
+        if not isinstance(context, Mapping):
+            continue
+        payload = dict(context)
+        existing_controller_context = merged.get("controller_route_context")
+        merged.update(payload)
+        if (
+            isinstance(existing_controller_context, Mapping)
+            and route_context_work_unit_id(
+                {"controller_route_context": existing_controller_context},
+                non_empty_text=non_empty_text,
+            )
+            in preferred_controller_work_unit_ids
+            and route_context_work_unit_id(payload, non_empty_text=non_empty_text)
+            not in preferred_controller_work_unit_ids
+        ):
+            merged["controller_route_context"] = dict(existing_controller_context)
+    return merged or None
+
+
 __all__ = [
     "apply_explicit_upstream_publication_work_unit",
     "controller_route_context_for_publication_work_unit_payload",
     "explicit_upstream_publication_work_unit",
+    "merge_route_contexts",
     "route_context_work_unit_id",
 ]

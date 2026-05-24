@@ -14,7 +14,7 @@ REQUIRED_STATES = {
     "recovering",
     "blocked_human",
     "blocked_external",
-    "blocked_platform",
+    "blocked_opl_runtime",
 }
 
 REQUIRED_STATE_FIELDS = {
@@ -124,7 +124,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
         ),
         (
             {"mds_failure_diagnosis": {"diagnosis_code": "provider_invalid_params"}},
-            "blocked_platform",
+            "blocked_opl_runtime",
         ),
     ],
 )

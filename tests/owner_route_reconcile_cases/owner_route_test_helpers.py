@@ -93,7 +93,7 @@ def project_owner_route_runtime_state(runtime_state: dict[str, Any], apply_resul
         if isinstance(proposed, dict):
             projected.update(proposed)
         if clear_result.get("clear_reason"):
-            projected["last_runtime_platform_repair"] = {
+            projected["last_owner_route_cleanup"] = {
                 "clear_reason": clear_result.get("clear_reason"),
                 "cleared_keys": list(clear_result.get("cleared_keys") or []),
                 "runtime_state_mutated": False,

@@ -209,58 +209,6 @@ def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_block
     assert execution["blocked_reason"] == "owner_callable_surface_missing"
 
 
-def test_execute_dispatch_blocks_retired_runtime_platform_repair_for_external_supervisor_route(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    route = _owner_route(
-        study_id=study_id,
-        action_type="runtime_platform_repair",
-        owner="external_supervisor",
-    )
-    route["owner_reason"] = "runtime_recovery_not_authorized"
-    route["failure_signature"] = "runtime_recovery_not_authorized"
-    dispatch_payload = _dispatch(
-        study_id=study_id,
-        action_type="runtime_platform_repair",
-        owner="external_engineering_agent",
-        required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
-        owner_route=route,
-    )
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "runtime_platform_repair.json"
-    )
-    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
-
-    result = module.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        action_types=("runtime_platform_repair",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    assert result["executed_count"] == 0
-    assert result["blocked_count"] == 1
-    execution = result["executions"][0]
-    assert execution["dispatch_contract_valid"] is False
-    assert execution["dispatch_contract_blocked_reason"] == "unsupported_action_type"
-    assert execution["owner_route_current"] is None
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "unsupported_action_type"
-    assert execution["owner_callable_surface"] is None
-
-
 def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     monkeypatch,
     tmp_path: Path,
@@ -409,14 +357,14 @@ def test_execute_dispatch_blocks_unsupported_executor_kind_fail_closed(
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
     route = _owner_route(
         study_id=study_id,
-        action_type="runtime_platform_repair",
-        owner="external_engineering_agent",
+        action_type="current_package_freshness_required",
+        owner="artifact_os",
     )
     dispatch_payload = _dispatch(
         study_id=study_id,
-        action_type="runtime_platform_repair",
-        owner="external_engineering_agent",
-        required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+        action_type="current_package_freshness_required",
+        owner="artifact_os",
+        required_output_surface="artifacts/controller/gate_clearing_batch/latest.json",
         owner_route=route,
     )
     dispatch_payload["executor_kind"] = "hermes_agent"
@@ -427,13 +375,13 @@ def test_execute_dispatch_blocks_unsupported_executor_kind_fail_closed(
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
-        / "runtime_platform_repair.json"
+        / "current_package_freshness_required.json"
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     result = module.dispatch_domain_owner_actions(
         profile=profile,
         study_ids=(study_id,),
-        action_types=("runtime_platform_repair",),
+        action_types=("current_package_freshness_required",),
         mode="developer_apply_safe",
         apply=True,
     )
@@ -820,110 +768,8 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
     assert execution["paper_work_unit_lifecycle"]["completion_proof"]["currentness_required"] is True
     assert execution["action_class"] == "controller_apply"
     assert execution["will_start_llm"] is False
+    assert execution["owner_callable_surface"] == (
+        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+    )
+    assert execution["owner_result"] == {"status": "materialized"}
     assert called["study_id"] == study_id
-
-
-def test_execute_dispatch_blocks_retired_runtime_platform_repair_even_when_terminal_stall_route_allows_repair(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "obesity_multicenter_phenotype_atlas"
-    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    route = _owner_route(
-        study_id=study_id,
-        action_type="runtime_platform_repair",
-        owner="MAS/controller",
-    )
-    route.update(
-        {
-            "schema_version": 2,
-            "truth_epoch": "truth-event-000002",
-            "runtime_health_epoch": "runtime-health-event-003034",
-            "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
-            "source_fingerprint": "truth-snapshot::runtime-controller-redrive",
-            "failure_signature": "runtime_controller_redrive_required",
-            "owner_reason": "runtime_controller_redrive_required",
-            "trace_id": "owner-route-trace::runtime-controller-redrive",
-            "next_owner": "MAS/controller",
-            "allowed_actions": ["runtime_platform_repair"],
-        }
-    )
-    route["idempotency_key"] = "owner-route::obesity::runtime-controller-redrive"
-    paper_progress_stall = {
-        "surface_kind": "paper_progress_stall",
-        "stalled": True,
-        "terminal": True,
-        "stall_reasons": ["runtime_recovery_retry_budget_exhausted"],
-        "action_fingerprint": "paper_progress_stall::runtime-controller-redrive",
-        "action_cost": {
-            "surface_kind": "runtime_dispatch_cost_contract",
-            "action_class": "observe_only",
-            "will_start_llm": False,
-            "reason": "paper_progress_stall_read_model",
-            "llm_dispatch_allowed": False,
-            "codex_worker_dispatch": False,
-        },
-    }
-    dispatch_payload = _dispatch(
-        study_id=study_id,
-        action_type="runtime_platform_repair",
-        owner="MAS/controller",
-        required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
-        owner_route=route,
-    )
-    dispatch_payload["paper_progress_stall"] = paper_progress_stall
-    dispatch_payload["prompt_contract"]["paper_progress_stall"] = paper_progress_stall
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "runtime_platform_repair.json"
-    )
-    _write_json(dispatch_path, dispatch_payload)
-    _write_json(
-        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
-        {
-            "surface": "portable_owner_route_reconcile",
-            "schema_version": 1,
-            "studies": [
-                {
-                    "study_id": study_id,
-                    "owner_route": route,
-                    "paper_progress_stall": paper_progress_stall,
-                }
-            ],
-        },
-    )
-    _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
-        {
-            "surface": "domain_action_request_materializer",
-            "schema_version": 1,
-            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
-        },
-    )
-    result = module.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        action_types=("runtime_platform_repair",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    execution = result["executions"][0]
-    assert result["executed_count"] == 0
-    assert result["blocked_count"] == 1
-    assert result["codex_dispatch_count"] == 0
-    assert execution["dispatch_contract_valid"] is False
-    assert execution["dispatch_contract_blocked_reason"] == "unsupported_action_type"
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "unsupported_action_type"
-    assert execution["owner_callable_surface"] is None
-    assert execution["paper_progress_stall_handoff_allowed"] is False
-    assert execution["action_class"] == "observe_only"
-    assert execution["will_start_llm"] is False

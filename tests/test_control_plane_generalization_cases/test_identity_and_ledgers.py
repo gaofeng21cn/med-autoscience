@@ -188,7 +188,7 @@ def test_control_intent_lifecycle_blocks_terminal_platform_work_unit_states(tmp_
     terminal_event_expectations = {
         "closed": "closed",
         "needs_specificity": "needs_specificity",
-        "platform_repair_required": "platform_repair_required",
+        "opl_runtime_handoff_required": "opl_runtime_handoff_required",
         "await_artifact_delta_or_gate_replay": "await_artifact_delta_or_gate_replay",
     }
 

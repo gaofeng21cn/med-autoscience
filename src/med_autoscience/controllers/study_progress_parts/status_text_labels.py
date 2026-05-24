@@ -45,7 +45,7 @@ _CONTROLLER_ACTION_LABELS = {
 _REASON_LABELS = {
     "publishability_gate_blocked": "论文可发表性门控尚未放行。",
     "quest_completion_requested_before_publication_gate_clear": "运行时过早申请结题，论文门控仍要求继续自修。",
-    "quest_parked_on_unchanged_finalize_state": "投稿包/人审包已到可交付节点；MAS/MDS 已释放自动运行资源，等待用户审阅、显式 resume 或新的修订输入。",
+    "quest_parked_on_unchanged_finalize_state": "投稿包/人审包已到可交付节点；MAS 已释放自动运行资源，等待用户审阅、显式 resume 或新的修订输入。",
     "quest_waiting_for_submission_metadata": "浅层投稿包已经交付，当前只差作者、单位、伦理、基金和声明等人工前置信息；系统已停车，等待显式唤醒。",
     "quest_drifting_into_write_without_gate_approval": "运行时已经漂进写作/定稿，但发表门控尚未放行，MAS 正在把它拉回论文门控主线。",
     "quest_stale_decision_after_write_stage_ready": "论文写作阶段已经放行，但运行时仍停在旧 decision，MAS 正在把它切回写作主线。",
@@ -189,7 +189,7 @@ _OPERATOR_STATUS_HANDLING_LABELS = {
     "external_upstream_pending": "等待上游服务恢复",
     "platform_startup_noise": "平台启动噪声退避",
     "explicit_resume_pending": "等待显式恢复",
-    "platform_repair_pending": "等待 MAS/MDS 平台修复",
+    "opl_runtime_handoff_pending": "等待 OPL runtime handoff",
     "preflight_contract_pending": "等待运行前置合同满足",
     "auto_runtime_parked": "自动运行已停驻",
     "manual_finishing": "人工收尾显式保护",

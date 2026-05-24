@@ -34,7 +34,7 @@ STATUS_LABELS = {
     "run_id_without_worker": "有 run_id 但 worker 未确认",
     "run_projection_without_worker": "有 run 投影但 worker 未确认",
     "running": "运行中",
-    "runtime_repair_required": "需要 runtime 修复",
+    "runtime_handoff_required": "需要 OPL runtime handoff",
     "stale": "陈旧",
     "same_fingerprint_loop": "同 fingerprint 循环",
     "workspace-overview": "工作区总览",

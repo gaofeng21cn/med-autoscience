@@ -85,7 +85,7 @@ def _terminal_controller_work_unit_projection(payload: Mapping[str, Any]) -> dic
     if not isinstance(lifecycle, Mapping):
         return None
     lifecycle_state = _non_empty_text(lifecycle.get("lifecycle_state"))
-    if lifecycle_state not in {"needs_specificity", "platform_repair_required"}:
+    if lifecycle_state not in {"needs_specificity", "opl_runtime_handoff_required"}:
         return None
     serialized = {
         "study_id": _non_empty_text(payload.get("study_id")),

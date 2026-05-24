@@ -19,46 +19,33 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _retired_runtime_platform_repair_action(study_id: str, quest_id: str) -> dict[str, object]:
+def _unsupported_domain_action(study_id: str, quest_id: str) -> dict[str, object]:
+    action_type = "unsupported_supervisor_action"
     route = _owner_route(
         study_id=study_id,
         quest_id=quest_id,
-        next_owner="external_engineering_agent",
-        owner_reason="runtime_recovery_retry_budget_exhausted",
-        allowed_actions=["runtime_platform_repair"],
+        next_owner="external_observer",
+        owner_reason=action_type,
+        allowed_actions=[action_type],
     )
     return {
         "study_id": study_id,
-        "action_type": "runtime_platform_repair",
-        "authority": "external_supervisor",
-        "reason": "runtime_recovery_retry_budget_exhausted",
-        "action_id": f"supervisor-action::{study_id}::runtime_platform_repair::runtime_recovery_retry_budget_exhausted",
+        "quest_id": quest_id,
+        "action_type": action_type,
+        "authority": "observability_only",
+        "reason": action_type,
+        "action_id": f"supervisor-action::{study_id}::{action_type}",
         "owner_route": route,
         "handoff_packet": {
             "packet_type": "external_supervisor_handoff",
             "schema_version": 1,
             "study_id": study_id,
             "quest_id": quest_id,
-            "action_type": "runtime_platform_repair",
-            "reason": "runtime_recovery_retry_budget_exhausted",
-            "authority": "external_supervisor",
-            "recommended_owner": "external_engineering_agent",
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "manual_study_patch_allowed": False,
-            "medical_claim_authoring_allowed": False,
+            "action_type": action_type,
+            "reason": action_type,
+            "authority": "observability_only",
+            "recommended_owner": "external_observer",
             "owner_route": route,
-            "allowed_write_surfaces": [
-                "artifacts/supervision/**",
-                "artifacts/autonomy/repair_lifecycle/latest.json",
-                "artifacts/autonomy/repair_actions/latest.json",
-            ],
-            "forbidden_actions": [
-                "paper_package_mutation",
-                "manual_study_patch",
-                "quality_gate_relaxation",
-                "medical_claim_authoring",
-            ],
         },
     }
 
@@ -88,7 +75,7 @@ def _owner_route(
     }
 
 
-def test_materialize_domain_action_requests_dry_run_ignores_retired_runtime_platform_repair_without_writes(
+def test_materialize_domain_action_requests_dry_run_ignores_unsupported_action_without_writes(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -103,7 +90,7 @@ def test_materialize_domain_action_requests_dry_run_ignores_retired_runtime_plat
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_retired_runtime_platform_repair_action(study_id, "quest-nf")],
+            "action_queue": [_unsupported_domain_action(study_id, "quest-nf")],
         },
     )
 
@@ -118,27 +105,23 @@ def test_materialize_domain_action_requests_dry_run_ignores_retired_runtime_plat
     assert result["dry_run"] is True
     assert result["effective_mode"] == "developer_apply_safe"
     assert result["github_gate"]["allowed"] is True
-    assert result["runtime_repair_task_count"] == 0
-    assert result["runtime_repair_tasks_retired"] is True
+    assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
     assert result["default_executor_dispatch_count"] == 0
     assert result["ignored_actions"] == [
         {
             "study_id": study_id,
-            "action_type": "runtime_platform_repair",
-            "action_id": (
-                f"supervisor-action::{study_id}::"
-                "runtime_platform_repair::runtime_recovery_retry_budget_exhausted"
-            ),
+            "action_type": "unsupported_supervisor_action",
+            "action_id": f"supervisor-action::{study_id}::unsupported_supervisor_action",
             "reason": "unsupported_action_type",
         }
     ]
     assert "repair_tasks" not in result
     assert not (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
-    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
+    assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
 
 
-def test_materialize_domain_action_requests_apply_does_not_write_retired_runtime_repair_surfaces(
+def test_materialize_domain_action_requests_apply_does_not_write_unsupported_action_surfaces(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -153,7 +136,7 @@ def test_materialize_domain_action_requests_apply_does_not_write_retired_runtime
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_retired_runtime_platform_repair_action(study_id, "quest-nf")],
+            "action_queue": [_unsupported_domain_action(study_id, "quest-nf")],
         },
     )
 
@@ -165,34 +148,33 @@ def test_materialize_domain_action_requests_apply_does_not_write_retired_runtime
     )
 
     consumer_path = profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"
-    repair_packet_path = study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json"
+    unsupported_packet_path = study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json"
     dispatch_path = (
         study_root
         / "artifacts"
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
-        / "runtime_platform_repair.json"
+        / "unsupported_supervisor_action.json"
     )
     assert result["dry_run"] is False
-    assert result["runtime_repair_task_count"] == 0
-    assert result["runtime_repair_tasks_retired"] is True
+    assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
     assert result["default_executor_dispatch_count"] == 0
-    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert consumer_path.is_file()
-    assert not repair_packet_path.exists()
+    assert not unsupported_packet_path.exists()
     assert not dispatch_path.exists()
     consumer = json.loads(consumer_path.read_text(encoding="utf-8"))
     assert consumer["written_files"] == [str(consumer_path)]
-    assert consumer["runtime_repair_tasks_retired"] is True
+    assert consumer["runtime_control_owner"] == "one-person-lab"
     assert consumer["ignored_actions"] == result["ignored_actions"]
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
 
 
-def test_materialize_domain_action_requests_does_not_resurrect_existing_runtime_platform_repair_dispatch(
+def test_materialize_domain_action_requests_does_not_resurrect_existing_unsupported_dispatch(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -201,15 +183,15 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_runtime_
     profile = make_profile(tmp_path)
     study_id = "003-endocrine-burden-followup"
     study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
-    action = _retired_runtime_platform_repair_action(study_id, "quest-nf")
+    action = _unsupported_domain_action(study_id, "quest-nf")
     route = dict(action["owner_route"])
     route.update(
         {
             "schema_version": 2,
             "truth_epoch": route["route_epoch"],
             "runtime_health_epoch": "runtime-health-repeat",
-            "work_unit_fingerprint": "runtime-platform::repeat",
-            "failure_signature": "runtime_recovery_retry_budget_exhausted",
+            "work_unit_fingerprint": "unsupported-supervisor::repeat",
+            "failure_signature": "unsupported_supervisor_action",
             "trace_id": "owner-route-trace::repeat",
         }
     )
@@ -237,7 +219,7 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_runtime_
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
-        / "runtime_platform_repair.json"
+        / "unsupported_supervisor_action.json"
     )
     _write_json(
         dispatch_path,
@@ -245,13 +227,13 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_runtime_
             "surface": "default_executor_dispatch_request",
             "study_id": study_id,
             "quest_id": "quest-nf",
-            "action_type": "runtime_platform_repair",
+            "action_type": "unsupported_supervisor_action",
             "dispatch_status": "ready",
             "owner_route": route,
             "idempotency_key": route["idempotency_key"],
             "prompt_contract": {
                 "do_not_repeat": True,
-                "repeat_suppression_key": "runtime-platform::repeat",
+                "repeat_suppression_key": "unsupported-supervisor::repeat",
             },
         },
     )
@@ -263,10 +245,10 @@ def test_materialize_domain_action_requests_does_not_resurrect_existing_runtime_
         apply=True,
     )
 
-    assert result["runtime_repair_tasks_retired"] is True
+    assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
     assert result["default_executor_dispatch_count"] == 0
-    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["repeat_suppressed_count"] == 0
     consumer = json.loads(
@@ -294,7 +276,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
         / "supervision"
         / "consumer"
         / "default_executor_dispatches"
-        / "runtime_platform_repair.json"
+        / "unsupported_supervisor_action.json"
     )
     consumer_path = profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"
     latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
@@ -308,7 +290,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
             "default_executor_dispatches": [
                 {
                     "study_id": study_id,
-                    "action_type": "runtime_platform_repair",
+                    "action_type": "unsupported_supervisor_action",
                     "dispatch_status": "ready",
                     "refs": {"dispatch_path": str(stale_dispatch_path)},
                 }
@@ -333,8 +315,7 @@ def test_materialize_domain_action_requests_apply_refreshes_latest_when_current_
     )
 
     consumer = json.loads(consumer_path.read_text(encoding="utf-8"))
-    assert result["runtime_repair_task_count"] == 0
-    assert result["runtime_repair_tasks_retired"] is True
+    assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_task_count"] == 0
     assert result["default_executor_dispatch_count"] == 0
     assert result["written_files"] == [str(consumer_path)]
@@ -437,7 +418,7 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_retired_runtime_platform_repair_action(study_id, "quest-nf")],
+            "action_queue": [_unsupported_domain_action(study_id, "quest-nf")],
         },
     )
 
@@ -450,13 +431,12 @@ def test_materialize_domain_action_requests_uses_pull_request_route_for_non_owne
 
     assert result["effective_mode"] == "developer_apply_safe"
     assert result["apply_allowed"] is True
-    assert result["runtime_repair_task_count"] == 0
-    assert result["runtime_repair_tasks_retired"] is True
+    assert result["runtime_control_owner"] == "one-person-lab"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["route"] == "pull_request"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
     assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
-    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
+    assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
 
 
 def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply_safe_mode(
@@ -474,7 +454,7 @@ def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
-            "action_queue": [_retired_runtime_platform_repair_action(study_id, "quest-nf")],
+            "action_queue": [_unsupported_domain_action(study_id, "quest-nf")],
         },
     )
 
@@ -487,12 +467,11 @@ def test_materialize_domain_action_requests_blocks_apply_for_non_developer_apply
 
     assert result["effective_mode"] == "external_observe"
     assert result["apply_allowed"] is False
-    assert result["runtime_repair_task_count"] == 0
-    assert result["runtime_repair_tasks_retired"] is True
-    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["runtime_control_owner"] == "one-person-lab"
+    assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert not (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
-    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
+    assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
 
 
 def test_materialize_domain_action_requests_writes_request_handoff_for_publication_gate_and_ai_reviewer_actions(
@@ -649,8 +628,7 @@ def test_materialize_domain_action_requests_writes_request_handoff_for_publicati
         / "consumer"
         / "artifact_display_surface_materialization_required.json"
     )
-    assert result["runtime_repair_task_count"] == 0
-    assert result["runtime_repair_tasks_retired"] is True
+    assert result["runtime_control_owner"] == "one-person-lab"
     assert result["request_tasks"][0]["action_type"] == "publication_gate_specificity_required"
     assert result["request_tasks"][1]["action_type"] == "return_to_ai_reviewer_workflow"
     assert result["request_tasks"][2]["action_type"] == "current_package_freshness_required"
@@ -794,9 +772,9 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
                         study_id=study_id,
                         quest_id="quest-dpcc",
                         next_owner="external_engineering_agent",
-                        owner_reason="runtime_recovery_retry_budget_exhausted",
+                        owner_reason="unsupported_supervisor_action",
                         allowed_actions=[
-                            "runtime_platform_repair",
+                            "unsupported_supervisor_action",
                             "publication_gate_specificity_required",
                             "return_to_ai_reviewer_workflow",
                         ],
@@ -804,7 +782,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
                 }
             ],
             "action_queue": [
-                _retired_runtime_platform_repair_action(study_id, "quest-dpcc"),
+                _unsupported_domain_action(study_id, "quest-dpcc"),
                 {
                     "study_id": study_id,
                     "quest_id": "quest-dpcc",
@@ -843,9 +821,8 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     )
 
     dispatches = result["default_executor_dispatches"]
-    assert result["runtime_repair_task_count"] == 0
-    assert result["runtime_repair_tasks_retired"] is True
-    assert result["ignored_actions"][0]["action_type"] == "runtime_platform_repair"
+    assert result["runtime_control_owner"] == "one-person-lab"
+    assert result["ignored_actions"][0]["action_type"] == "unsupported_supervisor_action"
     assert result["ignored_actions"][0]["reason"] == "unsupported_action_type"
     assert result["default_executor_dispatch_count"] == 2
     assert [dispatch["executor_kind"] for dispatch in dispatches] == [
@@ -871,7 +848,7 @@ def test_materialize_domain_action_requests_mixed_queue_writes_default_executor_
     written_dispatches = sorted(dispatch_dir.glob("*.json"))
     assert written_dispatches == []
 
-    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
+    assert not (study_root / "artifacts" / "supervision" / "consumer" / "unsupported_supervisor_action.json").exists()
     assert not (
         study_root
         / "artifacts"

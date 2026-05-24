@@ -92,8 +92,8 @@ def _state_and_owner(
     manifest_state = _text(fast_lane_manifest.get("manifest_state"))
     if action_mode in {"external_fix_required", "provider_backoff_and_recheck"}:
         return "blocked_external_runtime", "external_runtime_or_human", False, True
-    if action_mode == "platform_repair_required" or blocker_class == "platform_protocol_or_runner_bug":
-        return "blocked_platform_repair", "mas_mds_platform_repair", False, True
+    if action_mode == "opl_runtime_handoff_required" or blocker_class == "platform_protocol_or_runner_bug":
+        return "blocked_opl_runtime_owner_handoff", "one-person-lab", False, True
     if action_mode == "wait_for_user_or_explicit_resume":
         return "blocked_human_gate", "human", False, True
     if plan_state == "blocked_by_runtime_gate":

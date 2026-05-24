@@ -261,7 +261,7 @@ def test_ai_doctor_request_materialization_creates_attempt_record(tmp_path: Path
     assert repair["actions"][0]["diagnosis_id"] == attempt["diagnosis_id"]
 
 
-def test_ai_doctor_request_timeout_escalates_to_platform_repair(tmp_path: Path) -> None:
+def test_ai_doctor_request_timeout_escalates_to_opl_runtime_handoff(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.autonomy_ai_doctor")
     study_root = tmp_path / "studies" / "002-dm"
 
@@ -289,12 +289,13 @@ def test_ai_doctor_request_timeout_escalates_to_platform_repair(tmp_path: Path) 
     )
     repair = json.loads((module.repair_actions_root(study_root=study_root) / "latest.json").read_text(encoding="utf-8"))
 
-    assert escalated["state"] == "platform_repair_required"
+    assert escalated["state"] == "opl_runtime_handoff_required"
     assert escalated["timeout_after_seconds"] == 900
     assert escalated["quality_gate_relaxation_allowed"] is False
     assert repair["state"] == "ready_for_repair"
-    assert repair["actions"][0]["action_type"] == "platform_repair"
-    assert repair["actions"][0]["repair_kind"] == "ai_doctor_request_timeout_closure"
+    assert repair["actions"][0]["action_type"] == "opl_runtime_blocker_handoff"
+    assert repair["actions"][0]["repair_kind"] == "ai_doctor_request_timeout_handoff"
+    assert repair["actions"][0]["owner"] == "one-person-lab"
 
 
 def test_autonomy_progress_slo_treats_parked_turn_without_artifact_delta_as_gate_closure_drift(

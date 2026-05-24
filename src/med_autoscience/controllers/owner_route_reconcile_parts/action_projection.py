@@ -11,6 +11,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import action_decor
 from med_autoscience.controllers.owner_route_reconcile_parts import analysis_harmonization_ai_review
 from med_autoscience.controllers.owner_route_reconcile_parts import artifact_freshness
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
+from med_autoscience.controllers.owner_route_reconcile_parts import claim_evidence_alignment_actions
 from med_autoscience.controllers.owner_route_reconcile_parts import completion_evidence
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
 from med_autoscience.controllers.owner_route_reconcile_parts import domain_transition_actions
@@ -175,6 +176,20 @@ def action_queue(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=_ai_reviewer_record_current_manuscript_action(ai_reviewer_assessment),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    claim_alignment_action = claim_evidence_alignment_actions.action_from_ai_reviewer_alignment_blocker(
+        study_root=study_root,
+    )
+    if claim_alignment_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=claim_alignment_action,
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,

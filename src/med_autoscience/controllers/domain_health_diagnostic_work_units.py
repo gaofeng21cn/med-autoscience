@@ -209,7 +209,7 @@ def _ledger_has_executed_dispatch(
     return False
 
 
-def active_platform_repair_required(
+def active_opl_runtime_handoff_required(
     *,
     study_root: Path,
     tick_request: Mapping[str, Any],
@@ -220,7 +220,7 @@ def active_platform_repair_required(
     latest_event = work_unit_ledger.latest_event(study_root=study_root, dispatch_key=work_unit_dispatch_key)
     if not isinstance(latest_event, Mapping):
         return False, work_unit_dispatch_key, None
-    if _non_empty_text(latest_event.get("event_type")) != "platform_repair_required":
+    if _non_empty_text(latest_event.get("event_type")) != "opl_runtime_handoff_required":
         return False, work_unit_dispatch_key, None
     payload = latest_event.get("payload")
     attempt_count = None
@@ -307,7 +307,7 @@ def _meaningful_artifact_delta_evidence(
     return evidence
 
 
-def close_stale_platform_repair_if_meaningful_delta(
+def close_stale_opl_runtime_handoff_if_meaningful_delta(
     *,
     study_root: Path,
     status_payload: Mapping[str, Any],
@@ -321,10 +321,10 @@ def close_stale_platform_repair_if_meaningful_delta(
     latest_event = work_unit_ledger.latest_event(study_root=study_root, dispatch_key=work_unit_dispatch_key)
     if not isinstance(latest_event, Mapping):
         return None
-    if _non_empty_text(latest_event.get("event_type")) != "platform_repair_required":
+    if _non_empty_text(latest_event.get("event_type")) != "opl_runtime_handoff_required":
         return None
     previous_wakeup = _read_json_object(_wakeup_latest_path(study_root)) or {}
-    if _non_empty_text(previous_wakeup.get("outcome")) != "platform_repair_required":
+    if _non_empty_text(previous_wakeup.get("outcome")) != "opl_runtime_handoff_required":
         return None
     if _non_empty_text(previous_wakeup.get("work_unit_dispatch_key")) != work_unit_dispatch_key:
         return None
@@ -351,8 +351,8 @@ def close_stale_platform_repair_if_meaningful_delta(
             "source": _OUTER_LOOP_WAKEUP_SOURCE,
             "wakeup_outcome": "closed",
             "wakeup_reason": "prior platform repair requirement superseded by meaningful artifact delta",
-            "closure_reason": "meaningful_artifact_delta_after_platform_repair",
-            "previous_platform_repair_event_id": _non_empty_text(latest_event.get("event_id")),
+            "closure_reason": "meaningful_artifact_delta_after_opl_runtime_handoff",
+            "previous_opl_runtime_handoff_event_id": _non_empty_text(latest_event.get("event_id")),
             **evidence,
         },
         recorded_at=_non_empty_text(wakeup_audit.get("recorded_at")) or default_recorded_at,

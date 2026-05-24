@@ -372,12 +372,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-05-21：runtime liveness / redrive 仲裁不得继续在 MAS 私有控制面扩写
 
 - 决策：暂停并撤回把 `active_run_id` liveness 过滤、stopped/failed redrive 仲裁、provider resume 选择或 current AI reviewer route-back hydrate 继续写进 `study_outer_loop.py` / `domain_status_authority.py` / `domain_transition_arbitration.py` 的修复方向。MAS 只能输出医学 owner route、controller authorization refs、AI reviewer/publication gate verdict refs、owner receipt 和 typed blocker；通用 liveness、attempt、queue、redrive、hydration、retry/dead-letter 与 provider resume 由 OPL provider/runtime manager 承担。
-- 理由：DM002 当前症状是 MAS 已有 AI reviewer-backed `route_back_same_line -> analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration`，但 human/status 面仍被 `quest_waiting_platform_repair_redrive`、submission metadata parking 和 external_supervisor route 覆盖。这是 OPL runtime/provider 投影和任务 hydration 缺口，不能继续靠 MAS 私有 runtime/status arbitration 补洞。
+- 理由：DM002 当前症状是 MAS 已有 AI reviewer-backed `route_back_same_line -> analysis-campaign/unit_harmonized_validation_uncertainty_and_grouped_calibration`，但 human/status 面仍被 legacy OPL-runtime redrive marker、submission metadata parking 和 external_supervisor route 覆盖。这是 OPL runtime/provider 投影和任务 hydration 缺口，不能继续靠 MAS 私有 runtime/status arbitration 补洞。
 - 影响：本轮不得新增 MAS runtime liveness patch。若需要推进真实论文线，应通过 OPL family runtime queue/attempt hydration 消费 MAS sidecar/domain route refs，再回到 MAS owner surface 产出 domain receipt 或 stable typed blocker；MAS repo 只允许补 domain pack、owner callable、quality gate、receipt schema、domain authority refs 或边界台账。
 
 ## 2026-05-21：OPL owner-route handoff 不得写 `.ds` runtime state
 
-- 决策：`owner_route_reconcile_platform_repair` 触发 `quest_waiting_opl_runtime_owner_route` 时，MAS 只能写 `artifacts/supervision/owner_route_handoff/latest.json` 这类 MAS-owned supervision artifact，并通过 `sidecar export` 暴露 `domain_route/reconcile-apply` pending task。它不得把 `last_opl_runtime_owner_route_handoff`、`wait_for_opl_runtime_owner`、`active_run_id=None` 或 `worker_running=False` 写回 `quest_root/.ds/runtime_state.json` / `.ds/events.jsonl`。
+- 决策：owner-route reconcile 触发 `quest_waiting_opl_runtime_owner_route` 时，MAS 只能写 `artifacts/supervision/owner_route_handoff/latest.json` 这类 MAS-owned supervision artifact，并通过 `sidecar export` 暴露 `domain_route/reconcile-apply` pending task。它不得把 `last_opl_runtime_owner_route_handoff`、`wait_for_opl_runtime_owner`、`active_run_id=None` 或 `worker_running=False` 写回 `quest_root/.ds/runtime_state.json` / `.ds/events.jsonl`。
 - 理由：`.ds/runtime_state.json` 是 generic runtime/provider 状态面；即使 MAS 不再直接 relaunch/resume，只要继续清 `active_run_id` 或写 continuation state，就仍在替 OPL 维护 runtime liveness/control-plane。正确边界是 MAS 发布 owner-route refs，OPL queue/attempt/provider 消费这些 refs。
 - 影响：owner-route apply result 的 `allowed_write_surfaces` 收窄到 `artifacts/supervision/**` 与 autonomy repair lifecycle/action refs；OPL 通过 sidecar task hydration 读取 handoff artifact。该路径不写论文、publication eval、controller decisions、submission package、current package，也不声明 OPL 已完成 dispatch。
 
@@ -492,14 +492,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-05-21：stopped controller work-unit 不再由 MAS 私有 redrive 仲裁
 
-- 决策：撤回“stopped + controller_work_unit_pending 必须由 MAS `progress_projection` 返回 `resume / quest_waiting_platform_repair_redrive`”这一方向。MAS 在 stopped / failed / waiting / live 组合状态下只发布当前 controller authorization、domain route、owner receipt、typed blocker 和 OPL 可消费 owner-route refs；通用 liveness 判断、queue hydration、attempt retry、dead-letter、provider resume/relaunch 由 OPL runtime manager 承担。
+- 决策：撤回“stopped + controller_work_unit_pending 必须由 MAS `progress_projection` 返回 resume 型 generic runtime redrive”的方向。MAS 在 stopped / failed / waiting / live 组合状态下只发布当前 controller authorization、domain route、owner receipt、typed blocker 和 OPL 可消费 owner-route refs；通用 liveness 判断、queue hydration、attempt retry、dead-letter、provider resume/relaunch 由 OPL runtime manager 承担。
 - 理由：DM002 暴露的是 current work unit 没有被 OPL 通用 runtime/hydration/dispatch 消费，而不是 MAS 应继续扩写私有 runtime/status state machine。把 stopped redrive 写进 MAS status 会把 OPL 标准智能体边界退回 MAS 私有控制面。
 - 影响：MAS 可以通过 `sidecar export` 暴露 `domain_route/reconcile-apply`、paper autonomy、publication aftercare 等 pending owner-route refs，并通过 `sidecar dispatch` 回到 MAS owner callable 产出 receipt / typed blocker；MAS 不直接写 `.ds/user_message_queue.json`，不调用 generic runtime chat 作为控制器授权投递，不声明 OPL queue 或 provider attempt 已完成。
 
 ## 2026-05-21：analysis harmonization completed 后必须显式交回 AI reviewer currentness
 
 - 决策：当 `analysis_harmonization_owner` 的 completed result 明确 `next_owner=ai_reviewer`、`next_work_unit=ai_reviewer_medical_prose_quality_review`，且当前 `publication_eval/latest.json` 没有 AI reviewer-owned provenance 覆盖 `analysis_harmonization/latest.json` 与 rerun evidence refs，`owner-route-reconcile` 必须排 `return_to_ai_reviewer_workflow`。
-- 决策：上述 completed owner handoff 是当前医学质量 owner route，必须优先于旧的 `quest_waiting_platform_repair_redrive` / `quest_waiting_opl_runtime_owner_route` runtime platform lifecycle。platform redrive 可以继续作为 OPL runtime owner 证据存在，但不得把 `next_owner` 改成 `one-person-lab` 并过滤掉 AI reviewer action。
+- 决策：上述 completed owner handoff 是当前医学质量 owner route，必须优先于 generic runtime owner-route lifecycle。OPL runtime redrive 可以继续作为 runtime owner 证据存在，但不得把 `next_owner` 改成 `one-person-lab` 并过滤掉 AI reviewer action。
 - 理由：DM002 暴露出 unit-harmonized external-validation rerun 已完成后，旧 `publication_eval` 仍可能早于 rerun evidence，却被 parked/current-truth 投影吞掉，导致 AI reviewer 不复评新模型与 uncertainty 证据。
 - 影响：该修复只生成 AI reviewer request / owner route，不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/`、`submission_minimal`、`manuscript/current_package` 或 submission-ready verdict。若 AI reviewer eval 已显式引用当前 analysis result 与 rerun evidence，则不重复排队。
 

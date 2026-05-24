@@ -894,8 +894,6 @@ def materialize_domain_action_requests(
         "github_gate": dict(developer_mode.github_user_gate),
         "developer_supervisor_mode": developer_mode_payload,
         "apply_allowed": bool(apply and developer_mode.safe_actions_enabled),
-        "runtime_repair_task_count": 0,
-        "runtime_repair_tasks_retired": True,
         "runtime_control_owner": "one-person-lab",
         "request_task_count": len(request_tasks),
         "request_tasks": request_tasks,
@@ -925,7 +923,6 @@ def materialize_domain_action_requests(
             {
                 "generated_at": generated_at,
                 "study_ids": list(resolved_study_ids),
-                "runtime_repair_task_count": 0,
                 "request_task_count": len(request_tasks),
                 "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
                 "written_files": list(written_files),

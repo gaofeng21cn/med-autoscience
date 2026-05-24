@@ -11,7 +11,7 @@ from typing import Any, Mapping
 _SCHEMA_VERSION = 1
 AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY = "await_artifact_delta_or_gate_replay"
 GATE_REREAD_REQUIRED = "gate_reread_required"
-PLATFORM_REPAIR_REQUIRED = "platform_repair_required"
+OPL_RUNTIME_HANDOFF_REQUIRED = "opl_runtime_handoff_required"
 _LIFECYCLE_EVENT_TYPES = frozenset(
     {
         "planned",
@@ -26,7 +26,7 @@ _LIFECYCLE_EVENT_TYPES = frozenset(
         "explicit_recovery",
         "closed",
         "superseded",
-        PLATFORM_REPAIR_REQUIRED,
+        OPL_RUNTIME_HANDOFF_REQUIRED,
         "skipped_duplicate",
         AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
     }
@@ -47,7 +47,7 @@ _TERMINAL_EVENT_TYPES = frozenset(
         "owner_handoff",
         "superseded",
         GATE_REREAD_REQUIRED,
-        PLATFORM_REPAIR_REQUIRED,
+        OPL_RUNTIME_HANDOFF_REQUIRED,
     }
 )
 _ACTIVE_EVENT_TYPES = _LIFECYCLE_EVENT_TYPES - _TERMINAL_EVENT_TYPES
@@ -60,7 +60,7 @@ _DIRECT_BLOCK_REASON_EVENT_TYPES = frozenset(
         "needs_specificity",
         "owner_handoff",
         GATE_REREAD_REQUIRED,
-        PLATFORM_REPAIR_REQUIRED,
+        OPL_RUNTIME_HANDOFF_REQUIRED,
         AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
     }
 )

@@ -10,6 +10,7 @@ from med_autoscience.controllers import domain_action_requests
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
+from med_autoscience.claim_evidence_alignment import build_claim_evidence_alignment_gate
 from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
     eval_bound_current_story_delta_source_basis,
 )
@@ -21,6 +22,7 @@ from med_autoscience.controllers.story_surface_work_units import (
 
 _REVIEW_LEDGER_RELATIVE_PATH = Path("review") / "review_ledger.json"
 _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = medical_prose_story_surface.MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
+_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID = "claim_evidence_alignment_repair"
 
 
 def _text(value: object) -> str | None:
@@ -162,6 +164,90 @@ def _materialize_review_ledger(
     }
 
 
+def _claim_evidence_alignment_gate(*, paper_root: Path) -> dict[str, Any]:
+    return build_claim_evidence_alignment_gate(
+        study_root=paper_root.parent,
+        claim_evidence_map_ref="paper/claim_evidence_map.json",
+        evidence_ledger_ref="paper/evidence_ledger.json",
+    )
+
+
+def _repair_claim_evidence_alignment(*, paper_root: Path, receipt: Mapping[str, Any]) -> dict[str, Any]:
+    claim_map_path = paper_root / "claim_evidence_map.json"
+    evidence_ledger_path = paper_root / "evidence_ledger.json"
+    before = _claim_evidence_alignment_gate(paper_root=paper_root)
+    if before.get("status") != "blocked":
+        return {
+            "status": "already_current",
+            "changed_artifact_refs": [],
+            "claim_evidence_alignment": before,
+        }
+    claim_map = _read_json_object(claim_map_path)
+    evidence_ledger = _read_json_object(evidence_ledger_path)
+    claim_rows = _list_mappings(claim_map.get("claims"))
+    ledger_rows = _list_mappings(evidence_ledger.get("claims"))
+    ledger_by_claim = {_text(claim.get("claim_id")): claim for claim in ledger_rows if _text(claim.get("claim_id"))}
+    unresolved: list[str] = []
+    changed = False
+    for claim in claim_rows:
+        claim_id = _text(claim.get("claim_id"))
+        ledger_claim = ledger_by_claim.get(claim_id)
+        if ledger_claim is None:
+            unresolved.append(f"{claim_id}_missing_from_evidence_ledger")
+            continue
+        ledger_evidence = _list_mappings(ledger_claim.get("evidence"))
+        evidence_by_id = {
+            _text(item.get("evidence_id")): item for item in ledger_evidence if _text(item.get("evidence_id"))
+        }
+        for evidence_item in _list_mappings(claim.get("evidence_items")):
+            item_id = _text(evidence_item.get("item_id"))
+            if item_id is None or item_id in evidence_by_id:
+                continue
+            candidate = _matching_ledger_evidence(evidence_item=evidence_item, ledger_evidence=ledger_evidence)
+            if candidate is None:
+                unresolved.append(f"{claim_id}.{item_id}_no_matching_evidence_ledger_item")
+                continue
+            candidate["evidence_id"] = item_id
+            changed = True
+            evidence_by_id[item_id] = candidate
+    if changed:
+        updated = _append_receipt(evidence_ledger, receipt)
+        _write_json_if_changed(evidence_ledger_path, updated)
+    after = _claim_evidence_alignment_gate(paper_root=paper_root)
+    changed_refs = [str(evidence_ledger_path.resolve())] if changed else []
+    return {
+        "status": "updated" if changed and after.get("status") == "ready" else "blocked" if after.get("status") != "ready" else "already_current",
+        "changed_artifact_refs": changed_refs,
+        "claim_evidence_alignment": after,
+        **({"unresolved_alignment_refs": unresolved} if unresolved else {}),
+    }
+
+
+def _matching_ledger_evidence(*, evidence_item: Mapping[str, Any], ledger_evidence: list[dict[str, Any]]) -> dict[str, Any] | None:
+    item_paths = _normalized_source_paths(evidence_item.get("source_paths"))
+    candidates: list[dict[str, Any]] = []
+    for ledger_item in ledger_evidence:
+        ledger_paths = _normalized_source_paths(ledger_item.get("source_paths"))
+        if item_paths and ledger_paths and item_paths.isdisjoint(ledger_paths):
+            continue
+        candidates.append(ledger_item)
+    if len(candidates) == 1:
+        return candidates[0]
+    return None
+
+
+def _normalized_source_paths(value: object) -> set[str]:
+    paths: set[str] = set()
+    if not isinstance(value, list):
+        return paths
+    for item in value:
+        text = _text(item)
+        if text is None:
+            continue
+        paths.add(text.removeprefix("paper/"))
+    return paths
+
+
 def _update_claim_and_evidence_surfaces(
     *,
     paper_root: Path,
@@ -177,6 +263,12 @@ def _update_claim_and_evidence_surfaces(
         if _write_json_if_changed(path, updated):
             changed_paths.append(str(path.resolve()))
     return changed_paths
+
+
+def _list_mappings(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
 
 
 def _materialize_medical_prose_story_surfaces(
@@ -300,6 +392,10 @@ def run_upstream_paper_repair_unit(
         source_fingerprint=source_fingerprint,
     )
     changed_refs = _update_claim_and_evidence_surfaces(paper_root=paper_root, receipt=receipt)
+    claim_alignment_repair: dict[str, Any] | None = None
+    if resolved_work_unit_id == _CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID:
+        claim_alignment_repair = _repair_claim_evidence_alignment(paper_root=paper_root, receipt=receipt)
+        changed_refs.extend(str(ref) for ref in claim_alignment_repair.get("changed_artifact_refs") or [])
     changed_refs.extend(
         _materialize_medical_prose_story_surfaces(
             paper_root=paper_root,
@@ -356,6 +452,8 @@ def run_upstream_paper_repair_unit(
             "changed_artifact_refs": changed_refs,
             "canonical_artifact_refs": canonical_refs,
             "ai_reviewer_recheck_request_ref": ai_request.get("path"),
+            **({"claim_evidence_alignment": claim_alignment_repair.get("claim_evidence_alignment")} if claim_alignment_repair else {}),
+            **({"claim_evidence_alignment_repair": claim_alignment_repair} if claim_alignment_repair else {}),
             **(
                 {"ai_reviewer_recheck_deferred_reason": "manuscript_story_surface_delta_missing"}
                 if not ai_request.get("path")

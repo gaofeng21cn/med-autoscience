@@ -137,8 +137,8 @@ def test_auto_runtime_parking_maps_runtime_failure_classes() -> None:
 
     assert upstream["parked_state"] == "external_upstream_pending"
     assert upstream["parked_owner"] == "external_provider"
-    assert platform["parked_state"] == "platform_repair_pending"
-    assert platform["parked_owner"] == "mas_platform"
+    assert platform["parked_state"] == "opl_runtime_handoff_pending"
+    assert platform["parked_owner"] == "one_person_lab"
 
 
 def test_auto_runtime_parking_releases_runtime_after_upstream_retry_budget_exhausted() -> None:
@@ -323,7 +323,7 @@ def test_auto_runtime_parking_does_not_park_callable_owner_redrive() -> None:
     projection = _projection(
         {
             "decision": "resume",
-            "reason": "quest_waiting_platform_repair_redrive",
+            "reason": "quest_waiting_opl_runtime_owner_route",
             "quest_status": "waiting_for_user",
             "continuation_state": {
                 "quest_status": "waiting_for_user",
@@ -349,7 +349,7 @@ def test_auto_runtime_parking_does_not_park_callable_owner_redrive() -> None:
     assert projection["parked_state"] is None
     assert projection["parked_owner"] is None
     assert projection["awaiting_explicit_wakeup"] is False
-    assert projection["source_reason"] == "quest_waiting_platform_repair_redrive"
+    assert projection["source_reason"] == "quest_waiting_opl_runtime_owner_route"
 
 
 def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:

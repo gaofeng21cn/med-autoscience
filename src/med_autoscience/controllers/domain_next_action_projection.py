@@ -8,7 +8,7 @@ CANONICAL_NEXT_ACTIONS = (
     "request_opl_runtime_owner",
     "run_domain_work_unit",
     "wait_human",
-    "platform_repair",
+    "opl_runtime_handoff",
     "sync_package",
     "complete",
 )
@@ -58,11 +58,11 @@ def reconcile_next_action(
     reason = _text(payload.get("reason")) or _text(payload.get("runtime_reason"))
     failure_action = _text(runtime_failure_classification.get("action_mode"))
 
-    if current_state == "blocked_platform" or failure_action in {
-        "platform_repair_required",
+    if current_state == "blocked_opl_runtime" or failure_action in {
+        "opl_runtime_handoff_required",
         "platform_startup_backoff_and_recheck",
     }:
-        action = "platform_repair"
+        action = "opl_runtime_handoff"
     elif current_state == "blocked_external" or current_state == "blocked_human":
         action = "wait_human"
     elif runtime_action == "recover_runtime" or reason == "quest_marked_running_but_no_live_session" or current_state in {

@@ -350,7 +350,7 @@ def test_arbitrate_waiting_for_user_respects_human_gate_oracle_over_auto_resume(
     assert result["domain_transition_decision_type"] == "human_gate"
 
 
-def test_arbitrate_waiting_for_user_respects_stop_loss_oracle_over_platform_redrive() -> None:
+def test_arbitrate_waiting_for_user_respects_stop_loss_oracle_over_runtime_redrive() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
 
     result = module.arbitrate_waiting_for_user(
@@ -360,7 +360,7 @@ def test_arbitrate_waiting_for_user_respects_stop_loss_oracle_over_platform_redr
         continuation_state={
             "continuation_policy": "auto",
             "continuation_anchor": "decision",
-            "continuation_reason": "runtime_platform_repair_redrive",
+            "continuation_reason": "opl_runtime_owner_route_redrive",
             "pending_user_message_count": 0,
         },
         domain_transition={

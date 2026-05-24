@@ -50,7 +50,7 @@ _AI_DOCTOR_TRIGGER_BREACHES = frozenset(
         "late_success_timeout",
         "gate_closure_drift",
         "read_churn_without_artifact_delta",
-        "platform_repair_required",
+        "opl_runtime_handoff_required",
     }
 )
 _NO_ARTIFACT_DELTA_PROGRESS_KINDS = frozenset(
@@ -339,8 +339,8 @@ def _breach_types(
         breach.append("gate_closure_drift")
     if _text(runtime_failure.get("diagnosis_code")) in {"resume_late_success_after_timeout", "daemon_late_success"}:
         breach.append("late_success_timeout")
-    if _text(runtime_failure.get("action_mode")) == "platform_repair_required":
-        breach.append("platform_repair_required")
+    if _text(runtime_failure.get("action_mode")) == "opl_runtime_handoff_required":
+        breach.append("opl_runtime_handoff_required")
     if (
         _float(mds_markers.get("read_churn_ratio")) >= 0.5
         and not _text(mds_markers.get("meaningful_artifact_delta_at"))
@@ -409,7 +409,7 @@ def build_ai_doctor_request(slo_status: Mapping[str, Any]) -> dict[str, Any]:
         "diagnosis_scope": "progress_stall_or_control_plane_failure",
         "breach_types": list(_list(slo_status.get("breach_types"))),
         "compact_evidence_packet": dict(_mapping(slo_status.get("compact_evidence_packet"))),
-        "allowed_repair_scopes": ["task_repair", "controller_repair", "platform_repair_proposal"],
+        "allowed_repair_scopes": ["task_repair", "controller_repair", "opl_runtime_handoff_proposal"],
         "forbidden_actions": [
             "relax_publication_gate",
             "write_medical_conclusion",
@@ -428,8 +428,8 @@ def _primary_root_cause(breach_types: set[str], evidence_packet: Mapping[str, An
         return "same_fingerprint_loop"
     if "stale_truth_surface" in breach_types or "gate_closure_drift" in breach_types:
         return "stale_truth_surface"
-    if "platform_repair_required" in breach_types:
-        return "platform_repair_required"
+    if "opl_runtime_handoff_required" in breach_types:
+        return "opl_runtime_handoff_required"
     markers = _mapping(evidence_packet.get("mds_progress_markers"))
     marker_kind = _text(markers.get("turn_progress_kind"))
     if marker_kind is not None:
@@ -463,8 +463,8 @@ def _attempt_repair_plan(root_cause: str, evidence_packet: Mapping[str, Any]) ->
             "quality_gate_relaxation_allowed": False,
         }
     return {
-        "repair_scope": "platform_repair",
-        "repair_kind": "repo_worktree_repair_proposal",
+        "repair_scope": "opl_runtime_handoff",
+        "repair_kind": "provider_or_runtime_blocker_handoff",
         "work_unit_id": next_work_unit_id,
         "max_attempts": 1,
         "backoff_policy": "none",
@@ -485,7 +485,7 @@ def _attempt_auto_apply(root_cause: str, repair_plan: Mapping[str, Any]) -> dict
         "reason": (
             "bounded_controller_redrive_allowed"
             if eligible
-            else _text(repair_plan.get("repair_kind")) or "requires_platform_repair"
+            else _text(repair_plan.get("repair_kind")) or "requires_opl_runtime_handoff"
         ),
     }
 
@@ -520,7 +520,7 @@ def build_ai_doctor_attempt(
         "root_cause": root_cause,
         "proposed_repair": repair_plan,
         "repair_owner": "mas_controller",
-        "risk": "medium" if repair_plan.get("repair_scope") != "platform_repair" else "high",
+        "risk": "medium" if repair_plan.get("repair_scope") != "opl_runtime_handoff" else "high",
         "auto_apply": _attempt_auto_apply(root_cause, repair_plan),
         "result": {
             "status": "repair_plan_recorded",
@@ -595,7 +595,7 @@ def materialize_ai_doctor_timeout_if_stale(
         "study_id": _text(slo_status.get("study_id")),
         "quest_id": _text(slo_status.get("quest_id")),
         "request_id": request_id,
-        "state": "platform_repair_required",
+        "state": "opl_runtime_handoff_required",
         "observed_at": observed_at,
         "created_at": _iso(created_at),
         "age_seconds": age_seconds,
@@ -611,9 +611,9 @@ def materialize_ai_doctor_timeout_if_stale(
         "action_count": 1,
         "actions": [
             {
-                "action_type": "platform_repair",
-                "repair_kind": "ai_doctor_request_timeout_closure",
-                "owner": "mas_mds_platform_repair",
+                "action_type": "opl_runtime_blocker_handoff",
+                "repair_kind": "ai_doctor_request_timeout_handoff",
+                "owner": "one-person-lab",
                 "risk": "high",
                 "auto_apply_allowed": False,
                 "request_id": request_id,
@@ -678,12 +678,12 @@ def build_repair_orchestration(
                 "auto_apply_allowed": True,
             }
         )
-    if "platform_repair_required" in breach_types:
+    if "opl_runtime_handoff_required" in breach_types:
         actions.append(
             {
-                "action_type": "platform_repair",
-                "repair_kind": "repo_worktree_repair_proposal",
-                "owner": "mas_mds_platform_repair",
+                "action_type": "opl_runtime_blocker_handoff",
+                "repair_kind": "provider_or_runtime_blocker_handoff",
+                "owner": "one-person-lab",
                 "risk": "high",
                 "auto_apply_allowed": False,
             }
@@ -712,7 +712,7 @@ def build_repair_orchestration(
         "actions": actions,
         "quality_gate_relaxation_allowed": False,
         "user_feedback_priority": "user_feedback_supersedes_package_ready_and_old_gate",
-        "platform_repair_policy": "repo_worktree_with_tests_absorb_push_cleanup; high_risk_semantics_stop_as_proposal",
+        "runtime_blocker_handoff_policy": "opl_runtime_owner_handoff_required; high_risk_semantics_stop_as_typed_blocker",
         "created_at": _text(slo_status.get("generated_at")),
     }
 

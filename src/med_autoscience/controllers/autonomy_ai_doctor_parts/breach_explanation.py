@@ -8,7 +8,7 @@ BREACH_REASON_PRIORITY = (
     "human_gate_required",
     "publication_gate_missing",
     "runtime_recovery_retry_budget_exhausted",
-    "platform_repair_required",
+    "opl_runtime_handoff_required",
     "read_churn_without_artifact_delta",
     "same_fingerprint_loop",
     "stale_truth_surface",
@@ -124,7 +124,7 @@ def _breach_category(
         return "bundle_blocker"
     if breach_reason in {"read_churn_without_artifact_delta", "same_fingerprint_loop", "no_meaningful_progress"}:
         return "quality_repair"
-    if breach_reason in {"platform_repair_required", "late_success_timeout", "runtime_recovery_retry_budget_exhausted"}:
+    if breach_reason in {"opl_runtime_handoff_required", "late_success_timeout", "runtime_recovery_retry_budget_exhausted"}:
         return "opl_provider_state"
     return "unclassified_breach"
 

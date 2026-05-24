@@ -46,7 +46,7 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/test_domain_health_diagnostic_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_platform_repair_delta.py",
+        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_opl_runtime_handoff_delta.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_redrive_and_platform.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_specificity_dispatch.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_specificity_terminal_preensure.py",
@@ -80,7 +80,7 @@ NESTED_CASE_REEXPORT_SURFACES = {
     "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases.py": {
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
-        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_platform_repair_delta.py",
+        "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_opl_runtime_handoff_delta.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_redrive_and_platform.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_specificity_dispatch.py",
         "tests/test_domain_health_diagnostic_cases/work_unit_dispatch_cases_cases/test_specificity_terminal_preensure.py",

@@ -23,6 +23,7 @@ from .action_execution_parts import methodology_reframe_decision
 from .action_execution_parts import provenance_limited_harmonization
 from .action_execution_parts import quality_repair
 from .action_execution_parts import source_provenance
+from .action_execution_parts import claim_evidence_alignment
 from .action_execution_parts.ai_reviewer_record_validation import (
     ai_reviewer_owned_record,
     ai_reviewer_record_blocker,
@@ -339,6 +340,25 @@ def _medical_prose_review_currentness_blocker(*, study_root: Path, exc: Exceptio
     )
 
 
+def _claim_evidence_alignment_blocker(*, study_root: Path, exc: Exception, request_path: Path) -> dict[str, Any] | None:
+    owner_result = claim_evidence_alignment.blocker_from_workflow_exception(
+        study_root=study_root,
+        error=str(exc),
+    )
+    if owner_result is None:
+        return None
+    return _blocked_ai_reviewer_execution(
+        apply=True,
+        reason=claim_evidence_alignment.BLOCKED_REASON,
+        request_path=request_path,
+        next_owner="write",
+        owner_callable_surface=claim_evidence_alignment.OWNER_CALLABLE_SURFACE,
+        required_input_surface=claim_evidence_alignment.REQUIRED_INPUT_SURFACE,
+        error=str(exc),
+        owner_result=owner_result,
+    )
+
+
 def execute_artifact_display_materialization(
     *,
     profile: WorkspaceProfile,
@@ -478,6 +498,13 @@ def execute_ai_reviewer_workflow(
         )
         if currentness_blocker is not None:
             return currentness_blocker
+        alignment_blocker = _claim_evidence_alignment_blocker(
+            study_root=study_root,
+            exc=exc,
+            request_path=request_path,
+        )
+        if alignment_blocker is not None:
+            return alignment_blocker
         payload = _blocked_ai_reviewer_execution(apply=True, reason="ai_reviewer_workflow_failed", request_path=request_path)
         payload["error"] = str(exc)
         return payload

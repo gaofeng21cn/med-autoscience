@@ -392,15 +392,15 @@ def test_watch_runtime_escalates_after_bounded_work_unit_redrives(
         "domain_health_diagnostic_outer_loop_wakeup",
     ]
     assert [len(item["managed_study_outer_loop_dispatches"]) for item in results] == [1, 1, 1, 0]
-    assert results[-1]["managed_study_no_op_suppressions"][0]["outcome"] == "platform_repair_required"
+    assert results[-1]["managed_study_no_op_suppressions"][0]["outcome"] == "opl_runtime_handoff_required"
     assert results[-1]["managed_study_no_op_suppressions"][0]["redrive_attempt_count"] == 3
-    assert wakeup_latest["outcome"] == "platform_repair_required"
-    assert wakeup_latest["platform_repair_kind"] == "work_unit_redrive_exhausted_without_attempt_result"
+    assert wakeup_latest["outcome"] == "opl_runtime_handoff_required"
+    assert wakeup_latest["opl_runtime_handoff_kind"] == "work_unit_redrive_exhausted_without_attempt_result"
     assert [event["event_type"] for event in ledger_events] == [
         "dispatched",
         "dispatched",
         "dispatched",
-        "platform_repair_required",
+        "opl_runtime_handoff_required",
     ]
 
 

@@ -437,6 +437,8 @@ def _state_label(
         return "自动运行中"
     if user_next == "submit_info" and reason == "external_info" and package_delivered:
         return "投稿包已交付，等待外部投稿信息"
+    if user_next == "runtime_handoff":
+        return "等待 OPL runtime handoff"
     if quality_owner_pending:
         return _QUALITY_REPAIR_LABEL
     if terminal_delivery and writer_state == "parked":
@@ -477,6 +479,8 @@ def _state_summary(
         return "用户暂停/手动停驻；当前没有实际写入，需显式恢复或给出新方案。"
     if state_label == _QUALITY_REPAIR_LABEL:
         return "质量修复/复审中；质量、artifact 或 runtime 有明确修复 owner。"
+    if state_label == "等待 OPL runtime handoff":
+        return "等待 OPL runtime handoff；MAS 已输出 domain blocker/handoff refs，generic runtime 生命周期归 OPL。"
     if state_label == "止损/终止":
         return "止损/终止；当前论文线不再自动推进，需新计划或明确重开。"
     if current_blockers:
@@ -511,6 +515,8 @@ def _current_blockers(
         return ["当前论文线已止损/终止，需新计划或明确重开。"]
     if quality_owner_pending:
         return ["质量、artifact 或 runtime 修复 owner 已接管。"]
+    if user_next == "runtime_handoff":
+        return ["等待 OPL runtime handoff；MAS 不执行 generic runtime repair。"]
     if reason == "quality" or user_next in {"repair", "revise"}:
         return ["质量、artifact 或 runtime 修复 owner 已接管。"]
     if writer_state == "queued":
@@ -537,6 +543,8 @@ def _next_step(
         return f"补齐外部投稿信息{suffix}。"
     if quality_owner_pending:
         return "等待质量修复/复审 owner 完成处理。"
+    if user_next == "runtime_handoff":
+        return "等待 OPL generic runtime handoff 完成；MAS 只保留 domain blocker/handoff refs。"
     if writer_state == "queued":
         return "等待 MAS 已登记的 owner/action 处理。"
     if terminal_delivery:

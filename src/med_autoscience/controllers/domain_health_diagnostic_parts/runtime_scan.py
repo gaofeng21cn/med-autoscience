@@ -54,7 +54,7 @@ _MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "domain_health_diagnostic_opl_stage_attemp
 _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "domain_health_diagnostic_controller_reroute"
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "domain_health_diagnostic_outer_loop_wakeup"
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
-_WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 MAS/MDS 平台修复后再继续。"
+_WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 OPL runtime handoff后再继续。"
 
 
 def utc_now() -> str:
@@ -84,7 +84,7 @@ def _serialize_no_op_suppression(
         "skipped_matching_decision",
         "skipped_unchanged_inputs",
         "needs_specificity",
-        "platform_repair_required",
+        "opl_runtime_handoff_required",
         "controller_work_unit_blocked",
         "control_plane_dispatch_blocked",
         "explicit_wakeup_required",
@@ -105,7 +105,7 @@ def _serialize_no_op_suppression(
         "work_unit_dispatch_key",
         "redrive_attempt_count",
         "max_redrive_attempts",
-        "platform_repair_kind",
+        "opl_runtime_handoff_kind",
         "controller_work_unit_block",
         "authority_snapshot",
         "control_plane_blocking_reasons",
@@ -120,7 +120,7 @@ def _serialize_no_op_suppression(
         payload["operator_summary"] = "Publication gate 只给出标签级 blocker；需先明确具体 claim、证据、图表、指标、引用或包件目标。"
     elif outcome == "skipped_matching_work_unit":
         payload["operator_summary"] = _NO_OP_SUPPRESSION_SUMMARY
-    elif outcome == "platform_repair_required":
+    elif outcome == "opl_runtime_handoff_required":
         payload["operator_summary"] = _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY
     elif outcome == "controller_work_unit_blocked":
         payload["operator_summary"] = "MAS controller work unit failed closed; supervisor/read-model surfaces must route the typed blocker to the next owner."
@@ -481,7 +481,7 @@ def run_domain_health_diagnostic_for_runtime(
                         wakeup_audit=wakeup_audit,
                         default_recorded_at=utc_now(),
                     )
-                elif domain_health_diagnostic_work_units.close_stale_platform_repair_if_meaningful_delta(
+                elif domain_health_diagnostic_work_units.close_stale_opl_runtime_handoff_if_meaningful_delta(
                     study_root=study_root,
                     status_payload=status_payload,
                     tick_request=tick_request,
@@ -578,24 +578,24 @@ def run_domain_health_diagnostic_for_runtime(
                                 runtime_control_ports.get_status(profile=profile, study_root=study_root)
                             )
                 elif (
-                    platform_repair := domain_health_diagnostic_work_units.active_platform_repair_required(
+                    opl_runtime_handoff := domain_health_diagnostic_work_units.active_opl_runtime_handoff_required(
                         study_root=study_root,
                         tick_request=tick_request,
                     )
                 )[0]:
                     work_unit_context = domain_health_diagnostic_work_units.context_payload(
                         tick_request,
-                        work_unit_dispatch_key=platform_repair[1],
+                        work_unit_dispatch_key=opl_runtime_handoff[1],
                     )
                     wakeup_audit = {
                         **wakeup_audit,
-                        "outcome": "platform_repair_required",
+                        "outcome": "opl_runtime_handoff_required",
                         "reason": "outer-loop work unit is blocked on prior platform repair requirement",
                         "no_op_acknowledged": True,
-                        "dedupe_scope": "controller_work_unit_platform_repair",
-                        "redrive_attempt_count": platform_repair[2],
+                        "dedupe_scope": "controller_work_unit_opl_runtime_handoff",
+                        "redrive_attempt_count": opl_runtime_handoff[2],
                         "max_redrive_attempts": domain_health_diagnostic_work_units.MAX_OPEN_REDRIVE_ATTEMPTS,
-                        "platform_repair_kind": "work_unit_redrive_exhausted_without_attempt_result",
+                        "opl_runtime_handoff_kind": "work_unit_redrive_exhausted_without_attempt_result",
                         "operator_summary": _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY,
                         **work_unit_context,
                     }
@@ -611,7 +611,7 @@ def run_domain_health_diagnostic_for_runtime(
                         study_root=study_root,
                         status_payload=status_payload,
                         tick_request=tick_request,
-                        event_type="platform_repair_required",
+                        event_type="opl_runtime_handoff_required",
                         wakeup_audit=wakeup_audit,
                         default_recorded_at=utc_now(),
                     )
@@ -627,13 +627,13 @@ def run_domain_health_diagnostic_for_runtime(
                     )
                     wakeup_audit = {
                         **wakeup_audit,
-                        "outcome": "platform_repair_required",
+                        "outcome": "opl_runtime_handoff_required",
                         "reason": "outer-loop work unit redrive budget exhausted without result evidence",
                         "no_op_acknowledged": True,
                         "dedupe_scope": "controller_work_unit_redrive_budget",
                         "redrive_attempt_count": redrive_exhaustion[2],
                         "max_redrive_attempts": domain_health_diagnostic_work_units.MAX_OPEN_REDRIVE_ATTEMPTS,
-                        "platform_repair_kind": "work_unit_redrive_exhausted_without_attempt_result",
+                        "opl_runtime_handoff_kind": "work_unit_redrive_exhausted_without_attempt_result",
                         "operator_summary": _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY,
                         **work_unit_context,
                     }
@@ -649,7 +649,7 @@ def run_domain_health_diagnostic_for_runtime(
                         study_root=study_root,
                         status_payload=status_payload,
                         tick_request=tick_request,
-                        event_type="platform_repair_required",
+                        event_type="opl_runtime_handoff_required",
                         wakeup_audit=wakeup_audit,
                         default_recorded_at=utc_now(),
                     )

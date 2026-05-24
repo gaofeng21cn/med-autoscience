@@ -20,7 +20,7 @@ def _ready_quality_dimension(ref: Path) -> dict[str, object]:
     }
 
 
-def test_scan_domain_routes_parks_submission_milestone_instead_of_platform_repair(
+def test_scan_domain_routes_parks_submission_milestone_instead_of_opl_runtime_handoff(
     monkeypatch,
     tmp_path: Path,
 ) -> None:

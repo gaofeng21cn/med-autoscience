@@ -84,20 +84,36 @@ def _authority_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     next_work_unit_raw = source_action.get("next_work_unit") or dispatch.get("next_work_unit") or prompt_contract.get("next_work_unit")
     next_work_unit = _mapping(next_work_unit_raw)
     work_unit_id = _work_unit_id(next_work_unit_raw)
-    return {
+    work_unit_fingerprint = (
+        _text(source_action.get("work_unit_fingerprint"))
+        or _text(dispatch.get("work_unit_fingerprint"))
+        or _text(owner_route.get("work_unit_fingerprint"))
+    )
+    source_eval_id = _text(source_action.get("source_eval_id")) or _text(
+        _mapping(owner_route.get("source_refs")).get("source_eval_id")
+    )
+    flat_context = {
         "control_surface": "domain_owner_action_dispatch",
         "controller_action_type": "run_quality_repair_batch",
         "work_unit_id": work_unit_id,
-        "work_unit_fingerprint": (
-            _text(source_action.get("work_unit_fingerprint"))
-            or _text(dispatch.get("work_unit_fingerprint"))
-            or _text(_mapping(dispatch.get("owner_route")).get("work_unit_fingerprint"))
-        ),
+        "work_unit_fingerprint": work_unit_fingerprint,
         "next_work_unit": dict(next_work_unit) if next_work_unit else None,
         "route_target": _text(source_action.get("route_target")) or _text(dispatch.get("route_target")),
         "route_key_question": _text(source_action.get("route_key_question")) or _text(dispatch.get("route_key_question")),
         "route_rationale": _text(source_action.get("route_rationale")) or _text(dispatch.get("route_rationale")),
         "current_owner_route": dict(owner_route) if owner_route else None,
+    }
+    if work_unit_id is not None:
+        flat_context["controller_route_context"] = {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "requires_human_confirmation": False,
+            "source_eval_id": source_eval_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        }
+    return {
+        **flat_context,
     }
 
 

@@ -25,7 +25,7 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
     dispatch_dir = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_dispatches"
     current_dispatch_path = dispatch_dir / "publication_gate_specificity_required.json"
     stale_ai_dispatch_path = dispatch_dir / "return_to_ai_reviewer_workflow.json"
-    stale_runtime_dispatch_path = dispatch_dir / "runtime_platform_repair.json"
+    stale_unsupported_dispatch_path = dispatch_dir / "unsupported_supervisor_action.json"
     current_dispatch = _dispatch(
         study_id=study_id,
         action_type="publication_gate_specificity_required",
@@ -45,12 +45,12 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
         ),
     )
     _write_json(
-        stale_runtime_dispatch_path,
+        stale_unsupported_dispatch_path,
         _dispatch(
             study_id=study_id,
-            action_type="runtime_platform_repair",
-            owner="external_engineering_agent",
-            required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+            action_type="unsupported_supervisor_action",
+            owner="external_observer",
+            required_output_surface="artifacts/supervision/consumer/unsupported_supervisor_action.json",
         ),
     )
     _write_json(

@@ -94,7 +94,7 @@ def test_manual_hold_intake_blocks_auto_recovery_without_stop_loss() -> None:
             "暂不应由 MAS/MDS 自动恢复写入，等待形成新方案后再显式唤醒大改。"
         ),
         "constraints": [
-            "保持当前论文线停驻；不得由 runtime_platform_repair 或 supervisor redrive 自动恢复写入。",
+            "保持当前论文线停驻；不得由 generic runtime repair 或 supervisor redrive 自动恢复写入。",
             "未来若重启必须先形成新的方案和显式 wakeup。",
         ],
     }
