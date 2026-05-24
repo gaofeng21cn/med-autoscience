@@ -30,6 +30,7 @@ from .action_execution_parts.ai_reviewer_record_validation import (
     ai_reviewer_record_requirements,
     missing_ai_reviewer_record_fields,
 )
+from .action_execution_parts.ai_reviewer_record_production import attach_invalid_ai_reviewer_record_handoff
 from .action_execution_parts.ai_reviewer_routeback_record import build_current_medical_prose_routeback_record
 from .action_execution_parts.ai_reviewer_stale_record_handoff import stale_ai_reviewer_record_handoff
 from ..ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
@@ -761,6 +762,12 @@ def _ai_reviewer_record_for_execution(
     if request_record:
         record_blocker = ai_reviewer_record_blocker(request_record)
         if record_blocker:
+            attach_invalid_ai_reviewer_record_handoff(
+                record_blocker=record_blocker,
+                request=request,
+                required_refs=_ai_reviewer_required_refs(request),
+                record=request_record,
+            )
             return {}, record_blocker
         return request_record, None
 
@@ -772,6 +779,12 @@ def _ai_reviewer_record_for_execution(
     if request_record:
         record_blocker = ai_reviewer_record_blocker(request_record)
         if record_blocker:
+            attach_invalid_ai_reviewer_record_handoff(
+                record_blocker=record_blocker,
+                request=request,
+                required_refs=_ai_reviewer_required_refs(request),
+                record=request_record,
+            )
             return {}, record_blocker
         return request_record, None
 
@@ -797,6 +810,12 @@ def _ai_reviewer_record_for_execution(
     if request_record:
         record_blocker = ai_reviewer_record_blocker(request_record)
         if record_blocker:
+            attach_invalid_ai_reviewer_record_handoff(
+                record_blocker=record_blocker,
+                request=request,
+                required_refs=_ai_reviewer_required_refs(request),
+                record=request_record,
+            )
             return {}, record_blocker
         return request_record, None
 
@@ -806,7 +825,6 @@ def _ai_reviewer_record_for_execution(
             "owner_record_requirements": ai_reviewer_record_requirements(),
         },
     }
-
 
 def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, Any]) -> dict[str, Any]:
     study_id = _text(request.get("study_id")) or study_root.name

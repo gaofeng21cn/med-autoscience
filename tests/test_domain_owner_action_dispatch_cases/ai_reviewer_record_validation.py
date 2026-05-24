@@ -168,3 +168,70 @@ def test_execute_dispatch_rejects_request_record_without_future_facing_limitatio
     assert execution["execution_status"] == "blocked"
     assert execution["blocked_reason"] == "ai_reviewer_record_incomplete"
     assert execution["missing_record_fields"] == ["future_facing_limitations_plan"]
+
+
+def test_execute_dispatch_rejects_request_record_with_invalid_evaluation_scope(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    manuscript_path = study_root / "paper" / "draft.md"
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {"required_refs": _required_publication_input_refs(study_root)},
+            "ai_reviewer_record": {
+                "eval_id": "publication-eval::request-record-invalid-scope",
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "evaluation_scope": {
+                    "scope_id": "record_only_publication_eval_after_analysis_harmonization",
+                    "record_only": True,
+                },
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
+                "future_facing_limitations_plan": [
+                    {
+                        "limitation": "Residual uncertainty is bounded.",
+                        "impact_on_claim": "Claims must remain limited.",
+                        "required_future_analysis_data_or_design": "Independent validation.",
+                        "current_manuscript_wording_must_be_restrained": True,
+                    }
+                ],
+            },
+        },
+    )
+    _write_ai_reviewer_dispatch(profile, study_root, study_id)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "ai_reviewer_record_invalid"
+    assert execution["invalid_record_fields"] == ["evaluation_scope"]
+    production_request = execution["ai_reviewer_record_production_request"]
+    assert production_request["request_kind"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert production_request["record_must_consume_refs"] == [str(manuscript_path)]
+    assert execution["next_required_actions"] == [
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "rematerialize_ai_reviewer_request",
+        "return_to_ai_reviewer_workflow",
+    ]

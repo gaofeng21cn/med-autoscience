@@ -11,6 +11,9 @@ from med_autoscience.controllers.ai_reviewer_story_provenance_guard import (
     AI_REVIEWER_RECORD_STORY_LEAKAGE_NEXT_REQUIRED_ACTIONS,
     ai_reviewer_record_story_provenance_leakage,
 )
+from med_autoscience.controllers.ai_reviewer_record_contract import (
+    ai_reviewer_record_has_valid_evaluation_scope,
+)
 
 AI_REVIEWER_REQUEST_STATES = ("requested", "assigned", "assessment_written", "blocked", "stale")
 AI_REVIEWER_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/ai_reviewer/latest.json")
@@ -226,6 +229,8 @@ def _ai_reviewer_publication_eval_record_valid(payload: Mapping[str, Any]) -> bo
     if _text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
         return False
     if provenance.get("ai_reviewer_required") is not False:
+        return False
+    if not ai_reviewer_record_has_valid_evaluation_scope(payload):
         return False
     if not _text(payload.get("eval_id")):
         return False

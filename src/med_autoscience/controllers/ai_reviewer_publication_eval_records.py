@@ -7,6 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.ai_reviewer_record_contract import (
+    ai_reviewer_record_has_valid_evaluation_scope,
+)
+
 
 AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB = (
     "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
@@ -86,6 +90,8 @@ def ai_reviewer_publication_eval_record_valid(payload: Mapping[str, Any]) -> boo
     if _text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
         return False
     if provenance.get("ai_reviewer_required") is not False:
+        return False
+    if not ai_reviewer_record_has_valid_evaluation_scope(payload):
         return False
     if not _text(payload.get("eval_id")):
         return False

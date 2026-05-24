@@ -9,6 +9,10 @@ def _text(value: object) -> str | None:
     return text or None
 
 
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
 def build_ai_reviewer_record_production_request(
     *,
     request: Mapping[str, Any],
@@ -58,4 +62,60 @@ def build_ai_reviewer_record_production_request(
     }
 
 
-__all__ = ["build_ai_reviewer_record_production_request"]
+def attach_invalid_ai_reviewer_record_handoff(
+    *,
+    record_blocker: dict[str, Any],
+    request: Mapping[str, Any],
+    required_refs: Mapping[str, str | None],
+    record: Mapping[str, Any],
+) -> None:
+    if _text(record_blocker.get("reason")) != "ai_reviewer_record_invalid":
+        return
+    payload = _mapping(record_blocker.get("payload"))
+    required_currentness_refs, request_kind = _record_production_currentness(
+        record=record,
+        required_refs=required_refs,
+    )
+    payload["stale_record_ref"] = _text(request.get("publication_eval_record_ref")) or _text(record.get("eval_id"))
+    payload["required_currentness_refs"] = required_currentness_refs
+    payload["ai_reviewer_record_production_request"] = build_ai_reviewer_record_production_request(
+        request=request,
+        required_refs=required_refs,
+        stale_record_ref=payload["stale_record_ref"],
+        required_currentness_refs=required_currentness_refs,
+        request_kind=request_kind,
+    )
+    payload["next_required_actions"] = [
+        request_kind,
+        "rematerialize_ai_reviewer_request",
+        "return_to_ai_reviewer_workflow",
+    ]
+    record_blocker["payload"] = payload
+
+
+def _record_production_currentness(
+    *,
+    record: Mapping[str, Any],
+    required_refs: Mapping[str, str | None],
+) -> tuple[list[str], str]:
+    checks = _mapping(_mapping(record.get("reviewer_operating_system")).get("currentness_checks"))
+    refs: list[str] = []
+    for key in ("analysis_harmonization_latest", "unit_harmonized_external_validation_rerun"):
+        if ref := _text(_mapping(checks.get(key)).get("ref")):
+            refs.append(ref)
+    if refs:
+        return list(dict.fromkeys(refs)), (
+            "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
+        )
+    manuscript_ref = _text(_mapping(checks.get("current_manuscript")).get("manuscript_ref")) or required_refs.get(
+        "manuscript"
+    )
+    return [manuscript_ref] if manuscript_ref else [], (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+
+
+__all__ = [
+    "attach_invalid_ai_reviewer_record_handoff",
+    "build_ai_reviewer_record_production_request",
+]
