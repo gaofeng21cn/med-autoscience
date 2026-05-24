@@ -216,10 +216,10 @@ def _blocked_reasons(supervision: Mapping[str, Any]) -> list[str]:
     status = _text(supervision.get("status"))
     adapter_id = _adapter_id(supervision)
     reasons = [item for item in _string_items(supervision.get("runtime_contract_issues"))]
-    if status == "retired_legacy_service_present":
-        reasons.append("retired_legacy_service_present")
-    if status == "retired_legacy_cleanup_required":
-        reasons.append("retired_legacy_cleanup_required")
+    if status == "retired_workspace_service_present":
+        reasons.append("retired_workspace_service_present")
+    if status == "retired_workspace_cleanup_required":
+        reasons.append("retired_workspace_cleanup_required")
     if status == "execution_failed":
         reasons.append("latest_scheduler_tick_execution_failed")
     if status in {"not_loaded", "not_installed"} and supervision:

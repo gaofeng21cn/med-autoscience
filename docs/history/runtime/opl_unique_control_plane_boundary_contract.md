@@ -6,7 +6,7 @@ Date: `2026-05-18`
 
 ## 入口结论
 
-默认 outer supervision scheduler owner 是 OPL `current_control_state` / provider attempt ledger。MAS 不再提供 `runtime-supervision-status`、`runtime-ensure-supervision` 或 `runtime-remove-supervision` active CLI/MCP/product/workspace 入口，也不保留 manager alias。旧 unique control plane boundary 只作为 tombstone/provenance、no-resurrection proof 和 OPL handoff 输入语义存在。
+默认 outer supervision scheduler owner 是 OPL `current_control_state` / provider attempt ledger。MAS 不再提供 `runtime-supervision-status`、`runtime-ensure-supervision` 或 `runtime-remove-supervision` active CLI/MCP/product/workspace 入口，也不保留 manager alias。旧 unique control plane boundary 只作为 tombstone/provenance、standard Agent purity guard 和 OPL handoff 输入语义存在。
 
 MAS 保留的是 paper-progress SLO 解释、domain tick payload refs、owner receipt、typed blocker、safe action refs 和 no-forbidden-write evidence。历史 `local` scheduler / LaunchAgent install path 已物理退役；公开 CLI 不再包含 `local`、`opl` 或 `hermes` scheduler manager choices，只保留 `local_launchd_retired_tombstone` 与 history/tombstone/provenance refs。
 
@@ -47,7 +47,7 @@ medautosci runtime-remove-supervision --profile <profile>
 Local tombstone 必须满足：
 
 - `adapter_id=local_launchd_retired_tombstone`
-- `active_path_role=physical_retired_tombstone_provenance_only`
+- `history_tombstone_path_role=history_tombstone_provenance_only`
 - `install_allowed=false`
 - `status_allowed=false`
 - `remove_allowed=false`
@@ -79,5 +79,5 @@ Hermes adapter 不得成为：
 - `local` / `opl` / `hermes` scheduler manager choices 不在 MAS active parser 中。
 - 默认 unique control plane boundary 不依赖 Hermes 或 MAS local LaunchAgent。
 - MAS product-entry、sidecar、Progress Portal 和 OPL App workbench 只展示 OPL `current_control_state` refs、provider attempt refs、MAS owner receipt / typed blocker refs 或 local/Hermes tombstone provenance；不得恢复 MAS Live Console 或 terminal owner gate。
-- No-resurrection proof 显示 default runtime owner 为 OPL，explicit local callers forbidden。
+- Standard Agent purity guard 显示 default runtime owner 为 OPL，explicit local callers forbidden。
 - 后续真实 paper-line provider soak、memory/artifact receipt scaleout 和 provider SLO long soak作为 evidence gate 单独推进。

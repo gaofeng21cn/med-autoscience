@@ -11,30 +11,25 @@ from .functional_followthrough_gaps import (
 from .generated_surface_handoff import build_generated_surface_handoff
 from .generated_caller_retirement import (
     build_generated_default_caller_boundary,
-    build_physical_retirement_gate_matrix,
 )
-from .consumer_migration_route_stage_boundary import build_route_stage_residue_boundary
 from .consumer_migration_inventory import (
-    ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
     FUNCTIONAL_MODULE_INVENTORY,
     FUNCTIONAL_SURFACE_CLASSIFICATION,
-    PHYSICAL_THINNING_EVIDENCE,
-    RETIRED_LEGACY_RESIDUE_TOMBSTONES,
 )
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_runtime_control_retirement_consumer_projection"
 ACTIVE_PATH_ROLE = "opl_replacement_default"
-LOCAL_TOMBSTONE_PATH_ROLE = "physical_retired_tombstone_provenance_only"
-OPTIONAL_ADAPTER_PATH_ROLE = "physical_retired_tombstone_provenance_only"
-HERMES_TOMBSTONE_PATH_ROLE = "physical_retired_tombstone_provenance_only"
+LOCAL_TOMBSTONE_PATH_ROLE = "history_tombstone_provenance_only"
+OPTIONAL_ADAPTER_PATH_ROLE = "history_tombstone_provenance_only"
+HERMES_TOMBSTONE_PATH_ROLE = "history_tombstone_provenance_only"
 CURRENT_SCHEDULER_OWNER = "opl_provider_runtime_manager"
 LEGACY_SCHEDULER_OWNER = "retired_provenance_only"
 REPLACEMENT_OWNER = "one-person-lab"
 REPLACEMENT_OWNER_SURFACE = "opl_provider_runtime_manager"
 REPLACEMENT_STATE = "opl_replacement_contract_active"
-RETIREMENT_STATE = "local_legacy_retirement_pending_no_resurrection_proof"
-LOCAL_TOMBSTONE_RETIREMENT_STATE = "local_legacy_physical_retired_tombstone"
+RETIREMENT_STATE = "retired_runtime_tombstone_requires_standard_agent_purity_guard"
+LOCAL_TOMBSTONE_RETIREMENT_STATE = "local_legacy_history_tombstone_provenance_only"
 
 MAS_DOMAIN_AUTHORITY_AFTER_MIGRATION = (
     "paper_progress_slo_semantics",
@@ -56,7 +51,7 @@ OPL_REPLACEMENT_EXPECTED_CAPABILITIES = (
 RETIREMENT_PROOF_REQUIRED = (
     "opl_replacement_contract_available",
     "replacement_proof",
-    "no_resurrection_proof",
+    "standard_agent_purity_guard",
     "no_forbidden_write",
     "focused_cli_status_tests",
     "git_diff_check",
@@ -94,56 +89,6 @@ OPL_FUNCTIONAL_HARNESS_COVERAGE = (
     "generic_transition_runner",
     "restart_dead_letter_repair_human_gate_state_chain",
 )
-NO_RESURRECTION_PROOF = {
-    "status": "legacy_local_scheduler_physical_retired",
-    "default_caller_count": 0,
-    "default_manager": "opl",
-    "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
-    "legacy_local_install_path_role": LOCAL_TOMBSTONE_PATH_ROLE,
-    "cleanup_only_commands": [],
-    "forbidden_default_callers": [
-        "cli_default_local_scheduler_install",
-        "workspace_bootstrap_local_scheduler_install",
-        "product_entry_local_scheduler_install",
-        "sidecar_local_scheduler_install",
-        "mcp_local_scheduler_install",
-    ],
-    "forbidden_explicit_callers": [
-        "runtime-supervision-status --profile <profile> --manager local",
-        "runtime-ensure-supervision --profile <profile> --manager local",
-        "runtime-remove-supervision --profile <profile> --manager local",
-    ],
-    "proof_items": [
-        "cli_default_manager_is_opl",
-        "cli_manager_choices_exclude_local",
-        "workspace_bootstrap_manager_is_opl",
-        "product_entry_consumes_opl_replacement_projection",
-        "sidecar_exports_functional_boundary_no_generic_owner",
-        "local_scheduler_status_remove_path_returns_tombstone_only",
-        "local_scheduler_install_proof_generation_forbidden",
-        "local_scheduler_launchagent_adapter_deleted",
-    ],
-}
-LOCAL_SCHEDULER_PHYSICAL_RETIREMENT_PROOF = {
-    "surface_kind": "mas_local_scheduler_physical_retirement_proof",
-    "status": "physical_retired_tombstone_provenance_only",
-    "install_allowed": False,
-    "status_allowed": False,
-    "remove_allowed": False,
-    "trigger_allowed": False,
-    "write_install_proof_allowed": False,
-    "loaded_state_allowed": False,
-    "default_cli_exposes_local_status": False,
-    "default_cli_exposes_local_remove": False,
-    "default_cli_exposes_local_install": False,
-    "default_bootstrap_exposes_local_install": False,
-    "cleanup_status": "tombstone_only",
-    "remaining_physical_delete_blockers": [],
-    "provenance_refs": [
-        "contracts/runtime/legacy-active-path-tombstones.json",
-        "docs/history/runtime/legacy_active_path_tombstones.md",
-    ],
-}
 MAS_DOMAIN_AUTHORITY_THIN_PROGRAM_SURFACES = (
     "study_truth",
     "publication_quality_verdict",
@@ -207,7 +152,6 @@ INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY = {
 AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
     {
         "boundary_id": "publication_quality_stage_gate_boundary",
-        "legacy_readable_id": "publication_quality_verdict",
         "program_role": "validator",
         "function_id": "publication_quality_verdict",
         "judgment_mode": "ai_first_stage_gate",
@@ -226,7 +170,6 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
     },
     {
         "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
-        "legacy_readable_id": "ai_reviewer_quality_decision",
         "program_role": "validator",
         "function_id": "ai_reviewer_quality_decision",
         "judgment_mode": "ai_first_stage_gate",
@@ -244,7 +187,6 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
     },
     {
         "boundary_id": "artifact_mutation_stage_gate_boundary",
-        "legacy_readable_id": "artifact_mutation_authorization",
         "program_role": "materializer",
         "function_id": "artifact_mutation_authorization",
         "judgment_mode": "ai_first_record_validator",
@@ -263,7 +205,6 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
     },
     {
         "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
-        "legacy_readable_id": "publication_route_memory_accept_reject",
         "program_role": "guard",
         "function_id": "publication_route_memory_accept_reject",
         "judgment_mode": "ai_first_stage_gate",
@@ -282,7 +223,6 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
     },
     {
         "boundary_id": "source_readiness_stage_gate_boundary",
-        "legacy_readable_id": "source_readiness_verdict",
         "program_role": "validator",
         "function_id": "source_readiness_verdict",
         "judgment_mode": "ai_first_stage_gate",
@@ -305,7 +245,7 @@ DECLARATIVE_PACK_COMPILER_INPUT = {
     "schema_version": SCHEMA_VERSION,
     "owner": "med-autoscience",
     "compiler_owner": REPLACEMENT_OWNER,
-    "status": "ready_for_opl_pack_compiler_consumption_no_resurrection",
+    "status": "ready_for_opl_pack_compiler_consumption_standard_agent_purity_guarded",
     "pack_id": "mas-medical-research-pack",
     "pack_role": "domain_authority_pack_input_not_generated_shell_owner",
     "input_refs": [
@@ -377,10 +317,51 @@ GENERATED_DEFAULT_CALLER_BOUNDARY = build_generated_default_caller_boundary(
     schema_version=SCHEMA_VERSION,
     replacement_owner=REPLACEMENT_OWNER,
 )
-PHYSICAL_RETIREMENT_GATE_MATRIX = build_physical_retirement_gate_matrix(
-    schema_version=SCHEMA_VERSION,
-    replacement_owner=REPLACEMENT_OWNER,
-)
+STANDARD_AGENT_PURITY = {
+    "surface_kind": "mas_standard_opl_agent_purity",
+    "schema_version": SCHEMA_VERSION,
+    "status": "pure_standard_agent_active",
+    "agent_shape": "declarative_medical_pack_minimal_authority_functions_refs_only_projection",
+    "default_runtime_owner": REPLACEMENT_OWNER,
+    "generated_surface_owner": REPLACEMENT_OWNER,
+    "domain_owner": "med-autoscience",
+    "active_private_generic_residue_count": 0,
+    "functional_structure_gap_count": 0,
+    "default_caller_count": 0,
+    "runtime_package_residue_count": 0,
+    "active_compatibility_aliases": [],
+    "history_detail_in_default_read_model": False,
+    "domain_projection_policy": "refs_receipts_blockers_only_no_body_verdict_or_blob",
+    "retained_surface_classes": [
+        "declarative_pack_generated_surface",
+        "domain_authority_refs",
+        "minimal_authority_function",
+    ],
+    "forbidden_active_claims": [
+        "mas_default_generic_scheduler",
+        "mas_resident_generic_daemon",
+        "mas_owned_generic_queue",
+        "mas_owned_attempt_ledger",
+        "mas_generic_transition_runner",
+        "mas_generic_workbench_shell",
+        "compatibility_alias_for_retired_runtime",
+        "provider_completion_is_domain_completion",
+    ],
+}
+
+
+STANDARD_AGENT_PURITY_GUARD = {
+    "status": "standard_agent_purity_guard",
+    "default_caller_count": 0,
+    "default_manager": "opl",
+    "runtime_package_residue_count": 0,
+    "active_compatibility_aliases": [],
+    "proof_items": [
+        "standard_agent_purity.active_private_generic_residue_count=0",
+        "standard_agent_purity.default_caller_count=0",
+        "standard_agent_purity.domain_projection_policy=refs_receipts_blockers_only_no_body_verdict_or_blob",
+    ],
+}
 MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
     "surface_kind": "mas_minimal_authority_function_manifest",
     "schema_version": SCHEMA_VERSION,
@@ -607,19 +588,6 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
     for item in FUNCTIONAL_MODULE_INVENTORY:
         classification = str(item["classification"])
         classification_counts[classification] = classification_counts.get(classification, 0) + 1
-    legacy_cleanup_items = [
-        item["module_id"]
-        for item in FUNCTIONAL_MODULE_INVENTORY
-        if item["classification"] == "legacy_cleanup_no_resurrection_guard"
-    ]
-    legacy_physical_retired_items = [
-        item["module_id"]
-        for item in FUNCTIONAL_MODULE_INVENTORY
-        if item.get("physical_retired") is True
-    ]
-    retired_legacy_residue_items = [
-        str(item["residue_id"]) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
-    ]
     domain_authority_refs_retirement_gates = [
         dict(item["retirement_gate"])
         for item in FUNCTIONAL_MODULE_INVENTORY
@@ -627,9 +595,6 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
     ]
     functional_followthrough_gap_summary = build_functional_followthrough_gap_summary(
         classification_counts=classification_counts,
-        legacy_cleanup_items=legacy_cleanup_items,
-        legacy_physical_retired_items=legacy_physical_retired_items,
-        legacy_tombstone_items=retired_legacy_residue_items,
     )
 
     return {
@@ -654,6 +619,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             else value
             for key, value in GENERATED_DEFAULT_CALLER_BOUNDARY.items()
         },
+        "standard_agent_purity": dict(STANDARD_AGENT_PURITY),
         "minimal_authority_function_manifest": {
             key: [dict(item) if isinstance(item, dict) else item for item in value]
             if isinstance(value, list)
@@ -675,7 +641,6 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "classification_counts": classification_counts,
             "long_term_opl_owned_replacement_count": 0,
             "retire_tombstone_classification_count": 0,
-            "retired_legacy_residue_count": len(retired_legacy_residue_items),
             "classification_gap_count": 0,
             "functional_structure_gap_count": functional_followthrough_gap_summary[
                 "functional_structure_gap_count"
@@ -687,14 +652,6 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                     "remaining_functional_followthrough_gate_ids"
                 ]
             ),
-            "legacy_cleanup_items_require_no_resurrection_guard": [],
-            "legacy_cleanup_items_physical_retired": list(legacy_physical_retired_items),
-            "legacy_cleanup_items_tombstoned": list(retired_legacy_residue_items),
-            "legacy_cleanup_items_are_diagnostic_provenance_guards": False,
-            "legacy_cleanup_item_role": "history_tombstone_provenance_only",
-            "legacy_cleanup_items_are_remaining_active_gaps": False,
-            "legacy_cleanup_items_have_default_entry": False,
-            "legacy_cleanup_items_have_standard_template_refs": False,
             "closed_functional_structure_gate_ids": list(
                 functional_followthrough_gap_summary[
                     "closed_functional_structure_gate_ids"
@@ -702,30 +659,6 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             ),
         },
         "functional_followthrough_gap_summary": functional_followthrough_gap_summary,
-        "route_stage_residue_boundary": build_route_stage_residue_boundary(
-            active_path_residue_cleanup_gates=ACTIVE_PATH_RESIDUE_CLEANUP_GATES,
-            functional_module_inventory=FUNCTIONAL_MODULE_INVENTORY,
-            physical_delete_requires_all_gates=PHYSICAL_THINNING_EVIDENCE[
-                "physical_delete_requires_all_gates"
-            ],
-        ),
-        "physical_thinning_evidence": dict(PHYSICAL_THINNING_EVIDENCE),
-        "physical_retirement_gate_matrix": {
-            key: [dict(item) if isinstance(item, dict) else item for item in value]
-            if isinstance(value, list)
-            else value
-            for key, value in PHYSICAL_RETIREMENT_GATE_MATRIX.items()
-        },
-        "active_path_residue_cleanup_gates": [
-            {
-                key: list(value) if isinstance(value, list) else value
-                for key, value in item.items()
-            }
-            for item in ACTIVE_PATH_RESIDUE_CLEANUP_GATES
-        ],
-        "retired_legacy_residue_tombstones": [
-            dict(item) for item in RETIRED_LEGACY_RESIDUE_TOMBSTONES
-        ],
         "domain_authority_refs_retirement_gates": domain_authority_refs_retirement_gates,
         "domain_authority_refs_index_role": {
             "classification": "domain_authority_refs",
@@ -817,12 +750,8 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                 "state_chain_completion_is_publication_ready": False,
             },
         },
-        "no_resurrection_required": True,
-        "no_resurrection_proof": dict(NO_RESURRECTION_PROOF),
-        "legacy_local_scheduler_physical_retirement_proof": dict(
-            LOCAL_SCHEDULER_PHYSICAL_RETIREMENT_PROOF
-        ),
-        "no_resurrection_scope": [
+        "standard_agent_purity_guard": dict(STANDARD_AGENT_PURITY_GUARD),
+        "standard_agent_purity_guard_scope": [
             "cli_default",
             "mcp_default",
             "product_entry_default",
@@ -834,8 +763,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "opl_current_control_state owner refs",
             "product_entry_manifest.functional_consumer_boundary",
             "sidecar_export.functional_consumer_boundary",
-            "legacy_retirement_tombstone_proof.active_default_callers",
-            "functional_consumer_boundary.retired_legacy_residue_tombstones",
+            "functional_consumer_boundary.standard_agent_purity",
         ],
         "forbidden_regressions": [
             "mas_default_generic_scheduler",
@@ -896,7 +824,7 @@ def build_consumer_migration_contract(
             "status": (
                 "active"
                 if replacement_active
-                else "physical_retired_tombstone_provenance_only"
+                else "history_tombstone_provenance_only"
                 if legacy_runtime_surface
                 else "required_before_retirement"
             ),
@@ -941,8 +869,6 @@ __all__ = [
     "MAS_RETAINED_THIN_PROGRAM_SURFACES",
     "MINIMAL_AUTHORITY_FUNCTION_IDS",
     "MINIMAL_AUTHORITY_FUNCTION_MANIFEST",
-    "NO_RESURRECTION_PROOF",
-    "LOCAL_SCHEDULER_PHYSICAL_RETIREMENT_PROOF",
     "OPL_CONSUMED_GENERIC_SURFACES",
     "OPL_FUNCTIONAL_HARNESS_COVERAGE",
     "OPL_REPLACEMENT_EXPECTATION_AUDIT",
@@ -954,12 +880,11 @@ __all__ = [
     "RETIREMENT_PROOF_REQUIRED",
     "RETIREMENT_STATE",
     "SCHEMA_VERSION",
+    "STANDARD_AGENT_PURITY_GUARD",
     "SURFACE_KIND",
     "LEGACY_SCHEDULER_OWNER",
     "LOCAL_TOMBSTONE_PATH_ROLE",
     "OPTIONAL_ADAPTER_PATH_ROLE",
-    "PHYSICAL_THINNING_EVIDENCE",
-    "PHYSICAL_RETIREMENT_GATE_MATRIX",
     "attach_consumer_migration_contract",
     "build_functional_consumer_boundary",
     "build_consumer_migration_contract",

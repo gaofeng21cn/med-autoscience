@@ -1,6 +1,6 @@
 # Domain Authority Refs Index Guard
 
-Status: `physical_retirement_guard`
+Status: `standard_agent_purity_guard`
 Date: `2026-05-23`
 Owner: `MedAutoScience domain authority refs boundary`
 Purpose: `domain_authority_refs_no_runtime_lifecycle_resurrection_guard`
@@ -25,7 +25,7 @@ Machine boundary: 本文是人读 owner / provenance guard。机器真相继续�
 
 | 面 | 当前状态 | owner |
 | --- | --- | --- |
-| Domain authority refs index | `physical_retirement_replacement` | `artifacts/runtime/domain_authority_refs.sqlite` and body-free refs |
+| Domain authority refs index | `standard_agent_refs_index` | `artifacts/runtime/domain_authority_refs.sqlite` and body-free refs |
 | Runtime/event/report history | `opl_owned_or_provenance_only` | OPL attempt/provider ledger for runtime truth; MAS refs index for owner receipts/blockers only |
 | Quest Git retirement | `current projects verified` | migration/cutover ledgers and restore manifests |
 | Workspace root Git retirement | `current projects verified` | workspace root Git retirement ledgers |

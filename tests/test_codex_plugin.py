@@ -45,13 +45,18 @@ def test_mas_plugin_skill_tracks_current_sidecar_and_doc_boundaries() -> None:
     assert "sidecar dispatch" in skill_text
     assert "OPL framework-managed" in skill_text
     assert "docs/runtime/control/controllers.md" in skill_text
+    assert "docs/runtime/contracts/runtime_boundary.md" in skill_text
+    assert "docs/runtime/domain_authority_refs_index_guard.md" in skill_text
+    assert "docs/runtime/control/runtime_supervision_loop.md" not in skill_text
     assert "docs/runtime/controllers.md" not in skill_text
     assert "docs/references/codex_plugin.md" not in skill_text
 
     for doc_path in (
         "bootstrap/README.md",
         "docs/runtime/control/controllers.md",
-        "docs/runtime/control/runtime_supervision_loop.md",
+        "docs/runtime/contracts/runtime_boundary.md",
+        "docs/runtime/domain_authority_refs_index_guard.md",
+        "docs/history/runtime/runtime_supervision_loop.md",
         "docs/runtime/display/progress_portal.md",
         "docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md",
     ):

@@ -158,8 +158,8 @@ def build_functional_closure_status_projection(
     owner_receipt_contract: Mapping[str, Any],
     lifecycle_guarded_apply_proof: Mapping[str, Any],
     workspace_runtime_evidence_receipt: Mapping[str, Any],
-    legacy_retirement_tombstone_proof: Mapping[str, Any],
     standard_domain_agent_skeleton: Mapping[str, Any],
+    standard_agent_purity: Mapping[str, Any],
     domain_memory_descriptor: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     provider_ready = _status_is(provider_residency_read_model, "ready")
@@ -332,17 +332,19 @@ def build_functional_closure_status_projection(
             ],
         ),
         _line(
-            line_id="legacy_residue_retirement",
+            line_id="standard_agent_purity_projection",
             gate_class="functional_follow_through_gate",
             owner_surface_refs=[
-                "/product_entry_manifest/legacy_retirement_tombstone_proof",
-                "/product_entry_manifest/functional_consumer_boundary/retired_legacy_residue_tombstones",
+                "/product_entry_manifest/functional_consumer_boundary/standard_agent_purity",
+                "/sidecar_export/functional_consumer_boundary/standard_agent_purity",
             ],
-            status=_legacy_status(legacy_retirement_tombstone_proof=legacy_retirement_tombstone_proof),
+            status=_standard_agent_purity_status(standard_agent_purity=standard_agent_purity),
             typed_blockers=[],
-            evidence_refs=_status_refs(
-                legacy_retirement_tombstone_proof,
-            ),
+            evidence_refs=[
+                "functional_consumer_boundary.standard_agent_purity",
+                "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_guard",
+                "opl_unique_control_plane_handoff.standard_agent_purity",
+            ],
         ),
         _line(
             line_id="standard_skeleton_physicalization",
@@ -374,12 +376,17 @@ def build_functional_closure_status_projection(
             line_id="p3_foundation_guard",
             gate_class="landed_foundation",
             owner_surface_refs=[
-                "/product_entry_manifest/legacy_retirement_tombstone_proof",
-                "/product_entry_manifest/functional_consumer_boundary/retired_legacy_residue_tombstones",
+                "/product_entry_manifest/functional_consumer_boundary/standard_agent_purity",
+                "contracts/runtime/legacy-active-path-tombstones.json",
+                "docs/history/runtime/legacy_active_path_tombstones.md",
             ],
-            status="maintenance_only_no_default_mds_dependency",
+            status="maintenance_only_standard_agent_purity_no_default_history_dependency",
             typed_blockers=[],
-            evidence_refs=_status_refs(legacy_retirement_tombstone_proof),
+            evidence_refs=[
+                "functional_consumer_boundary.standard_agent_purity",
+                "contracts/runtime/legacy-active-path-tombstones.json",
+                "docs/history/runtime/legacy_active_path_tombstones.md",
+            ],
         ),
     ]
     return {
@@ -486,7 +493,7 @@ def _status_refs(*surfaces: Mapping[str, Any] | None) -> list[str]:
             text = str(surface.get(key) or "").strip()
             if text:
                 refs.append(text)
-        for ref in surface.get("physical_tombstone_refs") or []:
+        for ref in surface.get("tombstone_refs") or []:
             text = str(ref or "").strip()
             if text:
                 refs.append(text)
@@ -515,16 +522,18 @@ def _repo_source_anchors_landed(skeleton: Mapping[str, Any]) -> bool:
     )
 
 
-def _legacy_status(
+def _standard_agent_purity_status(
     *,
-    legacy_retirement_tombstone_proof: Mapping[str, Any],
+    standard_agent_purity: Mapping[str, Any],
 ) -> str:
-    active_default_callers = legacy_retirement_tombstone_proof.get("active_default_callers")
-    retired_surfaces = legacy_retirement_tombstone_proof.get("retired_or_tombstoned_surfaces")
-    if active_default_callers == [] and isinstance(retired_surfaces, list):
-        return "no_active_default_caller_proven_cleanup_policy_satisfied"
-    if active_default_callers == []:
-        return "no_active_default_caller_proven_cleanup_review_pending"
+    if (
+        standard_agent_purity.get("status") == "pure_standard_agent_active"
+        and standard_agent_purity.get("active_private_generic_residue_count") == 0
+        and standard_agent_purity.get("default_caller_count") == 0
+        and standard_agent_purity.get("active_compatibility_aliases") == []
+        and standard_agent_purity.get("history_detail_in_default_read_model") is False
+    ):
+        return "standard_agent_purity_landed"
     return "typed_blocker"
 
 

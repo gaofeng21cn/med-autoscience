@@ -14,545 +14,11 @@
   "classification_buckets": [
     "declarative_pack_generated_surface",
     "domain_authority_refs",
-    "minimal_authority_function",
-    "legacy_cleanup_tombstone_provenance",
-    "legacy_cleanup_physical_retired"
+    "minimal_authority_function"
   ],
-  "classification_policy": "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof",
+  "classification_policy": "classify_private_functional_surfaces_as_standard_pack_refs_or_minimal_authority",
   "domain_id": "med-autoscience",
   "functional_consumer_boundary": {
-    "active_path_residue_cleanup_gates": [
-      {
-        "archive_permitted": false,
-        "current_disposition": "physically_retired",
-        "current_paths": [],
-        "current_role": "none_physically_retired_no_alias",
-        "delete_or_tombstone_after": [
-          "stale_surface_scan_clean",
-          "opl_replacement_parity_proven",
-          "domain_receipt_parity_proven",
-          "focused_tests_green",
-          "no_forbidden_write_proof",
-          "history_tombstone_refs_recorded"
-        ],
-        "domain_receipt_parity_status": "domain_intent_handoff_blocker_active",
-        "focused_test_refs": [
-          "tests/test_opl_runtime_contract.py",
-          "tests/test_opl_runtime_contract_no_provider_backend.py",
-          "tests/test_adapter_retirement_boundary.py"
-        ],
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "generic_queue_owner",
-          "generic_attempt_ledger_owner",
-          "generic_worker_residency_owner",
-          "generic_persistence_engine_owner",
-          "generic_workbench_owner",
-          "paper_closure_verdict",
-          "publication_ready_verdict",
-          "artifact_mutation_authorization_without_mas_receipt"
-        ],
-        "no_resurrection_guard": true,
-        "opl_replacement_parity_status": "opl_provider_handoff_active",
-        "physical_delete_completed": true,
-        "physical_delete_permitted": true,
-        "rename_permitted": false,
-        "residue_class": "runtime_transport",
-        "residue_id": "runtime_transport_core_bridge",
-        "resurrection_alias_or_wrapper_allowed": false,
-        "retired_absent_surfaces": [
-          "src/med_autoscience/runtime_transport/"
-        ],
-        "retired_paths": [
-          "src/med_autoscience/runtime_transport/mas_runtime_core.py",
-          "src/med_autoscience/runtime_transport/mas_runtime_core_pause_resume.py",
-          "src/med_autoscience/runtime_transport/mas_runtime_core_stopped_relaunch.py"
-        ],
-        "retirement_proof_refs": [
-          "tests.test_adapter_retirement_boundary.no_runtime_transport_core_resurrection",
-          "runtime_backend.no_lazy_mas_runtime_core_backend"
-        ],
-        "retirement_proof_status": "stale_surface_scan_clean",
-        "stale_surface_scan_clean": true,
-        "tombstone_permitted": false
-      },
-      {
-        "archive_permitted": false,
-        "current_disposition": "physically_retired",
-        "current_paths": [],
-        "current_role": "none_physically_retired_no_alias",
-        "delete_or_tombstone_after": [
-          "stale_surface_scan_clean",
-          "opl_replacement_parity_proven",
-          "domain_receipt_parity_proven",
-          "focused_tests_green",
-          "no_forbidden_write_proof",
-          "history_tombstone_refs_recorded"
-        ],
-        "domain_receipt_parity_status": "controller_authorization_receipt_helper_active",
-        "focused_test_refs": [
-          "tests/test_study_runtime_execution_evidence_adoption_cases/test_no_resurrection_boundary.py",
-          "tests/test_adapter_retirement_boundary.py"
-        ],
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "generic_queue_owner",
-          "generic_attempt_ledger_owner",
-          "generic_worker_residency_owner",
-          "generic_persistence_engine_owner",
-          "generic_workbench_owner",
-          "paper_closure_verdict",
-          "publication_ready_verdict",
-          "artifact_mutation_authorization_without_mas_receipt"
-        ],
-        "no_resurrection_guard": true,
-        "opl_replacement_parity_status": "typed_closeout_owned_by_opl_stage_attempt",
-        "physical_delete_completed": true,
-        "physical_delete_permitted": true,
-        "rename_permitted": false,
-        "residue_class": "runtime_transport",
-        "residue_id": "runtime_turn_runner_closeout_adapter",
-        "resurrection_alias_or_wrapper_allowed": false,
-        "retired_absent_surfaces": [
-          "src/med_autoscience/runtime_transport/"
-        ],
-        "retired_paths": [
-          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_runner.py",
-          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_completion.py",
-          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_receipts.py",
-          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_messages.py"
-        ],
-        "retirement_proof_refs": [
-          "tests.test_adapter_retirement_boundary.no_turn_runner_resurrection",
-          "study_runtime_execution_parts.controller_authorization_receipts"
-        ],
-        "retirement_proof_status": "stale_surface_scan_clean",
-        "stale_surface_scan_clean": true,
-        "tombstone_permitted": false
-      },
-      {
-        "archive_permitted": false,
-        "current_disposition": "physically_retired",
-        "current_paths": [],
-        "current_role": "none_physically_retired_no_alias",
-        "delete_or_tombstone_after": [
-          "stale_surface_scan_clean",
-          "opl_replacement_parity_proven",
-          "domain_receipt_parity_proven",
-          "focused_tests_green",
-          "no_forbidden_write_proof",
-          "history_tombstone_refs_recorded"
-        ],
-        "domain_receipt_parity_status": "owner_route_handoff_blocker_active",
-        "focused_test_refs": [
-          "tests/owner_route_reconcile_cases/test_workspace_daemon_lifecycle.py",
-          "tests/test_adapter_retirement_boundary.py"
-        ],
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "generic_queue_owner",
-          "generic_attempt_ledger_owner",
-          "generic_worker_residency_owner",
-          "generic_persistence_engine_owner",
-          "generic_workbench_owner",
-          "paper_closure_verdict",
-          "publication_ready_verdict",
-          "artifact_mutation_authorization_without_mas_receipt"
-        ],
-        "no_resurrection_guard": true,
-        "opl_replacement_parity_status": "provider_liveness_owned_by_opl",
-        "physical_delete_completed": true,
-        "physical_delete_permitted": true,
-        "rename_permitted": false,
-        "residue_class": "runtime_transport",
-        "residue_id": "worker_lease_residency_projection",
-        "resurrection_alias_or_wrapper_allowed": false,
-        "retired_absent_surfaces": [
-          "src/med_autoscience/runtime_transport/"
-        ],
-        "retired_paths": [
-          "src/med_autoscience/runtime_transport/mas_runtime_core_turn_residency.py",
-          "src/med_autoscience/runtime_transport/mas_runtime_core_worker_leases.py",
-          "src/med_autoscience/runtime_transport/mas_runtime_core_worker_env.py",
-          "src/med_autoscience/runtime_transport/mas_runtime_core_worker_wrapper.py"
-        ],
-        "retirement_proof_refs": [
-          "tests.test_adapter_retirement_boundary.no_worker_residency_resurrection",
-          "owner_route_reconcile.workspace_daemon.opl_provider_liveness_owner_required"
-        ],
-        "retirement_proof_status": "stale_surface_scan_clean",
-        "stale_surface_scan_clean": true,
-        "tombstone_permitted": false
-      },
-      {
-        "archive_permitted": false,
-        "current_disposition": "physically_retired",
-        "current_paths": [],
-        "current_role": "none_physically_retired_no_alias",
-        "delete_or_tombstone_after": [
-          "stale_surface_scan_clean",
-          "opl_replacement_parity_proven",
-          "domain_receipt_parity_proven",
-          "focused_tests_green",
-          "no_forbidden_write_proof",
-          "history_tombstone_refs_recorded"
-        ],
-        "domain_receipt_parity_status": "domain_authority_refs_index_active",
-        "focused_test_refs": [
-          "tests/test_opl_family_persistence_adapter.py",
-          "tests/test_cli_cases/runtime_storage_commands.py",
-          "tests/test_paper_work_unit_lifecycle_contract.py",
-          "tests/test_adapter_retirement_boundary.py"
-        ],
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "generic_queue_owner",
-          "generic_attempt_ledger_owner",
-          "generic_worker_residency_owner",
-          "generic_persistence_engine_owner",
-          "generic_workbench_owner",
-          "paper_closure_verdict",
-          "publication_ready_verdict",
-          "artifact_mutation_authorization_without_mas_receipt"
-        ],
-        "no_resurrection_guard": true,
-        "opl_replacement_parity_status": "current_control_state_and_provider_attempt_ledger_owned_by_opl",
-        "physical_delete_completed": true,
-        "physical_delete_permitted": true,
-        "rename_permitted": false,
-        "replacement_paths": [
-          "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
-          "src/med_autoscience/opl_domain_pack/"
-        ],
-        "residue_class": "sqlite_refs_index",
-        "residue_id": "lifecycle_refs_sqlite_index",
-        "resurrection_alias_or_wrapper_allowed": false,
-        "retired_absent_surfaces": [
-          "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
-          "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/"
-        ],
-        "retired_paths": [
-          "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
-          "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
-          "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py"
-        ],
-        "retirement_proof_refs": [
-          "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
-          "runtime_protocol.domain_authority_refs_index"
-        ],
-        "retirement_proof_status": "stale_surface_scan_clean",
-        "stale_surface_scan_clean": true,
-        "tombstone_permitted": false
-      },
-      {
-        "archive_permitted": false,
-        "current_disposition": "domain_projection_refs_only_no_runtime_control_alias",
-        "current_paths": [
-          "src/med_autoscience/controllers/progress_portal.py",
-          "src/med_autoscience/controllers/progress_portal_parts/",
-          "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
-          "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
-          "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py"
-        ],
-        "current_ref_status": "domain_projection_refs_no_runtime_control_owner",
-        "current_role": "domain_projection_refs_for_opl_workbench",
-        "delete_or_tombstone_after": [
-          "stale_surface_scan_clean",
-          "opl_replacement_parity_proven",
-          "domain_receipt_parity_proven",
-          "focused_tests_green",
-          "no_forbidden_write_proof",
-          "history_tombstone_refs_recorded"
-        ],
-        "domain_receipt_parity_status": "pending_domain_projection_receipt_ref_parity",
-        "domain_ref_consumer_count": 3,
-        "domain_ref_consumer_refs": [
-          "physical_retirement_gate_matrix.retirement_candidates.workbench_shell",
-          "functional_module_inventory.workbench_portal_generic_shell.domain_ref_consumers"
-        ],
-        "focused_test_refs": [
-          "tests/product_entry_cases/functional_consumer_boundary.py",
-          "tests/test_progress_portal.py",
-          "tests/product_entry_cases/product_entry_supervision_and_boundary_cases.py"
-        ],
-        "latest_thinning_evidence": {
-          "does_not_claim_opl_default_caller": true,
-          "does_not_claim_physical_delete": true,
-          "does_not_touch_publication_or_package_authority": true,
-          "domain_projection_entry_shells": [
-            "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py",
-            "src/med_autoscience/controllers/product_entry_parts/workspace_attention.py",
-            "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py"
-          ],
-          "domain_projection_field": "needs_user_decision",
-          "extracted_paths": [
-            "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
-            "src/med_autoscience/controllers/product_entry_parts/attention_projection.py"
-          ],
-          "prior_thinning_status": "product_workbench_legacy_human_gate_alias_removed",
-          "retired_combined_portal_runtime_soak_provenance": {
-            "does_not_claim_active_entry": true,
-            "does_not_touch_publication_or_package_authority": true,
-            "legacy_surface_ref_count": 0,
-            "replacement_owner": "one-person-lab",
-            "replacement_surface": "opl_current_control_state_or_app_workbench_soak",
-            "retired_paths": [
-              "retired_combined_portal_runtime_soak_entry_removed_no_alias",
-              "retired_combined_portal_runtime_soak_parts_removed_no_alias"
-            ],
-            "scope": "retired_read_model_evidence_shell_provenance",
-            "status": "physically_retired_no_alias"
-          },
-          "scope": "product_entry_workspace_cockpit_workbench_projection_shell",
-          "status": "product_status_workbench_projection_assembly_split"
-        },
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "generic_queue_owner",
-          "generic_attempt_ledger_owner",
-          "generic_worker_residency_owner",
-          "generic_persistence_engine_owner",
-          "generic_workbench_owner",
-          "paper_closure_verdict",
-          "publication_ready_verdict",
-          "artifact_mutation_authorization_without_mas_receipt"
-        ],
-        "no_resurrection_alias_or_wrapper_allowed": false,
-        "no_resurrection_guard": true,
-        "opl_replacement_parity_status": "generated_workbench_default_projected_not_physical_delete_ready",
-        "physical_delete_permitted": false,
-        "rename_permitted": false,
-        "residue_class": "workbench_status",
-        "residue_id": "workbench_shell_domain_projection_refs",
-        "stale_surface_scan_clean": false,
-        "tombstone_permitted": false
-      },
-      {
-        "archive_permitted": false,
-        "current_disposition": "domain_projection_refs_only_no_runtime_control_alias",
-        "current_paths": [
-          "src/med_autoscience/controllers/owner_route_handoff.py",
-          "src/med_autoscience/controllers/owner_route_handoff_parts/",
-          "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py",
-          "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py",
-          "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
-        ],
-        "current_ref_status": "domain_owner_route_handoff_refs_no_runtime_control_owner",
-        "current_role": "domain_owner_route_handoff_refs",
-        "delete_or_tombstone_after": [
-          "stale_surface_scan_clean",
-          "opl_replacement_parity_proven",
-          "domain_receipt_parity_proven",
-          "focused_tests_green",
-          "no_forbidden_write_proof",
-          "history_tombstone_refs_recorded"
-        ],
-        "deletion_readiness_worklist": {
-          "allowed_current_role": "domain_owner_route_handoff_refs",
-          "can_archive": false,
-          "can_delete": false,
-          "can_tombstone": false,
-          "domain_ref_consumer_count": 1,
-          "domain_ref_consumer_provenance": "sidecar export and dispatch still expose MAS owner-route refs",
-          "domain_ref_consumer_refs": [
-            "physical_retirement_gate_matrix.retirement_candidates.owner_route_handoff",
-            "sidecar_export.functional_consumer_boundary.generated_surface_handoff"
-          ],
-          "focused_test_refs": [
-            "tests/test_cli_cases/owner_route_handoff_command.py",
-            "tests/test_cli_cases/owner_route_handoff_command_cases/export_cases.py",
-            "tests/test_cli_cases/owner_route_handoff_command_cases/dispatch_cases.py"
-          ],
-          "missing_gate_inputs": [
-            {
-              "gate": "opl_generated_sidecar_consumes_domain_refs",
-              "required_evidence": "OPL generated sidecar consumes MAS owner-route refs without domain-owned runtime control",
-              "status": "blocked"
-            },
-            {
-              "gate": "opl_replacement_parity_proven",
-              "required_evidence": "OPL generated sidecar default caller consuming MAS refs",
-              "status": "blocked"
-            },
-            {
-              "gate": "domain_receipt_parity_proven",
-              "required_evidence": "real paper-line owner receipt or stable typed blocker parity",
-              "status": "blocked"
-            },
-            {
-              "gate": "focused_tests_green",
-              "required_evidence": "sidecar export and dispatch focused tests",
-              "status": "required_before_delete"
-            },
-            {
-              "gate": "no_forbidden_write_proof",
-              "required_evidence": "dispatch writes only MAS dispatch receipt refs and no truth/package body",
-              "status": "required_before_delete"
-            },
-            {
-              "gate": "history_tombstone_refs_recorded",
-              "required_evidence": "history/provenance tombstone refs for retired owner-route handoff domain-ref entry",
-              "status": "required_before_delete"
-            }
-          ],
-          "must_not_claim": [
-            "domain_ready",
-            "publication_ready",
-            "artifact_mutation_authorized",
-            "physical_delete_complete"
-          ],
-          "must_not_write": [
-            ".ds/user_message_queue.json",
-            "runtime quest root",
-            "artifacts/controller_decisions/latest.json",
-            "artifacts/publication_eval/latest.json",
-            "manuscript/current_package",
-            "current_package.zip"
-          ],
-          "no_forbidden_write_proof_refs": [
-            "tests/test_cli_cases/owner_route_handoff_command_cases/dispatch_cases.py::test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth",
-            "owner_route_handoff_response.forbidden_write_guard_proof"
-          ],
-          "status": "blocked_domain_owner_route_handoff_ref_consumer_present_no_runtime_control_owner",
-          "surface_kind": "mas_owner_route_handoff_domain_ref_entry_deletion_readiness"
-        },
-        "domain_receipt_parity_status": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
-        "domain_ref_consumer_count": 1,
-        "domain_ref_consumer_refs": [
-          "physical_retirement_gate_matrix.retirement_candidates.owner_route_handoff",
-          "sidecar_export.functional_consumer_boundary.generated_surface_handoff"
-        ],
-        "focused_test_refs": [
-          "tests/test_cli_cases/owner_route_handoff_command.py",
-          "tests/test_cli_cases/owner_route_handoff_command_cases/export_cases.py",
-          "tests/test_cli_cases/owner_route_handoff_command_cases/dispatch_cases.py"
-        ],
-        "latest_thinning_evidence": {
-          "does_not_claim_domain_receipt_parity": true,
-          "does_not_claim_opl_default_caller": true,
-          "does_not_claim_physical_delete": true,
-          "domain_ref_consumer_count": 1,
-          "domain_ref_entry_path": "src/med_autoscience/controllers/owner_route_handoff.py",
-          "entry_role": "dispatch_export_for_domain_refs_only",
-          "extracted_paths": [
-            "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
-          ],
-          "status": "sidecar_export_projection_split_to_parts_no_runtime_control_alias"
-        },
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "generic_queue_owner",
-          "generic_attempt_ledger_owner",
-          "generic_worker_residency_owner",
-          "generic_persistence_engine_owner",
-          "generic_workbench_owner",
-          "paper_closure_verdict",
-          "publication_ready_verdict",
-          "artifact_mutation_authorization_without_mas_receipt"
-        ],
-        "no_resurrection_alias_or_wrapper_allowed": false,
-        "no_resurrection_guard": true,
-        "opl_replacement_parity_status": "opl_generated_sidecar_default_projected_not_physical_delete_ready",
-        "physical_delete_permitted": false,
-        "rename_permitted": false,
-        "residue_class": "sidecar",
-        "residue_id": "owner_route_handoff_domain_ref_entry",
-        "stale_surface_scan_clean": false,
-        "tombstone_permitted": false
-      },
-      {
-        "archive_permitted": false,
-        "current_disposition": "domain_projection_refs_only_no_runtime_control_alias",
-        "current_paths": [
-          "src/med_autoscience/controllers/product_entry_parts/",
-          "src/med_autoscience/controllers/progress_projection.py",
-          "src/med_autoscience/controllers/progress_projection_parts/"
-        ],
-        "current_ref_status": "domain_truth_status_projection_refs_no_runtime_control_owner",
-        "current_role": "domain_truth_status_projection",
-        "delete_or_tombstone_after": [
-          "stale_surface_scan_clean",
-          "opl_replacement_parity_proven",
-          "domain_receipt_parity_proven",
-          "focused_tests_green",
-          "no_forbidden_write_proof",
-          "history_tombstone_refs_recorded"
-        ],
-        "domain_receipt_parity_status": "pending_progress_projection_truth_ref_parity",
-        "domain_ref_consumer_count": 2,
-        "domain_ref_consumer_refs": [
-          "physical_retirement_gate_matrix.retirement_candidates.status_projection",
-          "functional_module_inventory.study_truth.domain_ref_consumers"
-        ],
-        "focused_test_refs": [
-          "tests/test_progress_projection_evidence_adoption.py",
-          "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
-          "tests/test_domain_health_diagnostic_cases/runtime_status_cases.py"
-        ],
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "generic_queue_owner",
-          "generic_attempt_ledger_owner",
-          "generic_worker_residency_owner",
-          "generic_persistence_engine_owner",
-          "generic_workbench_owner",
-          "paper_closure_verdict",
-          "publication_ready_verdict",
-          "artifact_mutation_authorization_without_mas_receipt"
-        ],
-        "no_resurrection_alias_or_wrapper_allowed": false,
-        "no_resurrection_guard": true,
-        "opl_replacement_parity_status": "opl_generated_status_default_projected_not_physical_delete_ready",
-        "physical_delete_permitted": false,
-        "rename_permitted": false,
-        "residue_class": "status_projection",
-        "residue_id": "status_projection_domain_truth_refs",
-        "stale_surface_scan_clean": false,
-        "tombstone_permitted": false
-      },
-      {
-        "archive_permitted": false,
-        "current_disposition": "tombstone_only",
-        "current_paths": [
-          "contracts/runtime/legacy-active-path-tombstones.json",
-          "docs/history/runtime/legacy_active_path_tombstones.md"
-        ],
-        "current_role": "history_tombstone_provenance_only",
-        "delete_or_tombstone_after": [],
-        "domain_receipt_parity_status": "not_required_for_tombstone_provenance_ref",
-        "focused_test_refs": [
-          "tests/test_cli_cases/opl_unique_control_plane_boundary_commands.py",
-          "tests/test_opl_unique_control_plane_boundary.py"
-        ],
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "generic_queue_owner",
-          "generic_attempt_ledger_owner",
-          "generic_worker_residency_owner",
-          "generic_persistence_engine_owner",
-          "generic_workbench_owner",
-          "paper_closure_verdict",
-          "publication_ready_verdict",
-          "artifact_mutation_authorization_without_mas_receipt"
-        ],
-        "no_resurrection_guard": true,
-        "opl_replacement_parity_status": "replacement_projection_present",
-        "physical_delete_permitted": false,
-        "rename_permitted": false,
-        "residue_class": "supervisor",
-        "residue_id": "legacy_supervisor_scheduler_tombstone",
-        "resurrection_alias_or_wrapper_allowed": false,
-        "retirement_proof_refs": [
-          "stale_surface_scan_clean.default_runtime_owner=opl",
-          "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only"
-        ],
-        "retirement_proof_status": "tombstone_no_resurrection_guard",
-        "stale_surface_scan_clean": true,
-        "tombstone_permitted": true
-      }
-    ],
     "consumer_role": "domain_authority_pack_thin_program_surface",
     "declarative_pack_compiler_input": {
       "compiler_outputs_expected": [
@@ -620,7 +86,7 @@
       "pack_id": "mas-medical-research-pack",
       "pack_role": "domain_authority_pack_input_not_generated_shell_owner",
       "schema_version": 1,
-      "status": "ready_for_opl_pack_compiler_consumption_no_resurrection",
+      "status": "ready_for_opl_pack_compiler_consumption_standard_agent_purity_guarded",
       "surface_kind": "mas_declarative_pack_compiler_input"
     },
     "domain_authority_refs_index_role": {
@@ -804,7 +270,6 @@
       "classification_counts": {
         "declarative_pack_generated_surface": 7,
         "domain_authority_refs": 5,
-        "legacy_cleanup_physical_retired": 3,
         "minimal_authority_function": 3
       },
       "classification_gap_count": 0,
@@ -823,7 +288,7 @@
       "closed_functional_structure_gate_ids": [
         "generated_surface_default_owner_cutover",
         "domain_authority_refs_thinning",
-        "legacy_cleanup_physical_retirement",
+        "standard_agent_purity_guard",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation"
       ],
@@ -856,15 +321,15 @@
         },
         {
           "closure_proof_refs": [
-            "stale_surface_scan_clean.default_runtime_owner=opl",
-            "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
-            "functional_module_inventory.legacy_cleanup_physical_retired"
+            "functional_consumer_boundary.standard_agent_purity",
+            "opl_unique_control_plane_handoff.standard_agent_purity",
+            "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_guard"
           ],
           "closure_status": "closed",
-          "evidence_required": "stale-surface scan, old generated artifact absent/remove proof, provenance refs recorded, focused cleanup tests green",
+          "evidence_required": "default read models expose purity guard, refs-only projection, and no active legacy callers or compatibility aliases",
           "functional_structure_gap": false,
-          "gate_id": "legacy_cleanup_physical_retirement",
-          "mas_role": "remove_or_tombstone_legacy_launchagent_and_workspace_local_wrapper_surfaces",
+          "gate_id": "standard_agent_purity_guard",
+          "mas_role": "keep_active_default_surfaces_in_standard_opl_agent_shape",
           "owner": "med-autoscience"
         },
         {
@@ -911,23 +376,6 @@
         "mas_owned_generic_observability"
       ],
       "functional_structure_gap_count": 0,
-      "legacy_cleanup_item_role": "history_tombstone_provenance_only",
-      "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
-      "legacy_cleanup_items_are_remaining_active_gaps": false,
-      "legacy_cleanup_items_have_default_entry": false,
-      "legacy_cleanup_items_have_standard_template_refs": false,
-      "legacy_cleanup_items_physical_retired": [
-        "local_launchd_scheduler_install_path",
-        "workspace_local_watch_service_wrappers",
-        "domain_health_diagnostic_loop_shell"
-      ],
-      "legacy_cleanup_items_require_no_resurrection_guard": [],
-      "legacy_cleanup_items_tombstoned": [
-        "mas_generic_workbench_shell",
-        "legacy_scheduler_default_aliases",
-        "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_tombstone_provenance"
-      ],
       "remaining_evidence_gate_ids": [
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
@@ -1780,94 +1228,6 @@
         "migration_action": "authority_stays_in_mas",
         "module_id": "artifact_authority",
         "owner": "med-autoscience"
-      },
-      {
-        "classification": "legacy_cleanup_physical_retired",
-        "code_paths": [
-          "contracts/runtime/legacy-active-path-tombstones.json",
-          "docs/history/runtime/legacy_active_path_tombstones.md"
-        ],
-        "current_ref_status": "physical_retired_tombstone_only",
-        "default_caller_count": 0,
-        "domain_ref_consumers": [],
-        "install_allowed": false,
-        "migration_action": "retain_history_tombstone_provenance_only",
-        "migration_class": "provenance_or_fixture",
-        "module_id": "local_launchd_scheduler_install_path",
-        "no_resurrection_gate": {
-          "default_caller_count": 0,
-          "remaining_physical_delete_blockers": [],
-          "resurrection_allowed": false
-        },
-        "owner": "none_active",
-        "physical_retired": true,
-        "remove_allowed": false,
-        "resurrection_allowed": false,
-        "retention_reason": "Local LaunchAgent code is physically retired; provenance remains only for history and no-resurrection proof.",
-        "status_allowed": false,
-        "tombstone_required": true,
-        "trigger_allowed": false,
-        "write_install_proof_allowed": false
-      },
-      {
-        "classification": "legacy_cleanup_physical_retired",
-        "code_paths": [
-          "src/med_autoscience/controllers/workspace_init_parts/retired_entries.py",
-          "contracts/runtime/legacy-active-path-tombstones.json",
-          "docs/history/runtime/legacy_active_path_tombstones.md"
-        ],
-        "current_ref_status": "cleanup_controller_physically_retired_tombstone_only",
-        "domain_ref_consumers": [
-          "workspace init retired-entry cleanup only"
-        ],
-        "migration_action": "retain init retired-entry cleanup plus history/tombstone refs only",
-        "migration_class": "provenance_or_fixture",
-        "module_id": "workspace_local_watch_service_wrappers",
-        "no_resurrection_gate": {
-          "default_caller_count": 0,
-          "delete_or_tombstone_only_after": [
-            "opl_replacement_proof",
-            "focused_cleanup_test_green",
-            "fixture_or_provenance_dependency_absent_or_refs_only"
-          ],
-          "resurrection_allowed": false
-        },
-        "owner": "none_active",
-        "physical_retired": true,
-        "resurrection_allowed": false,
-        "retention_reason": "Workspace-local watch service cleanup is now handled by init retired-entry detection; dedicated legacy cleanup controller and CLI surfaces are physically retired.",
-        "tombstone_required": true
-      },
-      {
-        "classification": "legacy_cleanup_physical_retired",
-        "code_paths": [
-          "src/med_autoscience/controllers/domain_health_diagnostic.py",
-          "src/med_autoscience/cli_parts/parser.py",
-          "src/med_autoscience/controllers/workspace_init_parts/shell_rendering.py"
-        ],
-        "current_ref_status": "retired_no_resurrection",
-        "domain_ref_consumers": [],
-        "migration_action": "remove repo-local runtime watch loop and keep one-shot MAS domain diagnostic tick",
-        "migration_class": "provenance_or_fixture",
-        "module_id": "domain_health_diagnostic_loop_shell",
-        "no_resurrection_gate": {
-          "default_caller_count": 0,
-          "focused_test_refs": [
-            "tests/test_domain_health_diagnostic_cases/cli_cases.py",
-            "tests/test_cli_cases/public_entry_commands.py",
-            "tests/test_workspace_init_cases/workspace_creation.py",
-            "tests/test_workspace_init_cases/legacy_entry_upgrades.py"
-          ],
-          "no_compat_alias_allowed": true,
-          "replacement_owner": "one-person-lab",
-          "replacement_surface": "opl_provider_runtime_manager",
-          "resurrection_allowed": false
-        },
-        "owner": "none_active",
-        "physical_retired": true,
-        "resurrection_allowed": false,
-        "retention_reason": "Generic cadence and long-loop ownership belongs to OPL provider/runtime manager; MAS keeps one-shot runtime health and owner-route diagnostic tick only.",
-        "tombstone_required": true
       }
     ],
     "functional_module_inventory_summary": {
@@ -1875,41 +1235,22 @@
       "classification_counts": {
         "declarative_pack_generated_surface": 7,
         "domain_authority_refs": 5,
-        "legacy_cleanup_physical_retired": 3,
         "minimal_authority_function": 3
       },
       "classification_gap_count": 0,
       "closed_functional_structure_gate_ids": [
         "generated_surface_default_owner_cutover",
         "domain_authority_refs_thinning",
-        "legacy_cleanup_physical_retirement",
+        "standard_agent_purity_guard",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation"
       ],
       "functional_structure_gap_count": 0,
-      "legacy_cleanup_item_role": "history_tombstone_provenance_only",
-      "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
-      "legacy_cleanup_items_are_remaining_active_gaps": false,
-      "legacy_cleanup_items_have_default_entry": false,
-      "legacy_cleanup_items_have_standard_template_refs": false,
-      "legacy_cleanup_items_physical_retired": [
-        "local_launchd_scheduler_install_path",
-        "workspace_local_watch_service_wrappers",
-        "domain_health_diagnostic_loop_shell"
-      ],
-      "legacy_cleanup_items_require_no_resurrection_guard": [],
-      "legacy_cleanup_items_tombstoned": [
-        "mas_generic_workbench_shell",
-        "legacy_scheduler_default_aliases",
-        "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_tombstone_provenance"
-      ],
       "long_term_opl_owned_replacement_count": 0,
       "remaining_functional_followthrough_gate_ids": [],
       "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
       "retire_tombstone_classification_count": 0,
-      "retired_legacy_residue_count": 4,
-      "total_count": 18
+      "total_count": 15
     },
     "functional_surface_classification": {
       "declarative_pack_generated_surface": [
@@ -1927,17 +1268,6 @@
         "runtime_storage_maintenance",
         "publication_route_memory_locator_transport_shell",
         "artifact_lifecycle_storage_audit_shell"
-      ],
-      "legacy_cleanup_physical_retired": [
-        "local_launchd_scheduler_install_path",
-        "domain_health_diagnostic_loop_shell",
-        "workspace_local_watch_service_wrappers"
-      ],
-      "legacy_cleanup_tombstone_provenance": [
-        "mas_generic_workbench_shell",
-        "legacy_scheduler_default_aliases",
-        "daemonish_terminal_attach_status_as_runtime_owner",
-        "scheduler_legacy_residue_tombstone_provenance"
       ],
       "minimal_authority_function": [
         "study_truth",
@@ -2210,7 +1540,7 @@
             "contracts/test-lane-manifest.json",
             "tests/"
           ],
-          "current_role": "focused_contract_guard_for_no_resurrection",
+          "current_role": "focused_contract_guard_for_standard_agent_purity",
           "surface_id": "test_lane_harness",
           "target_role": "opl_generated_harness_consumer_over_mas_pack"
         }
@@ -2218,7 +1548,7 @@
       "long_term_mas_owner": false,
       "mas_handwritten_shell_expansion_allowed": false,
       "schema_version": 1,
-      "status": "handoff_declared_opl_default_surfaces_mas_domain_refs_only_no_resurrection",
+      "status": "handoff_declared_opl_default_surfaces_mas_domain_refs_only_standard_agent_purity_guarded",
       "surface_kind": "mas_generated_surface_handoff"
     },
     "generic_surface_owner": "one-person-lab",
@@ -2234,26 +1564,6 @@
       "generic_artifact_lifecycle",
       "generic_observability"
     ],
-    "legacy_local_scheduler_physical_retirement_proof": {
-      "cleanup_status": "tombstone_only",
-      "default_bootstrap_exposes_local_install": false,
-      "default_cli_exposes_local_install": false,
-      "default_cli_exposes_local_remove": false,
-      "default_cli_exposes_local_status": false,
-      "install_allowed": false,
-      "loaded_state_allowed": false,
-      "provenance_refs": [
-        "contracts/runtime/legacy-active-path-tombstones.json",
-        "docs/history/runtime/legacy_active_path_tombstones.md"
-      ],
-      "remaining_physical_delete_blockers": [],
-      "remove_allowed": false,
-      "status": "physical_retired_tombstone_provenance_only",
-      "status_allowed": false,
-      "surface_kind": "mas_local_scheduler_physical_retirement_proof",
-      "trigger_allowed": false,
-      "write_install_proof_allowed": false
-    },
     "mas_does_not_own": [
       "generic_scheduler",
       "generic_daemon",
@@ -2543,7 +1853,6 @@
           "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "publication_quality_verdict",
           "judgment_mode": "ai_first_stage_gate",
-          "legacy_readable_id": "publication_quality_verdict",
           "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
           "required_record_refs": [
@@ -2565,7 +1874,6 @@
           "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "ai_reviewer_quality_decision",
           "judgment_mode": "ai_first_stage_gate",
-          "legacy_readable_id": "ai_reviewer_quality_decision",
           "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
           "required_record_refs": [
@@ -2586,7 +1894,6 @@
           "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "artifact_mutation_authorization",
           "judgment_mode": "ai_first_record_validator",
-          "legacy_readable_id": "artifact_mutation_authorization",
           "program_may_emit_pass_ready_verdict": false,
           "program_role": "materializer",
           "required_record_refs": [
@@ -2608,7 +1915,6 @@
           "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "publication_route_memory_accept_reject",
           "judgment_mode": "ai_first_stage_gate",
-          "legacy_readable_id": "publication_route_memory_accept_reject",
           "program_may_emit_pass_ready_verdict": false,
           "program_role": "guard",
           "required_record_refs": [
@@ -2630,7 +1936,6 @@
           "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "source_readiness_verdict",
           "judgment_mode": "ai_first_stage_gate",
-          "legacy_readable_id": "source_readiness_verdict",
           "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
           "required_record_refs": [
@@ -2658,44 +1963,6 @@
       "surface_kind": "mas_minimal_authority_function_manifest",
       "verdict_function_model_retired": true
     },
-    "no_resurrection_proof": {
-      "cleanup_only_commands": [],
-      "default_caller_count": 0,
-      "default_manager": "opl",
-      "forbidden_default_callers": [
-        "cli_default_local_scheduler_install",
-        "workspace_bootstrap_local_scheduler_install",
-        "product_entry_local_scheduler_install",
-        "sidecar_local_scheduler_install",
-        "mcp_local_scheduler_install"
-      ],
-      "forbidden_explicit_callers": [
-        "runtime-supervision-status --profile <profile> --manager local",
-        "runtime-ensure-supervision --profile <profile> --manager local",
-        "runtime-remove-supervision --profile <profile> --manager local"
-      ],
-      "legacy_local_install_path_role": "physical_retired_tombstone_provenance_only",
-      "proof_items": [
-        "cli_default_manager_is_opl",
-        "cli_manager_choices_exclude_local",
-        "workspace_bootstrap_manager_is_opl",
-        "product_entry_consumes_opl_replacement_projection",
-        "sidecar_exports_functional_boundary_no_generic_owner",
-        "local_scheduler_status_remove_path_returns_tombstone_only",
-        "local_scheduler_install_proof_generation_forbidden",
-        "local_scheduler_launchagent_adapter_deleted"
-      ],
-      "replacement_owner_surface": "opl_provider_runtime_manager",
-      "status": "legacy_local_scheduler_physical_retired"
-    },
-    "no_resurrection_required": true,
-    "no_resurrection_scope": [
-      "cli_default",
-      "mcp_default",
-      "product_entry_default",
-      "sidecar_default",
-      "test_lane_default"
-    ],
     "opl_functional_harness_consumer_coverage": {
       "coverage_items": [
         "refs_only_memory_writeback_chain",
@@ -2781,625 +2048,64 @@
       "status": "landed_domain_authority_pack_consumer",
       "surface_kind": "opl_functional_harness_consumer_coverage"
     },
-    "physical_retirement_gate_matrix": {
-      "default_caller_boundary_ref": "functional_consumer_boundary.generated_default_caller_boundary",
-      "default_caller_owner": "one-person-lab",
-      "forbidden_claims": [
-        "runtime_transport_reintroduced_as_mas_owner",
-        "lifecycle_refs_reintroduced_as_mas_owner",
-        "owner_route_handoff_domain_ref_entry_deleted",
-        "status_projection_deleted",
-        "workbench_shell_deleted",
-        "paper_closure_authorized_by_retirement_gate"
-      ],
-      "no_resurrection_summary": {
-        "all_runtime_control_surfaces_retired_or_opl_owned": true,
-        "default_runtime_owner": "one-person-lab",
-        "mas_default_runtime_owner_allowed": false,
-        "physical_delete_candidate_count": 6,
-        "physical_delete_ready_count": 2,
-        "physically_retired_surface_ids": [
-          "runtime_transport",
-          "lifecycle_refs_sqlite_index"
-        ],
-        "remaining_surfaces_are_domain_refs_not_runtime_control": true
-      },
-      "opl_default_caller_readiness_ref": "functional_consumer_boundary.generated_default_caller_boundary.opl_default_caller_readiness_evidence",
-      "physical_delete_requires_all_gates": [
-        "stale_surface_scan_clean",
-        "opl_replacement_parity",
-        "mas_owner_receipt_parity",
-        "focused_tests_green",
-        "no_forbidden_write_proof",
-        "tombstone_refs_landed"
-      ],
-      "retirement_candidates": [
-        {
-          "code_paths": [],
-          "current_ref_status": "physical_retired_no_alias",
-          "default_runtime_owner": "one-person-lab",
-          "delete_gate_status": "closed_stale_surface_scan_clean",
-          "domain_or_diagnostic_ref_consumers": [],
-          "gate_results": {
-            "focused_tests_green": "focused_lane_tracks_no_resurrection",
-            "mas_owner_receipt_parity": "satisfied_or_not_runtime_candidate",
-            "opl_default_caller_readiness": "ready",
-            "opl_replacement_parity": "satisfied_or_not_runtime_candidate",
-            "stale_surface_scan_clean": true,
-            "tombstone_refs_landed": "not_required_for_no_alias_physical_retirement"
-          },
-          "latest_thinning_evidence": {
-            "does_not_claim_paper_closure": true,
-            "no_alias_guard_ref": "tests/test_adapter_retirement_boundary.py",
-            "retired_absent_surface": "src/med_autoscience/runtime_transport/",
-            "status": "runtime_transport_package_physically_absent"
-          },
-          "mas_default_runtime_owner_allowed": false,
-          "mas_role": "none",
-          "no_resurrection_proof": {
-            "current_ref_status": "physical_retired_no_alias",
-            "default_runtime_owner": "one-person-lab",
-            "physical_delete_allowed": true
-          },
-          "physical_delete_permitted": true,
-          "stale_surface_scan_clean": true,
-          "surface_id": "runtime_transport"
-        },
-        {
-          "code_paths": [
-            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter.py",
-            "src/med_autoscience/runtime_protocol/lifecycle_refs_adapter_parts/",
-            "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py"
-          ],
-          "current_ref_status": "physical_retired_no_alias_replaced_by_domain_authority_refs_index",
-          "default_runtime_owner": "one-person-lab",
-          "delete_gate_status": "closed_stale_surface_scan_clean",
-          "domain_or_diagnostic_ref_consumers": [],
-          "gate_results": {
-            "focused_tests_green": "focused_lane_tracks_no_resurrection",
-            "mas_owner_receipt_parity": "satisfied_or_not_runtime_candidate",
-            "opl_default_caller_readiness": "ready",
-            "opl_replacement_parity": "satisfied_or_not_runtime_candidate",
-            "stale_surface_scan_clean": true,
-            "tombstone_refs_landed": "not_required_for_no_alias_physical_retirement"
-          },
-          "latest_thinning_evidence": {
-            "does_not_claim_generic_persistence_owner": true,
-            "does_not_claim_paper_closure": true,
-            "replacement_surface": "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
-            "status": "runtime_lifecycle_sqlite_adapter_physically_absent"
-          },
-          "mas_default_runtime_owner_allowed": false,
-          "mas_role": "none",
-          "no_resurrection_proof": {
-            "current_ref_status": "physical_retired_no_alias_replaced_by_domain_authority_refs_index",
-            "default_runtime_owner": "one-person-lab",
-            "physical_delete_allowed": true
-          },
-          "physical_delete_permitted": true,
-          "stale_surface_scan_clean": true,
-          "surface_id": "lifecycle_refs_sqlite_index"
-        },
-        {
-          "code_paths": [
-            "src/med_autoscience/runtime_protocol/domain_authority_refs_index.py",
-            "src/med_autoscience/opl_domain_pack/"
-          ],
-          "current_ref_status": "domain_authority_refs_index_active_no_runtime_lifecycle_owner",
-          "default_runtime_owner": "one-person-lab",
-          "delete_gate_status": "not_a_runtime_retirement_candidate",
-          "domain_or_diagnostic_ref_consumers": [
-            "owner receipt refs",
-            "typed blocker refs",
-            "sidecar/product-entry domain authority projections"
-          ],
-          "gate_results": {
-            "focused_tests_green": "focused_lane_tracks_no_resurrection",
-            "mas_owner_receipt_parity": "satisfied_or_not_runtime_candidate",
-            "opl_default_caller_readiness": "ready",
-            "opl_replacement_parity": "satisfied_or_not_runtime_candidate",
-            "stale_surface_scan_clean": true,
-            "tombstone_refs_landed": "not_required_for_no_alias_physical_retirement"
-          },
-          "mas_default_runtime_owner_allowed": false,
-          "mas_role": "domain_authority_refs_only",
-          "no_resurrection_proof": {
-            "current_ref_status": "domain_authority_refs_index_active_no_runtime_lifecycle_owner",
-            "default_runtime_owner": "one-person-lab",
-            "physical_delete_allowed": false
-          },
-          "physical_delete_permitted": false,
-          "stale_surface_scan_clean": false,
-          "surface_id": "domain_authority_refs_index"
-        },
-        {
-          "code_paths": [
-            "src/med_autoscience/controllers/progress_portal.py",
-            "src/med_autoscience/controllers/progress_portal_parts/",
-            "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
-          ],
-          "current_ref_status": "domain_projection_refs_active",
-          "default_runtime_owner": "one-person-lab",
-          "delete_gate_status": "blocked_domain_projection_refs_active",
-          "domain_or_diagnostic_ref_consumers": [
-            "progress portal CLI projection",
-            "workspace cockpit domain projection",
-            "product-entry manifest read model"
-          ],
-          "gate_results": {
-            "focused_tests_green": "focused_lane_required",
-            "mas_owner_receipt_parity": "domain_projection_receipt_refs_required",
-            "opl_default_caller_readiness": "ready_domain_evidence_required",
-            "opl_replacement_parity": "structural_default_caller_ready_generated_workbench_default_required",
-            "stale_surface_scan_clean": false,
-            "tombstone_refs_landed": "landed_for_retired_legacy_only"
-          },
-          "mas_default_runtime_owner_allowed": false,
-          "mas_role": "domain_projection_refs_for_opl_workbench",
-          "no_resurrection_proof": {
-            "current_ref_status": "domain_projection_refs_active",
-            "default_runtime_owner": "one-person-lab",
-            "physical_delete_allowed": false
-          },
-          "physical_delete_permitted": false,
-          "stale_surface_scan_clean": false,
-          "surface_id": "workbench_shell"
-        },
-        {
-          "code_paths": [
-            "src/med_autoscience/controllers/owner_route_handoff.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
-          ],
-          "current_ref_status": "domain_owner_route_handoff_refs_active",
-          "default_runtime_owner": "one-person-lab",
-          "delete_gate_status": "blocked_domain_dispatch_refs_active",
-          "deletion_readiness_worklist_ref": "functional_consumer_boundary.active_path_residue_cleanup_gates.owner_route_handoff_domain_ref_entry.deletion_readiness_worklist",
-          "domain_or_diagnostic_ref_consumers": [
-            "sidecar export refs-only handoff",
-            "sidecar dispatch guarded owner receipt"
-          ],
-          "gate_results": {
-            "focused_tests_green": "focused_lane_required",
-            "mas_owner_receipt_parity": "pending_real_paper_line_owner_receipt_or_stable_typed_blocker",
-            "opl_default_caller_readiness": "ready_domain_evidence_required",
-            "opl_replacement_parity": "structural_default_caller_ready_opl_generated_sidecar_default_required",
-            "stale_surface_scan_clean": false,
-            "tombstone_refs_landed": "required_before_delete"
-          },
-          "latest_thinning_evidence": {
-            "does_not_claim_physical_delete": true,
-            "domain_ref_entry_path": "src/med_autoscience/controllers/owner_route_handoff.py",
-            "extracted_paths": [
-              "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py",
-              "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py",
-              "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
-            ],
-            "status": "sidecar_export_projection_split_to_parts_no_runtime_control_alias"
-          },
-          "mas_default_runtime_owner_allowed": false,
-          "mas_role": "domain_owner_route_handoff_refs",
-          "no_forbidden_write_proof_refs": [
-            "tests/test_cli_cases/owner_route_handoff_command_cases/dispatch_cases.py::test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth",
-            "owner_route_handoff_response.forbidden_write_guard_proof"
-          ],
-          "no_resurrection_proof": {
-            "current_ref_status": "domain_owner_route_handoff_refs_active",
-            "default_runtime_owner": "one-person-lab",
-            "physical_delete_allowed": false
-          },
-          "physical_delete_permitted": false,
-          "stale_surface_scan_clean": false,
-          "surface_id": "owner_route_handoff"
-        },
-        {
-          "code_paths": [
-            "src/med_autoscience/controllers/product_entry_parts/",
-            "src/med_autoscience/controllers/progress_projection.py"
-          ],
-          "current_ref_status": "domain_truth_status_projection_active",
-          "default_runtime_owner": "one-person-lab",
-          "delete_gate_status": "blocked_domain_truth_status_projection_active",
-          "domain_or_diagnostic_ref_consumers": [
-            "progress_projection domain truth projection",
-            "product-entry status read model"
-          ],
-          "gate_results": {
-            "focused_tests_green": "focused_lane_required",
-            "mas_owner_receipt_parity": "progress_projection_truth_refs_required",
-            "opl_default_caller_readiness": "ready_domain_evidence_required",
-            "opl_replacement_parity": "structural_default_caller_ready_opl_generated_status_default_required",
-            "stale_surface_scan_clean": false,
-            "tombstone_refs_landed": "landed_for_retired_legacy_only"
-          },
-          "mas_default_runtime_owner_allowed": false,
-          "mas_role": "domain_truth_status_projection",
-          "no_resurrection_proof": {
-            "current_ref_status": "domain_truth_status_projection_active",
-            "default_runtime_owner": "one-person-lab",
-            "physical_delete_allowed": false
-          },
-          "physical_delete_permitted": false,
-          "stale_surface_scan_clean": false,
-          "surface_id": "status_projection"
-        }
-      ],
-      "schema_version": 1,
-      "status": "physical_delete_blocked_until_all_gate_inputs_hold",
-      "surface_kind": "mas_generated_caller_retirement_gate_matrix"
-    },
-    "physical_thinning_evidence": {
-      "active_path_residue_cleanup_gates_ref": "functional_consumer_boundary.active_path_residue_cleanup_gates",
-      "body_included": false,
-      "does_not_claim_paper_closure": true,
-      "does_not_claim_physical_delete": true,
-      "evidence_contract_ref": "contracts/evidence/mas-evidence-lane.json#/physical_thinning_evidence",
-      "forbidden_claims": [
-        "mas_owned_generic_runner",
-        "mas_owned_generic_scheduler",
-        "mas_owned_generic_workbench",
-        "mas_owned_generic_persistence_engine",
-        "active_path_runtime_transport_deleted_without_parity",
-        "resurrection_alias_or_wrapper_for_retired_runtime_path",
-        "physical_delete_claim_without_replacement_proof",
-        "paper_closure_authorized_by_thinning_evidence"
-      ],
-      "physical_delete_requires_all_gates": [
-        "stale_surface_scan_clean",
-        "opl_replacement_parity",
-        "domain_receipt_parity",
-        "focused_tests",
-        "no_forbidden_write_proof",
-        "history_tombstone_refs"
-      ],
-      "residue_groups": [
-        {
-          "closure_basis": [
-            "opl_replacement_parity",
-            "domain_receipt_parity",
-            "no_generic_owner_claim"
-          ],
-          "current_role": "domain_receipt_and_transition_spec_refs_only",
-          "evidence_refs": [
-            "functional_module_inventory.generic_queue_attempt_retry_dead_letter",
-            "functional_module_inventory.generic_transition_runner",
-            "opl_functional_harness_consumer_coverage.queue_stage_attempt_typed_closeout",
-            "opl_functional_harness_consumer_coverage.generic_transition_runner"
-          ],
-          "generic_owner_claim_allowed": false,
-          "group_id": "runner_residue",
-          "module_ids": [
-            "generic_queue_attempt_retry_dead_letter",
-            "generic_transition_runner"
-          ],
-          "physical_delete_gate": "OPL parity plus focused tests; MAS keeps domain receipt refs only",
-          "physical_delete_permitted": false,
-          "tombstone_or_parity_refs_required": true
-        },
-        {
-          "closure_basis": [
-            "no_resurrection_guard",
-            "opl_replacement_parity",
-            "tombstone_or_diagnostic_refs"
-          ],
-          "current_role": "opl_scheduler_projection_and_legacy_tombstone_only",
-          "evidence_refs": [
-            "stale_surface_scan_clean.default_runtime_owner=opl",
-            "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
-            "retired_legacy_residue_tombstones.scheduler_legacy_residue_tombstone_provenance"
-          ],
-          "generic_owner_claim_allowed": false,
-          "group_id": "supervisor_residue",
-          "module_ids": [
-            "generic_daemon_or_scheduler_lifecycle",
-            "local_launchd_scheduler_install_path",
-            "legacy_scheduler_default_aliases",
-            "scheduler_legacy_residue_tombstone_provenance"
-          ],
-          "physical_delete_gate": "stale default caller scan clean; refs are tombstone/provenance only",
-          "physical_delete_permitted": false,
-          "tombstone_or_parity_refs_required": true
-        },
-        {
-          "closure_basis": [
-            "opl_replacement_parity",
-            "domain_projection_refs_only",
-            "tombstone_or_diagnostic_refs"
-          ],
-          "current_role": "mas_domain_projection_refs_for_opl_hosted_workbench",
-          "evidence_refs": [
-            "workbench_portal_generic_shell.proof_refs",
-            "active_path_residue_cleanup_gates.owner_route_handoff_domain_ref_entry.deletion_readiness_worklist",
-            "retired_legacy_residue_tombstones.mas_generic_workbench_shell",
-            "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain"
-          ],
-          "generic_owner_claim_allowed": false,
-          "group_id": "workbench_residue",
-          "module_ids": [
-            "workbench_portal_generic_shell",
-            "owner_route_handoff_domain_ref_entry",
-            "mas_generic_workbench_shell"
-          ],
-          "physical_delete_gate": "OPL default workbench caller plus no MAS generic workbench default entry",
-          "physical_delete_permitted": false,
-          "tombstone_or_parity_refs_required": true
-        },
-        {
-          "closure_basis": [
-            "domain_authority_refs",
-            "opl_current_control_state_gate",
-            "domain_authority_receipt_ref_gate"
-          ],
-          "current_role": "refs_only_domain_authority_receipt_locator_index",
-          "evidence_refs": [
-            "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
-            "functional_module_inventory.domain_authority_refs_index.retirement_gate"
-          ],
-          "generic_owner_claim_allowed": false,
-          "group_id": "lifecycle_refs_residue",
-          "module_ids": [
-            "domain_authority_refs_index"
-          ],
-          "physical_delete_gate": "retired runtime lifecycle path is stale-surface clean; MAS replacement is domain_authority_refs_index only",
-          "physical_delete_permitted": true,
-          "runtime_lifecycle_adapter_physical_delete_completed": true,
-          "tombstone_or_parity_refs_required": true
-        }
-      ],
-      "status": "generic_runtime_residue_closed_as_boundary_evidence_physical_delete_gated",
-      "surface_kind": "mas_physical_thinning_evidence",
-      "version": "mas-physical-thinning-evidence.v1"
-    },
     "proof_surfaces": [
       "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
       "opl_current_control_state owner refs",
       "product_entry_manifest.functional_consumer_boundary",
       "sidecar_export.functional_consumer_boundary",
-      "legacy_retirement_tombstone_proof.active_default_callers",
-      "functional_consumer_boundary.retired_legacy_residue_tombstones"
+      "functional_consumer_boundary.standard_agent_purity"
     ],
-    "retired_legacy_residue_tombstones": [
-      {
-        "active_caller_count": 0,
-        "current_role": "history_tombstone_provenance_only",
-        "default_entry_allowed": false,
-        "domain_ref_consumer_count": 0,
-        "must_not_emit": [
-          "generic_workbench_owner",
-          "paper_closure_verdict"
-        ],
-        "residue_id": "mas_generic_workbench_shell",
-        "resurrection_allowed": false,
-        "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
-        "retirement_gate": "no_resurrection_tombstone",
-        "tombstone_refs": [
-          "docs/history/runtime/legacy_active_path_tombstones.md",
-          "contracts/runtime/legacy-active-path-tombstones.json"
-        ]
-      },
-      {
-        "active_caller_count": 0,
-        "current_role": "history_tombstone_provenance_only",
-        "default_entry_allowed": false,
-        "domain_ref_consumer_count": 0,
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "paper_closure_verdict"
-        ],
-        "residue_id": "legacy_scheduler_default_aliases",
-        "resurrection_allowed": false,
-        "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
-        "retirement_gate": "no_resurrection_tombstone",
-        "tombstone_refs": [
-          "docs/history/runtime/legacy_active_path_tombstones.md",
-          "contracts/runtime/legacy-active-path-tombstones.json"
-        ]
-      },
-      {
-        "active_caller_count": 0,
-        "current_role": "history_tombstone_provenance_only",
-        "default_entry_allowed": false,
-        "domain_ref_consumer_count": 0,
-        "must_not_emit": [
-          "generic_terminal_runtime_owner",
-          "paper_closure_verdict"
-        ],
-        "residue_id": "daemonish_terminal_attach_status_as_runtime_owner",
-        "resurrection_allowed": false,
-        "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
-        "retirement_gate": "no_resurrection_tombstone",
-        "tombstone_refs": [
-          "docs/history/runtime/legacy_active_path_tombstones.md",
-          "contracts/runtime/legacy-active-path-tombstones.json"
-        ]
-      },
-      {
-        "active_caller_count": 0,
-        "current_role": "history_tombstone_provenance_only",
-        "default_entry_allowed": false,
-        "domain_ref_consumer_count": 0,
-        "must_not_emit": [
-          "generic_scheduler_owner",
-          "paper_closure_verdict"
-        ],
-        "residue_id": "scheduler_legacy_residue_tombstone_provenance",
-        "resurrection_allowed": false,
-        "retired_from_classification": "legacy_cleanup_no_resurrection_guard",
-        "retirement_gate": "no_resurrection_tombstone",
-        "tombstone_refs": [
-          "docs/history/runtime/legacy_active_path_tombstones.md",
-          "contracts/runtime/legacy-active-path-tombstones.json"
-        ]
-      }
-    ],
-    "route_stage_residue_boundary": {
-      "all_residual_surfaces_physically_retired": true,
-      "domain_truth_owner": "med-autoscience",
-      "forbidden_claims": [
-        "route_is_stage",
-        "mas_owned_generic_route_scheduler",
-        "mas_owned_generic_stage_attempt_graph",
-        "legacy_surface_names_current_active",
-        "sqlite_lifecycle_ref_deleted",
-        "status_projection_deleted",
-        "owner_route_handoff_domain_ref_entry_deleted",
-        "domain_status_authority_migrated_to_opl"
-      ],
-      "legacy_surface_names_current_active": false,
-      "mas_owns_inter_route_scheduler": false,
-      "opl_hydrates_route_refs_to_queue_and_stage_attempts": true,
-      "physical_retirement_gate": [
-        "stale_surface_scan_clean",
-        "opl_replacement_parity",
-        "domain_receipt_parity",
-        "focused_tests",
-        "no_forbidden_write_proof",
-        "history_tombstone_refs"
-      ],
-      "physical_retirement_scope": "legacy_mas_private_runtime_route_surface_names",
-      "queue_attempt_owner": "one-person-lab",
-      "residual_surfaces": [
-        {
-          "classification": "declarative_pack_generated_surface",
-          "current_role": "domain_owner_route_projection_and_receipt_guard",
-          "gate_ref": "functional_module_inventory.owner_route_reconcile_materialize_dispatch_shell",
-          "generic_runtime_owner_claim_allowed": false,
-          "opl_consumes_as": "owner_route_refs_for_opl_queue_stage_attempt_hydration",
-          "owner": "med-autoscience",
-          "physical_delete_permitted": false,
-          "physical_retired": true,
-          "retired_legacy_surface_id": "domain_route_scan",
-          "stage_or_queue_owner": "one-person-lab",
-          "surface_id": "owner_route_reconcile"
-        },
-        {
-          "classification": "minimal_authority_function",
-          "current_role": "domain_truth_status_projection",
-          "delete_or_tombstone_after": [
-            "stale_surface_scan_clean",
-            "opl_replacement_parity_proven",
-            "domain_receipt_parity_proven",
-            "focused_tests_green",
-            "no_forbidden_write_proof",
-            "history_tombstone_refs_recorded"
-          ],
-          "gate_ref": "active_path_residue_cleanup_gates.status_projection_domain_truth_refs",
-          "generic_runtime_owner_claim_allowed": false,
-          "owner": "med-autoscience",
-          "physical_delete_permitted": false,
-          "physical_retired": true,
-          "retired_legacy_surface_id": "study_runtime_status",
-          "surface_id": "progress_projection"
-        },
-        {
-          "classification": "minimal_authority_function",
-          "current_role": "domain_health_one_shot_diagnostic_not_long_loop_scheduler",
-          "gate_ref": "functional_module_inventory.domain_health_diagnostic",
-          "generic_runtime_owner_claim_allowed": false,
-          "long_loop_resurrection_allowed": false,
-          "long_loop_shell_physical_retired": true,
-          "owner": "med-autoscience",
-          "physical_delete_permitted": false,
-          "physical_retired": true,
-          "retired_legacy_surface_id": "runtime_watch",
-          "surface_id": "domain_health_diagnostic"
-        },
-        {
-          "classification": "control_plane_thinning_item",
-          "current_role": "domain_decision_authority_with_refs_only_projection_shell",
-          "gate_ref": "docs/runtime/opl_private_implementation_migration_inventory.md#domain_status_authority",
-          "generic_runtime_owner_claim_allowed": false,
-          "migration_state": "legacy_name_retired_authority_and_projection_split_active",
-          "owner": "med-autoscience",
-          "physical_delete_permitted": false,
-          "physical_retired": true,
-          "retired_legacy_surface_id": "status_and_decision",
-          "surface_id": "domain_decision_authority"
-        },
-        {
-          "classification": "domain_authority_refs",
-          "current_role": "none_physically_retired_no_alias",
-          "delete_or_tombstone_after": [
-            "stale_surface_scan_clean",
-            "opl_replacement_parity_proven",
-            "domain_receipt_parity_proven",
-            "focused_tests_green",
-            "no_forbidden_write_proof",
-            "history_tombstone_refs_recorded"
-          ],
-          "domain_authority_refs_gate": {
-            "can_emit_generic_owner_verdict": false,
-            "can_emit_paper_closure_verdict": false,
-            "classification": "domain_authority_refs",
-            "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
-            "delete_or_tombstone_after": [
-              "domain_authority_refs_replaced_by_opl_generated_ref_index",
-              "owner_receipt_ref_parity_proven",
-              "no_forbidden_write_proof_recorded",
-              "focused_domain_authority_refs_tests_green"
-            ],
-            "domain_ref_consumer_count": 3,
-            "domain_ref_consumer_refs": [
-              "owner-route handoff records owner-receipt refs",
-              "sidecar/product-entry projections consume domain authority refs only",
-              "workspace maintenance records archive/source/artifact locator refs only"
-            ],
-            "generic_owner_claim_allowed": false,
-            "migration_class": "refs_only_domain_adapter",
-            "module_id": "domain_authority_refs_index",
-            "must_not_emit": [
-              "generic_runtime_verdict",
-              "generic_persistence_engine_owner",
-              "generic_runtime_lifecycle_owner",
-              "paper_closure_verdict"
-            ],
-            "retirement_gate_status": "active_domain_authority_ref_index_not_runtime_lifecycle_owner"
-          },
-          "gate_ref": "active_path_residue_cleanup_gates.lifecycle_refs_sqlite_index",
-          "generic_runtime_owner_claim_allowed": false,
-          "no_resurrection_guard": true,
-          "owner": "med-autoscience",
-          "physical_delete_permitted": true,
-          "physical_retired": true,
-          "retired_legacy_surface_id": "domain_authority_ref_locator_index",
-          "stale_surface_scan_clean": true,
-          "surface_id": "domain_authority_refs_index"
-        },
-        {
-          "classification": "domain_owner_route_handoff_refs",
-          "current_role": "domain_owner_route_handoff_refs",
-          "delete_or_tombstone_after": [
-            "stale_surface_scan_clean",
-            "opl_replacement_parity_proven",
-            "domain_receipt_parity_proven",
-            "focused_tests_green",
-            "no_forbidden_write_proof",
-            "history_tombstone_refs_recorded"
-          ],
-          "domain_ref_consumer_count": 1,
-          "domain_ref_consumer_refs": [
-            "physical_retirement_gate_matrix.retirement_candidates.owner_route_handoff",
-            "sidecar_export.functional_consumer_boundary.generated_surface_handoff"
-          ],
-          "gate_ref": "active_path_residue_cleanup_gates.owner_route_handoff_domain_ref_entry",
-          "generic_runtime_owner_claim_allowed": false,
-          "owner": "med-autoscience",
-          "physical_delete_permitted": false,
-          "physical_retired": true,
-          "retired_legacy_surface_id": "sidecar_dispatch_adapter",
-          "surface_id": "owner_route_dispatch_receipt"
-        }
-      ],
-      "route_is_stage": false,
-      "route_semantics_owner": "med-autoscience",
-      "runtime_transition_owner": "one-person-lab",
-      "stage_graph_owner": "one-person-lab",
-      "stage_lifecycle_owner": "one-person-lab",
-      "surface_kind": "mas_route_stage_residue_boundary",
-      "version": "mas-route-stage-residue-boundary.v1"
-    },
     "schema_version": 1,
+    "standard_agent_purity": {
+      "active_compatibility_aliases": [],
+      "active_private_generic_residue_count": 0,
+      "agent_shape": "declarative_medical_pack_minimal_authority_functions_refs_only_projection",
+      "default_caller_count": 0,
+      "default_runtime_owner": "one-person-lab",
+      "domain_owner": "med-autoscience",
+      "domain_projection_policy": "refs_receipts_blockers_only_no_body_verdict_or_blob",
+      "forbidden_active_claims": [
+        "mas_default_generic_scheduler",
+        "mas_resident_generic_daemon",
+        "mas_owned_generic_queue",
+        "mas_owned_attempt_ledger",
+        "mas_generic_transition_runner",
+        "mas_generic_workbench_shell",
+        "compatibility_alias_for_retired_runtime",
+        "provider_completion_is_domain_completion"
+      ],
+      "functional_structure_gap_count": 0,
+      "generated_surface_owner": "one-person-lab",
+      "history_detail_in_default_read_model": false,
+      "retained_surface_classes": [
+        "declarative_pack_generated_surface",
+        "domain_authority_refs",
+        "minimal_authority_function"
+      ],
+      "runtime_package_residue_count": 0,
+      "schema_version": 1,
+      "status": "pure_standard_agent_active",
+      "surface_kind": "mas_standard_opl_agent_purity"
+    },
+    "standard_agent_purity_guard": {
+      "active_compatibility_aliases": [],
+      "default_caller_count": 0,
+      "default_manager": "opl",
+      "proof_items": [
+        "standard_agent_purity.active_private_generic_residue_count=0",
+        "standard_agent_purity.default_caller_count=0",
+        "standard_agent_purity.domain_projection_policy=refs_receipts_blockers_only_no_body_verdict_or_blob"
+      ],
+      "runtime_package_residue_count": 0,
+      "status": "standard_agent_purity_guard"
+    },
+    "standard_agent_purity_guard_scope": [
+      "cli_default",
+      "mcp_default",
+      "product_entry_default",
+      "sidecar_default",
+      "test_lane_default"
+    ],
     "status": "opl_consumes_generic_surfaces_mas_supplies_domain_authority_pack",
     "surface_kind": "mas_functional_consumer_boundary"
   },
@@ -3408,7 +2114,6 @@
     "classification_counts": {
       "declarative_pack_generated_surface": 7,
       "domain_authority_refs": 5,
-      "legacy_cleanup_physical_retired": 3,
       "minimal_authority_function": 3
     },
     "classification_gap_count": 0,
@@ -3427,7 +2132,7 @@
     "closed_functional_structure_gate_ids": [
       "generated_surface_default_owner_cutover",
       "domain_authority_refs_thinning",
-      "legacy_cleanup_physical_retirement",
+      "standard_agent_purity_guard",
       "opl_app_workbench_drilldown",
       "lifecycle_locator_retention_restore_ledger_reconciliation"
     ],
@@ -3460,15 +2165,15 @@
       },
       {
         "closure_proof_refs": [
-          "stale_surface_scan_clean.default_runtime_owner=opl",
-          "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
-          "functional_module_inventory.legacy_cleanup_physical_retired"
+          "functional_consumer_boundary.standard_agent_purity",
+          "opl_unique_control_plane_handoff.standard_agent_purity",
+          "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_guard"
         ],
         "closure_status": "closed",
-        "evidence_required": "stale-surface scan, old generated artifact absent/remove proof, provenance refs recorded, focused cleanup tests green",
+        "evidence_required": "default read models expose purity guard, refs-only projection, and no active legacy callers or compatibility aliases",
         "functional_structure_gap": false,
-        "gate_id": "legacy_cleanup_physical_retirement",
-        "mas_role": "remove_or_tombstone_legacy_launchagent_and_workspace_local_wrapper_surfaces",
+        "gate_id": "standard_agent_purity_guard",
+        "mas_role": "keep_active_default_surfaces_in_standard_opl_agent_shape",
         "owner": "med-autoscience"
       },
       {
@@ -3515,23 +2220,6 @@
       "mas_owned_generic_observability"
     ],
     "functional_structure_gap_count": 0,
-    "legacy_cleanup_item_role": "history_tombstone_provenance_only",
-    "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
-    "legacy_cleanup_items_are_remaining_active_gaps": false,
-    "legacy_cleanup_items_have_default_entry": false,
-    "legacy_cleanup_items_have_standard_template_refs": false,
-    "legacy_cleanup_items_physical_retired": [
-      "local_launchd_scheduler_install_path",
-      "workspace_local_watch_service_wrappers",
-      "domain_health_diagnostic_loop_shell"
-    ],
-    "legacy_cleanup_items_require_no_resurrection_guard": [],
-    "legacy_cleanup_items_tombstoned": [
-      "mas_generic_workbench_shell",
-      "legacy_scheduler_default_aliases",
-      "daemonish_terminal_attach_status_as_runtime_owner",
-      "scheduler_legacy_residue_tombstone_provenance"
-    ],
     "remaining_evidence_gate_ids": [
       "live_provider_paper_apply_scaleout",
       "publication_route_memory_receipt_scaleout",
@@ -3575,7 +2263,6 @@
     "status": "functional_structure_closed_evidence_gates_remaining",
     "surface_kind": "mas_functional_followthrough_gap_summary"
   },
-  "no_resurrection_policy": "retired_surfaces_must_remain_tombstone_or_provenance_only",
   "opl_unified_audit_read_model": true,
   "owner": "med-autoscience",
   "privatized_functional_module_audit": {
@@ -3587,19 +2274,18 @@
     "classification_buckets": [
       "declarative_pack_generated_surface",
       "domain_authority_refs",
-      "minimal_authority_function",
-      "legacy_cleanup_tombstone_provenance",
-      "legacy_cleanup_physical_retired"
+      "minimal_authority_function"
     ],
-    "classification_policy": "classify_private_functional_surfaces_as_pack_refs_authority_or_legacy_proof",
-    "no_resurrection_policy": "retired_surfaces_must_remain_tombstone_or_provenance_only",
+    "classification_policy": "classify_private_functional_surfaces_as_standard_pack_refs_or_minimal_authority",
     "opl_unified_audit_read_model": true,
     "owner": "med-autoscience",
+    "standard_agent_purity_policy": "default_surfaces_must_remain_standard_agent_purity_guarded",
     "state": "manifest_projected_for_opl_unified_audit",
     "surface_kind": "mas_privatized_functional_module_audit",
     "target_domain_id": "med-autoscience"
   },
   "schema_version": 1,
+  "standard_agent_purity_policy": "default_surfaces_must_remain_standard_agent_purity_guarded",
   "state": "manifest_projected_for_opl_unified_audit",
   "surface_kind": "functional_privatization_audit",
   "target_domain_id": "med-autoscience"

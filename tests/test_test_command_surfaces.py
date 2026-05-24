@@ -650,26 +650,19 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     assert focused_lanes["outer-supervision-slo"]["active_path_role"] == (
         "opl_replacement_default"
     )
-    assert focused_lanes["outer-supervision-slo"]["legacy_active_path_role"] == (
-        "physical_retired_tombstone_provenance_only"
-    )
     assert focused_lanes["outer-supervision-slo"]["replacement_owner_surface"] == (
         "opl_current_control_state_refs_only"
     )
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_ensure_action"] == "retired_physical_tombstone"
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_install_allowed"] is False
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_trigger_allowed"] is False
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_write_install_proof_allowed"] is False
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_install_proof_generated"] is False
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_tick_script_generated"] is False
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_loaded_state_allowed"] is False
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_cleanup_status"] == (
-        "tombstone_only"
-    )
-    assert focused_lanes["outer-supervision-slo"]["retirement_proof_required"] == [
+    assert focused_lanes["outer-supervision-slo"]["standard_agent_purity_guard"] == {
+        "default_caller_count": 0,
+        "runtime_package_residue_count": 0,
+        "active_compatibility_aliases": [],
+        "history_detail_in_default_read_model": False,
+    }
+    assert focused_lanes["outer-supervision-slo"]["purity_proof_required"] == [
         "opl_replacement_contract_available",
         "replacement_proof",
-        "no_resurrection_proof",
+        "standard_agent_purity_guard",
         "no_forbidden_write",
         "focused_cli_status_tests",
         "git_diff_check",

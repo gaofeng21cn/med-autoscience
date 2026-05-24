@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 from tests.mcp_server_cases.delivery_inspection_visibility import *
 from tests.mcp_server_cases.open_auto_research_projection import *
 
@@ -559,7 +560,7 @@ def test_mcp_product_entry_can_call_workspace_authority_migration_audit(monkeypa
     assert "workspace_authority_migration_audit" in result["content"][0]["text"]
 
 
-def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tmp_path: Path) -> None:
+def test_mcp_product_entry_manifest_exposes_standard_agent_purity_guard(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -575,6 +576,7 @@ def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tm
     assert result["isError"] is False
     manifest = result["structuredContent"]
     boundary = manifest["functional_consumer_boundary"]
+    assert_standard_agent_purity_boundary(boundary)
     generated_default = boundary["generated_default_caller_boundary"]
     assert generated_default["status"] == "opl_generated_hosted_shell_is_default_caller"
     assert generated_default["default_caller_owner"] == "one-person-lab"
@@ -585,11 +587,6 @@ def test_mcp_product_entry_manifest_exposes_generated_caller_retirement_proof(tm
     assert mcp_surface["mas_allowed_role"] == "domain_handler_target"
     assert mcp_surface["parity_ref"] == "mcp_descriptor_parity"
     assert mcp_surface["mas_generic_owner_allowed"] is False
-    retirement_matrix = boundary["physical_retirement_gate_matrix"]
-    candidates = {item["surface_id"]: item for item in retirement_matrix["retirement_candidates"]}
-    assert candidates["owner_route_handoff"]["physical_delete_permitted"] is False
-    assert candidates["owner_route_handoff"]["no_resurrection_proof"]["physical_delete_allowed"] is False
-    assert candidates["status_projection"]["mas_role"] == "domain_truth_status_projection"
     assert "runtime_transport_handoff_projection" not in manifest
     assert manifest["opl_unique_control_plane_handoff"]["generated_default_caller_boundary"] == (
         generated_default

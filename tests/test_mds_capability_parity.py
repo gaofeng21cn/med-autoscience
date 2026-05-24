@@ -428,7 +428,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert continuity["current_control_state_projection"]["role"] == "read_model"
     assert continuity["current_control_state_projection"]["read_only"] is True
     assert continuity["current_control_state_projection"]["writes_authority_surface"] is False
-    assert continuity["retired_mas_recovery_projection"]["role"] == "physical_retired_no_alias"
+    assert continuity["retired_mas_recovery_projection"]["role"] == "retired_no_default_caller"
     assert continuity["retired_mas_recovery_projection"]["allowed_current_actions"] == []
     assert continuity["retired_mas_recovery_projection"]["replacement_surface"] == (
         "opl_current_control_state plus MAS typed_blocker_or_owner_receipt"
@@ -458,7 +458,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
             "use_progress_portal",
             "use_explicit_archive_import_ref_only",
             "retired_no_active_replacement",
-            "retired_no_resurrection",
+            "retired_no_active_replacement",
             "use_historical_fixture_only",
             "use_opl_provider_stage_runtime",
             "use_opl_runtime_workbench",

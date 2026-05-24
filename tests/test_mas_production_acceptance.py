@@ -362,7 +362,7 @@ def test_codex_first_landing_program_is_parallel_and_contract_light() -> None:
     assert parallel["lanes_can_run_in_parallel"] is True
     assert parallel["merge_policy"] == "absorb_lane_after_focused_validation_then_cleanup_worktree"
     assert set(parallel["shared_blockers"]) == {
-        "no_resurrection_proof_missing",
+        "standard_agent_purity_guard_missing",
         "opl_generated_surface_parity_missing",
         "domain_receipt_parity_missing",
         "independent_reviewer_or_auditor_receipt_missing",
@@ -384,7 +384,7 @@ def test_codex_first_landing_lanes_cover_pack_caller_physical_canary_and_soak() 
     assert list(lanes) == [
         "codex_stage_pack_quality_lift",
         "opl_generated_default_caller_cutover",
-        "physical_source_morphology_retirement",
+        "standard_agent_source_morphology_guard",
         "real_paper_line_provider_canary",
         "memory_artifact_human_gate_scaleout",
         "provider_slo_long_soak",
@@ -400,10 +400,13 @@ def test_codex_first_landing_lanes_cover_pack_caller_physical_canary_and_soak() 
     assert "OPL-generated or hosted shell is the default caller" in lanes[
         "opl_generated_default_caller_cutover"
     ]["done_criteria"]
-    physical = lanes["physical_source_morphology_retirement"]
-    assert physical["owner"] == "MedAutoScience"
-    assert "retired runtime_transport/mas_runtime_core* tombstone/provenance" in physical["primary_surfaces"]
-    assert any("no-resurrection proof" in criterion for criterion in physical["done_criteria"])
+    source_guard = lanes["standard_agent_source_morphology_guard"]
+    assert source_guard["owner"] == "MedAutoScience"
+    assert "runtime_protocol/domain_authority_refs_index.py" in source_guard["primary_surfaces"]
+    assert any(
+        "standard Agent purity guard" in criterion
+        for criterion in source_guard["done_criteria"]
+    )
     canary = lanes["real_paper_line_provider_canary"]
     assert "provider completion never claims domain ready" in " ".join(canary["done_criteria"])
     scaleout = lanes["memory_artifact_human_gate_scaleout"]

@@ -482,9 +482,9 @@ def test_sync_display_pack_surface_resolves_contract_backed_figure_registry(tmp_
             "figure_id": "FLOCAL",
             "renderer_contract": {
                 "figure_semantics": "evidence",
-                "renderer_family": "legacy_renderer",
+                "renderer_family": "outdated_renderer",
                 "template_id": "figure1_local_architecture_contract",
-                "layout_qc_profile": "legacy_local_architecture_qc",
+                "layout_qc_profile": "outdated_local_architecture_qc",
                 "required_exports": ["png"],
                 "fallback_on_failure": False,
                 "failure_action": "block_and_fix_environment",

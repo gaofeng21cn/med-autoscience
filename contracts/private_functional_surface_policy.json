@@ -18,13 +18,6 @@
     "domain_native_helper_implementation",
     "owner_receipt_signer"
   ],
-  "backward_readable_legacy_ids": [
-    "publication_quality_verdict_authorizer",
-    "ai_reviewer_quality_decision_authorizer",
-    "artifact_mutation_authorizer",
-    "publication_route_memory_accept_reject_decider",
-    "source_readiness_verdict_authorizer"
-  ],
   "default_posture": "forbidden_until_classified_and_receipted",
   "domain_id": "med-autoscience",
   "forbidden_generic_owner_roles": [
@@ -94,7 +87,6 @@
       "boundary_id": "publication_quality_stage_gate_boundary",
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_stage_gate",
-      "legacy_readable_id": "publication_quality_verdict_authorizer",
       "program_may_emit_pass_ready_verdict": false,
       "program_role": "validator",
       "required_record_refs": [
@@ -115,7 +107,6 @@
       "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_stage_gate",
-      "legacy_readable_id": "ai_reviewer_quality_decision_authorizer",
       "program_may_emit_pass_ready_verdict": false,
       "program_role": "validator",
       "required_record_refs": [
@@ -135,7 +126,6 @@
       "boundary_id": "artifact_mutation_stage_gate_boundary",
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_record_validator",
-      "legacy_readable_id": "artifact_mutation_authorizer",
       "program_may_emit_pass_ready_verdict": false,
       "program_role": "materializer",
       "required_record_refs": [
@@ -156,7 +146,6 @@
       "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_stage_gate",
-      "legacy_readable_id": "publication_route_memory_accept_reject_decider",
       "program_may_emit_pass_ready_verdict": false,
       "program_role": "guard",
       "required_record_refs": [
@@ -177,7 +166,6 @@
       "boundary_id": "source_readiness_stage_gate_boundary",
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_stage_gate",
-      "legacy_readable_id": "source_readiness_verdict_authorizer",
       "program_may_emit_pass_ready_verdict": false,
       "program_role": "validator",
       "required_record_refs": [

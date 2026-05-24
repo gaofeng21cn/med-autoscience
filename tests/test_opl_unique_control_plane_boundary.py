@@ -6,6 +6,7 @@ import pytest
 
 import med_autoscience.controllers.opl_unique_control_plane_boundary_parts.functional_followthrough_gaps as followthrough_gaps
 from med_autoscience.controllers.opl_unique_control_plane_boundary_parts import consumer_migration
+from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 
 
 def test_opl_unique_control_plane_boundary_top_level_callable_is_retired() -> None:
@@ -13,7 +14,7 @@ def test_opl_unique_control_plane_boundary_top_level_callable_is_retired() -> No
         importlib.import_module("med_autoscience.controllers.opl_unique_control_plane_boundary")
 
 
-def test_consumer_migration_contract_is_tombstone_and_pack_input_only() -> None:
+def test_consumer_migration_contract_is_standard_agent_purity_and_pack_input_only() -> None:
     boundary = consumer_migration.build_functional_consumer_boundary()
 
     assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
@@ -29,12 +30,7 @@ def test_consumer_migration_contract_is_tombstone_and_pack_input_only() -> None:
     assert boundary["declarative_pack_compiler_input"]["compiler_owner"] == "one-person-lab"
     assert boundary["generated_surface_handoff"]["mas_handwritten_shell_expansion_allowed"] is False
     assert boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
-    assert boundary["no_resurrection_proof"]["cleanup_only_commands"] == []
-    assert boundary["no_resurrection_proof"]["forbidden_explicit_callers"] == [
-        "runtime-supervision-status --profile <profile> --manager local",
-        "runtime-ensure-supervision --profile <profile> --manager local",
-        "runtime-remove-supervision --profile <profile> --manager local",
-    ]
+    assert_standard_agent_purity_boundary(boundary)
 
 
 def test_functional_structure_gap_count_reopens_when_closure_proof_is_missing(
@@ -51,7 +47,6 @@ def test_functional_structure_gap_count_reopens_when_closure_proof_is_missing(
 
     summary = followthrough_gaps.build_functional_followthrough_gap_summary(
         classification_counts={},
-        legacy_cleanup_items=[],
     )
 
     assert summary["status"] == "functional_structure_gaps_remaining"

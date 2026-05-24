@@ -58,7 +58,7 @@ def domain_authority_refs_index_contract() -> dict[str, Any]:
             "domain_owner_action_dispatch_receipt",
             "paper_work_unit_outbox_receipt",
         ],
-        "no_resurrection_surface_ids": [
+        "standard_agent_purity_absent_surface_ids": [
             "mas_generic_runtime_lifecycle_contract",
             "mas_generic_runtime_lifecycle_read_model",
             "mas_generic_runtime_session_read_model",

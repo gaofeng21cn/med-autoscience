@@ -30,7 +30,7 @@ ALLOWED_BEHAVIOR_OPERATOR_ACTIONS: tuple[str, ...] = (
     "use_opl_runtime_workbench",
     "use_progress_portal",
     "use_explicit_archive_import_ref_only",
-    "retired_no_resurrection",
+    "retired_no_active_replacement",
     "use_historical_fixture_only",
 )
 BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
@@ -47,7 +47,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "resident_process": False,
             "default_owner": "opl_provider_runtime_manager",
             "default_adapter": "opl",
-            "legacy_diagnostic_adapters": [],
+            "diagnostic_adapters": [],
             "retired_tombstone_refs": ["local_launchd_retired_tombstone", "hermes_gateway_cron_retired_tombstone"],
             "optional_adapters": [],
             "tick_interval_seconds": 300,
@@ -69,7 +69,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "mas_behavior": {
             "cadence": "OPL provider scheduler replacement tick",
             "default_adapter": "opl",
-            "legacy_diagnostic_adapters": [],
+            "diagnostic_adapters": [],
             "retired_tombstone_refs": ["local_launchd_retired_tombstone", "hermes_gateway_cron_retired_tombstone"],
             "optional_adapters": [],
             "interval_seconds": 300,
@@ -238,7 +238,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "behavior_difference": "MAS does not run MDS connector/channel background threads.",
         "default_user_impact": "Delivery through chat connectors is not part of default MAS monolith operation.",
         "mas_contract": "MAS emits durable handoff/progress/artifact refs; external apps may consume refs without becoming MAS truth.",
-        "recommended_operator_action": "retired_no_resurrection",
+        "recommended_operator_action": "retired_no_active_replacement",
     },
     {
         "surface_id": "mcp_surface",
@@ -260,7 +260,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "behavior_difference": "MAS intentionally retired workspace root Git and quest Git as runtime lifecycle owners.",
         "default_user_impact": "Existing papers use domain authority refs / restore-proof provenance, not MDS GitOps behavior.",
         "mas_contract": "domain_authority_refs.sqlite, restore index and migration ledger own MAS refs/provenance; OPL owns runtime lifecycle.",
-        "recommended_operator_action": "retired_no_resurrection",
+        "recommended_operator_action": "retired_no_active_replacement",
     },
     {
         "surface_id": "memory_lesson_store",
@@ -313,7 +313,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "behavior_difference": "MAS does not control an MDS daemon lifecycle and no longer owns the default outer scheduler lifecycle.",
         "default_user_impact": "There is no MAS-native MDS daemon control path because the daemon is not a default dependency.",
         "mas_contract": "MAS runtime-supervision commands are physically retired; OPL current_control_state owns provider scheduler lifecycle, with MAS retaining tombstone/provenance refs only.",
-        "recommended_operator_action": "retired_no_resurrection",
+        "recommended_operator_action": "retired_no_active_replacement",
     },
     {
         "surface_id": "workspace_local_host_service",
@@ -328,14 +328,14 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "retired_cleanup": True,
             "canonical_owner": "opl_provider_runtime_manager",
             "default_adapter": "opl",
-            "legacy_diagnostic_adapter": None,
+            "diagnostic_adapter": None,
             "optional_adapters": [],
             "retired_tombstone_refs": ["hermes_gateway_cron_retired_tombstone"],
         },
         "behavior_difference": "Workspace-local launchd/systemd/cron service templates are retired; their presence is cleanup evidence, not an active owner.",
         "default_user_impact": "Old host services must be removed instead of kept as an alternate supervision mode.",
         "mas_contract": "Retired workspace-local services are tombstone/provenance evidence; default scheduler status delegates to OPL provider replacement.",
-        "recommended_operator_action": "retired_no_resurrection",
+        "recommended_operator_action": "retired_no_active_replacement",
     },
 )
 
@@ -367,7 +367,7 @@ RUNTIME_CONTINUITY_COMPLETION = {
     },
     "retired_mas_recovery_projection": {
         "surface": "retired_runtime_recovery_projection",
-        "role": "physical_retired_no_alias",
+        "role": "retired_no_default_caller",
         "allowed_current_actions": [],
         "replacement_surface": "opl_current_control_state plus MAS typed_blocker_or_owner_receipt",
         "writes_publication_truth": False,

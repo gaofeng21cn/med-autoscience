@@ -31,7 +31,7 @@
       },
       {
         "ref": "contracts/runtime/legacy-active-path-tombstones.json",
-        "role": "legacy_physical_retirement_tombstone_refs",
+        "role": "legacy_runtime_tombstone_provenance_refs",
         "body_included": false
       }
     ],
@@ -651,7 +651,7 @@
       "lanes_can_run_in_parallel": true,
       "merge_policy": "absorb_lane_after_focused_validation_then_cleanup_worktree",
       "shared_blockers": [
-        "no_resurrection_proof_missing",
+        "standard_agent_purity_guard_missing",
         "opl_generated_surface_parity_missing",
         "domain_receipt_parity_missing",
         "independent_reviewer_or_auditor_receipt_missing",
@@ -725,7 +725,7 @@
         ]
       },
       {
-        "lane_id": "physical_source_morphology_retirement",
+        "lane_id": "standard_agent_source_morphology_guard",
         "owner": "MedAutoScience",
         "execution_owner": "Codex CLI",
         "primary_surfaces": [
@@ -738,7 +738,7 @@
         "done_criteria": [
           "each remaining surface is classified as authority function, domain handler target, domain authority refs, diagnostic provenance, or tombstone",
           "generic runtime, queue, attempt ledger, scheduler, workbench, and lifecycle owner claims stay in OPL",
-          "delete/archive/tombstone only after no-resurrection proof, OPL parity, domain receipt parity, and no-forbidden-write proof"
+          "delete/archive/tombstone only after standard Agent purity guard, OPL parity, domain receipt parity, and no-forbidden-write proof"
         ],
         "verification_refs": [
           {

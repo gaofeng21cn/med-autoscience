@@ -23,7 +23,7 @@ Machine boundary: 本文是人读 program owner。MAS 机器真相继续归 cont
 
 当前状态是 `agent_executor_adapter_boundary_landed_opl_temporal_production_proof_landed_mas_provider_proof_ingestion_landed_watchdog_kernel_migrated_live_paper_apply_pending`。
 
-P2 的当前口径是：OPL-hosted MAS 的 descriptor、sidecar、guarded apply receipt、publication-route memory receipt chain、OPL Temporal production residency proof ingestion、managed Temporal state projection 和 legacy no-default-caller tombstone proof 已形成可维护基础面；这些只证明 framework transition 可承载 MAS refs 和 blockers，不证明 paper closure、publication quality 或 submission readiness。
+P2 的当前口径是：OPL-hosted MAS 的 descriptor、sidecar、guarded apply receipt、publication-route memory receipt chain、OPL Temporal production residency proof ingestion、managed Temporal state projection 和 `standard_agent_purity` 默认投影已形成可维护基础面；这些只证明 framework transition 可承载 MAS refs 和 blockers，不证明 paper closure、publication quality 或 submission readiness。旧 no-default-caller / tombstone 证据只在 history/provenance 或明确 legacy tombstone contract 语境中读取。
 
 当前默认运行口径已机器化：MAS hosted path 在任务启动后默认启用 OPL/Temporal hosted autonomous runtime。`runtime_backend_default_operation_contract.default_autonomous_runtime`、product-entry `provider_topology.default_autonomous_runtime`、sidecar / product-entry `managed_temporal_state_consistency.default_autonomous_runtime` 和 `opl_unique_control_plane_handoff.default_caller_policy` 都声明 OPL/Temporal 持有持久在线调度、唤醒、retry、resume、attempt ledger 和 worker residency；`codex_app_outer_driver_required=false`，`mas_daemon_scheduler_attempt_loop_allowed=false`。`Codex CLI` 仍是 stage 内默认 concrete executor，不是 MAS 私有 daemon 或 scheduler。
 
@@ -37,23 +37,23 @@ MAS 侧当前已落地的 P2 基线按能力类别读取：
 - paper autonomy / memory：多条真实 paper line 已具备 read-only closeout projection、guarded apply proof surface、publication-route memory consumed/writeback refs 和 no-forbidden-write boundary；真实 closeout 仍要求 MAS owner receipt、typed blocker、artifact delta、gate replay、reviewer judgment、human gate 或 stop-loss。
 - domain repair / aftercare：`domain_health_diagnostic` 已收敛为 MAS domain health / reconcile / owner repair kernel；runtime turn、study progress、domain route scan 和 publication aftercare 只投影 MAS owner refs、quality/source refs、safe action refs、typed blocker 和明确 owner 的 repair hint，不授权 provider 或 OPL 写 paper truth。
 - standard skeleton / locator：`standard_domain_agent_skeleton`、repo-source anchor、runtime artifact locator、body-free memory inventory、Stage Review / Index 和 workspace artifacts 均按 locator-only / refs-only 边界读取；memory body、writeback acceptance、publication route authority 和 artifact mutation authority 仍留在 MAS owner surface。
-- legacy retirement：local scheduler、Hermes hosted scheduler/runtime、MDS/DeepScientist backend、workspace-local service wrapper、旧 manager/UI wording 和旧 default caller 已进入 tombstone/provenance 或 explicit diagnostic cleanup；新 scaffold 不再生成旧 wrapper，后续可删代码只按无 active reference、无 fixture/provenance dependency 与 replacement proof 执行。
+- standard Agent projection：current product-entry / sidecar / read-model 默认只暴露 `standard_agent_purity`、domain refs、owner receipts、typed blockers 和 refs-only blockers。local scheduler、Hermes hosted scheduler/runtime、MDS/DeepScientist backend、workspace-local service wrapper、旧 manager/UI wording 和旧 default caller 只保留 history/provenance 或明确 legacy tombstone contract 引用；新 scaffold 不再生成旧 wrapper，后续可删代码只按无 active reference、无 fixture/provenance dependency 与 replacement proof 执行。
 
 cutover 或物理退役前仍未完成：
 
 - OPL stage attempt 下真实长时 domain activity soak；OPL Codex runner 的 repo/test harness 已具备 `dry_run`、`live_dry_run` 与 `codex_cli` process supervision，但 MAS paper-line provider-hosted 连续运行证据仍未完成；
 - 至少一条真实 MAS paper-line provider-hosted guarded apply soak 仍要在 live workspace gate 允许时闭合：链路为 OPL attempt -> MAS owner receipt -> artifact delta / gate replay / reviewer judgment / human gate / stop-loss / typed blocker；
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
-- provider parity 证明之后，旧 scheduler/Hermes/MDS/legacy alias 的物理删除或 history/tombstone 归档仍需按 stale-surface / no-resurrection 证据逐项执行；已满足删除口径的 wrapper / alias 不再保留兼容入口或可调用测试。
+- provider parity 证明之后，旧 scheduler/Hermes/MDS/legacy alias 的物理删除或 history/provenance 归档仍需按 stale-surface、无 active caller 和 replacement proof 逐项执行；已满足删除口径的 wrapper / alias 不再保留兼容入口或可调用测试。
 
-这些剩余项现在按 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 的一步到位 physical/source morphology closure 路线执行，不再拆成另一份 P2 大计划，也不再沿旧 phase checklist 漂移。P2 只持有 framework/runtime owner 边界；`runtime_transport`、SQLite lifecycle、worker lease、workbench、sidecar 和 status projection 中的通用 runtime 控制面必须按 OPL 唯一控制面处理，MAS 侧只允许保留 domain authority refs、owner receipt、typed blocker、no-forbidden-write proof 或历史 tombstone/provenance：
+这些剩余项现在按 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 的一步到位 standard Agent morphology closure 路线执行，不再拆成另一份 P2 大计划，也不再沿旧 phase checklist 漂移。P2 只持有 framework/runtime owner 边界；`runtime_transport`、SQLite lifecycle、worker lease、workbench、sidecar 和 status projection 中的通用 runtime 控制面必须按 OPL 唯一控制面处理，MAS 侧只允许保留 domain authority refs、owner receipt、typed blocker、no-forbidden-write proof 或 history/provenance-only legacy references：
 
 | remaining gate | gate class | P2 responsibility | completion evidence |
 | --- | --- | --- | --- |
 | `provider_residency_status_and_activity_soak` | `production_evidence_gate` | 消费 OPL provider proof，向 MAS product-entry / sidecar / workbench 投影 provider readiness、attempt query、retry/dead-letter、typed blocker 和 no-forbidden-write boundary。 | OPL attempt refs + MAS sidecar receipt + domain activity closeout；缺真实 provider 或 live gate 时返回 typed blocker。 |
 | `provider_guarded_apply_soak` | `production_evidence_gate` | 保持 provider-hosted request 只能进入 MAS sidecar dispatch / guarded apply receipt，不写 MAS truth。 | MAS owner receipt 显示 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 stable blocker。 |
 | `human_gate_resume_owner_chain` | `production_evidence_gate` | 只承载 OPL approval/signal/transport refs；MAS 决定 human gate 是否阻塞、恢复或 route back。 | MAS controller / runtime owner surface 记录 human gate reason、resume receipt、next owner 或 typed blocker。 |
-| `legacy_physical_cleanup` | `landed_foundation` | 旧 active-path archive/tombstone 和 provenance ref rewrite 已完成真实 profile closeout；workspace-local service wrapper 不再生成，旧 root 不再作为 active runtime / controller / delivery path。专用 legacy cleanup / control-surface migration controller 与 CLI 已物理退役，当前只保留 `init-workspace` retired-entry cleanup、legacy tombstone contract 和 history/provenance refs。 | stale-surface / no-resurrection proof、replacement proof、旧 CLI fail-closed tests。 |
+| `standard_agent_purity_projection` | `landed_foundation_with_evidence_gate` | current product-entry / sidecar / read-model 默认只暴露标准 Agent 口径、domain refs、owner receipts 和 typed blockers；workspace-local service wrapper 不再生成，旧 root 不再作为 active runtime / controller / delivery path。旧 active-path archive、cleanup 记录和 tombstone 只作为 history/provenance 或明确 legacy contract 引用。 | generated/hosted parity、MAS receipt parity、focused boundary tests、no-forbidden-write proof。 |
 | `skeleton_and_lifecycle_followthrough` | `functional_follow_through_gate` | 把 repo-source anchors、artifact locator、cleanup/restore/retention receipt requirement 投影给 OPL。 | 新 surface 按 standard skeleton slot 落位；domain artifact mutation 返回 MAS receipt requirement 或 typed blocker。 |
 
 ## 活跃内容 Lane
@@ -63,7 +63,7 @@ cutover 或物理退役前仍未完成：
 | `P2.1` | `opl_framework_foundation` | OPL 已具备 Temporal production residency proof，可证明 stage attempt、Temporal-backed runtime、queue/wakeup、retry/dead-letter、approval/human gate transport、receipt/projection 与 domain truth boundary；MAS 已提供 managed lifecycle state consistency projection，OPL family-runtime status / runtime snapshot 已消费该 projection，剩余是更长时 domain activity soak 和 App 级展示 polish。 | OPL framework/provider readiness evidence |
 | `P2.2` | `mas_framework_migration` | MAS 作为 OPL-admitted domain agent 暴露 domain skeleton、stage descriptor、sidecar export/dispatch、owner receipts、projection builder、artifact locator 和 authority refs。 | MAS direct path / OPL-hosted path receipt equivalence |
 | `P2.3` | `framework_generic_lifecycle_lift` | 把旧 MAS runtime lifecycle 经验退役为 OPL framework-generic primitive，把 MAS 当前可保留内容收敛为 domain authority refs、artifact locator、retention/restore receipt 与 migration-ledger provenance。 | OPL primitive candidates plus MAS domain authority refs list |
-| `P2.4` | `legacy_retirement_after_replacement` | MAS 已提供 no-resurrection tombstone proof、physical tombstone contract、workspace legacy physical cleanup audit/apply 和 5 个真实 profile 的 stale-surface proof；旧 scheduler/Hermes/MDS/legacy manager/UI wording 与代码继续按 replacement proof 逐项退役，只有 archive/provenance/parity 必需 reader 保留。 | retired path evidence、targeted cleanup audit、tombstone contract、删除旧入口后的 scaffold/init tests 和更新后的 explicit diagnostic docs |
+| `P2.4` | `standard_agent_purity_projection` | MAS current product-entry / sidecar / read-model 默认面已收口到 `standard_agent_purity`；旧 scheduler/Hermes/MDS/legacy manager/UI wording 与代码继续按 replacement proof 逐项退役，只有 archive/provenance/parity 必需 reader 保留在非默认语境。 | generated/hosted parity、MAS receipt parity、focused boundary tests、scaffold/init tests 和 history/provenance refs |
 | `P2.5` | `final_paper_line_guarded_soak` | read-only proof 已覆盖多条真实 paper line；MAS-owned guarded apply proof 与 sidecar dispatch receipt closure surface 已能承认 MAS owner receipt 或返回 typed blocker；sidecar pending task projection 已按独立 source fingerprint 与 target-scoped owner refs 生成。下一步是在 provider-hosted live apply 中证明真实 paper line 可经 OPL attempt + MAS owner chain 前进或明确阻塞。 | OPL attempt query refs + MAS owner receipt、progress delta、gate replay、reviewer update、human gate、stop-loss 或 typed blocker |
 
 这些是内容线。后续变更可以只实现其中一条，不需要触碰整个 P2 surface。
@@ -79,9 +79,9 @@ P2 对 OPL production functional closure 的职责是提供 MAS domain-owned evi
 | `domain-memory-apply-generalization` | 让 publication-route memory consumed/proposal/accepted/rejected/writeback receipt 泛化到更多 fixture / workspace owner surface。 | OPL/Aion 不读取 memory body，不接受或拒绝 writeback。 |
 | `lifecycle-guarded-apply-generalization` | 对 MAS artifact/package/runtime mutation 保持 domain receipt requirement；只把 locator / blocker / restore refs 投影给 OPL。 | OPL metadata apply 不能删除或重写 MAS artifacts。 |
 | `physical-skeleton-follow-through` | 维护 MAS repo-source skeleton physical anchors、slot 映射与低风险 follow-through。 | workspace/runtime artifact body、receipt instances、memory body 不迁入 repo skeleton。 |
-| `legacy-active-path-final-retirement` | 给旧 MDS/Hermes/local scheduler/default alias surface 做 no-resurrection proof 和 tombstone/provenance 分类。 | explicit archive、fixture、parity oracle 可保留，但必须标注语境；legacy active-path tombstone contract 已落地。 |
+| `standard-agent-purity-projection` | 确保旧 MDS/Hermes/local scheduler/default alias surface 不进入 current product-entry / sidecar / read-model 默认面。 | explicit archive、fixture、parity oracle 可保留，但必须标注 history/provenance 或 legacy tombstone contract 语境。 |
 | `operator-workbench-drilldown` | 提供 MAS workbench projection 所需的 provider refs、stage review refs、memory refs、safe action receipt refs 和 typed blockers。 | OPL App 只展示和发受控 request，不写 MAS truth。 |
-| `cross-repo-production-closeout-gate` | 提供 MAS 当前功能闭环状态、验证 refs、receipt coverage、legacy residue state 和 typed blocker summary。 | 缺真实 live apply 时报告 typed blocker，不把 gate 写成 paper closure。 |
+| `cross-repo-production-closeout-gate` | 提供 MAS 当前功能闭环状态、验证 refs、receipt coverage、standard Agent projection state 和 typed blocker summary。 | 缺真实 live apply 时报告 typed blocker，不把 gate 写成 paper closure。 |
 
 ## 当前分类规则
 
@@ -93,7 +93,7 @@ P2 对 OPL production functional closure 的职责是提供 MAS domain-owned evi
 | `move_to_opl_provider` | 通用 long-running attempt、queue、wakeup、retry、signal/query、approval 或 dead-letter 责任进入 OPL provider |
 | `lift_to_opl_framework` | 跨 domain lifecycle/index/restore/retention primitive 进入 OPL shared framework，MAS 保留 domain refs |
 | `degrade_to_local_diagnostics` | MAS 保留显式 one-shot/local diagnostic/evidence command，不作为 Full online readiness |
-| `retired_no_default_caller` | old alias、legacy vocabulary、duplicated UI 或 manager path 已无 default caller；无 fixture/provenance 需要时直接删除源码、命令 wrapper 和测试入口，只保留 history/reference 语境 |
+| `history_provenance_only` | old alias、legacy vocabulary、duplicated UI 或 manager path 已无 default caller；不得进入 current product-entry / sidecar / read-model 默认面。无 fixture/provenance 需要时直接删除源码、命令 wrapper 和测试入口，只保留 history/reference 语境 |
 
 该规则取代旧的文件级假设。一个文件或功能可以包含混合内容；先分类内容块，再只移动或编辑该内容块。
 
@@ -104,10 +104,10 @@ P2 对 OPL production functional closure 的职责是提供 MAS domain-owned evi
 1. 先完成 OPL 作为完整智能体框架的基础能力；
 2. 再把 MAS 迁移成 OPL-admitted domain agent，并冻结 sidecar/receipt/authority/ref 边界；
 3. 同步把 MAS 已验证的通用 lifecycle/index/restore pattern 上收到 OPL framework；
-4. 用替代证据清理旧 local/Hermes/MDS/default alias surface，不把旧兼容性无限期保留；满足删除口径时直接删除，不新增兼容 wrapper；
+4. 用 `standard_agent_purity` 默认投影和替代证据收口旧 local/Hermes/MDS/default alias surface；满足删除口径时直接删除，不新增兼容 wrapper；
 5. 最后做真实 MAS paper-line guarded apply soak，验证迁移后的目标形态；当前 read-only soak 与 MAS-owned guarded apply proof surface 是进入 live apply 的前置证据，不是最终投稿级完成证据。
 
-因此，当前优先级不是先 paper soak，也不是无证据清空历史层。清理属于迁移收口条件：删除前必须证明无 default caller、无 fixture/provenance 必需、已有 replacement diagnostic/history link；证明成立后就直接删除，不再把旧入口当作维护目标。
+因此，当前优先级不是先 paper soak，也不是无证据清空历史层。旧入口只在 history/provenance 或明确 legacy contract 语境中解释；删除前必须证明无 default caller、无 fixture/provenance 必需、已有 replacement diagnostic/history link；证明成立后就直接删除，不再把旧入口当作维护目标。
 
 ## 边界
 
@@ -119,7 +119,7 @@ MAS 必须持有：
 
 - study truth、runtime health truth、paper progress SLO、owner-route decision、AI reviewer verdict、publication gate、evidence/review ledgers、canonical manuscript/package authority 和 MAS action receipts。
 
-MAS sidecar/dispatcher/readiness 只能表达 OPL executor requirement 或接收 OPL receipt。`executor_kind` 的 MAS-owned 支持面保持 `codex_cli_default`，用于默认 concrete executor requirement、direct path 执行和 standalone diagnostics；Hermes scheduler / hosted runtime 文字统一按 explicit OPL opt-in reference、history/provenance 或 `retired_no_default_caller` 处理。
+MAS sidecar/dispatcher/readiness 只能表达 OPL executor requirement 或接收 OPL receipt。`executor_kind` 的 MAS-owned 支持面保持 `codex_cli_default`，用于默认 concrete executor requirement、direct path 执行和 standalone diagnostics；Hermes scheduler / hosted runtime 文字统一按 explicit OPL opt-in reference、history/provenance 或明确 legacy contract 引用处理。
 
 Provider attempt completion、queue hydration 或 worker liveness 只是支撑证据。只有 MAS owner surfaces 显示 artifact delta、gate owner progress、AI reviewer judgment update、route decision、stop-loss、human gate 或 typed blocker 时，才算 paper progress。
 

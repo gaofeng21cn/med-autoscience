@@ -10,7 +10,7 @@
 - [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md)
 - [OPL Temporal MAS Runtime Retirement Program](../../active/opl_temporal_mas_runtime_retirement_program.md)
 - [MAS 单项目 MDS 吸收 Program](../../active/mas_single_project_mds_absorb_program.md)
-- [Runtime Lifecycle SQLite 迁移 Program](../../active/runtime_lifecycle_sqlite_migration_program.md)
+- [Domain Authority Refs Index Guard](../../runtime/domain_authority_refs_index_guard.md)
 
 周期性支持线快照：
 

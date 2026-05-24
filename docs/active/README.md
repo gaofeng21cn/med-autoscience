@@ -35,7 +35,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 | Framework migration owner | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | 只维护 MAS 侧 provider/sidecar/legacy-retirement 边界和 live paper apply gate；OPL framework owner 回 OPL 仓。 |
 | Stage pack owner | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | 只维护 stage/prompt/skill/knowledge/quality gate 的标准形态；长 proof 流水回 history。 |
 | Product projection owner | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | 只维护 MAS 输出给 OPL App/workbench 的 refs-only 投影边界；不复制通用 workbench。 |
-| Landed foundation guard | [MAS 单项目 MDS 吸收 program](./mas_single_project_mds_absorb_program.md)、[Runtime lifecycle SQLite 迁移 program](./runtime_lifecycle_sqlite_migration_program.md) | 只保留 MDS provenance、monolith closeout、SQLite/file authority、quest/root Git retirement 和 drift guard；不再作为活跃实现队列。 |
+| Landed foundation guard | [MAS 单项目 MDS 吸收 program](./mas_single_project_mds_absorb_program.md)、[Domain Authority Refs Index Guard](../runtime/domain_authority_refs_index_guard.md) | 只保留 MDS provenance、monolith closeout、SQLite/file authority、quest/root Git retirement 和 drift guard；不再作为活跃实现队列。 |
 
 实际开发按内容块推进，不按整份旧文档推进。P0/P1/P2/P3/P3a 的完整旧记录已经归档；当前 active owner 文档只保留当前 owner 边界、gate 分类和仍可执行的内容线。旧 full record、旧 board、旧 activation package、dated follow-through 和命令流水只作为 history provenance 读取。
 

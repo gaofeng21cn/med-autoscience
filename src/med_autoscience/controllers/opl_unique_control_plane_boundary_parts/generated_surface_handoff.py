@@ -13,7 +13,7 @@ def build_generated_surface_handoff(
         "schema_version": schema_version,
         "generated_surface_owner": replacement_owner,
         "current_mas_role": "domain_handler_and_refs_projection_source",
-        "status": "handoff_declared_opl_default_surfaces_mas_domain_refs_only_no_resurrection",
+        "status": "handoff_declared_opl_default_surfaces_mas_domain_refs_only_standard_agent_purity_guarded",
         "long_term_mas_owner": False,
         "mas_handwritten_shell_expansion_allowed": False,
         "handoff_surfaces": [
@@ -94,7 +94,7 @@ def build_generated_surface_handoff(
             {
                 "surface_id": "test_lane_harness",
                 "current_paths": ["contracts/test-lane-manifest.json", "tests/"],
-                "current_role": "focused_contract_guard_for_no_resurrection",
+                "current_role": "focused_contract_guard_for_standard_agent_purity",
                 "target_role": "opl_generated_harness_consumer_over_mas_pack",
             },
         ],
