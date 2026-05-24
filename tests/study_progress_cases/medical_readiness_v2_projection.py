@@ -239,28 +239,36 @@ def test_mcp_progress_projection_uses_canonical_user_visible_projection() -> Non
     assert markdown.strip()
 
 
-def test_compact_mcp_progress_projection_preserves_runtime_continuity_read_model() -> None:
+def test_compact_mcp_progress_projection_preserves_runtime_continuity_domain_authority_refs() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     payload = {
         **_progress_payload(),
-        "runtime_session": {
-            "worker_state": "stale",
-            "worker_running": False,
-            "last_known_run_id": "run-stale-003",
-            "runtime_liveness_status": "stale",
-            "last_seen_at": "2026-05-08T00:40:00+00:00",
-            "freshness_state": "stale",
-            "evidence_refs": ["artifacts/runtime/session/latest.json"],
+        "opl_current_control_state_handoff": {
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "read_model": "workspace_opl_current_control_state_handoff_projection",
+            "authority": "observability_only",
+            "source_path": "/workspace/artifacts/supervision/opl_current_control_state/latest.json",
+            "study_id": "003-dpcc",
+            "quest_status": "running",
+            "active_run_id": "run-stale-003",
+            "runtime_health": {
+                "health_status": "escalated",
+                "blocked_reason": "runtime_recovery_retry_budget_exhausted",
+            },
         },
-        "owner_receipt_handoff": {
-            "current_action": "await_next_tick",
-            "reason": "worker_stale",
-            "next_owner": "mas_controller",
-            "dedupe_fingerprint": "continuity-003",
+        "domain_authority_handoff": {
+            "surface_kind": "mas_domain_authority_handoff",
+            "study_id": "003-dpcc",
+            "quest_id": "quest-003",
+            "status": "blocked",
+            "owner_route": "ai_reviewer",
+            "typed_blocker": "runtime_recovery_retry_budget_exhausted",
+            "action_refs": ["artifacts/supervision/opl_current_control_state/latest.json"],
             "authority": {
-                "quality_ready_authorized": True,
-                "publication_ready_authorized": True,
-                "submission_ready_authorized": True,
+                "writes_authority_surface": False,
+                "quality_ready_authorized": False,
+                "publication_ready_authorized": False,
+                "submission_ready_authorized": False,
             },
         },
     }
@@ -268,14 +276,23 @@ def test_compact_mcp_progress_projection_preserves_runtime_continuity_read_model
     compact = module.compact_study_progress_projection(payload)
 
     continuity = compact["runtime_continuity"]
-    assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-003"
-    assert continuity["runtime_session"]["worker_state"] == "stale"
-    assert continuity["owner_receipt_handoff"]["current_action"] == "await_next_tick"
-    assert continuity["owner_receipt_handoff"]["authority"] == {
+    assert "runtime_session" not in continuity
+    assert "owner_receipt_handoff" not in continuity
+    assert continuity["authority"] == {
+        "kind": "read_model_projection",
+        "writes_authority_surface": False,
         "quality_ready_authorized": False,
         "publication_ready_authorized": False,
         "submission_ready_authorized": False,
     }
+    assert continuity["opl_control_plane"] == {
+        "runtime_control_owner": "one-person-lab",
+        "stage_attempt_state_owned_by_mas": False,
+        "provider_completion_is_domain_completion": False,
+        "queue_succeeded_is_domain_completion": False,
+    }
+    assert continuity["domain_authority_handoff"]["typed_blocker"] == "runtime_recovery_retry_budget_exhausted"
+    assert compact["opl_current_control_state_handoff"]["runtime_health"]["health_status"] == "escalated"
 
 
 def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> None:

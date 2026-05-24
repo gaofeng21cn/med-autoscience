@@ -78,7 +78,14 @@ def test_platform_incident_learning_loop_derives_runtime_events_from_state_surfa
         {
             "study_id": "003-dpcc",
             "autonomy_state_machine": {"current_state": "no_live"},
-            "current_state_summary": {"runtime_health_status": "escalated"},
+            "opl_current_control_state_handoff": {
+                "surface_kind": "opl_current_control_state_study_handoff",
+                "authority": "observability_only",
+                "runtime_health": {
+                    "health_status": "escalated",
+                    "blocked_reason": "runtime_recovery_retry_budget_exhausted",
+                },
+            },
         }
     )
 

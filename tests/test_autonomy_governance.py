@@ -156,12 +156,6 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )
-    monkeypatch.setattr(
-        outer_loop.domain_status_projection,
-        "request_opl_stage_attempt",
-        lambda **_: {"decision": "relaunch_stopped", "reason": "quest_stopped_requires_explicit_rerun"},
-    )
-
     result = outer_loop.study_outer_loop_tick(
         profile=profile,
         study_id="001-risk",
@@ -196,3 +190,8 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
         "reason_code": "direction_locked_bounded_analysis_stays_autonomous",
     }
     assert payload["family_human_gates"] == []
+    executed = result["executed_controller_action"]
+    assert executed["action_type"] == "request_opl_stage_attempt_relaunch"
+    assert executed["result"]["status"] == "opl_stage_attempt_admission_required"
+    assert executed["result"]["typed_blocker"]["owner"] == "one-person-lab"
+    assert executed["result"]["typed_blocker"]["reason"] == "mas_runtime_attempt_execution_retired"

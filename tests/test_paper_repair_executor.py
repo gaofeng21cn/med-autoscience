@@ -392,7 +392,7 @@ def test_paper_repair_executor_ai_reviewer_handoff_preserves_runtime_health_epoc
         quest_id="quest-006c",
         study_root=study_root,
         repair_work_unit=work_unit,
-        control_plane_route_context=route_context,
+        authority_route_context=route_context,
         apply=True,
     )
 

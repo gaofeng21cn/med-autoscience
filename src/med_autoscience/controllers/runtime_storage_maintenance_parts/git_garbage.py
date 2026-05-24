@@ -438,7 +438,10 @@ def _retire_workspace_root_git(
             f"tar -xzf {archive_path} -C {workspace_root} "
             f"&& test -d {git_root}"
         ),
-        "authority_note": "Root Git is archived for restore only; runtime lifecycle uses SQLite, lifecycle ledgers, quest manifests, and restore indexes.",
+        "authority_note": (
+            "Root Git is archived for restore only; OPL owns runtime lifecycle and provider attempts, "
+            "while MAS keeps restore locators, provenance refs, and artifact authority receipts."
+        ),
     }
     _write_json(manifest_path, manifest)
     latest_payload = {

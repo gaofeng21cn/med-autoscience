@@ -195,6 +195,28 @@ def _fast_lane_success_rate(events: Sequence[Mapping[str, Any]]) -> float | None
     return _ratio(success, total)
 
 
+def _runtime_recovery_summary(events: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    durations: list[int] = []
+    blocked_at: datetime | None = None
+    for event in sorted(events, key=lambda item: _timestamp(item) or datetime.max.replace(tzinfo=timezone.utc)):
+        if _text(event.get("event_type")) != "runtime_supervision":
+            continue
+        status = _text(event.get("status"))
+        timestamp = _timestamp(event)
+        if status == "blocked":
+            blocked_at = timestamp
+        elif status in {"recovered", "clear", "healthy"} and blocked_at is not None:
+            duration = _duration_seconds(blocked_at, timestamp)
+            if duration is not None:
+                durations.append(duration)
+            blocked_at = None
+    return {
+        "count": len(durations),
+        "min_seconds": min(durations) if durations else None,
+        "max_seconds": max(durations) if durations else None,
+    }
+
+
 def _blocker_class(gate_summary: Mapping[str, Any]) -> str:
     blockers = [
         blocker
@@ -307,6 +329,9 @@ def build_paper_line_delivery_metrics(profile_payload: Mapping[str, Any]) -> dic
         "event_count": len(events),
         "delivery_dora_metrics": {
             "lead_times": lead_times,
+            "recovery": {
+                "blocked_to_recovered_seconds": _runtime_recovery_summary(events),
+            },
             "manual_gate_count": _manual_gate_count(events, blockers),
             "quality_reopen_rate": _quality_reopen_rate(events),
             "fast_lane_success_rate": _fast_lane_success_rate(events),

@@ -474,9 +474,14 @@ def test_scan_domain_routes_uses_pull_request_route_when_github_user_is_not_owne
     }
     assert result["developer_supervisor_mode"]["repo_write_policy"]["route"] == "pull_request"
     assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
-    assert study["action_queue"][0]["repo_write_policy"]["route"] == "pull_request"
-    assert study["why_not_applied"] == "runtime_recovery_retry_budget_exhausted"
-    assert (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").is_file()
+    assert study["action_queue"] == []
+    assert study["owner_route"]["next_owner"] == "one-person-lab"
+    assert study["owner_route"]["owner_reason"] == "runtime_recovery_not_authorized"
+    assert study["owner_route"]["allowed_actions"] == []
+    assert study["owner_route"]["owner_route_attempt_protocol"]["dispatchable"] is False
+    assert study["why_not_applied"] == "opl_stage_attempt_admission_required"
+    assert study["blocked_reason"] == "runtime_recovery_not_authorized"
+    assert not (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").exists()
 
 
 def test_scan_domain_routes_apply_safe_actions_sanitizes_unsafe_repair_authority(

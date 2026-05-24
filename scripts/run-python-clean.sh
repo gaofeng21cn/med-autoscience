@@ -107,7 +107,7 @@ cli_apply_requires_analysis_extra() {
   fi
 
   case "${command}" in
-    domain-route-reconcile|domain-owner-action-dispatch)
+    domain-route-reconcile|owner-route-reconcile|domain-owner-action-dispatch)
       local arg
       for arg in "${@:start_index}"; do
         if [[ "${arg}" == "--apply" ]]; then

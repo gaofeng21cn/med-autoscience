@@ -37,12 +37,6 @@ def test_study_outer_loop_tick_persists_controller_work_unit_context(
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "request_opl_stage_attempt",
-        lambda **_: {"decision": "noop", "reason": "quest_already_running"},
-    )
-
     result = module.study_outer_loop_tick(
         profile=profile,
         study_id="001-risk",
@@ -82,3 +76,8 @@ def test_study_outer_loop_tick_persists_controller_work_unit_context(
     assert payload["work_unit_fingerprint"] == "publication-blockers::claim-story-figure"
     assert payload["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert payload["blocking_work_units"][1]["unit_id"] == "submission_minimal_refresh"
+    assert result["dispatch_status"] == "blocked"
+    executed = result["executed_controller_action"]
+    assert executed["action_type"] == "request_opl_stage_attempt"
+    assert executed["result"]["status"] == "opl_stage_attempt_admission_required"
+    assert executed["result"]["typed_blocker"]["owner"] == "one-person-lab"

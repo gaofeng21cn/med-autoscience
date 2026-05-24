@@ -10,6 +10,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
+from tests.reviewer_os_fixture_helpers import claim_evidence_map_payload, evidence_ledger_payload, review_ledger_payload
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -37,6 +38,9 @@ def test_execute_dispatch_builds_ai_reviewer_routeback_record_from_current_prose
         if not Path(ref).exists():
             Path(ref).write_text("{}\n", encoding="utf-8")
     (study_root / "paper" / "draft.md").write_text("Current manuscript snapshot.\n", encoding="utf-8")
+    _write_json(Path(refs["claim_evidence_map"]), claim_evidence_map_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(Path(refs["evidence_ledger"]), evidence_ledger_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(Path(refs["review_ledger"]), review_ledger_payload(revision_log_path=study_root / "paper" / "revision_log.json"))
     route = _owner_route(
         study_id=study_id,
         action_type="return_to_ai_reviewer_workflow",
@@ -225,5 +229,4 @@ def test_execute_dispatch_builds_ai_reviewer_routeback_record_from_current_prose
     assert latest["future_facing_limitations_plan"][0]["current_manuscript_wording_must_be_restrained"] is True
     assert latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]["status"] == "current"
     assert latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]["route_target"] == "write"
-
 

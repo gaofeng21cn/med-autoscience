@@ -56,6 +56,60 @@ FORBIDDEN_SURFACES = [
 RETIRED_ABSENT_SURFACES = [
     "src/med_autoscience/runtime_transport/",
 ]
+SOURCE_ACTION_REF_FIELDS = (
+    "surface",
+    "study_id",
+    "quest_id",
+    "action_type",
+    "action_id",
+    "reason",
+    "owner",
+    "request_owner",
+    "recommended_owner",
+    "authority",
+    "required_output_surface",
+    "next_work_unit",
+    "work_unit_fingerprint",
+    "route_target",
+    "route_key_question",
+    "route_rationale",
+    "source_ref",
+    "terminal_source_provenance_blocker",
+    "hard_methodology_target",
+)
+SOURCE_HANDOFF_REF_FIELDS = (
+    "surface",
+    "request_kind",
+    "authority",
+    "owner",
+    "request_owner",
+    "recommended_owner",
+    "next_executable_owner",
+    "required_output_surface",
+    "next_work_unit",
+    "work_unit_fingerprint",
+    "route_target",
+    "route_key_question",
+    "route_rationale",
+    "source_ref",
+    "terminal_source_provenance_blocker",
+    "hard_methodology_target",
+)
+RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS = frozenset(
+    {
+        "provider_completion",
+        "running_worker",
+        "queue_status",
+        "retry_budget_remaining",
+        "domain_completion",
+        "stage_state",
+        "provider_completion_is_domain_completion",
+        "provider_completion_is_stage_state",
+        "queue_succeeded_is_domain_completion",
+        "retry_budget_is_domain_completion",
+        "running_worker_is_stage_state",
+    }
+)
 ALLOWED_WRITE_SURFACES = [
     "artifacts/supervision/consumer/latest.json",
     "artifacts/supervision/consumer/history.jsonl",
@@ -279,6 +333,15 @@ def _request_packet_ref_for_dispatch(action_type: str) -> str | None:
     return None
 
 
+def _source_action_ref(action: Mapping[str, Any]) -> dict[str, Any]:
+    source_ref = {key: action[key] for key in SOURCE_ACTION_REF_FIELDS if key in action}
+    handoff = _mapping(action.get("handoff_packet"))
+    handoff_ref = {key: handoff[key] for key in SOURCE_HANDOFF_REF_FIELDS if key in handoff}
+    if handoff_ref:
+        source_ref["handoff_packet"] = handoff_ref
+    return source_ref
+
+
 def _required_output_surface(action: Mapping[str, Any], action_type: str) -> str:
     handoff_packet = _mapping(action.get("handoff_packet"))
     return (
@@ -451,7 +514,10 @@ def _default_executor_dispatch(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
-        "source_action": dict(action),
+        "source_action": _source_action_ref(action),
+        "source_action_runtime_completion_fields_omitted": sorted(
+            key for key in action if key in RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS
+        ),
         "refs": {
             "scan_latest": str(_scan_latest_path(profile)),
             "dispatch_path": str(dispatch_path),

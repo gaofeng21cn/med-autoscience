@@ -243,6 +243,10 @@ def _materialize_opl_runtime_owner_handoff(
         "mas_materializes_runtime_supervision": False,
         "mas_runtime_read_model_retired": True,
         "reason": _non_empty_text(status_payload.get("reason")) or "opl_current_control_state_required",
+        "next_action_summary": (
+            _non_empty_text(status_payload.get("next_action_summary"))
+            or "Hydrate MAS owner-route refs through OPL current_control_state; OPL owns runtime retry/resume while MAS stays refs-only."
+        ),
         "opl_current_control_state_ref": {
             "owner": "one-person-lab",
             "required": True,

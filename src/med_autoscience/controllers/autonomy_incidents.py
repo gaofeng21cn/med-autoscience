@@ -257,6 +257,23 @@ def _derived_platform_incidents(profile_payload: Mapping[str, Any]) -> list[str]
         incidents.append("no_live")
     if diagnosis_code == "daemon_stalled_live_turn":
         incidents.append("stalled")
+    opl_handoff = _mapping(profile_payload.get("opl_current_control_state_handoff"))
+    opl_runtime_health = _mapping(opl_handoff.get("runtime_health"))
+    opl_health_status = _text(
+        opl_runtime_health.get("health_status") or opl_runtime_health.get("attempt_state")
+    )
+    opl_blocked_reason = _text(opl_handoff.get("blocked_reason") or opl_runtime_health.get("blocked_reason"))
+    why_not_applied = {
+        item_text
+        for item_text in (_text(item) for item in _list(opl_handoff.get("why_not_applied")))
+        if item_text is not None
+    }
+    if (
+        opl_health_status in {"degraded", "escalated"}
+        or opl_blocked_reason in {"runtime_recovery_retry_budget_exhausted", "runtime_recovery_not_authorized"}
+        or bool(why_not_applied & {"runtime_recovery_retry_budget_exhausted", "runtime_recovery_not_authorized"})
+    ):
+        incidents.append("runtime_recovery_failure")
     current_state_summary = _mapping(profile_payload.get("current_state_summary"))
     if _text(current_state_summary.get("state")) == "opl_runtime_owner_handoff_required":
         incidents.append("surface_ownership_drift")

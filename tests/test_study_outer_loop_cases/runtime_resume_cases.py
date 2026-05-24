@@ -26,8 +26,6 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     charter_ref = _write_charter(study_root)
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
-    seen: dict[str, object] = {}
-
     monkeypatch.setattr(
         module.domain_status_projection,
         "progress_projection",
@@ -40,19 +38,6 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )
-    monkeypatch.setattr(
-        module.domain_status_projection,
-        "request_opl_stage_attempt",
-        lambda **kwargs: (
-            seen.setdefault("ensure_kwargs", kwargs),
-            {
-                "decision": "relaunch_stopped",
-                "reason": "quest_stopped_explicit_relaunch_requested",
-                "quest_status": "active",
-            },
-        )[1],
-    )
-
     result = module.study_outer_loop_tick(
         profile=profile,
         study_id="001-risk",
@@ -71,19 +56,14 @@ def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monke
         recorded_at="2026-04-05T06:10:00+00:00",
     )
 
-    assert seen["ensure_kwargs"] == {
-        "profile": profile,
-        "study_id": "001-risk",
-        "study_root": study_root,
-        "force": False,
-        "source": "test-source",
-        "allow_stopped_relaunch": True,
-    }
     assert result["executed_controller_action"]["action_type"] == "request_opl_stage_attempt_relaunch"
-    assert result["executed_controller_action"]["result"] == {
-        "decision": "relaunch_stopped",
-        "reason": "quest_stopped_explicit_relaunch_requested",
-        "quest_status": "active",
+    assert result["executed_controller_action"]["result"]["status"] == "opl_stage_attempt_admission_required"
+    assert result["executed_controller_action"]["result"]["typed_blocker"] == {
+        "blocker_type": "opl_stage_attempt_admission_required",
+        "owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "reason": "mas_runtime_attempt_execution_retired",
+        "required_handoff": "DomainIntent owner route must be hydrated by OPL current_control_state.",
     }
 def test_build_domain_health_diagnostic_outer_loop_tick_request_materializes_bounded_analysis(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")

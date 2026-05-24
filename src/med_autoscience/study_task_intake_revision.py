@@ -153,7 +153,7 @@ def build_reviewer_revision_intake(payload: dict[str, Any] | None) -> dict[str, 
             "stopped_milestone_reopens_same_line": True,
             "required_sequence": [
                 "submit durable reviewer_revision task intake",
-                "reactivate the same study through MAS/MDS launch or resume",
+                "reactivate the same study through OPL current_control_state using MAS owner refs",
                 "apply revisions to controller-authorized canonical paper sources",
                 "regenerate manuscript/current_package from canonical authority",
             ],

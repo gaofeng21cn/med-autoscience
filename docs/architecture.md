@@ -120,7 +120,7 @@ MAS 的模块数量已经足够大，单靠文档描述 owner 容易漂移。因
 
 全仓 `_parts` 目录已经成为当前结构治理的主要观察面。它们表达自然职责边界：controller 薄入口、read-model/projection、publication gate、artifact lifecycle、display contract、CLI parser/command、test case family 等。`boundary_fitness` 把 hard blocking 与 advisory governance 分开：机械 `part/chunk/split` 编号仍是阻断；nested `_parts`、膨胀的 `shared_base.py`、接近 1000 行的单个 part、`exec(compile(...))` 拼接加载先作为 advisory 报告，服务后续自然边界拆分计划。
 
-这组治理信号保持 public contract：现有 `CLI`、`MCP`、controller callable surface、product-entry payload、manifest/schema、import facade 与测试聚合入口都应保持兼容。后续 lane 若处理 advisory，在对应 owner 边界内把内部实现迁到更清晰的 importable module、case module 或 shared helper family；study truth、publication truth、runtime truth、artifact authority 和用户可见 next action 继续由对应 authority 持有。
+这组治理信号保持当前 authority API / contract / generated descriptor 稳定：`CLI`、`MCP`、controller callable surface、product-entry payload、manifest/schema 与当前测试入口按 owner 边界维护。已退役 import facade、compat alias、legacy wrapper 和旧聚合入口只保留 history / tombstone / provenance 语境，不作为 public contract 继续保护。后续 lane 若处理 advisory，在对应 owner 边界内把内部实现迁到更清晰的 importable module、case module 或 shared helper family；study truth、publication truth、runtime truth、artifact authority 和用户可见 next action 继续由对应 authority 持有。
 
 live artifacts 不属于本治理面的写集。`publication_eval/latest.json`、`controller_decisions/latest.json`、`progress_projection`、`domain_health_diagnostic`、`current_package`、submission package、restore archives 与真实 workspace 产物都继续由 stable runtime / controller / canonical artifact flow 持有。Boundary governance 只报告 repo-tracked source/test/docs 的维护风险，不触碰或重生成 live study artifact。
 

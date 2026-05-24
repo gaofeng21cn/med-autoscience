@@ -68,7 +68,7 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
         }
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -137,3 +137,13 @@ def test_default_executor_dispatch_materializes_runtime_completion_as_transport_
     assert envelope["runtime_completion_guard"]["retry_budget_is_domain_completion"] is False
     assert "domain_completion" not in dispatch
     assert "stage_state" not in dispatch
+    assert dispatch["source_action_runtime_completion_fields_omitted"] == [
+        "provider_completion",
+        "queue_status",
+        "retry_budget_remaining",
+        "running_worker",
+    ]
+    assert "provider_completion" not in dispatch["source_action"]
+    assert "queue_status" not in dispatch["source_action"]
+    assert "retry_budget_remaining" not in dispatch["source_action"]
+    assert "running_worker" not in dispatch["source_action"]

@@ -108,7 +108,7 @@ def render_task_intake_markdown(
                 "## Revision Handoff Constraint",
                 "",
                 "- 明确用户、导师或审稿稿件反馈会重新激活同一 study；旧 stopped/submission-ready/finalize 状态不能作为前台直接修改 `manuscript/current_package/` 的许可。",
-                "- 先通过 MAS-owned launch/resume 接管 canonical paper surface，再重新生成 `manuscript/current_package/`。",
+                "- 先通过 OPL current_control_state 按 MAS owner refs 接管 stage attempt，再由 MAS domain handler 修改 canonical paper surface 并重新生成 `manuscript/current_package/`。",
                 "- 紧急 foreground overlay 只能作为 unreconciled handoff 标注，不能作为完成态或 MAS 已修订完成的证据。",
             ]
         )

@@ -83,7 +83,7 @@ def _retired_runtime_platform_repair_action(study_id: str, quest_id: str) -> dic
 
 def _write_consumer_scan(profile, study_id: str, quest_id: str) -> None:
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

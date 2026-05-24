@@ -114,17 +114,28 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
     dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
     quest_root = profile.runtime_root / "001-risk"
     dump_json(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json",
         {
+            "surface_kind": "mas_opl_runtime_owner_handoff",
             "schema_version": 1,
             "recorded_at": "2026-04-26T00:00:00+00:00",
             "study_id": "001-risk",
             "quest_id": "001-risk",
+            "status": "handoff_required",
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "mas_runtime_read_model_retired": True,
+            "mas_materializes_runtime_supervision": False,
             "health_status": "recovering",
             "runtime_stability_status": "flapping",
             "flapping_episode_count": 2,
             "flapping_circuit_breaker": True,
             "runtime_reason": "quest_marked_running_but_no_live_session",
+            "typed_blocker": {
+                "blocker_type": "opl_runtime_owner_handoff_required",
+                "owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+            },
         },
     )
     no_live_status = {
@@ -310,16 +321,27 @@ def test_flapping_recovery_probe_clears_hold_when_current_status_is_live(
     policy = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic_recovery_policy")
     study_root = tmp_path / "studies" / "001-risk"
     dump_json(
-        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json",
         {
+            "surface_kind": "mas_opl_runtime_owner_handoff",
             "schema_version": 1,
             "recorded_at": "2026-04-26T00:01:00+00:00",
             "study_id": "001-risk",
             "quest_id": "001-risk",
+            "status": "handoff_required",
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "mas_runtime_read_model_retired": True,
+            "mas_materializes_runtime_supervision": False,
             "health_status": "recovering",
             "runtime_stability_status": "flapping",
             "flapping_episode_count": 2,
             "flapping_circuit_breaker": True,
+            "typed_blocker": {
+                "blocker_type": "opl_runtime_owner_handoff_required",
+                "owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+            },
         },
     )
 

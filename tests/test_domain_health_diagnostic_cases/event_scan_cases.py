@@ -712,7 +712,7 @@ def test_watch_runtime_skips_outer_loop_materialization_when_human_gate_or_actio
     watch_latest_path = quest_root / "artifacts" / "reports" / "domain_health_diagnostic" / "latest.json"
     assert not watch_latest_path.exists()
 def test_publication_eval_action_uses_bounded_analysis_for_clear_continue_write_stage() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
 
     action = module._publication_eval_action(
         report={
@@ -729,7 +729,7 @@ def test_publication_eval_action_uses_bounded_analysis_for_clear_continue_write_
     assert action.action_type == "bounded_analysis"
     assert action.priority == "now"
 def test_publication_eval_action_requires_specificity_for_generic_reviewer_first_surface() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
 
     action = module._publication_eval_action(
         report={
@@ -751,7 +751,7 @@ def test_publication_eval_action_requires_specificity_for_generic_reviewer_first
     assert action.to_dict()["next_work_unit"]["unit_id"] == "gate_needs_specificity"
     assert action.priority == "now"
 def test_publication_eval_action_requires_specificity_for_generic_claim_evidence_route() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
 
     action = module._publication_eval_action(
         report={
@@ -776,7 +776,7 @@ def test_publication_eval_action_requires_specificity_for_generic_claim_evidence
 
 
 def test_publication_eval_action_does_not_dispatch_bounded_analysis_for_non_actionable_gate() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
 
     action = module._publication_eval_action(
         report={
@@ -797,7 +797,7 @@ def test_publication_eval_action_does_not_dispatch_bounded_analysis_for_non_acti
 
 
 def test_publication_eval_action_clears_same_line_route_for_non_actionable_finalize_gate() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
 
     action = module._publication_eval_action(
         report={
@@ -820,7 +820,7 @@ def test_publication_eval_action_clears_same_line_route_for_non_actionable_final
 
 
 def test_publication_eval_action_keeps_stop_loss_even_when_gate_is_non_actionable() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
 
     action = module._publication_eval_action(
         report={
@@ -840,7 +840,7 @@ def test_publication_eval_action_keeps_stop_loss_even_when_gate_is_non_actionabl
 
 
 def test_publication_eval_action_routes_blocked_bundle_stage_back_to_same_line_finalize() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission")
 
     action = module._publication_eval_action(
         report={

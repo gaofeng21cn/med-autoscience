@@ -48,7 +48,9 @@ def test_stage_surface_contract_builds_cards_from_canonical_route_contracts() ->
         "domain_truth",
         "quality_verdict",
         "artifact_authority",
-        "runtime_owner",
+        "runtime_authority_refs",
+        "owner_receipt",
+        "typed_blocker",
     ]
     assert surface["human_review_policy"]["mode"] == "optional_human_review_annotation"
     assert surface["human_review_policy"]["default_blocks_auto_advance"] is False
@@ -239,7 +241,7 @@ def test_render_stage_surfaces_markdown_is_generated_from_contract() -> None:
     assert f"Canonical route source: `{STAGE_ROUTE_CONTRACT_REF}`." in markdown
     assert "Markdown is a generated human-reading surface; it is not machine truth." in markdown
     assert "OPL may only project, dispatch, and read refs." in markdown
-    assert "MAS keeps domain truth, quality verdict, runtime-facing owner receipts, and artifact authority." in markdown
+    assert "MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and artifact authority." in markdown
 
     for route_id in EXPECTED_ROUTE_IDS:
         assert f"## {route_id}" in markdown

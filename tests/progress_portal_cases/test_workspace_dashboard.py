@@ -48,7 +48,8 @@ def test_progress_portal_html_renders_human_first_workspace_dashboard_without_lo
     assert '<span class="metric-label">需关注</span><strong>1</strong>' in html
     assert "论文线工作台" in html
     assert "论文线入口" not in html
-    assert "portal-nav" not in html
+    assert '<nav class="panel wide portal-nav"' not in html
+    assert 'aria-label="论文线导航"' not in html
     assert "study-list" in html
     assert "study-item" in html
     assert "study-action" in html
@@ -56,7 +57,8 @@ def test_progress_portal_html_renders_human_first_workspace_dashboard_without_lo
     assert '<article class="study-card' not in html
     assert 'href="studies/001-dm-cvd-mortality-risk/index.html"' in html
     assert "打开详情" in html
-    assert "运行控制台" in html
+    assert "OPL current_control_state" in html
+    assert "运行控制台" not in html
     assert "Live Console" not in html
     assert "medautosci runtime live-console --profile &lt;profile&gt; --serve" not in html
     assert "系统字段与来源" in html
