@@ -5,6 +5,7 @@ STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS = frozenset(
     {
         "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
         "dm002_current_publication_hardening_after_ai_reviewer_eval",
+        "dm002_same_line_methods_display_package_repair",
         "manuscript_story_repair",
         "medical_prose_write_repair",
     }

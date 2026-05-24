@@ -720,6 +720,10 @@ def test_medical_prose_write_repair_uses_explicit_route_context_when_gate_result
             "dm002_same_line_publication_paper_repair_20260521",
         ),
         (
+            "dm002_same_line_methods_display_package_repair",
+            "domain-transition::route_back_same_line::dm002_same_line_methods_display_package_repair",
+        ),
+        (
             "dm002_current_publication_hardening_after_ai_reviewer_eval",
             "dm002_current_ai_reviewer_publication_hardening_live_draft_f93aae_20260522T203041Z",
         ),

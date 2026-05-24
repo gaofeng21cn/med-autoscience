@@ -475,6 +475,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出当前 AI reviewer hardening work unit 已由 write owner 改出更接近医学期刊的 external-validation 正文，但 `quality_repair_batch` 因 preservation guard 只认 `medical_prose_write_repair` 且 routable 规则绑定 DPCC 术语，把当前正文覆盖回旧 DM002 模板。这是 MAS writer owner / quality repair currentness 缺陷，不是 OPL queue/provider 或单篇论文手工修稿问题。
 - 影响：这是 MAS manuscript autonomy / quality repair currentness 能力修复。它只阻止旧模板覆盖已授权 canonical story-surface delta，并允许生成 AI reviewer recheck request；不授权写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。
 
+## 2026-05-24：DM002 methods-display-package repair 是 story-surface write work unit
+
+- 决策：`dm002_same_line_methods_display_package_repair` 是 DM002 external-validation 稿件的 write-owner story-surface work unit，必须注册为 upstream publishability repair、`paper_write` 授权 work unit、story-surface delta work unit，并复用 DM002 external-validation manuscript materializer。它的完成证据必须包含 `paper/draft.md` 或 `paper/build/review_manuscript.md` 的 canonical manuscript delta；ledger-only `claim_evidence_map` / `evidence_ledger` / `review_ledger` 变化不得被 `paper_repair_execution_evidence` 记为 `progress_delta_candidate`。
+- 决策：Agent Lab 医学稿件质量目标必须把 DM002 methods-display-package repair 纳入“ledger-only 不可闭合稿件质量”的回归能力，避免后续 route-back checklist 或 quality suite 只覆盖旧 `medical_prose_write_repair` 名称。
+- 理由：DM002 最新 AI reviewer route-back 已把 next work unit 命名为 `dm002_same_line_methods_display_package_repair`，但旧 MAS 注册表只认识较早的 DM002 hardening / publication paper repair 名称。结果是 `run_quality_repair_batch` 在当前 owner route 下退化为 `analysis_claim_evidence_repair`，只更新 ledger 和 recheck request，却没有推进正式正文。
+- 影响：这是 MAS writer owner / work-unit registry 修复，不改 DM002 study truth、runtime-owned surface、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 submission package。质量结论仍由 AI reviewer-backed publication eval 与 publication gate 决定。
+
 ## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
 
 - 决策：`quality_repair_batch_writer_handoff` 生成 `run_quality_repair_batch` dispatch 时，必须同步物化 `artifacts/supervision/requests/quality_repair_batch/latest.json`，并把 `prompt_contract.request_packet_ref` 指向该 request surface。后续 dispatcher 以 request+dispatch 双面 currentness 为主。
