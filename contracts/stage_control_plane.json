@@ -383,6 +383,12 @@
       "quality_pack_projection": {
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
         "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "data_access_ground_truth_isolation_ref": "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation",
+        "data_access_levels": [
+          "raw_source_intake",
+          "verified_evidence_only",
+          "reviewer_verdict_only"
+        ],
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
@@ -397,7 +403,8 @@
         ],
         "publication_readiness_authority": false,
         "quality_verdict_authority": false,
-        "role": "quality_input_and_reviewer_rubric"
+        "role": "quality_input_and_reviewer_rubric",
+        "runtime_permission_authority": false
       },
       "quality_pack_refs": [
         "ai_native_expert_judgment_pack",
@@ -926,6 +933,12 @@
       "quality_pack_projection": {
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
         "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "data_access_ground_truth_isolation_ref": "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation",
+        "data_access_levels": [
+          "raw_source_intake",
+          "verified_evidence_only",
+          "reviewer_verdict_only"
+        ],
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
@@ -937,7 +950,8 @@
         ],
         "publication_readiness_authority": false,
         "quality_verdict_authority": false,
-        "role": "quality_input_and_reviewer_rubric"
+        "role": "quality_input_and_reviewer_rubric",
+        "runtime_permission_authority": false
       },
       "quality_pack_refs": [
         "ai_native_expert_judgment_pack",
@@ -1476,6 +1490,12 @@
       "quality_pack_projection": {
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
         "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "data_access_ground_truth_isolation_ref": "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation",
+        "data_access_levels": [
+          "raw_source_intake",
+          "verified_evidence_only",
+          "reviewer_verdict_only"
+        ],
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
@@ -1491,7 +1511,8 @@
         ],
         "publication_readiness_authority": false,
         "quality_verdict_authority": false,
-        "role": "quality_input_and_reviewer_rubric"
+        "role": "quality_input_and_reviewer_rubric",
+        "runtime_permission_authority": false
       },
       "quality_pack_refs": [
         "ai_native_expert_judgment_pack",
@@ -2026,6 +2047,12 @@
       "quality_pack_projection": {
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
         "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "data_access_ground_truth_isolation_ref": "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation",
+        "data_access_levels": [
+          "raw_source_intake",
+          "verified_evidence_only",
+          "reviewer_verdict_only"
+        ],
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
@@ -2044,7 +2071,8 @@
         ],
         "publication_readiness_authority": false,
         "quality_verdict_authority": false,
-        "role": "quality_input_and_reviewer_rubric"
+        "role": "quality_input_and_reviewer_rubric",
+        "runtime_permission_authority": false
       },
       "quality_pack_refs": [
         "ai_native_expert_judgment_pack",
@@ -2596,6 +2624,12 @@
       "quality_pack_projection": {
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
         "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "data_access_ground_truth_isolation_ref": "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation",
+        "data_access_levels": [
+          "raw_source_intake",
+          "verified_evidence_only",
+          "reviewer_verdict_only"
+        ],
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
@@ -2617,7 +2651,8 @@
         ],
         "publication_readiness_authority": false,
         "quality_verdict_authority": false,
-        "role": "quality_input_and_reviewer_rubric"
+        "role": "quality_input_and_reviewer_rubric",
+        "runtime_permission_authority": false
       },
       "quality_pack_refs": [
         "ai_native_expert_judgment_pack",
@@ -3172,6 +3207,12 @@
       "quality_pack_projection": {
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
         "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "data_access_ground_truth_isolation_ref": "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation",
+        "data_access_levels": [
+          "raw_source_intake",
+          "verified_evidence_only",
+          "reviewer_verdict_only"
+        ],
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
@@ -3194,7 +3235,8 @@
         ],
         "publication_readiness_authority": false,
         "quality_verdict_authority": false,
-        "role": "quality_input_and_reviewer_rubric"
+        "role": "quality_input_and_reviewer_rubric",
+        "runtime_permission_authority": false
       },
       "quality_pack_refs": [
         "ai_native_expert_judgment_pack",

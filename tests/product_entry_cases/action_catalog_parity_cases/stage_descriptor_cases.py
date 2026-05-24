@@ -117,6 +117,15 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "data_access_ground_truth_isolation_ref": (
+            "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation"
+        ),
+        "data_access_levels": [
+            "raw_source_intake",
+            "verified_evidence_only",
+            "reviewer_verdict_only",
+        ],
+        "runtime_permission_authority": False,
     }
     stage_skill_projection = stage_skill_surface_projection.build_stage_skill_surface_projection()
     assert descriptor["stage_skill_surface_projection"] == stage_skill_projection
@@ -366,6 +375,10 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["quality_pack_projection"]["locator_ref"] == (
             "/product_entry_manifest/stage_quality_pack_contract/pack_locators"
         )
+        assert stage["quality_pack_projection"]["data_access_ground_truth_isolation_ref"] == (
+            "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation"
+        )
+        assert stage["quality_pack_projection"]["runtime_permission_authority"] is False
         assert stage["stage_skill_surface_projection"]["surface_kind"] == "stage_skill_surface_projection"
         assert stage["stage_skill_surface_projection"]["stage_card_ref"]["ref"] == (
             f"/product_entry_manifest/family_stage_control_plane/stages/{stage['stage_id']}"

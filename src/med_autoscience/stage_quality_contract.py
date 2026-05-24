@@ -11,6 +11,7 @@ from med_autoscience.stage_quality_contract_parts.pack_data import (
     _PACK_OWNER_REFS,
     _PACK_REQUIRED_REFS,
     _PACK_TITLES,
+    _REVIEWER_PRECOMMITMENT_PACK_IDS,
 )
 from med_autoscience.stage_quality_contract_parts.journal_currentness import (
     JOURNAL_POLICY_CURRENTNESS_PACKS,
@@ -193,10 +194,18 @@ def build_stage_quality_pack_contract() -> dict[str, Any]:
             "source_ref": REPO_PATH,
             "stale_if_contract_source_missing": True,
         },
+        "data_access_ground_truth_isolation": _data_access_ground_truth_isolation(),
         "authority_boundary": _contract_authority_boundary(),
         "opl_projection_boundary": {
             "role": "descriptor_ref_freshness_locator_only",
-            "allowed_fields": ["contract_ref", "pack_ids", "freshness", "pack_locators", "authority_boundary"],
+            "allowed_fields": [
+                "contract_ref",
+                "pack_ids",
+                "freshness",
+                "pack_locators",
+                "data_access_ground_truth_isolation",
+                "authority_boundary",
+            ],
             "forbidden_outputs": [
                 "quality_verdict",
                 "publication_readiness",
@@ -219,6 +228,11 @@ def build_stage_quality_pack_projection() -> dict[str, Any]:
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "data_access_ground_truth_isolation_ref": (
+            "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation"
+        ),
+        "data_access_levels": _data_access_level_ids(),
+        "runtime_permission_authority": False,
     }
 
 
@@ -256,6 +270,11 @@ def build_stage_quality_pack_ref_projection(stage_ids: Iterable[str]) -> dict[st
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "data_access_ground_truth_isolation_ref": (
+            "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation"
+        ),
+        "data_access_levels": _data_access_level_ids(),
+        "runtime_permission_authority": False,
         "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
     }
 
@@ -279,6 +298,8 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
     }
     if pack_id == "reporting_guideline_pack":
         pack["guideline_selection"] = _reporting_guideline_selection()
+    if pack_id in _REVIEWER_PRECOMMITMENT_PACK_IDS:
+        pack["reviewer_precommitment_contract"] = _reviewer_precommitment_contract(pack_id)
     if pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS:
         pack["journal_family_patterns"] = list(_JOURNAL_FAMILY_PATTERNS[pack_id])
         pack["clean_room_absorption"] = _clean_room_absorption()
@@ -321,6 +342,97 @@ def _pack_authority_boundary() -> dict[str, Any]:
         "can_authorize_submission_readiness": False,
         "can_write_domain_truth": False,
     }
+
+
+def _reviewer_precommitment_contract(pack_id: str) -> dict[str, object]:
+    return {
+        "contract_id": f"{pack_id}.reviewer_precommitment_contract.v1",
+        "source_project": "academic-research-skills",
+        "absorbed_as": "mas_native_reviewer_precommitment_contract",
+        "paper_blind_phase": {
+            "phase_id": "paper_content_blind_precommitment",
+            "allowed_inputs": ["quality_pack_descriptor", "paper_metadata_only"],
+            "forbidden_inputs": [
+                "paper_body",
+                "manuscript_package",
+                "publication_eval_verdict",
+                "controller_decision_verdict",
+            ],
+            "expected_output_ref": "reviewer_precommitment_record",
+        },
+        "paper_visible_phase": {
+            "phase_id": "paper_visible_review",
+            "required_inputs": [
+                "quality_pack_descriptor",
+                "reviewer_precommitment_record",
+                "verified_evidence_refs",
+                "paper_or_artifact_under_review",
+            ],
+            "precommitment_record_must_be_reinjected": True,
+            "may_rewrite_precommitment_after_viewing_paper": False,
+        },
+        "required_precommitment_outputs": [
+            "contract_paraphrase",
+            "scoring_plan",
+            "contract_acknowledged_receipt",
+        ],
+        "required_runtime_inputs": [
+            "quality_pack_descriptor",
+            "paper_metadata_only",
+            "reviewer_precommitment_record",
+            "verified_evidence_refs",
+            "paper_or_artifact_under_review",
+        ],
+        "separate_invocation_required": True,
+        "rubric_may_authorize_quality_verdict": False,
+        "rubric_may_write_truth": False,
+    }
+
+
+def _data_access_ground_truth_isolation() -> dict[str, object]:
+    return {
+        "source_project": "academic-research-skills",
+        "absorbed_as": "mas_native_stage_quality_data_access_descriptor",
+        "descriptor_only": True,
+        "runtime_permission_authority": False,
+        "levels": [
+            {
+                "level_id": "raw_source_intake",
+                "ars_data_access_level": "raw",
+                "mas_scope": "source_intake_or_unverified_workspace_material",
+                "may_feed_candidate_generation": True,
+                "may_authorize_reviewer_verdict": False,
+            },
+            {
+                "level_id": "verified_evidence_only",
+                "ars_data_access_level": "verified_only",
+                "mas_scope": "evidence_or_review_refs_after_integrity_gate",
+                "may_feed_candidate_generation": True,
+                "may_authorize_reviewer_verdict": False,
+            },
+            {
+                "level_id": "reviewer_verdict_only",
+                "ars_data_access_level": "verified_only",
+                "mas_scope": "reviewer_or_auditor_verdict_record",
+                "may_feed_candidate_generation": False,
+                "may_authorize_reviewer_verdict": False,
+            },
+        ],
+        "ground_truth_boundary": {
+            "rubric_or_verdict_must_not_seed_candidate_generation": True,
+            "reviewer_must_run_as_separate_invocation": True,
+            "rubric_may_authorize_quality_verdict": False,
+            "rubric_may_write_truth": False,
+            "descriptor_grants_runtime_access": False,
+        },
+    }
+
+
+def _data_access_level_ids() -> list[str]:
+    return [
+        str(item["level_id"])
+        for item in _data_access_ground_truth_isolation()["levels"]
+    ]
 
 
 def _reporting_guideline_selection() -> list[dict[str, Any]]:
