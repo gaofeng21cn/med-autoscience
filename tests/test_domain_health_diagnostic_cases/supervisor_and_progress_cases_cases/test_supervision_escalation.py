@@ -115,9 +115,8 @@ def test_watch_runtime_writes_study_supervision_report_and_escalates_after_conse
     assert second_handoff["typed_blocker"]["blocker_type"] == "opl_runtime_owner_handoff_required"
     assert latest_payload["mas_runtime_read_model_retired"] is True
     assert latest_payload["next_action_summary"]
-    assert escalation_path.exists()
-    escalation_payload = json.loads(escalation_path.read_text(encoding="utf-8"))
-
-    assert escalation_payload["reason"] == "resume_request_failed"
+    assert latest_payload["reason"] == "resume_request_failed"
+    assert latest_payload["typed_blocker"]["owner"] == "one-person-lab"
+    assert not escalation_path.exists()
     assert "runtime_event_ref" not in latest_payload
     assert not (quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json").exists()

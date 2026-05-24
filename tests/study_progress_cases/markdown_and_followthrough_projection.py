@@ -392,8 +392,10 @@ def test_study_progress_surfaces_figure_loop_guard_blockers_from_domain_health_d
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
-    assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
-    assert result["intervention_lane"]["recommended_action_id"] == "inspect_progress"
+    assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
+    assert result["intervention_lane"]["recommended_action_id"] == "continue_or_relaunch"
+    assert "OPL runtime refs" in result["intervention_lane"]["summary"]
+    assert "MAS 只保留 domain authority refs" in result["intervention_lane"]["summary"]
     assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in result["current_blockers"]
     assert "图表循环期间参考文献数量低于下限，当前稿件质量不达标。" in result["current_blockers"]
 

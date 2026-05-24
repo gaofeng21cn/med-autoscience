@@ -55,7 +55,7 @@ def test_materialize_domain_action_requests_routes_clean_canonical_rehydrate_to_
         allowed_actions=["canonical_paper_inputs_rehydrate_required"],
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -144,7 +144,7 @@ def test_materialize_domain_action_requests_routes_hard_methodology_handoff_to_a
         allowed_actions=["unit_harmonized_external_validation_rerun"],
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -237,7 +237,7 @@ def test_materialize_domain_action_requests_routes_model_provenance_handoff_to_s
         allowed_actions=["recover_transport_model_provenance"],
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -330,7 +330,7 @@ def test_materialize_domain_action_requests_routes_methodology_reframe_to_decisi
         allowed_actions=["methodology_reframe_route_decision"],
     )
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -433,7 +433,7 @@ def test_materialize_domain_action_requests_prefers_current_study_queue_over_sta
     )
     current_route["source_fingerprint"] = "truth-source::current-write-rehydrate"
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

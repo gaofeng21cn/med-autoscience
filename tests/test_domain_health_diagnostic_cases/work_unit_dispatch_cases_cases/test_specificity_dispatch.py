@@ -248,18 +248,16 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
     assert wakeup_latest["no_op_acknowledged"] is True
     assert wakeup_latest["next_work_unit"]["unit_id"] == "gate_needs_specificity"
     assert wakeup_latest["specificity_questions"] == tick_request["specificity_questions"]
-    assert controller_decision["decision_type"] == "return_to_controller"
-    assert controller_decision["controller_actions"][0]["action_type"] == "request_gate_specificity"
-    assert controller_decision["next_work_unit"]["unit_id"] == "gate_needs_specificity"
-    assert controller_decision["work_unit_fingerprint"] == "publication-blockers::vague"
-    assert runtime_state["last_controller_decision_authorization"]["work_unit_id"] == "gate_needs_specificity"
-    assert runtime_state["last_controller_decision_authorization"]["work_unit_fingerprint"] == "publication-blockers::vague"
-    assert runtime_state["last_controller_decision_authorization"]["controller_work_unit_executable"] is False
-    assert (
-        runtime_state["last_controller_decision_authorization"]["non_executable_reason"]
-        == "gate_needs_specificity_without_targets"
-    )
-    assert runtime_state["last_controller_decision_authorization"]["required_target_kinds"] == [
+    authorization = wakeup_latest["controller_authorization_ref"]
+    assert authorization["surface_kind"] == "gate_specificity_controller_authorization_ref"
+    assert authorization["effect"] == "refs_only"
+    assert authorization["queue_owner"] == "one-person-lab"
+    assert authorization["mas_writes_runtime_state"] is False
+    assert authorization["work_unit_id"] == "gate_needs_specificity"
+    assert authorization["work_unit_fingerprint"] == "publication-blockers::vague"
+    assert authorization["controller_work_unit_executable"] is False
+    assert authorization["non_executable_reason"] == "gate_needs_specificity_without_targets"
+    assert authorization["required_target_kinds"] == [
         "claim",
         "display",
         "evidence_source",
@@ -268,17 +266,29 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
         "package_artifact",
         "authorization_provenance",
     ]
-    assert runtime_state["last_controller_decision_authorization"]["controller_work_unit_lifecycle"] == {
+    assert authorization["controller_work_unit_lifecycle"] == {
         "lifecycle_state": "needs_specificity",
         "latest_event_type": "needs_specificity",
         "delivery_blocked": True,
         "block_reason": "needs_specificity",
         "terminal_consumed": True,
     }
-    assert runtime_state["pending_user_message_count"] == 1
-    assert [item["message_id"] for item in message_queue["pending"]] == ["msg-human-real"]
-    assert [item["message_id"] for item in message_queue["completed"]] == ["msg-controller-old"]
-    assert message_queue["completed"][0]["status"] == "superseded_by_gate_specificity"
+    assert wakeup_latest["control_intent_lifecycle_ref"] == {
+        "surface_kind": "control_intent_lifecycle_ref",
+        "state": "needs_specificity",
+        "control_intent_key": authorization["control_intent_key"],
+        "work_unit_id": "gate_needs_specificity",
+        "work_unit_fingerprint": "publication-blockers::vague",
+        "mas_writes_runtime_state": False,
+    }
+    assert controller_decision["decision_type"] == "return_to_controller"
+    assert controller_decision["controller_actions"][0]["action_type"] == "request_gate_specificity"
+    assert controller_decision["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert controller_decision["work_unit_fingerprint"] == "publication-blockers::vague"
+    assert runtime_state["last_controller_decision_authorization"]["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert runtime_state["pending_user_message_count"] == 2
+    assert [item["message_id"] for item in message_queue["pending"]] == ["msg-controller-old", "msg-human-real"]
+    assert message_queue["completed"] == []
     assert [event["event_type"] for event in ledger_events] == ["needs_specificity"]
 
 
@@ -392,10 +402,12 @@ def test_watch_runtime_carries_specificity_targets_into_authorization_and_wakeup
         (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
     )
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    authorization = runtime_state["last_controller_decision_authorization"]
+    authorization = wakeup_latest["controller_authorization_ref"]
 
     assert result["managed_study_no_op_suppressions"][0]["outcome"] == "needs_specificity"
     assert wakeup_latest["specificity_targets"] == specificity_targets
     assert authorization["specificity_targets"] == specificity_targets
     assert authorization["controller_work_unit_executable"] is True
     assert "non_executable_reason" not in authorization
+    assert authorization["mas_writes_runtime_state"] is False
+    assert "last_controller_decision_authorization" not in runtime_state

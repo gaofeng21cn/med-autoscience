@@ -13,7 +13,7 @@
   ],
   "source_policy": {
     "new_agent_surfaces_use_standard_slots": true,
-    "existing_facades_remain_mapped_refs": true,
+    "legacy_facades_have_provenance_refs_only": true,
     "workspace_artifact_bodies_allowed": false
   },
   "authority_boundary": {

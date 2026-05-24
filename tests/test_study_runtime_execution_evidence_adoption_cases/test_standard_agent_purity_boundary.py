@@ -33,12 +33,22 @@ def test_retired_execution_and_transport_aggregates_do_not_return_as_aliases() -
 
 def test_runtime_platform_repair_is_not_a_mas_owner_callable_or_dispatch_action() -> None:
     owner_route = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
     registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
     dispatcher = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     router = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch_parts.action_router")
 
     assert "runtime_platform_repair" not in owner_route.ALLOWED_ACTION_TYPES
     assert "runtime_platform_repair" not in owner_route.ROUTED_ACTION_TYPES
+    for reason in (
+        "abnormal_stopped_runtime_resume_required",
+        "failed_quest_runtime_relaunch_required",
+        "runtime_platform_repair",
+    ):
+        contract = attempt_protocol.owner_reason_contract(reason=reason, owner="one-person-lab")
+        assert contract["registered"] is True
+        assert contract["owner"] == "one-person-lab"
+        assert contract["allowed_actions"] == []
     assert registry.owner_callable_for_action("runtime_platform_repair") is None
     assert "runtime_platform_repair" not in dispatcher.SUPPORTED_ACTION_TYPES
     assert "runtime_platform_repair" not in inspect.getsource(router.execute_owner_dispatch_action)

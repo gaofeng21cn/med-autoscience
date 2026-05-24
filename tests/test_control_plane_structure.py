@@ -61,6 +61,11 @@ def _is_live_comparison(node: ast.Compare) -> bool:
 def test_control_plane_modules_depend_on_canonical_fact_resolver() -> None:
     for relative_path in CONTROL_PLANE_MODULES:
         source = _source(relative_path)
+        if relative_path.endswith("projection_runtime_surfaces.py"):
+            assert "runtime_facts" in source, relative_path
+            assert "runtime_liveness_audit" not in source, relative_path
+            assert "status_payload" not in source, relative_path
+            continue
         assert "opl_runtime_refs" in source or "resolve_opl_runtime_refs" in source, relative_path
 
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from tests.domain_owner_action_dispatch_helpers import write_json as _write_json
+from tests.reviewer_os_fixture_helpers import claim_evidence_map_payload, evidence_ledger_payload, review_ledger_payload
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -174,6 +175,16 @@ def _write_ai_reviewer_currentness_inputs(study_root: Path, *, eval_id: str) -> 
             "source_eval_id": eval_id,
             "current_package_root": str(study_root / "manuscript" / "current_package"),
             "current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+        },
+    )
+    _write_json(Path(refs["claim_evidence_map"]), claim_evidence_map_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(Path(refs["evidence_ledger"]), evidence_ledger_payload(evidence_ledger_ref=refs["evidence_ledger"]))
+    _write_json(Path(refs["review_ledger"]), review_ledger_payload(revision_log_path=study_root / "paper" / "revision_log.json"))
+    _write_json(
+        Path(refs["publication_gate_projection"]),
+        {
+            "surface": "publication_gate_projection",
+            "status": "ready",
         },
     )
 

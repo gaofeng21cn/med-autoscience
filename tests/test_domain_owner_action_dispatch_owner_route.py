@@ -297,7 +297,7 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     _write_json(ready_path, ready_dispatch)
     _write_json(blocked_path, blocked_dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -369,7 +369,7 @@ def test_execute_dispatch_action_type_requires_current_consumer_dispatch(
     )
     _write_json(dispatch_path, stale_dispatch)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -510,7 +510,7 @@ def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_an
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -641,7 +641,7 @@ def test_execute_dispatch_does_not_repeat_suppress_pending_ai_reviewer_output(
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -758,7 +758,7 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
     )
     _write_json(dispatch_path, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -886,7 +886,7 @@ def test_execute_dispatch_blocks_retired_runtime_platform_repair_even_when_termi
     )
     _write_json(dispatch_path, dispatch_payload)
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

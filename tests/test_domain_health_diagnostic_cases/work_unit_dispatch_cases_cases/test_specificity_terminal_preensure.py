@@ -92,6 +92,10 @@ def test_watch_runtime_does_not_preensure_paused_specificity_terminal_request(
         request_opl_stage_attempts=True,
     )
     runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    wakeup_latest = json.loads(
+        (study_root / "artifacts" / "runtime" / "domain_health_diagnostic_wakeup" / "latest.json").read_text(encoding="utf-8")
+    )
+    authorization = wakeup_latest["controller_authorization_ref"]
 
     assert outer_loop_calls == []
     assert result["managed_study_outer_loop_dispatches"] == []
@@ -99,8 +103,10 @@ def test_watch_runtime_does_not_preensure_paused_specificity_terminal_request(
     assert runtime_state["status"] == "paused"
     assert runtime_state["active_run_id"] is None
     assert runtime_state["worker_running"] is False
-    assert runtime_state["last_controller_decision_authorization"]["work_unit_id"] == "gate_needs_specificity"
-    assert runtime_state["last_controller_decision_authorization"]["controller_work_unit_lifecycle"][
+    assert "last_controller_decision_authorization" not in runtime_state
+    assert authorization["work_unit_id"] == "gate_needs_specificity"
+    assert authorization["mas_writes_runtime_state"] is False
+    assert authorization["controller_work_unit_lifecycle"][
         "lifecycle_state"
     ] == "needs_specificity"
 

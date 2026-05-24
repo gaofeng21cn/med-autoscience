@@ -172,7 +172,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
     assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_product_entry"
     assert payload["phase2_user_product_loop"]["recommended_command"] == (
-        "uv run python -m med_autoscience.cli product-entry-status --profile <profile>"
+        "uv run python -m med_autoscience.cli product entry_status --profile <profile>"
     )
     assert payload["phase2_user_product_loop"]["single_path"][0]["step_id"] == "open_product_entry"
     assert payload["phase2_user_product_loop"]["single_path"][3]["step_id"] == "continue_study"
@@ -180,23 +180,23 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["phase2_user_product_loop"]["proof_surfaces"] == [
         {
             "surface_kind": "product_entry_status",
-            "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+            "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
         },
         {
             "surface_kind": "workspace_cockpit",
-            "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>",
+            "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile>",
         },
         {
             "surface_kind": "study_progress.operator_verdict",
             "command": (
-                "uv run python -m med_autoscience.cli study-progress --profile <profile> "
+                "uv run python -m med_autoscience.cli study progress --profile <profile> "
                 "--study-id <study_id>"
             ),
         },
         {
             "surface_kind": "study_progress.recovery_contract",
             "command": (
-                "uv run python -m med_autoscience.cli study-progress --profile <profile> "
+                "uv run python -m med_autoscience.cli study progress --profile <profile> "
                 "--study-id <study_id>"
             ),
         },
@@ -208,13 +208,13 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
     assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_domain_refs_boundary"
     assert payload["phase3_clearance_lane"]["recommended_command"] == (
-        "uv run python -m med_autoscience.cli doctor --profile <profile>"
+        "uv run python -m med_autoscience.cli doctor report --profile <profile>"
     )
     assert payload["phase3_clearance_lane"]["clearance_targets"][0]["target_id"] == "mas_domain_refs_boundary"
     assert payload["phase3_clearance_lane"]["proof_surfaces"] == [
         {
             "surface_kind": "doctor.runtime_contract",
-            "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
+            "command": "uv run python -m med_autoscience.cli doctor report --profile <profile>",
         },
         {
             "surface_kind": "progress_projection.autonomous_runtime_notice",
@@ -394,7 +394,7 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
     assert "new upstream intake from future MDS/DeepScientist snapshots" in current_payload["phase"]["single_project_boundary"]["post_gate_only"]
     assert any(item["name"] == "mainline_status" for item in current_payload["phase"]["entry_points"])
     assert next_payload["phase"]["id"] == "phase_2_user_product_loop"
-    assert any("workspace-cockpit" in item["command"] for item in next_payload["phase"]["entry_points"])
+    assert any("workspace cockpit" in item["command"] for item in next_payload["phase"]["entry_points"])
 
 
 def test_render_mainline_phase_markdown_surfaces_entry_points_and_exit_criteria() -> None:

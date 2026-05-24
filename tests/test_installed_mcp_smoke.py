@@ -6,7 +6,6 @@ import shutil
 import subprocess
 
 from med_autoscience.authority_operation_command_catalog import (
-    AUTHORITY_OPERATION_CLI_COMMANDS,
     AUTHORITY_OPERATION_MCP_MODES,
     AUTHORITY_OPERATION_COMMANDS,
 )
@@ -72,22 +71,29 @@ def test_installed_medautosci_mcp_lists_authority_surface_modes() -> None:
     assert "safe_cache_cleanup_apply" not in mode_schema["enum"]
 
 
-def test_installed_medautosci_cli_lists_authority_operation_commands() -> None:
+def test_installed_medautosci_cli_lists_authority_operation_group_commands() -> None:
     executable = shutil.which("medautosci")
     assert executable is not None
 
     environment = dict(os.environ)
     environment["PYTHONPATH"] = "src" + os.pathsep + environment.get("PYTHONPATH", "")
     result = subprocess.run(
-        [executable, "--help"],
+        [executable, "product", "--help"],
         text=True,
         capture_output=True,
         check=True,
         timeout=10,
         env=environment,
     )
+    expected_commands = {
+        "authority-migration-audit",
+        "governance-report",
+        "backfill-apply",
+        "artifact-lifecycle-report",
+        "artifact-lifecycle-soak-summary",
+    }
 
-    for command in AUTHORITY_OPERATION_CLI_COMMANDS:
+    for command in expected_commands:
         assert command in result.stdout
     assert "control-plane-cleanup-apply" not in result.stdout
     assert "control-plane-safe-cache-cleanup-apply" not in result.stdout
@@ -100,7 +106,7 @@ def test_installed_medautosci_cli_lists_storage_governance_commands() -> None:
     environment = dict(os.environ)
     environment["PYTHONPATH"] = "src" + os.pathsep + environment.get("PYTHONPATH", "")
     result = subprocess.run(
-        [executable, "--help"],
+        [executable, "product", "--help"],
         text=True,
         capture_output=True,
         check=True,
@@ -108,13 +114,9 @@ def test_installed_medautosci_cli_lists_storage_governance_commands() -> None:
         env=environment,
     )
     expected_commands = {
-        item.cli_command
-        for item in AUTHORITY_OPERATION_COMMANDS
-        if item.surface in {
-            "storage_governance_report",
-            "delivery_authority_backfill_apply",
-            "artifact_lifecycle_continuous_soak_summary",
-        }
+        "governance-report",
+        "backfill-apply",
+        "artifact-lifecycle-soak-summary",
     }
 
     for command in expected_commands:
@@ -175,7 +177,8 @@ def test_installed_medautosci_cli_calls_artifact_lifecycle_continuous_soak_summa
     result = subprocess.run(
         [
             executable,
-            "artifact-lifecycle-continuous-soak-summary",
+            "product",
+            "artifact-lifecycle-soak-summary",
             "--workspace-root",
             str(workspace_root),
         ],

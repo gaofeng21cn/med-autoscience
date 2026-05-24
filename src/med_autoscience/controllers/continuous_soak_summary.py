@@ -34,6 +34,7 @@ def build_continuous_soak_summary(
     )
     governance = _mapping(lifecycle_report.get("storage_governance_policy"))
     mutation_policy = _mapping(lifecycle_report.get("mutation_policy"))
+    cleanup_plan = _mapping(lifecycle_report.get("cleanup_plan"))
     backfill_blockers = _backfill_blockers(migration_report)
     return {
         "surface": SURFACE,

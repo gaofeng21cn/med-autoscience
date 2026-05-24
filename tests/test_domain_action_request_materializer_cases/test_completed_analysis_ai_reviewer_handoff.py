@@ -89,7 +89,7 @@ def test_materialize_domain_action_requests_consumes_completed_analysis_ai_revie
         },
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,
@@ -191,7 +191,7 @@ def test_materialize_domain_transition_ai_reviewer_re_eval_handoff(
         },
     }
     _write_json(
-        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
         {
             "surface": "portable_owner_route_reconcile",
             "schema_version": 1,

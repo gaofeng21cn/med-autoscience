@@ -101,6 +101,7 @@ def _serialize_no_op_suppression(
         "work_unit_fingerprint",
         "next_work_unit",
         "specificity_questions",
+        "specificity_targets",
         "work_unit_dispatch_key",
         "redrive_attempt_count",
         "max_redrive_attempts",
@@ -109,6 +110,8 @@ def _serialize_no_op_suppression(
         "authority_snapshot",
         "control_plane_blocking_reasons",
         "explicit_wakeup_contract",
+        "controller_authorization_ref",
+        "control_intent_lifecycle_ref",
     ):
         value = wakeup_audit.get(key)
         if value is not None:
@@ -418,6 +421,10 @@ def run_domain_health_diagnostic_for_runtime(
                             "study_decision_ref": specificity_decision_result.get("study_decision_ref"),
                         },
                     }
+                    for ref_key in ("controller_authorization_ref", "control_intent_lifecycle_ref"):
+                        ref_value = specificity_decision_result.get(ref_key)
+                        if ref_value is not None:
+                            wakeup_audit[ref_key] = dict(ref_value) if isinstance(ref_value, Mapping) else ref_value
                     status_payload = _specificity_terminal_status_payload(
                         status_payload=status_payload,
                         tick_request=tick_request,

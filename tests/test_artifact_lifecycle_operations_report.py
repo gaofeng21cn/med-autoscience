@@ -42,7 +42,7 @@ def test_lifecycle_operations_report_summarizes_roles_sources_and_projection_sta
 
     report = module.run_lifecycle_operations_report(workspace_roots=[workspace_root])
 
-    assert report["surface"] == "control_plane_lifecycle_report"
+    assert report["surface"] == "artifact_lifecycle_report"
     assert report["scan_policy"]["deep_scan_enabled"] is False
     assert report["scan_policy"]["artifact_listing"] == "bounded"
     assert report["mutation_policy"]["read_only"] is True
