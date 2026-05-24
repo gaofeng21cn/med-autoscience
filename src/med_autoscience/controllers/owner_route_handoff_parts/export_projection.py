@@ -9,12 +9,11 @@ from med_autoscience.profiles import WorkspaceProfile
 
 from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
-from .. import study_domain_transition_table
+from ..study_domain_transition_table_parts import family_transition_spec
 from ..opl_unique_control_plane_boundary_parts import consumer_migration
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
 from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
-from .dispatch_orchestration import ALLOWED_TASK_KINDS
 from .functional_closure import build_sidecar_functional_closure_projection
 from .export_study_projection import (
     build_study_projection,
@@ -27,6 +26,7 @@ from .guarded_apply_tasks import DEFAULT_GUARDED_APPLY_TARGETS, provider_hosted_
 from .owner_route_handoff_tasks import owner_route_handoff_task
 from .owner_source_refs import owner_controller_decision_refs
 from .substrate_adapter import build_opl_substrate_adapter_projection
+from .task_kinds import ALLOWED_TASK_KINDS
 
 
 def _now_iso() -> str:
@@ -131,7 +131,7 @@ def export_family_sidecar(
         "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),
         "ars_learning_projection": build_ars_learning_projection(),
         "family_transition_spec_descriptor": (
-            study_domain_transition_table.build_family_transition_spec_descriptor()
+            family_transition_spec.build_family_transition_spec_descriptor()
         ),
         "provider_ready_adapter": functional_closure["provider_ready_contract"],
         "managed_temporal_state_consistency": (
