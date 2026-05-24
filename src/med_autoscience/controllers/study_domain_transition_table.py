@@ -50,8 +50,9 @@ def project_domain_transition(
     )
     if current_ai_reviewer_record is not None:
         publication_eval, current_record_ref = current_ai_reviewer_record
-        publication_eval_ref = Path(
-            ai_reviewer_publication_eval_records.projection_source_ref(publication_eval, current_record_ref)
+        publication_eval_ref = ai_reviewer_publication_eval_records.projection_source_ref(
+            publication_eval,
+            current_record_ref,
         )
     controller_decision, controller_decision_ref = _read_relative_json(root, CONTROLLER_DECISION_RELATIVE_PATH)
     repair_evidence, repair_evidence_ref = _read_relative_json(root, REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH)
@@ -604,8 +605,8 @@ def _read_relative_json(study_root: Path, relative_path: Path) -> tuple[dict[str
     return dict(payload), str(relative_path)
 
 
-def _present_refs(*refs: str | None) -> list[str]:
-    return [ref for ref in refs if ref]
+def _present_refs(*refs: object) -> list[str]:
+    return [text for ref in refs if (text := _text(ref))]
 
 
 def _requires_human_gate(controller_decision: Mapping[str, Any]) -> bool:

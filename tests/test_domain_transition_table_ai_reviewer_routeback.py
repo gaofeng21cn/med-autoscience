@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 
 from med_autoscience.controllers import study_domain_transition_table
@@ -13,6 +14,10 @@ from med_autoscience.controllers.study_outer_loop_parts.domain_transition_action
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _sha256_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _current_ai_reviewer_route_back_eval(study_root: Path) -> dict:
@@ -272,6 +277,91 @@ def test_current_ai_reviewer_bounded_analysis_routeback_accepts_analysis_alias_w
     assert transition["route_target"] == "analysis-campaign"
     assert transition["owner"] == "analysis-campaign"
     assert transition["next_work_unit"]["unit_id"] == "unit_harmonized_validation_uncertainty_and_grouped_calibration"
+
+
+def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_path: Path) -> None:
+    study_root = tmp_path / "study"
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript with updated 95% CIs.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
+    old_eval = _current_ai_reviewer_route_back_eval(study_root)
+    old_eval["eval_id"] = "publication-eval::dm002::old::2026-05-22T20:30:41+00:00::ai-reviewer"
+    old_eval["emitted_at"] = "2026-05-22T20:30:41+00:00"
+    _write_json(study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH, old_eval)
+    current_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260524T175827Z_publication_eval_record.json"
+    )
+    current_record = _current_ai_reviewer_route_back_eval(study_root)
+    current_record.update(
+        {
+            "eval_id": "publication-eval::dm002::new::2026-05-24T17:58:27+00:00::ai-reviewer",
+            "emitted_at": "2026-05-24T17:58:27+00:00",
+            "future_facing_limitations_plan": [
+                {
+                    "limitation": "External validation remains observational.",
+                    "impact_on_claim": "Use restrained validation wording.",
+                    "required_future_analysis_data_or_design": "Independent implementation validation.",
+                    "current_manuscript_wording_must_be_restrained": True,
+                }
+            ],
+            "quality_assessment": {
+                dimension: {"status": "blocked", "summary": f"{dimension} requires hardening."}
+                for dimension in (
+                    "clinical_significance",
+                    "evidence_strength",
+                    "novelty_positioning",
+                    "medical_journal_prose_quality",
+                    "human_review_readiness",
+                )
+            },
+            "reviewer_operating_system": {
+                "currentness_checks": {
+                    "medical_prose_review": {"status": "stale_for_live_manuscript"},
+                    "current_manuscript": {
+                        "status": "current",
+                        "manuscript_ref": str(manuscript_path.resolve()),
+                        "manuscript_digest": _sha256_text(manuscript_text),
+                    },
+                }
+            },
+            "recommended_actions": [
+                {
+                    "action_id": "route-back-same-line-current-publication-hardening-dm002-20260524T175827Z",
+                    "action_type": "route_back_same_line",
+                    "requires_controller_decision": True,
+                    "route_target": "write",
+                    "work_unit_fingerprint": (
+                        "dm002_current_ai_reviewer_publication_eval_live_draft_"
+                        "2dcd51592c6a_20260524T175827Z"
+                    ),
+                    "next_work_unit": {
+                        "unit_id": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                        "lane": "write",
+                        "summary": "Harden the current manuscript against the current AI reviewer record.",
+                    },
+                }
+            ],
+        }
+    )
+    current_record["assessment_provenance"]["source_kind"] = "publication_eval_ai_reviewer"
+    _write_json(current_record_path, current_record)
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm002",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    json.dumps(transition, ensure_ascii=False, sort_keys=True)
+    assert str(current_record_path.resolve()) in transition["source_refs"]
+    assert all(isinstance(ref, str) for ref in transition["source_refs"])
 
 
 def test_current_ai_reviewer_routeback_materializes_outer_loop_controller_action(
