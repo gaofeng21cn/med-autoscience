@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_progress, domain_status_projection
+from med_autoscience.controllers import study_truth_kernel
 from med_autoscience.controllers.product_entry_parts.shared import (
     SCHEMA_VERSION,
     WorkspaceProfile,
@@ -46,6 +47,15 @@ def launch_study(
             entry_mode=entry_mode,
         )
     )
+    explicit_wakeup_receipt = _record_explicit_user_wakeup(
+        study_root=resolved_study_root,
+        study_id=resolved_study_id,
+        runtime_status=runtime_status,
+        profile_ref=profile_ref,
+        explicit_user_wakeup=explicit_user_wakeup,
+    )
+    if explicit_wakeup_receipt is not None:
+        runtime_status["study_truth_snapshot"] = explicit_wakeup_receipt["snapshot"]
     runtime_status["product_entry_launch_policy"] = {
         "status": "opl_attempt_admission_required",
         "runtime_owner": "one-person-lab",
@@ -53,6 +63,9 @@ def launch_study(
         "mas_executes_runtime_attempt": False,
         "allow_stopped_relaunch_requested": bool(allow_stopped_relaunch),
         "explicit_user_wakeup_requested": bool(explicit_user_wakeup),
+        "explicit_user_wakeup_recorded": explicit_wakeup_receipt is not None,
+        "explicit_user_wakeup_ref": (explicit_wakeup_receipt or {}).get("event_id"),
+        "study_truth_snapshot_ref": (explicit_wakeup_receipt or {}).get("snapshot_path"),
         "force_requested": bool(force),
     }
     progress_payload = study_progress.build_study_progress_projection(
@@ -95,6 +108,43 @@ def launch_study(
         "runtime_status": runtime_status,
         "progress": progress_payload,
         "commands": commands,
+    }
+
+
+def _record_explicit_user_wakeup(
+    *,
+    study_root: Path,
+    study_id: str,
+    runtime_status: dict[str, Any],
+    profile_ref: str | Path | None,
+    explicit_user_wakeup: bool,
+) -> dict[str, Any] | None:
+    if not explicit_user_wakeup:
+        return None
+    recorded_at = _utc_now()
+    event = study_truth_kernel.append_truth_event(
+        study_root=study_root,
+        study_id=study_id,
+        event_type="explicit_resume",
+        payload={
+            "current_required_action": "resume_same_study_line",
+            "summary": "User explicitly requested MAS study resume through launch-study.",
+            "resume_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "quest_id": _non_empty_text(runtime_status.get("quest_id")),
+            "quest_status": _non_empty_text(runtime_status.get("quest_status")),
+            "previous_reason": _non_empty_text(runtime_status.get("reason")),
+            "previous_decision": _non_empty_text(runtime_status.get("decision")),
+            "profile_ref": str(profile_ref) if profile_ref is not None else None,
+        },
+        recorded_at=recorded_at,
+    )
+    snapshot_path = study_truth_kernel.materialize_truth_snapshot(study_root=study_root, study_id=study_id)
+    snapshot = study_truth_kernel.rebuild_truth_snapshot(study_root=study_root, study_id=study_id)
+    return {
+        "event_id": event["event_id"],
+        "snapshot_path": str(snapshot_path),
+        "snapshot": snapshot,
     }
 
 

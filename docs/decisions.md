@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-25：显式用户 wakeup 必须写入 study truth reactivation ref
+
+- 决策：`launch-study --explicit-user-wakeup` 必须写入 MAS-owned `explicit_resume` study truth event，并刷新 `artifacts/truth/latest.json`，把恢复意图投影为 `canonical_next_action=resume_same_study_line`。该入口只记录用户显式恢复信号和 owner-route refs；OPL 仍持有 provider wakeup、queue、attempt、retry/dead-letter 与 liveness，MAS 不直接启动私有 runner。
+- 决策：product entry 的返回 payload 必须暴露 `explicit_user_wakeup_recorded`、`explicit_user_wakeup_ref` 和 `study_truth_snapshot_ref`，让 OPL hydrate / owner-route reconcile 消费新的 durable ref，而不是把 CLI 参数当成一次性 UI 标志。
+- 理由：DM002 手工暂停后，用户通过新版 MAS 入口请求恢复；旧 `launch-study` 只把 `explicit_user_wakeup_requested=true` 放在返回对象中，没有写 study truth，导致 sidecar export 没有新的 DM002 pending task，OPL hydrate 只能对旧 queue item 做 idempotent no-op。根因是 MAS product-entry wakeup 信号没有落到 MAS truth/owner-route ref，不是 OPL queue 可手工重驱，也不是论文 surface 可手工修补。
+- 影响：这是 MAS product-entry / truth reactivation 修复，不写 canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文继续推进仍必须由 OPL family-runtime hydrate 后进入 MAS owner/controller/runtime 路径，并由 write owner、AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-24：Agent Lab quality suite 固化 owner-chain regression family
 
 - 决策：Agent Lab medical manuscript quality suite 必须把 DM002 暴露的 owner-chain/currentness/story-surface 缺陷族投影成 refs-only regression family，至少覆盖 `owner_chain_authority_monotonicity`、`quality_repair_writer_handoff_currentness`、`publication_work_unit_registry_consistency`、`story_surface_delta_or_typed_blocker`、`medical_manuscript_no_runtime_language` 和 `methods_results_numeric_reproducibility_floor`。
