@@ -924,6 +924,47 @@ Next tranche write scope:
 - MAS paragraph-level coverage for `medical_display_arsenal.md` + `medical_display_template_backlog.md` + `medical_display_template_catalog.md`, or `medical_figure_route_cookbook.md` + `medical_display_family_roadmap.md` + `medical_display_anchor_paper_audit.md`.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
 
+### 2026-05-26 medical-display route roadmap provenance coverage tranche
+
+本轮覆盖 MAS medical-display route / roadmap / provenance 三件套。目标是把 `medical_figure_route_cookbook.md`、`medical_display_family_roadmap.md` 与 `medical_display_anchor_paper_audit.md` 读回当前 live figure-route source、domain-handler figure-route contract、display audit / catalog truth 和 anchor-paper closure lifecycle：cookbook 是 paper-facing route family support，不是 dispatchable route registry；roadmap 是 long-horizon paper-family target，不是当前 execution queue；anchor audit 是 `001/003` closure snapshot provenance，不是当前 package freshness、publication quality、submission readiness、artifact mutation、paper closure、domain ready 或 production ready 判据。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, this docs-governance file, and preceding medical-display delivery authority / audit-protocol / catalog inventory / template-pack lifecycle ledger entries.
+- Reviewed medical-display docs: `docs/delivery/medical-display/catalogs/medical_figure_route_cookbook.md`, `docs/delivery/medical-display/portfolio/medical_display_family_roadmap.md`, `docs/delivery/medical-display/provenance/medical_display_anchor_paper_audit.md`, plus role/index review of `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`.
+- Machine / source surfaces: `src/med_autoscience/figure_routes.py`, `src/med_autoscience/controllers/figure_loop_guard.py`, `docs/delivery/medical-display/contracts/domain_handler_figure_routes.md`, `docs/delivery/medical-display/contracts/medical_display_platform_mainline.md`, `docs/delivery/medical-display/contracts/medical_display_audit_guide.md`, generated template catalog, registry/schema contracts and current display-pack source/tests.
+- Focused test evidence read from current source: `tests/test_figure_routes.py`, `tests/test_figure_loop_guard.py`, display pack / materialization / submission-minimal display tests, and CodeGraph context for `FigureRoute`, `build_figure_route`, `parse_figure_route`, `normalize_required_route`, `partition_required_routes` and figure-loop guard route consumption.
+
+Fresh semantic result:
+
+- `medical_figure_route_cookbook.md` remains active support for paper-facing route families. It now distinguishes cookbook route families from executable MAS/OPL route ids, points dispatchable figure-route truth to `figure_routes.py` and the domain-handler route contract, and states that only `figure_script_fix:<figure-id>` and `figure_illustration_program:<figure-id>` are current parseable figure-route metadata. `sidecar:<figure-id>`, autofigure and external drawing routes remain retired / fail-closed.
+- `medical_display_family_roadmap.md` remains active support for the long-horizon `A-H` paper-family roadmap. Its anchor-paper recovery section now reads as post-recovery direction rather than an open figure-QA execution queue, and it explicitly keeps roadmap progress separate from source readiness, publication quality, submission readiness, artifact mutation, `current_package` freshness, paper closure, domain ready and production ready.
+- `medical_display_anchor_paper_audit.md` remains `history_provenance` for the `001/003` closure snapshot. It now labels its authority / verification wording as closure-time provenance and prevents historical `fresh` / `clear` language from being used as current package freshness, publication quality, submission readiness, paper closure, domain ready or production ready evidence.
+- `medical_display_portfolio_consolidation.md` now separates route references from anchor-paper provenance in the portfolio map.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/delivery/medical-display/catalogs/medical_figure_route_cookbook.md`, `docs/delivery/medical-display/portfolio/medical_display_family_roadmap.md`, and `docs/delivery/medical-display/provenance/medical_display_anchor_paper_audit.md`; role/index review of `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`, with live source/contract/test evidence listed above. | `docs/delivery/medical-display/catalogs/medical_figure_route_cookbook.md`; `docs/delivery/medical-display/portfolio/medical_display_family_roadmap.md`; `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`; `docs/delivery/medical-display/provenance/medical_display_anchor_paper_audit.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The cookbook and roadmap remain active support with distinct route-family and roadmap roles; the anchor audit remains history provenance.
+
+Uncovered docs in this semantic area:
+
+- The bounded medical-display subtree named in prior tranches is now covered at paragraph level for the delivery authority, audit protocol, catalog/inventory, template-pack lifecycle, route cookbook, roadmap and anchor-paper provenance bodies.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention, standard skeleton/source-delivery index, workspace/source references, study-workflow policy block and bounded medical-display blocks.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future route cookbook prose that treats cookbook route families as dispatchable MAS/OPL route ids, revives `sidecar:<figure-id>` / autofigure / external drawing routes, or treats figure-route metadata as artifact authority, quality verdict, source readiness, submission readiness or paper closure is stale pollution.
+- Future roadmap prose that turns `A-H` target families into an active execution queue, checklist-completion gate or production/domain readiness claim is stale pollution.
+- Future anchor-paper audit prose that uses the `001/003` historical clear/fresh results as current package freshness, current workspace authority, publication quality, submission readiness, artifact mutation authorization, paper closure, domain ready or production ready evidence is stale pollution.
+
+Next tranche write scope:
+
+- MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks, or source/delivery shell docs that still mention artifact lifecycle, source truth or package authority.
+- Or choose the next exact OPL/RCA/MAG/App uncovered body from the family coverage ledger.
+
 ### 2026-05-26 medical-display catalog inventory coverage tranche
 
 本轮覆盖 MAS medical-display catalog / inventory 三件套。目标是把 `medical_display_arsenal.md`、`medical_display_template_backlog.md` 与 `medical_display_template_catalog.md` 读回当前 audited display source、audit guide、template-pack source/tests 和已完成 backlog 出队事实：catalog / arsenal / backlog 是 human-readable inventory 和 candidate pool，不是 active owner round、执行流水、吸收记录、source readiness、publication quality、submission readiness、artifact mutation、`current_package` freshness、paper closure、domain ready 或 production ready 判据。

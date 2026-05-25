@@ -11,7 +11,7 @@ Use this file when the question is:
 
 - Which paper-facing evidence families should the platform ultimately cover?
 - How should the original `A-H` display families relate to the current audited engineering taxonomy?
-- What should count as platform progress after the current anchor-paper figure recovery closes?
+- What should count as platform progress after the anchor-paper recovery line has moved to provenance?
 
 For the absorbed baseline program that established first-baseline coverage across `A-H`, see [medical_display_family_baseline_program.md](../../../history/capabilities/medical-display/medical_display_family_baseline_program.md).
 
@@ -653,19 +653,20 @@ In particular:
 - while already satisfying the current completion-program baseline threshold;
 - and still needing later hardening and visual-review work.
 
-## Execution Order After Current Figure QA Recovery
+## Execution Order After Anchor-Paper Recovery
 
-The next long-horizon sequence should be:
+The anchor-paper recovery line is now provenance, not an open execution queue. The next long-horizon sequence should be:
 
-1. finish the current real-paper figure recovery blockers;
-2. keep `A-H` as the stable north star;
-3. expand through real paper needs rather than isolated checklist work;
-4. fold each proven template and QC improvement back into:
+1. keep `A-H` as the stable north star;
+2. expand through real paper needs rather than isolated checklist work;
+3. fold each proven template and QC improvement back into:
    - this roadmap;
    - the audit guide;
    - the generated catalog;
-5. build cross-paper golden regressions so lower-bound failures stop recurring;
-6. keep an explicit AI-first visual audit lane for paper-facing refinement where deterministic QC still cannot express the right critique with sufficient fidelity.
+4. build cross-paper golden regressions so lower-bound failures stop recurring;
+5. keep an explicit AI-first visual audit lane for paper-facing refinement where deterministic QC still cannot express the right critique with sufficient fidelity.
+
+Roadmap progress does not authorize source readiness, publication quality, submission readiness, artifact mutation, `current_package` freshness, paper closure, domain ready or production ready. Those claims must still come from MAS owner surfaces, current workspace artifacts, owner receipts, typed blockers, audit receipts or focused verification.
 
 ## Governance Rule
 

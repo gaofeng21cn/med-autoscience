@@ -22,7 +22,8 @@ Machine boundary: Human-readable portfolio support only; current capability trut
 | roadmap / backlog | `medical_display_family_roadmap.md`, `medical_display_template_backlog.md` | long-horizon direction and inactive candidate pool |
 | platform / template-pack support | `medical_display_template_pack_architecture.md`, `medical_display_platform_mainline.md` | platform and template-pack execution model |
 | implementation provenance | `../../../history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md` | historical Phase 1-2 execution packet; not active work queue |
-| review discipline / route references | `medical_display_visual_audit_protocol.md`, `medical_figure_route_cookbook.md`, `domain_handler_figure_routes.md`, `medical_display_anchor_paper_audit.md` | review, route, and anchor-paper references |
+| review discipline / route references | `medical_display_visual_audit_protocol.md`, `medical_figure_route_cookbook.md`, `domain_handler_figure_routes.md` | review and route references |
+| anchor-paper provenance | `medical_display_anchor_paper_audit.md` | dated 001/003 closure snapshot; not active route board or current execution queue |
 | history / provenance | `../../../history/capabilities/medical-display/` | historical records only |
 
 ## Active Tree Set
@@ -37,7 +38,7 @@ Machine boundary: Human-readable portfolio support only; current capability trut
 | candidate backlog | `medical_display_template_backlog.md` |
 | template-pack architecture | `medical_display_template_pack_architecture.md` |
 | route / cookbook references | `medical_figure_route_cookbook.md`, `domain_handler_figure_routes.md` |
-| real-paper audit reference | `medical_display_anchor_paper_audit.md` |
+| real-paper audit provenance | `medical_display_anchor_paper_audit.md` |
 
 ## Historical Records
 
