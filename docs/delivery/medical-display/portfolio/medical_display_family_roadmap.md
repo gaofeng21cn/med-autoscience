@@ -643,7 +643,7 @@ The platform should report progress on three separate axes:
 ### 3. Inventory progress
 
 - How many audited templates, shells, and tables are registered today?
-- Current strict audited inventory is `81` evidence templates, `7` illustration shells, `5` table shells, `93` total templates.
+- Current strict audited inventory is `84` evidence templates, `7` illustration shells, `7` table shells, `98` total templates.
 
 No single count should be used as a substitute for all three.
 

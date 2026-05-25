@@ -106,7 +106,7 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
   - `genomic_alteration_consequence_panel`：把 `G` 从“已有 mutation-plus-CNV gene-level landscape，但仍缺 driver-centric transcriptome / proteome consequence follow-on”继续推进到正式 bounded consequence 模板，并把 `driver_gene_order`、`consequence_panel_order`、effect / significance threshold、下游 scatter semantics 与 bounded label containment 固化为单一模板。
   - `genomic_alteration_multiomic_consequence_panel`：把 `G` 从“已有 landscape + transcriptome/proteome consequence follow-on，但仍缺固定三层 multiomic manuscript-facing composite”继续推进到正式 bounded multiomic consequence 模板，并把 `proteome/phosphoproteome/glycoproteome` vocabulary、每层 driver coverage、effect / significance threshold、panel identity 与 bounded label containment 固化为单一模板。
   - `genomic_alteration_pathway_integrated_composite_panel`：把 `G` 从“已有 landscape + 三层 multiomic consequence follow-on，但仍缺把 pathway-level enrichment evidence 收进正文主图的固定复合契约”继续推进到正式 `1 + 3 + 3` pathway-integrated composite 模板，并把 shared `pathway_order`、pathway colorbar / size-scale、三层 omics consequence 与三层 pathway panel identity 一并固化为单一模板。
-- 此前文档里沿用过的早期 rolling headline，不再代表当前严格工程库存；从本轮起统一以 registry / template catalog 真相口径为准。
+- 此前文档里沿用过的早期 rolling headline，不再代表当前严格工程库存；当前统一以 registry / template catalog 真相口径为准。
 - 真实由锚点论文 `001/003` 证明过的核心家族是 `A`、`B`、`H`。
 - 当前主线状态不应再被理解成“默认停车、显式重开才继续”。
 - 更准确的理解是：
