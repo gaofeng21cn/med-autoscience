@@ -75,7 +75,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 - `.ds/codex_history` 原始事件流只保留给审计和调试场景；新 quest 不依赖 `.ds`、MDS Git 或 `.ds/worktrees` 维护前台进度
 - 只要 `runtime_supervision/latest.json` 报告 `recovering / degraded / escalated`，前台就必须优先展示 runtime health，论文阶段在展示顺序上后置
 - 只要 `progress_projection.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，并停止使用“持续托管监管”口径
-- 即使宿主机尚无 external `Hermes` runtime，前台的人话进度也固定来自这些 `MAS` durable surface；外部 runtime substrate 的状态按实际已验证接入情况描述
+- 前台的人话进度固定来自这些 `MAS` durable surface、MAS owner refs 与 OPL `current_control_state` refs；外部 executor adapter、diagnostic 或历史 substrate 的状态只按实际已验证接入情况描述
 
 ## 4. 输出合同
 
@@ -127,7 +127,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 - `research_runtime_control_projection` 是给 `workspace-cockpit`、`product-entry-status`、`build-product-entry` 和上层 gateway 消费的控制投影；它必须把 `restore_point_surface`、`artifact_pickup_surface.pickup_refs`、`command_templates` 与 `research_gate_surface` 固定到同一条 `study-progress` 字段路径上
 - `needs_physician_decision` 只在触达正式人类 gate 边界时为 true
 - `physician_decision_summary` 必须说明触达的是初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息或最终投稿前审计中的哪一类
-- `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path`
+- `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path` 或 OPL current-control-state refs；`active_run_id` / launch report 只是 provenance，不能单独证明 worker live
 - `supervision` 应同步暴露 `supervisor_tick_status`，用于前台解释当前是否仍有新鲜的 MAS 外环监管
 - `runtime_continuity` 和 `runtime_reconcile_trigger` 的 authority flags 必须保持 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`
 
@@ -221,7 +221,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 - CLI 轮询 `study-progress`
 - MCP 调用 `study_progress`
-- OPL provider/runtime manager 默认周期调用；显式 legacy local 只保留 tombstone/provenance，Hermes adapter 只用于读取或清理旧 diagnostic / provenance path
+- OPL provider/runtime manager 默认周期调用；显式 legacy local 只保留 tombstone/provenance，外部 executor adapter 只用于显式 proof lane、diagnostic 或旧 provenance path
 
 来持续刷新前台时间线。控制面仍由现有 runtime/control surface 承担，前台只读投影负责解释当前状态和人类 gate 边界。
 

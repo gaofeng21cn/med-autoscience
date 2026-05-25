@@ -166,3 +166,38 @@ Next tranche write scope:
 
 - MAS `docs/runtime/projections/**` owner-route / domain-ref projection coverage, or MAS `docs/product/inspection_package.md`.
 - OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+### 2026-05-26 runtime projections owner-boundary tranche
+
+本轮覆盖 MAS `docs/runtime/projections/**` 8 份 projection support 文档。目标是把 projection 文档统一读回当前 MAS / OPL owner split：MAS 持有 study truth、domain blocker、owner receipt、typed blocker、artifact/source/quality refs 和 human-readable read model；OPL 持有 provider-backed stage runtime、Temporal substrate、current-control-state、attempt/queue/retry/dead-letter/worker liveness/terminal-log truth。projection 文档只能解释 read-model 和 refs，不能变成 runtime substrate、provider completion、paper closure、artifact authority 或 long-running attempt truth。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/architecture.md`, `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/docs_portfolio_consolidation.md`.
+- Runtime projection docs: `docs/runtime/projections/ai_first_observability.md`, `artifact_inventory_projection.md`, `progress_projection_history_contract.md`, `runtime_capability_matrix.md`, `runtime_health_kernel.md`, `study_macro_state_and_owner_route.md`, `study_progress_projection.md`, `study_truth_kernel.md`.
+- Machine surfaces: `contracts/functional_privatization_audit.json`, `contracts/generated_surface_handoff.json`, `contracts/test-lane-manifest.json`, `contracts/action_catalog.json`, `contracts/stage_control_plane.json`.
+- Source / test surfaces: CodeGraph context for `study_progress` / `user_visible_projection` / runtime health / owner route read models; `src/med_autoscience/controllers/study_progress_parts/user_visible_projection.py`, `src/med_autoscience/mcp_server_parts/study_progress_projection.py`, `src/med_autoscience/controllers/progress_portal_parts/*`, `tests/test_study_progress.py`, `tests/test_runtime_health_kernel.py`, `tests/test_truth_projection_surfaces.py`, `tests/test_domain_health_diagnostic.py`, and owner-route focused lanes listed in `contracts/test-lane-manifest.json`.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | All 8 files under `docs/runtime/projections/`: lifecycle headers, surface contracts, provider/executor/back-end wording, detail/history loading rules, StudyTruth/RuntimeHealth dominance boundaries, owner-route handoff rules, Progress Portal / OPL App relation, MDS / DeepScientist / Hermes references, and terminal/log/current-control-state wording. | `docs/runtime/projections/runtime_capability_matrix.md`; `docs/runtime/projections/progress_projection_history_contract.md`; `docs/runtime/projections/study_progress_projection.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The projection docs remain active runtime support because they explain current read-model semantics and domain/OPL boundary; stale provider/backend phrasing was rewritten in place rather than moved to history.
+
+Uncovered docs in this semantic area:
+
+- `docs/product/inspection_package.md`.
+- Remaining integration references under `docs/references/integration/*.md` that mention Progress Portal, OPL App/workbench, domain refs, or owner-route read-model consumption.
+- Runtime support docs outside `docs/runtime/projections/**`, especially `docs/runtime/contracts/**`, `docs/runtime/control/**`, and `docs/runtime/stage_route_handoff_standard.md`.
+
+Remaining stale / retire candidates:
+
+- `runtime_capability_matrix.md` should continue using `provider_owner` / `executor_kind` wording; future edits must not reintroduce MAS-owned provider backend, Hermes production substrate, or DeepScientist backend as current runtime owner.
+- `progress_projection_history_contract.md` now treats terminal/log/runtime event detail as bounded OPL refs; future prose must not imply MAS reads unbounded terminal logs or launches/relaunches provider workers from a projection read.
+- `study_progress_projection.md` still lists historical `last_launch_report` and `active_run_id` fields as input/provenance; current wording requires OPL current-control-state refs for live worker truth. Treat any new claim based only on `active_run_id` / launch report as stale-pollution candidate.
+- The projection docs explain current domain-read-model semantics; they do not close MAS `domain_ref_consumer_thinning`, `workbench_sidecar_status_cutover`, real paper-line provider apply, provider SLO long soak, or App/workbench production evidence tails.
+
+Next tranche write scope:
+
+- MAS `docs/product/inspection_package.md`, or integration references under `docs/references/integration/*.md` that still carry product/workbench/Portal/owner-route current-truth claims.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
