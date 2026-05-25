@@ -34,7 +34,6 @@ from med_autoscience.controllers.progress_portal_parts.payload_helpers import (
     _quality_summary,
     _runtime_continuity,
     _source_payload_summary,
-    _string_list,
     _supervision,
     _utc_now,
     _valid_user_visible_projection,
@@ -47,11 +46,11 @@ SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_progress_portal"
 HOSTED_PACKAGE_SURFACE_KIND = "mas_progress_portal_hosted_package"
 BRAND = "Med Auto Science"
-PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
-PROGRESS_PORTAL_HTML_REF = "ops/mas/progress/index.html"
-PROGRESS_PORTAL_HOSTED_PACKAGE_REF = "artifacts/runtime/progress_portal/hosted_package.json"
-PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "artifacts/runtime/progress_portal/studies/{study_id}/latest.json"
-PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE = "ops/mas/progress/studies/{study_id}/index.html"
+PROGRESS_PORTAL_PAYLOAD_REF = workspace_carrier.PROGRESS_PORTAL_PAYLOAD_REF
+PROGRESS_PORTAL_HTML_REF = workspace_carrier.PROGRESS_PORTAL_HTML_REF
+PROGRESS_PORTAL_HOSTED_PACKAGE_REF = workspace_carrier.PROGRESS_PORTAL_HOSTED_PACKAGE_REF
+PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = workspace_carrier.PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE
+PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE = workspace_carrier.PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE
 
 
 def build_progress_portal_payload(

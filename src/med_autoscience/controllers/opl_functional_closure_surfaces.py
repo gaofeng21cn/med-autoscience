@@ -527,17 +527,17 @@ def _standard_agent_purity_status(
     standard_agent_purity: Mapping[str, Any],
 ) -> str:
     if (
-        standard_agent_purity.get("status") == "standard_agent_purity_cutover_pending"
+        standard_agent_purity.get("status") == "standard_agent_source_shape_landed"
         and standard_agent_purity.get("active_private_generic_residue_count") == 0
         and standard_agent_purity.get("default_caller_count") == 0
         and "active_compatibility_aliases" not in standard_agent_purity
         and standard_agent_purity.get("retired_alias_residue_refs") == []
         and standard_agent_purity.get("default_caller_readiness_status") == "opl_generated_default_caller_ready"
-        and standard_agent_purity.get("source_purity_cutover_status") == "physical_wrapper_retirement_pending"
-        and standard_agent_purity.get("repo_local_wrapper_tail_count", 0) > 0
+        and standard_agent_purity.get("source_purity_cutover_status") == "standard_agent_source_shape_landed"
+        and standard_agent_purity.get("repo_local_wrapper_tail_count", 1) == 0
         and standard_agent_purity.get("history_detail_in_default_read_model") is False
     ):
-        return "standard_agent_purity_cutover_pending"
+        return "standard_agent_source_shape_landed"
     return "typed_blocker"
 
 

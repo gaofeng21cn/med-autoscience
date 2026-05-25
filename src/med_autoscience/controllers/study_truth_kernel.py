@@ -8,27 +8,13 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.study_truth_kernel_parts import action_policy
-
-SCHEMA_VERSION = 1
-EVENT_LOG_RELATIVE_PATH = Path("artifacts") / "truth" / "events.jsonl"
-SNAPSHOT_RELATIVE_PATH = Path("artifacts") / "truth" / "latest.json"
-
-TRUTH_EVENT_TYPES = frozenset(
-    {
-        "task_intake",
-        "controller_decision",
-        "runtime_native_event",
-        "opl_runtime_owner_handoff",
-        "publication_gate_eval",
-        "quality_review_eval",
-        "package_authority_eval",
-        "delivery_sync",
-        "human_gate",
-        "stop_loss",
-        "explicit_resume",
-        "writer_lock_acquired",
-        "writer_lock_released",
-    }
+from .study_truth_kernel_parts.paths import (
+    EVENT_LOG_RELATIVE_PATH,
+    SCHEMA_VERSION,
+    SNAPSHOT_RELATIVE_PATH,
+    TRUTH_EVENT_TYPES,
+    truth_events_path,
+    truth_snapshot_path,
 )
 
 _VOLATILE_OPL_HANDOFF_AUDIT_KEYS = frozenset(
@@ -41,14 +27,6 @@ _VOLATILE_OPL_HANDOFF_AUDIT_KEYS = frozenset(
         "seconds_since_latest_progress",
     }
 )
-
-
-def truth_events_path(*, study_root: Path) -> Path:
-    return Path(study_root).expanduser().resolve() / EVENT_LOG_RELATIVE_PATH
-
-
-def truth_snapshot_path(*, study_root: Path) -> Path:
-    return Path(study_root).expanduser().resolve() / SNAPSHOT_RELATIVE_PATH
 
 
 def _stable_json(value: object) -> str:

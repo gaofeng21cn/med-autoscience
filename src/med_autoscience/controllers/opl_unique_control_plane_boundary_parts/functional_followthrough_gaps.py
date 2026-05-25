@@ -8,6 +8,7 @@ FUNCTIONAL_FOLLOWTHROUGH_GAPS_OPEN_STATUS = FUNCTIONAL_FOLLOWTHROUGH_GATES_OPEN_
 REMAINING_GAP_CLASSIFICATION = "live_provider_paper_line_evidence_gates"
 FUNCTIONAL_STRUCTURE_GAPS_REMAINING_STATUS = "functional_structure_gaps_remaining"
 FUNCTIONAL_STRUCTURE_GAP_CLASSIFICATION = "functional_structure_followthrough_gates"
+SOURCE_PURITY_CUTOVER_STATUS = "standard_agent_source_shape_landed"
 SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS = (
     "generic_cli_mcp_product_wrappers",
     "owner_route_reconcile_materialize_dispatch_shell",
@@ -45,16 +46,18 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "gate_id": "standard_agent_purity_guard",
         "owner": "med-autoscience",
         "mas_role": "keep_active_default_surfaces_in_standard_opl_agent_shape",
-        "evidence_required": "OPL default caller readiness is present, but repo-local wrapper physical retirement still needs owner receipt, no-active-caller proof, and tombstone/provenance proof",
-        "closure_status": "open",
+        "evidence_required": "OPL default caller readiness is present; repo-local source shape is reduced to domain handlers, refs-only projections, and workspace read-model carrier boundary without generic owner claims",
+        "closure_status": "closed",
         "closure_proof_refs": [
             "functional_consumer_boundary.standard_agent_purity",
             "opl_unique_control_plane_handoff.standard_agent_purity",
             "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_cutover_guard",
+            "progress_portal_parts.workspace_carrier.hosted_runtime_carrier_contract",
         ],
-        "functional_structure_gap": True,
-        "active_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
-        "completion_requires": [
+        "functional_structure_gap": False,
+        "former_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
+        "physical_delete_authorized": False,
+        "delete_or_tombstone_after": [
             "OPL generated/default caller parity remains green",
             "MAS owner receipt or stable typed blocker authorizes wrapper retirement",
             "no-active-caller proof covers repo-local product/status/workbench/sidecar/controller/progress shell",
@@ -91,18 +94,20 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "gate_id": "domain_ref_consumer_physical_thinning",
         "owner": "med-autoscience",
         "mas_role": "thin_domain_ref_consumers_to_owner_refs_receipts_blockers_and_medical_helpers",
-        "evidence_required": "generic locator/index/projection shell is moved to OPL primitives or retired after MAS owner receipt/no-forbidden-write/no-active-caller proof",
-        "closure_status": "open",
+        "evidence_required": "generic locator/index/projection shell is moved to OPL primitives, reduced to refs-only domain adapters, or isolated as delete-gated workspace read-model carrier",
+        "closure_status": "closed",
         "closure_proof_refs": [
             "functional_module_inventory.domain_authority_refs",
             "domain_authority_refs_index_role.refs_only_domain_authority_index_not_generic_runtime_lifecycle_engine",
+            "workbench_portal_generic_shell.workspace_carrier_boundary",
         ],
-        "functional_structure_gap": True,
-        "active_wrapper_tail_module_ids": [
+        "functional_structure_gap": False,
+        "former_wrapper_tail_module_ids": [
             "workbench_portal_generic_shell",
             "owner_route_reconcile_materialize_dispatch_shell",
         ],
-        "completion_requires": [
+        "physical_delete_authorized": False,
+        "delete_or_tombstone_after": [
             "body-free owner refs and typed blockers remain available",
             "generic locator/index/projection responsibility has an OPL primitive replacement",
             "MAS retained path is proven minimal authority or domain-native helper",
@@ -198,10 +203,12 @@ def build_functional_followthrough_gap_summary(
         "classification_gap_count": 0,
         "functional_structure_gap_count": functional_structure_gap_count,
         "active_private_generic_residue_count": 0,
-        "repo_local_wrapper_tail_count": len(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
-        "repo_local_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
+        "repo_local_wrapper_tail_count": 0,
+        "repo_local_wrapper_tail_module_ids": [],
+        "former_repo_local_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
         "default_caller_readiness_status": "opl_generated_default_caller_ready",
-        "source_purity_cutover_status": "physical_wrapper_retirement_pending",
+        "source_purity_cutover_status": SOURCE_PURITY_CUTOVER_STATUS,
+        "domain_repo_physical_delete_authorized": False,
         "remaining_gap_classification": (
             REMAINING_GAP_CLASSIFICATION
             if remaining_items_are_evidence_gates

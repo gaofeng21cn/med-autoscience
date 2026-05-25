@@ -180,7 +180,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
 
     assert lane["kind"] == "focused_mas_functional_consumer_boundary_gate"
     assert lane["authority_boundary"] == "opl_consumed_generic_surfaces_mas_domain_authority_pack_only"
-    assert lane["implementation_status"] == "functional_consumer_standard_agent_purity_cutover_pending"
+    assert lane["implementation_status"] == "functional_consumer_standard_agent_source_shape_landed"
     assert lane["machine_truth_surface"] == "contracts/test-lane-manifest.json"
     assert lane["generic_surface_owner"] == "one-person-lab"
     assert lane["default_scheduler_owner"] == "opl_current_control_state"
@@ -487,18 +487,19 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "minimal_authority_function": 3,
     }
     assert summary["classification_gap_count"] == 0
-    assert summary["functional_structure_gap_count"] == 2
+    assert summary["functional_structure_gap_count"] == 0
     assert summary["active_private_generic_residue_count"] == 0
-    assert summary["repo_local_wrapper_tail_count"] == 3
-    assert summary["source_purity_cutover_status"] == "physical_wrapper_retirement_pending"
+    assert summary["repo_local_wrapper_tail_count"] == 0
+    assert summary["source_purity_cutover_status"] == "standard_agent_source_shape_landed"
 
     purity = runtime_boundary["standard_agent_purity"]
-    assert purity["status"] == "standard_agent_purity_cutover_pending"
+    assert purity["status"] == "standard_agent_source_shape_landed"
     assert purity["active_private_generic_residue_count"] == 0
     assert purity["default_caller_count"] == 0
     assert purity["default_caller_readiness_status"] == "opl_generated_default_caller_ready"
-    assert purity["source_purity_cutover_status"] == "physical_wrapper_retirement_pending"
-    assert purity["repo_local_wrapper_tail_count"] == 3
+    assert purity["source_purity_cutover_status"] == "standard_agent_source_shape_landed"
+    assert purity["repo_local_wrapper_tail_count"] == 0
+    assert purity["domain_repo_physical_delete_authorized"] is False
     assert purity["runtime_package_residue_count"] == 0
     assert "active_compatibility_aliases" not in purity
     assert purity["retired_alias_residue_refs"] == []
@@ -509,14 +510,11 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert "mas_owned_generic_queue" in purity["forbidden_active_claims"]
 
     followthrough = runtime_boundary["functional_followthrough_gap_summary"]
-    assert followthrough["status"] == "functional_structure_gaps_remaining"
+    assert followthrough["status"] == "functional_structure_closed_evidence_gates_remaining"
     assert followthrough["classification_gap_count"] == 0
-    assert followthrough["functional_structure_gap_count"] == 2
-    assert followthrough["remaining_functional_followthrough_gate_ids"] == [
-        "standard_agent_purity_guard",
-        "domain_ref_consumer_physical_thinning",
-    ]
-    assert "standard_agent_purity_guard" not in followthrough["closed_functional_structure_gate_ids"]
+    assert followthrough["functional_structure_gap_count"] == 0
+    assert followthrough["remaining_functional_followthrough_gate_ids"] == []
+    assert "standard_agent_purity_guard" in followthrough["closed_functional_structure_gate_ids"]
     assert followthrough["remaining_evidence_gate_ids"] == [
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
@@ -529,13 +527,15 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "default_caller_count": 0,
         "default_manager": "opl",
         "default_caller_readiness_status": "opl_generated_default_caller_ready",
-        "source_purity_cutover_status": "physical_wrapper_retirement_pending",
-        "repo_local_wrapper_tail_count": 3,
-        "repo_local_wrapper_tail_module_ids": [
+        "source_purity_cutover_status": "standard_agent_source_shape_landed",
+        "repo_local_wrapper_tail_count": 0,
+        "repo_local_wrapper_tail_module_ids": [],
+        "former_repo_local_wrapper_tail_module_ids": [
             "generic_cli_mcp_product_wrappers",
             "owner_route_reconcile_materialize_dispatch_shell",
             "workbench_portal_generic_shell",
         ],
+        "domain_repo_physical_delete_authorized": False,
         "runtime_package_residue_count": 0,
         "retired_alias_residue_refs": [],
         "proof_items": [
@@ -543,7 +543,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
             "standard_agent_purity.default_caller_count=0",
             "standard_agent_purity.retired_alias_residue_refs=[]",
             "standard_agent_purity.default_caller_readiness_status=opl_generated_default_caller_ready",
-            "standard_agent_purity.source_purity_cutover_status=physical_wrapper_retirement_pending",
+            "standard_agent_purity.source_purity_cutover_status=standard_agent_source_shape_landed",
             "standard_agent_purity.domain_projection_policy=refs_receipts_blockers_only_no_body_verdict_or_blob",
         ],
     }
@@ -553,7 +553,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "standard_agent_purity.default_caller_count=0",
         "standard_agent_purity.retired_alias_residue_refs=[]",
         "standard_agent_purity.default_caller_readiness_status=opl_generated_default_caller_ready",
-        "standard_agent_purity.source_purity_cutover_status=physical_wrapper_retirement_pending",
+        "standard_agent_purity.source_purity_cutover_status=standard_agent_source_shape_landed",
         "standard_agent_purity.history_detail_in_default_read_model=false",
         "sidecar_exports_standard_agent_purity",
         "product_entry_manifest_exports_standard_agent_purity",

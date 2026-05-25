@@ -242,14 +242,14 @@
     "surface_kind": "mas_opl_pack_compiler_adoption",
     "owner": "med-autoscience",
     "compiler_owner": "one-person-lab",
-    "status": "functional_structure_gaps_remaining",
+    "status": "functional_structure_closed_evidence_gates_remaining",
     "declarative_pack_input_ref": "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input",
     "generated_surface_handoff_ref": "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
     "minimal_authority_function_manifest_ref": "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest",
     "functional_followthrough_gap_summary_ref": "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary",
-    "functional_structure_gap_count": 2,
+    "functional_structure_gap_count": 0,
     "active_private_generic_residue_count": 0,
-    "remaining_gap_classification": "functional_structure_followthrough_gates",
+    "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
     "source_surfaces": [
       "product_entry_manifest.standard_domain_agent_skeleton",
       "product_entry_manifest.family_stage_control_plane_descriptor",
@@ -307,10 +307,7 @@
       "mas_keeps_generic_shell_owner": false
     },
     "classification_gap_count": 0,
-    "remaining_functional_followthrough_gate_ids": [
-      "standard_agent_purity_guard",
-      "domain_ref_consumer_physical_thinning"
-    ],
+    "remaining_functional_followthrough_gate_ids": [],
     "remaining_evidence_gate_ids": [
       "live_provider_paper_apply_scaleout",
       "publication_route_memory_receipt_scaleout",
@@ -321,8 +318,10 @@
     "closed_functional_structure_gate_ids": [
       "generated_surface_default_owner_cutover",
       "domain_authority_refs_thinning",
+      "standard_agent_purity_guard",
       "opl_app_workbench_drilldown",
-      "lifecycle_locator_retention_restore_ledger_reconciliation"
+      "lifecycle_locator_retention_restore_ledger_reconciliation",
+      "domain_ref_consumer_physical_thinning"
     ],
     "functional_structure_closure_proof_refs": [
       "functional_module_inventory",
@@ -335,13 +334,15 @@
       "opl_app_operator_workbench_drilldown",
       "opl_lifecycle_index_cleanup_restore_ledger"
     ],
-    "repo_local_wrapper_tail_count": 3,
-    "repo_local_wrapper_tail_module_ids": [
+    "repo_local_wrapper_tail_count": 0,
+    "repo_local_wrapper_tail_module_ids": [],
+    "source_purity_cutover_status": "standard_agent_source_shape_landed",
+    "former_repo_local_wrapper_tail_module_ids": [
       "generic_cli_mcp_product_wrappers",
       "owner_route_reconcile_materialize_dispatch_shell",
       "workbench_portal_generic_shell"
     ],
-    "source_purity_cutover_status": "physical_wrapper_retirement_pending"
+    "domain_repo_physical_delete_authorized": false
   },
   "academic_research_skills_learning_projection": {
     "surface_kind": "mas_ars_learning_projection",

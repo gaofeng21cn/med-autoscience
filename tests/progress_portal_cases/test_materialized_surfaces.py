@@ -74,6 +74,23 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert hosted_package["entrypoints"]["optional_local_read_only_service"] == (
         "medautosci workspace progress-portal --profile <profile> --serve"
     )
+    carrier = hosted_package["hosted_runtime_carrier_contract"]
+    assert carrier["surface_kind"] == "mas_progress_portal_workspace_carrier_boundary"
+    assert carrier["physical_module"] == (
+        "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
+    )
+    assert carrier["carrier_scope"] == (
+        "workspace_static_read_model_package_and_optional_local_read_only_service"
+    )
+    assert carrier["domain_repo_physical_delete_authorized"] is False
+    assert carrier["writes_only"] == [
+        "artifacts/runtime/progress_portal/latest.json",
+        "ops/mas/progress/index.html",
+        "artifacts/runtime/progress_portal/hosted_package.json",
+        "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+        "ops/mas/progress/studies/<study_id>/index.html",
+    ]
+    assert "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs" in carrier["delete_after"]
     assert "MDS WebUI state" in hosted_package["hosted_runtime_carrier_contract"]["must_not_consume"]
     assert "publication_eval/latest.json" in hosted_package["hosted_runtime_carrier_contract"]["must_not_write"]
     carrier = hosted_package["hosted_runtime_carrier_contract"]

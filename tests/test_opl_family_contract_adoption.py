@@ -287,7 +287,7 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["surface_kind"] == "mas_opl_pack_compiler_adoption"
     assert adoption["owner"] == "med-autoscience"
     assert adoption["compiler_owner"] == "one-person-lab"
-    assert adoption["status"] == "functional_structure_gaps_remaining"
+    assert adoption["status"] == "functional_structure_closed_evidence_gates_remaining"
     assert adoption["declarative_pack_input_ref"] == (
         "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input"
     )
@@ -301,23 +301,22 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
         "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary"
     )
     assert adoption["classification_gap_count"] == 0
-    assert adoption["functional_structure_gap_count"] == 2
+    assert adoption["functional_structure_gap_count"] == 0
     assert adoption["active_private_generic_residue_count"] == 0
-    assert adoption["repo_local_wrapper_tail_count"] == 3
-    assert adoption["source_purity_cutover_status"] == "physical_wrapper_retirement_pending"
+    assert adoption["repo_local_wrapper_tail_count"] == 0
+    assert adoption["source_purity_cutover_status"] == "standard_agent_source_shape_landed"
     assert adoption["remaining_gap_classification"] == (
-        "functional_structure_followthrough_gates"
+        "live_provider_paper_line_evidence_gates"
     )
-    assert adoption["remaining_functional_followthrough_gate_ids"] == [
-        "standard_agent_purity_guard",
-        "domain_ref_consumer_physical_thinning",
-    ]
-    assert adoption["closed_functional_structure_gate_ids"] == [
+    assert adoption["remaining_functional_followthrough_gate_ids"] == []
+    assert set(adoption["closed_functional_structure_gate_ids"]) == {
         "generated_surface_default_owner_cutover",
         "domain_authority_refs_thinning",
+        "standard_agent_purity_guard",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
-    ]
+        "domain_ref_consumer_physical_thinning",
+    }
     assert adoption["source_surfaces"] == [
         "product_entry_manifest.standard_domain_agent_skeleton",
         "product_entry_manifest.family_stage_control_plane_descriptor",

@@ -272,12 +272,13 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
 
     followthrough = boundary["functional_followthrough_gap_summary"]
     assert followthrough["surface_kind"] == "mas_functional_followthrough_gap_summary"
-    assert followthrough["status"] == "functional_structure_gaps_remaining"
+    assert followthrough["status"] == "functional_structure_closed_evidence_gates_remaining"
     assert followthrough["classification_gap_count"] == 0
-    assert followthrough["functional_structure_gap_count"] == 2
+    assert followthrough["functional_structure_gap_count"] == 0
     assert followthrough["active_private_generic_residue_count"] == 0
-    assert followthrough["remaining_items_are_evidence_gates"] is False
-    assert "standard_agent_purity_guard" not in followthrough["closed_functional_structure_gate_ids"]
+    assert followthrough["remaining_items_are_evidence_gates"] is True
+    assert followthrough["remaining_functional_followthrough_gate_ids"] == []
+    assert "standard_agent_purity_guard" in followthrough["closed_functional_structure_gate_ids"]
     assert set(followthrough["remaining_evidence_gate_ids"]) == {
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",

@@ -75,7 +75,7 @@ def test_product_entry_manifest_projects_current_development_lines_closure(
         "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::"
         "test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker"
     ) in paper_line["evidence_refs"]
-    assert by_line["standard_agent_purity_projection"]["status"] == "standard_agent_purity_cutover_pending"
+    assert by_line["standard_agent_purity_projection"]["status"] == "standard_agent_source_shape_landed"
     assert by_line["standard_agent_purity_projection"]["typed_blockers"] == []
     assert by_line["standard_skeleton_physicalization"]["status"] == (
         "repo_source_anchors_landed_ongoing_slot_discipline"
