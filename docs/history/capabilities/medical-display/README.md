@@ -25,5 +25,6 @@ Machine boundary: 人读医学展示历史索引。当前 medical-display 能力
 - `medical_display_arsenal_history.md`
 - `medical_display_family_baseline_program.md`
 - `medical_display_g_pathway_integrated_composite_owner_brief.md`
+- `medical_display_template_pack_implementation_plan_2026_04.md`
 - `paperplothub_exemplar_intake.md`
 - `paperplothub_exemplar_exhaustion_ledger.md`

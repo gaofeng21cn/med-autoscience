@@ -868,7 +868,7 @@ Archived / tombstoned / deleted docs: none. The reviewed files remain active del
 
 Uncovered docs in this semantic area:
 
-- Full paragraph-level coverage remains open for the long medical-display inventory / catalog / plan / provenance bodies: `medical_display_audit_guide.md`, `medical_display_visual_audit_protocol.md`, `medical_display_arsenal.md`, `medical_display_template_backlog.md`, `medical_display_template_catalog.md`, `medical_figure_route_cookbook.md`, `medical_display_template_pack_architecture.md`, `medical_display_template_pack_implementation_plan.md`, `medical_display_family_roadmap.md`, and `medical_display_anchor_paper_audit.md`.
+- Full paragraph-level coverage remains open for the long medical-display inventory / catalog / plan / provenance bodies: `medical_display_audit_guide.md`, `medical_display_visual_audit_protocol.md`, `medical_display_arsenal.md`, `medical_display_template_backlog.md`, `medical_display_template_catalog.md`, `medical_figure_route_cookbook.md`, `medical_display_template_pack_architecture.md`, `medical_display_family_roadmap.md`, and `medical_display_anchor_paper_audit.md`.
 - MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention, standard skeleton/source-delivery index, workspace/source references, study-workflow policy block and this bounded medical-display block.
 - OPL series coverage outside MAS remains open per the OPL family coverage ledger.
 
@@ -880,7 +880,7 @@ Remaining stale / retire candidates:
 
 Next tranche write scope:
 
-- MAS paragraph-level coverage for the remaining medical-display catalog / plan / audit-guide bodies, preferably `medical_display_audit_guide.md` + `medical_display_visual_audit_protocol.md` or `medical_display_template_pack_architecture.md` + `medical_display_template_pack_implementation_plan.md`.
+- MAS paragraph-level coverage for the remaining medical-display catalog / plan / audit-guide bodies, preferably `medical_display_audit_guide.md` + `medical_display_visual_audit_protocol.md` or `medical_display_template_pack_architecture.md`.
 - Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
 
@@ -910,7 +910,7 @@ Archived / tombstoned / deleted docs: none. Both files remain active delivery co
 
 Uncovered docs in this semantic area:
 
-- Full paragraph-level coverage remains open for the remaining long medical-display inventory / catalog / plan / provenance bodies: `medical_display_arsenal.md`, `medical_display_template_backlog.md`, `medical_display_template_catalog.md`, `medical_figure_route_cookbook.md`, `medical_display_template_pack_architecture.md`, `medical_display_template_pack_implementation_plan.md`, `medical_display_family_roadmap.md`, and `medical_display_anchor_paper_audit.md`.
+- Full paragraph-level coverage remains open for the remaining long medical-display inventory / catalog / provenance bodies: `medical_display_arsenal.md`, `medical_display_template_backlog.md`, `medical_display_template_catalog.md`, `medical_figure_route_cookbook.md`, `medical_display_family_roadmap.md`, and `medical_display_anchor_paper_audit.md`.
 - MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention, standard skeleton/source-delivery index, workspace/source references, study-workflow policy block and this bounded medical-display block.
 - OPL series coverage outside MAS remains open per the OPL family coverage ledger.
 
@@ -921,5 +921,47 @@ Remaining stale / retire candidates:
 
 Next tranche write scope:
 
-- MAS paragraph-level coverage for `medical_display_template_pack_architecture.md` + `medical_display_template_pack_implementation_plan.md`, or `medical_display_arsenal.md` + `medical_display_template_backlog.md` + `medical_display_template_catalog.md` if the next lane focuses on inventory/catalog role separation.
+- MAS paragraph-level coverage for `medical_display_arsenal.md` + `medical_display_template_backlog.md` + `medical_display_template_catalog.md`, or `medical_figure_route_cookbook.md` + `medical_display_family_roadmap.md` + `medical_display_anchor_paper_audit.md`.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
+
+### 2026-05-26 medical-display template-pack plan lifecycle tranche
+
+本轮覆盖 MAS medical-display template-pack plan 文档生命周期。目标是把 template-pack architecture / implementation-plan 读回当前 live display-pack source、tests、contracts 和已完成迁移事实：架构文档保留为 active support design；Phase 1-2 逐步实施计划保留为 history/provenance，不能继续留在 active `plans/` 下作为当前 agent work queue、checkbox 任务包、expected-failure 流水或 commit 指令来源。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, this docs-governance file, and the preceding medical-display delivery authority / audit-protocol coverage ledger entries.
+- Reviewed medical-display docs: `docs/delivery/medical-display/plans/medical_display_template_pack_architecture.md`, `docs/history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md`, `docs/delivery/medical-display/README.md`, `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`, and `docs/history/capabilities/medical-display/README.md`.
+- Machine / source surfaces: CodeGraph context for `LoadedDisplayPack`, `LoadedDisplayTemplate`, `DisplayPackManifest`, `load_display_pack_manifest`, `load_enabled_local_display_pack_records`, and `load_enabled_local_display_template_records`; source/test evidence from `src/med_autoscience/display_pack_contract.py`, `src/med_autoscience/display_pack_loader.py`, `src/med_autoscience/display_pack_resolver.py`, `src/med_autoscience/display_pack_lock.py`, `tests/test_display_pack_contract.py`, `tests/test_display_pack_loader.py`, `tests/test_display_pack_runtime.py`, and `tests/test_display_pack_lock.py`.
+
+Fresh semantic result:
+
+- The template-pack plan is no longer a current implementation queue. Live source already contains the package manifest contract, enabled pack/template record loader, resolver, display-pack lock payload and provenance write path; focused tests cover namespaced ids, local pack loading, runtime consumption and lock provenance.
+- `medical_display_template_pack_architecture.md` remains active support because it explains the split between MAS host-platform duties and pack ecosystem duties, exact-version / repo-paper configuration intent, pack-local assets and remaining ecosystem gaps.
+- The old `medical_display_template_pack_implementation_plan.md` was physically moved to `docs/history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md` and marked `history_provenance`. Its checkboxes, expected failures, code snippets, command sequences and commit instructions are historical execution provenance only.
+- Active medical-display README and portfolio map now route users to template-pack architecture as current support design and to the moved file as implementation provenance, avoiding a second active work queue under `docs/delivery/medical-display/plans/`.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/delivery/medical-display/plans/medical_display_template_pack_architecture.md` and the full moved Phase 1-2 implementation plan; role/index review of `docs/delivery/medical-display/README.md`, `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`, and `docs/history/capabilities/medical-display/README.md`, with live source/test evidence listed above. | `docs/delivery/medical-display/README.md`; `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`; `docs/delivery/medical-display/plans/medical_display_template_pack_architecture.md`; `docs/history/capabilities/medical-display/README.md`; `docs/history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs:
+
+- Moved `docs/delivery/medical-display/plans/medical_display_template_pack_implementation_plan.md` to `docs/history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md`.
+
+Uncovered docs in this semantic area:
+
+- Remaining long medical-display inventory / catalog / provenance bodies: `medical_display_arsenal.md`, `medical_display_template_backlog.md`, `medical_display_template_catalog.md`, `medical_figure_route_cookbook.md`, `medical_display_family_roadmap.md`, and `medical_display_anchor_paper_audit.md`.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention, standard skeleton/source-delivery index, workspace/source references, study-workflow policy block and bounded medical-display blocks.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any active doc that links the Phase 1-2 implementation plan as current work, preserves its checkbox tasks as open execution, or tells agents to run its historical command sequence is stale pollution.
+- Future template-pack prose must not downgrade live package contracts, loader/resolver/lock surfaces, namespaced template ids, generated catalog/provenance and focused tests back into “not started” plan language.
+- Display pack presence, lock presence, pack source/version refs and generated catalog provenance still do not authorize source readiness, publication quality, submission readiness, artifact mutation, `current_package` freshness, delivery sync, paper closure, domain ready or production ready.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for `medical_display_arsenal.md` + `medical_display_template_backlog.md` + `medical_display_template_catalog.md`, or `medical_figure_route_cookbook.md` + `medical_display_family_roadmap.md` + `medical_display_anchor_paper_audit.md`.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.

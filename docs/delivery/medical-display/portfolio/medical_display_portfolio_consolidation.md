@@ -20,7 +20,8 @@ Machine boundary: Human-readable portfolio support only; current capability trut
 | active execution surface | `medical_display_active_board.md` | current owner-round board and reroute surface |
 | current inventory / reference | `medical_display_audit_guide.md`, `medical_display_template_catalog.md`, `medical_display_arsenal.md` | strict audited inventory and human inventory reference |
 | roadmap / backlog | `medical_display_family_roadmap.md`, `medical_display_template_backlog.md` | long-horizon direction and inactive candidate pool |
-| implementation plan | `medical_display_template_pack_architecture.md`, `medical_display_template_pack_implementation_plan.md`, `medical_display_platform_mainline.md` | platform and template-pack execution model |
+| platform / template-pack support | `medical_display_template_pack_architecture.md`, `medical_display_platform_mainline.md` | platform and template-pack execution model |
+| implementation provenance | `../../../history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md` | historical Phase 1-2 execution packet; not active work queue |
 | review discipline / route references | `medical_display_visual_audit_protocol.md`, `medical_figure_route_cookbook.md`, `domain_handler_figure_routes.md`, `medical_display_anchor_paper_audit.md` | review, route, and anchor-paper references |
 | history / provenance | `../../../history/capabilities/medical-display/` | historical records only |
 
@@ -34,7 +35,7 @@ Machine boundary: Human-readable portfolio support only; current capability trut
 | long-horizon roadmap | `medical_display_family_roadmap.md` |
 | visual review discipline | `medical_display_visual_audit_protocol.md` |
 | candidate backlog | `medical_display_template_backlog.md` |
-| template-pack architecture | `medical_display_template_pack_architecture.md`, `medical_display_template_pack_implementation_plan.md` |
+| template-pack architecture | `medical_display_template_pack_architecture.md` |
 | route / cookbook references | `medical_figure_route_cookbook.md`, `domain_handler_figure_routes.md` |
 | real-paper audit reference | `medical_display_anchor_paper_audit.md` |
 
@@ -45,6 +46,7 @@ Historical and provenance-only records live in `docs/history/capabilities/medica
 - `medical_display_arsenal_history.md`
 - `medical_display_family_baseline_program.md`
 - `medical_display_g_pathway_integrated_composite_owner_brief.md`
+- `medical_display_template_pack_implementation_plan_2026_04.md`
 - `paperplothub_exemplar_intake.md`
 - `paperplothub_exemplar_exhaustion_ledger.md`
 

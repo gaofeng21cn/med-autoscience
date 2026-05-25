@@ -7,7 +7,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 
 ## 文档定位
 
-本文是 `med-autoscience` 医学绘图模板包化的权威设计文档。
+本文是 `med-autoscience` 医学绘图模板包化的 support design reference。它解释当前架构方向和剩余生态化边界，不替代 MAS active gap plan、源码、tests、contracts、generated artifacts 或 receipts。
 
 它要解决的不是“再加几个模板”，而是把以下两件事正式拆开：
 
@@ -30,7 +30,7 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 军火库扩充历史：[medical_display_arsenal_history.md](../../../history/capabilities/medical-display/medical_display_arsenal_history.md)
 - 当前模板目录：[medical_display_template_catalog.md](../catalogs/medical_display_template_catalog.md)
 - 当前工程审计面：[medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md)
-- 当前实施计划：[medical_display_template_pack_implementation_plan.md](./medical_display_template_pack_implementation_plan.md)
+- Phase 1-2 实施 provenance：[medical_display_template_pack_implementation_plan_2026_04.md](../../../history/capabilities/medical-display/medical_display_template_pack_implementation_plan_2026_04.md)
 
 ## 一句话结论
 
@@ -698,9 +698,11 @@ Machine boundary: Human-readable implementation support only; active execution t
 - 模板包生态开始独立运转
 - 主线开发与扩库开发正式解耦
 
-## 最短落地路径
+## 原始最短落地路径
 
-如果目标是“尽快开始，而不是继续停在规划”，最短路径应是：
+以下路径保留为架构 provenance。当前 live source / tests 已证明本地目录包、核心包、命名空间模板标识、Git / Python source contract、lock 与 submission manifest handoff 已经跨过首轮落地点；这不是当前执行队列。
+
+如果目标是“尽快开始，而不是继续停在规划”，原始最短路径是：
 
 1. 先定义 `display_pack.toml` / `template.toml` / repo-level / paper-level 配置格式；
 2. 实现本地目录包加载器；
@@ -743,10 +745,10 @@ Machine boundary: Human-readable implementation support only; active execution t
 
 ## 当前建议
 
-当前最正确的下一步，不是继续抽象讨论，而是直接进入 Phase 1：
+当前最正确的下一步，不是继续执行已完成的 Phase 1-2 计划，也不是继续抽象讨论；而是把模板包生态治理继续推向独立分发、外部 source 获取 / 安装、pack-local examples / goldens / exemplars / audit 资产、以及更广 submission / manuscript-facing provenance 对账。
 
-- 先做模板包最小骨架；
-- 先完成内置核心包的全量迁移；
-- 先让完整命名空间模板名在现有 `001/003` 路径上重新跑通。
+- 已完成骨架与核心包迁移只作为 live evidence 和 history provenance 读取；
+- 新的模板扩库优先落在 pack / catalog / audit 资产面；
+- 宿主内核只在需要新 pack API、source resolution、QC、publication / submission contract 或 owner receipt boundary 时升级。
 
-做到这一步，这条线就真正从“概念上的模板包化”进入“可持续扩库的包生态起点”。
+这条线当前已经从“概念上的模板包化”进入“可持续扩库的包生态起点”；剩余工作应按 active gap plan 和 medical-display board 选择具体论文需求、pack 治理或 provenance 对账面推进。

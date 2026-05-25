@@ -13,7 +13,7 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 | [board](./board/) | 当前 active board 和下一轮可执行 display round。 |
 | [contracts](./contracts/) | 平台主线、审计指南、视觉审计协议和 route contract。 |
 | [catalogs](./catalogs/) | 模板目录、arsenal、backlog 和 route cookbook。Catalog 可以很长；它们是 inventory，不是叙事入口。 |
-| [plans](./plans/) | 活跃 implementation plan 和 template-pack 设计。 |
+| [plans](./plans/) | Template-pack active support design。已完成实施计划进入 history/provenance，不作为当前执行队列。 |
 | [provenance](./provenance/) | 真实论文审计和能力 provenance。 |
 | [history](../../history/capabilities/medical-display/README.md) | 退役 owner brief、baseline program、exemplar intake 和 exhausted exploration record。 |
 

@@ -1,11 +1,13 @@
 # 医学绘图模板包 Phase 1-2 实施计划
 
 Owner: `MedAutoScience`
-Purpose: `Record support design context for medical-display template-pack evolution.`
-State: `active_support`
-Machine boundary: Human-readable implementation support only; active execution truth remains in the MAS active gap plan, source, tests, contracts, generated artifacts, and receipts.
+Purpose: `Preserve implementation provenance for the medical-display template-pack migration.`
+State: `history_provenance`
+Machine boundary: Human-readable historical plan only. Current template-pack truth remains in display pack source, tests, contracts, generated artifacts, active delivery docs, MAS active gap plan, and receipts.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Direct-reader note: this document preserves the 2026-04 Phase 1-2 execution packet. Its checkboxes, expected failures, code snippets, command sequences and commit instructions are historical provenance, not the current MAS work queue.
+
+> Historical packet note: the original plan asked agentic workers to implement this plan task-by-task and used checkbox (`- [ ]`) syntax for tracking. That instruction is preserved only as provenance.
 
 **Goal:** 在当前仓库内建立模板包宿主骨架，将当前内置模板库全量迁入 `fenggaolab.org.medical-display-core`，并用 `001/003` 作为首轮强验收锚点，跑通完整命名空间模板标识下的 materialize / submission / publication 链路。
 
