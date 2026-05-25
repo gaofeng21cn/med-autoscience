@@ -402,8 +402,8 @@ Remaining stale / retire candidates:
 
 Next tranche write scope:
 
-- MAS paragraph-level coverage for a bounded subset of `docs/runtime/contracts/**`, preferably `runtime_event_and_outer_loop_input_contract.md`, `durable_workflow_contract.md`, `stage_route_contract.md`, `stage_surfaces.md`, or `workspace_knowledge_and_literature_contract.md`.
-- MAS `docs/runtime/control/study_runtime_control_surface.md` / `study_runtime_orchestration.md` paragraph compaction if the next tranche focuses on stop/rerun/current-control-state semantics.
+- Immediate same-run follow-up: the runtime control owner-route / current-control-state tranche below covers `study_runtime_control_surface.md` and `study_runtime_orchestration.md`.
+- Remaining MAS runtime contract coverage after the same-run follow-up: bounded `docs/runtime/contracts/**` bodies such as `stage_route_contract.md`, `stage_surfaces.md`, or `workspace_knowledge_and_literature_contract.md`.
 - OPL series coverage outside MAS remains open per the OPL family coverage ledger.
 
 ### 2026-05-26 runtime control owner-route/current-control-state tranche
