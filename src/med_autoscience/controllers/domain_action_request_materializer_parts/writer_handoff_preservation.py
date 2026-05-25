@@ -33,6 +33,7 @@ def preserved_quality_repair_writer_handoff_dispatch(
         profile=profile,
         study_id=study_id,
         action_type=action_type,
+        action=action,
         dispatch_path=dispatch_path,
         owner_route=owner_route,
     )
@@ -73,6 +74,11 @@ def preserved_quality_repair_writer_handoff_dispatch(
         study_id=study_id,
         action_type=action_type,
         dispatch=payload,
+    ) and not _current_action_matches_writer_handoff(
+        action=action,
+        action_type=action_type,
+        payload=payload,
+        owner_route=owner_route,
     ):
         return None
     prompt_contract = _mapping(payload.get("prompt_contract"))
@@ -101,17 +107,90 @@ def _writer_handoff_dispatch_payload(
     profile: WorkspaceProfile,
     study_id: str,
     action_type: str,
+    action: Mapping[str, Any],
     dispatch_path: Path,
     owner_route: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     payload = _read_json_object(dispatch_path)
     if _text(_mapping(payload).get("dispatch_authority")) == "quality_repair_batch_writer_handoff":
         return payload
-    return _writer_handoff_dispatch_from_owner_request(
+    payload = _writer_handoff_dispatch_from_owner_request(
         profile=profile,
         study_id=study_id,
         action_type=action_type,
         owner_route=owner_route,
+    )
+    if payload is not None:
+        return payload
+    return _writer_handoff_dispatch_from_current_action(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        action=action,
+        owner_route=owner_route,
+    )
+
+
+def _writer_handoff_dispatch_from_current_action(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+    action: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if action_type != "run_quality_repair_batch":
+        return None
+    route = owner_route_part.ensure_owner_route_v2(_mapping(owner_route))
+    if not route:
+        return None
+    route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
+    if route_reason != "manuscript_story_surface_delta_missing":
+        return None
+    if _text(route.get("next_owner")) != "write":
+        return None
+    action_reason = _text(action.get("reason")) or _text(_mapping(action.get("handoff_packet")).get("reason"))
+    if action_reason != "manuscript_story_surface_delta_missing":
+        return None
+    if not owner_route_part.route_allows_action(
+        action={**dict(action), "action_type": action_type, "next_executable_owner": "write"},
+        owner_route=route,
+    ):
+        return None
+    study_root = profile.studies_root / study_id
+    repair_execution_evidence_path = (
+        study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    )
+    if not repair_execution_evidence_path.exists():
+        return None
+    source_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    source_summary_path = _quality_summary_path(study_root)
+    source_eval_id = _source_eval_id(
+        action=action,
+        owner_route=route,
+        source_eval_path=source_eval_path,
+    )
+    return writer_handoff.build_writer_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        quest_id=_text(action.get("quest_id")) or _text(route.get("quest_id")) or study_id,
+        schema_version=1,
+        source_eval_id=source_eval_id,
+        source_eval_artifact_path=str(source_eval_path) if source_eval_path.exists() else None,
+        source_summary_artifact_path=str(source_summary_path) if source_summary_path.exists() else None,
+        repair_execution_evidence_path=repair_execution_evidence_path,
+        blocked_repair_reason="manuscript_story_surface_delta_missing",
+        authority_route_context={
+            "current_owner_route": dict(route),
+            "controller_route_context": {
+                "control_surface": "quality_repair_batch",
+                "controller_action_type": action_type,
+                "work_unit_id": _current_work_unit_id(action=action, owner_route=route),
+                "work_unit_fingerprint": _current_work_unit_fingerprint(action=action, owner_route=route),
+                "source_eval_id": source_eval_id,
+                "requires_human_confirmation": False,
+            },
+        },
     )
 
 
@@ -222,6 +301,47 @@ def _writer_handoff_request_bridges_current_route(
     )
 
 
+def _current_action_matches_writer_handoff(
+    *,
+    action: Mapping[str, Any],
+    action_type: str,
+    payload: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    if action_type != "run_quality_repair_batch":
+        return False
+    if _text(action.get("reason")) != "manuscript_story_surface_delta_missing":
+        return False
+    if _text(payload.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
+        return False
+    if _text(payload.get("next_executable_owner")) != "write":
+        return False
+    source_action = _mapping(payload.get("source_action"))
+    if _text(source_action.get("surface")) != "quality_repair_batch":
+        return False
+    if _text(source_action.get("blocked_reason")) != "manuscript_story_surface_delta_missing":
+        return False
+    route = owner_route_part.ensure_owner_route_v2(_mapping(owner_route))
+    payload_route = owner_route_part.ensure_owner_route_v2(_mapping(payload.get("owner_route")))
+    if not owner_route_part.owner_route_matches(
+        dispatch={"owner_route": payload_route},
+        current_route=route,
+    ):
+        return False
+    if not owner_route_part.route_allows_action(
+        action={**dict(action), "action_type": action_type, "next_executable_owner": "write"},
+        owner_route=route,
+    ):
+        return False
+    current_work_unit_id = _work_unit_id(action.get("next_work_unit"))
+    handoff_work_unit_id = _work_unit_id(source_action.get("next_work_unit"))
+    return not (
+        current_work_unit_id is not None
+        and handoff_work_unit_id is not None
+        and current_work_unit_id != handoff_work_unit_id
+    )
+
+
 def _same_required_currentness_value(
     left: Mapping[str, Any],
     right: Mapping[str, Any],
@@ -244,6 +364,52 @@ def _work_unit_id(value: object) -> str | None:
     if isinstance(value, Mapping):
         return _text(value.get("unit_id"))
     return _text(value)
+
+
+def _current_work_unit_id(*, action: Mapping[str, Any], owner_route: Mapping[str, Any]) -> str | None:
+    refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(refs.get("owner_route_currentness_basis"))
+    return (
+        _work_unit_id(action.get("next_work_unit"))
+        or _text(action.get("executable_work_unit"))
+        or _text(action.get("controller_work_unit_id"))
+        or _text(refs.get("work_unit_id"))
+        or _text(basis.get("work_unit_id"))
+    )
+
+
+def _current_work_unit_fingerprint(*, action: Mapping[str, Any], owner_route: Mapping[str, Any]) -> str | None:
+    refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(refs.get("owner_route_currentness_basis"))
+    return (
+        _text(action.get("work_unit_fingerprint"))
+        or _text(owner_route.get("work_unit_fingerprint"))
+        or _text(refs.get("work_unit_fingerprint"))
+        or _text(basis.get("work_unit_fingerprint"))
+    )
+
+
+def _source_eval_id(
+    *,
+    action: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+    source_eval_path: Path,
+) -> str | None:
+    refs = _mapping(owner_route.get("source_refs"))
+    basis = _mapping(refs.get("owner_route_currentness_basis"))
+    return (
+        _text(action.get("source_eval_id"))
+        or _text(refs.get("source_eval_id"))
+        or _text(basis.get("source_eval_id"))
+        or _text(_mapping(_read_json_object(source_eval_path)).get("eval_id"))
+    )
+
+
+def _quality_summary_path(study_root: Path) -> Path:
+    canonical = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    if canonical.exists():
+        return canonical
+    return study_root / "artifacts" / "evaluation_summary" / "latest.json"
 
 
 def _mapping(value: object) -> dict[str, Any]:

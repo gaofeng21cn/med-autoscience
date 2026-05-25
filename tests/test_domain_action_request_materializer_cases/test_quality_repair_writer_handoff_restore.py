@@ -396,3 +396,122 @@ def test_materialize_domain_action_requests_restores_writer_handoff_when_current
     assert "paper/draft.md" in dispatch["prompt_contract"]["allowed_write_surfaces"]
     assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
     assert persisted["prompt_contract"]["medical_claim_authoring_allowed"] is True
+
+
+def test_materialize_domain_action_requests_builds_writer_handoff_from_current_story_surface_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    work_unit_id = "dm002_same_line_display_table_package_repair"
+    work_unit_fingerprint = "dm002_ai_reviewer_current_manuscript_display_table_package_repair_20260525"
+    current_route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="write",
+        owner_reason="manuscript_story_surface_delta_missing",
+        allowed_actions=["run_quality_repair_batch"],
+    )
+    current_route.update(
+        {
+            "truth_epoch": f"truth-epoch::{study_id}::current",
+            "route_epoch": f"truth-epoch::{study_id}::current",
+            "source_fingerprint": f"truth-source::{study_id}::current",
+            "runtime_health_epoch": "runtime-health-event-006222-direct-story-surface",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "idempotency_key": f"owner-route::{study_id}::direct-story-surface-current",
+            "source_refs": {
+                "source_eval_id": "publication-eval::dm002::current",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "runtime_health_epoch": "runtime-health-event-006222-direct-story-surface",
+                "study_truth_epoch": f"truth-epoch::{study_id}::current",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+            },
+        }
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    repair_evidence_path = study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    source_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    source_summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    _write_json(repair_evidence_path, {"status": "blocked", "blockers": ["manuscript_story_surface_delta_missing"]})
+    _write_json(source_eval_path, {"eval_id": "publication-eval::dm002::current"})
+    _write_json(source_summary_path, {"summary_id": "quality-summary::dm002"})
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": current_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": quest_id,
+                            "action_type": "run_quality_repair_batch",
+                            "owner": "write",
+                            "reason": "manuscript_story_surface_delta_missing",
+                            "required_output_surface": (
+                                "canonical manuscript story-surface delta or "
+                                "typed blocker:manuscript_story_surface_delta_missing"
+                            ),
+                            "next_work_unit": {
+                                "unit_id": work_unit_id,
+                                "lane": "write",
+                                "summary": "Repair display, table, package-facing prose, and story surface.",
+                            },
+                            "work_unit_fingerprint": work_unit_fingerprint,
+                            "owner_route": current_route,
+                            "handoff_packet": {
+                                "request_kind": "run_quality_repair_batch",
+                                "request_owner": "write",
+                                "owner_route": current_route,
+                            },
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    dispatch = result["default_executor_dispatches"][0]
+    persisted = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert dispatch["owner_route"]["owner_reason"] == "manuscript_story_surface_delta_missing"
+    assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
+    assert dispatch["medical_claim_authoring_allowed"] is True
+    assert dispatch["prompt_contract"]["medical_claim_authoring_allowed"] is True
+    assert dispatch["prompt_contract"]["allowed_write_surfaces"] == [
+        "paper/draft.md",
+        "paper/build/review_manuscript.md",
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/**",
+    ]
+    assert dispatch["source_action"]["surface"] == "quality_repair_batch"
+    assert dispatch["source_action"]["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert persisted["dispatch_authority"] == "quality_repair_batch_writer_handoff"
+    assert persisted["refs"]["repair_execution_evidence_path"] == str(repair_evidence_path)
