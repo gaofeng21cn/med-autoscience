@@ -9,6 +9,10 @@ from typing import Any
 from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
+from med_autoscience.controllers.domain_action_request_lifecycle import (
+    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+    AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+)
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -27,6 +31,10 @@ FORBIDDEN_SURFACES = [
     "artifacts/controller_decisions/latest.json",
     ".ds/**",
 ]
+STALENESS_HANDOFF_REASONS = {
+    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+    AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+}
 
 
 def _text(value: object) -> str | None:
@@ -218,6 +226,8 @@ def record_production_handoff_execution(
     record_blocker: Mapping[str, Any],
     apply: bool,
 ) -> dict[str, Any] | None:
+    if _text(record_blocker.get("reason")) not in STALENESS_HANDOFF_REASONS:
+        return None
     payload = _mapping(record_blocker.get("payload"))
     production_request = _mapping(payload.get("ai_reviewer_record_production_request"))
     if not production_request:

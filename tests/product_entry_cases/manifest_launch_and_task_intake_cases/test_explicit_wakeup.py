@@ -7,6 +7,8 @@ import pytest
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
+pytestmark = pytest.mark.contract
+
 
 def test_launch_study_explicit_wakeup_records_truth_resume(
     monkeypatch: pytest.MonkeyPatch,
