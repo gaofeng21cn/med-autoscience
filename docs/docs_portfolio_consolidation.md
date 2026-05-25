@@ -245,3 +245,47 @@ Next tranche write scope:
 
 - MAS integration references under `docs/references/integration/*.md`, or runtime support docs under `docs/runtime/contracts/**` / `docs/runtime/control/**` that still carry product/workbench/Portal/owner-route current-truth claims.
 - OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+### 2026-05-26 integration references handoff tranche
+
+本轮覆盖 MAS `docs/references/integration/*.md` 的 product-entry / OPL handoff / runtime-owner / App-workbench integration 语义。目标是把 integration reference 读回当前 `MedAutoScienceDomainEntry`、product-entry CLI、generated-surface handoff、OPL/Temporal 默认 hosted runtime 和 MAS authority boundary，删除仍把 external runtime gate、MedDeepScientist backend、Hermes host 或未成熟 product-entry shell 写成当前阻塞的旧口径。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/architecture.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/references/positioning/mas_ideal_state.md`, this docs-governance file.
+- Integration docs: `docs/references/integration/codex_plugin.md`, `lightweight_product_entry_and_opl_handoff.md`, `opl-family-contract-adoption.md`, `opl-managed-runtime-three-layer-contract.md`, `progress_portal_opl_app_integration.md`, `stage_led_autonomy_family_inventory.md`.
+- Machine surfaces: `contracts/generated_surface_handoff.json`, `contracts/functional_privatization_audit.json`, `contracts/action_catalog.json`.
+- Source surfaces: `src/med_autoscience/domain_entry_contract.py`, `src/med_autoscience/domain_entry.py`, `src/med_autoscience/cli_parts/product_entry_parsers.py`, `src/med_autoscience/cli_parts/product_entry_commands.py`, `src/med_autoscience/controllers/product_entry_parts/entry_runtime.py`, `src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py`.
+- CLI/read-model: `PYTHONPATH=src python -m med_autoscience.cli --help`, `PYTHONPATH=src python -m med_autoscience.cli build-product-entry --help`, `PYTHONPATH=src python -m med_autoscience.cli product-entry-manifest --help`, `PYTHONPATH=src python -m med_autoscience.cli workspace progress-portal --help`.
+- Structural context: CodeGraph context / explore for `MedAutoScienceDomainEntry`, `SERVICE_SAFE_DOMAIN_COMMANDS`, `build-product-entry`, product-entry CLI commands and Progress Portal handoff.
+
+Fresh semantic result：
+
+- `MedAutoScienceDomainEntry` is the service-safe structured entry shared by direct MAS skill, CLI and OPL generated / hosted surfaces. Current service-safe commands include product-entry status/preflight/start/manifest, skill catalog, workspace cockpit, study progress/projection, submit/launch study and `build-product-entry`.
+- Public CLI grouping exposes `medautosci product build-entry`; the internal service-safe command id and parser command remain `build-product-entry`. Product-entry manifest remains descriptor/read-model surface, not domain truth or quality authority.
+- The shared handoff envelope now centers `domain_authority_handoff_contract`, `managed_runtime_contract`, `return_surface_contract`, `domain_entry_contract` and `user_interaction_contract`; old `runtime_session_contract` wording is stale for this reference.
+- OPL/Temporal is the default hosted autonomous runtime owner. External MedDeepScientist backend, Hermes host and local LaunchAgent must only appear as provenance, backend audit, explicit non-default executor/proof lane, parity oracle, diagnostic or history.
+- Product/status/workbench/sidecar shell remains a strict source-purity tail and active migration surface, not a long-term MAS-owned generic product runtime.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | All six files under `docs/references/integration/`: lifecycle headers, product-entry/Hermes/MDS wording, OPL family contract adoption, three-layer runtime owner split, Progress Portal / OPL App handoff, Stage-Led Autonomy family descriptor inventory, and stale wording scan for runtime gate / handoff envelope / product-entry maturity claims. | `docs/references/integration/lightweight_product_entry_and_opl_handoff.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The integration references remain support references; only stale current-truth claims in the lightweight product-entry / OPL handoff reference were rewritten in place.
+
+Uncovered docs in this semantic area:
+
+- Runtime support docs under `docs/runtime/contracts/**` and `docs/runtime/control/**` outside previously covered projection/display/inspection/controller snippets.
+- `docs/runtime/stage_route_handoff_standard.md` beyond the risk scan and references read in this tranche.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any integration prose that says MAS still has a current external runtime gate, current MedDeepScientist backend dependency, or pending Hermes host switch is stale unless it is explicitly history/provenance.
+- Product-entry / sidecar / status / workbench shell may stay active as direct handler, domain target, diagnostic bridge or migration surface, but future prose must keep OPL generated/default caller cutover as the target state.
+- OPL App, native helper, product-entry manifest and Progress Portal projections must not be written as MAS study truth, publication quality, artifact authority, `current_package` freshness proof, memory body owner or domain-ready verdict.
+
+Next tranche write scope:
+
+- MAS runtime support docs under `docs/runtime/contracts/**`, `docs/runtime/control/**` or `docs/runtime/stage_route_handoff_standard.md` that still need paragraph-level current-truth reconciliation.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.

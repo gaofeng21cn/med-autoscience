@@ -11,12 +11,15 @@ Machine boundary: Human-readable integration reference only; callable and genera
 
 对外第一主语仍然是独立 medical research domain agent 和单一 MAS app skill；这里记录的是桥接载荷如何保持一致，而不是把桥接载荷写成前台产品主线。
 
-repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
+repo 内已经把 service-safe domain entry、product-entry builder 与 shared handoff envelope 落成 machine-readable surface：
 
+- `MedAutoScienceDomainEntry`
+  - 给 direct MAS skill、CLI 和 OPL generated / hosted surface 复用同一个 structured entry adapter。
+  - command catalog 以 `product-entry-status`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`progress-projection`、`product-entry-manifest` 和 `build-product-entry` 为当前 service-safe 入口集合。
 - `build-product-entry`
-  - 基于已有 durable study task intake 输出共用 envelope
-  - 继续只覆盖 research 主线，不碰 display 支线
-  - 当缺少 durable intake 或 selector 不成立时保持 fail-closed
+  - CLI 入口是 `medautosci product build-entry --profile <profile> --study-id <study_id> --entry-mode direct|opl-handoff`；内部 service-safe command id 保持 `build-product-entry`。
+  - 基于已有 durable study task intake 输出共用 envelope；缺少 durable intake 或 study selector 不成立时保持 fail-closed。
+  - 输出 `domain_authority_handoff_contract`、`managed_runtime_contract`、`return_surface_contract`、`domain_entry_contract` 和 `user_interaction_contract`，供 direct path 与 OPL-handoff path 共享。
 
 ## 2. 目标形态
 
@@ -36,20 +39,14 @@ repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
 
 ## 3. 为什么这一层只保留为参考
 
-`Med Auto Science` 和别的业务仓不同，它当前还有真实 external runtime gate：
+这份文档只保留为参考，是因为当前 callable truth 已经由 contracts、source、CLI/read-model、product-entry manifest 与 OPL handoff contracts 承担；本文只解释这些机器面之间的 owner split。
 
-- repo-side seam 已经成立
-- outer-loop / watch / supervision / durable surface 已经成立
-- 真实长时执行仍经由受控 `MedDeepScientist` backend
-- external `Hermes-Agent` host 还没有彻底变成稳定 owner
+当前冻结的是：
 
-所以这份文档当前冻结的是：
-
-- 入口语义
-- handoff 语义
-- 未来 product entry / handoff 的边界
-
-而不是宣称它已经落成一个成熟的 direct product entry。
+- direct MAS app skill、CLI 和 OPL generated / hosted surfaces 共享同一个 MAS domain entry adapter。
+- OPL/Temporal 是 hosted autonomous runtime 的默认 owner；MAS 不再把 external `MedDeepScientist` backend、Hermes host 或 local LaunchAgent 写成默认 runtime gate。
+- product-entry / status / workbench / sidecar shell 仍是 strict source-purity tail：它们可以作为 direct handler、domain target 或 diagnostic bridge 活跃存在，但长期 generated/default caller owner 归 OPL，不能写成 MAS 自有 generic product runtime。
+- `MedDeepScientist` 只保留为 source provenance、historical fixture、explicit archive import、backend audit、upstream intake 或 parity oracle reference；`Hermes-Agent` 只作为显式非默认 executor/proof lane 或历史 provenance。
 
 ## 4. 共享 handoff envelope
 
@@ -59,8 +56,11 @@ repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
 - `task_intent`
 - `entry_mode`
 - `workspace_locator`
-- `runtime_session_contract`
+- `domain_authority_handoff_contract`
+- `managed_runtime_contract`
 - `return_surface_contract`
+- `domain_entry_contract`
+- `user_interaction_contract`
 
 在这层公共 envelope 之上，医学研究域继续补充：
 
@@ -70,23 +70,23 @@ repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
 
 ## 5. 与 runtime 主线、display 支线的关系
 
-这份产品入口文档只属于 runtime 主线，不属于 display 独立支线；其中 OPL 只表示 stage-led framework handoff，不表示 MAS 的对外第一身份。
+这份产品入口文档只解释 product-entry / OPL handoff 集成，不持有 Progress Portal、submission package、artifact authority 或 quality verdict 的当前真相；其中 OPL 表示 stage-led framework handoff、generated/default caller owner 和 hosted runtime owner，不表示 MAS 的对外第一身份。
 
 必须同时保持：
 
-- runtime 主线继续朝 external `Hermes-Agent` 切换推进
-- display / 论文配图资产化继续独立演进
+- runtime 主线继续以 OPL/Temporal hosted autonomy 为默认 owner，MAS 只输出 domain authority refs、owner receipt、typed blocker 和 safe action refs。
+- display / Progress Portal / OPL App workbench 继续作为 projection / operator surface 独立演进。
 - 两条线不互相改写对方的真相
 
 ## 6. 当前不应过度宣称的事
 
-- 不能把 `Med Auto Science Product Entry` 写成已经成熟落地
-- 不能把 `OPL -> Med Auto Science` handoff 写成已经具备独立用户前台
-- 不能把 repo-side seam 写成“上游 `Hermes-Agent` 已经完整接管”
+- 不能把 product-entry / workbench shell 写成 MAS 长期自有 generic product runtime；它们当前仍是 OPL generated/default caller cutover 前的 active migration surface。
+- 不能把 `OPL -> Med Auto Science` handoff 写成 MAS study truth、publication quality、artifact authority、memory body、`current_package` freshness proof 或 domain-ready verdict。
+- 不能把 repo-side seam 写成“上游 `Hermes-Agent` 已经完整接管”或“external runtime gate 仍阻塞当前默认 runtime”；当前默认 hosted runtime owner 是 OPL/Temporal。
 - 不能因为补入口合同，就偷跑 physical migration 或 cross-repo rewrite
 
 ## 7. 下一步落地方向
 
 1. 继续保持 `CLI / MCP / controller` 的入口语义稳定。
-2. 在 external gate 不突破的前提下，先把 product-entry shell 与 OPL handoff contract 写清；当前 repo 内已经把 `workspace-cockpit` 收成用户 inbox，`build-product-entry` 也已把共用 envelope 收成 machine-readable shell，但这仍然只是 shell，不是成熟前台。
-3. 等 external runtime gate 真正清除后，再把 product entry、runtime session、resume、watch、study progression 接成更完整的 direct path。
+2. 继续把 `product-entry-status`、`workspace-cockpit`、`build-product-entry`、`sidecar export|dispatch` 和 domain entry contract 对齐到同一套 `agent/` pack、contracts、owner receipt、typed blocker 和 no-forbidden-write boundary。
+3. 当 OPL generated/default caller parity、active-caller proof、MAS owner receipt parity 和 focused tests 成立后，直接收薄或删除 repo-local product/status/workbench/sidecar shell；需要来龙去脉只保留 history/provenance，不新增 compatibility alias。
