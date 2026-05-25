@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `workspace_bootstrap_reference`
 State: `current_reference`
-Machine boundary: 本文是人读 workspace 建立指南；workspace/runtime 机器真相以 profile template、bootstrap CLI、runtime lifecycle SQLite、quest manifest、restore index、MAS owner receipts 和 OPL provider/framework contracts 为准。
+Machine boundary: 本文是人读 workspace 建立指南；workspace/runtime 机器真相以 profile template、bootstrap CLI、OPL workspace/file lifecycle contracts、artifact/root locator、quest manifest、restore index、MAS owner receipts 和 OPL provider/framework contracts 为准。SQLite、ledger 与 manifest 是 durable refs/projections，不是 MAS generic lifecycle owner。
 
 这份指南写给要新建疾病项目 workspace 的 Agent 或技术同事。
 
@@ -85,7 +85,7 @@ uv run python -m med_autoscience.cli init-workspace \
 
 如果你想先让 Agent 看计划，再决定是否创建，可以先加 `--dry-run`。
 
-这个命令默认 no root Git / no quest Git。新 workspace 的 runtime lifecycle 由 `artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 与 `runtime/restore_index` 承接；workspace 根目录 Git、quest `.git`、Git diff/log 和 worktree list 都不是 active truth。
+这个命令默认 no root Git / no quest Git。新 workspace 的 runtime / lifecycle refs 由 `artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 与 `runtime/restore_index` 承接；generic workspace/file lifecycle、artifact locator、restore / retention shell 属于 OPL primitive，MAS 只消费 refs、typed blocker、owner receipt 和 source / artifact authority 输出。workspace 根目录 Git、quest `.git`、Git diff/log 和 worktree list 都不是 active truth。
 
 这个命令会生成下面这套 MAS-first 最小骨架：
 
@@ -148,7 +148,7 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 - `ops/`
   - 本地入口、配置和运行状态
 - `artifacts/runtime/`
-  - SQLite runtime lifecycle DB、lifecycle migration ledger、status projection 和 restore proof
+  - runtime lifecycle refs、lifecycle migration ledger、status projection 和 restore proof
 - `runtime/quests/`
   - 普通 quest 执行目录和 manifest，不是 Git repo
 - `runtime/archives/`、`runtime/restore_index/`
@@ -180,12 +180,13 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 
 - `MedAutoScience` 是正式研究入口，单一 MAS app skill 负责承接其稳定 callable surface
 - `MAS Runtime OS` 是 MAS domain runtime adapter、owner receipt 与 typed blocker surface；默认 generic runtime owner、attempt / queue / worker residency / retry-dead-letter 和 supervision scheduler owner 属于 OPL provider-backed stage runtime（`opl_provider_runtime_manager` / `opl_family_runtime_provider` replacement）
+- workspace/file lifecycle、artifact locator、restore/retention、generic cleanup policy 与 operator projection shell 属于 OPL owner primitive；MAS 只保留 source readiness、study truth、quality gate、artifact authority、owner receipt 和 typed blocker
 - MAS `local` adapter / LaunchAgent 已物理退役为 tombstone/provenance refs，Hermes gateway cron 只作 explicit legacy diagnostic adapter
 - `MedDeepScientist` 只保留为 frozen source archive / historical fixture / explicit legacy diagnostic / provenance reference，不是默认 workspace runtime 依赖
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
 - 旧 `ops/med-deepscientist/bin/*` 如果在历史 workspace 中出现，只作为 historical/debug evidence 或 cleanup target；新 workspace 不生成，也不作为 active runtime 运维入口
 - `OPL` handoff、product-entry manifest 与其他机器可读桥接只保留在集成或参考层
-- Agent 查状态或做 lifecycle 操作时，读 file authority、SQLite runtime lifecycle、lifecycle ledger、quest manifest 和 restore index；不查 Git
+- Agent 查状态或做 lifecycle 操作时，读 file authority、study/runtime read model、lifecycle refs/ledger、quest manifest 和 restore index；不查 Git
 
 ## 常见误区
 

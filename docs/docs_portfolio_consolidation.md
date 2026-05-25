@@ -709,3 +709,46 @@ Next tranche write scope:
 - MAS paragraph-level coverage for source references under `docs/references/workspace/**` and source-readiness / study-workflow policy docs, or delivery / medical-display docs that mention artifact lifecycle, source truth or package authority.
 - Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
+
+### 2026-05-26 workspace / source reference coverage tranche
+
+本轮覆盖 MAS workspace/source references 中会影响 workspace lifecycle、source truth、artifact locator、root Git retirement、Hermes/MDS retained-role 和 OPL/MAS owner split 的段落。目标是把 workspace bootstrap / architecture prose 读回当前 live contracts / source / tests：MAS 持有 source readiness、study truth、quality gate、artifact authority、owner receipt 和 typed blocker；OPL 持有 generic workspace/file lifecycle、artifact locator、restore/retention shell、provider runtime、queue/attempt/retry/dead-letter 和 App/operator projection shell。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/references/positioning/mas_ideal_state.md`, this docs-governance file, and preceding artifact / runtime / standard skeleton coverage ledger entries.
+- Reviewed support docs: `docs/references/workspace/disease_workspace_quickstart.md`, `docs/references/workspace/workspace_architecture.md`, `docs/source/README.md`, `docs/policies/study-workflow/workspace_autoscience_rules.md`, `docs/policies/study-workflow/stage_led_research_autonomy.md`, and `docs/policies/study-workflow/data_asset_management.md`.
+- Machine / source surfaces: `contracts/workspace_lifecycle_policy.json`, `contracts/functional_privatization_audit.json`, `contracts/pack_compiler_input.json`, `contracts/stage_control_plane.json`, `profiles/workspace.profile.template.toml`, `src/med_autoscience/controllers/workspace_init.py`, `src/med_autoscience/controllers/workspace_init_parts/profile_config.py`, `src/med_autoscience/controllers/workspace_init_parts/retired_entries.py`, `src/med_autoscience/controllers/runtime_storage_maintenance.py`, `src/med_autoscience/controllers/storage_governance_policy_kernel.py`, `src/med_autoscience/controllers/workspace_literature.py`, and `src/med_autoscience/profiles.py`.
+- Focused test evidence read from current source: `tests/test_workspace_init.py`, `tests/test_workspace_init_cases/workspace_creation.py`, `tests/test_workspace_init_cases/managed_script_bindings.py`, `tests/test_runtime_storage_maintenance.py`, `tests/test_profiles.py`, and `tests/test_opl_runtime_contract.py`.
+
+Fresh semantic result:
+
+- `disease_workspace_quickstart.md` remains active workspace bootstrap reference, but its machine boundary and lifecycle paragraphs needed tightening: SQLite / ledger / manifest surfaces are durable refs/projections, not MAS generic lifecycle ownership. Generic workspace/file lifecycle, artifact locator, restore/retention shell and operator projection belong to OPL primitives.
+- `workspace_architecture.md` remains active workspace architecture support. The retained workspace shape still uses `runtime/quests`, `runtime/archives`, `runtime/restore_index`, `artifacts/runtime`, `ops/medautoscience` and `ops/mas`, while root Git and quest Git remain retired from active truth. The updated wording separates MAS source/artifact/quality/study truth authority from OPL lifecycle/locator/provider ownership.
+- Hermes remains an optional external executor adapter / proof lane / diagnostic / historical reference. It must not be written as default outer runtime substrate or scheduler owner. MDS / DeepScientist remains source provenance, historical fixture, explicit archive import, backend audit, upstream intake or parity oracle reference only.
+- `docs/source/README.md` and the reviewed study-workflow policies remain aligned: source provider readiness, literature records, data asset registry, ToolUniverse output, workspace memory or quest-local materialization cannot authorize source readiness verdict, publication quality, submission readiness, artifact mutation, `current_package` update or controller decision.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/references/workspace/disease_workspace_quickstart.md` and `docs/references/workspace/workspace_architecture.md`; support read of source index / study-workflow policies and live contract/source/test evidence listed above. | `docs/references/workspace/disease_workspace_quickstart.md`; `docs/references/workspace/workspace_architecture.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. Both workspace reference files remain active support docs with distinct roles; stale owner wording was rewritten in place because they still own current workspace bootstrap / architecture explanation.
+
+Uncovered docs in this semantic area:
+
+- Source-readiness policy and stage workflow docs were read as support in this tranche, but full paragraph-level governance remains open for all `docs/policies/study-workflow/*.md` outside the specific source/workspace owner-boundary sections listed above.
+- MAS delivery / medical-display docs outside the already-covered inspection, artifact/baseline/retention and delivery index blocks remain open when they mention artifact lifecycle, source truth, package authority or display-pack authority.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention, standard skeleton/source-delivery index and this workspace/source reference block.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any future prose that treats runtime lifecycle SQLite, lifecycle ledgers, storage audit, root Git retirement, restore index, artifact locator, provider completion or OPL read model as MAS-owned generic lifecycle authority is stale pollution.
+- Any future prose that writes Hermes, MAS `local` adapter, LaunchAgent, `mas_runtime_core`, MDS/DeepScientist daemon, workspace-local service or root/quest Git back into default runtime owner, scheduler owner, active adapter, diagnostic fallback or compatibility alias is stale pollution.
+- Any future prose that treats source provider ranking, citation count, abstract match, ToolUniverse output, data asset registry, workspace literature, quest-local cache, file presence, package freshness, test pass or provider completion as source readiness, publication quality, submission readiness, artifact mutation authorization or `current_package` update is stale pollution.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for remaining study-workflow source-readiness / data-asset policy docs, or delivery / medical-display docs that mention artifact lifecycle, source truth, package authority or display-pack authority.
+- Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
