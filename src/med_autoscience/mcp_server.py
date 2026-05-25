@@ -72,7 +72,6 @@ medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_li
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
-product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 domain_health_diagnostic = _LazyModuleProxy(lambda: _load_controller("domain_health_diagnostic"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
@@ -85,9 +84,9 @@ profiles = _LazyModuleProxy(_load_profiles_module)
 _PRODUCT_ENTRY_CONTRACT_GAP_TEXT = PRODUCT_ENTRY_CONTRACT_GAP_TEXT
 ACTION_CATALOG = build_mas_action_catalog()
 TOOL_REGISTRY = build_tool_registry(
-    product_entry_mode_schema=build_authority_product_entry_mode_schema(),
-    product_entry_modes_text=product_entry_description_modes_text(),
-    product_entry_contract_gap_text=_PRODUCT_ENTRY_CONTRACT_GAP_TEXT,
+    authority_operation_mode_schema=build_authority_product_entry_mode_schema(),
+    authority_operation_modes_text=product_entry_description_modes_text(),
+    authority_operation_contract_gap_text=_PRODUCT_ENTRY_CONTRACT_GAP_TEXT,
     action_catalog_metadata_by_tool=action_catalog_metadata_by_mcp_tool(ACTION_CATALOG),
 )
 
@@ -307,54 +306,6 @@ def _call_medical_reporting_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
-def _call_workspace_cockpit(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = profiles.load_profile(str(profile_path))
-    result = product_entry.read_workspace_cockpit(profile=profile, profile_ref=profile_path)
-    return _tool_text_result(product_entry.render_workspace_cockpit_markdown(result), structured=result)
-
-
-def _call_product_entry_status(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = profiles.load_profile(str(profile_path))
-    result = product_entry.build_product_entry_status(profile=profile, profile_ref=profile_path)
-    return _tool_text_result(product_entry.render_product_entry_status_markdown(result), structured=result)
-
-
-def _call_product_preflight(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = profiles.load_profile(str(profile_path))
-    result = product_entry.build_product_entry_preflight(profile=profile, profile_ref=profile_path)
-    return _tool_text_result(product_entry.render_product_entry_preflight_markdown(result), structured=result)
-
-
-def _call_product_start(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = profiles.load_profile(str(profile_path))
-    result = product_entry.build_product_entry_start(profile=profile, profile_ref=profile_path)
-    return _tool_text_result(product_entry.render_product_entry_start_markdown(result), structured=result)
-
-
-def _call_product_manifest(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = profiles.load_profile(str(profile_path))
-    result = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_path)
-    return _tool_text_result(product_entry.render_product_entry_manifest_markdown(result), structured=result)
-
-
-def _call_build_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = profiles.load_profile(str(profile_path))
-    result = product_entry.build_product_entry(
-        profile=profile,
-        profile_ref=profile_path,
-        study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
-        study_root=_optional_path(arguments, "study_root"),
-        direct_entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
-    )
-    return _tool_text_result(product_entry.render_build_product_entry_markdown(result), structured=result)
-
-
 def _call_migration_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     result = workspace_authority_migration_audit.run_migration_audit(
         workspace_roots=_require_path_list(arguments, "workspace_roots", mode="workspace_authority_migration_audit"),
@@ -448,7 +399,6 @@ def _call_workspace_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
         tool_name="workspace_readiness",
         arguments=arguments,
         handlers={
-            "cockpit": _call_workspace_cockpit,
             "init_workspace": _call_init_workspace,
             "startup_data_readiness": _call_startup_data_readiness,
             "portfolio_memory_status": _call_portfolio_memory_status,
@@ -482,16 +432,11 @@ def _call_publication_status(arguments: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
+def _call_authority_operations(arguments: dict[str, Any]) -> dict[str, Any]:
     return call_mode_handler(
-        tool_name="product_entry",
+        tool_name="authority_operations",
         arguments=arguments,
         handlers={
-            "product_entry_status": _call_product_entry_status,
-            "product_preflight": _call_product_preflight,
-            "product_start": _call_product_start,
-            "product_entry_manifest": _call_product_manifest,
-            "build_product_entry": _call_build_product_entry,
             **_AUTHORITY_PRODUCT_ENTRY_HANDLERS,
         },
     )
@@ -504,7 +449,7 @@ TOOL_HANDLERS = {
     "study_progress": _call_study_progress,
     "open_auto_research_soak": _call_open_auto_research_soak,
     "publication_status": _call_publication_status,
-    "product_entry": _call_product_entry,
+    "authority_operations": _call_authority_operations,
 }
 
 

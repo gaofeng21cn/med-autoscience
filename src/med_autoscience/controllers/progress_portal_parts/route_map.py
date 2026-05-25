@@ -22,7 +22,7 @@ def build_route_map_payload(
     route_trail = _mapping(route_decision_trail)
     route_nodes = _mapping_list(route_trail.get("nodes"))
     route_refs = _string_list(route_trail.get("source_refs"))
-    receipt_policy = _safe_action_receipt_policy()
+    handoff_policy = _owner_route_handoff_policy()
     if _non_empty_text(route_trail.get("status")) != "available" or not route_nodes or not route_refs:
         return {
             "schema_version": 1,
@@ -37,7 +37,7 @@ def build_route_map_payload(
             "edges": [],
             "source_refs": _dedupe_strings(ref for ref in route_refs if source_ref_allowed(ref)),
             "conditions": {"missing": ["route_lineage"], "stale": [], "conflict": []},
-            "safe_action_receipt_policy": receipt_policy,
+            "owner_route_handoff_policy": handoff_policy,
             "authority": _authority(),
         }
 
@@ -141,7 +141,7 @@ def build_route_map_payload(
         "edges": edges,
         "source_refs": source_refs,
         "conditions": {"missing": missing, "stale": [], "conflict": []},
-        "safe_action_receipt_policy": receipt_policy,
+        "owner_route_handoff_policy": handoff_policy,
         "authority": _authority(),
     }
 
@@ -211,13 +211,11 @@ def _authority() -> dict[str, Any]:
     }
 
 
-def _safe_action_receipt_policy() -> dict[str, Any]:
+def _owner_route_handoff_policy() -> dict[str, Any]:
     return {
         "policy": "route_only_to_owner_no_direct_execution",
-        "required_receipt_surface": "mas_progress_portal_action_receipt",
+        "required_receipt_surface": "mas_runtime_owner_route_handoff",
         "allowed_receipt_owners": [
-            "mas_runtime_owner",
-            "mas_controller",
             "MedAutoScience",
             "OPL provider transport",
         ],

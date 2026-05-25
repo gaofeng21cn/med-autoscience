@@ -802,11 +802,11 @@ def test_paper_soak_memory_apply_proof_projects_controlled_readonly_receipt_refs
         study_root=study_root,
         workspace_root=workspace_root,
     )
-    sidecar_receipt = workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts" / "r1.json"
+    domain_handler_receipt = workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts" / "r1.json"
     _write_json(
-        sidecar_receipt,
+        domain_handler_receipt,
         {
-            "surface_kind": "mas_family_sidecar_dispatch_receipt",
+            "surface_kind": "mas_family_domain_handler_dispatch_receipt",
             "accepted": True,
             "task_id": "task-1",
             "task_kind": "study_progress/read",
@@ -843,7 +843,7 @@ def test_paper_soak_memory_apply_proof_projects_controlled_readonly_receipt_refs
     assert {ref["ref_kind"] for ref in proof["opl_aion_readonly_receipt_refs"]} == {
         "memory_write_router_receipt",
         "publication_route_memory_writeback_receipt",
-        "mas_family_sidecar_dispatch_receipt",
+        "mas_family_domain_handler_dispatch_receipt",
     }
     assert all(ref["body_included"] is False for ref in proof["opl_aion_readonly_receipt_refs"])
     assert proof["read_only_display_policy"]["repo_tracks_real_paper_artifacts"] is False

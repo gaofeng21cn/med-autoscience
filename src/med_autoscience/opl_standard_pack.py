@@ -56,7 +56,7 @@ GENERATED_SURFACES = [
     "mcp",
     "skill",
     "product_entry_manifest",
-    "sidecar_export_dispatch",
+    "domain_handler",
     "status_read_model",
     "workbench_drilldown",
     "functional_harness_cases",

@@ -9,7 +9,7 @@ from .. import opl_provider_ready_adapter
 from ..opl_unique_control_plane_boundary_parts import consumer_migration
 
 
-def build_sidecar_functional_closure_projection(
+def build_domain_handler_functional_closure_projection(
     *,
     profile: WorkspaceProfile,
     profile_ref: Path,
@@ -52,4 +52,4 @@ def build_sidecar_functional_closure_projection(
     }
 
 
-__all__ = ["build_sidecar_functional_closure_projection"]
+__all__ = ["build_domain_handler_functional_closure_projection"]

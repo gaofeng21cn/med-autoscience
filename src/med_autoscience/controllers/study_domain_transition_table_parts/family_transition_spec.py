@@ -143,7 +143,7 @@ def build_family_transition_spec_descriptor() -> dict[str, Any]:
                 "domain_transition_table.family_transition_spec",
                 "domain_transition_table.family_transition_matrix_cases",
             ],
-            "sidecar_export": ["family_transition_spec_descriptor"],
+            "domain_handler_export": ["family_transition_spec_descriptor"],
             "product_entry_manifest": ["family_transition_spec_descriptor"],
         },
         "authority_boundary": {
@@ -156,12 +156,12 @@ def build_family_transition_spec_descriptor() -> dict[str, Any]:
         "locator_refs": {
             "study_state_matrix_spec": "/study_state_matrix/domain_transition_table/family_transition_spec",
             "study_state_matrix_cases": "/study_state_matrix/domain_transition_table/family_transition_matrix_cases",
-            "sidecar_export_descriptor": "/mas_family_sidecar_export/family_transition_spec_descriptor",
+            "domain_handler_export_descriptor": "/mas_family_domain_handler_export/family_transition_spec_descriptor",
             "product_entry_manifest_descriptor": "/product_entry_manifest/family_transition_spec_descriptor",
         },
         "source_refs": {
             "study_state_matrix_domain_transition_table": "/study_state_matrix/domain_transition_table",
-            "sidecar_export_descriptor": "/mas_family_sidecar_export/family_transition_spec_descriptor",
+            "domain_handler_export_descriptor": "/mas_family_domain_handler_export/family_transition_spec_descriptor",
             "product_entry_manifest_descriptor": "/product_entry_manifest/family_transition_spec_descriptor",
         },
     }

@@ -74,9 +74,9 @@
   "stages": [
     {
       "allowed_action_refs": [
-        "product_entry_status",
-        "workspace_cockpit",
-        "study_progress"
+        "study_progress",
+        "study_state_matrix",
+        "authority_operations"
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
@@ -220,9 +220,9 @@
         "surface_kind": "mas_codex_cli_stage_launch_packet",
         "tool_refs": {
           "allowed_action_refs": [
-            "product_entry_status",
-            "workspace_cockpit",
-            "study_progress"
+            "study_progress",
+            "study_state_matrix",
+            "authority_operations"
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
@@ -282,16 +282,16 @@
       },
       "goal": "Freeze a question-worthy study direction, evidence target, and immediate route recommendation. / Choose the strongest study line and freeze why it deserves managed execution.",
       "handoff": {
+        "handler_target_ref": "/domain_entry",
         "next_owner": "MedAutoScience",
         "next_stage_refs": [
           "baseline_and_evidence_setup"
         ],
+        "owner_receipt_ref": "/opl_family_persistence_lifecycle_owner_route_adoption/payload/owner_route",
         "provides": [
           "direction_route_selected"
         ],
-        "resume_surface_ref": "/product_entry_shell/study_progress",
-        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
-        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+        "resume_surface_ref": "/domain_entry/study-progress"
       },
       "inputs": [
         {
@@ -553,9 +553,9 @@
           },
           {
             "ref": [
-              "product_entry_status",
-              "workspace_cockpit",
-              "study_progress"
+              "study_progress",
+              "study_state_matrix",
+              "authority_operations"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -837,16 +837,16 @@
       },
       "goal": "Establish the baseline, comparator, and readiness proof for the active study line. / Run a primary managed experiment when the study line needs fresh main-result execution.",
       "handoff": {
+        "handler_target_ref": "/domain_entry",
         "next_owner": "MedAutoScience",
         "next_stage_refs": [
           "bounded_analysis_campaign"
         ],
+        "owner_receipt_ref": "/opl_family_persistence_lifecycle_owner_route_adoption/payload/owner_route",
         "provides": [
           "baseline_evidence_ready"
         ],
-        "resume_surface_ref": "/product_entry_shell/study_progress",
-        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
-        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+        "resume_surface_ref": "/domain_entry/study-progress"
       },
       "inputs": [
         {
@@ -1182,8 +1182,7 @@
       "allowed_action_refs": [
         "launch_study",
         "study_progress",
-        "sidecar_export",
-        "sidecar_dispatch"
+        "study_state_matrix"
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
@@ -1330,8 +1329,7 @@
           "allowed_action_refs": [
             "launch_study",
             "study_progress",
-            "sidecar_export",
-            "sidecar_dispatch"
+            "study_state_matrix"
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
@@ -1389,16 +1387,16 @@
       },
       "goal": "Close the bounded evidence gaps that still block claim acceptance or reviewer pressure.",
       "handoff": {
+        "handler_target_ref": "/domain_entry",
         "next_owner": "MedAutoScience",
         "next_stage_refs": [
           "manuscript_authoring"
         ],
+        "owner_receipt_ref": "/opl_family_persistence_lifecycle_owner_route_adoption/payload/owner_route",
         "provides": [
           "bounded_analysis_evidence_ready"
         ],
-        "resume_surface_ref": "/product_entry_shell/study_progress",
-        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
-        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+        "resume_surface_ref": "/domain_entry/study-progress"
       },
       "inputs": [
         {
@@ -1660,8 +1658,7 @@
             "ref": [
               "launch_study",
               "study_progress",
-              "sidecar_export",
-              "sidecar_dispatch"
+              "study_state_matrix"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -1745,9 +1742,8 @@
     {
       "allowed_action_refs": [
         "launch_study",
-        "study_progress",
-        "sidecar_export",
-        "sidecar_dispatch"
+        "submit_study_task",
+        "study_progress"
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
@@ -1891,9 +1887,8 @@
         "tool_refs": {
           "allowed_action_refs": [
             "launch_study",
-            "study_progress",
-            "sidecar_export",
-            "sidecar_dispatch"
+            "submit_study_task",
+            "study_progress"
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
@@ -1951,16 +1946,16 @@
       },
       "goal": "Convert the current evidence line into a manuscript-facing narrative that can withstand review.",
       "handoff": {
+        "handler_target_ref": "/domain_entry",
         "next_owner": "MedAutoScience",
         "next_stage_refs": [
           "review_and_quality_gate"
         ],
+        "owner_receipt_ref": "/opl_family_persistence_lifecycle_owner_route_adoption/payload/owner_route",
         "provides": [
           "manuscript_draft_reviewable"
         ],
-        "resume_surface_ref": "/product_entry_shell/study_progress",
-        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
-        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+        "resume_surface_ref": "/domain_entry/study-progress"
       },
       "inputs": [
         {
@@ -2222,9 +2217,8 @@
           {
             "ref": [
               "launch_study",
-              "study_progress",
-              "sidecar_export",
-              "sidecar_dispatch"
+              "submit_study_task",
+              "study_progress"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -2308,9 +2302,8 @@
     {
       "allowed_action_refs": [
         "study_progress",
-        "product_entry",
-        "sidecar_export",
-        "sidecar_dispatch"
+        "authority_operations",
+        "export_inspection_package"
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
@@ -2462,9 +2455,8 @@
         "tool_refs": {
           "allowed_action_refs": [
             "study_progress",
-            "product_entry",
-            "sidecar_export",
-            "sidecar_dispatch"
+            "authority_operations",
+            "export_inspection_package"
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
@@ -2523,16 +2515,16 @@
       },
       "goal": "Convert reviewer pressure, citation gaps, and evidence concerns into route-safe repair or decision work. / Record the official go, stop, reroute, or human-gate judgment for the active study line.",
       "handoff": {
+        "handler_target_ref": "/domain_entry",
         "next_owner": "MedAutoScience",
         "next_stage_refs": [
           "finalize_and_publication_handoff"
         ],
+        "owner_receipt_ref": "/opl_family_persistence_lifecycle_owner_route_adoption/payload/owner_route",
         "provides": [
           "ai_reviewer_gate_receipt_recorded"
         ],
-        "resume_surface_ref": "/product_entry_shell/study_progress",
-        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
-        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+        "resume_surface_ref": "/domain_entry/study-progress"
       },
       "inputs": [
         {
@@ -2807,9 +2799,8 @@
           {
             "ref": [
               "study_progress",
-              "product_entry",
-              "sidecar_export",
-              "sidecar_dispatch"
+              "authority_operations",
+              "export_inspection_package"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -2893,8 +2884,8 @@
     {
       "allowed_action_refs": [
         "study_progress",
-        "product_entry",
-        "sidecar_export"
+        "authority_operations",
+        "publication_aftercare_plan"
       ],
       "authority_boundary": {
         "can_authorize_publication_quality": false,
@@ -3047,8 +3038,8 @@
         "tool_refs": {
           "allowed_action_refs": [
             "study_progress",
-            "product_entry",
-            "sidecar_export"
+            "authority_operations",
+            "publication_aftercare_plan"
           ],
           "can_authorize_quality_verdict": false,
           "can_write_mas_truth": false,
@@ -3108,14 +3099,14 @@
       },
       "goal": "Assemble the submission-facing package and verify that the line is ready for final judgment. / Resolve journal-facing packaging choices before final delivery or submission prep.",
       "handoff": {
+        "handler_target_ref": "/domain_entry",
         "next_owner": "MedAutoScience",
         "next_stage_refs": [],
+        "owner_receipt_ref": "/opl_family_persistence_lifecycle_owner_route_adoption/payload/owner_route",
         "provides": [
           "publication_handoff_ready_or_route_back_recorded"
         ],
-        "resume_surface_ref": "/product_entry_shell/study_progress",
-        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
-        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+        "resume_surface_ref": "/domain_entry/study-progress"
       },
       "inputs": [
         {
@@ -3394,8 +3385,8 @@
           {
             "ref": [
               "study_progress",
-              "product_entry",
-              "sidecar_export"
+              "authority_operations",
+              "publication_aftercare_plan"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"

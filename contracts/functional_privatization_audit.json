@@ -28,8 +28,7 @@
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -140,7 +139,7 @@
         "domain_ref_consumer_count": 3,
         "domain_ref_consumer_refs": [
           "owner-route handoff records owner-receipt refs",
-          "sidecar/product-entry projections consume domain authority refs only",
+          "domain-handler/product-entry projections consume domain authority refs only",
           "workspace maintenance records archive/source/artifact locator refs only"
         ],
         "generic_owner_claim_allowed": false,
@@ -168,7 +167,7 @@
         "domain_ref_consumer_count": 2,
         "domain_ref_consumer_refs": [
           "paper work-unit controller keeps publication-gate context refs",
-          "sidecar dispatch consumes work-unit source refs"
+          "domain-handler dispatch consumes work-unit source refs"
         ],
         "generic_owner_claim_allowed": false,
         "migration_class": "refs_only_domain_adapter",
@@ -193,7 +192,7 @@
         ],
         "domain_ref_consumer_count": 2,
         "domain_ref_consumer_refs": [
-          "runtime storage maintenance CLI reads workspace storage refs",
+          "runtime grouped storage audit commands read workspace storage refs",
           "workspace storage reports expose sizes and cleanup receipts only"
         ],
         "generic_owner_claim_allowed": false,
@@ -334,7 +333,7 @@
           "delete_or_tombstone_after": [
             "OPL generated/default caller parity remains green",
             "MAS owner receipt or stable typed blocker authorizes wrapper retirement",
-            "no-active-caller proof covers repo-local product/status/workbench/sidecar/controller/progress shell",
+            "no-active-caller proof covers repo-local product/status/workbench/domain-handler/controller/progress shell",
             "tombstone/provenance proof exists before physical deletion"
           ],
           "evidence_required": "OPL default caller readiness is present; repo-local source shape is reduced to domain handlers, refs-only projections, and workspace read-model carrier boundary without generic owner claims",
@@ -356,10 +355,10 @@
             "OPL runtime-app-operator-drilldown read model"
           ],
           "closure_status": "closed",
-          "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
+          "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and owner-route handoff routing",
           "functional_structure_gap": false,
           "gate_id": "opl_app_workbench_drilldown",
-          "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
+          "mas_role": "provide_domain_route_quality_artifact_memory_and_owner_route_handoff_refs",
           "owner": "one-person-lab"
         },
         {
@@ -482,7 +481,7 @@
         "domain_ref_consumers": [
           "owner-route handoff domain authority refs",
           "paper work-unit and dispatch owner receipt refs",
-          "sidecar/product-entry domain authority refs projections"
+          "domain-handler/product-entry domain authority refs projections"
         ],
         "forbidden_mas_roles": [
           "generic_persistence_engine",
@@ -536,7 +535,7 @@
           "domain_ref_consumer_count": 3,
           "domain_ref_consumer_refs": [
             "owner-route handoff records owner-receipt refs",
-            "sidecar/product-entry projections consume domain authority refs only",
+            "domain-handler/product-entry projections consume domain authority refs only",
             "workspace maintenance records archive/source/artifact locator refs only"
           ],
           "generic_owner_claim_allowed": false,
@@ -558,7 +557,7 @@
         ],
         "current_ref_status": "domain_outbox_refs_no_queue_attempt_owner",
         "domain_ref_consumers": [
-          "paper work-unit controller and sidecar dispatch source refs"
+          "paper work-unit controller and domain-handler dispatch source refs"
         ],
         "mas_domain_authority_refs": [
           "paper_work_unit_semantics",
@@ -589,7 +588,7 @@
           "domain_ref_consumer_count": 2,
           "domain_ref_consumer_refs": [
             "paper work-unit controller keeps publication-gate context refs",
-            "sidecar dispatch consumes work-unit source refs"
+            "domain-handler dispatch consumes work-unit source refs"
           ],
           "generic_owner_claim_allowed": false,
           "migration_class": "refs_only_domain_adapter",
@@ -609,12 +608,11 @@
           "src/med_autoscience/controllers/runtime_storage_maintenance.py",
           "src/med_autoscience/controllers/runtime_storage_maintenance_parts/",
           "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
-          "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py",
-          "src/med_autoscience/cli_parts/runtime_storage_commands.py"
+          "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
         ],
         "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
         "domain_ref_consumers": [
-          "runtime storage maintenance CLI",
+          "runtime grouped storage audit commands",
           "workspace storage reports"
         ],
         "latest_thinning_evidence": {
@@ -702,7 +700,7 @@
           ],
           "domain_ref_consumer_count": 2,
           "domain_ref_consumer_refs": [
-            "runtime storage maintenance CLI reads workspace storage refs",
+            "runtime grouped storage audit commands read workspace storage refs",
             "workspace storage reports expose sizes and cleanup receipts only"
           ],
           "generic_owner_claim_allowed": false,
@@ -926,7 +924,7 @@
           "cockpit"
         ],
         "domain_ref_consumers": [
-          "progress portal CLI",
+          "progress portal read-model materializer",
           "workspace cockpit",
           "product-entry manifest"
         ],
@@ -956,28 +954,16 @@
             "scope": "retired_read_model_evidence_shell_provenance",
             "status": "physically_retired_no_alias"
           },
-          "status": "product_status_workbench_projection_and_active_diagnostic_carrier_split",
+          "status": "opl_hosted_workbench_projection_and_read_model_materializer_landed",
           "workspace_carrier_boundary": {
-            "active_callers": [
-              "medautosci workspace progress-portal",
-              "medautosci workspace progress-portal --serve",
-              "ops/mas/bin/start-web workspace helper"
-            ],
-            "carrier_scope": "workspace_static_read_model_package_and_optional_local_read_only_service",
-            "delete_after": [
-              "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs",
-              "workspace_helper_no_active_caller_proof",
-              "focused_progress_portal_materialization_tests_green"
-            ],
-            "delete_blockers": [
-              "workspace_helper_active_caller_present",
-              "progress_portal_cli_still_materializes_workspace_local_html",
-              "opl_app_default_progress_carrier_not_proven_as_default_caller"
-            ],
+            "active_callers": [],
+            "carrier_scope": "domain_owned_payload_html_and_hosted_package_projection",
             "does_not_claim": [
-              "workspace_helper_no_active_caller_proof",
-              "opl_app_default_carrier_cutover_complete",
-              "domain_repo_physical_delete_ready"
+              "workspace_workbench_owner",
+              "status_wrapper_owner",
+              "generic_runtime_owner",
+              "local_http_service_owner",
+              "runtime_control_owner"
             ],
             "does_not_write": [
               "study_truth",
@@ -988,7 +974,8 @@
             ],
             "domain_repo_physical_delete_authorized": false,
             "physical_module": "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py",
-            "status": "active_workspace_diagnostic_carrier_delete_blocked_by_callers",
+            "retention_reason": "The retained module materializes MAS-owned read-model evidence and hosted package refs; it is not a workspace helper, service wrapper, or runtime control owner.",
+            "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
             "writes_only": [
               "artifacts/runtime/progress_portal/latest.json",
               "artifacts/runtime/progress_portal/hosted_package.json",
@@ -1012,18 +999,18 @@
         "owner": "med-autoscience",
         "proof_refs": [
           "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
-          "sidecar_export.functional_consumer_boundary.generated_surface_handoff"
+          "domain_handler_export.functional_consumer_boundary.generated_surface_handoff"
         ],
-        "retention_reason": "MAS supplies per-study route map, quality/source refs, blockers, safe action receipt projection, and the active no-App diagnostic Progress Portal carrier until OPL App default carrier parity and workspace-helper no-active-caller proof are present."
+        "retention_reason": "MAS supplies per-study route map, quality/source refs, blockers, domain-handler owner-route handoff refs, plus the domain-owned Progress Portal payload/static HTML materializer consumed by OPL hosted workbench refs."
       },
       {
         "authority_boundary": "opl_scans_and_dispatches_generic_loop_mas_guards_domain_route_and_receipt",
         "bridge_exit_gate": {
           "current_status": "domain_refs_until_explicit_owner_receipt_authorizes_physical_delete",
           "current_surface_refs": [
-            "sidecar",
-            "sidecar_export_dispatch",
-            "sidecar_dispatch"
+            "domain_handler",
+            "domain_handler_export",
+            "domain_handler_dispatch"
           ],
           "default_caller_deletion_evidence_scope": "domain_owned_typed_blocker_and_no_forbidden_write_refs_only_no_physical_delete_authorization",
           "domain_ref_owner": "med-autoscience",
@@ -1047,9 +1034,9 @@
           "opl_can_write_study_truth": false,
           "physical_delete_authorized_by_refs": false,
           "provenance_refs": [
-            "sidecar",
-            "sidecar_export_dispatch",
-            "sidecar_dispatch"
+            "domain_handler",
+            "domain_handler_export",
+            "domain_handler_dispatch"
           ],
           "replacement_owner": "one-person-lab",
           "required_before_retire": [
@@ -1071,14 +1058,14 @@
         ],
         "current_ref_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
         "current_surface_refs": [
-          "sidecar",
-          "sidecar_export_dispatch",
-          "sidecar_dispatch"
+          "domain_handler",
+          "domain_handler_export",
+          "domain_handler_dispatch"
         ],
         "domain_ref_consumers": [
           "owner-route one-shot tick",
           "runtime owner-route reconcile",
-          "sidecar dispatch"
+          "domain-handler dispatch"
         ],
         "latest_thinning_evidence": {
           "does_not_claim": [
@@ -1191,9 +1178,9 @@
         },
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-          "src/med_autoscience/cli.py",
-          "src/med_autoscience/mcp_server.py",
+          "src/med_autoscience/domain_entry.py",
           "src/med_autoscience/controllers/product_entry.py",
+          "src/med_autoscience/controllers/owner_route_handoff.py",
           "plugins/mas/skills/mas/SKILL.md"
         ],
         "current_ref_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",
@@ -1460,7 +1447,7 @@
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
+        "domain_handler",
         "workbench"
       ],
       "mas_handwritten_shell_default_caller_allowed": false,
@@ -1482,7 +1469,7 @@
           "product_entry",
           "product_status",
           "product_session",
-          "domain_action_adapter",
+          "domain_handler",
           "workbench"
         ],
         "default_caller_owner": "one-person-lab",
@@ -1508,7 +1495,7 @@
         "family_action_catalog",
         "family_stage_control_plane_descriptor",
         "product_entry_manifest",
-        "sidecar_export",
+        "domain_handler_export",
         "mcp_tool_manifest"
       ],
       "schema_version": 1,
@@ -1577,12 +1564,12 @@
         {
           "default_caller_owner": "one-person-lab",
           "default_runtime_owner": "one-person-lab",
-          "mas_allowed_role": "domain_action_adapter",
+          "mas_allowed_role": "domain_handler_target",
           "mas_generic_owner_allowed": false,
-          "parity_ref": "domain_action_adapter_descriptor_parity",
+          "parity_ref": "domain_handler_descriptor_parity",
           "physical_delete_is_not_implied": true,
-          "surface_id": "domain_action_adapter",
-          "target_role": "opl_generated_domain_action_adapter_dispatch_shell"
+          "surface_id": "domain_handler",
+          "target_role": "opl_generated_domain_handler_dispatch_shell"
         },
         {
           "default_caller_owner": "one-person-lab",
@@ -1645,25 +1632,13 @@
         {
           "current_paths": [
             "src/med_autoscience/controllers/owner_route_handoff.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/export_projection.py",
-            "src/med_autoscience/controllers/owner_route_handoff_parts/export_study_projection.py",
+            "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_export.py",
+            "src/med_autoscience/controllers/owner_route_handoff_parts/domain_handler_functional_closure.py",
             "src/med_autoscience/controllers/owner_route_handoff_parts/dispatch_orchestration.py"
           ],
           "current_role": "domain_owner_route_refs_export_dispatch_source",
-          "surface_id": "sidecar",
-          "target_role": "opl_generated_sidecar_handoff_surface"
-        },
-        {
-          "current_paths": [
-            "src/med_autoscience/controllers/owner_route_reconcile.py",
-            "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
-            "src/med_autoscience/controllers/default_executor_action_policy.py"
-          ],
-          "current_role": "domain_action_adapter",
-          "policy_boundary": "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority",
-          "surface_id": "domain_action_adapter_export_dispatch",
-          "target_role": "opl_generated_domain_action_adapter_handoff_surface"
+          "surface_id": "domain_handler",
+          "target_role": "opl_generated_domain_handler_handoff_surface"
         },
         {
           "current_paths": [
@@ -1775,8 +1750,7 @@
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -1951,7 +1925,7 @@
           "typed_blocker_semantics": "source_readiness_blocker"
         },
         {
-          "cannot_absorb_reason": "Only MAS can sign domain receipt, blocker, and safe action authority.",
+          "cannot_absorb_reason": "Only MAS can sign domain receipt, blocker, and owner-route handoff authority.",
           "decision_output_owner": "med-autoscience_owner_receipt_signer",
           "function_id": "owner_receipt_signer",
           "judgment_mode": "mechanical_guard",
@@ -1963,7 +1937,7 @@
           "source_refs": [
             "MAS owner receipt",
             "typed blocker",
-            "safe action receipt"
+            "owner-route handoff ref"
           ]
         },
         {
@@ -2213,7 +2187,7 @@
       "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
       "opl_current_control_state owner refs",
       "product_entry_manifest.functional_consumer_boundary",
-      "sidecar_export.functional_consumer_boundary",
+      "domain_handler_export.functional_consumer_boundary",
       "functional_consumer_boundary.standard_agent_purity"
     ],
     "schema_version": 1,
@@ -2287,7 +2261,7 @@
       "cli_default",
       "mcp_default",
       "product_entry_default",
-      "sidecar_default",
+      "domain_handler_default",
       "test_lane_default"
     ],
     "status": "opl_consumes_generic_surfaces_mas_supplies_domain_authority_pack",
@@ -2359,7 +2333,7 @@
         "delete_or_tombstone_after": [
           "OPL generated/default caller parity remains green",
           "MAS owner receipt or stable typed blocker authorizes wrapper retirement",
-          "no-active-caller proof covers repo-local product/status/workbench/sidecar/controller/progress shell",
+          "no-active-caller proof covers repo-local product/status/workbench/domain-handler/controller/progress shell",
           "tombstone/provenance proof exists before physical deletion"
         ],
         "evidence_required": "OPL default caller readiness is present; repo-local source shape is reduced to domain handlers, refs-only projections, and workspace read-model carrier boundary without generic owner claims",
@@ -2381,10 +2355,10 @@
           "OPL runtime-app-operator-drilldown read model"
         ],
         "closure_status": "closed",
-        "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
+        "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and owner-route handoff routing",
         "functional_structure_gap": false,
         "gate_id": "opl_app_workbench_drilldown",
-        "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
+        "mas_role": "provide_domain_route_quality_artifact_memory_and_owner_route_handoff_refs",
         "owner": "one-person-lab"
       },
       {

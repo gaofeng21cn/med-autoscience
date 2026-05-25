@@ -1,124 +1,6 @@
 {
   "actions": [
     {
-      "action_id": "product_entry_status",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
-        "surface_kind": "product_entry_status"
-      },
-      "summary": "当前 research product entry status，先暴露当前 product entry、workspace inbox 与 shared handoff 入口。",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "product_entry_status"
-        },
-        "cli": {
-          "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
-          "surface_kind": "product_entry_status"
-        },
-        "mcp": {
-          "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "product_entry_status",
-          "tool_name": "product_entry_status"
-        },
-        "openai": {
-          "tool_name": "product_entry_status"
-        },
-        "product_entry": {
-          "action_key": "product_entry_status",
-          "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
-          "surface_kind": "product_entry_status"
-        },
-        "skill": {
-          "command": "uv run python -m med_autoscience.cli product entry_status --profile <profile>",
-          "command_contract_id": "product_entry_status",
-          "surface_kind": "product_entry_status"
-        }
-      },
-      "title": "Open MAS product entry status",
-      "workspace_locator_fields": [
-        "profile_ref"
-      ]
-    },
-    {
-      "action_id": "workspace_cockpit",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
-        "surface_kind": "workspace_cockpit"
-      },
-      "summary": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "workspace_cockpit"
-        },
-        "cli": {
-          "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
-          "surface_kind": "workspace_cockpit"
-        },
-        "mcp": {
-          "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "workspace_cockpit",
-          "tool_name": "workspace_cockpit"
-        },
-        "openai": {
-          "tool_name": "workspace_cockpit"
-        },
-        "product_entry": {
-          "action_key": "workspace_cockpit",
-          "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
-          "surface_kind": "workspace_cockpit"
-        },
-        "skill": {
-          "command": "uv run python -m med_autoscience.cli workspace cockpit --profile <profile> --format json",
-          "command_contract_id": "workspace_cockpit",
-          "surface_kind": "workspace_cockpit"
-        }
-      },
-      "title": "Open MAS workspace cockpit",
-      "workspace_locator_fields": [
-        "profile_ref"
-      ]
-    },
-    {
       "action_id": "submit_study_task",
       "authority_boundary": {
         "authoritative_truth_refs": [
@@ -614,7 +496,7 @@
       "workspace_locator_fields": []
     },
     {
-      "action_id": "product_entry",
+      "action_id": "domain_handler_export",
       "authority_boundary": {
         "authoritative_truth_refs": [
           "/progress_projection",
@@ -634,105 +516,46 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
-        "surface_kind": "product_entry_manifest"
+        "command": "medautosci domain-handler export --profile <profile> --format json",
+        "surface_kind": "mas_family_domain_handler_export"
       },
-      "summary": "Read MedAutoScience product-entry surfaces through one tool: product_entry_status, product_preflight, product_start, product_entry_manifest, build_product_entry, workspace_authority_migration_audit, storage_governance_report, delivery_authority_backfill_apply, artifact_lifecycle_report, artifact_lifecycle_continuous_soak_summary. workspace_authority_migration_audit is dry-run-only; storage_governance_report and artifact_lifecycle_report are read-only; delivery_authority_backfill_apply is MAS delivery-authority gated. Physical cleanup and safe-cache deletion are owned by OPL current-control-state, not MAS product-entry. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution.",
+      "summary": "Export MAS-owned read-only projection, pending OPL family tasks, source refs, owner receipt contract and substrate refs for OPL generated/hosted surfaces. It does not authorize study truth, publication quality, artifact gate or current package writes.",
       "supported_surfaces": {
         "ai_sdk": {
-          "tool_name": "product_entry"
+          "tool_name": "domain_handler_export"
         },
         "cli": {
-          "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
-          "surface_kind": "product_entry_manifest"
+          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "surface_kind": "mas_family_domain_handler_export"
         },
         "mcp": {
-          "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
-          "descriptor_only": false,
-          "public_runtime": true,
-          "surface_kind": "product_entry_manifest",
-          "tool_name": "product_entry"
-        },
-        "openai": {
-          "tool_name": "product_entry"
-        },
-        "product_entry": {
-          "action_key": "product_entry",
-          "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
-          "surface_kind": "product_entry_manifest"
-        },
-        "skill": {
-          "command": "uv run python -m med_autoscience.cli product manifest --profile <profile> --format json",
-          "command_contract_id": "product_entry",
-          "surface_kind": "product_entry_manifest"
-        }
-      },
-      "title": "Read MAS product-entry MCP surfaces",
-      "workspace_locator_fields": [
-        "profile_ref"
-      ]
-    },
-    {
-      "action_id": "sidecar_export",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "medautosci sidecar export --profile <profile> --format json",
-        "surface_kind": "mas_family_sidecar_export"
-      },
-      "summary": "Read-only MAS owner-route handoff export for OPL stage graph hydration; Hermes references are optional diagnostics/provenance only.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "sidecar_export"
-        },
-        "cli": {
-          "command": "medautosci sidecar export --profile <profile> --format json",
-          "surface_kind": "mas_family_sidecar_export"
-        },
-        "mcp": {
-          "command": "medautosci sidecar export --profile <profile> --format json",
+          "command": "medautosci domain-handler export --profile <profile> --format json",
           "descriptor_only": true,
           "public_runtime": false,
-          "surface_kind": "mas_family_sidecar_export",
-          "tool_name": "sidecar_export"
+          "surface_kind": "mas_family_domain_handler_export",
+          "tool_name": "domain_handler_export"
         },
         "openai": {
-          "tool_name": "sidecar_export"
+          "tool_name": "domain_handler_export"
         },
         "product_entry": {
-          "action_key": "sidecar_export",
-          "command": "medautosci sidecar export --profile <profile> --format json",
-          "surface_kind": "mas_family_sidecar_export"
+          "action_key": "domain_handler_export",
+          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "surface_kind": "mas_family_domain_handler_export"
         },
         "skill": {
-          "command": "medautosci sidecar export --profile <profile> --format json",
-          "command_contract_id": "sidecar_export",
-          "surface_kind": "mas_family_sidecar_export"
+          "command": "medautosci domain-handler export --profile <profile> --format json",
+          "command_contract_id": "domain_handler_export",
+          "surface_kind": "mas_family_domain_handler_export"
         }
       },
-      "title": "Export MAS sidecar bridge projection",
+      "title": "Export MAS domain-handler projection",
       "workspace_locator_fields": [
         "profile_ref"
       ]
     },
     {
-      "action_id": "sidecar_dispatch",
+      "action_id": "domain_handler_dispatch",
       "authority_boundary": {
         "authoritative_truth_refs": [
           "/progress_projection",
@@ -743,7 +566,7 @@
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
+        "helper_owner": "MedAutoScience",
         "helper_write_policy": "no_domain_truth_writes"
       },
       "effect": "mutating",
@@ -752,42 +575,101 @@
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
-        "command": "medautosci sidecar dispatch --task <task.json> --format json",
-        "surface_kind": "mas_family_sidecar_dispatch_receipt"
+        "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+        "surface_kind": "mas_family_domain_handler_dispatch_receipt"
       },
-      "summary": "MAS owner-route dispatch receipt for OPL stage-attempt handoff. It records a domain owner receipt only and does not authorize domain truth, publication quality, artifact gate, or current package writes; Hermes paths are explicit OPL opt-in executor/proof refs only, never MAS default runtime paths.",
+      "summary": "Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; it does not authorize domain truth, publication quality, artifact gate or current package writes.",
       "supported_surfaces": {
         "ai_sdk": {
-          "tool_name": "sidecar_dispatch"
+          "tool_name": "domain_handler_dispatch"
         },
         "cli": {
-          "command": "medautosci sidecar dispatch --task <task.json> --format json",
-          "surface_kind": "mas_family_sidecar_dispatch_receipt"
+          "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+          "surface_kind": "mas_family_domain_handler_dispatch_receipt"
         },
         "mcp": {
-          "command": "medautosci sidecar dispatch --task <task.json> --format json",
+          "command": "medautosci domain-handler dispatch --task <task.json> --format json",
           "descriptor_only": true,
           "public_runtime": false,
-          "surface_kind": "mas_family_sidecar_dispatch_receipt",
-          "tool_name": "sidecar_dispatch"
+          "surface_kind": "mas_family_domain_handler_dispatch_receipt",
+          "tool_name": "domain_handler_dispatch"
         },
         "openai": {
-          "tool_name": "sidecar_dispatch"
+          "tool_name": "domain_handler_dispatch"
         },
         "product_entry": {
-          "action_key": "sidecar_dispatch",
-          "command": "medautosci sidecar dispatch --task <task.json> --format json",
-          "surface_kind": "mas_family_sidecar_dispatch_receipt"
+          "action_key": "domain_handler_dispatch",
+          "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+          "surface_kind": "mas_family_domain_handler_dispatch_receipt"
         },
         "skill": {
-          "command": "medautosci sidecar dispatch --task <task.json> --format json",
-          "command_contract_id": "sidecar_dispatch",
-          "surface_kind": "mas_family_sidecar_dispatch_receipt"
+          "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+          "command_contract_id": "domain_handler_dispatch",
+          "surface_kind": "mas_family_domain_handler_dispatch_receipt"
         }
       },
-      "title": "Receive MAS owner-route dispatch receipt",
+      "title": "Dispatch MAS domain-handler task",
       "workspace_locator_fields": [
-        "task_path"
+        "task_ref"
+      ]
+    },
+    {
+      "action_id": "authority_operations",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/progress_projection",
+          "/owner_route/latest.json",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
+        "surface_kind": "mas_authority_operation_handlers"
+      },
+      "summary": "Call MAS authority-operation domain handlers through one tool: workspace_authority_migration_audit, storage_governance_report, delivery_authority_backfill_apply, artifact_lifecycle_report, artifact_lifecycle_continuous_soak_summary. workspace_authority_migration_audit is dry-run-only; storage_governance_report and artifact_lifecycle_report are read-only; delivery_authority_backfill_apply is MAS delivery-authority gated. Physical cleanup and safe-cache deletion are owned by OPL current-control-state, not MAS. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "authority_operations"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
+          "surface_kind": "mas_authority_operation_handlers"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
+          "descriptor_only": false,
+          "public_runtime": true,
+          "surface_kind": "mas_authority_operation_handlers",
+          "tool_name": "authority_operations"
+        },
+        "openai": {
+          "tool_name": "authority_operations"
+        },
+        "product_entry": {
+          "action_key": "authority_operations",
+          "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
+          "surface_kind": "mas_authority_operation_handlers"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli product governance-report --workspace-root <workspace_root>",
+          "command_contract_id": "authority_operations",
+          "surface_kind": "mas_authority_operation_handlers"
+        }
+      },
+      "title": "Call MAS authority operation handlers",
+      "workspace_locator_fields": [
+        "workspace_roots"
       ]
     }
   ],

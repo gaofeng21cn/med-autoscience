@@ -31,6 +31,36 @@ def _inspection_package_operator_authority() -> dict[str, Any]:
     }
 
 
+def _opl_generated_product_entry_status_surface(*, profile_arg: str) -> dict[str, Any]:
+    command = f"opl app product-entry-status --agent med-autoscience --profile {profile_arg}"
+    return {
+        "command": _json_surface_command(command),
+        "purpose": "通过 OPL generated product-entry status 打开 MAS domain refs 投影。",
+        "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
+        "authority_boundary": {
+            "host_owner": "one-person-lab",
+            "domain_truth_owner": "MedAutoScience",
+            "helper_write_policy": "no_domain_truth_writes",
+            "mas_repo_local_default_caller": False,
+        },
+    }
+
+
+def _opl_hosted_workspace_workbench_surface(*, profile_arg: str) -> dict[str, Any]:
+    command = f"opl app workbench --agent med-autoscience --profile {profile_arg}"
+    return {
+        "command": _json_surface_command(command),
+        "purpose": "通过 OPL hosted workbench 打开 MAS workspace refs 投影。",
+        "surface_kind": "workspace_cockpit",
+        "authority_boundary": {
+            "host_owner": "one-person-lab",
+            "domain_truth_owner": "MedAutoScience",
+            "helper_write_policy": "no_domain_truth_writes",
+            "mas_repo_local_default_caller": False,
+        },
+    }
+
+
 def _build_manifest_shell_surfaces(
     *,
     prefix: str,
@@ -46,6 +76,12 @@ def _build_manifest_shell_surfaces(
     product_entry_shell = _build_shared_product_entry_shell_catalog(
         _product_entry_shell_from_action_catalog(action_catalog)
     )
+    product_entry_shell["product_entry_status"] = _opl_generated_product_entry_status_surface(
+        profile_arg=profile_arg
+    )
+    product_entry_shell["workspace_cockpit"] = _opl_hosted_workspace_workbench_surface(
+        profile_arg=profile_arg
+    )
     shared_handoff = _build_shared_handoff(
         direct_entry_builder_command=(
             f"{prefix} build-product-entry --profile {profile_arg} "
@@ -60,7 +96,7 @@ def _build_manifest_shell_surfaces(
         "open_loop": {
             "command": product_entry_shell["workspace_cockpit"]["command"],
             "surface_kind": "workspace_cockpit",
-            "summary": "先进入当前 workspace 级用户 inbox。",
+            "summary": "先进入 OPL hosted workbench 中的 MAS workspace refs 投影。",
             "requires": [],
         },
         "submit_task": {

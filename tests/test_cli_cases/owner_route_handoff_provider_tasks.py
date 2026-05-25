@@ -57,7 +57,7 @@ def _write_opl_production_proof(path: Path) -> None:
     )
 
 
-def test_sidecar_export_guarded_apply_fingerprint_tracks_mas_owner_decision(
+def test_domain_handler_export_guarded_apply_fingerprint_tracks_mas_owner_decision(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -73,7 +73,7 @@ def test_sidecar_export_guarded_apply_fingerprint_tracks_mas_owner_decision(
 
     exit_code = cli.main(
         [
-            "sidecar",
+            "domain_handler",
             "export",
             "--profile",
             str(profile_path),
@@ -127,7 +127,7 @@ def test_sidecar_export_guarded_apply_fingerprint_tracks_mas_owner_decision(
     )
     repeat_exit_code = cli.main(
         [
-            "sidecar",
+            "domain_handler",
             "export",
             "--profile",
             str(profile_path),
@@ -157,7 +157,7 @@ def test_sidecar_export_guarded_apply_fingerprint_tracks_mas_owner_decision(
     assert repeat_by_study["Obesity"]["source_fingerprint"] == first_fingerprints["Obesity"]
 
 
-def test_sidecar_export_guarded_apply_targets_live_canonical_studies_when_present(
+def test_domain_handler_export_guarded_apply_targets_live_canonical_studies_when_present(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -174,7 +174,7 @@ def test_sidecar_export_guarded_apply_targets_live_canonical_studies_when_presen
 
     exit_code = cli.main(
         [
-            "sidecar",
+            "domain_handler",
             "export",
             "--profile",
             str(profile_path),

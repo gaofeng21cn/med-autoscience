@@ -215,7 +215,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert skeleton == provider["domain_agent_skeleton_mapping"]
     assert skeleton["mapping_mode"] == "repo_source_physical_anchors_landed"
     assert skeleton["repo_tracks_real_workspace_artifacts"] is False
-    assert "mas_family_sidecar_dispatch_receipt" in skeleton["skeleton"]["contracts/runtime/sidecar"]
+    assert "mas_family_domain_handler_dispatch_receipt" in skeleton["skeleton"]["contracts/runtime/domain-handler"]
     standard_skeleton = payload["standard_domain_agent_skeleton"]
     assert standard_skeleton["surface_kind"] == "standard_domain_agent_skeleton"
     assert standard_skeleton["version"] == "standard-domain-agent-skeleton.v1"
@@ -299,7 +299,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert by_slot["agent/knowledge"]["surface_class"] == "knowledge"
     assert by_slot["agent/quality_gates"]["surface_class"] == "quality"
     assert by_slot["agent/quality_gates"]["default_for_new_surfaces"] is True
-    assert by_slot["contracts/runtime/sidecar"]["repo_paths"] == [
+    assert by_slot["contracts/runtime/domain-handler"]["repo_paths"] == [
         "src/med_autoscience/controllers/owner_route_handoff.py",
         "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
     ]

@@ -58,16 +58,20 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
         assert skill_projection[action_id]["surface_kind"] == cli_item["surface_kind"]
         assert skill_projection[action_id]["summary"] == cli_item["summary"]
 
-    assert skill_catalog["skills"][0]["domain_projection"]["shell_commands"] == {
+    shell_commands = skill_catalog["skills"][0]["domain_projection"]["shell_commands"]
+    assert shell_commands | {
         action_id: cli_item["command"] for action_id, cli_item in cli_projection.items()
-    }
+    } == shell_commands
+    assert shell_commands["product_entry_status"] == manifest["product_entry_shell"]["product_entry_status"]["command"]
+    assert shell_commands["workspace_cockpit"] == manifest["product_entry_shell"]["workspace_cockpit"]["command"]
+    assert manifest["product_entry_shell"]["product_entry_status"]["authority_boundary"]["host_owner"] == "one-person-lab"
+    assert manifest["product_entry_shell"]["workspace_cockpit"]["authority_boundary"]["host_owner"] == "one-person-lab"
+    assert manifest["product_entry_shell"]["product_entry_status"]["authority_boundary"]["mas_repo_local_default_caller"] is False
+    assert manifest["product_entry_shell"]["workspace_cockpit"]["authority_boundary"]["mas_repo_local_default_caller"] is False
     assert skill_catalog["skills"][0]["domain_projection"]["action_catalog_projection"] == list(skill_projection.values())
 
-    product_entry_mcp = mcp_projection["product_entry"]
-    product_entry_tool = mcp_tools["product_entry"]
-    assert product_entry_tool["description"].startswith(product_entry_mcp["description"])
-    assert product_entry_tool["inputSchema"]["properties"]["mode"] == product_entry_mcp["input_schema"]
-    assert product_entry_tool["metadata"]["action_catalog_projection"] == product_entry_mcp
+    assert "product_entry" not in mcp_projection
+    assert "product_entry" not in mcp_tools
 
     assert mcp_tools["study_progress"]["metadata"]["action_catalog_projection"] == mcp_projection["study_progress"]
     assert "study_runtime" not in mcp_tools
@@ -126,7 +130,7 @@ def test_mas_action_catalog_exposes_study_state_matrix_for_opl_transition_runner
     assert "study_state_matrix" not in mcp_tool_names
 
 
-def test_mas_action_catalog_projects_sidecar_bridge_without_new_mcp_tool(tmp_path: Path) -> None:
+def test_mas_action_catalog_projects_domain_handler_without_new_mcp_tool(tmp_path: Path) -> None:
     action_catalog = importlib.import_module("med_autoscience.action_catalog")
     mcp_server = importlib.import_module("med_autoscience.mcp_server")
 
@@ -146,35 +150,35 @@ def test_mas_action_catalog_projects_sidecar_bridge_without_new_mcp_tool(tmp_pat
     }
     mcp_tool_names = {tool["name"] for tool in mcp_server.build_tool_manifest()}
 
-    sidecar_export = cli_projection["sidecar_export"]
-    assert sidecar_export["effect"] == "read_only"
-    assert sidecar_export["command"] == (
-        "medautosci sidecar export --profile " + str(profile_ref.resolve()) + " --format json"
+    domain_handler_export = cli_projection["domain_handler_export"]
+    assert domain_handler_export["effect"] == "read_only"
+    assert domain_handler_export["command"] == (
+        "medautosci domain-handler export --profile " + str(profile_ref.resolve()) + " --format json"
     )
-    assert sidecar_export["surface_kind"] == "mas_family_sidecar_export"
+    assert domain_handler_export["surface_kind"] == "mas_family_domain_handler_export"
 
-    sidecar_dispatch = cli_projection["sidecar_dispatch"]
-    assert sidecar_dispatch["effect"] == "mutating"
-    assert sidecar_dispatch["command"] == "medautosci sidecar dispatch --task <task.json> --format json"
-    assert sidecar_dispatch["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
-    assert "owner-route dispatch receipt" in sidecar_dispatch["summary"]
-    assert "OPL stage-attempt handoff" in sidecar_dispatch["summary"]
-    assert "explicit OPL opt-in executor/proof refs only" in sidecar_dispatch["summary"]
-    assert "does not authorize domain truth" in sidecar_dispatch["summary"]
-    assert "publication quality" in sidecar_dispatch["summary"]
-    assert "artifact gate" in sidecar_dispatch["summary"]
-    assert "current package" in sidecar_dispatch["summary"]
+    domain_handler_dispatch = cli_projection["domain_handler_dispatch"]
+    assert domain_handler_dispatch["effect"] == "mutating"
+    assert domain_handler_dispatch["command"] == "medautosci domain-handler dispatch --task <task.json> --format json"
+    assert domain_handler_dispatch["surface_kind"] == "mas_family_domain_handler_dispatch_receipt"
+    assert "owner-route dispatch receipt" in domain_handler_dispatch["summary"]
+    assert "typed queue task" in domain_handler_dispatch["summary"]
+    assert "explicit OPL opt-in executor/proof refs only" in domain_handler_dispatch["summary"]
+    assert "does not authorize domain truth" in domain_handler_dispatch["summary"]
+    assert "publication quality" in domain_handler_dispatch["summary"]
+    assert "artifact gate" in domain_handler_dispatch["summary"]
+    assert "current package" in domain_handler_dispatch["summary"]
 
-    assert product_entry_projection["sidecar_export"]["command"] == sidecar_export["command"]
-    assert product_entry_projection["sidecar_dispatch"]["command"] == sidecar_dispatch["command"]
-    assert skill_projection["sidecar_export"]["effect"] == "read_only"
-    assert skill_projection["sidecar_dispatch"]["effect"] == "mutating"
+    assert product_entry_projection["domain_handler_export"]["command"] == domain_handler_export["command"]
+    assert product_entry_projection["domain_handler_dispatch"]["command"] == domain_handler_dispatch["command"]
+    assert skill_projection["domain_handler_export"]["effect"] == "read_only"
+    assert skill_projection["domain_handler_dispatch"]["effect"] == "mutating"
 
-    assert mcp_projection["sidecar_export"]["descriptor_only"] is True
-    assert mcp_projection["sidecar_export"]["public_runtime"] is False
-    assert mcp_projection["sidecar_dispatch"]["descriptor_only"] is True
-    assert mcp_projection["sidecar_dispatch"]["public_runtime"] is False
-    assert {"sidecar_export", "sidecar_dispatch"}.isdisjoint(mcp_tool_names)
+    assert mcp_projection["domain_handler_export"]["descriptor_only"] is True
+    assert mcp_projection["domain_handler_export"]["public_runtime"] is False
+    assert mcp_projection["domain_handler_dispatch"]["descriptor_only"] is True
+    assert mcp_projection["domain_handler_dispatch"]["public_runtime"] is False
+    assert {"domain_handler_export", "domain_handler_dispatch"}.isdisjoint(mcp_tool_names)
 
 
 def test_mas_action_catalog_exposes_publication_aftercare_plan_as_refs_only_surface(tmp_path: Path) -> None:

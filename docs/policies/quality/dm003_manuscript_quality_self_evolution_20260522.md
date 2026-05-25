@@ -93,7 +93,7 @@ This is still an owner-path guard, not a readiness verdict. A preserved current 
 
 ## Regression Receipt
 
-- `tests/test_cli_cases/owner_route_handoff_command.py::test_sidecar_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
+- `tests/test_cli_cases/owner_route_handoff_command.py::test_domain_handler_dispatch_rejects_quality_repair_batch_without_manuscript_delta`
 - `tests/test_agent_lab_medical_manuscript_quality.py::test_medical_manuscript_quality_agent_lab_suite_uses_dpcc_quality_targets`
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_updates_canonical_story_surface`
 - `tests/test_quality_repair_batch_cases/medical_prose_write_repair.py::test_medical_prose_write_repair_preserves_current_ai_reviewer_bound_story_surface`

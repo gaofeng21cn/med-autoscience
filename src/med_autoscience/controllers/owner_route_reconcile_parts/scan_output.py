@@ -38,7 +38,7 @@ def build_scan_domain_routes_payload(
                 "resident_daemon": False,
             },
             "retired_workspace_local_schedulers": ["systemd_user", "cron", "launchd"],
-            "external_scheduler_role": "opl_provider_runtime_manager_calls_mas_sidecar_or_domain_tick",
+            "external_scheduler_role": "opl_provider_runtime_manager_calls_mas_domain_handler_or_domain_tick",
             "developer_supervisor_mode": dict(developer_mode_payload),
         },
         "developer_supervisor_mode": dict(developer_mode_payload),

@@ -3,7 +3,7 @@
 Owner: `MedAutoScience integration reference`
 Purpose: `opl_managed_runtime_boundary_reference`
 State: `support_reference`
-Machine boundary: 本文是 MAS 仓内的人读 integration reference。当前机器真相继续归 OPL provider/runtime contracts、MAS product-entry manifest、sidecar export/dispatch receipt、runtime/controller durable surfaces、contracts 和真实 workspace evidence。
+Machine boundary: 本文是 MAS 仓内的人读 integration reference。当前机器真相继续归 OPL provider/runtime contracts、MAS product-entry manifest、domain-handler export/dispatch receipt、runtime/controller durable surfaces、contracts 和真实 workspace evidence。
 
 这份文档冻结当前 `OPL` 系列仓在托管运行时上的理想统一分层。
 

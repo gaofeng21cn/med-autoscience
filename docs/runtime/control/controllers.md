@@ -26,7 +26,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 7. backend audit
 8. managed study runtime orchestration
 9. runtime storage maintenance
-10. MAS sidecar family bridge export/dispatch
+10. MAS domain-handler family bridge export/dispatch
 11. delivery inspection / inspection package contract
 12. clean paper-authority migration and re-materialization owner routing
 13. Agent Lab medical manuscript quality refs-only suite projection
@@ -108,14 +108,14 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 
 - `docs/runtime/control/study_runtime_orchestration.md`
 
-MAS sidecar bridge 是 `OPL` provider-backed family runtime 进入 MAS owner surface 的受控入口，不是新的 controller truth owner。`sidecar export` 只把 MAS-owned domain/status/source refs、owner receipt refs 和 typed blocker refs 投影给 typed family queue；`sidecar dispatch` 只接受 allowlisted task，回到 MAS controller/domain authority owner chain 产出 dispatch receipt、owner receipt 或 typed blocker。OPL provider 承载 stage attempt、queue/wakeup、retry/dead-letter、human-gate signal、attempt receipt 和 projection，但不得写 study truth、publication quality verdict、artifact gate、paper package、`progress_projection` 或 `domain_health_diagnostic`。这条边界的机器合同由 `contracts/test-lane-manifest.json` 的 `focused_lanes.mas-entry-boundary` 持有；本文件只做人读导航。
+MAS domain-handler bridge 是 `OPL` provider-backed family runtime 进入 MAS owner surface 的受控入口，不是新的 controller truth owner。`domain-handler export` 只把 MAS-owned domain/status/source refs、owner receipt refs 和 typed blocker refs 投影给 typed family queue；`domain-handler dispatch` 只接受 allowlisted task，回到 MAS controller/domain authority owner chain 产出 dispatch receipt、owner receipt 或 typed blocker。OPL provider 承载 stage attempt、queue/wakeup、retry/dead-letter、human-gate signal、attempt receipt 和 projection，但不得写 study truth、publication quality verdict、artifact gate、paper package、`progress_projection` 或 `domain_health_diagnostic`。这条边界的机器合同由 `contracts/test-lane-manifest.json` 的 `focused_lanes.mas-entry-boundary` 持有；本文件只做人读导航。
 
-Generic sidecar provider lifecycle CLI 已退役，不再作为 MAS 活跃 controller surface。外部 research/analysis progression 通过 publication aftercare 的 refs-only owner-route task 投影或 OPL provider-backed family runtime 进入 MAS sidecar family bridge；MAS 仓不再保留 `recommend-sidecar` / `provision-sidecar` / `import-sidecar` 这类 provider registry、workspace provisioning 或 import control-plane 壳。任何可执行任务仍必须回到 MAS owner chain，并由 `sidecar export` / `sidecar dispatch` 产出 owner receipt、typed blocker 或 refs-only dispatch receipt。
+Generic provider lifecycle CLI 已退役，不再作为 MAS 活跃 controller surface。外部 research/analysis progression 通过 publication aftercare 的 refs-only owner-route task 投影或 OPL provider-backed family runtime 进入 MAS domain-handler family bridge；MAS 仓不再保留 `recommend-domain-handler` / `provision-domain-handler` / `import-domain-handler` 这类 provider registry、workspace provisioning 或 import control-plane 壳。任何可执行任务仍必须回到 MAS owner chain，并由 `domain-handler export` / `domain-handler dispatch` 产出 owner receipt、typed blocker 或 refs-only dispatch receipt。
 
 后续优先顺序：
 
 1. MAS domain authority refs / owner receipt / typed blocker 与 OPL runtime handoff 的 owner-path 收敛
-2. OPL framework migration：stage descriptor、sidecar receipt、artifact locator、authority refs 与 direct / hosted path 等价
+2. OPL framework migration：stage descriptor、domain-handler receipt、artifact locator、authority refs 与 direct / hosted path 等价
 3. policy/config 外置化和 publication profile 驱动的细粒度规则
 4. legacy MDS / Hermes / workspace-local manager surface 的显式降级、归档或 parity-only 保留
 
@@ -129,7 +129,7 @@ Generic sidecar provider lifecycle CLI 已退役，不再作为 MAS 活跃 contr
 
 AI reviewer 把医学写作质量问题回退到方法学或 source-documentation owner 时，`medical_prose_quality_analysis_source_documentation_repair` 属于 upstream analysis/paper repair work unit。`run_quality_repair_batch` 必须在 control-plane 中使用 `paper_write` 授权执行该 work unit，并产出 canonical repair evidence、AI reviewer recheck request 或 typed blocker；它不能因为 publication gate 仍处于 downstream bundle block 而退回 `bundle_build` 或抢跑 submission/current package。
 
-AI reviewer 把当前医学写作质量问题回退到 write owner 时，`medical_prose_write_repair` 同样属于 upstream publishability repair work unit。即使调用方携带了旧的 `submission_minimal_refresh` 或其他 bundle route context，`quality_repair_batch` 也必须以当前 AI reviewer-backed `publication_eval/latest.json` 中的 upstream `route_back_same_line` work unit 为准，改走 `paper_write`。若 AI reviewer callable、owner request 或 repeat-suppression 没有完成，`paper_repair_executor` 和 sidecar dispatch receipt 必须保留真实 typed blocker，例如 `ai_reviewer_request_missing` 或 `repeat_suppressed`，而不是把它降成泛型 callable 缺失。该路径仍不得写 publication eval、controller decision、submission package 或 current package；它只让 canonical paper repair owner 有机会完成修稿或给出精确 blocker。
+AI reviewer 把当前医学写作质量问题回退到 write owner 时，`medical_prose_write_repair` 同样属于 upstream publishability repair work unit。即使调用方携带了旧的 `submission_minimal_refresh` 或其他 bundle route context，`quality_repair_batch` 也必须以当前 AI reviewer-backed `publication_eval/latest.json` 中的 upstream `route_back_same_line` work unit 为准，改走 `paper_write`。若 AI reviewer callable、owner request 或 repeat-suppression 没有完成，`paper_repair_executor` 和 domain-handler dispatch receipt 必须保留真实 typed blocker，例如 `ai_reviewer_request_missing` 或 `repeat_suppressed`，而不是把它降成泛型 callable 缺失。该路径仍不得写 publication eval、controller decision、submission package 或 current package；它只让 canonical paper repair owner 有机会完成修稿或给出精确 blocker。
 
 `medical_prose_write_repair` 与 `manuscript_story_repair` 共用 story-surface delta 合同。若 `quality_repair_batch/latest.json` 对当前 `publication_eval/latest.json` 返回 `blocked_reason=manuscript_story_surface_delta_missing`、`next_owner=write`，controller projection、owner route、runtime prompt 和 `owner-route-reconcile` 必须保留原始 write work unit，并把 `run_quality_repair_batch` 交给 write owner继续处理。该 redrive 只授权 canonical `paper/draft.md` 或 `paper/build/review_manuscript.md` 的正文修订或 typed blocker，不授权抢跑 package/current_package、修改 AI reviewer verdict，或把内部运行态语言写进论文正文。
 
@@ -173,7 +173,7 @@ Agent Lab medical manuscript quality suite 是 MAS 到 OPL Agent Lab 的 refs-on
 
 DM002 暴露的 owner-chain / currentness / story-surface delta 问题必须在同一个 suite 中作为 regression family 暴露，而不是停留在单篇论文故障记录。该 family 覆盖 authority monotonicity、quality-repair writer handoff currentness、publication work-unit registry consistency、story-surface delta or typed blocker、runtime language purge、Methods/Results numeric reproducibility floor。它只给 OPL Agent Lab、OMA 和 MAS repo patch 指明 regression/test/documentation surface；它不推进 DM002 runtime，也不把 Agent Lab pass 解释成论文 ready、AI reviewer pass、publication gate close 或 submission readiness。
 
-`publication-aftercare-plan` 是 publication aftercare 的 refs-only controller surface。它把 resubmission、talk package、Overleaf sync、ARIS research-pipeline / auto-review-loop / experiment queue、analysis queue 与 reviewer refresh 统一投影为可审计 refs、blocker 和 MAS owner-route task template。该 surface 不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/` 或投稿包；sidecar export 只能把 ready 的 aftercare 项投影为 `publication_aftercare/analysis-queue-progress` 或 `publication_aftercare/reviewer-refresh` typed task。sidecar dispatch 收到这些 task 后必须回到 OPL-dispatched MAS domain owner chain：analysis queue 走 owner-route domain-authority handoff，reviewer refresh 走独立 AI reviewer workflow dispatch，质量 verdict、publishability 和 submission readiness 仍由 AI reviewer-backed publication eval 与 publication gate 决定。旧 `domain-route-reconcile` 只作为历史入口名或 provenance，不是当前 active control plane。
+`publication-aftercare-plan` 是 publication aftercare 的 refs-only controller surface。它把 resubmission、talk package、Overleaf sync、ARIS research-pipeline / auto-review-loop / experiment queue、analysis queue 与 reviewer refresh 统一投影为可审计 refs、blocker 和 MAS owner-route task template。该 surface 不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/` 或投稿包；domain-handler export 只能把 ready 的 aftercare 项投影为 `publication_aftercare/analysis-queue-progress` 或 `publication_aftercare/reviewer-refresh` typed task。domain-handler dispatch 收到这些 task 后必须回到 OPL-dispatched MAS domain owner chain：analysis queue 走 owner-route domain-authority handoff，reviewer refresh 走独立 AI reviewer workflow dispatch，质量 verdict、publishability 和 submission readiness 仍由 AI reviewer-backed publication eval 与 publication gate 决定。旧 `domain-route-reconcile` 只作为历史入口名或 provenance，不是当前 active control plane。
 
 ## Inspection package 契约
 

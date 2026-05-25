@@ -109,8 +109,8 @@ def build_provider_unavailable_guarded_apply_receipt(
     typed_blocker = {
         "blocker_id": blocker_id,
         "owner": "one-person-lab",
-        "reason": _text(reason) or "provider guarded apply request cannot be evaluated by MAS sidecar",
-        "required_owner_surface": "OPL provider ready contract / MAS sidecar guarded-apply task",
+        "reason": _text(reason) or "provider guarded apply request cannot be evaluated by MAS domain-handler",
+        "required_owner_surface": "OPL provider ready contract / MAS domain-handler guarded-apply task",
         "write_permitted": False,
     }
     source_fingerprint = _fingerprint(

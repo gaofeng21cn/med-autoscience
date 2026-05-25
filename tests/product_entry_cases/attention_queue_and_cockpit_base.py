@@ -685,7 +685,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
     assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_product_entry"
     assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["phase2_user_product_loop"]["single_path"][1]["step_id"] == "inspect_workspace_inbox"
     assert payload["phase2_user_product_loop"]["single_path"][4]["command"].endswith(
@@ -695,7 +695,11 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         {
             "question": "用户现在怎么启动 MAS？",
             "answer_surface_kind": "product_entry_status",
-            "command": "uv run python -m med_autoscience.cli product entry_status --profile " + str(profile_ref.resolve()),
+            "command": (
+                "opl app product-entry-status --agent med-autoscience --profile "
+                + str(profile_ref.resolve())
+                + " --format json"
+            ),
         },
         {
             "question": "用户怎么给 study 下任务？",

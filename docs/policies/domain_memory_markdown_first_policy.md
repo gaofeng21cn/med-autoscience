@@ -17,7 +17,7 @@ Use Markdown as the canonical body when the content is meant to help Codex reaso
 
 Markdown-first is required for:
 
-- publication route experience, such as classifier, subtype, external validation, negative-result stop-loss, survey trend, or mechanistic sidecar routes;
+- publication route experience, such as classifier, subtype, external validation, negative-result stop-loss, survey trend, or mechanistic domain-handler routes;
 - reusable stage closeout lessons after they are accepted as cross-paper memory;
 - journal-family expectations, claim-restraint lessons, reviewer critique patterns, and route-back rationales;
 - figure/table selection rationale, visual audit lessons, readability failures, and article-level display tradeoffs;
@@ -27,7 +27,7 @@ Structured surfaces remain appropriate for:
 
 - controller decisions, publication eval, quality verdicts, gates, package freshness, evidence ledgers, review ledgers, study charter, and artifact manifests;
 - workspace memory packs generated from Markdown or accepted writeback;
-- migration receipts, router receipts, sidecar dispatch receipts, OPL/Aion body-free projections, inventories, freshness summaries, and locator refs;
+- migration receipts, router receipts, domain-handler dispatch receipts, OPL/Aion body-free projections, inventories, freshness summaries, and locator refs;
 - schemas, test fixtures, parity oracles, and source-provenance manifests where the value is machine validation rather than human prose.
 
 ## Unified Memory Layers

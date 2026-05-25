@@ -81,7 +81,7 @@ def _receipt_path(
         parts.append(owner_capability_fingerprint)
     receipt_key = ":".join(parts)
     digest = hashlib.sha256(receipt_key.encode("utf-8")).hexdigest()[:20]
-    return profile.workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts" / f"{digest}.json"
+    return profile.workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts" / f"{digest}.json"
 
 
 def _conflicting_dispatch_receipt(
@@ -99,8 +99,8 @@ def _conflicting_dispatch_receipt(
     existing_result = mapping(mapping(existing.get("dispatch")).get("result"))
     new_result = mapping(mapping(receipt.get("dispatch")).get("result"))
     return {
-        "surface_kind": "mas_family_sidecar_dispatch_receipt",
-        "version": "mas-family-sidecar.v1",
+        "surface_kind": "mas_family_domain_handler_dispatch_receipt",
+        "version": "mas-family-domain-handler.v1",
         "accepted": False,
         "task_id": text(receipt.get("task_id")) or text(existing.get("task_id")),
         "task_kind": text(receipt.get("task_kind")) or text(existing.get("task_kind")),

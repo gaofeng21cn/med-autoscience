@@ -156,7 +156,7 @@ def build_provider_residency_read_model(
                 "owner": OPL_OWNER,
                 "missing_evidence": missing,
                 "reason": (
-                    "MAS can consume OPL provider sidecar tasks and typed receipts, but production "
+                    "MAS can consume OPL provider domain-handler tasks and typed receipts, but production "
                     "Temporal residency is not proven by the required OPL-owned receipts."
                 ),
                 "required_owner_surface": "OPL production provider residency receipt bundle",
@@ -164,7 +164,7 @@ def build_provider_residency_read_model(
             }
         ),
         "consumer_contract": {
-            "mas_consumes": ["sidecar_task", "typed_receipt", "receipt_refs"],
+            "mas_consumes": ["domain_handler_task", "typed_receipt", "receipt_refs"],
             "mas_owned_provider_kernel": False,
             "provider_completion_is_paper_closure": False,
             "queue_completion_is_paper_closure": False,
@@ -208,7 +208,7 @@ def build_forbidden_write_guard_proof(
         "proof_refs": [
             {
                 "ref_kind": "python_symbol",
-                "ref": "med_autoscience.controllers.owner_route_handoff.dispatch_family_sidecar_task",
+                "ref": "med_autoscience.controllers.owner_route_handoff.dispatch_family_domain_handler_task",
                 "role": "dispatch_guard",
             },
             {
@@ -350,7 +350,7 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
                 packet_id="owner_receipt_ref_packet",
                 required_role="owner_receipt_ref",
                 owner_surface="artifacts/runtime/owner_route/latest.json",
-                fallback_owner_surface="artifacts/runtime/opl_family_sidecar/dispatch_receipts/<sha256(task_id)[:20]>.json",
+                fallback_owner_surface="artifacts/runtime/opl_family_domain_handler/dispatch_receipts/<sha256(task_id)[:20]>.json",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="progress_delta_ref_packet",

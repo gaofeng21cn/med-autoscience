@@ -113,7 +113,7 @@ def _provider_hosted_guarded_apply_task(
         "domain_id": "medautoscience",
         "task_kind": "paper_autonomy/guarded-apply",
         "priority": 30,
-        "source": "mas-sidecar-export",
+        "source": "mas-domain-handler-export",
         "requires_approval": False,
         "dedupe_key": dedupe_key,
         "source_fingerprint": source_fingerprint,

@@ -73,9 +73,7 @@ DOC_REFERENCE_FORBIDDEN_MDS_CLAIMS: tuple[str, ...] = (
 DOC_REFERENCE_MAS_PACKAGING_SURFACES: tuple[str, ...] = (
     "artifacts/runtime/progress_portal/latest.json",
     "ops/mas/progress/index.html",
-    "ops/mas/bin/start-web",
-    "medautosci workspace progress-portal --serve",
-    "optional_local_read_only_progress_service",
+    "artifacts/runtime/progress_portal/hosted_package.json",
 )
 DOC_REFERENCE_FORBIDDEN_AUTHORITY_WRITES: tuple[str, ...] = (
     "progress_projection",

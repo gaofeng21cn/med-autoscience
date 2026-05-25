@@ -23,12 +23,10 @@ from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.authority_operations import handle_authority_operation_command
 from med_autoscience.cli_parts.parser import build_parser as _build_cli_parser
 from med_autoscience.cli_parts.payloads import _load_optional_object_payload_from_args, _parse_key_value_pairs
-from med_autoscience.cli_parts.product_entry_commands import handle_product_entry_command
-from med_autoscience.cli_parts.runtime_storage_commands import handle_runtime_storage_command
 from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_command
+from med_autoscience.cli_parts.study_action_commands import handle_study_action_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
 from med_autoscience.cli_parts.domain_health_diagnostic_commands import handle_domain_health_diagnostic_command
-from med_autoscience.cli_parts.workbench_commands import handle_workbench_command
 from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
 
 @lru_cache(maxsize=None)
@@ -77,7 +75,6 @@ agent_lab_medical_manuscript_quality = _LazyModuleProxy(
 )
 paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
-runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
@@ -98,7 +95,6 @@ mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
-progress_portal = _LazyModuleProxy(lambda: _load_controller("progress_portal"))
 publication_aftercare = _LazyModuleProxy(lambda: _load_controller("publication_aftercare"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
@@ -300,6 +296,22 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "domain-handler":
+        if args.domain_handler_command == "export":
+            profile_ref = Path(args.profile)
+            profile = load_profile(profile_ref)
+            result = owner_route_handoff.export_family_domain_handler(
+                profile=profile,
+                profile_ref=profile_ref,
+                opl_production_proof_ref=args.opl_production_proof,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
+        if args.domain_handler_command == "dispatch":
+            result = owner_route_handoff.dispatch_family_domain_handler_task(task_path=Path(args.task))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if bool(result.get("accepted")) else 1
+
     if args.command == "preflight-changes":
         input_mode = "files"
         if args.staged:
@@ -361,6 +373,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     if study_read_result is not None:
         return study_read_result
+
+    study_action_result = handle_study_action_command(
+        args,
+        parser=parser,
+        study_domain_handlers=product_entry,
+        load_profile=load_profile,
+    )
+    if study_action_result is not None:
+        return study_action_result
 
     if args.command == "domain-action-request-materialize":
         profile = load_profile(args.profile)
@@ -520,39 +541,6 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(output, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "sidecar-export":
-        profile = load_profile(args.profile)
-        result = owner_route_handoff.export_family_sidecar(
-            profile=profile,
-            profile_ref=Path(args.profile),
-            opl_production_proof_ref=args.opl_production_proof,
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "sidecar-dispatch":
-        result = owner_route_handoff.dispatch_family_sidecar_task(task_path=Path(args.task))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0 if bool(result.get("accepted")) else 1
-
-    workbench_result = handle_workbench_command(
-        args,
-        product_entry=product_entry,
-        progress_portal=progress_portal,
-        load_profile=load_profile,
-    )
-    if workbench_result is not None:
-        return workbench_result
-
-    product_entry_result = handle_product_entry_command(
-        args,
-        parser=parser,
-        product_entry=product_entry,
-        load_profile=load_profile,
-    )
-    if product_entry_result is not None:
-        return product_entry_result
-
     domain_health_diagnostic_result = handle_domain_health_diagnostic_command(
         args,
         parser=parser,
@@ -633,15 +621,6 @@ def main(argv: list[str] | None = None) -> int:
         result = analysis_bundle_controller.ensure_analysis_bundle()
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
-
-    storage_exit_code = handle_runtime_storage_command(
-        args,
-        parser=parser,
-        load_profile=load_profile,
-        runtime_storage_maintenance=runtime_storage_maintenance,
-    )
-    if storage_exit_code is not None:
-        return storage_exit_code
 
     workspace_data_result = handle_workspace_data_command(
         args,

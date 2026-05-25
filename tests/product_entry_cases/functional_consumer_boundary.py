@@ -60,8 +60,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -82,8 +81,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "mcp",
         "skill",
         "product_entry",
-        "sidecar",
-        "domain_action_adapter_export_dispatch",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -93,19 +91,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert handoff_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
     assert handoff_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
     assert handoff_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
-    assert handoff_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
-    assert handoff_by_id["domain_action_adapter_export_dispatch"]["current_role"] == (
-        "domain_action_adapter"
-    )
-    assert handoff_by_id["domain_action_adapter_export_dispatch"]["target_role"] == (
-        "opl_generated_domain_action_adapter_handoff_surface"
-    )
-    assert "default_executor_action_policy.py" in (
-        " ".join(handoff_by_id["domain_action_adapter_export_dispatch"]["current_paths"])
-    )
-    assert handoff_by_id["domain_action_adapter_export_dispatch"]["policy_boundary"] == (
-        "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority"
-    )
+    assert handoff_by_id["domain_handler"]["target_role"] == "opl_generated_domain_handler_handoff_surface"
     assert handoff_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
     assert handoff_by_id["workbench"]["target_role"] == (
         "opl_hosted_workbench_shell_consuming_mas_refs"
@@ -137,7 +123,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
+        "domain_handler",
         "workbench",
     ]
     generated_surfaces = {
@@ -150,10 +136,8 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "domain_truth_status_projection"
     )
     assert generated_surfaces["product_session"]["mas_allowed_role"] == "domain_handler_target"
-    assert generated_surfaces["domain_action_adapter"]["mas_allowed_role"] == "domain_action_adapter"
-    assert generated_surfaces["domain_action_adapter"]["parity_ref"] == (
-        "domain_action_adapter_descriptor_parity"
-    )
+    assert generated_surfaces["domain_handler"]["mas_allowed_role"] == "domain_handler_target"
+    assert generated_surfaces["domain_handler"]["parity_ref"] == "domain_handler_descriptor_parity"
     assert generated_surfaces["workbench"]["mas_allowed_role"] == "domain_projection_refs"
     assert all(item["mas_generic_owner_allowed"] is False for item in generated_surfaces.values())
 
@@ -182,8 +166,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -258,24 +241,20 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert "owner_chain_closed" in owner_dispatch_thinning["does_not_claim"]
     workbench_thinning = by_id["workbench_portal_generic_shell"]["latest_thinning_evidence"]
     assert workbench_thinning["status"] == (
-        "product_status_workbench_projection_and_active_diagnostic_carrier_split"
+        "opl_hosted_workbench_projection_and_read_model_materializer_landed"
     )
     carrier_boundary = workbench_thinning["workspace_carrier_boundary"]
-    assert carrier_boundary["status"] == "active_workspace_diagnostic_carrier_delete_blocked_by_callers"
+    assert carrier_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
     assert carrier_boundary["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
     )
     assert carrier_boundary["carrier_scope"] == (
-        "workspace_static_read_model_package_and_optional_local_read_only_service"
+        "domain_owned_payload_html_and_hosted_package_projection"
     )
-    assert carrier_boundary["active_callers"] == [
-        "medautosci workspace progress-portal",
-        "medautosci workspace progress-portal --serve",
-        "ops/mas/bin/start-web workspace helper",
-    ]
+    assert carrier_boundary["active_callers"] == []
     assert carrier_boundary["domain_repo_physical_delete_authorized"] is False
-    assert "opl_app_default_progress_carrier_not_proven_as_default_caller" in carrier_boundary["delete_blockers"]
-    assert "workspace_helper_no_active_caller_proof" in carrier_boundary["does_not_claim"]
+    assert "local_http_service_owner" in carrier_boundary["does_not_claim"]
+    assert "runtime_control_owner" in carrier_boundary["does_not_claim"]
     assert "publication_eval/latest.json" in carrier_boundary["does_not_write"]
 
     followthrough = boundary["functional_followthrough_gap_summary"]

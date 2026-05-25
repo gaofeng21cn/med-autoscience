@@ -7,9 +7,18 @@ from pathlib import Path
 
 import pytest
 
-from tests.standard_agent_purity_helpers import assert_standard_agent_purity_boundary
 from tests.mcp_server_cases.delivery_inspection_visibility import *
 from tests.mcp_server_cases.open_auto_research_projection import *
+
+EXPECTED_MCP_TOOLS = [
+    "doctor_audit",
+    "workspace_readiness",
+    "research_assets",
+    "study_progress",
+    "open_auto_research_soak",
+    "publication_status",
+    "authority_operations",
+]
 
 
 def test_mcp_server_tool_registry_import_is_lightweight(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -26,15 +35,7 @@ def test_mcp_server_tool_registry_import_is_lightweight(monkeypatch: pytest.Monk
 
     module = importlib.import_module("med_autoscience.mcp_server")
 
-    assert [tool["name"] for tool in module.list_tools()] == [
-        "doctor_audit",
-        "workspace_readiness",
-        "research_assets",
-        "study_progress",
-        "open_auto_research_soak",
-        "publication_status",
-        "product_entry",
-    ]
+    assert [tool["name"] for tool in module.list_tools()] == EXPECTED_MCP_TOOLS
 
 
 def write_profile(path: Path) -> None:
@@ -68,15 +69,7 @@ def test_mcp_server_lists_read_only_tools() -> None:
     tools = module.list_tools()
     names = [tool["name"] for tool in tools]
 
-    assert names == [
-        "doctor_audit",
-        "workspace_readiness",
-        "research_assets",
-        "study_progress",
-        "open_auto_research_soak",
-        "publication_status",
-        "product_entry",
-    ]
+    assert names == EXPECTED_MCP_TOOLS
 
 
 @pytest.mark.parametrize(
@@ -90,11 +83,11 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "Physical cleanup and safe-cache deletion are owned by OPL",
     ),
 )
-def test_mcp_product_entry_description_documents_authority_operation_surfaces(fragment: str) -> None:
+def test_mcp_authority_operations_description_documents_authority_operation_surfaces(fragment: str) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
 
-    assert fragment in tools["product_entry"]["description"]
+    assert fragment in tools["authority_operations"]["description"]
 
 
 @pytest.mark.parametrize(
@@ -108,31 +101,31 @@ def test_mcp_product_entry_description_documents_authority_operation_surfaces(fr
         ("authority_snapshot", {"type": "object"}),
     ),
 )
-def test_mcp_product_entry_schema_accepts_authority_operation_options(
+def test_mcp_authority_operations_schema_accepts_authority_operation_options(
     option: str,
     schema: dict[str, object],
 ) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
-    properties = tools["product_entry"]["inputSchema"]["properties"]
+    properties = tools["authority_operations"]["inputSchema"]["properties"]
 
     assert properties[option] == schema
 
 
-def test_mcp_product_entry_mode_schema_is_catalog_backed() -> None:
+def test_mcp_authority_operations_mode_schema_is_catalog_backed() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     catalog = importlib.import_module("med_autoscience.authority_operation_command_catalog")
     tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
-    mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
+    mode_schema = tools["authority_operations"]["inputSchema"]["properties"]["mode"]
 
     assert mode_schema == catalog.build_authority_product_entry_mode_schema()
 
 
-def test_mcp_product_entry_schema_exposes_storage_governance_modes_from_catalog() -> None:
+def test_mcp_authority_operations_schema_exposes_storage_governance_modes_from_catalog() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     catalog = importlib.import_module("med_autoscience.authority_operation_command_catalog")
     tools = {tool["name"]: tool for tool in module.build_tool_manifest()}
-    mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
+    mode_schema = tools["authority_operations"]["inputSchema"]["properties"]["mode"]
 
     expected_modes = {
         item.mcp_mode
@@ -205,7 +198,7 @@ def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:
     assert "default_publication_profile: general_medical_journal" in result["content"][0]["text"]
 
 
-def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_repo(tmp_path: Path) -> None:
+def test_mcp_default_status_progress_does_not_require_external_mds_repo(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "001-risk"
@@ -256,7 +249,18 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
             "study_id": "001-risk",
         },
     )
-    cockpit_result = module.call_tool(
+
+    assert progress_result["isError"] is False
+    assert progress_result["structuredContent"]["quest_root"] == str(workspace_root / "runtime" / "quests" / "quest-001")
+    assert progress_result["structuredContent"]["authority_snapshot"]["canonical_runtime_action"]
+
+
+def test_mcp_workspace_readiness_rejects_removed_cockpit_mode(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    result = module.call_tool(
         "workspace_readiness",
         {
             "mode": "cockpit",
@@ -264,11 +268,8 @@ def test_mcp_default_status_progress_and_cockpit_do_not_require_external_mds_rep
         },
     )
 
-    assert progress_result["isError"] is False
-    assert cockpit_result["isError"] is False
-    assert progress_result["structuredContent"]["quest_root"] == str(workspace_root / "runtime" / "quests" / "quest-001")
-    assert progress_result["structuredContent"]["authority_snapshot"]["canonical_runtime_action"]
-    assert cockpit_result["structuredContent"]["profile_name"] == "minimal"
+    assert result["isError"] is True
+    assert "Unsupported workspace_readiness mode: cockpit" in result["content"][0]["text"]
 
 
 def test_mcp_server_rejects_study_runtime_tool_calls(tmp_path: Path) -> None:
@@ -496,7 +497,7 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     assert "自动推进研究" in result["content"][0]["text"]
 
 
-def test_mcp_product_entry_can_call_workspace_authority_migration_audit(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_authority_operations_can_call_workspace_authority_migration_audit(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}
 
@@ -533,7 +534,7 @@ def test_mcp_product_entry_can_call_workspace_authority_migration_audit(monkeypa
     monkeypatch.setattr(module.workspace_authority_migration_audit, "run_migration_audit", fake_run_migration_audit)
 
     result = module.call_tool(
-        "product_entry",
+        "authority_operations",
         {
             "mode": "workspace_authority_migration_audit",
             "workspace_roots": [
@@ -560,7 +561,7 @@ def test_mcp_product_entry_can_call_workspace_authority_migration_audit(monkeypa
     assert "workspace_authority_migration_audit" in result["content"][0]["text"]
 
 
-def test_mcp_product_entry_manifest_exposes_standard_agent_purity_guard(tmp_path: Path) -> None:
+def test_mcp_server_rejects_removed_product_entry_tool(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -573,31 +574,15 @@ def test_mcp_product_entry_manifest_exposes_standard_agent_purity_guard(tmp_path
         },
     )
 
-    assert result["isError"] is False
-    manifest = result["structuredContent"]
-    boundary = manifest["functional_consumer_boundary"]
-    assert_standard_agent_purity_boundary(boundary)
-    generated_default = boundary["generated_default_caller_boundary"]
-    assert generated_default["status"] == "opl_generated_hosted_shell_is_default_caller"
-    assert generated_default["default_caller_owner"] == "one-person-lab"
-    assert generated_default["all_default_surfaces_generated"] is True
-    mcp_surface = {
-        item["surface_id"]: item for item in generated_default["surface_boundaries"]
-    }["mcp"]
-    assert mcp_surface["mas_allowed_role"] == "domain_handler_target"
-    assert mcp_surface["parity_ref"] == "mcp_descriptor_parity"
-    assert mcp_surface["mas_generic_owner_allowed"] is False
-    assert "runtime_transport_handoff_projection" not in manifest
-    assert manifest["opl_unique_control_plane_handoff"]["generated_default_caller_boundary"] == (
-        generated_default
-    )
+    assert result["isError"] is True
+    assert result["content"][0]["text"] == "Unknown tool: product_entry"
 
 
-def test_mcp_product_entry_rejects_cleanup_apply_mode(tmp_path: Path) -> None:
+def test_mcp_authority_operations_rejects_cleanup_apply_mode(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
 
     result = module.call_tool(
-        "product_entry",
+        "authority_operations",
         {
             "mode": "cleanup_apply",
             "workspace_roots": [str(tmp_path / "workspace")],
@@ -605,10 +590,10 @@ def test_mcp_product_entry_rejects_cleanup_apply_mode(tmp_path: Path) -> None:
     )
 
     assert result["isError"] is True
-    assert "Unsupported product_entry mode: cleanup_apply" in result["content"][0]["text"]
+    assert "Unsupported authority_operations mode: cleanup_apply" in result["content"][0]["text"]
 
 
-def test_mcp_product_entry_can_call_delivery_authority_backfill_apply(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_authority_operations_can_call_delivery_authority_backfill_apply(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}
 
@@ -629,7 +614,7 @@ def test_mcp_product_entry_can_call_delivery_authority_backfill_apply(monkeypatc
     monkeypatch.setattr(module.delivery_authority_backfill_apply, "run_backfill_apply", fake_run_backfill_apply)
 
     result = module.call_tool(
-        "product_entry",
+        "authority_operations",
         {
             "mode": "delivery_authority_backfill_apply",
             "workspace_roots": [str(tmp_path / "workspace")],
@@ -649,7 +634,7 @@ def test_mcp_product_entry_can_call_delivery_authority_backfill_apply(monkeypatc
     assert "delivery_authority_backfill_apply" in result["content"][0]["text"]
 
 
-def test_mcp_product_entry_can_call_lifecycle_report_with_scan_options(monkeypatch, tmp_path: Path) -> None:
+def test_mcp_authority_operations_can_call_lifecycle_report_with_scan_options(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}
 
@@ -680,7 +665,7 @@ def test_mcp_product_entry_can_call_lifecycle_report_with_scan_options(monkeypat
     )
 
     result = module.call_tool(
-        "product_entry",
+        "authority_operations",
         {
             "mode": "artifact_lifecycle_report",
             "workspace_roots": [str(tmp_path / "workspace")],

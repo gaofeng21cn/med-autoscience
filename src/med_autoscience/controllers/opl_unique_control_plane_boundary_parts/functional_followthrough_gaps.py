@@ -60,15 +60,15 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "delete_or_tombstone_after": [
             "OPL generated/default caller parity remains green",
             "MAS owner receipt or stable typed blocker authorizes wrapper retirement",
-            "no-active-caller proof covers repo-local product/status/workbench/sidecar/controller/progress shell",
+            "no-active-caller proof covers repo-local product/status/workbench/domain-handler/controller/progress shell",
             "tombstone/provenance proof exists before physical deletion",
         ],
     },
     {
         "gate_id": "opl_app_workbench_drilldown",
         "owner": "one-person-lab",
-        "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
-        "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
+        "mas_role": "provide_domain_route_quality_artifact_memory_and_owner_route_handoff_refs",
+        "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and owner-route handoff routing",
         "closure_status": "closed",
         "closure_proof_refs": [
             "workbench_portal_generic_shell.proof_refs",

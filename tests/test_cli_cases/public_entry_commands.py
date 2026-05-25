@@ -158,7 +158,7 @@ def test_public_help_prints_grouped_surface(capsys) -> None:
     assert "Usage: medautosci <group> <command> [options]" in captured.out
     assert "doctor" in captured.out
     assert "publication" in captured.out
-    assert "product manifest" in captured.out
+    assert "authority governance" in captured.out
 def test_group_help_lists_subcommands(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
@@ -644,11 +644,6 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
     assert called["request_opl_stage_attempts"] is True
     assert called["request_opl_owner_route_reconcile"] is True
     assert '"study_id": "001-risk"' in captured.out
-from .runtime_storage_commands import (
-    test_runtime_maintain_storage_command_dispatches_controller,
-    test_runtime_storage_audit_command_dispatches_controller,
-)
-
 from .opl_unique_control_plane_boundary_commands import (
     test_cli_has_no_opl_unique_control_plane_boundary_runtime_callable,
     test_runtime_supervision_flat_commands_are_not_public_aliases,

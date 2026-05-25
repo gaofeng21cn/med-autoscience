@@ -616,11 +616,11 @@ def test_paper_soak_memory_proof_cli_materializes_readonly_proof(tmp_path: Path,
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     study_root = workspace_root / "studies" / "S1"
-    sidecar_receipt = workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts" / "r1.json"
+    domain_handler_receipt = workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts" / "r1.json"
     _write_json(
-        sidecar_receipt,
+        domain_handler_receipt,
         {
-            "surface_kind": "mas_family_sidecar_dispatch_receipt",
+            "surface_kind": "mas_family_domain_handler_dispatch_receipt",
             "accepted": True,
             "task_id": "task-1",
             "task_kind": "study_progress/read",

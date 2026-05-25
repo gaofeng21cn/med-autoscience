@@ -35,8 +35,8 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
             ],
             "agent/skills": [
                 "medautosci product skill-catalog --format json",
-                "medautosci sidecar export --format json",
-                "medautosci sidecar dispatch --format json",
+                "medautosci domain-handler export --format json",
+                "medautosci domain-handler dispatch --format json",
             ],
             "agent/knowledge": [
                 "artifacts/stage_knowledge/<stage>/latest.json",
@@ -51,9 +51,9 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
                 "claim-evidence and submission package gates",
                 stage_quality_contract.REPO_PATH,
             ],
-            "contracts/runtime/sidecar": [
-                "mas_family_sidecar_export",
-                "mas_family_sidecar_dispatch_receipt",
+            "contracts/runtime/domain-handler": [
+                "mas_family_domain_handler_export",
+                "mas_family_domain_handler_dispatch_receipt",
                 "mas_opl_forbidden_write_guard_proof",
             ],
             "contracts/runtime/projection_builders": [
@@ -193,17 +193,17 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             ),
         ),
         _physical_skeleton_slot(
-            "contracts/runtime/sidecar",
-            surface_class="runtime_sidecar",
+            "contracts/runtime/domain-handler",
+            surface_class="runtime_domain_handler",
             default_for_new_surfaces=False,
             repo_paths=[
                 "src/med_autoscience/controllers/owner_route_handoff.py",
                 "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
             ],
             mapping_explanation=(
-                "Runtime sidecar contracts stay mapped to the current MAS adapter surfaces; new domain "
+                "Runtime domain handler contracts stay mapped to the current MAS adapter surfaces; new domain "
                 "stage, prompt, skill, knowledge, quality, and projection surfaces should use their "
-                "standard slots before adding sidecar code."
+                "standard slots before adding domain handler code."
             ),
         ),
         _physical_skeleton_slot(

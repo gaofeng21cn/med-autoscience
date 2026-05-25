@@ -33,14 +33,14 @@ def build_paper_soak_memory_apply_proof_projection(
     closeout_proposal_refs = _closeout_proposal_refs(study_root=resolved_study_root)
     router_receipt_refs = _router_receipt_refs(study_root=resolved_study_root)
     writeback_receipt_refs = _workspace_writeback_receipt_refs(pack_root=resolved_pack_root)
-    sidecar_receipt_refs = _sidecar_dispatch_receipt_refs(
+    domain_handler_receipt_refs = _domain_handler_dispatch_receipt_refs(
         workspace_root=resolved_workspace_root,
         study_id=resolved_study_id,
     )
     opl_aion_refs = _opl_aion_readonly_receipt_refs(
         router_receipt_refs=router_receipt_refs,
         writeback_receipt_refs=writeback_receipt_refs,
-        sidecar_receipt_refs=sidecar_receipt_refs,
+        domain_handler_receipt_refs=domain_handler_receipt_refs,
     )
     missing = _paper_soak_proof_missing_reasons(
         route_memory_refs=readonly_route_memory_refs,
@@ -54,7 +54,7 @@ def build_paper_soak_memory_apply_proof_projection(
             *[ref["ref"] for ref in closeout_proposal_refs if _text(ref.get("ref"))],
             *[ref["ref"] for ref in router_receipt_refs if _text(ref.get("ref"))],
             *[ref["ref"] for ref in writeback_receipt_refs if _text(ref.get("ref"))],
-            *[ref["ref"] for ref in sidecar_receipt_refs if _text(ref.get("ref"))],
+            *[ref["ref"] for ref in domain_handler_receipt_refs if _text(ref.get("ref"))],
         ]
     )
     source_fingerprint = _fingerprint(
@@ -64,7 +64,7 @@ def build_paper_soak_memory_apply_proof_projection(
             "closeout_proposal_refs": closeout_proposal_refs,
             "router_receipt_refs": router_receipt_refs,
             "writeback_receipt_refs": writeback_receipt_refs,
-            "sidecar_receipt_refs": sidecar_receipt_refs,
+            "domain_handler_receipt_refs": domain_handler_receipt_refs,
         }
     )
     return {
@@ -205,9 +205,9 @@ def _workspace_writeback_receipt_refs(*, pack_root: Path) -> list[dict[str, Any]
     return refs
 
 
-def _sidecar_dispatch_receipt_refs(*, workspace_root: Path, study_id: str) -> list[dict[str, Any]]:
+def _domain_handler_dispatch_receipt_refs(*, workspace_root: Path, study_id: str) -> list[dict[str, Any]]:
     refs = []
-    receipt_root = workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts"
+    receipt_root = workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts"
     for path in sorted(receipt_root.glob("*.json")):
         payload = _read_json(path)
         dispatch = payload.get("dispatch") if isinstance(payload.get("dispatch"), Mapping) else {}
@@ -216,7 +216,7 @@ def _sidecar_dispatch_receipt_refs(*, workspace_root: Path, study_id: str) -> li
             continue
         refs.append(
             {
-                "ref_kind": "mas_family_sidecar_dispatch_receipt",
+                "ref_kind": "mas_family_domain_handler_dispatch_receipt",
                 "ref": str(path),
                 "task_id": _text(payload.get("task_id")),
                 "task_kind": _text(payload.get("task_kind")),
@@ -233,10 +233,10 @@ def _opl_aion_readonly_receipt_refs(
     *,
     router_receipt_refs: Sequence[Mapping[str, Any]],
     writeback_receipt_refs: Sequence[Mapping[str, Any]],
-    sidecar_receipt_refs: Sequence[Mapping[str, Any]],
+    domain_handler_receipt_refs: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     refs = []
-    for source in (*router_receipt_refs, *writeback_receipt_refs, *sidecar_receipt_refs):
+    for source in (*router_receipt_refs, *writeback_receipt_refs, *domain_handler_receipt_refs):
         ref = _text(source.get("ref"))
         if not ref:
             continue

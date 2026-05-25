@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 import json
 from pathlib import Path
-import socketserver
-import threading
 from typing import Any
 import webbrowser
 
@@ -16,7 +14,6 @@ from .hosted_package import (
     workspace_relative,
 )
 from .payload_helpers import _mapping, _mapping_list, _non_empty_text, _string_list
-from .serving import build_progress_portal_handler
 from .workspace_overview import study_detail_href, workspace_portal_navigation
 
 
@@ -168,95 +165,6 @@ def materialize_progress_portal(
         "opl_handoff": opl_handoff,
         "hosted_package": hosted_package,
     }
-
-
-def serve_progress_portal(
-    *,
-    profile: WorkspaceProfile,
-    build_payload: PayloadBuilder,
-    render_html: HtmlRenderer,
-    surface_kind: str,
-    hosted_package_surface_kind: str,
-    study_id: str | None = None,
-    study_root: Path | None = None,
-    profile_ref: str | Path | None = None,
-    progress_payload: Mapping[str, Any] | None = None,
-    cockpit_payload: Mapping[str, Any] | None = None,
-    runtime_payload: Mapping[str, Any] | None = None,
-    package_payload: Mapping[str, Any] | None = None,
-    generated_at: str | None = None,
-    local_timezone: str | None = None,
-    entry_mode: str | None = None,
-    sync_runtime_summary: bool = True,
-    host: str = "127.0.0.1",
-    port: int = 0,
-    interval_seconds: int = 30,
-    open_browser: bool = False,
-    once: bool = False,
-    enable_actions: bool = False,
-) -> dict[str, Any]:
-    refresh_seconds = max(1, int(interval_seconds))
-
-    def refresh() -> dict[str, Any]:
-        return materialize_progress_portal(
-            profile=profile,
-            build_payload=build_payload,
-            render_html=render_html,
-            surface_kind=surface_kind,
-            hosted_package_surface_kind=hosted_package_surface_kind,
-            study_id=study_id,
-            study_root=study_root,
-            profile_ref=profile_ref,
-            progress_payload=progress_payload,
-            cockpit_payload=cockpit_payload,
-            runtime_payload=runtime_payload,
-            package_payload=package_payload,
-            generated_at=generated_at,
-            local_timezone=local_timezone,
-            entry_mode=entry_mode,
-            sync_runtime_summary=sync_runtime_summary,
-            auto_refresh_seconds=refresh_seconds,
-        )
-
-    materialized = refresh()
-    html_path = Path(str(materialized["html_path"]))
-    serve_root = html_path.parent
-
-    handler = build_progress_portal_handler(
-        serve_root=serve_root,
-        refresh=refresh,
-        profile=profile,
-        study_id=study_id,
-        enable_actions=enable_actions,
-    )
-
-    server = socketserver.TCPServer((host, int(port)), handler)
-    actual_host, actual_port = server.server_address
-    url = f"http://{actual_host}:{actual_port}/"
-    if open_browser:
-        webbrowser.open(url)
-    result = {
-        "status": "serving",
-        "surface_kind": surface_kind,
-        "url": url,
-        "host": actual_host,
-        "port": actual_port,
-        "interval_seconds": refresh_seconds,
-        "read_only": True,
-        "actions_enabled": bool(enable_actions),
-        "payload_path": materialized["payload_path"],
-        "html_path": materialized["html_path"],
-        "hosted_package_path": materialized["hosted_package_path"],
-        "generated_at": materialized["generated_at"],
-        "opl_handoff": materialized.get("opl_handoff"),
-        "hosted_package": materialized.get("hosted_package"),
-    }
-    if once:
-        server.server_close()
-        return result
-    thread = threading.Thread(target=server.serve_forever, name="mas-progress-portal", daemon=False)
-    thread.start()
-    return result
 
 
 def _ensure_workspace_has_selected_study(workspace_payload: dict[str, Any], detail_payload: Mapping[str, Any]) -> None:
@@ -492,5 +400,4 @@ __all__ = [
     "PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE",
     "build_progress_portal_hosted_package",
     "materialize_progress_portal",
-    "serve_progress_portal",
 ]

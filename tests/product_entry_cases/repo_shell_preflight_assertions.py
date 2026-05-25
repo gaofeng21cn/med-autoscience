@@ -11,8 +11,9 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 + str(profile_ref.resolve())
             ),
             "recommended_start_command": (
-                "uv run python -m med_autoscience.cli product entry_status --profile "
+                "opl app product-entry-status --agent med-autoscience --profile "
                 + str(profile_ref.resolve())
+                + " --format json"
             ),
             "blocking_check_ids": [],
             "checks": [
@@ -160,7 +161,11 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
             "recovery_loop": [
                 {
                     "step_id": "inspect_workspace_inbox",
-                    "command": "uv run python -m med_autoscience.cli workspace cockpit --profile " + str(profile_ref.resolve()),
+                    "command": (
+                        "opl app workbench --agent med-autoscience --profile "
+                        + str(profile_ref.resolve())
+                        + " --format json"
+                    ),
                     "surface_kind": "workspace_cockpit",
                 },
                 {

@@ -91,7 +91,7 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
 
     assert lane["kind"] == "focused_mas_entry_docs_contract_gate"
     assert lane["overlap_policy"] == "allowed_with_regression"
-    assert lane["authority_boundary"] == "entry_projection_and_controlled_sidecar_bridge_no_study_truth_authority"
+    assert lane["authority_boundary"] == "entry_projection_and_controlled_domain_handler_bridge_no_study_truth_authority"
     assert lane["implementation_status"] == "landed_docs_contract"
     assert lane["machine_truth_surface"] == "contracts/test-lane-manifest.json"
 
@@ -134,17 +134,17 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
         "paper_package",
     }
 
-    sidecar = lane["sidecar_bridge"]
-    assert sidecar["export_command"] == "medautosci sidecar export --profile <profile> --format json"
-    assert sidecar["dispatch_command"] == "medautosci sidecar dispatch --task <task.json> --format json"
-    assert sidecar["export_surface_kind"] == "mas_family_sidecar_export"
-    assert sidecar["dispatch_receipt_surface_kind"] == "mas_family_sidecar_dispatch_receipt"
-    assert sidecar["bridge_policy"] == "controlled_bridge_to_mas_owner_surface"
-    assert sidecar["allowed_bridge_writes"] == [
-        "artifacts/runtime/opl_family_sidecar/dispatch_receipts/*.json",
+    domain_handler = lane["domain_handler_bridge"]
+    assert domain_handler["export_command"] == "medautosci domain-handler export --profile <profile> --format json"
+    assert domain_handler["dispatch_command"] == "medautosci domain-handler dispatch --task <task.json> --format json"
+    assert domain_handler["export_surface_kind"] == "mas_family_domain_handler_export"
+    assert domain_handler["dispatch_receipt_surface_kind"] == "mas_family_domain_handler_dispatch_receipt"
+    assert domain_handler["bridge_policy"] == "controlled_bridge_to_mas_owner_surface"
+    assert domain_handler["allowed_bridge_writes"] == [
+        "artifacts/runtime/opl_family_domain_handler/dispatch_receipts/*.json",
     ]
-    assert "domain_route/owner-handoff" in sidecar["allowed_task_kinds"]
-    assert "notification/receipt" in sidecar["allowed_task_kinds"]
+    assert "domain_route/owner-handoff" in domain_handler["allowed_task_kinds"]
+    assert "notification/receipt" in domain_handler["allowed_task_kinds"]
 
     projections = lane["entry_projection_surfaces"]
     assert projections["action_catalog"] == "med_autoscience.action_catalog family_action_catalog"
@@ -235,8 +235,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -256,8 +255,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "mcp",
         "skill",
         "product_entry",
-        "sidecar",
-        "domain_action_adapter_export_dispatch",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -267,16 +265,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert generated_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
     assert generated_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
     assert generated_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
-    assert generated_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
-    assert generated_by_id["domain_action_adapter_export_dispatch"]["current_role"] == (
-        "domain_action_adapter"
-    )
-    assert generated_by_id["domain_action_adapter_export_dispatch"]["target_role"] == (
-        "opl_generated_domain_action_adapter_handoff_surface"
-    )
-    assert generated_by_id["domain_action_adapter_export_dispatch"]["policy_boundary"] == (
-        "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority"
-    )
+    assert generated_by_id["domain_handler"]["target_role"] == "opl_generated_domain_handler_handoff_surface"
     assert generated_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
     assert generated_by_id["workbench"]["target_role"] == (
         "opl_hosted_workbench_shell_consuming_mas_refs"
@@ -349,8 +338,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -469,20 +457,17 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "latest_thinning_evidence"
     ]
     assert workbench_thinning["status"] == (
-        "product_status_workbench_projection_and_active_diagnostic_carrier_split"
+        "opl_hosted_workbench_projection_and_read_model_materializer_landed"
     )
     carrier_boundary = workbench_thinning["workspace_carrier_boundary"]
-    assert carrier_boundary["status"] == "active_workspace_diagnostic_carrier_delete_blocked_by_callers"
+    assert carrier_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
     assert carrier_boundary["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
     )
     assert carrier_boundary["domain_repo_physical_delete_authorized"] is False
-    assert "medautosci workspace progress-portal" in carrier_boundary["active_callers"]
-    assert "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs" in (
-        carrier_boundary["delete_after"]
-    )
-    assert "workspace_helper_active_caller_present" in carrier_boundary["delete_blockers"]
-    assert "domain_repo_physical_delete_ready" in carrier_boundary["does_not_claim"]
+    assert carrier_boundary["active_callers"] == []
+    assert "runtime_control_owner" in carrier_boundary["does_not_claim"]
+    assert "read-model evidence" in carrier_boundary["retention_reason"]
 
     summary = runtime_boundary["functional_module_inventory_summary"]
     assert summary["classification_counts"] == {
@@ -559,7 +544,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "standard_agent_purity.default_caller_readiness_status=opl_generated_default_caller_ready",
         "standard_agent_purity.source_purity_cutover_status=standard_agent_source_shape_landed",
         "standard_agent_purity.history_detail_in_default_read_model=false",
-        "sidecar_exports_standard_agent_purity",
+        "domain_handler_exports_standard_agent_purity",
         "product_entry_manifest_exports_standard_agent_purity",
         "observability_export_consumed_as_refs_only",
         "focused_tests_green",
@@ -571,11 +556,11 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input",
         "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
         "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest",
-        "sidecar_export.functional_consumer_boundary",
-        "sidecar_export.functional_consumer_boundary.standard_agent_purity",
-        "sidecar_export.functional_consumer_boundary.declarative_pack_compiler_input",
-        "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
-        "sidecar_export.functional_consumer_boundary.minimal_authority_function_manifest",
+        "domain_handler_export.functional_consumer_boundary",
+        "domain_handler_export.functional_consumer_boundary.standard_agent_purity",
+        "domain_handler_export.functional_consumer_boundary.declarative_pack_compiler_input",
+        "domain_handler_export.functional_consumer_boundary.generated_surface_handoff",
+        "domain_handler_export.functional_consumer_boundary.minimal_authority_function_manifest",
         "opl_unique_control_plane_boundary.consumer_migration.functional_consumer_boundary",
         "family_contract_adoption.runtime_observability_export",
     ]

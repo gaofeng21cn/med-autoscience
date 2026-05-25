@@ -73,7 +73,7 @@ def default_executor_dispatch_tasks(
                 "domain_id": "medautoscience",
                 "task_kind": TASK_KIND,
                 "priority": 65,
-                "source": "mas-sidecar-export",
+                "source": "mas-domain-handler-export",
                 "requires_approval": False,
                 "dedupe_key": (
                     f"mas:{profile.name}:{study_id}:default-executor:"

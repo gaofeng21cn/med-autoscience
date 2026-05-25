@@ -7,7 +7,7 @@ from tests.standard_agent_purity_helpers import (
 
 from .shared import *  # noqa: F403,F401
 
-def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -30,12 +30,12 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         {"decision_id": "decision-001", "owner_route": {"owner": "publication_controller"}},
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
     payload = json.loads(captured.out)
-    assert payload["surface_kind"] == "mas_family_sidecar_export"
+    assert payload["surface_kind"] == "mas_family_domain_handler_export"
     assert payload["target_domain_id"] == "medautoscience"
     framework = payload["online_runtime_framework"]
     assert framework["owner"] == "one-person-lab"
@@ -131,8 +131,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -259,9 +258,9 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
     assert provider["truth_source_precedence"]["provider_completion_can_advance_paper_progress"] is False
     assert provider["workspace_runtime_artifact_root_locator"]["repo_root_tracks_real_artifacts"] is False
-    assert provider["sidecar_contract"]["queue_hydration_source"] == "/pending_family_tasks"
+    assert provider["domain_handler_contract"]["queue_hydration_source"] == "/pending_family_tasks"
     assert payload["dispatch"]["receipt_refs"]["dispatch_receipt_root"] == (
-        "artifacts/runtime/opl_family_sidecar/dispatch_receipts"
+        "artifacts/runtime/opl_family_domain_handler/dispatch_receipts"
     )
     assert "family_runtime_supervision" not in payload
     family_handoff = payload["family_opl_current_control_state_handoff"]
@@ -292,7 +291,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert payload["pending_family_tasks"] == []
 
 
-def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -337,7 +336,7 @@ def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path:
         },
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -365,7 +364,7 @@ def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path:
     assert "prose_summary" not in json.dumps(projection, ensure_ascii=False)
 
 
-def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
+def test_domain_handler_export_consumes_opl_production_proof_without_domain_authority(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -382,7 +381,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
 
     exit_code = cli.main(
         [
-            "sidecar",
+            "domain-handler",
             "export",
             "--profile",
             str(profile_path),
@@ -523,7 +522,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
             "domain_id": "medautoscience",
             "task_kind": "paper_autonomy/guarded-apply",
             "priority": 30,
-            "source": "mas-sidecar-export",
+            "source": "mas-domain-handler-export",
             "requires_approval": False,
             "dedupe_key": dedupe_key,
             "payload": {
@@ -575,7 +574,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
         }
     repeat_exit_code = cli.main(
         [
-            "sidecar",
+            "domain-handler",
             "export",
             "--profile",
             str(profile_path),
@@ -597,7 +596,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     } == fingerprints
 
 
-def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -608,7 +607,7 @@ def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path
         _ai_reviewer_blocking_eval(study_root),
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -644,7 +643,7 @@ def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path
     ]
 
 
-def test_sidecar_export_projects_controller_route_back_as_pending_task(
+def test_domain_handler_export_projects_controller_route_back_as_pending_task(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -697,7 +696,7 @@ def test_sidecar_export_projects_controller_route_back_as_pending_task(
         },
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -776,7 +775,7 @@ def test_sidecar_export_projects_controller_route_back_as_pending_task(
     assert evidence_payload["domain_ready_claimed"] is False
 
 
-def test_sidecar_export_projects_publication_aftercare_analysis_and_reviewer_tasks(
+def test_domain_handler_export_projects_publication_aftercare_analysis_and_reviewer_tasks(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -820,7 +819,7 @@ def test_sidecar_export_projects_publication_aftercare_analysis_and_reviewer_tas
     _write_json(study_root / "paper" / "review" / "review_ledger.json", {"review_refs": ["review-ref:ledger"]})
     _write_json(study_root / "paper" / "claim_evidence_map.json", {"claim_refs": ["claim-ref:main"]})
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0

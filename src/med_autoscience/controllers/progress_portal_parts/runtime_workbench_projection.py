@@ -193,14 +193,14 @@ def _reference_projection(
     guarded_apply = _guarded_apply_lane(progress)
     memory_receipt = _memory_receipt_lane(progress)
     freshness_lane = _freshness_lane(freshness=freshness, stage_review=stage_review)
-    action_receipts = _safety_action_receipt_lane(progress=progress, runtime=runtime)
+    runtime_owner_route_handoffs = _runtime_owner_route_handoff_lane(progress=progress, runtime=runtime)
     lanes = {
         "provider_attempt": provider_attempt,
         "guarded_apply": guarded_apply,
         "stage_review_index": _stage_review_lane(stage_review),
         "memory_receipt": memory_receipt,
         "freshness": freshness_lane,
-        "safety_action_receipts": action_receipts,
+        "runtime_owner_route_handoffs": runtime_owner_route_handoffs,
     }
     return {
         "surface_kind": "mas_opl_workbench_reference_projection",
@@ -390,33 +390,33 @@ def _freshness_lane(*, freshness: Mapping[str, Any], stage_review: Mapping[str, 
     }
 
 
-def _safety_action_receipt_lane(
+def _runtime_owner_route_handoff_lane(
     *,
     progress: Mapping[str, Any],
     runtime: Mapping[str, Any],
 ) -> dict[str, Any]:
-    receipts = _first_non_empty_list(
-        progress.get("safety_action_receipts"),
-        progress.get("authorized_action_receipts"),
-        progress.get("action_receipts"),
-        runtime.get("action_receipts"),
+    handoffs = _first_non_empty_list(
+        progress.get("runtime_owner_route_handoffs"),
+        progress.get("owner_route_handoffs"),
+        progress.get("owner_route_refs"),
+        runtime.get("owner_route_handoffs"),
     )
-    refs = _receipt_refs(receipts)
+    refs = _receipt_refs(handoffs)
     if not refs:
         return _pending_lane(
-            lane_id="safety_action_receipts",
-            summary="尚未观察到安全 action receipt；UI 只能显示动作入口为 MAS-owned。",
-            required_surface="mas_progress_portal_action_receipt",
-            source_refs=["artifacts/runtime/progress_portal/action_receipts"],
+            lane_id="runtime_owner_route_handoffs",
+            summary="尚未观察到 domain-handler runtime owner route handoff；UI 只能显示 OPL owner-route handoff refs。",
+            required_surface="mas_runtime_owner_route_handoff",
+            source_refs=["artifacts/supervision/owner_route_handoff"],
         )
     return {
-        "lane_id": "safety_action_receipts",
+        "lane_id": "runtime_owner_route_handoffs",
         "status": "observed",
-        "receipt_refs": refs,
+        "handoff_refs": refs,
         "source_refs": refs,
         "direct_execution_intents": [],
         "can_execute_without_mas_receipt": False,
-        "receipt_policy": _safe_action_receipt_policy(),
+        "owner_route_handoff_policy": _owner_route_handoff_policy(),
         "authority": _lane_authority(),
     }
 
@@ -463,10 +463,10 @@ def _pending_lane(
     }
 
 
-def _safe_action_receipt_policy() -> dict[str, Any]:
+def _owner_route_handoff_policy() -> dict[str, Any]:
     return {
         "policy": "safe_action_requires_owner_receipt",
-        "required_receipt_surface": "mas_progress_portal_action_receipt",
+        "required_receipt_surface": "mas_runtime_owner_route_handoff",
         "action_transport_owner": "OPL provider transport",
         "domain_owner": "MedAutoScience",
         "can_execute_without_mas_receipt": False,

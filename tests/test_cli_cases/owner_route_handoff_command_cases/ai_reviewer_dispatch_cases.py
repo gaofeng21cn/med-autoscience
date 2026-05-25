@@ -3,7 +3,7 @@ from __future__ import annotations
 from .shared import *  # noqa: F403,F401
 
 
-def test_sidecar_dispatch_routes_embedded_ai_reviewer_callable_inside_mas_owner(
+def test_domain_handler_dispatch_routes_embedded_ai_reviewer_callable_inside_mas_owner(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -55,7 +55,7 @@ def test_sidecar_dispatch_routes_embedded_ai_reviewer_callable_inside_mas_owner(
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -76,7 +76,7 @@ def test_sidecar_dispatch_routes_embedded_ai_reviewer_callable_inside_mas_owner(
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
-def test_sidecar_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
+def test_domain_handler_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -135,7 +135,7 @@ def test_sidecar_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 1
@@ -145,7 +145,7 @@ def test_sidecar_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
     assert paper_receipt["typed_blocker"] == "ai_reviewer_request_missing"
 
 
-def test_sidecar_dispatch_preserves_ai_reviewer_record_production_handoff(
+def test_domain_handler_dispatch_preserves_ai_reviewer_record_production_handoff(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -214,7 +214,7 @@ def test_sidecar_dispatch_preserves_ai_reviewer_record_production_handoff(
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -230,6 +230,6 @@ def test_sidecar_dispatch_preserves_ai_reviewer_record_production_handoff(
     assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
     assert handoff["next_executable_owner"] == "ai_reviewer"
     assert payload["dispatch"]["downstream_worker_handoff"] == handoff
-    assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_sidecar/dispatch_receipts/")
+    assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_domain_handler/dispatch_receipts/")
     assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
     assert not (study_root / "manuscript" / "current_package").exists()

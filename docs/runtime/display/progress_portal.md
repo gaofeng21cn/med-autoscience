@@ -4,13 +4,13 @@ Status: `landed read-model display surface; OPL App workbench cutover pending`
 Owner: `MedAutoScience Product Projection + OPL App integration boundary`
 Purpose: `progress_portal_display_contract`
 State: `active_runtime_display_contract`
-Machine boundary: 本文是人读展示合同。机器真相继续归 MAS controller/domain-authority refs surfaces、Progress Portal payload、product-entry manifest、sidecar receipt、generated HTML/artifact refs、owner receipts 和真实 workspace evidence；runtime drilldown / current-control-state 归 OPL。
+Machine boundary: 本文是人读展示合同。机器真相继续归 MAS controller/domain-authority refs surfaces、Progress Portal payload、product-entry manifest、domain-handler handoff refs、generated HTML/artifact refs、owner receipts 和真实 workspace evidence；runtime drilldown / current-control-state 归 OPL。
 Related runtime drilldown owner: `OPL current_control_state`
 Related focused lane: `portal-route-decision-trail`
 
 ## 入口结论
 
-`MAS Progress Portal` 是面向医生、PI 和研究团队的 workspace-local read-model / diagnostic / no-App 展示入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务；这些 surface 仍是 `workbench_sidecar_status_cutover` 的 active source-purity tail。当前 `medautosci workspace progress-portal`、`--serve` 与 `ops/mas/bin/start-web` 仍是 active caller，因此 carrier 只能标记为 active diagnostic carrier delete-blocked；需要 OPL App default progress carrier、workspace helper no-active-caller proof 和 focused tests 同时成立后，才能继续收薄或删除。Portal 负责 progress / status / blocker / artifact pickup 的只读展示，不负责 terminal attach、日志流、执行器对话、runtime drilldown 或长期 workbench shell；这些运行观察能力归 OPL `current_control_state` / provider attempt projection / OPL App Runtime Workbench。旧 MDS WebUI 的实时 console 和历史 MAS 私有 Console 材料只保留为 history/provenance。Progress Portal 给每个 MAS workspace 一个稳定 no-App / evidence 位置：
+`MAS Progress Portal` 是面向医生、PI 和研究团队的 workspace-local read-model / no-App evidence 展示入口。它保留 MAS-owned payload、静态 HTML materializer、study page materialization 和 hosted package refs；workspace helper、本地 HTTP service、`--serve --enable-actions` 与 `ops/mas/bin/start-web` 已退役，不再作为 active/default caller。Portal 负责 progress / status / blocker / artifact pickup 的只读展示，不负责 terminal attach、日志流、执行器对话、runtime drilldown、pause/resume/stop 或长期 workbench shell；这些运行观察和控制能力归 OPL `current_control_state` / provider attempt projection / OPL App Runtime Workbench / domain-handler owner-route handoff。旧 MDS WebUI 的实时 console 和历史 MAS 私有 Console 材料只保留为 history/provenance。Progress Portal 给每个 MAS workspace 一个稳定 no-App / evidence 位置：
 
 ```text
 ops/mas/progress/index.html
@@ -18,9 +18,9 @@ ops/mas/progress/index.html
 
 用户应能直接打开这个入口，看到当前 workspace 与论文线做到了哪里、系统下一步准备做什么、为什么卡住、是否需要医生/PI 判断、交付文件在哪里。Portal 只消费 MAS 现有 truth / read-model surface，不创建第二套状态系统。
 
-这个入口是 per-workspace local display entrance。无论从 Codex、浏览器、OPL App 还是 OPL Runtime Manager 打开，页面和 payload 的 domain owner 都保持为 MAS；但主用户运行工作台的长期 owner 是 OPL App，MAS local Portal 只保留 domain-owned read-model payload、HTML evidence、diagnostic/no-App path 和 action receipt handoff，不成为 MAS 长期 generic workbench。
+这个入口是 per-workspace local display entrance。无论从 Codex、浏览器、OPL App 还是 OPL Runtime Manager 打开，页面和 payload 的 domain owner 都保持为 MAS；但主用户运行工作台的长期 owner 是 OPL App，MAS local Portal 只保留 domain-owned read-model payload、HTML evidence 和 diagnostic/no-App path，不成为 MAS 长期 generic workbench。runtime action 意图只通过 domain-handler / owner-route handoff refs 暴露。
 
-新 workspace 中旧 `start-web` 目的的默认落点也固定到 MAS Progress Portal：`ops/mas/bin/start-web` 刷新并打开 `ops/mas/progress/index.html`。如果维护者需要外部 MDS WebUI，只能通过显式 explicit archive import reference / backend audit 路径启动；医生/PI 默认不再在旧 WebUI 与 MAS Portal 之间判断进度 truth。
+新 workspace 不再生成旧 `start-web` 或 `progress-portal` helper。维护者需要本地 evidence 时，由标准 MAS read-model materializer 写 `ops/mas/progress/index.html`；外部 MDS WebUI 只能通过显式 explicit archive import reference / backend audit 路径启动，医生/PI 默认不再在旧 WebUI 与 MAS Portal 之间判断进度 truth。
 
 Portal 现在是旧 MDS WebUI 进度可视化的 MAS-owned read-model 替代面。它不表示 MDS 被函数级 1:1 搬进 MAS，也不表示 MAS 长期持有 generic workbench；它表示日常研究进度、路线、阻塞、artifact pickup 和 OPL handoff 已能用 MAS refs-only payload / HTML evidence 展示。主用户工作台继续向 OPL App-native MAS study workbench 收敛；旧 MDS WebUI 的 terminal/log streaming 属于 OPL runtime drilldown 能力，不应继续混进 Portal 的完成口径。
 
@@ -51,14 +51,12 @@ Progress Portal 采用双层形态：
    - 页面必须显示 `generated_at`、`freshness`、`source_refs` 和 stale/missing 状态。
    - 通过 `file://` 打开的静态页面只能展示已生成快照，不能执行命令、发起 runtime 控制、安装 scheduler 或写 action receipt。
 
-2. 可选层：本地只读实时服务
-   - 由 `medautosci workspace progress-portal --serve --profile <profile>` 或同等 workspace helper 启动。
-   - 服务只读取本地 MAS durable surfaces 和 portal payload；可以轮询刷新或使用文件变更通知。
-   - 不写 study truth、publication truth、runtime authority、package authority 或 SQLite runtime lifecycle authority。
-   - 实时体验应显示“最近刷新时间”和“下一次刷新/监听状态”，让用户知道页面是否仍在更新。
-   - 这是 no-App / diagnostic / evidence 体验，不是 MAS-owned long-running workbench shell；长期 App-native workbench、notification、approval transport、terminal UI shell 和 provider drilldown 归 OPL App / OPL Runtime Manager。
+2. OPL hosted/workbench 层
+   - OPL App / Runtime Workbench 读取 MAS payload refs、hosted package refs、owner-route handoff refs 和 current-control-state refs。
+   - OPL 层负责刷新、通知、approval transport、terminal UI shell、provider drilldown 和长期 workbench。
+   - MAS materializer 不启动本地 HTTP service，不注册 action endpoint，不写 study truth、publication truth、runtime authority、package authority 或 SQLite runtime lifecycle authority。
 
-因此，Portal 不是二选一的静态网页或动态网站。默认必须有稳定静态入口；实时体验作为同一 read-model 的本地只读增强层实现。
+因此，Portal 的默认能力是稳定静态入口和 OPL-consumable payload refs；实时刷新、通知、runtime action 和长期 workbench 由 OPL hosted surface 承接。
 
 ## OPL App 集成结论
 
@@ -82,7 +80,7 @@ Progress Portal 与 OPL runtime drilldown 分工如下：
 - Progress Portal 负责 workspace/study overview、progress、blocker、artifact pickup、quality/publication projection 和 OPL handoff。
 - OPL `current_control_state` / provider attempt projection 负责 runtime session、run、terminal tail、log tail、runtime health、supervision freshness、artifact delta 和 event stream。
 - Progress Portal 不暴露 MAS 私有 console link/ref，也不解释 runtime run state。
-- Progress Portal 可以展示 OPL handoff 或 safe action receipt；本仓 active Portal 不提供 pause / resume / stop apply endpoint。
+- Progress Portal 可以展示 OPL handoff 或 domain-handler owner-route refs；本仓 active Portal 不提供 pause / resume / stop apply endpoint、本地 HTTP service 或 action receipt writer。
 - 两个层级都不得修改 paper/package、publication gate、controller decisions 或 study truth；runtime mutation 归 OPL runtime owner。
 
 ## 用户体验合同
@@ -105,7 +103,7 @@ workspace 首页 IA：
 - 顶部大盘告警：只放影响医生/PI 判断的事项，例如需要人工判断、论文产出停滞、投稿包缺口、质量门禁阻塞、workspace 监管缺失或快照过期。每条告警必须带影响范围和下一 owner；纯系统诊断不能混入这里。
 - 关键指标条：显示 workspace 级 live study 数、需要注意的 study 数、最近可见进展时间、整体 freshness、监管状态和交付/包状态摘要。指标是 read-model projection，只解释当前快照，不写入或刷新 truth surface。
 - 论文任务列表：首屏主体是 `workspace.studies` / workspace attention queue，每行展示 `study_id`、研究标题或短名、当前用户面状态、下一步、owner、最近进展、质量/投稿投影、artifact 入口和 per-study deep link。
-- 行内动作区：默认只允许打开 per-study 页面、打开 artifact、打开 OPL runtime drilldown ref 或复制受控命令。暂停、恢复、停止等动作只有在本机服务显式 `--serve --enable-actions` 时才能显示为可执行按钮。
+- 行内动作区：默认只允许打开 per-study 页面、打开 artifact、打开 OPL runtime drilldown ref 或复制受控命令。暂停、恢复、停止等动作只能显示为 domain-handler / OPL owner-route handoff refs 或 disabled UI 状态，不由 Portal 直接执行。
 - 底部折叠区：系统字段、完整 source refs、payload refs、diagnostics、adapter 信息、repair command、forbidden writes 和低信息诊断默认折叠；维护者展开后才能看到。展开区仍只展示来源与建议，不自动执行修复。
 
 多论文 workspace 的默认 IA 目标：
@@ -229,38 +227,28 @@ ops/mas/progress/index.html
 - 本地只读 serve 进程轮询刷新。
 - workspace helper 被外部 scheduler 调用。
 
-## 本地实时服务合同
+## Hosted Refresh Boundary
 
-实时服务应保持 lightweight：
+静态快照的刷新时机可以是：
 
-- 绑定本机地址，默认 `127.0.0.1`。
-- 只读本地文件与 SQLite read model。
-- 不持有长期 workflow state；重启后可从 durable surfaces 重建。
-- 不使用外部 MDS WebUI、外部 MDS runtime root 或 upstream DeepScientist UI state 作为默认输入。
-- 如果 refresh 失败，页面显示上一版快照和明确错误，不写入 misleading current 状态。
-- 适合后续接入 Codex App、OPL Runtime Manager 或浏览器自动打开，但这些集成不能成为 Portal 的 authority。
+- 用户手动运行 controller-authorized refresh / materialization。
+- controller-authorized sync / runtime watch tick 后刷新。
+- OPL App / Runtime Workbench 读取 MAS refs 并触发 hosted refresh。
 
-实时服务的价值是让用户看到页面持续更新，减少“是不是还在跑”的不确定感；工程上它只是 read-model refresh loop。
+如果 read-model 给出 `runtime_reconcile_trigger.safe_to_request=true`，Portal 只能展示推荐命令、domain-handler handoff ref 或 OPL owner-route ref；重复刷新必须依赖 dedupe fingerprint，不能制造重复 relaunch。已 parked、completed、human gate、publication gate missing 或 retry exhausted 的 study 必须显示 blocked reason，而不是提示恢复。
 
-如果 read-model 给出 `runtime_reconcile_trigger.safe_to_request=true`，实时服务或页面刷新只能展示推荐命令或调用现有 controller/supervisor safe surface；重复刷新必须依赖 dedupe fingerprint，不能制造重复 relaunch。已 parked、completed、human gate、publication gate missing 或 retry exhausted 的 study 必须显示 blocked reason，而不是提示恢复。
+## Runtime Action Boundary
 
-## Authorized Action Endpoint
+Progress Portal 只读展示 runtime action 意图和 owner-route refs；本仓不再提供 `--serve --enable-actions`、`POST /actions`、`mas_progress_portal_action_receipt` 或本地 HTTP action endpoint。
 
-Progress Portal 默认仍是只读静态快照。只有本机 loopback 服务显式启用 `--enable-actions` 时，`POST /actions` 才接受受控 action request：
-
-- allowlist：`inspect`、`reconcile-dry-run`、`pause`、`resume`、`stop`。
-- 静态 `file://` 页面和未启用 `--enable-actions` 的 `--serve` 页面不得执行 action；它们只能显示命令文本、deep link、artifact link 或 disabled 状态。
-- `inspect` 与 `reconcile-dry-run` 只写 dry-run receipt，不执行 runtime mutation。
-- `pause`、`resume`、`stop` 在 `--enable-actions` 下只写 `runtime_owner_route_request` receipt，必须带 `study_id` 或 `quest_id`，并把 runtime action handoff 给 `queue_owner=one-person-lab`；Portal 不直接调用 MAS backend 的 `pause_quest`、`resume_quest`、`stop_quest`。
-- idempotency：同一 key 已有 receipt 时直接返回旧 receipt，不重复创建 runtime owner handoff。
-- audit：receipt 记录 `action`、`study_id`、`quest_id`、`mode`、`apply_status`、`runtime_control_operation=opl_runtime_owner_route`、runtime owner handoff、`audit_ref` 和 forbidden writes。
-- fail-closed：未启用 `--enable-actions` 返回 disabled；action 不在 allowlist、idempotency key 非法或缺 `quest_id/study_id` 时拒绝。
-
-该 endpoint 不是旧 MDS daemon/UI control 的恢复。它只把 action intent 写成 MAS receipt 与 OPL runtime-owner handoff，继续禁止写 paper/package、publication gate、controller decisions、study truth 和 provider runtime state。Terminal attach/input/resize/detach 归 OPL terminal transport；不能复用这个 action endpoint 或 `chat_quest` 伪装实现。
+- `inspect`、`reconcile`、`pause`、`resume`、`stop` 只能作为 domain-handler / OPL owner-route handoff refs、受控命令文本或 disabled UI 状态展示。
+- Portal 不写 dry-run receipt，不创建 runtime owner handoff，不调用 MAS backend 的 `pause_quest`、`resume_quest`、`stop_quest`。
+- 需要执行 runtime action 时，OPL runtime owner 消费 MAS domain-handler handoff refs，并回到 MAS owner chain 产出 owner receipt、progress delta、human gate、stop-loss 或 stable typed blocker。
+- Terminal attach/input/resize/detach 归 OPL terminal transport 或独立 terminal owner gate；不能复用 Portal 或 `chat_quest` 伪装实现。
 
 ## Portal / Runtime Drilldown Evidence
 
-真实 workspace 上的 Portal 可用性由 `workspace progress-portal`、OPL workbench/current-control-state evidence 和 product-entry refs 分别验证。MAS 不再提供 Portal/Console combined soak runner；历史 soak 只作为已退役 provenance 读取。当前 active 检查重点是：
+真实 workspace 上的 Portal 可用性由 Progress Portal materializer、OPL workbench/current-control-state evidence 和 product-entry refs 分别验证。MAS 不再提供 Portal/Console combined soak runner 或 workspace-local Portal helper；历史 soak 只作为已退役 provenance 读取。当前 active 检查重点是：
 
 - Portal 是否能刷新并写出 payload / HTML；
 - 单篇论文页是否有 `mas_progress_portal_route_map`、SVG 研究路线地图、route/decision 节点、路线边和 source refs；
@@ -276,7 +264,7 @@ Portal 刷新只允许写 display/read-model evidence：`artifacts/runtime/progr
 
 迁移原则：
 
-- 旧 `start-web` 语义应转向 MAS Progress Portal 或明确 explicit archive import reference。
+- 旧 `start-web` 与 `workspace progress-portal` 语义应转向 OPL hosted/workbench 入口、MAS read-model materializer 或明确 explicit archive import reference。
 - `DeepScientist`、`MDS`、`DS` 只允许出现在折叠的 explicit archive import reference / provenance / oracle 区域。
 - 默认医生视图不得展示 MDS/DS 路径作为 workspace truth。
 - 不把上游 WebUI 历史、contributor footprint 或 product semantics 导入 MAS main。
@@ -288,23 +276,22 @@ Portal 刷新只允许写 display/read-model evidence：`artifacts/runtime/progr
 当前实现写集：
 
 - `src/med_autoscience/controllers/progress_portal.py`
-- `medautosci workspace progress-portal`
+- `src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py` 只作为 read-model materializer
 - `artifacts/runtime/progress_portal/hosted_package.json` MAS-owned hosted packaging manifest
-- workspace init 生成 `ops/mas/progress/index.html` placeholder 和 `ops/medautoscience/bin/progress-portal`
-- workspace init 生成 `ops/mas/bin/start-web`，默认刷新并打开 MAS Progress Portal
+- `ops/mas/progress/index.html` 与 per-study HTML 作为静态 evidence 输出
 - `tests/test_progress_portal.py`
-- `tests/test_cli_cases/progress_portal_commands.py`
+- `tests/progress_portal_cases/test_materialized_surfaces.py`
 - workspace init / README / architecture / status / OPL handoff docs
 
-CLI 形态：
+CLI / helper 形态：
 
-```bash
-medautosci workspace progress-portal --profile <profile>
-medautosci workspace progress-portal --profile <profile> --open
-medautosci workspace progress-portal --profile <profile> --serve
+```text
+no active medautosci workspace progress-portal command
+no active --serve / --enable-actions endpoint
+no generated ops/mas/bin/start-web helper
 ```
 
-`--serve` 不应是默认必需路径；默认命令应能生成可打开的静态快照。
+默认可用能力是生成可打开的静态快照与 OPL-consumable payload refs；刷新、通知、runtime action 和长期 workbench 由 OPL hosted surface 承接。
 
 实现时的最小合同：
 

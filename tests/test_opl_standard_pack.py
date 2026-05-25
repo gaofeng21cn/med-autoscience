@@ -385,21 +385,17 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert "publication_ready" in owner_dispatch_thinning["does_not_claim"]
     workbench_thinning = inventory["workbench_portal_generic_shell"]["latest_thinning_evidence"]
     assert workbench_thinning["status"] == (
-        "product_status_workbench_projection_and_active_diagnostic_carrier_split"
+        "opl_hosted_workbench_projection_and_read_model_materializer_landed"
     )
     carrier_boundary = workbench_thinning["workspace_carrier_boundary"]
-    assert carrier_boundary["status"] == "active_workspace_diagnostic_carrier_delete_blocked_by_callers"
+    assert carrier_boundary["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
     assert carrier_boundary["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
     )
-    assert carrier_boundary["active_callers"] == [
-        "medautosci workspace progress-portal",
-        "medautosci workspace progress-portal --serve",
-        "ops/mas/bin/start-web workspace helper",
-    ]
+    assert carrier_boundary["active_callers"] == []
     assert carrier_boundary["domain_repo_physical_delete_authorized"] is False
-    assert "workspace_helper_active_caller_present" in carrier_boundary["delete_blockers"]
-    assert "domain_repo_physical_delete_ready" in carrier_boundary["does_not_claim"]
+    assert "local_http_service_owner" in carrier_boundary["does_not_claim"]
+    assert "runtime_control_owner" in carrier_boundary["does_not_claim"]
     assert carrier_boundary["writes_only"] == [
         "artifacts/runtime/progress_portal/latest.json",
         "artifacts/runtime/progress_portal/hosted_package.json",
@@ -485,13 +481,10 @@ def test_opl_default_callers_have_mas_deletion_evidence_without_authorizing_dele
     assert report["deletion_gate"]["physical_delete_authorized"] is False
     by_surface = {gate["surface_id"]: gate for gate in report["surface_gates"]}
     assert by_surface["product_status"]["active_caller_module_id"] == "workbench_portal_generic_shell"
-    assert by_surface["domain_action_adapter"]["active_caller_module_id"] == (
+    assert by_surface["domain_handler"]["active_caller_module_id"] == (
         "owner_route_reconcile_materialize_dispatch_shell"
     )
-    assert set(by_surface["domain_action_adapter"]["canonical_target_surface_ids"]) == {
-        "domain_action_adapter",
-        "domain_action_adapter_export_dispatch",
-    }
+    assert by_surface["domain_handler"]["canonical_target_surface_ids"] == ["domain_handler"]
     for gate in report["surface_gates"]:
         worklist = gate["deletion_evidence_worklist"]
         assert worklist["domain_owner_receipt_or_typed_blocker"]["status"] == "observed"

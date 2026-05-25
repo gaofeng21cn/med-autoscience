@@ -72,8 +72,8 @@ def _workspace_root_refs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
         _ref("runtime_root", profile.runtime_root),
         _ref("studies_root", profile.studies_root),
         _ref(
-            "sidecar_dispatch_receipt_root",
-            profile.workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts",
+            "domain_handler_dispatch_receipt_root",
+            profile.workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts",
         ),
         _ref(
             "domain_authority_refs_index",

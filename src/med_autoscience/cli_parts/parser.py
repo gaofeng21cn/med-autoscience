@@ -3,8 +3,7 @@ from __future__ import annotations
 import argparse
 
 from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
-from med_autoscience.cli_parts.product_entry_parsers import register_product_entry_parsers
-from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
+from med_autoscience.cli_parts.study_action_commands import register_study_action_parsers
 from med_autoscience.figure_routes import supported_required_route_help
 
 
@@ -110,6 +109,19 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_health_diagnostic_parser.add_argument("--request-opl-owner-route-reconcile", action="store_true")
     domain_health_diagnostic_parser.add_argument("--apply", action="store_true")
 
+    domain_handler_parser = subparsers.add_parser("domain-handler")
+    domain_handler_subparsers = domain_handler_parser.add_subparsers(
+        dest="domain_handler_command",
+        required=True,
+    )
+    domain_handler_export_parser = domain_handler_subparsers.add_parser("export")
+    domain_handler_export_parser.add_argument("--profile", required=True)
+    domain_handler_export_parser.add_argument("--opl-production-proof", type=str)
+    domain_handler_export_parser.add_argument("--format", choices=("json",), default="json")
+    domain_handler_dispatch_parser = domain_handler_subparsers.add_parser("dispatch")
+    domain_handler_dispatch_parser.add_argument("--task", required=True)
+    domain_handler_dispatch_parser.add_argument("--format", choices=("json",), default="json")
+
     owner_route_reconcile_parser = subparsers.add_parser("owner-route-reconcile")
     owner_route_reconcile_parser.add_argument("--profile", required=True)
     owner_route_reconcile_parser.add_argument("--studies", nargs="+")
@@ -207,7 +219,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_state_matrix_parser.add_argument("--entry-mode", type=str)
     study_state_matrix_parser.add_argument("--format", choices=("json", "markdown"), default="json")
 
-    register_runtime_storage_parsers(subparsers)
     init_data_assets_parser = subparsers.add_parser("init-data-assets")
     init_data_assets_parser.add_argument("--workspace-root", required=True)
 
@@ -459,32 +470,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     ai_medical_prose_review_parser.add_argument("--request-ref", type=str)
     ai_medical_prose_review_parser.add_argument("--payload-file", type=str)
     ai_medical_prose_review_parser.add_argument("--payload-json", type=str)
-    sidecar_export_parser = subparsers.add_parser("sidecar-export")
-    sidecar_export_parser.add_argument("--profile", required=True)
-    sidecar_export_parser.add_argument("--format", choices=("json",), default="json")
-    sidecar_export_parser.add_argument("--opl-production-proof", type=str)
-    sidecar_dispatch_parser = subparsers.add_parser("sidecar-dispatch")
-    sidecar_dispatch_parser.add_argument("--task", required=True)
-    sidecar_dispatch_parser.add_argument("--format", choices=("json",), default="json")
-    workspace_cockpit_parser = subparsers.add_parser("workspace-cockpit")
-    workspace_cockpit_parser.add_argument("--profile", required=True)
-    workspace_cockpit_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
-    progress_portal_parser = subparsers.add_parser("progress-portal")
-    progress_portal_parser.add_argument("--profile", required=True)
-    progress_portal_study = progress_portal_parser.add_mutually_exclusive_group()
-    progress_portal_study.add_argument("--study-id", type=str)
-    progress_portal_study.add_argument("--study-root", type=str)
-    progress_portal_parser.add_argument("--entry-mode", type=str)
-    progress_portal_parser.add_argument("--format", choices=("text", "json"), default="text")
-    progress_portal_parser.add_argument("--open", action="store_true")
-    progress_portal_parser.add_argument("--serve", action="store_true")
-    progress_portal_parser.add_argument("--enable-actions", action="store_true")
-    progress_portal_parser.add_argument("--host", default="127.0.0.1")
-    progress_portal_parser.add_argument("--port", type=int, default=0)
-    progress_portal_parser.add_argument("--interval-seconds", type=int, default=30)
     if study_cycle_profiler is not None:
         study_cycle_profiler.add_workspace_cli_parser(subparsers)
-    register_product_entry_parsers(subparsers)
+    register_study_action_parsers(subparsers)
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)
     init_workspace_parser = subparsers.add_parser("init-workspace")
