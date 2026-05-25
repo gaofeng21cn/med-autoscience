@@ -377,7 +377,9 @@ def _with_paper_repair(
     receipt["dispatch"]["execution_policy"] = "mas_owner_paper_repair_execute"
     receipt["dispatch"]["result"] = result
     if _mapping(result).get("execution_status") == "handoff_ready":
-        receipt["dispatch"]["downstream_worker_handoff"] = _mapping(result).get("writer_worker_handoff")
+        receipt["dispatch"]["downstream_worker_handoff"] = _mapping(result).get(
+            "writer_worker_handoff"
+        ) or _mapping(result).get("ai_reviewer_record_worker_handoff")
     if _mapping(result).get("accepted") is False:
         typed_blocker = _text(_mapping(result).get("typed_blocker")) or "paper_repair_executor_blocked"
         if typed_blocker in STABLE_PAPER_REPAIR_TYPED_BLOCKERS:

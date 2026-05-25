@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 
@@ -22,12 +23,31 @@ def owner_result_executed(owner_result: Mapping[str, Any]) -> bool:
 
 def owner_result_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
     if _text(owner_result.get("status")) != "handoff_ready":
-        return False
+        executions = _executions(owner_result)
+        return any(
+            _text(execution.get("execution_status")) == "handoff_ready"
+            and ai_reviewer_record_worker_handoff_ready(execution)
+            for execution in executions
+        )
+    return writer_worker_handoff_ready(owner_result) or ai_reviewer_record_worker_handoff_ready(owner_result)
+
+
+def writer_worker_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
     handoff = _mapping(owner_result.get("writer_worker_handoff"))
     return (
         _text(handoff.get("surface")) == "default_executor_dispatch_request"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("next_executable_owner")) == "write"
+    )
+
+
+def ai_reviewer_record_worker_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
+    handoff = _mapping(owner_result.get("ai_reviewer_record_worker_handoff"))
+    return (
+        _text(handoff.get("surface")) == "default_executor_dispatch_request"
+        and _text(handoff.get("dispatch_status")) == "ready"
+        and _text(handoff.get("dispatch_authority")) == "ai_reviewer_record_production_handoff"
+        and _text(handoff.get("next_executable_owner")) == "ai_reviewer"
     )
 
 
@@ -65,6 +85,49 @@ def owner_result_blocker(owner_result: Mapping[str, Any]) -> str:
         or _text(owner_result.get("reason"))
         or "owner_callable_surface_blocked"
     )
+
+
+def ai_reviewer_record_worker_handoff(owner_result: Mapping[str, Any]) -> Mapping[str, Any]:
+    if ai_reviewer_record_worker_handoff_ready(owner_result):
+        return _mapping(owner_result.get("ai_reviewer_record_worker_handoff"))
+    for execution in _executions(owner_result):
+        if (
+            _text(execution.get("execution_status")) == "handoff_ready"
+            and ai_reviewer_record_worker_handoff_ready(execution)
+        ):
+            return _mapping(execution.get("ai_reviewer_record_worker_handoff"))
+    return {}
+
+
+def writer_worker_handoff(owner_result: Mapping[str, Any]) -> Mapping[str, Any]:
+    if writer_worker_handoff_ready(owner_result):
+        return _mapping(owner_result.get("writer_worker_handoff"))
+    return {}
+
+
+def evidence_path(*, study_root: Path, owner_result: Mapping[str, Any]) -> Path:
+    if evidence_path_text := _text(owner_result.get("repair_execution_evidence_path")):
+        return Path(evidence_path_text).expanduser().resolve()
+    return study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+
+
+def changed_refs(owner_result: Mapping[str, Any]) -> list[dict[str, str]]:
+    refs = _mapping(owner_result.get("repair_execution_evidence")).get("changed_artifact_refs")
+    if not isinstance(refs, list):
+        return []
+    changed: list[dict[str, str]] = []
+    for ref in refs:
+        path = _text(_mapping(ref).get("path")) or _text(ref)
+        if path:
+            changed.append({"path": path, "artifact_role": _text(_mapping(ref).get("artifact_role")) or "canonical_paper_artifact"})
+    return changed
+
+
+def _executions(owner_result: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    value = owner_result.get("executions")
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
 
 
 def _owner_result_has_blocker(owner_result: Mapping[str, Any]) -> bool:
@@ -116,4 +179,14 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["owner_result_blocker", "owner_result_executed", "owner_result_handoff_ready"]
+__all__ = [
+    "ai_reviewer_record_worker_handoff",
+    "ai_reviewer_record_worker_handoff_ready",
+    "changed_refs",
+    "evidence_path",
+    "owner_result_blocker",
+    "owner_result_executed",
+    "owner_result_handoff_ready",
+    "writer_worker_handoff",
+    "writer_worker_handoff_ready",
+]

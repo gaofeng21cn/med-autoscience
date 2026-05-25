@@ -28,9 +28,13 @@ from med_autoscience.controllers.paper_repair_executor_parts.authority_contract 
     would_write as _would_write,
 )
 from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_results import (
+    ai_reviewer_record_worker_handoff,
+    changed_refs as owner_result_changed_refs,
+    evidence_path as owner_result_evidence_path,
     owner_result_blocker,
     owner_result_executed,
     owner_result_handoff_ready,
+    writer_worker_handoff,
 )
 from med_autoscience.controllers.runtime_ai_repair_policy import default_executor_policy
 from med_autoscience.runtime_control import owner_route as owner_route_part
@@ -510,8 +514,8 @@ def _owner_callable_result(
     handoff_ready = owner_result_handoff_ready(owner_result)
     execution_status = "handoff_ready" if handoff_ready else ("executed" if accepted else "blocked")
     typed_blocker = None if accepted else owner_result_blocker(owner_result)
-    changed_refs = _changed_refs_from_owner_result(owner_result)
-    evidence_path = _owner_result_evidence_path(study_root=study_root, owner_result=owner_result)
+    changed_refs = owner_result_changed_refs(owner_result)
+    evidence_path = owner_result_evidence_path(study_root=study_root, owner_result=owner_result)
     receipt = _owner_receipt(
         generated_at=generated_at,
         accepted=accepted,
@@ -528,8 +532,12 @@ def _owner_callable_result(
     )
     receipt["owner_callable_surface"] = owner_callable_surface
     receipt["owner_result_status"] = _text(owner_result.get("status"))
-    if handoff_ready:
-        receipt["writer_worker_handoff"] = dict(_mapping(owner_result.get("writer_worker_handoff")))
+    writer_handoff = writer_worker_handoff(owner_result)
+    reviewer_record_handoff = ai_reviewer_record_worker_handoff(owner_result)
+    if writer_handoff:
+        receipt["writer_worker_handoff"] = dict(writer_handoff)
+    if reviewer_record_handoff:
+        receipt["ai_reviewer_record_worker_handoff"] = dict(reviewer_record_handoff)
     receipt_path = _write_owner_receipt(study_root=study_root, receipt=receipt)
     return {
         "surface": SURFACE,
@@ -546,29 +554,18 @@ def _owner_callable_result(
         "owner_receipt_ref": str(receipt_path),
         "repair_execution_evidence_ref": str(evidence_path),
         "canonical_artifact_delta": _mapping(_mapping(owner_result.get("repair_execution_evidence")).get("canonical_artifact_delta")),
-        **({"writer_worker_handoff": dict(_mapping(owner_result.get("writer_worker_handoff")))} if handoff_ready else {}),
+        **(
+            {"writer_worker_handoff": dict(writer_handoff)}
+            if writer_handoff
+            else {}
+        ),
+        **(
+            {"ai_reviewer_record_worker_handoff": dict(reviewer_record_handoff)}
+            if reviewer_record_handoff
+            else {}
+        ),
         "authority_boundary": _authority_boundary(),
     }
-
-
-def _owner_result_evidence_path(*, study_root: Path, owner_result: Mapping[str, Any]) -> Path:
-    evidence_path = _text(owner_result.get("repair_execution_evidence_path"))
-    if evidence_path:
-        return Path(evidence_path).expanduser().resolve()
-    return study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
-
-
-def _changed_refs_from_owner_result(owner_result: Mapping[str, Any]) -> list[dict[str, str]]:
-    evidence = _mapping(owner_result.get("repair_execution_evidence"))
-    refs = evidence.get("changed_artifact_refs")
-    if isinstance(refs, list):
-        changed: list[dict[str, str]] = []
-        for ref in refs:
-            path = _text(_mapping(ref).get("path")) or _text(ref)
-            if path:
-                changed.append({"path": path, "artifact_role": _text(_mapping(ref).get("artifact_role")) or "canonical_paper_artifact"})
-        return changed
-    return []
 
 
 def _execute_supported_work_unit(

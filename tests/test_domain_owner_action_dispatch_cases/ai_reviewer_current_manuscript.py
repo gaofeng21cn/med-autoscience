@@ -6,13 +6,14 @@ from pathlib import Path
 from tests.reviewer_os_fixture_helpers import claim_evidence_map_payload, evidence_ledger_payload
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
+    owner_route as _owner_route,
     write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def test_execute_dispatch_blocks_ai_reviewer_when_request_record_stale_after_current_manuscript(
+def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_record_stale_after_current_manuscript(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -73,6 +74,21 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_record_stale_after_cur
         / "default_executor_dispatches"
         / "return_to_ai_reviewer_workflow.json"
     )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    route.update(
+        {
+            "failure_signature": "ai_reviewer_record_stale_after_current_manuscript",
+            "owner_reason": "ai_reviewer_record_stale_after_current_manuscript",
+            "source_refs": {
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+            },
+        }
+    )
     _write_current_dispatch(
         dispatch_path,
         profile,
@@ -81,6 +97,7 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_record_stale_after_cur
             action_type="return_to_ai_reviewer_workflow",
             owner="ai_reviewer",
             required_output_surface="artifacts/publication_eval/latest.json",
+            owner_route=route,
         ),
     )
 
@@ -92,10 +109,14 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_record_stale_after_cur
         apply=True,
     )
 
-    assert result["blocked_count"] == 1
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["codex_dispatch_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    assert execution["action_class"] == "codex_worker_dispatch"
+    assert execution["will_start_llm"] is True
     assert execution["stale_record_ref"] == str(stale_record_path)
     assert execution["required_currentness_refs"] == [str(manuscript_path)]
     production_request = execution["ai_reviewer_record_production_request"]
@@ -108,6 +129,25 @@ def test_execute_dispatch_blocks_ai_reviewer_when_request_record_stale_after_cur
         "rematerialize_ai_reviewer_request",
         "return_to_ai_reviewer_workflow",
     ]
+    handoff = execution["ai_reviewer_record_worker_handoff"]
+    assert handoff["surface"] == "default_executor_dispatch_request"
+    assert handoff["dispatch_status"] == "ready"
+    assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert handoff["next_executable_owner"] == "ai_reviewer"
+    assert handoff["required_output_surface"] == (
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    )
+    assert handoff["ai_reviewer_record_production_request"] == production_request
+    assert handoff["owner_route"]["next_owner"] == "ai_reviewer"
+    assert handoff["owner_route"]["owner_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert handoff["owner_route"]["source_refs"]["work_unit_id"] == (
+        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    )
+    assert handoff["prompt_contract"]["allowed_write_surfaces"] == [
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+    ]
+    assert "artifacts/publication_eval/latest.json" in handoff["forbidden_surfaces"]
+    assert "artifacts/controller_decisions/latest.json" in handoff["forbidden_surfaces"]
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 

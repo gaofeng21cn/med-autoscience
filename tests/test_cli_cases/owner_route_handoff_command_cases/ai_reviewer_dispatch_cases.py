@@ -145,7 +145,7 @@ def test_sidecar_dispatch_preserves_embedded_ai_reviewer_callable_blocker(
     assert paper_receipt["typed_blocker"] == "ai_reviewer_request_missing"
 
 
-def test_sidecar_dispatch_accepts_ai_reviewer_currentness_blocker_as_stable_typed_blocker(
+def test_sidecar_dispatch_preserves_ai_reviewer_record_production_handoff(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -160,16 +160,25 @@ def test_sidecar_dispatch_accepts_ai_reviewer_currentness_blocker_as_stable_type
     def fake_dispatch_domain_owner_actions(**_kwargs) -> dict[str, object]:
         return {
             "surface": "default_executor_dispatch_executor",
-            "executed_count": 0,
-            "blocked_count": 1,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "codex_dispatch_count": 1,
             "repeat_suppressed_count": 0,
             "executions": [
                 {
-                    "execution_status": "blocked",
-                    "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
-                    "owner_callable_surface": (
-                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
-                    ),
+                    "execution_status": "handoff_ready",
+                    "blocked_reason": None,
+                    "owner_callable_surface": "publication materialize-ai-reviewer-record",
+                    "ai_reviewer_record_worker_handoff": {
+                        "surface": "default_executor_dispatch_request",
+                        "dispatch_status": "ready",
+                        "dispatch_authority": "ai_reviewer_record_production_handoff",
+                        "next_executable_owner": "ai_reviewer",
+                        "required_output_surface": (
+                            "artifacts/publication_eval/ai_reviewer_responses/"
+                            "*_publication_eval_record.json"
+                        ),
+                    },
                 }
             ],
         }
@@ -211,13 +220,16 @@ def test_sidecar_dispatch_accepts_ai_reviewer_currentness_blocker_as_stable_type
     assert exit_code == 0
     assert payload["accepted"] is True
     assert payload["dispatch"]["action_type"] == "paper_repair_executor_dispatch"
-    assert payload["stable_typed_blocker"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert "stable_typed_blocker" not in payload
     assert "reason" not in payload
     paper_receipt = payload["dispatch"]["result"]
-    assert paper_receipt["accepted"] is False
-    assert paper_receipt["execution_status"] == "blocked"
-    assert paper_receipt["typed_blocker"] == "ai_reviewer_record_stale_after_current_manuscript"
-    assert paper_receipt["owner_receipt"]["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert paper_receipt["accepted"] is True
+    assert paper_receipt["execution_status"] == "handoff_ready"
+    assert paper_receipt["typed_blocker"] is None
+    handoff = paper_receipt["ai_reviewer_record_worker_handoff"]
+    assert handoff["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert handoff["next_executable_owner"] == "ai_reviewer"
+    assert payload["dispatch"]["downstream_worker_handoff"] == handoff
     assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_sidecar/dispatch_receipts/")
     assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
     assert not (study_root / "manuscript" / "current_package").exists()

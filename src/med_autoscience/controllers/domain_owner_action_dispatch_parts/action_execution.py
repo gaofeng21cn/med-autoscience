@@ -24,13 +24,17 @@ from .action_execution_parts import provenance_limited_harmonization
 from .action_execution_parts import quality_repair
 from .action_execution_parts import source_provenance
 from .action_execution_parts import claim_evidence_alignment
+from .action_execution_parts import ai_reviewer_request_refs
 from .action_execution_parts.ai_reviewer_record_validation import (
     ai_reviewer_owned_record,
     ai_reviewer_record_blocker,
     ai_reviewer_record_requirements,
     missing_ai_reviewer_record_fields,
 )
-from .action_execution_parts.ai_reviewer_record_production import attach_invalid_ai_reviewer_record_handoff
+from .action_execution_parts.ai_reviewer_record_production import (
+    attach_invalid_ai_reviewer_record_handoff,
+    record_production_handoff_execution,
+)
 from .action_execution_parts.ai_reviewer_routeback_record import build_current_medical_prose_routeback_record
 from .action_execution_parts.ai_reviewer_stale_record_handoff import stale_ai_reviewer_record_handoff
 from ..ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
@@ -449,12 +453,22 @@ def execute_ai_reviewer_workflow(
         return _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_request_missing", request_path=request_path)
     record, record_blocker = _ai_reviewer_record_for_execution(request=request, study_root=study_root)
     if record_blocker:
+        handoff = record_production_handoff_execution(
+            profile=profile,
+            study_id=study_id,
+            request=request,
+            dispatch=dispatch,
+            record_blocker=record_blocker,
+            apply=apply,
+        )
+        if handoff is not None:
+            return handoff
         payload = _blocked_ai_reviewer_execution(apply=apply, reason=record_blocker["reason"], request_path=request_path)
         payload.update(record_blocker["payload"])
         return payload
     if not record:
         return _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_record_missing", request_path=request_path)
-    required_refs = _ai_reviewer_required_refs(request)
+    required_refs = ai_reviewer_request_refs.required_refs(request)
     missing_refs = [surface for surface, ref in required_refs.items() if ref is None]
     if missing_refs:
         payload = _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_required_refs_missing", request_path=request_path)
@@ -469,7 +483,7 @@ def execute_ai_reviewer_workflow(
         }
     additional_refs = {
         surface: ref
-        for surface, ref in {**required_refs, **_ai_reviewer_optional_refs(request)}.items()
+        for surface, ref in {**required_refs, **ai_reviewer_request_refs.optional_refs(request)}.items()
         if surface not in {"manuscript", "evidence_ledger", "review_ledger", "study_charter"}
         and ref is not None
     }
@@ -750,7 +764,7 @@ def _ai_reviewer_record_for_execution(
     lifecycle = _mapping(request.get("request_lifecycle"))
     stale_record_handoff = stale_ai_reviewer_record_handoff(
         request=request,
-        required_refs=_ai_reviewer_required_refs(request),
+        required_refs=ai_reviewer_request_refs.required_refs(request),
         lifecycle=lifecycle,
     )
     if stale_record_handoff is not None:
@@ -765,7 +779,7 @@ def _ai_reviewer_record_for_execution(
             attach_invalid_ai_reviewer_record_handoff(
                 record_blocker=record_blocker,
                 request=request,
-                required_refs=_ai_reviewer_required_refs(request),
+                required_refs=ai_reviewer_request_refs.required_refs(request),
                 record=request_record,
             )
             return {}, record_blocker
@@ -774,7 +788,7 @@ def _ai_reviewer_record_for_execution(
     request_record = build_current_medical_prose_routeback_record(
         study_root=study_root,
         request=request,
-        required_refs=_ai_reviewer_required_refs(request),
+        required_refs=ai_reviewer_request_refs.required_refs(request),
     )
     if request_record:
         record_blocker = ai_reviewer_record_blocker(request_record)
@@ -782,7 +796,7 @@ def _ai_reviewer_record_for_execution(
             attach_invalid_ai_reviewer_record_handoff(
                 record_blocker=record_blocker,
                 request=request,
-                required_refs=_ai_reviewer_required_refs(request),
+                required_refs=ai_reviewer_request_refs.required_refs(request),
                 record=request_record,
             )
             return {}, record_blocker
@@ -813,7 +827,7 @@ def _ai_reviewer_record_for_execution(
             attach_invalid_ai_reviewer_record_handoff(
                 record_blocker=record_blocker,
                 request=request,
-                required_refs=_ai_reviewer_required_refs(request),
+                required_refs=ai_reviewer_request_refs.required_refs(request),
                 record=request_record,
             )
             return {}, record_blocker
@@ -830,7 +844,7 @@ def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, A
     study_id = _text(request.get("study_id")) or study_root.name
     quest_id = _text(request.get("quest_id")) or study_id
     emitted_at = _text(request.get("generated_at")) or "2026-05-17T00:00:00+00:00"
-    refs = _ai_reviewer_required_refs(request)
+    refs = ai_reviewer_request_refs.required_refs(request)
     manuscript_ref = refs.get("manuscript") or str(study_root / "paper" / "manuscript.md")
     evidence_ref = refs.get("evidence_ledger") or str(study_root / "paper" / "evidence_ledger.json")
     review_ref = refs.get("review_ledger") or str(study_root / "paper" / "review" / "review_ledger.json")
@@ -946,37 +960,6 @@ def _clean_migration_quality_assessment(
             "evidence_refs": [review_ref],
         },
     }
-
-
-def _ai_reviewer_required_refs(request: Mapping[str, Any]) -> dict[str, str | None]:
-    return {
-        surface: _ref_path(request, surface)
-        for surface in (
-            "manuscript",
-            "evidence_ledger",
-            "review_ledger",
-            "study_charter",
-            "medical_manuscript_blueprint",
-            "claim_evidence_map",
-            "medical_prose_review",
-            "publication_gate_projection",
-        )
-    }
-
-
-def _ai_reviewer_optional_refs(request: Mapping[str, Any]) -> dict[str, str | None]:
-    return {
-        surface: _ref_path(request, surface)
-        for surface in (
-            "reporting_guideline",
-            "calibration_refs",
-        )
-    }
-
-
-def _ref_path(packet: Mapping[str, Any], surface: str) -> str | None:
-    ref = _mapping(_mapping(_mapping(packet.get("input_contract")).get("required_refs")).get(surface))
-    return _text(ref.get("path")) or _text(ref.get("ref")) or _text(ref.get("relative_path"))
 
 
 __all__ = [
