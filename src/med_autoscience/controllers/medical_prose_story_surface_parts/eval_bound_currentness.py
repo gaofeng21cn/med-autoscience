@@ -7,6 +7,12 @@ from typing import Any, Callable, Mapping
 from med_autoscience.controllers.medical_prose_story_surface_parts.journal_routable_story_delta import (
     current_writer_story_delta_is_journal_routable,
 )
+from med_autoscience.controllers.story_surface_work_units import is_story_surface_delta_write_work_unit
+
+
+EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER = (
+    "quality_repair_batch_current_manuscript_digest_mismatch"
+)
 
 def eval_bound_current_story_delta_refs(
     *,
@@ -67,6 +73,36 @@ def eval_bound_current_story_delta_is_preservable(
     )
 
 
+def eval_bound_current_story_delta_blocker(
+    *,
+    paper_root: Path,
+    work_unit_id: str,
+    medical_prose_write_repair_work_unit_id: str,
+    manuscript_story_surface_relative_paths: tuple[Path, ...],
+    contains_forbidden_manuscript_terms: Callable[[str], bool],
+    source_eval_id: str | None,
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    currentness = _eval_bound_current_story_delta_state(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+        medical_prose_write_repair_work_unit_id=medical_prose_write_repair_work_unit_id,
+        manuscript_story_surface_relative_paths=manuscript_story_surface_relative_paths,
+        contains_forbidden_manuscript_terms=contains_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if currentness is None or currentness.get("status") != "digest_mismatch":
+        return {}
+    return {
+        "blocked_reason": EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+        "source_eval_id": currentness.get("source_eval_id"),
+        "reviewer_manuscript_ref": currentness.get("manuscript_ref"),
+        "reviewer_manuscript_digest": currentness.get("manuscript_digest"),
+        "story_surface_digests": currentness.get("story_surface_digests") or [],
+    }
+
+
 def eval_bound_current_story_delta_source_basis(
     *,
     paper_root: Path,
@@ -118,7 +154,34 @@ def _eval_bound_current_story_delta(
     source_eval_id: str | None,
     publication_eval_payload: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
-    if work_unit_id != medical_prose_write_repair_work_unit_id:
+    currentness = _eval_bound_current_story_delta_state(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+        medical_prose_write_repair_work_unit_id=medical_prose_write_repair_work_unit_id,
+        manuscript_story_surface_relative_paths=manuscript_story_surface_relative_paths,
+        contains_forbidden_manuscript_terms=contains_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if currentness is None or currentness.get("status") != "preservable":
+        return None
+    return currentness
+
+
+def _eval_bound_current_story_delta_state(
+    *,
+    paper_root: Path,
+    work_unit_id: str,
+    medical_prose_write_repair_work_unit_id: str,
+    manuscript_story_surface_relative_paths: tuple[Path, ...],
+    contains_forbidden_manuscript_terms: Callable[[str], bool],
+    source_eval_id: str | None,
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not (
+        work_unit_id == medical_prose_write_repair_work_unit_id
+        or is_story_surface_delta_write_work_unit(work_unit_id)
+    ):
         return None
     payload = dict(publication_eval_payload) if isinstance(publication_eval_payload, Mapping) else {}
     eval_id = _text(payload.get("eval_id"))
@@ -149,25 +212,44 @@ def _eval_bound_current_story_delta(
     if manuscript_path not in story_surface_paths:
         return None
     story_texts: list[str] = []
+    story_surface_digests: list[dict[str, Any]] = []
+    digest_mismatch = False
     for path in story_surface_paths:
         if not path.exists() or not path.is_file():
-            return None
-        if _sha256_file(path) != manuscript_digest:
-            return None
+            digest_mismatch = True
+            story_surface_digests.append({"path": str(path), "present": False})
+            continue
+        path_digest = _sha256_file(path)
+        story_surface_digests.append({"path": str(path), "present": True, "digest": path_digest})
+        if path_digest != manuscript_digest:
+            digest_mismatch = True
+            continue
         text = path.read_text(encoding="utf-8")
         if not text.strip() or contains_forbidden_manuscript_terms(text):
             return None
         story_texts.append(text)
+    if digest_mismatch:
+        return {
+            "status": "digest_mismatch",
+            "source_eval_id": eval_id,
+            "request_digest": request_digest,
+            "manuscript_ref": str(manuscript_path),
+            "manuscript_digest": manuscript_digest,
+            "story_surface_paths": story_surface_paths,
+            "story_surface_digests": story_surface_digests,
+        }
     if len(set(story_texts)) != 1:
         return None
     if not current_writer_story_delta_is_journal_routable(story_texts[0]):
         return None
     return {
+        "status": "preservable",
         "source_eval_id": eval_id,
         "request_digest": request_digest,
         "manuscript_ref": str(manuscript_path),
         "manuscript_digest": manuscript_digest,
         "story_surface_paths": story_surface_paths,
+        "story_surface_digests": story_surface_digests,
     }
 
 

@@ -421,16 +421,11 @@ def _route_context_work_unit_id(route_context: Mapping[str, Any] | None) -> str 
 
 
 def _route_action_for_controller_context(route_context: Mapping[str, Any] | None) -> str:
-    controller_route_context = (
-        route_context.get("controller_route_context")
-        if isinstance(route_context, Mapping)
-        else None
+    return upstream_route_context.route_action_for_controller_context(
+        route_context,
+        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+        non_empty_text=_non_empty_text,
     )
-    if not isinstance(controller_route_context, Mapping):
-        return "bundle_build"
-    if _non_empty_text(controller_route_context.get("work_unit_id")) in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
-        return "paper_write"
-    return "bundle_build"
 
 
 def _upstream_repair_specificity_targets(publication_eval_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -447,12 +442,6 @@ def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any]
         preferred_controller_work_unit_ids=frozenset({"claim_evidence_alignment_repair"}),
         non_empty_text=_non_empty_text,
     )
-
-
-def _has_explicit_controller_route_context(route_context: Mapping[str, Any] | None) -> bool:
-    if not isinstance(route_context, Mapping):
-        return False
-    return any(isinstance(route_context.get(key), Mapping) for key in ("controller_route_context", "explicit_controller_route_context"))
 
 
 def _latest_owner_handoff(
@@ -764,7 +753,7 @@ def run_quality_repair_batch(
         gate_report=gate_report,
         summary_payload=summary_payload,
     )
-    if _has_explicit_controller_route_context(resolved_route_context):
+    if upstream_route_context.has_explicit_controller_route_context(resolved_route_context):
         explicit_work_unit_id = _route_context_work_unit_id(resolved_route_context)
         controller_route_context = (
             _controller_route_context_for_publication_work_unit_payload(
@@ -910,6 +899,7 @@ def run_quality_repair_batch(
         previous_quality_repair_batch=latest_batch,
         publication_eval_payload=publication_eval_payload,
     )
+    upstream_blocked_reason = repair_execution_gate.upstream_unit_blocked_reason(upstream_unit_result)
     gate_clearing_result = repair_execution_gate.merge_upstream_unit_result(
         gate_clearing_result=gate_clearing_result,
         upstream_unit_result=upstream_unit_result,
@@ -938,6 +928,8 @@ def run_quality_repair_batch(
         evidence=repair_execution_evidence,
     )
     blocked_repair_reason = repair_execution_gate.blocked_repair_execution_reason(repair_execution_evidence)
+    if repair_execution_gate.upstream_blocker_overrides_repair_reason(upstream_blocked_reason):
+        blocked_repair_reason = upstream_blocked_reason
     writer_worker_handoff = (
         writer_handoff.build_writer_worker_handoff(
             profile=profile,
@@ -987,6 +979,11 @@ def run_quality_repair_batch(
                 "next_owner": writer_handoff.NEXT_OWNER,
             }
             if blocked_repair_reason
+            else {}
+        ),
+        **(
+            {"typed_blocker": upstream_blocked_reason}
+            if repair_execution_gate.upstream_blocker_overrides_repair_reason(upstream_blocked_reason)
             else {}
         ),
     }

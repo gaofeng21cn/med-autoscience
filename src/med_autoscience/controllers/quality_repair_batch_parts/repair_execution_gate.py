@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+    EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+)
+
 
 TOP_LEVEL_BLOCKERS = frozenset(
     {
@@ -63,6 +67,21 @@ def blocked_repair_execution_reason(repair_execution_evidence: Mapping[str, Any]
     return None
 
 
+def upstream_unit_blocked_reason(upstream_unit_result: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(upstream_unit_result, Mapping):
+        return None
+    result = upstream_unit_result.get("result")
+    if not isinstance(result, Mapping):
+        return None
+    if _non_empty_text(result.get("status")) != "blocked":
+        return None
+    return _non_empty_text(result.get("blocked_reason"))
+
+
+def upstream_blocker_overrides_repair_reason(blocked_reason: str | None) -> bool:
+    return blocked_reason == EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER
+
+
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -79,4 +98,6 @@ __all__ = [
     "blocked_repair_execution_reason",
     "merge_upstream_unit_result",
     "selected_work_unit_id_from_gate_result",
+    "upstream_blocker_overrides_repair_reason",
+    "upstream_unit_blocked_reason",
 ]

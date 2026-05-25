@@ -117,6 +117,30 @@ def route_context_work_unit_id(route_context: Mapping[str, Any] | None, *, non_e
     return None
 
 
+def has_explicit_controller_route_context(route_context: Mapping[str, Any] | None) -> bool:
+    if not isinstance(route_context, Mapping):
+        return False
+    return any(isinstance(route_context.get(key), Mapping) for key in ("controller_route_context", "explicit_controller_route_context"))
+
+
+def route_action_for_controller_context(
+    route_context: Mapping[str, Any] | None,
+    *,
+    upstream_work_unit_ids: frozenset[str],
+    non_empty_text,
+) -> str:
+    controller_route_context = (
+        route_context.get("controller_route_context")
+        if isinstance(route_context, Mapping)
+        else None
+    )
+    if not isinstance(controller_route_context, Mapping):
+        return "bundle_build"
+    if non_empty_text(controller_route_context.get("work_unit_id")) in upstream_work_unit_ids:
+        return "paper_write"
+    return "bundle_build"
+
+
 def merge_route_contexts(
     *contexts: Mapping[str, Any] | None,
     preferred_controller_work_unit_ids: frozenset[str],
@@ -147,6 +171,8 @@ __all__ = [
     "apply_explicit_upstream_publication_work_unit",
     "controller_route_context_for_publication_work_unit_payload",
     "explicit_upstream_publication_work_unit",
+    "has_explicit_controller_route_context",
     "merge_route_contexts",
+    "route_action_for_controller_context",
     "route_context_work_unit_id",
 ]

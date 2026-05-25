@@ -509,6 +509,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：当前 AI reviewer route-back 已把 next work unit 命名为 `dm002_same_line_display_table_package_repair`。若 MAS 只注册 methods-display-package 旧名称，`run_quality_repair_batch` 会回落为 claim-evidence ledger repair，无法推进 display/table/package-facing 稿件质量 blocker。
 - 影响：这是 MAS work-unit registry / writer owner 修复，不改 DM002 study truth、runtime-owned surface、publication eval、controller decisions、current package 或 submission package。
 
+## 2026-05-25：AI reviewer-bound current manuscript 保护覆盖所有 story-surface work unit
+
+- 决策：`eval_bound_currentness` 的 current manuscript 保护适用于所有注册到 `STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS` 的 story-surface work unit，包括 `dm002_same_line_display_table_package_repair`。当 AI reviewer currentness check 绑定的 `manuscript_digest` 与 live `paper/draft.md` / `paper/build/review_manuscript.md` 一致时，quality-repair materializer 必须保留当前稿件，不得用 generator 模板覆盖；同时该 currentness 不能被记作本轮 write delta，仍应返回 `manuscript_story_surface_delta_missing` writer handoff。
+- 决策：当 AI reviewer currentness check 绑定的 current manuscript digest 与 live canonical story surfaces 不一致时，`run_quality_repair_batch` 必须 fail closed，并返回 `quality_repair_batch_current_manuscript_digest_mismatch` typed blocker；不得继续生成旧模板、物化 AI reviewer recheck request、刷新 package 或把状态写成 executed。
+- 理由：DM002 display-table-package route 暴露出旧 guard 只保护 `medical_prose_write_repair`，导致同一 AI reviewer-bound 高质量稿件在 display/table work unit 下被旧 DM002 generator 回滚。digest mismatch 场景则说明最新 evaluator 与 live manuscript 已经脱钩，继续 repair 会扩大 authority/currentness 漂移。
+- 影响：这是 MAS manuscript currentness / quality repair owner-chain 修复，不授权写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。该能力作为 DM002/DM003 story-surface quality regression guard 留在 MAS 回归测试内。
+
 ## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
 
 - 决策：`quality_repair_batch_writer_handoff` 生成 `run_quality_repair_batch` dispatch 时，必须同步物化 `artifacts/supervision/requests/quality_repair_batch/latest.json`，并把 `prompt_contract.request_packet_ref` 指向该 request surface。后续 dispatcher 以 request+dispatch 双面 currentness 为主。

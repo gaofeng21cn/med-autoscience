@@ -25,6 +25,10 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _sha256_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def _fingerprint(path: Path) -> dict[str, Any]:
     data = path.read_bytes()
     return {"size": len(data), "content_sha256": hashlib.sha256(data).hexdigest()}
@@ -214,6 +218,46 @@ def _write_minimal_paper_surfaces(paper_root: Path) -> None:
         _write_json(paper_root / relative_path, {"schema_version": 1})
 
 
+def _bind_publication_eval_to_current_manuscript(
+    publication_eval_payload: dict[str, Any],
+    *,
+    paper_root: Path,
+    manuscript_digest: str,
+) -> dict[str, Any]:
+    publication_eval_payload["reviewer_operating_system"] = {
+        "contract_id": "medical_publication_ai_reviewer_os_v1",
+        "input_bundle": {"manuscript": str((paper_root / "draft.md").resolve())},
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_ref": str((paper_root.parent / "artifacts" / "publication_eval" / "medical_prose_review_request.json").resolve()),
+                "request_digest": "sha256:" + "b" * 64,
+                "manuscript_ref": str((paper_root / "draft.md").resolve()),
+                "manuscript_digest": manuscript_digest,
+                "route_back_required": True,
+                "route_target": "write",
+            }
+        },
+        "publication_quality_readiness": {
+            "surface_kind": "publication_quality_authority_kernel_v1",
+            "status": "blocked",
+            "current_manuscript_digest": manuscript_digest,
+            "review_request_digest": "sha256:" + "c" * 64,
+            "evidence_ledger_digest": "sha256:" + "d" * 64,
+            "claim_evidence_alignment_digest": "sha256:" + "e" * 64,
+            "rubric_version": "medical_publication_critique_v1",
+            "owner_attempt_id": "owner-attempt::dm002-current",
+            "fail_closed_when_missing": True,
+            "missing_required_fields": ["display_source_reconciliation"],
+        },
+        "route_back_decision": {
+            "recommended_action": "route_back_same_line",
+            "rationale": "Current manuscript still needs write-owner repair.",
+        },
+    }
+    return publication_eval_payload
+
+
 def test_dm002_current_hardening_preserves_external_validation_writer_delta(
     tmp_path: Path,
 ) -> None:
@@ -251,6 +295,265 @@ def test_dm002_current_hardening_preserves_external_validation_writer_delta(
     assert changed_paths == []
     assert (paper_root / "draft.md").read_text(encoding="utf-8") == writer_story
     assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == writer_story
+
+
+def test_dm002_display_table_repair_preserves_ai_reviewer_bound_current_manuscript_without_closing(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="mortality_attribution",
+    )
+    quest_id = "quest-002"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
+    paper_root = study_root / "paper"
+    writer_story = _dm002_writer_story()
+    for relative_path in ("draft.md", "build/review_manuscript.md"):
+        path = paper_root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(writer_story, encoding="utf-8")
+    _write_minimal_paper_surfaces(paper_root)
+    _write_dm002_template_inputs(study_root)
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["recommended_actions"][0].update(
+        {
+            "action_type": "route_back_same_line",
+            "route_target": "write",
+            "route_key_question": "Repair current external-validation manuscript findings.",
+            "work_unit_fingerprint": "dm002-display-table-current-ai-reviewer-record",
+            "next_work_unit": {
+                "unit_id": medical_prose_story_surface.DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
+                "lane": "write",
+                "summary": "Repair DM002 display/table manuscript surface.",
+            },
+        }
+    )
+    manuscript_digest = _sha256_text(writer_story)
+    publication_eval_payload = _bind_publication_eval_to_current_manuscript(
+        publication_eval_payload,
+        paper_root=paper_root,
+        manuscript_digest=manuscript_digest,
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_quality_summary(study_root)
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": "publication-eval::previous",
+            "status": "executed",
+            "ok": True,
+            "repair_execution_evidence": {
+                "status": "progress_delta_candidate",
+                "manuscript_surface_hygiene": {
+                    "status": "clear",
+                    "surface_refs": [],
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": True,
+                    "story_surface_delta_refs": [],
+                },
+            },
+        },
+    )
+
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["medical_publication_surface_blocked", "reviewer_first_concerns_unresolved"],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["medical_prose_quality_blocked"],
+            "current_required_action": "return_to_publishability_gate",
+            "gate_fingerprint": "publication-gate::dm002-medical-prose",
+        },
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **_: {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+            "selected_publication_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+            "explicit_publication_work_unit": {
+                "unit_id": medical_prose_story_surface.DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
+                "lane": "write",
+            },
+            "gate_replay": {
+                "status": "blocked",
+                "report_json": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            },
+            "unit_results": [],
+        },
+    )
+    route_context = {
+        **_paper_write_supervisor_route_context(),
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+            "work_unit_id": medical_prose_story_surface.DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
+            "requires_human_confirmation": False,
+            "source_eval_id": publication_eval_payload["eval_id"],
+            "work_unit_fingerprint": "dm002-display-table-current-ai-reviewer-record",
+        },
+    }
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        authority_route_context=route_context,
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "handoff_ready"
+    assert result["next_owner"] == "write"
+    assert result["writer_worker_handoff"]["typed_blocker_if_unresolved"] == "manuscript_story_surface_delta_missing"
+    assert (paper_root / "draft.md").read_text(encoding="utf-8") == writer_story
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == writer_story
+    evidence = result["repair_execution_evidence"]
+    assert evidence["status"] == "blocked"
+    assert evidence["progress_delta_candidate"] is False
+    assert evidence["manuscript_surface_hygiene"]["story_surface_delta_refs"] == []
+    assert "manuscript_story_surface_delta_missing" in evidence["blockers"]
+    upstream_result = result["gate_clearing_batch"]["unit_results"][0]["result"]
+    assert upstream_result["ai_reviewer_recheck_request_ref"] is None
+    assert upstream_result["ai_reviewer_recheck_deferred_reason"] == "manuscript_story_surface_delta_missing"
+    assert _sha256_text(writer_story) == manuscript_digest
+
+
+def test_dm002_display_table_repair_fail_closes_when_ai_reviewer_bound_digest_is_not_live(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="mortality_attribution",
+    )
+    quest_id = "quest-002"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
+    paper_root = study_root / "paper"
+    stale_story = _dm002_writer_story()
+    live_story = stale_story.replace(
+        "substantially underestimated absolute 5-year mortality.",
+        "currently live text was overwritten after reviewer binding.",
+    )
+    for relative_path in ("draft.md", "build/review_manuscript.md"):
+        path = paper_root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(live_story, encoding="utf-8")
+    _write_minimal_paper_surfaces(paper_root)
+    _write_dm002_template_inputs(study_root)
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["recommended_actions"][0].update(
+        {
+            "action_type": "route_back_same_line",
+            "route_target": "write",
+            "route_key_question": "Repair current external-validation manuscript findings.",
+            "work_unit_fingerprint": "dm002-display-table-current-ai-reviewer-record",
+            "next_work_unit": {
+                "unit_id": medical_prose_story_surface.DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
+                "lane": "write",
+                "summary": "Repair DM002 display/table manuscript surface.",
+            },
+        }
+    )
+    publication_eval_payload = _bind_publication_eval_to_current_manuscript(
+        publication_eval_payload,
+        paper_root=paper_root,
+        manuscript_digest=_sha256_text(stale_story),
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_quality_summary(study_root)
+
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["medical_publication_surface_blocked", "reviewer_first_concerns_unresolved"],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["medical_prose_quality_blocked"],
+            "current_required_action": "return_to_publishability_gate",
+            "gate_fingerprint": "publication-gate::dm002-medical-prose",
+        },
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **_: {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+            "selected_publication_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+            "explicit_publication_work_unit": {
+                "unit_id": medical_prose_story_surface.DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
+                "lane": "write",
+            },
+            "gate_replay": {
+                "status": "blocked",
+                "report_json": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            },
+            "unit_results": [],
+        },
+    )
+    route_context = {
+        **_paper_write_supervisor_route_context(),
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+            "work_unit_id": medical_prose_story_surface.DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
+            "requires_human_confirmation": False,
+            "source_eval_id": publication_eval_payload["eval_id"],
+            "work_unit_fingerprint": "dm002-display-table-current-ai-reviewer-record",
+        },
+    }
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        authority_route_context=route_context,
+    )
+
+    assert result["ok"] is False
+    assert result["status"] == "blocked"
+    assert result["blocked_reason"] == "quality_repair_batch_current_manuscript_digest_mismatch"
+    assert "writer_worker_handoff" not in result
+    assert (paper_root / "draft.md").read_text(encoding="utf-8") == live_story
+    assert (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8") == live_story
 
 
 def test_dm002_current_hardening_consumes_preserved_delta_and_requests_ai_recheck(

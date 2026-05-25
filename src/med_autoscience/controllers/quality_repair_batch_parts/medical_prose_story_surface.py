@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+    eval_bound_current_story_delta_blocker,
     eval_bound_current_story_delta_is_preservable,
 )
 from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
@@ -47,6 +48,17 @@ def materialize_medical_prose_story_surfaces(
     previous_quality_repair_batch: Mapping[str, Any] | None = None,
     publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> list[str]:
+    currentness_blocker = eval_bound_current_story_delta_blocker(
+        paper_root=paper_root,
+        work_unit_id=work_unit_id,
+        medical_prose_write_repair_work_unit_id=MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+        manuscript_story_surface_relative_paths=MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS,
+        contains_forbidden_manuscript_terms=_contains_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if currentness_blocker:
+        raise RuntimeError(str(currentness_blocker["blocked_reason"]))
     if eval_bound_current_story_delta_is_preservable(
         paper_root=paper_root,
         work_unit_id=work_unit_id,

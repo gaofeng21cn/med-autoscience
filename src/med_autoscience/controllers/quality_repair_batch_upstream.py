@@ -12,6 +12,7 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import (
 )
 from med_autoscience.claim_evidence_alignment import build_claim_evidence_alignment_gate
 from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+    eval_bound_current_story_delta_blocker,
     eval_bound_current_story_delta_source_basis,
 )
 from med_autoscience.controllers.quality_repair_batch_parts import medical_prose_story_surface
@@ -368,6 +369,32 @@ def run_upstream_paper_repair_unit(
                 "paper_root": str(paper_root),
             },
         }
+    currentness_blocker = eval_bound_current_story_delta_blocker(
+        paper_root=paper_root,
+        work_unit_id=resolved_work_unit_id,
+        medical_prose_write_repair_work_unit_id=medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID,
+        manuscript_story_surface_relative_paths=medical_prose_story_surface.MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS,
+        contains_forbidden_manuscript_terms=medical_prose_story_surface._contains_forbidden_manuscript_terms,
+        source_eval_id=source_eval_id,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if currentness_blocker:
+        return {
+            "unit_id": resolved_work_unit_id,
+            "label": "Materialize controller-owned upstream paper repair surfaces",
+            "parallel_safe": False,
+            "status": "blocked",
+            "result": {
+                "status": "blocked",
+                "work_unit_id": resolved_work_unit_id,
+                "blocked_reason": currentness_blocker["blocked_reason"],
+                "changed_artifact_refs": [],
+                "canonical_artifact_refs": [],
+                "currentness_blocker": currentness_blocker,
+                "quality_gate_relaxation_allowed": False,
+                "current_package_write_allowed": False,
+            },
+        }
 
     current_manuscript_basis = eval_bound_current_story_delta_source_basis(
         paper_root=paper_root,
@@ -457,7 +484,10 @@ def run_upstream_paper_repair_unit(
             **(
                 {"ai_reviewer_recheck_deferred_reason": "manuscript_story_surface_delta_missing"}
                 if not ai_request.get("path")
-                and resolved_work_unit_id == medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID
+                and (
+                    resolved_work_unit_id == medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID
+                    or is_story_surface_delta_write_work_unit(resolved_work_unit_id)
+                )
                 else {}
             ),
             "quality_gate_relaxation_allowed": False,
