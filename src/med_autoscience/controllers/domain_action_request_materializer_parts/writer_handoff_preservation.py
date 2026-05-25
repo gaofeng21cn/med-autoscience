@@ -125,6 +125,8 @@ def _writer_handoff_dispatch_from_owner_request(
     request = persisted_dispatches.owner_request_payload(profile, study_id, action_type)
     if not request:
         return None
+    if _text(request.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
+        return None
     request_route = owner_route_part.ensure_owner_route_v2(_mapping(request.get("owner_route")))
     if not _writer_handoff_request_bridges_current_route(
         handoff_route=request_route,
@@ -159,7 +161,7 @@ def _writer_handoff_dispatch_from_owner_request(
         repair_execution_evidence_path=Path(repair_execution_evidence_path),
         blocked_repair_reason="manuscript_story_surface_delta_missing",
         authority_route_context={
-            "current_owner_route": dict(owner_route),
+            "current_owner_route": dict(request_route),
             "controller_route_context": {
                 "control_surface": "quality_repair_batch",
                 "controller_action_type": action_type,
@@ -193,25 +195,41 @@ def _writer_handoff_request_bridges_current_route(
         return False
     if _text(normalized_handoff.get("owner_reason")) != "manuscript_story_surface_delta_missing":
         return False
-    if _text(normalized_current.get("owner_reason")) != "quest_waiting_opl_runtime_owner_route":
+    current_reason = _text(normalized_current.get("owner_reason"))
+    if current_reason not in {"quest_waiting_opl_runtime_owner_route", "manuscript_story_surface_delta_missing"}:
         return False
     if _text(normalized_handoff.get("next_owner")) != _text(normalized_current.get("next_owner")):
         return False
-    for key in ("study_id", "quest_id", "truth_epoch", "runtime_health_epoch", "work_unit_fingerprint", "source_fingerprint"):
-        handoff_value = _text(normalized_handoff.get(key))
-        current_value = _text(normalized_current.get(key))
-        if handoff_value is not None and current_value is not None and handoff_value != current_value:
+    for key in (
+        "study_id",
+        "quest_id",
+        "truth_epoch",
+        "runtime_health_epoch",
+        "work_unit_fingerprint",
+        "source_fingerprint",
+    ):
+        if not _same_required_currentness_value(normalized_handoff, normalized_current, key):
             return False
     handoff_refs = _mapping(normalized_handoff.get("source_refs"))
     current_refs = _mapping(normalized_current.get("source_refs"))
     for key in ("source_eval_id", "work_unit_id"):
-        handoff_value = _text(handoff_refs.get(key))
-        current_value = _text(current_refs.get(key))
-        if handoff_value is not None and current_value is not None and handoff_value != current_value:
+        if not _same_required_currentness_value(handoff_refs, current_refs, key):
             return False
+    if current_reason == "manuscript_story_surface_delta_missing":
+        return True
     return _text(handoff_refs.get("bridged_from_idempotency_key")) == _text(
         normalized_current.get("idempotency_key")
     )
+
+
+def _same_required_currentness_value(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+    key: str,
+) -> bool:
+    left_value = _text(left.get(key))
+    right_value = _text(right.get(key))
+    return left_value is not None and right_value is not None and left_value == right_value
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:
