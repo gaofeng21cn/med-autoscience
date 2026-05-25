@@ -353,6 +353,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 在新的 AI reviewer record 已正确绑定 `paper/draft.md` 当前 digest 且判定 `publication_quality_readiness.status=blocked` 后，workflow materializer 仍从旧 `medical_prose_review` provenance 抽取 manuscript digest，导致 `publication_eval/latest.json` 同时出现旧稿件 digest 和错误的 ready readiness。该问题属于 MAS AI reviewer owner workflow 的 currentness/readiness 物化错误。
 - 影响：这是 MAS owner workflow 修复，不手写 DM002 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、submission package 或 current package；修复后必须由 MAS/OPL owner route 重新重放 AI reviewer workflow，让 study surface 自然刷新。
 
+## 2026-05-25：AI reviewer readiness 必须绑定当前 live evidence ledger
+
+- 决策：`ai_reviewer_publication_eval_workflow` 物化 `publication_quality_readiness.evidence_ledger_digest` 时，必须从当前 `input_bundle.evidence_ledger` 指向的 live 文件计算 SHA-256，不得从 AI reviewer record 内嵌 `quality_assessment` JSON 派生。
+- 决策：`claim_evidence_alignment_digest` 继续从当前 live `claim_evidence_map` + `evidence_ledger` 构建出的 alignment gate 重算；record 内旧 readiness digest 只提供缺失字段和 blocked/ready intent，不得覆盖 live evidence/source digest。
+- 理由：DM002 在 write owner 修复 claim/evidence/review ledger 后，`return_to_ai_reviewer_workflow` 可刷新 `publication_eval/latest.json` 的 `emitted_at`，但 readiness 仍携带旧 evidence/claim digest，造成看似 current 的 AI reviewer verdict 实际未绑定最新 owner delta。
+- 影响：这是 MAS AI reviewer currentness 修复，不写 study truth、canonical paper、submission package、current package 或质量门宽松判断；修复后必须重走 MAS owner workflow，使 `publication_eval/latest.json` 自然绑定最新 evidence ledger。
+
 ## 2026-05-22：workspace profile merge 必须把 root keys 插在 TOML table 之前
 
 - 决策：`medautosci init-workspace` 合并既有 workspace profile 时，缺失的 root-level entries 必须插入第一个 TOML table 之前，不得追加到文件末尾。

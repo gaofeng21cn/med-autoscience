@@ -296,16 +296,18 @@ def _current_manuscript_currentness(
 
 def _publication_quality_readiness(
     *,
+    study_root: Path,
     record_payload: Mapping[str, Any],
     trace: Mapping[str, Any],
 ) -> dict[str, Any]:
     currentness = _mapping(trace.get("currentness_checks"))
     prose_currentness = _mapping(currentness.get("medical_prose_review"))
     current_manuscript = _mapping(currentness.get("current_manuscript"))
-    evidence_ledger = _mapping(record_payload.get("quality_assessment"))
-    evidence_digest = "sha256:" + hashlib.sha256(
-        json.dumps(evidence_ledger, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    ).hexdigest()
+    input_bundle = _mapping(trace.get("input_bundle"))
+    evidence_ref = _text(input_bundle.get("evidence_ledger"))
+    if not evidence_ref:
+        raise ValueError("ai_reviewer_record_evidence_ledger_ref_missing")
+    evidence_digest = _sha256_file(_resolve_ref(study_root=study_root, ref=evidence_ref))
     claim_alignment = _mapping(trace.get("claim_evidence_alignment"))
     claim_alignment_digest = "sha256:" + hashlib.sha256(
         json.dumps(claim_alignment, ensure_ascii=False, sort_keys=True).encode("utf-8")
@@ -765,6 +767,7 @@ def build_ai_reviewer_publication_eval_workflow_trace(
         "route_back_decision": _route_back_decision(record_payload),
     }
     trace["publication_quality_readiness"] = _publication_quality_readiness(
+        study_root=resolved_study_root,
         record_payload=record_payload,
         trace=trace,
     )
