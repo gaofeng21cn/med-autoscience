@@ -56,6 +56,12 @@ def render_stage_route_contract_guide() -> str:
     lines: list[str] = [
         "# MAS Stage Route Contract",
         "",
+        "Owner: `MedAutoScience`",
+        "Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`",
+        "State: `active_runtime_support`",
+        "Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in "
+        "machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.",
+        "",
         f"Canonical source: `{STAGE_ROUTE_CONTRACT_REF}`.",
         "",
         "## Compatible Agents",

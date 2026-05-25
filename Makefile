@@ -31,7 +31,7 @@ CONTROL_PLANE_TESTS := \
 	tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report_with_scan_options \
 	tests/test_test_command_surfaces.py::test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces \
 	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_authority_operation_modes \
-	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_authority_operation_commands \
+	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_authority_operation_group_commands \
 	tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summary \
 	tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_calls_artifact_lifecycle_continuous_soak_summary \
 	tests/test_truth_projection_surfaces.py \
