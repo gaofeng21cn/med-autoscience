@@ -211,6 +211,168 @@ def test_action_queue_honors_runtime_redrive_domain_transition_over_completed_tr
     assert actions[0]["reason"] == "unit_harmonized_rerun_required"
 
 
+def test_scan_projects_current_ai_reviewer_record_materialization_controller_route_to_write_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    work_unit_id = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+    work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    decision_path.parent.mkdir(parents=True, exist_ok=True)
+    decision_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "decision_id": f"study-decision::{study_id}::{quest_id}::route_back_same_line::current-ai-reviewer",
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "requires_human_confirmation": False,
+                "decision_type": "route_back_same_line",
+                "route_target": "controller",
+                "controller_actions": [
+                    {
+                        "action_type": "run_quality_repair_batch",
+                        "payload_ref": str(
+                            study_root
+                            / "artifacts"
+                            / "controller"
+                            / "quality_repair_batch"
+                            / "latest.json"
+                        ),
+                    }
+                ],
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": {
+                    "unit_id": work_unit_id,
+                    "lane": "controller",
+                    "summary": (
+                        "Consume the current AI reviewer record and decide publication quality "
+                        "and downstream delivery routing under MAS authority."
+                    ),
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "decision": "blocked",
+        "reason": "quest_waiting_for_submission_metadata",
+        "active_run_id": None,
+        "runtime_liveness_audit": {
+            "active_run_id": None,
+            "runtime_audit": {"worker_running": False, "active_run_id": None},
+        },
+        "runtime_health_snapshot": {
+            "attempt_state": "escalated",
+            "canonical_runtime_action": "external_supervisor_required",
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            "retry_budget_remaining": 0,
+            "worker_liveness_state": {"state": "not_live", "worker_running": False},
+            "runtime_health_epoch": "runtime-health-dm002-current-ai-reviewer-materialize",
+        },
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "route_back_same_line",
+            "route_target": "controller",
+            "owner": "controller",
+            "controller_action": "request_opl_stage_attempt",
+            "next_work_unit": {
+                "unit_id": work_unit_id,
+                "lane": "controller",
+                "summary": (
+                    "Consume the current AI reviewer record and decide publication quality "
+                    "and downstream delivery routing under MAS authority."
+                ),
+            },
+            "guard_boundary": {
+                "runner_boundary": "mas_domain_read_model_only",
+                "can_write_domain_truth": False,
+                "can_execute_generic_state_machine": False,
+                "opl_generic_runner_may_resume": False,
+                "mas_owner_apply_receipt_required": False,
+                "required_owner_surface": "artifacts/publication_eval/latest.json",
+            },
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002-current-ai-reviewer-materialize",
+            "source_signature": "truth-source-dm002-current-ai-reviewer-materialize",
+        },
+    }
+    progress_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "runtime_blocked",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::current-ai-reviewer-materialization",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["run_quality_repair_batch"]
+    assert [item["action_type"] for item in result["action_queue"]] == ["run_quality_repair_batch"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "write"
+    assert action["request_owner"] == "write"
+    assert action["recommended_owner"] == "write"
+    assert action["reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert action["next_work_unit"] == work_unit_id
+    assert action["executable_work_unit"] == work_unit_id
+    assert action["route_target"] == "write"
+    assert action["original_route_target"] == "controller"
+    assert action["domain_transition_decision_type"] == "route_back_same_line"
+    assert study["next_owner"] == "write"
+    assert study["blocked_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert study["why_not_applied"] == "opl_stage_attempt_admission_required"
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["next_owner"] == "write"
+    assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
+    assert study["owner_route"]["owner_route_attempt_protocol"]["dispatchable"] is True
+    assert study["owner_route"]["source_refs"]["work_unit_id"] == work_unit_id
+    assert study["owner_route"]["source_refs"]["work_unit_fingerprint"] == work_unit_fingerprint
+
+
 def test_scan_projects_runtime_redrive_domain_transition_and_owner_action(monkeypatch, tmp_path: Path) -> None:
     scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")

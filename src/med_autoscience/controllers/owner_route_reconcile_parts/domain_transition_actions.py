@@ -32,6 +32,11 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         route_target=route_target,
         next_work_unit=controller_next_work_unit,
     )
+    current_ai_reviewer_materialization_route = _is_current_ai_reviewer_materialization_route(
+        decision_type=decision_type,
+        route_target=route_target,
+        next_work_unit=controller_next_work_unit,
+    )
     if unit_harmonized_analysis_route:
         action_type = "unit_harmonized_external_validation_rerun"
         work_unit_id = "unit_harmonized_external_validation_rerun"
@@ -39,7 +44,7 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         _owner_for_domain_action(action_type)
         if unit_harmonized_analysis_route
         else "write"
-        if write_repair_route
+        if write_repair_route or current_ai_reviewer_materialization_route
         else domain_transition_guard.owner(status) or _owner_for_domain_action(action_type)
     )
     reason = (
@@ -66,11 +71,14 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         action["controller_next_work_unit"] = controller_next_work_unit
         action["controller_work_unit_id"] = controller_work_unit_id
         action["executable_work_unit"] = "unit_harmonized_external_validation_rerun"
-    if write_repair_route:
+    if write_repair_route or current_ai_reviewer_materialization_route:
         action["controller_next_work_unit"] = controller_next_work_unit
         action["controller_work_unit_id"] = controller_work_unit_id
         action["executable_work_unit"] = work_unit_id
         action["route_target"] = "write"
+        action["domain_transition_decision_type"] = decision_type
+        if decision_type and work_unit_id:
+            action["work_unit_fingerprint"] = f"domain-transition::{decision_type}::{work_unit_id}"
         if route_target and route_target != "write":
             action["original_route_target"] = route_target
     if decision_type == "bundle_stage_finalize":
@@ -147,6 +155,20 @@ def _is_write_repair_route(
     if is_story_surface_delta_write_work_unit(next_work_unit.get("unit_id")):
         return True
     return _text(next_work_unit.get("lane")) == "write"
+
+
+def _is_current_ai_reviewer_materialization_route(
+    *,
+    decision_type: str | None,
+    route_target: str | None,
+    next_work_unit: Mapping[str, Any],
+) -> bool:
+    return (
+        decision_type == "route_back_same_line"
+        and route_target == "controller"
+        and _text(next_work_unit.get("unit_id"))
+        == "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+    )
 
 
 def _text(value: object) -> str | None:
