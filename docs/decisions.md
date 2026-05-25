@@ -385,6 +385,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 在 write owner 修复 claim/evidence/review ledger 后，`return_to_ai_reviewer_workflow` 可刷新 `publication_eval/latest.json` 的 `emitted_at`，但 readiness 仍携带旧 evidence/claim digest，造成看似 current 的 AI reviewer verdict 实际未绑定最新 owner delta。
 - 影响：这是 MAS AI reviewer currentness 修复，不写 study truth、canonical paper、submission package、current package 或质量门宽松判断；修复后必须重走 MAS owner workflow，使 `publication_eval/latest.json` 自然绑定最新 evidence ledger。
 
+## 2026-05-25：current AI reviewer eval 可取代旧 quality batch digest mismatch
+
+- 决策：`owner-route-reconcile` 消费 `quality_repair_batch_current_manuscript_digest_mismatch` 时，不能只用 `quality_repair_batch.source_eval_id == publication_eval.eval_id` 判定 batch 仍当前。若当前 AI reviewer-owned `publication_eval/latest.json` 已在 `reviewer_operating_system.currentness_checks.current_manuscript` 中证明当前稿件 ref 与 live SHA-256，并且 stale batch 的 story-surface refs/digests 均被该 eval 的 authority refs 覆盖，则旧 digest-mismatch batch 已被当前 eval 消费，必须让顶层 `route_back_same_line -> write` 接管。
+- 决策：上述 supersession 必须 fail closed：缺 AI reviewer owner、缺 current-manuscript proof、live 文件 digest 不匹配、story-surface digest 不匹配、或 story refs 未出现在当前 eval authority refs 中时，仍保留 `return_to_ai_reviewer_workflow` record-only owner route。
+- 理由：DM002 在 2026-05-25 的恢复中，AI reviewer workflow 已把当前 `paper/draft.md` / `paper/build/review_manuscript.md` digest 写入最新 eval，但旧 quality batch 仍携带同一个 eval_id 下的 digest mismatch blocker，导致 owner route 反复派 `return_to_ai_reviewer_workflow`，不能进入 write owner 的 display/table/package repair。根因是 MAS currentness supersession 缺口，不是 OPL worker 或单篇 paper JSON 可手工 patch 的问题。
+- 影响：这是 MAS owner-route currentness 修复，不写 DM002 study truth、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 current package；修复后仍由 MAS controller/materializer/dispatcher 重新生成 write owner handoff。
+
 ## 2026-05-22：workspace profile merge 必须把 root keys 插在 TOML table 之前
 
 - 决策：`medautosci init-workspace` 合并既有 workspace profile 时，缺失的 root-level entries 必须插入第一个 TOML table 之前，不得追加到文件末尾。

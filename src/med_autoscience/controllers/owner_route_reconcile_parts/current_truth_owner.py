@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -175,6 +176,12 @@ def current_manuscript_digest_mismatch_ai_reviewer_route(
         return None
     blocker = _current_manuscript_digest_mismatch_blocker(batch)
     if blocker is None:
+        return None
+    if _current_ai_reviewer_eval_consumes_digest_mismatch(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        blocker=blocker,
+    ):
         return None
     action = _publication_story_repair_action(publication_eval_payload)
     next_work_unit = _mapping(action.get("next_work_unit")) if action is not None else {}
@@ -383,6 +390,59 @@ def _current_story_surface_refs(blocker: Mapping[str, Any]) -> list[str]:
     if not refs and (manuscript_ref := _text(blocker.get("reviewer_manuscript_ref"))):
         refs.append(manuscript_ref)
     return list(dict.fromkeys(refs))
+
+
+def _current_ai_reviewer_eval_consumes_digest_mismatch(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    blocker: Mapping[str, Any],
+) -> bool:
+    provenance = _mapping(publication_eval_payload.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    currentness = _mapping(_mapping(publication_eval_payload.get("reviewer_operating_system")).get("currentness_checks"))
+    current_manuscript = _mapping(currentness.get("current_manuscript"))
+    if _text(current_manuscript.get("status")) != "current":
+        return False
+    current_ref = _text(current_manuscript.get("manuscript_ref"))
+    current_digest = _text(current_manuscript.get("manuscript_digest"))
+    if current_ref is None or current_digest is None:
+        return False
+    reviewer_digest = _text(blocker.get("reviewer_manuscript_digest"))
+    if reviewer_digest is not None and reviewer_digest == current_digest:
+        return False
+    current_path = _resolve_study_ref(study_root, current_ref)
+    if current_path is None or _sha256_path(current_path) != current_digest:
+        return False
+    story_items = [
+        dict(item)
+        for item in blocker.get("story_surface_digests") or []
+        if isinstance(item, Mapping) and item.get("present") is True and _text(item.get("path"))
+    ]
+    if not story_items:
+        return False
+    authority_refs = [
+        ref
+        for ref in [_text(current_ref), *[_text(item) for item in provenance.get("source_refs") or []]]
+        if ref is not None
+    ]
+    current_ref_seen = False
+    for item in story_items:
+        story_ref = _text(item.get("path"))
+        story_digest = _text(item.get("digest"))
+        if story_ref is None or story_digest is None:
+            return False
+        story_path = _resolve_study_ref(study_root, story_ref)
+        if story_path is None or _sha256_path(story_path) != story_digest:
+            return False
+        if story_digest != current_digest:
+            return False
+        if not _ref_in_authority_refs(study_root=study_root, ref=story_ref, authority_refs=authority_refs):
+            return False
+        if _refs_equal(study_root=study_root, left=story_ref, right=current_ref):
+            current_ref_seen = True
+    return current_ref_seen
 
 
 def methodology_reframe_runtime_route_allowed(
@@ -647,6 +707,33 @@ def _string_set(value: object) -> set[str]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _resolve_study_ref(study_root: Path, ref: str | None) -> Path | None:
+    text = _text(ref)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if not path.is_absolute():
+        path = study_root / path
+    return path.resolve()
+
+
+def _sha256_path(path: Path) -> str | None:
+    try:
+        return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+    except OSError:
+        return None
+
+
+def _refs_equal(*, study_root: Path, left: str, right: str) -> bool:
+    left_path = _resolve_study_ref(study_root, left)
+    right_path = _resolve_study_ref(study_root, right)
+    return left_path is not None and right_path is not None and left_path == right_path
+
+
+def _ref_in_authority_refs(*, study_root: Path, ref: str, authority_refs: list[str]) -> bool:
+    return any(_refs_equal(study_root=study_root, left=ref, right=authority_ref) for authority_ref in authority_refs)
 
 
 __all__ = [
