@@ -603,6 +603,8 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert '"${clean_python[@]}" -m med_autoscience.mcp_server' in script
     assert "AUTHORITY_OPERATION_MCP_MODES" in script
     assert 'export AUTHORITY_OPERATION_MCP_MODES_JSON="${authority_operation_mcp_modes_json}"' in script
+    assert 'if "product_entry" in mcp_tools:' in script
+    assert 'authority_operations = mcp_tools.get("authority_operations")' in script
     assert 'required_modes = set(json.loads(os.environ["AUTHORITY_OPERATION_MCP_MODES_JSON"]))' in script
     assert 'retired_modes = {"migration_audit", "cleanup_apply", "lifecycle_report", "safe_cache_cleanup_apply"}' in script
     assert "uv run --directory" not in script

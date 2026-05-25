@@ -58,15 +58,20 @@ mcp_tools = {
     item["name"]: item
     for item in json.loads(os.environ["MCP_TOOLS_JSON"])["result"]["tools"]
 }
-product_entry_modes = set(mcp_tools["product_entry"]["inputSchema"]["properties"]["mode"]["enum"])
+if "product_entry" in mcp_tools:
+    raise SystemExit("medautosci-mcp resurrected retired product_entry tool surface.")
+authority_operations = mcp_tools.get("authority_operations")
+if authority_operations is None:
+    raise SystemExit("medautosci-mcp authority_operations tool is missing.")
+authority_operation_modes = set(authority_operations["inputSchema"]["properties"]["mode"]["enum"])
 required_modes = set(json.loads(os.environ["AUTHORITY_OPERATION_MCP_MODES_JSON"]))
-missing_modes = sorted(required_modes - product_entry_modes)
+missing_modes = sorted(required_modes - authority_operation_modes)
 if missing_modes:
-    raise SystemExit(f"medautosci-mcp product_entry mode enum missing: {missing_modes}")
+    raise SystemExit(f"medautosci-mcp authority_operations mode enum missing: {missing_modes}")
 retired_modes = {"migration_audit", "cleanup_apply", "lifecycle_report", "safe_cache_cleanup_apply"}
-resurrected_modes = sorted(retired_modes & product_entry_modes)
+resurrected_modes = sorted(retired_modes & authority_operation_modes)
 if resurrected_modes:
-    raise SystemExit(f"medautosci-mcp product_entry mode enum resurrected: {resurrected_modes}")
+    raise SystemExit(f"medautosci-mcp authority_operations mode enum resurrected: {resurrected_modes}")
 
 print(json.dumps({
     "ok": True,
