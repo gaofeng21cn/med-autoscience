@@ -493,3 +493,47 @@ Next tranche write scope:
 - Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
 - Keep App docs delayed until active release/GUI lanes are safe to govern.
+
+### 2026-05-26 runtime event / durable workflow contract coverage tranche
+
+本轮覆盖 MAS runtime contract 中的 runtime event / outer-loop input 与 durable workflow 两个支撑文档。目标是确认文档仍然把 generic runtime event、attempt、retry/dead-letter、human-gate transport、provider liveness 和 repair projection 归给 OPL/current-control-state，把 MAS 边界限定在 domain authority refs、outer-loop judgment、owner receipt、typed blocker、runtime escalation 和 diagnostic blocker refs，不把 runtime transport proof 升格成 publication、artifact、quality、domain 或 production readiness。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, this docs-governance file, `docs/active/mas-ideal-state-gap-plan.md`, and preceding runtime id / control-boundary / stage-knowledge coverage ledger entries.
+- Runtime contract docs: `docs/runtime/contracts/runtime_event_and_outer_loop_input_contract.md`, `docs/runtime/contracts/durable_workflow_contract.md`, with support reads of `docs/runtime/contracts/delivery_plane_contract_map.md`, `docs/runtime/control/study_runtime_control_surface.md`, and `docs/runtime/control/study_runtime_orchestration.md`.
+- Machine / source surfaces: `src/med_autoscience/controllers/study_outer_loop.py`, `contracts/functional_privatization_audit.json`, `contracts/stage_control_plane.json`, and `contracts/test-lane-manifest.json`.
+- Focused test inventory read as evidence: `tests/test_durable_workflow_contract.py`, `tests/test_study_outer_loop.py`, and `tests/test_study_outer_loop_cases/controller_and_manifest_cases.py` runtime event, runtime escalation, supervisor tick freshness, retry budget and family human-gate cases.
+
+Fresh semantic result：
+
+- `runtime_event_and_outer_loop_input_contract.md` remains aligned with live outer-loop behavior: `runtime_event_ref` comes from OPL current_control_state / provider-backed stage runtime, MAS may consume and expose refs, and managed runtime inputs fail closed when runtime event identity, supervisor freshness or runtime escalation refs are missing or mismatched.
+- `durable_workflow_contract.md` remains a human-readable support contract for pause/resume, replay, idempotent ticks, human-gate durability and retry budget semantics. The durable event log, attempt/retry/dead-letter/provider repair owner remains OPL; MAS writes only bounded projection, domain health diagnostic, runtime escalation and controller decision refs where its domain authority applies.
+- Focused tests continue to assert replay from `restore_point_id`, reconstruction of `retry_budget_remaining`, `retry_budget_decremented`, retry-budget exhaustion requiring `runtime_escalation_record.json`, duplicate tick idempotency, and durable human-gate decision requirements.
+- The reviewed prose does not currently reintroduce MAS-owned generic queue, attempt ledger, worker liveness, runtime lifecycle scheduler, publication-ready, submission-ready, artifact-ready, App release ready, domain-ready or production-ready claims.
+- No archive/tombstone/delete action is justified in this tranche: both files still have distinct active runtime-support roles.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/contracts/runtime_event_and_outer_loop_input_contract.md` and `docs/runtime/contracts/durable_workflow_contract.md`, with live source/contract/test inventory checks listed above. | this coverage ledger only |
+
+Archived / tombstoned / deleted docs: none. The reviewed files remain active support docs.
+
+Uncovered docs in this semantic area:
+
+- Remaining paragraph-level coverage is still open for other long support bodies under `docs/runtime/contracts/**`, especially `runtime_boundary.md`, `runtime_core_convergence_and_controlled_cutover.md`, `runtime_backend_interface_contract.md`, `runtime_handle_and_durable_surface_contract.md`, `agent_runtime_interface.md`, and delivery/artifact/source adjacent contracts not covered by prior focused tranches.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge and this runtime-event/durable-workflow block.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future prose must not treat missing or fallback `runtime_event_ref`, stale supervisor tick, runtime escalation, retry budget exhaustion, human-gate signal, domain health diagnostic, OPL provider closeout, queue completion or current_control_state projection as MAS domain completion, publication-ready, submission-ready, artifact-ready, quality-ready, App release ready or production-ready.
+- `runtime_escalation_record.json`, `domain_health_diagnostic`, owner-route handoff refs and typed blockers are MAS diagnostic / blocker outputs; they must not become MAS-owned retry/dead-letter, provider repair, worker liveness, generic resume or runtime lifecycle truth.
+- Durable human gate remains a decision ref with scope and evidence refs. It must not be rewritten as chat permission, executor self-approval, controller shortcut or automatic publication/quality override.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for another bounded `docs/runtime/contracts/**` group, preferably `runtime_boundary.md` with runtime backend / handle contracts, or delivery/artifact/source adjacent contracts if owner wording drifts.
+- Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
+- Keep App docs delayed until active release/GUI lanes are safe to govern.
