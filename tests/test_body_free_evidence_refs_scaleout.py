@@ -301,7 +301,47 @@ def test_domain_dispatch_evidence_record_payload_is_opl_preflight_ready_refs_onl
         "#/paper_line_guarded_apply_evidence",
     ]
     assert payload["record_payload"]["no_regression_refs"]
+    assert payload["record_payload"]["no_regression_evidence_refs"] == payload["record_payload"][
+        "no_regression_refs"
+    ]
+    assert payload["record_payload"]["owner_chain_refs"] == payload["record_payload"][
+        "evidence_refs"
+    ]
+    assert payload["record_payload"]["domain_owner_receipt_refs"] == []
+    assert payload["domain_owner_receipt_refs"] == []
     assert payload["opl_runtime_action_execute_payload"] == payload["record_payload"]
+    assert payload["required_return_shapes"] == [
+        "domain_owner_receipt_ref",
+        "no_regression_evidence_ref",
+        "owner_chain_ref",
+        "typed_blocker_ref",
+    ]
+    accepted_paths = payload["accepted_payload_paths"]
+    assert accepted_paths["success_refs_path"] == {
+        "required_any_operator_payload_refs": [
+            "domain_owner_receipt_refs",
+            "no_regression_evidence_refs",
+            "owner_chain_refs",
+        ],
+        "typed_blocker_refs_must_be_absent": True,
+        "closes_owner_chain": False,
+        "closes_domain_ready": False,
+        "closes_production_ready": False,
+    }
+    assert accepted_paths["typed_blocker_path"] == {
+        "required_operator_payload_refs": ["typed_blocker_refs"],
+        "success_claimed": False,
+        "closes_owner_chain": False,
+        "closes_domain_ready": False,
+        "closes_production_ready": False,
+    }
+    assert payload["payload_path_policy"] == (
+        "operator_must_choose_success_refs_path_or_domain_owned_typed_blocker_path_empty_template_blocks"
+    )
+    assert payload["legacy_payload_field_aliases"] == {
+        "domain_receipt_refs": "domain_owner_receipt_refs",
+        "no_regression_refs": "no_regression_evidence_refs",
+    }
     usage = payload["opl_runtime_action_execute_usage"]
     assert usage["surface_kind"] == "mas_domain_dispatch_opl_runtime_action_execute_usage"
     assert usage["payload_field"] == "opl_runtime_action_execute_payload"

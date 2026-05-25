@@ -73,12 +73,38 @@ def build_domain_dispatch_evidence_record_payload(
         role="no_forbidden_write_proof_ref",
         owner=OWNER,
     )
+    owner_chain_refs = evidence_ref_values
+    no_regression_evidence_refs = [no_forbidden_write_ref]
+    accepted_payload_paths = {
+        "success_refs_path": {
+            "required_any_operator_payload_refs": [
+                "domain_owner_receipt_refs",
+                "no_regression_evidence_refs",
+                "owner_chain_refs",
+            ],
+            "typed_blocker_refs_must_be_absent": True,
+            "closes_owner_chain": False,
+            "closes_domain_ready": False,
+            "closes_production_ready": False,
+        },
+        "typed_blocker_path": {
+            "required_operator_payload_refs": ["typed_blocker_refs"],
+            "success_claimed": False,
+            "closes_owner_chain": False,
+            "closes_domain_ready": False,
+            "closes_production_ready": False,
+        },
+    }
     record_payload = {
         "domain_id": DOMAIN_ID,
         "task_kind": normalized_task_kind,
+        "domain_owner_receipt_refs": [],
         "typed_blocker_refs": [typed_blocker_ref],
+        "owner_chain_refs": owner_chain_refs,
         "evidence_refs": evidence_ref_values,
-        "no_regression_refs": [no_forbidden_write_ref],
+        "no_regression_evidence_refs": no_regression_evidence_refs,
+        "domain_receipt_refs": [],
+        "no_regression_refs": no_regression_evidence_refs,
     }
     if normalized_study_id is not None:
         record_payload["study_id"] = normalized_study_id
@@ -145,9 +171,26 @@ def build_domain_dispatch_evidence_record_payload(
         "opl_runtime_action_execute_payload": record_payload,
         "opl_runtime_action_execute_usage": opl_runtime_action_execute_usage,
         "identity_binding": identity_binding,
+        "required_return_shapes": [
+            "domain_owner_receipt_ref",
+            "no_regression_evidence_ref",
+            "owner_chain_ref",
+            "typed_blocker_ref",
+        ],
+        "payload_path_policy": (
+            "operator_must_choose_success_refs_path_or_domain_owned_typed_blocker_path_empty_template_blocks"
+        ),
+        "accepted_payload_paths": accepted_payload_paths,
+        "legacy_payload_field_aliases": {
+            "domain_receipt_refs": "domain_owner_receipt_refs",
+            "no_regression_refs": "no_regression_evidence_refs",
+        },
+        "domain_owner_receipt_refs": [],
         "typed_blocker_refs": [typed_blocker_ref],
+        "owner_chain_refs": owner_chain_refs,
         "evidence_refs": evidence_ref_values,
-        "no_regression_refs": [no_forbidden_write_ref],
+        "no_regression_evidence_refs": no_regression_evidence_refs,
+        "no_regression_refs": no_regression_evidence_refs,
         "ledger_receipt_ref_hint": f"mas://domain-dispatch-evidence/{DOMAIN_ID}/{slug}/{receipt_token}",
         "body_free_evidence_packets": [
             typed_blocker_packet,
