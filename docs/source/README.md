@@ -13,6 +13,13 @@ Machine boundary: 人读索引。Source truth 继续归 study workspaces、exter
 - [当前状态](../status.md)
 - [References](../references/README.md)
 - [Workspace Knowledge And Literature Contract](../runtime/contracts/workspace_knowledge_and_literature_contract.md)
+- [Standard Domain Agent Skeleton](../runtime/contracts/standard_domain_agent_skeleton.md)
+
+## Standard Agent Source Boundary
+
+标准 OPL Domain Agent skeleton 只把 repo-source 语义面固定到 `agent/`、`contracts/`、`runtime/` 和 `docs/` 这些 anchors。它不会把 workspace source body、provider raw response body、publication-route memory body、artifact body、quality verdict 或 submission package 纳入仓库。
+
+MAS 继续持有 source truth、source readiness verdict、medical grounding、source provenance 和 owner receipt。OPL generated / hosted surfaces 可以消费 source refs、locator refs、provider readiness、currentness/freshness proof 和 typed blocker refs，但不能写 MAS source truth，也不能把 source-provider 查询成功、metadata enrichment、cache hit、candidate ranking 或 descriptor readiness 升级成 source readiness verdict。
 
 ## Literature Provider Runtime
 

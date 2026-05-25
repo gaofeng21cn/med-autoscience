@@ -687,7 +687,7 @@ Fresh semantic result：
 
 | repo | reviewed docs/sections | edited docs |
 | --- | --- | --- |
-| `med-autoscience` | Full paragraph read of `docs/runtime/contracts/standard_domain_agent_skeleton.md`, `docs/source/README.md`, and `docs/delivery/README.md`, with live contract/source/test evidence listed above. | `docs/runtime/contracts/standard_domain_agent_skeleton.md`; this coverage ledger. |
+| `med-autoscience` | Full paragraph read of `docs/runtime/contracts/standard_domain_agent_skeleton.md`, `docs/source/README.md`, and `docs/delivery/README.md`, with live contract/source/test evidence listed above. | `docs/runtime/contracts/standard_domain_agent_skeleton.md`; `docs/source/README.md`; `docs/delivery/README.md`; this coverage ledger. |
 
 Archived / tombstoned / deleted docs: none. The reviewed files remain active support docs with distinct roles; stale generated-facade wording was rewritten in place because the standard skeleton doc still owns the repo-source anchor explanation.
 
