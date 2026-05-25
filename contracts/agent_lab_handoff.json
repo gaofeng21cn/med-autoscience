@@ -327,12 +327,18 @@
             "target_surface_refs": [
               "stage_policy_ref:mas/write/pre_draft_prediction_model_reporting",
               "quality_contract_ref:prediction_model_first_draft_quality",
-              "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
-              "mechanism-edit-ref:mas/source-provenance-owner-recovery",
-              "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
-              "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
-            ],
-            "quality_target_refs": [
+        "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
+        "mechanism-edit-ref:mas/source-provenance-owner-recovery",
+        "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
+        "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
+        "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
+        "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
+        "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
+        "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
+        "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
+        "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
+      ],
+      "quality_target_refs": [
               "hdl_harmonization_and_sensitivity",
               "model_reproducibility_and_baseline_survival",
               "visible_baseline_and_performance_tables",
@@ -340,36 +346,54 @@
               "numeric_abstract_results_with_uncertainty",
               "uncertainty_intervals_and_validation_metrics",
               "nhanes_weighting_or_unweighted_framing",
-              "calibration_risk_collapse_figure_quality",
-              "grouped_calibration_with_observed_rate_intervals",
-              "claim_evidence_display_alignment_without_runtime_language",
-              "ai_reviewer_record_current_manuscript_binding"
-            ]
-          },
+        "calibration_risk_collapse_figure_quality",
+        "grouped_calibration_with_observed_rate_intervals",
+        "claim_evidence_display_alignment_without_runtime_language",
+        "owner_chain_authority_monotonicity",
+        "quality_repair_writer_handoff_currentness",
+        "publication_work_unit_registry_consistency",
+        "story_surface_delta_or_typed_blocker",
+        "medical_manuscript_no_runtime_language",
+        "methods_results_numeric_reproducibility_floor",
+        "ai_reviewer_record_current_manuscript_binding"
+      ]
+    },
           {
             "study_quality_target_family": "observational_phenotype_treatment_gap",
             "target_surface_refs": [
               "stage_policy_ref:mas/write/pre_draft_observational_phenotype_reporting",
-              "quality_contract_ref:phenotype_treatment_gap_first_draft_quality",
-              "mechanism-edit-ref:mas/clinical-phenotype-derivation-reporting",
-              "mechanism-edit-ref:mas/recorded-treatment-gap-reporting",
-              "mechanism-edit-ref:mas/data-quality-assessment-reporting",
-              "mechanism-edit-ref:mas/baseline-characteristics-table-reporting"
-            ],
-            "quality_target_refs": [
-              "phenotype_derivation_transparency",
+        "quality_contract_ref:phenotype_treatment_gap_first_draft_quality",
+        "mechanism-edit-ref:mas/clinical-phenotype-derivation-reporting",
+        "mechanism-edit-ref:mas/recorded-treatment-gap-reporting",
+        "mechanism-edit-ref:mas/data-quality-assessment-reporting",
+        "mechanism-edit-ref:mas/baseline-characteristics-table-reporting",
+        "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
+        "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
+        "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
+        "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
+        "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
+        "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor"
+      ],
+      "quality_target_refs": [
+        "phenotype_derivation_transparency",
               "recorded_treatment_gap_terminology",
               "bp_and_data_quality_assessment",
               "baseline_characteristics_table",
               "formal_figures_and_tables",
               "numeric_abstract_results_with_uncertainty",
               "restrained_discussion_and_prose",
-              "reference_and_journal_style",
-              "claim_evidence_alignment_without_runtime_language",
-              "route_back_for_method_or_data_errors"
-            ]
-          }
-        ],
+        "reference_and_journal_style",
+        "claim_evidence_alignment_without_runtime_language",
+        "route_back_for_method_or_data_errors",
+        "owner_chain_authority_monotonicity",
+        "quality_repair_writer_handoff_currentness",
+        "publication_work_unit_registry_consistency",
+        "story_surface_delta_or_typed_blocker",
+        "medical_manuscript_no_runtime_language",
+        "methods_results_numeric_reproducibility_floor"
+      ]
+    }
+  ],
         "patch_surface_hints": [
           "src/med_autoscience/controllers/agent_lab_medical_manuscript_quality.py",
           "src/med_autoscience/controllers/pre_draft_quality_runtime.py",

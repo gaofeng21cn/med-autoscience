@@ -46,7 +46,6 @@ _AUTHORITY_CLAIM_BLOCKERS = {
 }
 _MANUSCRIPT_STORY_REPAIR_WORK_UNIT_IDS = frozenset(
     {
-        "dm002_same_line_publication_paper_repair",
         *STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
         "manuscript_story_repair",
         "medical_prose_write_repair",

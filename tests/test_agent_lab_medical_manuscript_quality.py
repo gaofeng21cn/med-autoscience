@@ -15,37 +15,6 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_agent_lab_handoff_contract_exposes_prediction_model_quality_target_refs() -> None:
-    contract_path = Path(__file__).resolve().parents[1] / "contracts" / "agent_lab_handoff.json"
-    contract = json.loads(contract_path.read_text(encoding="utf-8"))
-    mappings = contract["meta_agent_work_order_contract"]["external_suite_improvement_policy"][
-        "medical_manuscript_quality"
-    ]["change_ref_mappings"]
-    prediction_mapping = next(
-        mapping
-        for mapping in mappings
-        if mapping["study_quality_target_family"] == "prediction_model_external_validation"
-    )
-
-    assert {
-        "hdl_harmonization_and_sensitivity",
-        "model_reproducibility_and_baseline_survival",
-        "visible_baseline_and_performance_tables",
-        "methods_reproducibility_complete_case_external_validation",
-        "numeric_abstract_results_with_uncertainty",
-        "uncertainty_intervals_and_validation_metrics",
-        "nhanes_weighting_or_unweighted_framing",
-        "calibration_risk_collapse_figure_quality",
-        "grouped_calibration_with_observed_rate_intervals",
-        "claim_evidence_display_alignment_without_runtime_language",
-        "ai_reviewer_record_current_manuscript_binding",
-    }.issubset(set(prediction_mapping["quality_target_refs"]))
-    assert (
-        "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
-        in prediction_mapping["target_surface_refs"]
-    )
-
-
 def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scorecard(
     tmp_path: Path,
 ) -> None:

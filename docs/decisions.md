@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-24：Agent Lab quality suite 固化 owner-chain regression family
+
+- 决策：Agent Lab medical manuscript quality suite 必须把 DM002 暴露的 owner-chain/currentness/story-surface 缺陷族投影成 refs-only regression family，至少覆盖 `owner_chain_authority_monotonicity`、`quality_repair_writer_handoff_currentness`、`publication_work_unit_registry_consistency`、`story_surface_delta_or_typed_blocker`、`medical_manuscript_no_runtime_language` 和 `methods_results_numeric_reproducibility_floor`。
+- 决策：`contracts/agent_lab_handoff.json`、suite 的 developer work order、promotion gate、failure delta refs 和 target editable surface refs 必须暴露同一组 owner-chain / manuscript quality floor regression refs。OPL Agent Lab / OMA 只能消费这些 refs 形成 MAS repo patch 或 regression candidate；不得写 MAS study truth、publication verdict、canonical paper、current package 或 submission readiness。
+- 理由：DM002 重启后反复暴露同一类系统问题：writer handoff 可被 materializer/dispatcher 降级覆盖，work-unit 分类在 route-back / quality repair / Agent Lab targets 间漂移，ledger-only repair 可被误读成 story-surface progress，医学稿件质量底线只能靠人工发现。把这些缺陷族固化为 Agent Lab regression family，可以让后续机制改进直达 MAS repo/test surface，而不是继续在单篇论文线重复诊断。
+- 影响：这是 MAS Agent Lab / quality regression 投影修复，不推进 DM002 论文 runtime，不写 DM002 canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或投稿 readiness。正式质量关闭仍只来自 MAS write owner story-surface delta、AI reviewer-backed publication eval 和 publication gate。
+
 ## 2026-05-24：`study-progress` 监管新鲜度以 OPL current-control-state 为准
 
 - 决策：`study-progress` / progress projection 的 supervisor freshness 判定必须读取 workspace-level `artifacts/supervision/opl_current_control_state/latest.json`，并要求其中存在当前 `study_id` 的 study projection；该 surface 的 `generated_at` 是 active handoff freshness 时间。旧 study-local `studies/<study_id>/artifacts/supervision/opl_runtime_owner_handoff/latest.json` 只保留为事件/provenance/latest-events 输入，不能在 `opl_current_control_state` 新鲜时继续触发 `managed_opl_runtime_owner_handoff_gap`。

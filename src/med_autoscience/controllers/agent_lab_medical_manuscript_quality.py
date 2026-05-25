@@ -8,6 +8,8 @@ from .agent_lab_aris_followup_assurance import build_aris_followup_assurance_sur
 from .agent_lab_medical_manuscript_quality_parts.quality_boundary import (
     AUTHORITY_BOUNDARY,
     CROSS_STAGE_VULNERABILITY_AUDIT,
+    OWNER_CHAIN_REGRESSION_FAMILY,
+    OWNER_CHAIN_REGRESSION_SUITE_REFS,
     PAPER_STORY_EXCLUSION_POLICY,
     QUALITY_JUDGMENT_BOUNDARY,
     SUITE_RELATIVE_PATH,
@@ -191,6 +193,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
                 "regression-suite:mas/owner-route-attempt-protocol",
                 "regression-suite:mas/agent-lab-medical-manuscript-self-evolution",
                 "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue",
+                *OWNER_CHAIN_REGRESSION_SUITE_REFS,
             ],
             "no_forbidden_write_proof_refs": [
                 "no-forbidden-write:mas/agent-lab-medical-manuscript-quality"
@@ -335,6 +338,7 @@ def _mechanism_evolution_inputs(
         "runtime_event_ledger": runtime_event_ledger,
         "provider_switch_hygiene": provider_switch_hygiene,
         "claim_assurance_map": claim_assurance_map,
+        "owner_chain_regression_family": dict(OWNER_CHAIN_REGRESSION_FAMILY),
         "assurance_contract_refs": followup_surfaces["assurance_contract"]["raw_evidence_refs"]
         + followup_surfaces["assurance_contract"]["evidence_ledger_refs"]
         + followup_surfaces["assurance_contract"]["review_ledger_refs"]

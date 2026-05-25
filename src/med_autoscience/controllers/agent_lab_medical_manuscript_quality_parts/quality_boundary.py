@@ -32,6 +32,12 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/domain-route-analysis-harmonization-owner-result-consumption",
     "mechanism-edit-ref:mas/ai-reviewer-output-readiness-currentness-consumption",
     "mechanism-edit-ref:mas/quality-repair-blocked-evidence-dispatch-rejection",
+    "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
+    "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
+    "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
+    "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
+    "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
+    "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
     "mechanism-edit-ref:mas/ai-reviewer-record-production-handoff",
     "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding",
     "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
@@ -55,8 +61,38 @@ SELF_EVOLUTION_TARGET_REFS = [
     "regression-suite:mas/ai-reviewer-output-readiness-currentness",
     "regression-suite:mas/ai-reviewer-record-current-manuscript-binding",
     "regression-suite:mas/medical-prose-write-repair-story-surface-delta",
+    "regression-suite:mas/owner-chain-authority-monotonicity",
+    "regression-suite:mas/quality-repair-writer-handoff-currentness",
+    "regression-suite:mas/publication-work-unit-registry-consistency",
+    "regression-suite:mas/story-surface-delta-or-typed-blocker",
+    "regression-suite:mas/medical-manuscript-quality-floor",
     "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution",
 ]
+OWNER_CHAIN_REGRESSION_SUITE_REFS = [
+    "regression-suite:mas/owner-chain-authority-monotonicity",
+    "regression-suite:mas/quality-repair-writer-handoff-currentness",
+    "regression-suite:mas/publication-work-unit-registry-consistency",
+    "regression-suite:mas/story-surface-delta-or-typed-blocker",
+    "regression-suite:mas/medical-manuscript-quality-floor",
+]
+OWNER_CHAIN_REGRESSION_FAMILY = {
+    "surface_kind": "mas_agent_lab_owner_chain_regression_family",
+    "family_id": "owner-chain-currentness-story-surface-delta",
+    "source_incident_class": "dm002_owner_chain_currentness_handoff_story_surface_regression",
+    "required_regression_targets": [
+        "owner_chain_authority_monotonicity",
+        "quality_repair_writer_handoff_currentness",
+        "publication_work_unit_registry_consistency",
+        "story_surface_delta_or_typed_blocker",
+    ],
+    "medical_quality_floor_targets": [
+        "medical_manuscript_no_runtime_language",
+        "methods_results_numeric_reproducibility_floor",
+    ],
+    "can_authorize_quality_verdict": False,
+    "can_write_study_truth": False,
+    "can_mutate_domain_artifact": False,
+}
 QUALITY_JUDGMENT_BOUNDARY = {
     "judgment_priority": "ai_native_expert_judgment_first",
     "primary_judgment_owner": "mas_ai_reviewer",

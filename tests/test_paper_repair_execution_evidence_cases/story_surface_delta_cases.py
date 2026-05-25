@@ -374,12 +374,15 @@ def test_dm002_publication_hardening_consumes_writer_story_delta_since_previous_
 
 
 def test_dm002_publication_hardening_work_unit_is_registered_as_upstream_repair() -> None:
-    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_work_units")
+    gate_work_units = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_work_units")
+    story_work_units = importlib.import_module("med_autoscience.controllers.story_surface_work_units")
 
     assert {
         "dm002_current_publication_hardening_after_ai_reviewer_eval",
         "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
-    }.issubset(module.UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS)
+        "dm002_same_line_publication_paper_repair",
+    }.issubset(gate_work_units.UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS)
+    assert story_work_units.is_story_surface_delta_write_work_unit("dm002_same_line_publication_paper_repair")
 
 
 def test_medical_prose_currentness_delta_requires_synchronized_journal_story_surfaces(tmp_path: Path) -> None:

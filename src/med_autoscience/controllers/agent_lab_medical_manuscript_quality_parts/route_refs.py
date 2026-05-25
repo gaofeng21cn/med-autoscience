@@ -28,6 +28,11 @@ def failure_delta_refs(
     refs = [
         f"failure-delta:mas/{study_id}/medical-manuscript-quality:{prose_status}",
         f"evidence-delta:mas/{study_id}/medical-manuscript-quality-routeback",
+        f"failure-delta:mas/{study_id}/owner-chain-authority-monotonicity",
+        f"failure-delta:mas/{study_id}/quality-repair-writer-handoff-currentness",
+        f"failure-delta:mas/{study_id}/publication-work-unit-registry-consistency",
+        f"failure-delta:mas/{study_id}/story-surface-delta-or-typed-blocker",
+        f"failure-delta:mas/{study_id}/medical-manuscript-quality-floor",
     ]
     refs.extend(f"failure-delta:{ref}" for ref in blocker_refs)
     if feedback_ref is not None:

@@ -291,6 +291,55 @@ def _general_high_quality_medical_manuscript_profile() -> dict[str, Any]:
 def _shared_manuscript_quality_targets() -> list[dict[str, str]]:
     return [
         {
+            "target_id": "owner_chain_authority_monotonicity",
+            "requirement": (
+                "owner-authorized writer handoffs are preserved or consumed monotonically; "
+                "materializer and dispatcher must not downgrade them to supervisor inline dispatch"
+            ),
+            "route_target": "controller",
+        },
+        {
+            "target_id": "quality_repair_writer_handoff_currentness",
+            "requirement": (
+                "quality_repair_batch writer handoffs remain bound to current owner request, "
+                "work-unit id, source fingerprint, and owner-route currentness basis"
+            ),
+            "route_target": "write",
+        },
+        {
+            "target_id": "publication_work_unit_registry_consistency",
+            "requirement": (
+                "publication route-back work units have one consistent owner, allowed surface, "
+                "delta evidence, quality target, and Agent Lab regression classification"
+            ),
+            "route_target": "controller",
+        },
+        {
+            "target_id": "story_surface_delta_or_typed_blocker",
+            "requirement": (
+                "story-surface repairs must produce canonical paper/draft.md or "
+                "paper/build/review_manuscript.md delta, or return a typed blocker; "
+                "ledger-only closeout cannot satisfy manuscript progress"
+            ),
+            "route_target": "write",
+        },
+        {
+            "target_id": "medical_manuscript_no_runtime_language",
+            "requirement": (
+                "formal medical manuscript body excludes MAS, AI reviewer, QA, package, readiness, "
+                "handoff, blocker, runtime, and other internal operating-system language"
+            ),
+            "route_target": "write",
+        },
+        {
+            "target_id": "methods_results_numeric_reproducibility_floor",
+            "requirement": (
+                "Methods and Results include reproducible data definitions, sample sizes, event counts, "
+                "estimates, uncertainty, and display-to-claim support before publication gate recheck"
+            ),
+            "route_target": "write",
+        },
+        {
             "target_id": "controller_read_model_consumes_owner_typed_blockers",
             "requirement": "controller read-model consumes owner typed blockers without requeue loops",
             "route_target": "controller",

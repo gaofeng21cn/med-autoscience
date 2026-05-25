@@ -11,6 +11,9 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_cu
 from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_preservation import (
     preserve_current_writer_story_delta,
 )
+from med_autoscience.controllers.story_surface_work_units import (
+    STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS,
+)
 
 
 MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID = "medical_prose_write_repair"
@@ -21,6 +24,18 @@ DM002_CURRENT_PUBLICATION_HARDENING_WORK_UNIT_ID = "dm002_current_publication_ha
 DM002_CURRENT_AI_REVIEWER_PUBLICATION_HARDENING_WORK_UNIT_ID = (
     "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
 )
+DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS = frozenset(
+    {
+        DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID,
+        DM002_SAME_LINE_METHODS_DISPLAY_PACKAGE_REPAIR_WORK_UNIT_ID,
+        DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
+        DM002_CURRENT_PUBLICATION_HARDENING_WORK_UNIT_ID,
+        DM002_CURRENT_AI_REVIEWER_PUBLICATION_HARDENING_WORK_UNIT_ID,
+    }
+)
+if not DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS.issubset(STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS):
+    missing = ", ".join(sorted(DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS - STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS))
+    raise RuntimeError(f"DM002 story-surface work units missing from canonical registry: {missing}")
 MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = (
     Path("draft.md"),
     Path("build") / "review_manuscript.md",
@@ -81,13 +96,7 @@ def materialize_medical_prose_story_surfaces(
         return []
     if work_unit_id == MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID:
         manuscript = _medical_prose_manuscript_from_canonical_surfaces(paper_root=paper_root)
-    elif work_unit_id in {
-        DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID,
-        DM002_SAME_LINE_METHODS_DISPLAY_PACKAGE_REPAIR_WORK_UNIT_ID,
-        DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
-        DM002_CURRENT_PUBLICATION_HARDENING_WORK_UNIT_ID,
-        DM002_CURRENT_AI_REVIEWER_PUBLICATION_HARDENING_WORK_UNIT_ID,
-    }:
+    elif work_unit_id in DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS:
         manuscript = _dm002_external_validation_manuscript_from_canonical_surfaces(paper_root=paper_root)
     else:
         return []
