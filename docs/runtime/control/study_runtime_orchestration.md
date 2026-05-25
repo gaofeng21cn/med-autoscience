@@ -3,7 +3,7 @@
 Owner: `MedAutoScience domain runtime control`
 Purpose: `study_runtime_orchestration_contract`
 State: `active_runtime_control_support`
-Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归 controller/domain-authority refs surfaces、CLI/MCP/API payload、sidecar receipt、controller durable domain artifacts、contracts 和真实 workspace evidence；provider、queue、attempt、runner 与 current-control-state 真相归 OPL Framework。
+Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归 controller/domain-authority refs surfaces、CLI/MCP/API payload、owner receipt、controller durable domain artifacts、contracts 和真实 workspace evidence；provider、queue、attempt、runner 与 current-control-state 真相归 OPL Framework。
 
 这份文档把 `MedAutoScience` 当前 domain runtime-facing refs 与 OPL runtime-control handoff 的最小稳定 contract 明确下来。
 

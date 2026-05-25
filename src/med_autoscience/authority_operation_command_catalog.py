@@ -93,28 +93,12 @@ def build_authority_operations_command_contracts() -> list[dict[str, Any]]:
 def build_authority_product_entry_mode_schema() -> dict[str, Any]:
     return {
         "type": "string",
-        "enum": [
-            "product_entry_status",
-            "product_preflight",
-            "product_start",
-            "product_entry_manifest",
-            "build_product_entry",
-            *AUTHORITY_OPERATION_MCP_MODES,
-        ],
+        "enum": list(AUTHORITY_OPERATION_MCP_MODES),
     }
 
 
 def product_entry_description_modes_text() -> str:
-    return ", ".join(
-        [
-            "product_entry_status",
-            "product_preflight",
-            "product_start",
-            "product_entry_manifest",
-            "build_product_entry",
-            *AUTHORITY_OPERATION_MCP_MODES,
-        ]
-    )
+    return ", ".join(AUTHORITY_OPERATION_MCP_MODES)
 
 
 __all__ = [

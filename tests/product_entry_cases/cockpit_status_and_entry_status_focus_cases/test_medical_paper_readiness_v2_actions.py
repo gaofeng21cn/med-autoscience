@@ -330,7 +330,7 @@ def test_product_entry_status_promotes_v2_action_cards_to_workflow_steps(
     assert workflow_steps[0]["guarded_operator_command"]["status"] == "guarded_pending"
     assert workflow_steps[0]["action_result"]["status"] == "guarded_pending"
     assert workflow_steps[0]["command"].endswith(
-        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["operator_brief"]["recommended_step_id"] == "run_provider_literature_scout"
 

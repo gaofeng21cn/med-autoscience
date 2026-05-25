@@ -84,7 +84,7 @@ def build_opl_provider_ready_contract(
             "mas_owned_hermes_or_claude_executor": False,
         },
         "direct_mas_path": _direct_mas_path(profile_ref_text),
-        "sidecar_contract": _sidecar_contract(profile=profile, profile_ref_text=profile_ref_text),
+        "domain_handler_contract": _domain_handler_contract(profile=profile, profile_ref_text=profile_ref_text),
         "forbidden_write_guard": build_forbidden_write_guard_proof(
             result="configured",
             task_id=None,
@@ -128,13 +128,13 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 def receipt_refs_for_profile(profile: WorkspaceProfile) -> dict[str, Any]:
     return {
-        "surface_kind": "mas_opl_sidecar_receipt_refs",
-        "version": "mas-opl-sidecar-receipt-refs.v1",
-        "dispatch_receipt_root": "artifacts/runtime/opl_family_sidecar/dispatch_receipts",
+        "surface_kind": "mas_opl_domain_handler_receipt_refs",
+        "version": "mas-opl-domain-handler-receipt-refs.v1",
+        "dispatch_receipt_root": "artifacts/runtime/opl_family_domain_handler/dispatch_receipts",
         "dispatch_receipt_ref_template": (
-            "artifacts/runtime/opl_family_sidecar/dispatch_receipts/<sha256(task_id)[:20]>.json"
+            "artifacts/runtime/opl_family_domain_handler/dispatch_receipts/<sha256(task_id)[:20]>.json"
         ),
-        "export_receipt_ref": "sidecar export response body",
+        "export_receipt_ref": "domain-handler export response body",
         "workspace_root": str(profile.workspace_root),
         "repo_tracked": False,
         "receipt_authority": DOMAIN_OWNER,
@@ -192,10 +192,10 @@ def _direct_mas_path(profile_ref_text: str) -> dict[str, Any]:
     }
 
 
-def _sidecar_contract(*, profile: WorkspaceProfile, profile_ref_text: str) -> dict[str, Any]:
+def _domain_handler_contract(*, profile: WorkspaceProfile, profile_ref_text: str) -> dict[str, Any]:
     return {
-        "export_command": f"medautosci sidecar export --profile {profile_ref_text} --format json",
-        "dispatch_command": "medautosci sidecar dispatch --task <task.json> --format json",
+        "export_command": f"medautosci domain-handler export --profile {profile_ref_text} --format json",
+        "dispatch_command": "medautosci domain-handler dispatch --task <task.json> --format json",
         "queue_hydration_source": "/pending_family_tasks",
         "dispatch_receipt_refs": receipt_refs_for_profile(profile),
         "idempotency_contract": {
@@ -221,7 +221,7 @@ def _workspace_runtime_artifact_root_locator(*, profile: WorkspaceProfile) -> di
             "publication_eval": "studies/<study_id>/artifacts/publication_eval/latest.json",
             "controller_decisions": "studies/<study_id>/artifacts/controller_decisions/latest.json",
             "stage_knowledge_packet": "studies/<study_id>/artifacts/stage_knowledge/<stage>/latest.json",
-            "dispatch_receipts": "artifacts/runtime/opl_family_sidecar/dispatch_receipts",
+            "dispatch_receipts": "artifacts/runtime/opl_family_domain_handler/dispatch_receipts",
             "domain_authority_refs_index": "artifacts/runtime/domain_authority_refs.sqlite",
         },
     }

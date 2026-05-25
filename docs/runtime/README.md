@@ -4,7 +4,7 @@ Status: `active runtime docs index`
 Owner: `MedAutoScience`
 Purpose: `runtime_docs_index`
 State: `active_support`
-Machine boundary: 本目录是 MAS domain runtime-facing 文档索引。机器真相继续归 contracts、schema、CLI/MCP/API payload、product-entry manifest、sidecar receipt、runtime/controller durable surfaces 和真实 workspace artifact。
+Machine boundary: 本目录是 MAS domain runtime-facing 文档索引。机器真相继续归 contracts、schema、CLI/MCP/API payload、product-entry manifest、owner receipt、runtime/controller durable surfaces 和真实 workspace artifact。
 
 `docs/runtime/` 按生命周期角色组织。
 

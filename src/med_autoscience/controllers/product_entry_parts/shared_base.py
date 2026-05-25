@@ -483,8 +483,11 @@ def _build_product_entry_preflight(
     doctor_report: Any,
     profile_ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    doctor_command = _command(profile_ref, "doctor", "--profile", _profile_arg(profile_ref))
-    start_command = _command(profile_ref, "product-entry-status", "--profile", _profile_arg(profile_ref))
+    profile_arg = _profile_arg(profile_ref)
+    doctor_command = _command(profile_ref, "doctor", "--profile", profile_arg)
+    start_command = _json_surface_command(
+        f"opl app product-entry-status --agent med-autoscience --profile {profile_arg}"
+    )
     workspace_domain_route_contract = _doctor_workspace_domain_route_contract(doctor_report)
     runtime_contract_ready = _doctor_opl_provider_stage_runtime_ready(doctor_report)
     checks = [
@@ -650,7 +653,9 @@ def _build_product_entry_guardrails(
         recovery_loop=[
             _build_shared_product_entry_program_step(
                 step_id="inspect_workspace_inbox",
-                command=_command(profile_ref, "workspace-cockpit", "--profile", profile_arg),
+                command=_json_surface_command(
+                    f"opl app workbench --agent med-autoscience --profile {profile_arg}"
+                ),
                 surface_kind="workspace_cockpit",
             ),
             _build_shared_product_entry_program_step(

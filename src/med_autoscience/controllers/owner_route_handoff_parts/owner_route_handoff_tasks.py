@@ -75,7 +75,7 @@ def owner_route_handoff_task(
         "task_kind": "domain_route/owner-handoff",
         "recommended_task_kind": "domain_route/owner-handoff",
         "priority": 55,
-        "source": "mas-sidecar-export",
+        "source": "mas-domain-handler-export",
         "requires_approval": False,
         "dedupe_key": f"mas:{profile.name}:{study_id}:owner-route-handoff:{reason}",
         "source_fingerprint": source_fingerprint,

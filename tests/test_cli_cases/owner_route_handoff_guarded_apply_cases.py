@@ -14,7 +14,7 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_sidecar_dispatch_records_provider_hosted_guarded_apply_receipt_without_forbidden_writes(
+def test_domain_handler_dispatch_records_provider_hosted_guarded_apply_receipt_without_forbidden_writes(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -60,7 +60,7 @@ def test_sidecar_dispatch_records_provider_hosted_guarded_apply_receipt_without_
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -140,7 +140,7 @@ def test_sidecar_dispatch_records_provider_hosted_guarded_apply_receipt_without_
     assert {path: path.stat().st_mtime_ns for path in before} == before
 
 
-def test_sidecar_dispatch_guarded_apply_rejects_review_ledger_or_memory_body_write(
+def test_domain_handler_dispatch_guarded_apply_rejects_review_ledger_or_memory_body_write(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -166,7 +166,7 @@ def test_sidecar_dispatch_guarded_apply_rejects_review_ledger_or_memory_body_wri
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 1
@@ -182,7 +182,7 @@ def test_sidecar_dispatch_guarded_apply_rejects_review_ledger_or_memory_body_wri
 
 
 
-def test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present(
+def test_domain_handler_dispatch_guarded_apply_records_mas_owner_receipt_present(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -231,7 +231,7 @@ def test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present(
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -253,7 +253,7 @@ def test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present(
     assert result["guarded_apply_receipts"][0]["workspace_mutation"]["provider_attempt_wrote_workspace"] is False
 
 
-def test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker(
+def test_domain_handler_dispatch_guarded_apply_records_provider_unavailable_typed_blocker(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -279,7 +279,7 @@ def test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_block
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -296,7 +296,7 @@ def test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_block
     assert result["summary"]["writes_performed"] is False
 
 
-def test_sidecar_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint(
+def test_domain_handler_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -337,16 +337,16 @@ def test_sidecar_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint
         },
     }
     _write_json(task_path, {**base_task, "source_fingerprint": "proof-fingerprint-v1"})
-    first_exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    first_exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     first_payload = json.loads(capsys.readouterr().out)
 
     assert first_exit_code == 0
     assert first_payload["accepted"] is True
     assert first_payload["source_fingerprint"] == "proof-fingerprint-v1"
     assert first_payload["dispatch"]["result"]["source_fingerprint"] == "stable-domain-result"
-    assert first_payload["receipt_ref"].startswith("artifacts/runtime/opl_family_sidecar/dispatch_receipts/")
+    assert first_payload["receipt_ref"].startswith("artifacts/runtime/opl_family_domain_handler/dispatch_receipts/")
 
-    repeat_exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    repeat_exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     repeat_payload = json.loads(capsys.readouterr().out)
 
     assert repeat_exit_code == 0
@@ -354,7 +354,7 @@ def test_sidecar_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint
     assert repeat_payload["idempotent_noop"] is True
 
     _write_json(task_path, {**base_task, "source_fingerprint": "proof-fingerprint-v2"})
-    updated_exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    updated_exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     updated_payload = json.loads(capsys.readouterr().out)
 
     assert updated_exit_code == 0
@@ -365,7 +365,7 @@ def test_sidecar_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint
     assert updated_payload.get("idempotent_noop") is None
 
 
-def test_sidecar_dispatch_guarded_apply_replays_duplicate_attempt_idempotently(
+def test_domain_handler_dispatch_guarded_apply_replays_duplicate_attempt_idempotently(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -393,16 +393,16 @@ def test_sidecar_dispatch_guarded_apply_replays_duplicate_attempt_idempotently(
     task_path = tmp_path / "task.json"
     _write_json(task_path, task)
 
-    assert cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"]) == 0
+    assert cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"]) == 0
     first = json.loads(capsys.readouterr().out)
-    assert cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"]) == 0
+    assert cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"]) == 0
     second = json.loads(capsys.readouterr().out)
 
     assert second["idempotent_noop"] is True
     assert second["dispatch"]["result"]["source_fingerprint"] == first["dispatch"]["result"]["source_fingerprint"]
 
 
-def test_sidecar_dispatch_guarded_apply_fails_closed_on_conflicting_receipt(
+def test_domain_handler_dispatch_guarded_apply_fails_closed_on_conflicting_receipt(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -431,7 +431,7 @@ def test_sidecar_dispatch_guarded_apply_fails_closed_on_conflicting_receipt(
             },
         },
     )
-    assert cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"]) == 0
+    assert cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"]) == 0
     first = json.loads(capsys.readouterr().out)
     _write_json(
         task_path,
@@ -448,7 +448,7 @@ def test_sidecar_dispatch_guarded_apply_fails_closed_on_conflicting_receipt(
         },
     )
 
-    assert cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"]) == 1
+    assert cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"]) == 1
     conflict = json.loads(capsys.readouterr().out)
 
     assert conflict["accepted"] is False

@@ -73,57 +73,41 @@ def build_progress_portal_hosted_package(
             },
         },
         "entrypoints": {
-            "static_html": str(html_path),
-            "static_html_ref": progress_html_ref,
-            "workspace_helper": "ops/mas/bin/start-web",
-            "refresh_command": "medautosci workspace progress-portal --profile <profile>",
-            "optional_local_read_only_service": "medautosci workspace progress-portal --profile <profile> --serve",
+            "opl_hosted_workbench_consumer": "OPL App/workbench consumes MAS progress payload refs",
+            "progress_payload_ref": progress_payload_ref,
         },
         "hosted_runtime_carrier_contract": {
-            "surface_kind": "mas_progress_portal_workspace_carrier_boundary",
-            "status": "active_workspace_diagnostic_carrier_delete_blocked_by_callers",
+            "surface_kind": "mas_progress_portal_read_model_materializer_boundary",
+            "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
             "carrier_owner": "MedAutoScience",
-            "carrier_scope": "workspace_static_read_model_package_and_optional_local_read_only_service",
+            "carrier_scope": "domain_owned_payload_html_and_hosted_package_projection",
             "physical_module": (
                 "src/med_autoscience/controllers/progress_portal_parts/"
                 "workspace_carrier.py"
             ),
-            "active_callers": [
-                "medautosci workspace progress-portal",
-                "medautosci workspace progress-portal --serve",
-                "ops/mas/bin/start-web workspace helper",
-            ],
-            "delete_after": [
-                "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs",
-                "workspace_helper_no_active_caller_proof",
-                "focused_progress_portal_materialization_tests_green",
-            ],
-            "delete_blockers": [
-                "workspace_helper_active_caller_present",
-                "progress_portal_cli_still_materializes_workspace_local_html",
-                "opl_app_default_progress_carrier_not_proven_as_default_caller",
-            ],
+            "active_callers": [],
             "does_not_claim": [
-                "workspace_helper_no_active_caller_proof",
-                "opl_app_default_carrier_cutover_complete",
-                "domain_repo_physical_delete_ready",
+                "workspace_workbench_owner",
+                "status_wrapper_owner",
+                "generic_runtime_owner",
+                "local_http_service_owner",
+                "runtime_control_owner",
             ],
             "domain_repo_physical_delete_authorized": False,
+            "retention_reason": "MAS retains only the read-model materializer needed to publish domain-owned progress payload, static HTML evidence, and hosted package refs for OPL consumers.",
             "writes_only": [
                 progress_payload_ref,
-                progress_html_ref,
                 hosted_package_ref,
                 "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+                progress_html_ref,
                 "ops/mas/progress/studies/<study_id>/index.html",
             ],
             "allowed_carriers": [
-                "local_read_only_http_server",
-                "external_hosted_runtime_static_file_carrier",
                 "OPL Runtime Manager family-level projection consumer",
+                "OPL App hosted workbench",
             ],
             "must_consume": [
                 progress_payload_ref,
-                progress_html_ref,
             ],
             "must_not_consume": [
                 "MDS WebUI state",

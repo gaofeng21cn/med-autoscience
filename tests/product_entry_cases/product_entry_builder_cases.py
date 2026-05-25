@@ -46,7 +46,7 @@ def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path
         "doctor report --profile " + str(profile_ref.resolve())
     )
     assert str(captured["recommended_start_command"]).endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
 
 def test_build_product_entry_guardrails_uses_shared_builder(monkeypatch, tmp_path: Path) -> None:

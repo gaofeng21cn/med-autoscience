@@ -10,7 +10,7 @@ DEFAULT_CALLER_SURFACES = (
     "product_entry",
     "product_status",
     "product_session",
-    "domain_action_adapter",
+    "domain_handler",
     "workbench",
 )
 
@@ -66,7 +66,7 @@ def build_opl_default_caller_readiness_evidence(*, replacement_owner: str) -> di
             "product_entry",
             "product_status",
             "product_session",
-            "domain_action_adapter",
+            "domain_handler",
             "workbench",
         ],
     }
@@ -155,10 +155,10 @@ def build_generated_default_caller_boundary(
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
-                surface_id="domain_action_adapter",
-                target_role="opl_generated_domain_action_adapter_dispatch_shell",
-                mas_allowed_role="domain_action_adapter",
-                parity_ref="domain_action_adapter_descriptor_parity",
+                surface_id="domain_handler",
+                target_role="opl_generated_domain_handler_dispatch_shell",
+                mas_allowed_role="domain_handler_target",
+                parity_ref="domain_handler_descriptor_parity",
                 default_caller_owner=replacement_owner,
             ),
             _surface_boundary(
@@ -174,7 +174,7 @@ def build_generated_default_caller_boundary(
             "family_action_catalog",
             "family_stage_control_plane_descriptor",
             "product_entry_manifest",
-            "sidecar_export",
+            "domain_handler_export",
             "mcp_tool_manifest",
         ],
     }

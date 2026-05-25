@@ -14,7 +14,7 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - MAS 保留 `MedAutoScienceDomainEntry`、CLI/controller/workspace commands、study truth、publication quality、artifact gate、current package authority、memory writeback decision 和 owner receipt signer。
 - skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-entry-status` 等命令是 MAS domain handler contract，供 OPL generated surfaces 或 direct path 调用。
 - `product-entry manifest` 暴露 MAS-owned domain action intents、handler target refs 与 authority boundaries；CLI、MCP、Skill、product/status/workbench descriptors 由 OPL 从同一份 pack/compiler input 生成或托管。
-- OPL Full online runtime 由 OPL framework-managed provider substrate 承担长期在线、唤醒、session/delivery/approval transport；MAS 通过 `sidecar export` / `sidecar dispatch` 暴露受控桥接，仍持有 study truth、publication quality、artifact gate 与 current package authority。
+- OPL Full online runtime 由 OPL framework-managed provider substrate 承担长期在线、唤醒、session/delivery/approval transport；MAS 通过 `domain-handler export` / `domain-handler dispatch` 暴露受控 domain handler target，仍持有 study truth、publication quality、artifact gate 与 current package authority。
 
 ## 核心规则
 
@@ -29,8 +29,8 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - `medautosci runtime overlay-status --profile <profile>`
 - `medautosci runtime install-overlay --profile <profile>`
 - `medautosci doctor backend-audit --profile <profile> --refresh`
-- `medautosci sidecar export --profile <profile> --format json`
-- `medautosci sidecar dispatch --task <task.json> --format json`
+- `medautosci domain-handler export --profile <profile> --format json`
+- `medautosci domain-handler dispatch --task <task.json> --format json`
 - plugin-local MCP launcher: `plugins/mas/bin/medautosci-mcp`
 
 如果 `medautosci` 不在 `PATH` 上，用模块入口：
@@ -62,8 +62,8 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 - 只要 `publication_supervisor_state.bundle_tasks_downstream_only=true`，就把 bundle/build/proofing 当作硬阻断，不得在前台抢跑
 - 当 `paper_contract_health` 给出 `recommended_next_stage` / `recommended_action` 时，默认只把它们解释为 paper-line local recommendation，除非 `publication_supervisor_state` 已明确进入对应全局阶段
 - 数据资产变更要走 controller 命令和结构化 payload，不直接手改 registry
-- `sidecar export` 只给 OPL family runtime 提供 MAS-owned read-only projection、pending family task 和 source ref；不得把该 projection 当作研究真相、质量结论或 artifact authority
-- `sidecar dispatch` 只接收 OPL typed queue 的 guarded task，并回到 MAS owner surface 产出 domain control receipt / recommended command；不得直接写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、artifact gate 或 study truth
+- `domain-handler export` 只给 OPL family runtime 提供 MAS-owned read-only projection、pending family task 和 source ref；不得把该 projection 当作研究真相、质量结论或 artifact authority
+- `domain-handler dispatch` 只接收 OPL typed queue 的 guarded task，并回到 MAS owner surface 产出 domain control receipt / recommended command；不得直接写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、artifact gate 或 study truth
 - `paper_autonomy/repair-recheck` task 只能通过 MAS-owned repair executor 修改 canonical manuscript / evidence ledger / review ledger / revision log，并必须写 owner receipt、gate replay request、AI reviewer recheck request 和 package freshness proof；缺结构化 canonical patch 时返回 typed blocker，不把 repair note 写入正文
 - `paper_autonomy/ai-reviewer-recheck` task 只能触发 MAS supervisor executor 的 AI reviewer workflow；最终质量、publishability 或 submission-facing readiness 仍以 AI reviewer-backed `publication_eval/latest.json` 和 publication gate truth 为准
 - 当前已落地的是 MAS repo-level AI-first paper autonomy callable loop 与 read-only real-paper soak projection；不要把它表述成 Hermes Full App 打包、MAG/RCA adapters、真实 24h gateway restart soak 或三篇 live paper finalization 已完成

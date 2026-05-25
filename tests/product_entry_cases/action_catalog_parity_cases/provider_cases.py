@@ -453,7 +453,7 @@ def test_provider_residency_read_model_requires_all_opl_receipts() -> None:
     assert all(item["status"] == "receipt_observed" for item in payload["checks"])
     assert all(item["body_included"] is False for item in payload["checks"])
     assert payload["consumer_contract"]["mas_consumes"] == [
-        "sidecar_task",
+        "domain_handler_task",
         "typed_receipt",
         "receipt_refs",
     ]

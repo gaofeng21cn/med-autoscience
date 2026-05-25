@@ -10,8 +10,8 @@ MAS_EVIDENCE_LANE_REF = "contracts/evidence/mas-evidence-lane.json"
 STABLE_BLOCKER_EVIDENCE_REFS = (
     MAS_EVIDENCE_LANE_REF,
     "tests/test_real_paper_readiness_owner_blocker.py::test_readiness_owner_blocker_projection_unblocks_guarded_apply_as_stable_blocker",
-    "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present",
-    "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_blocker",
+    "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::test_domain_handler_dispatch_guarded_apply_records_mas_owner_receipt_present",
+    "tests/test_cli_cases/owner_route_handoff_guarded_apply_cases.py::test_domain_handler_dispatch_guarded_apply_records_provider_unavailable_typed_blocker",
 )
 
 
@@ -182,7 +182,7 @@ def build_functional_closure_status_projection(
             owner_surface_refs=[
                 "/product_entry_manifest/provider_residency_read_model",
                 "/product_entry_manifest/managed_temporal_state_consistency",
-                "/sidecar_export/managed_temporal_state_consistency",
+                "/domain_handler_export/managed_temporal_state_consistency",
             ],
             status=(
                 "provider_residency_projected_domain_activity_soak_pending"
@@ -193,10 +193,10 @@ def build_functional_closure_status_projection(
                 _typed_blocker(
                     "mas_domain_activity_long_soak_pending",
                     owner=OPL_OWNER,
-                    required_surface="OPL domain activity long soak receipt + MAS sidecar receipt",
+                    required_surface="OPL domain activity long soak receipt + MAS domain-handler receipt",
                     reason=(
                         "Provider residency can be projected, but MAS still needs a real domain "
-                        "activity long soak receipt tied to a MAS sidecar receipt."
+                        "activity long soak receipt tied to a MAS domain-handler receipt."
                     ),
                 )
             ],
@@ -210,7 +210,7 @@ def build_functional_closure_status_projection(
             gate_class="landed_foundation_with_live_apply_gate",
             owner_surface_refs=[
                 "/product_entry_manifest/owner_receipt_contract",
-                "/sidecar_export/owner_receipt_contract",
+                "/domain_handler_export/owner_receipt_contract",
             ],
             status="owner_receipt_envelope_landed_live_apply_chain_pending",
             typed_blockers=[
@@ -302,7 +302,7 @@ def build_functional_closure_status_projection(
             gate_class="production_evidence_gate",
             owner_surface_refs=[
                 "/product_entry_manifest/provider_guarded_soak_read_model",
-                "/sidecar_dispatch/paper_autonomy/guarded-apply",
+                "/domain_handler_dispatch/paper_autonomy/guarded-apply",
                 "/product_entry_manifest/workspace_runtime_evidence_receipt",
             ],
             status=(
@@ -336,7 +336,7 @@ def build_functional_closure_status_projection(
             gate_class="functional_follow_through_gate",
             owner_surface_refs=[
                 "/product_entry_manifest/functional_consumer_boundary/standard_agent_purity",
-                "/sidecar_export/functional_consumer_boundary/standard_agent_purity",
+                "/domain_handler_export/functional_consumer_boundary/standard_agent_purity",
             ],
             status=_standard_agent_purity_status(standard_agent_purity=standard_agent_purity),
             typed_blockers=[],

@@ -71,7 +71,7 @@ _CODE_PATH_ROLES = [
     },
     {
         "path": "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
-        "current_role": "sidecar_domain_dispatch_receipt_writer",
+        "current_role": "domain_handler_dispatch_receipt_writer",
         "long_term_owner": OPL_OWNER,
         "allowed_mas_role": "domain_dispatch_receipt_adapter",
     },

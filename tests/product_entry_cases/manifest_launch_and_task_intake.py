@@ -494,7 +494,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     assert payload["progress"]["progress_freshness"]["status"] == "fresh"
     assert payload["progress"]["recovery_contract"]["action_mode"] == "inspect_progress"
     assert payload["commands"]["progress"].endswith("--study-id 001-risk")
-    assert "workspace cockpit" in payload["commands"]["cockpit"]
+    assert "workspace-cockpit" in payload["commands"]["cockpit"]
 
     markdown = module.render_launch_study_markdown(payload)
     assert markdown.strip()
@@ -964,8 +964,8 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "codex_entry_strategy": "domain_agent_entry",
         "artifact_conventions": "paper_and_submission_package",
         "progress_conventions": "study_runtime_narration",
-        "entry_command": "product-entry-status",
-        "manifest_command": "product-entry-manifest",
+            "entry_command": "study-progress",
+            "manifest_command": "opl-generated-product-entry",
     }
     assert payload["return_surface_contract"]["user_interaction_contract"] == {
         "surface_kind": "user_interaction_contract",
@@ -987,7 +987,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "--study-id 001-risk --format json"
     )
     assert payload["commands"]["workspace_cockpit"].endswith(
-        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["commands"]["launch_study"].endswith("--study-id 001-risk")
     markdown = module.render_build_product_entry_markdown(payload)

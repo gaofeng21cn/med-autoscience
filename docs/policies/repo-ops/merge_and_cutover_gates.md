@@ -189,7 +189,7 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 只有当下面这些条件一起满足时，才建议继续：
 
 - OPL provider / Temporal attempt、queue、retry/dead-letter、resume 和 worker residency 证据独立就位。
-- MAS sidecar/export/dispatch 只交 body-free refs、owner route、typed blocker、no-forbidden-write proof 和 safe action receipt，不写 study truth、publication eval、controller decisions、paper body、memory body 或 artifact body。
+- MAS domain-handler/export/dispatch 只交 body-free refs、owner route、typed blocker、no-forbidden-write proof 和 owner-route handoff refs，不写 study truth、publication eval、controller decisions、paper body、memory body 或 artifact body。
 - 至少一条真实 paper line 通过 OPL provider -> MAS owner chain 产出 owner receipt、progress delta、gate replay、human gate、stop-loss 或 stable typed blocker。
 - Direct MAS path 与 OPL-hosted path 消费同一 MAS-owned stage/controller/quality/artifact surface。
 - MDS/DeepScientist/Hermes/local provider 只作为 explicit provenance、parity oracle、executor/proof lane 或 diagnostic reference，不回到默认 runtime owner。

@@ -15,7 +15,6 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_mas_runtime_bridge_shared,
     _render_mas_runtime_bridge_show_config,
     _render_mas_runtime_bridge_stop_script,
-    _render_progress_portal_start_web_script,
 )
 from med_autoscience.controllers.workspace_init_parts.retired_entries import (
     retired_file_cleanup_reason,
@@ -375,10 +374,6 @@ def _write_runtime_configs(*, profile: WorkspaceProfile, profile_path: Path) -> 
     _write_executable(
         workspace_root / "ops" / "mas" / "bin" / "show-config",
         _render_mas_runtime_bridge_show_config(),
-    )
-    _write_executable(
-        workspace_root / "ops" / "mas" / "bin" / "start-web",
-        _render_progress_portal_start_web_script(),
     )
     _write_executable(
         workspace_root / "ops" / "mas" / "bin" / "status",

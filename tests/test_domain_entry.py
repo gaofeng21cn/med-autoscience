@@ -8,62 +8,18 @@ import pytest
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def test_domain_entry_dispatches_product_entry_status(monkeypatch, tmp_path: Path) -> None:
+@pytest.mark.parametrize("command", ("product-entry-status", "skill-catalog"))
+def test_domain_entry_rejects_removed_public_wrapper_commands(command: str, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.domain_entry")
-    profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
 
-    monkeypatch.setattr(module, "load_profile", lambda ref: profile)
-    monkeypatch.setattr(
-        module.product_entry,
-        "build_product_entry_status",
-        lambda *, profile, profile_ref=None: {
-            "surface_kind": "product_entry_status",
-            "target_domain_id": "med-autoscience",
-        },
-    )
-
-    payload = module.MedAutoScienceDomainEntry().dispatch(
-        {
-            "command": "product-entry-status",
-            "profile_ref": str(profile_ref),
-        }
-    )
-
-    assert payload == {
-        "command": "product-entry-status",
-        "surface_kind": "product_entry_status",
-        "target_domain_id": "med-autoscience",
-    }
-
-
-def test_domain_entry_dispatches_skill_catalog(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.domain_entry")
-    profile = make_profile(tmp_path)
-    profile_ref = tmp_path / "profile.local.toml"
-
-    monkeypatch.setattr(module, "load_profile", lambda ref: profile)
-    monkeypatch.setattr(
-        module.product_entry,
-        "build_skill_catalog",
-        lambda *, profile, profile_ref=None: {
-            "surface_kind": "skill_catalog",
-            "skills": [{"skill_id": "mas_workspace_cockpit"}],
-        },
-    )
-
-    payload = module.MedAutoScienceDomainEntry().dispatch(
-        {
-            "command": "skill-catalog",
-            "profile_ref": str(profile_ref),
-        }
-    )
-
-    assert payload == {
-        "command": "skill-catalog",
-        "surface_kind": "skill_catalog",
-        "skills": [{"skill_id": "mas_workspace_cockpit"}],
-    }
+    with pytest.raises(ValueError, match="不支持的 domain entry command"):
+        module.MedAutoScienceDomainEntry().dispatch(
+            {
+                "command": command,
+                "profile_ref": str(profile_ref),
+            }
+        )
 
 
 def test_domain_entry_launch_study_forwards_explicit_user_wakeup(monkeypatch, tmp_path: Path) -> None:
@@ -120,26 +76,13 @@ def test_external_caller_can_consume_domain_entry_contract_without_repo_local_he
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    product_entry_module = importlib.import_module("med_autoscience.controllers.product_entry")
     domain_entry_module = importlib.import_module("med_autoscience.domain_entry")
+    contract_module = importlib.import_module("med_autoscience.domain_entry_contract")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
 
-    product_entry_module.submit_study_task(
-        profile=profile,
-        study_id="001-risk",
-        task_intent="继续用统一 product entry contract 驱动 MAS，而不是暴露底层命令。",
-        entry_mode="full_research",
-    )
-
-    product_entry_payload = product_entry_module.build_product_entry(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id="001-risk",
-        direct_entry_mode="opl-handoff",
-    )
-    contract = product_entry_payload["return_surface_contract"]["domain_entry_contract"]
+    contract = contract_module.build_domain_entry_contract()
 
     monkeypatch.setattr(domain_entry_module, "load_profile", lambda ref: profile)
     monkeypatch.setattr(
@@ -316,8 +259,8 @@ def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:
     assert spec["codex_entry_strategy"] == "domain_agent_entry"
     assert spec["artifact_conventions"] == "paper_and_submission_package"
     assert spec["progress_conventions"] == "study_runtime_narration"
-    assert spec["entry_command"] == "product-entry-status"
-    assert spec["manifest_command"] == "product-entry-manifest"
+    assert spec["entry_command"] == "study-progress"
+    assert spec["manifest_command"] == "opl-generated-product-entry"
     assert contract["surface_role"] == "domain_handler_target_for_opl_generated_interfaces"
     assert contract["generated_descriptor_owner"] == "one-person-lab"
     assert contract["domain_handler_target_owner"] == "MedAutoScience"

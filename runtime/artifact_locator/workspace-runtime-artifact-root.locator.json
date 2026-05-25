@@ -11,7 +11,7 @@
     "stage_review_index": "studies/<study_id>/artifacts/stage_reviews/index.json",
     "publication_eval": "studies/<study_id>/artifacts/publication_eval/latest.json",
     "controller_decisions": "studies/<study_id>/artifacts/controller_decisions/latest.json",
-    "sidecar_dispatch_receipts": "artifacts/runtime/opl_family_sidecar/dispatch_receipts"
+    "domain_handler_dispatch_receipts": "artifacts/runtime/opl_family_domain_handler/dispatch_receipts"
   },
   "artifact_policy": {
     "repo_tracks_real_workspace_artifacts": false,

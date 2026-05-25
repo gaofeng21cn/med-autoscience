@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `external_pattern_learning_reference`
 State: `active_support`
-Machine boundary: 人读学习记录。机器可读投影见 `src/med_autoscience/ars_learning_projection.py`、`product_entry_manifest.ars_learning_projection`、`sidecar_export.ars_learning_projection` 和 `contracts/opl-framework/family-contract-adoption.json#academic_research_skills_learning_projection`。
+Machine boundary: 人读学习记录。机器可读投影见 `src/med_autoscience/ars_learning_projection.py`、`product_entry_manifest.ars_learning_projection`、`domain_handler_export.ars_learning_projection` 和 `contracts/opl-framework/family-contract-adoption.json#academic_research_skills_learning_projection`。
 
 ## 来源
 

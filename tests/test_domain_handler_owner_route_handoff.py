@@ -12,7 +12,7 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_state_mutation(tmp_path: Path) -> None:
+def test_domain_handler_export_hydrates_owner_route_handoff_artifact_without_runtime_state_mutation(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_route_handoff")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
@@ -55,7 +55,7 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
                 "surface_kind": "mas_runtime_owner_route_handoff",
                 "domain_truth_owner": "med-autoscience",
                 "queue_owner": "one-person-lab",
-                "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
+                "dispatch_surface": "medautosci domain-handler export -> medautosci domain-handler dispatch",
                 "recommended_task_kind": "domain_route/owner-handoff",
                 "study_id": study_id,
                 "quest_id": study_id,
@@ -74,7 +74,7 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
         },
     )
 
-    export = module.export_family_sidecar(
+    export = module.export_family_domain_handler(
         profile=profile,
         profile_ref=tmp_path / "profile.toml",
     )

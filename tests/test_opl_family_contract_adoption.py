@@ -226,7 +226,7 @@ def test_mas_generic_substrate_adapter_projection_is_opaque_index_only() -> None
     contract = _contract()
     substrate = contract["generic_substrate_adapter_projection"]
 
-    assert substrate["descriptor_surface"] == "medautosci sidecar export.opl_substrate_adapter"
+    assert substrate["descriptor_surface"] == "medautosci domain-handler export.opl_substrate_adapter"
     assert substrate["surface_kind"] == "mas_opl_generic_substrate_adapter"
     assert substrate["mode"] == "opaque_index_only_refs"
     assert substrate["source_ref_families"] == [
@@ -335,8 +335,7 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
         "product-entry",
         "product-status",
         "product-session",
-        "domain-action-adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection shell",
@@ -360,8 +359,7 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -383,7 +381,7 @@ def test_mas_ars_learning_projection_declares_external_patterns_without_boundary
     assert projection["descriptor_surfaces"] == [
         "product_entry_manifest.ars_learning_projection",
         "product_entry_manifest.family_stage_control_plane_descriptor.ars_learning_projection",
-        "sidecar_export.ars_learning_projection",
+        "domain_handler_export.ars_learning_projection",
     ]
     assert projection["source_repository"] == "https://github.com/Imbad0202/academic-research-skills"
     assert projection["observed_head"] == "d564d26da39de039ba71d9b51f43e6a25fe9b149"

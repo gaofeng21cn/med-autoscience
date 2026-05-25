@@ -53,7 +53,7 @@
       "domain_repo_can_own_generated_surface": false,
       "owner": "one-person-lab",
       "status": "descriptor_source_available",
-      "surface_id": "sidecar_export_dispatch"
+      "surface_id": "domain_handler"
     },
     {
       "domain_repo_can_own_generated_surface": false,

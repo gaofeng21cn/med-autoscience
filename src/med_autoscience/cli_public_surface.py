@@ -12,8 +12,6 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("doctor", "backend-audit"): "backend-audit",
     ("workspace", "bootstrap"): "bootstrap",
     ("workspace", "init"): "init-workspace",
-    ("workspace", "cockpit"): "workspace-cockpit",
-    ("workspace", "progress-portal"): "progress-portal",
     ("workspace", "profile-cycles"): "workspace-profile-cycles",
     ("data", "init-assets"): "init-data-assets",
     ("data", "assets-status"): "data-assets-status",
@@ -40,8 +38,6 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "paper-authority-clean-migration"): "paper-authority-clean-migration",
     ("runtime", "study-config-clean-migration"): "study-config-clean-migration",
     ("runtime", "ensure-analysis-bundle"): "ensure-analysis-bundle",
-    ("runtime", "maintain-storage"): "runtime-maintain-storage",
-    ("runtime", "storage-audit"): "workspace-storage-audit",
     ("runtime", "overlay-status"): "overlay-status",
     ("runtime", "install-overlay"): "install-medical-overlay",
     ("runtime", "reapply-overlay"): "reapply-medical-overlay",
@@ -79,19 +75,11 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "surface"): "medical-publication-surface",
     ("publication", "figure-loop-guard"): "figure-loop-guard",
     ("publication", "route-memory-inventory"): "publication-route-memory-inventory",
-    ("sidecar", "export"): "sidecar-export",
-    ("sidecar", "dispatch"): "sidecar-dispatch",
     ("product", "governance-report"): "storage-governance-report",
     ("product", "backfill-apply"): "delivery-authority-backfill-apply",
     ("product", "authority-migration-audit"): "workspace-authority-migration-audit",
     ("product", "artifact-lifecycle-report"): "artifact-lifecycle-report",
     ("product", "artifact-lifecycle-soak-summary"): "artifact-lifecycle-continuous-soak-summary",
-    ("product", "entry_status"): "product-entry-status",
-    ("product", "preflight"): "product-preflight",
-    ("product", "start"): "product-start",
-    ("product", "manifest"): "product-entry-manifest",
-    ("product", "skill-catalog"): "skill-catalog",
-    ("product", "build-entry"): "build-product-entry",
 }
 
 GROUPED_COMMAND_NAMES = {group for group, _ in GROUPED_COMMAND_ALIASES}
@@ -101,13 +89,12 @@ GROUPED_COMMAND_PROGS = {
 }
 GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "doctor": "doctor 审计、profile、mainline 与 stage-route contract 检查。",
-    "workspace": "workspace 初始化与 readiness cockpit。",
+    "workspace": "workspace 初始化与 data/literature readiness。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
-    "runtime": "domain health diagnostic、domain owner handoff、overlay 与 storage maintenance。",
+    "runtime": "domain health diagnostic、domain owner handoff 与 overlay。",
     "study": "progress projection、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
-    "sidecar": "OPL family-runtime typed queue 的 MAS 只读 export 与 guarded dispatch。",
-    "product": "entry_status、preflight、start、manifest、build-entry 与 governance surfaces。",
+    "product": "authority governance、backfill 与 artifact lifecycle surfaces。",
 }
 GROUPED_SUBCOMMANDS: dict[str, tuple[str, ...]] = {
     group: tuple(subcommand for candidate_group, subcommand in GROUPED_COMMAND_ALIASES if candidate_group == group)
@@ -121,7 +108,7 @@ def print_public_help() -> None:
         "",
         "Public command groups:",
     ]
-    for group in ("doctor", "workspace", "data", "runtime", "study", "publication", "sidecar", "product"):
+    for group in ("doctor", "workspace", "data", "runtime", "study", "publication", "product"):
         lines.append(f"  {group:<12}{GROUPED_COMMAND_SUMMARIES[group]}")
     lines.extend(
         [
@@ -129,8 +116,7 @@ def print_public_help() -> None:
             "Examples:",
             "  medautosci doctor report --profile <profile>",
             "  medautosci study progress --profile <profile> --study-id <study_id>",
-            "  medautosci product manifest --profile <profile> --study-id <study_id>",
-            "  medautosci product skill-catalog --profile <profile> --format json",
+            "  medautosci product governance-report --workspace-root <workspace>",
         ]
     )
     print("\n".join(lines))

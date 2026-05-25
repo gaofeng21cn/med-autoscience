@@ -527,8 +527,8 @@ def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_dri
                 "portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json"
             ],
         },
-        "safety_action_receipts": [
-            {"audit_ref": "artifacts/runtime/progress_portal/action_receipts/resume-001.json"}
+        "runtime_owner_route_handoffs": [
+            {"ref": "artifacts/supervision/owner_route_handoff/latest.json"}
         ],
     }
 
@@ -573,10 +573,10 @@ def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_dri
     assert lanes["memory_receipt"]["status"] == "observed"
     assert lanes["memory_receipt"]["can_write_memory_body"] is False
     assert lanes["freshness"]["can_authorize_publication_readiness"] is False
-    assert lanes["safety_action_receipts"]["can_execute_without_mas_receipt"] is False
-    assert lanes["safety_action_receipts"]["receipt_policy"] == {
+    assert lanes["runtime_owner_route_handoffs"]["can_execute_without_mas_receipt"] is False
+    assert lanes["runtime_owner_route_handoffs"]["owner_route_handoff_policy"] == {
         "policy": "safe_action_requires_owner_receipt",
-        "required_receipt_surface": "mas_progress_portal_action_receipt",
+        "required_receipt_surface": "mas_runtime_owner_route_handoff",
         "action_transport_owner": "OPL provider transport",
         "domain_owner": "MedAutoScience",
         "can_execute_without_mas_receipt": False,
@@ -589,7 +589,7 @@ def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_dri
     assert "portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json" in reference[
         "source_refs"
     ]
-    assert "artifacts/runtime/progress_portal/action_receipts/resume-001.json" in reference["source_refs"]
+    assert "artifacts/supervision/owner_route_handoff/latest.json" in reference["source_refs"]
     assert reference["typed_blockers"] == []
 
 
@@ -616,12 +616,12 @@ def test_progress_portal_opl_projection_fails_closed_when_reference_proofs_are_m
     assert lanes["guarded_apply"]["status"] == "pending"
     assert lanes["stage_review_index"]["status"] == "pending"
     assert lanes["memory_receipt"]["status"] == "pending"
-    assert lanes["safety_action_receipts"]["status"] == "pending"
+    assert lanes["runtime_owner_route_handoffs"]["status"] == "pending"
     assert reference["pending_lanes"] == [
         "guarded_apply",
         "stage_review_index",
         "memory_receipt",
-        "safety_action_receipts",
+        "runtime_owner_route_handoffs",
     ]
     assert reference["typed_blockers"][0]["blocker_id"] == "provider_attempt_proof_missing"
     assert reference["authority"]["writes_mas_truth"] is False

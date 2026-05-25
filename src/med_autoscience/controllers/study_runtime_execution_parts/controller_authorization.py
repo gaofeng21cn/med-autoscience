@@ -41,7 +41,7 @@ def _controller_decision_owner_route_ref(
         "surface_kind": "mas_controller_decision_owner_route_ref",
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
-        "dispatch_surface": "medautosci sidecar dispatch",
+        "dispatch_surface": "medautosci domain-handler dispatch",
         "recommended_task_kind": "domain_route/owner-handoff",
         "authority_boundary": {
             "mas_writes_generic_runtime_queue": False,

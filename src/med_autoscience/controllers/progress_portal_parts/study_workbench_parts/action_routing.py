@@ -14,7 +14,7 @@ def action_owner_routing_policy(
     route_map: Mapping[str, Any],
 ) -> dict[str, Any]:
     route_available = _non_empty_text(route_decision_trail.get("status")) == "available"
-    receipt_policy = _mapping(route_map.get("safe_action_receipt_policy")) or _default_safe_action_receipt_policy()
+    handoff_policy = _mapping(route_map.get("owner_route_handoff_policy")) or _default_owner_route_handoff_policy()
     next_owner = _non_empty_text(route_decision_trail.get("next_owner"))
     missing: list[str] = []
     available: list[str] = []
@@ -22,20 +22,20 @@ def action_owner_routing_policy(
         available.append("route_decision_trail")
     else:
         missing.append("route_decision_trail")
-    if receipt_policy:
-        available.append("safe_action_receipt_policy")
+    if handoff_policy:
+        available.append("owner_route_handoff_policy")
     else:
-        missing.append("safe_action_receipt")
+        missing.append("owner_route_handoff")
     status = "available" if route_available and next_owner else "missing"
-    if status != "available" and "safe_action_receipt" not in missing:
-        missing.append("safe_action_receipt")
+    if status != "available" and "owner_route_handoff" not in missing:
+        missing.append("owner_route_handoff")
     if next_owner is None:
         missing.append("next_owner")
     return {
         "status": status,
         "next_owner": next_owner,
         "routing_role": "display_and_owner_route_projection",
-        "safe_action_receipt_policy": receipt_policy,
+        "owner_route_handoff_policy": handoff_policy,
         "conditions": {
             "available": available,
             "missing": missing,
@@ -86,12 +86,12 @@ def workbench_summary(
 
 
 def render_action_owner_routing_section(policy: Mapping[str, Any]) -> str:
-    receipt_policy = _mapping(policy.get("safe_action_receipt_policy"))
+    handoff_policy = _mapping(policy.get("owner_route_handoff_policy"))
     values = {
         "status": display_text(policy.get("status"), empty_text="missing", preserve_known_token=True),
         "next_owner": display_text(policy.get("next_owner"), empty_text="缺失", preserve_known_token=True),
         "required_receipt": display_text(
-            receipt_policy.get("required_receipt_surface"),
+            handoff_policy.get("required_receipt_surface"),
             empty_text="缺失",
             preserve_known_token=True,
         ),
@@ -106,13 +106,11 @@ def render_action_owner_routing_section(policy: Mapping[str, Any]) -> str:
     )
 
 
-def _default_safe_action_receipt_policy() -> dict[str, Any]:
+def _default_owner_route_handoff_policy() -> dict[str, Any]:
     return {
         "policy": "route_only_to_owner_no_direct_execution",
-        "required_receipt_surface": "mas_progress_portal_action_receipt",
+        "required_receipt_surface": "mas_runtime_owner_route_handoff",
         "allowed_receipt_owners": [
-            "mas_runtime_owner",
-            "mas_controller",
             "MedAutoScience",
             "OPL provider transport",
         ],

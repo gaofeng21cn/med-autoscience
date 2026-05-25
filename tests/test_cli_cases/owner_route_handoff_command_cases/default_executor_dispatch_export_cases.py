@@ -95,7 +95,7 @@ def _write_default_executor_dispatch(
     )
 
 
-def test_sidecar_export_default_executor_dispatch_does_not_require_pdf_dependency(
+def test_domain_handler_export_default_executor_dispatch_does_not_require_pdf_dependency(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -138,7 +138,7 @@ def test_sidecar_export_default_executor_dispatch_does_not_require_pdf_dependenc
     )
 
     cli = importlib.import_module("med_autoscience.cli")
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -149,7 +149,7 @@ def test_sidecar_export_default_executor_dispatch_does_not_require_pdf_dependenc
     ] == ["domain_owner/default-executor-dispatch"]
 
 
-def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_projects_default_executor_dispatch_requests(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -166,7 +166,7 @@ def test_sidecar_export_projects_default_executor_dispatch_requests(tmp_path: Pa
         include_owner_route=True,
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -354,7 +354,7 @@ def test_default_executor_dispatch_dedupe_key_tracks_owner_route_currentness(
         include_owner_route=True,
     )
 
-    first_exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    first_exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     first_payload = json.loads(capsys.readouterr().out)
     assert first_exit_code == 0
     first_task = next(
@@ -373,7 +373,7 @@ def test_default_executor_dispatch_dedupe_key_tracks_owner_route_currentness(
     )
     _write_json(dispatch_path, dispatch)
 
-    second_exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    second_exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     second_payload = json.loads(capsys.readouterr().out)
     assert second_exit_code == 0
     second_task = next(
@@ -387,7 +387,7 @@ def test_default_executor_dispatch_dedupe_key_tracks_owner_route_currentness(
     assert second_task["source_fingerprint"] in second_task["dedupe_key"]
 
 
-def test_sidecar_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -453,7 +453,7 @@ def test_sidecar_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, ca
     )
     _write_json(dispatch_path, handoff)
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -484,7 +484,7 @@ def test_sidecar_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, ca
     )
 
 
-def test_sidecar_export_projects_ai_reviewer_default_executor_dispatch_request(
+def test_domain_handler_export_projects_ai_reviewer_default_executor_dispatch_request(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -584,7 +584,7 @@ def test_sidecar_export_projects_ai_reviewer_default_executor_dispatch_request(
         },
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -634,7 +634,7 @@ def test_sidecar_export_projects_ai_reviewer_default_executor_dispatch_request(
     assert evidence_payload["publication_ready_claimed"] is False
 
 
-def test_sidecar_export_skips_bare_default_executor_dispatch_without_owner_currentness(
+def test_domain_handler_export_skips_bare_default_executor_dispatch_without_owner_currentness(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -657,7 +657,7 @@ def test_sidecar_export_skips_bare_default_executor_dispatch_without_owner_curre
         include_owner_route=False,
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -668,7 +668,7 @@ def test_sidecar_export_skips_bare_default_executor_dispatch_without_owner_curre
     ] == []
 
 
-def test_sidecar_export_skips_default_executor_dispatch_with_unregistered_owner_reason(
+def test_domain_handler_export_skips_default_executor_dispatch_with_unregistered_owner_reason(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -692,7 +692,7 @@ def test_sidecar_export_skips_default_executor_dispatch_with_unregistered_owner_
         owner_reason="unregistered_local_reason",
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0

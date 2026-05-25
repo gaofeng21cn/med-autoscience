@@ -57,7 +57,7 @@ RESUBMISSION_HARD_LEDGER = {
 }
 OWNER_ROUTE_TASK_POLICY = {
     "progression_owner": "med-autoscience-runtime-owner-chain",
-    "dispatch_boundary": "sidecar_or_cli_receipt_only",
+    "dispatch_boundary": "domain_handler_or_cli_receipt_only",
     "dispatch_authority": "forbidden_mas_emits_refs_or_typed_blockers_only",
     "requires_owner_route_or_supervisor_dispatch": True,
     "requires_owner_receipt_or_typed_blocker": True,
@@ -87,7 +87,7 @@ ARIS_HANDOFF_FILES = (
     "prior_limitations.md",
     "why_our_method_can_work.md",
     "claim_to_evidence_map.md",
-    "sidecar_manifest.json",
+    "domain_handler_manifest.json",
 )
 
 
@@ -645,7 +645,7 @@ def _analysis_queue_entry(*, root: Path, quest_root: Path | None, study_id: str)
                 "final_method_proposal.md",
                 "prior_limitations.md",
                 "why_our_method_can_work.md",
-                "sidecar_manifest.json",
+                "domain_handler_manifest.json",
             }
         ]
     )

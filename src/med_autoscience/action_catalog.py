@@ -31,7 +31,7 @@ PRODUCT_ENTRY_CONTRACT_GAP_TEXT = (
 MCP_INPUT_SCHEMA_BY_ACTION_ID = {
     "launch_study": {"type": "string", "enum": ["owner_route_handoff", "stage_attempt", "request_opl_stage_attempt"]},
     "study_progress": {"type": "object"},
-    "product_entry": "product_entry_mode_schema",
+    "authority_operations": "authority_operation_mode_schema",
 }
 AUTHORITATIVE_TRUTH_REFS = [
     "/progress_projection",
@@ -67,43 +67,23 @@ def _authority_boundary(*, helper_owner: str = "one-person-lab") -> dict[str, An
     }
 
 
-def _product_entry_mode_schema() -> dict[str, Any]:
+def _authority_operation_mode_schema() -> dict[str, Any]:
     return build_authority_product_entry_mode_schema()
 
 
-def _product_entry_summary() -> str:
+def _authority_operations_summary() -> str:
     return (
-        "Read MedAutoScience product-entry surfaces through one tool: "
+        "Call MAS authority-operation domain handlers through one tool: "
         f"{product_entry_description_modes_text()}. workspace_authority_migration_audit is dry-run-only; "
         "storage_governance_report and artifact_lifecycle_report are read-only; "
         "delivery_authority_backfill_apply is MAS delivery-authority gated. "
-        "Physical cleanup and safe-cache deletion are owned by OPL current-control-state, not MAS product-entry. "
+        "Physical cleanup and safe-cache deletion are owned by OPL current-control-state, not MAS. "
         f"{PRODUCT_ENTRY_CONTRACT_GAP_TEXT}"
     )
 
 
 def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
     actions = (
-        {
-            "action_id": "product_entry_status",
-            "title": "Open MAS product entry status",
-            "summary": "当前 research product entry status，先暴露当前 product entry、workspace inbox 与 shared handoff 入口。",
-            "effect": "read_only",
-            "command": "{prefix} product entry_status --profile {profile}",
-            "surface_kind": "product_entry_status",
-            "workspace_locator_fields": ["profile_ref"],
-            "mcp_public_runtime": False,
-        },
-        {
-            "action_id": "workspace_cockpit",
-            "title": "Open MAS workspace cockpit",
-            "summary": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
-            "effect": "read_only",
-            "command": "{prefix} workspace cockpit --profile {profile} --format json",
-            "surface_kind": "workspace_cockpit",
-            "workspace_locator_fields": ["profile_ref"],
-            "mcp_public_runtime": False,
-        },
         {
             "action_id": "submit_study_task",
             "title": "Submit durable MAS study task",
@@ -243,43 +223,47 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "mcp_public_runtime": False,
         },
         {
-            "action_id": "product_entry",
-            "title": "Read MAS product-entry MCP surfaces",
-            "summary": _product_entry_summary(),
-            "effect": "read_only",
-            "command": "{prefix} product manifest --profile {profile} --format json",
-            "surface_kind": "product_entry_manifest",
-            "workspace_locator_fields": ["profile_ref"],
-            "mcp_tool_name": "product_entry",
-            "mcp_public_runtime": True,
-        },
-        {
-            "action_id": "sidecar_export",
-            "title": "Export MAS sidecar bridge projection",
+            "action_id": "domain_handler_export",
+            "title": "Export MAS domain-handler projection",
             "summary": (
-                "Read-only MAS owner-route handoff export for OPL stage graph hydration; "
-                "Hermes references are optional diagnostics/provenance only."
+                "Export MAS-owned read-only projection, pending OPL family tasks, source refs, "
+                "owner receipt contract and substrate refs for OPL generated/hosted surfaces. "
+                "It does not authorize study truth, publication quality, artifact gate or current package writes."
             ),
             "effect": "read_only",
-            "command": "medautosci sidecar export --profile {profile} --format json",
-            "surface_kind": "mas_family_sidecar_export",
+            "command": "medautosci domain-handler export --profile {profile} --format json",
+            "surface_kind": "mas_family_domain_handler_export",
             "workspace_locator_fields": ["profile_ref"],
+            "mcp_tool_name": "domain_handler_export",
             "mcp_public_runtime": False,
+            "authority_boundary": _authority_boundary(),
         },
         {
-            "action_id": "sidecar_dispatch",
-            "title": "Receive MAS owner-route dispatch receipt",
+            "action_id": "domain_handler_dispatch",
+            "title": "Dispatch MAS domain-handler task",
             "summary": (
-                "MAS owner-route dispatch receipt for OPL stage-attempt handoff. "
-                "It records a domain owner receipt only and does not authorize domain truth, "
-                "publication quality, artifact gate, or current package writes; Hermes paths are "
-                "explicit OPL opt-in executor/proof refs only, never MAS default runtime paths."
+                "Consume an OPL typed queue task and return a MAS owner-route dispatch receipt, "
+                "owner receipt, typed blocker, or explicit OPL opt-in executor/proof refs only; "
+                "it does not authorize domain truth, publication quality, artifact gate or current package writes."
             ),
             "effect": "mutating",
-            "command": "medautosci sidecar dispatch --task <task.json> --format json",
-            "surface_kind": "mas_family_sidecar_dispatch_receipt",
-            "workspace_locator_fields": ["task_path"],
+            "command": "medautosci domain-handler dispatch --task <task.json> --format json",
+            "surface_kind": "mas_family_domain_handler_dispatch_receipt",
+            "workspace_locator_fields": ["task_ref"],
+            "mcp_tool_name": "domain_handler_dispatch",
             "mcp_public_runtime": False,
+            "authority_boundary": _authority_boundary(helper_owner=MAS_TRUTH_OWNER),
+        },
+        {
+            "action_id": "authority_operations",
+            "title": "Call MAS authority operation handlers",
+            "summary": _authority_operations_summary(),
+            "effect": "read_only",
+            "command": "{prefix} product governance-report --workspace-root <workspace_root>",
+            "surface_kind": "mas_authority_operation_handlers",
+            "workspace_locator_fields": ["workspace_roots"],
+            "mcp_tool_name": "authority_operations",
+            "mcp_public_runtime": True,
         },
     )
     built: list[dict[str, Any]] = []
@@ -394,8 +378,8 @@ def _with_input_schema(projection: dict[str, Any], action: object) -> dict[str, 
         return projection
     action_id = str(action.get("action_id") or "")
     schema = MCP_INPUT_SCHEMA_BY_ACTION_ID.get(action_id)
-    if schema == "product_entry_mode_schema":
-        return {**projection, "input_schema": _product_entry_mode_schema()}
+    if schema == "authority_operation_mode_schema":
+        return {**projection, "input_schema": _authority_operation_mode_schema()}
     if not isinstance(schema, Mapping):
         return projection
     return {**projection, "input_schema": dict(schema)}

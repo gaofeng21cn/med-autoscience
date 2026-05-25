@@ -6,10 +6,10 @@ from typing import Any, Callable, Mapping
 from med_autoscience.authority_operation_command_catalog import AUTHORITY_OPERATION_COMMANDS_BY_COMMAND
 from med_autoscience.controllers import (
     artifact_lifecycle_operations_report,
+    continuous_soak_summary,
     delivery_authority_backfill_apply,
     product_entry,
     study_progress,
-    domain_status_projection,
     workspace_authority_migration_audit,
 )
 from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
@@ -79,26 +79,11 @@ def _dispatch_profile_command(
     profile_ref: Path,
 ) -> dict[str, Any]:
     handlers = {
-        "workspace-cockpit": lambda: product_entry.read_workspace_cockpit(profile=profile, profile_ref=profile_ref),
-        "product-entry-status": lambda: product_entry.build_product_entry_status(profile=profile, profile_ref=profile_ref),
-        "product-preflight": lambda: product_entry.build_product_entry_preflight(profile=profile, profile_ref=profile_ref),
-        "product-start": lambda: product_entry.build_product_entry_start(profile=profile, profile_ref=profile_ref),
-        "product-entry-manifest": lambda: product_entry.build_product_entry_manifest(
-            profile=profile,
-            profile_ref=profile_ref,
-        ),
-        "skill-catalog": lambda: product_entry.build_skill_catalog(profile=profile, profile_ref=profile_ref),
         "study-progress": lambda: study_progress.read_study_progress(
             profile=profile,
+            profile_ref=profile_ref,
             study_id=str(request["study_id"]),
             entry_mode=_optional_text(request.get("entry_mode")),
-        ),
-        "progress-projection": lambda: product_entry._serialize_runtime_status(
-            domain_status_projection.progress_projection(
-                profile=profile,
-                study_id=str(request["study_id"]),
-                entry_mode=_optional_text(request.get("entry_mode")),
-            )
         ),
         "launch-study": lambda: product_entry.launch_study(
             profile=profile,
@@ -122,12 +107,6 @@ def _dispatch_profile_command(
             trusted_inputs=_sequence_value(request.get("trusted_inputs")),
             reference_papers=_sequence_value(request.get("reference_papers")),
             first_cycle_outputs=_sequence_value(request.get("first_cycle_outputs")),
-        ),
-        "build-product-entry": lambda: product_entry.build_product_entry(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=str(request["study_id"]),
-            direct_entry_mode=_optional_text(request.get("direct_entry_mode")),
         ),
     }
     try:
@@ -218,6 +197,25 @@ def _dispatch_authority_operation(command: str, request: Mapping[str, Any]) -> d
         )
     if command == "artifact-lifecycle-report":
         return artifact_lifecycle_operations_report.run_lifecycle_operations_report(
+            workspace_roots=workspace_roots,
+            deep=_bool_value(request.get("deep")),
+            max_files=_optional_int_value(request.get("max_files")),
+            max_seconds=_optional_float_value(request.get("max_seconds")),
+        )
+    if command == "storage-governance-report":
+        result = artifact_lifecycle_operations_report.run_lifecycle_operations_report(
+            workspace_roots=workspace_roots,
+            deep=_bool_value(request.get("deep")),
+            max_files=_optional_int_value(request.get("max_files")),
+            max_seconds=_optional_float_value(request.get("max_seconds")),
+        )
+        return {
+            **result,
+            "surface": "storage_governance_report",
+            "source_surface": result.get("surface"),
+        }
+    if command == "artifact-lifecycle-continuous-soak-summary":
+        return continuous_soak_summary.build_continuous_soak_summary(
             workspace_roots=workspace_roots,
             deep=_bool_value(request.get("deep")),
             max_files=_optional_int_value(request.get("max_files")),

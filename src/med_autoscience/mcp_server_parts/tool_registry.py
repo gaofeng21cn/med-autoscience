@@ -24,22 +24,22 @@ class McpToolSpec:
 
 def build_tool_registry(
     *,
-    product_entry_mode_schema: dict[str, Any],
-    product_entry_modes_text: str,
-    product_entry_contract_gap_text: str,
+    authority_operation_mode_schema: dict[str, Any],
+    authority_operation_modes_text: str,
+    authority_operation_contract_gap_text: str,
     action_catalog_metadata_by_tool: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[McpToolSpec, ...]:
     metadata_by_tool = action_catalog_metadata_by_tool or {}
-    product_entry_action = dict(metadata_by_tool.get("product_entry") or {})
-    product_entry_description = str(product_entry_action.get("description") or "").strip()
-    if not product_entry_description:
-        product_entry_description = (
-            "Read MedAutoScience product-entry surfaces through one tool: "
-            f"{product_entry_modes_text}. workspace_authority_migration_audit is dry-run-only; "
+    authority_action = dict(metadata_by_tool.get("authority_operations") or {})
+    authority_description = str(authority_action.get("description") or "").strip()
+    if not authority_description:
+        authority_description = (
+            "Call MAS authority-operation domain handlers through one tool: "
+            f"{authority_operation_modes_text}. workspace_authority_migration_audit is dry-run-only; "
             "storage_governance_report and artifact_lifecycle_report are read-only; "
             "delivery_authority_backfill_apply is MAS delivery-authority gated. "
             "Physical cleanup and safe-cache deletion are owned by OPL current-control-state. "
-            f"{product_entry_contract_gap_text}"
+            f"{authority_operation_contract_gap_text}"
         )
     return (
         McpToolSpec(
@@ -63,7 +63,7 @@ def build_tool_registry(
         McpToolSpec(
             name="workspace_readiness",
             description=(
-                "Inspect or initialize workspace readiness through one tool: cockpit, "
+                "Inspect or initialize workspace readiness through one tool: "
                 "init_workspace, startup_data_readiness, portfolio_memory_status, "
                 "init_portfolio_memory, workspace_literature_status, or init_workspace_literature."
             ),
@@ -160,17 +160,13 @@ def build_tool_registry(
             },
         ),
         McpToolSpec(
-            name="product_entry",
-            description=product_entry_description,
-            metadata=_tool_metadata(metadata_by_tool, "product_entry"),
+            name="authority_operations",
+            description=authority_description,
+            metadata=_tool_metadata(metadata_by_tool, "authority_operations"),
             input_schema={
                 "type": "object",
                 "properties": {
-                    "mode": product_entry_action.get("input_schema") or product_entry_mode_schema,
-                    "profile_path": {"type": "string"},
-                    "study_id": {"type": "string"},
-                    "study_root": {"type": "string"},
-                    "entry_mode": {"type": "string"},
+                    "mode": authority_action.get("input_schema") or authority_operation_mode_schema,
                     "workspace_roots": {
                         "type": "array",
                         "items": {"type": "string"},

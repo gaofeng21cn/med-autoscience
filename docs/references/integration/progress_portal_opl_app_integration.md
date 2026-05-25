@@ -6,7 +6,7 @@ Purpose: `Support MAS integration and OPL handoff understanding.`
 State: `support_reference`
 Machine boundary: Human-readable integration reference only; callable and generated-surface truth remains in manifests, contracts, source, tests, OPL handoff contracts, and read-model output.
 
-2026-05-10 更新：此前本文把 OPL App 的最优形态写成 family dashboard + 打开 MAS workspace-local Portal deep link。新的产品结论是，OPL App 应成为 MAS 人类运行工作台的主入口；workspace-local Portal / Live Console 继续作为 legacy_restore_import、evidence 和 no-App 环境入口。OPL App 仍然只消费 MAS read model / action receipt / source refs，不接管 MAS study truth、publication quality、runtime owner 或 current package authority。
+2026-05-10 更新：此前本文把 OPL App 的最优形态写成 family dashboard + 打开 MAS workspace-local Portal deep link。新的产品结论是，OPL App 应成为 MAS 人类运行工作台的主入口；workspace-local Portal / Live Console 继续作为 legacy_restore_import、evidence 和 no-App 环境入口。OPL App 仍然只消费 MAS read model / owner-route handoff refs / source refs，不接管 MAS study truth、publication quality、runtime owner 或 current package authority。
 
 ## 入口结论
 
@@ -78,7 +78,7 @@ OPL App 的最优 UI 是 App-native Runtime Workbench，而不是复制 MAS Port
 OPL App 的 MAS study workbench 应直接消费以下 MAS read model 或它们的稳定 projection：
 
 - `artifacts/runtime/progress_portal/latest.json`
-- action receipt refs under `artifacts/runtime/progress_portal/action_receipts/`
+- domain-handler / owner-route handoff refs under `artifacts/supervision/owner_route_handoff/` or the matching domain-handler dispatch evidence payload
 
 terminal/log/provider drilldown 必须来自 OPL `current_control_state` 或 provider attempt projection。OPL App 可以提供 terminal UI shell，但 MAS 不提供 terminal attach owner gate；任何 UI 都不能直接写 per-run command queue、runtime state、runtime SQLite、publication eval、controller decisions 或 package authority。
 

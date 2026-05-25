@@ -11,6 +11,8 @@ RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES: tuple[tuple[str, ...], ...] = (
     ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"),
     ("ops", "medautoscience", "bin", "watch-runtime-service-runner"),
     ("ops", "medautoscience", "bin", "ensure-study-runtime"),
+    ("ops", "medautoscience", "bin", "progress-portal"),
+    ("ops", "mas", "bin", "start-web"),
     ("ops", "medautoscience", "bin", "domain-route-scan"),
     ("ops", "medautoscience", "bin", "domain-route-reconcile"),
     ("ops", "medautoscience", "bin", "supervisor-scan"),
@@ -87,6 +89,7 @@ def retired_workspace_service_entry_reason(*, path: Path, existing_content: str)
     generated_or_legacy_markers = (
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"',
         "run_medautosci progress-projection",
+        "run_medautosci progress-portal",
         "run_medautosci study-runtime-status",
         "run_medautosci runtime domain-health-diagnostic",
         "run_medautosci watch",

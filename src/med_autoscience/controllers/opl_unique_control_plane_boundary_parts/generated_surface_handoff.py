@@ -45,16 +45,16 @@ def build_generated_surface_handoff(
                 "target_role": "opl_generated_product_entry_surface",
             },
             {
-                "surface_id": "sidecar",
+                "surface_id": "domain_handler",
                 "current_paths": [
                     "src/med_autoscience/controllers/owner_route_handoff.py",
                     (
                         "src/med_autoscience/controllers/owner_route_handoff_parts/"
-                        "export_projection.py"
+                        "domain_handler_export.py"
                     ),
                     (
                         "src/med_autoscience/controllers/owner_route_handoff_parts/"
-                        "export_study_projection.py"
+                        "domain_handler_functional_closure.py"
                     ),
                     (
                         "src/med_autoscience/controllers/owner_route_handoff_parts/"
@@ -62,21 +62,7 @@ def build_generated_surface_handoff(
                     ),
                 ],
                 "current_role": "domain_owner_route_refs_export_dispatch_source",
-                "target_role": "opl_generated_sidecar_handoff_surface",
-            },
-            {
-                "surface_id": "domain_action_adapter_export_dispatch",
-                "current_paths": [
-                    "src/med_autoscience/controllers/owner_route_reconcile.py",
-                    "src/med_autoscience/controllers/domain_action_request_materializer.py",
-                    "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
-                    "src/med_autoscience/controllers/default_executor_action_policy.py",
-                ],
-                "current_role": "domain_action_adapter",
-                "target_role": "opl_generated_domain_action_adapter_handoff_surface",
-                "policy_boundary": (
-                    "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority"
-                ),
+                "target_role": "opl_generated_domain_handler_handoff_surface",
             },
             {
                 "surface_id": "status",

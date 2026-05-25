@@ -446,7 +446,7 @@ def _enqueue_task_intake_for_live_runtime(
         "surface_kind": "mas_study_task_intake_owner_route_ref",
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
-        "dispatch_surface": "medautosci sidecar export -> medautosci sidecar dispatch",
+        "dispatch_surface": "medautosci domain-handler export -> medautosci domain-handler dispatch",
         "recommended_task_kind": "domain_route/owner-handoff",
         "authority_boundary": {
             "mas_writes_generic_runtime_queue": False,

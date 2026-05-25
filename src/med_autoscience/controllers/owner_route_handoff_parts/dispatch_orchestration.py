@@ -73,7 +73,7 @@ def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
 def _load_task(task_path: Path) -> dict[str, Any]:
     payload = _read_json_object(task_path)
     if payload is None:
-        raise ValueError(f"sidecar task must be a JSON object: {task_path}")
+        raise ValueError(f"domain-handler task must be a JSON object: {task_path}")
     return payload
 
 
@@ -137,7 +137,7 @@ def _owner_capability_fingerprint(*, action_type: str) -> str:
         ],
     }
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()[:20]
-    return f"mas-sidecar-owner-capability:{digest}"
+    return f"mas-domain-handler-owner-capability:{digest}"
 
 
 def _execute_paper_repair(
@@ -271,8 +271,8 @@ def _base_dispatch_receipt(
     source_fingerprint: str | None,
 ) -> dict[str, Any]:
     receipt = {
-        "surface_kind": "mas_family_sidecar_dispatch_receipt",
-        "version": "mas-family-sidecar.v1",
+        "surface_kind": "mas_family_domain_handler_dispatch_receipt",
+        "version": "mas-family-domain-handler.v1",
         "accepted": True,
         "task_id": task_id,
         "task_kind": task_kind,
@@ -448,7 +448,7 @@ def _write_dispatch_receipt(
     )
 
 
-def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
+def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
     generated_at = _now_iso()
     try:
         task = _load_task(task_path)
@@ -462,7 +462,7 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
             generated_at=generated_at,
             task_id=task_id,
             reason="wrong_domain",
-            detail=f"MAS sidecar cannot dispatch domain {domain_id}",
+            detail=f"MAS domain handler cannot dispatch domain {domain_id}",
         )
     if _forbidden_write_requested(task):
         forbidden_requested_writes = _forbidden_requested_writes(task)
@@ -482,7 +482,7 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
             task_id=task_id,
             task_kind=task_kind,
             reason="unsupported_task_kind",
-            detail=f"Unsupported MAS sidecar task kind: {task_kind}",
+            detail=f"Unsupported MAS domain-handler task kind: {task_kind}",
         )
     profile, profile_ref = _profile_from_task(task)
     payload = _mapping(task.get("payload"))
@@ -528,8 +528,8 @@ def _dispatch_error(
     forbidden_requested_writes: list[str] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
-        "surface_kind": "mas_family_sidecar_dispatch_receipt",
-        "version": "mas-family-sidecar.v1",
+        "surface_kind": "mas_family_domain_handler_dispatch_receipt",
+        "version": "mas-family-domain-handler.v1",
         "accepted": False,
         "generated_at": generated_at,
         "reason": reason,
@@ -553,4 +553,4 @@ def _dispatch_error(
     return payload
 
 
-__all__ = ["ALLOWED_TASK_KINDS", "dispatch_family_sidecar_task"]
+__all__ = ["ALLOWED_TASK_KINDS", "dispatch_family_domain_handler_task"]

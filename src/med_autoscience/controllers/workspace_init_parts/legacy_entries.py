@@ -55,11 +55,13 @@ def legacy_generated_workspace_guidance_reason(
     if path.name == "README.md" and "这个 workspace 由 `medautosci init-workspace` 初始化" in existing_content:
         current_required_tokens = (
             "OPL stage 控制面",
-            "ops/medautoscience/bin/progress-portal",
+            "ops/medautoscience/bin/progress-projection",
             "MAS 不提供私有 scheduler、runner、attempt 或 runtime console 入口",
         )
         legacy_tokens = (
             "ensure-study-runtime",
+            "progress-portal",
+            "start-web",
             "install-watch-runtime-service",
             "watch-runtime-service-status",
             "med-deepscientist repo",
@@ -104,6 +106,7 @@ def legacy_generated_workspace_guidance_reason(
         legacy_tokens = (
             "MAS-first runtime 运维面",
             "ensure-study-runtime",
+            "start-web",
             "MAS CLI / read-model / controlled pause surface",
             "外部 MDS launcher",
             "daemon 或 WebUI",

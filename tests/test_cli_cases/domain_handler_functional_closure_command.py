@@ -55,7 +55,7 @@ def _write_opl_production_proof(path: Path) -> None:
     )
 
 
-def test_sidecar_export_exposes_functional_closeout_contracts(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_exposes_functional_closeout_contracts(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -65,7 +65,7 @@ def test_sidecar_export_exposes_functional_closeout_contracts(tmp_path: Path, ca
 
     exit_code = cli.main(
         [
-            "sidecar",
+            "domain-handler",
             "export",
             "--profile",
             str(profile_path),

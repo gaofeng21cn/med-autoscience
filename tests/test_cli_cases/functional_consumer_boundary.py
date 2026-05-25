@@ -9,13 +9,13 @@ from tests.standard_agent_purity_helpers import assert_standard_agent_purity_bou
 from .shared import write_profile
 
 
-def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_projects_functional_consumer_boundary(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path, workspace_root=workspace_root)
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -51,8 +51,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
-        "sidecar",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
@@ -72,28 +71,18 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "mcp",
         "skill",
         "product_entry",
-        "sidecar",
-        "domain_action_adapter_export_dispatch",
+        "domain_handler",
         "status",
         "workbench",
         "projection_shell",
         "test_lane_harness",
     }
-    assert handoff_by_id["sidecar"]["current_role"] == "domain_owner_route_refs_export_dispatch_source"
-    assert handoff_by_id["domain_action_adapter_export_dispatch"]["current_role"] == (
-        "domain_action_adapter"
-    )
+    assert handoff_by_id["domain_handler"]["current_role"] == "domain_owner_route_refs_export_dispatch_source"
     assert handoff_by_id["skill"]["current_role"] == (
         "domain_skill_handler_target_and_pack_refs_only"
     )
     assert handoff_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
-    assert handoff_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
-    assert handoff_by_id["domain_action_adapter_export_dispatch"]["target_role"] == (
-        "opl_generated_domain_action_adapter_handoff_surface"
-    )
-    assert handoff_by_id["domain_action_adapter_export_dispatch"]["policy_boundary"] == (
-        "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority"
-    )
+    assert handoff_by_id["domain_handler"]["target_role"] == "opl_generated_domain_handler_handoff_surface"
     generated_default = boundary["generated_default_caller_boundary"]
     assert generated_default["status"] == "opl_generated_hosted_shell_is_default_caller"
     assert generated_default["default_caller_owner"] == "one-person-lab"
@@ -109,12 +98,12 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "product_entry",
         "product_status",
         "product_session",
-        "domain_action_adapter",
+        "domain_handler",
         "workbench",
     }
-    assert generated_surfaces["domain_action_adapter"]["mas_allowed_role"] == "domain_action_adapter"
-    assert generated_surfaces["domain_action_adapter"]["parity_ref"] == (
-        "domain_action_adapter_descriptor_parity"
+    assert generated_surfaces["domain_handler"]["mas_allowed_role"] == "domain_handler_target"
+    assert generated_surfaces["domain_handler"]["parity_ref"] == (
+        "domain_handler_descriptor_parity"
     )
     assert generated_surfaces["workbench"]["default_caller_owner"] == "one-person-lab"
     assert all(item["mas_generic_owner_allowed"] is False for item in generated_surfaces.values())

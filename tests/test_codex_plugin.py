@@ -36,13 +36,13 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert PLUGIN_SKILL_UI_METADATA_PATH.is_file()
 
 
-def test_mas_plugin_skill_tracks_current_sidecar_and_doc_boundaries() -> None:
+def test_mas_plugin_skill_tracks_current_domain_handler_and_doc_boundaries() -> None:
     manifest = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
     skill_text = PLUGIN_SKILL_PATH.read_text(encoding="utf-8")
 
     assert "DeepScientist overlay workflow" not in manifest["interface"]["longDescription"]
-    assert "sidecar export" in skill_text
-    assert "sidecar dispatch" in skill_text
+    assert "domain-handler export" in skill_text
+    assert "domain-handler dispatch" in skill_text
     assert "OPL framework-managed" in skill_text
     assert "docs/runtime/control/controllers.md" in skill_text
     assert "docs/runtime/contracts/runtime_boundary.md" in skill_text

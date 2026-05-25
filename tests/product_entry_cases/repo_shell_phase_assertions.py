@@ -252,10 +252,10 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "uv run python -m med_autoscience.cli doctor mainline-phase --phase phase_5_stage_runtime_platform_maturation"
     )
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
-        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_shell"]["product_entry_status"]["command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_shell"]["submit_study_task"]["command"].endswith(
         "study submit-task --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --task-intent '<task_intent>'"
@@ -384,7 +384,7 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
 
 def _assert_phase5_platform_target(*, module, payload, profile, profile_ref) -> None:
     assert payload["product_entry_start"]["modes"][0]["command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
     assert payload["product_entry_start"]["modes"][2]["surface_kind"] == "launch_study"

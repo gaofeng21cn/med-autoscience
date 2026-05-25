@@ -13,7 +13,7 @@ from ..study_domain_transition_table_parts import family_transition_spec
 from .authority_boundary import authority_boundary_payload
 from .controller_route_back_tasks import controller_decision_route_back_task
 from .default_executor_dispatch_tasks import default_executor_dispatch_tasks
-from .functional_closure import build_sidecar_functional_closure_projection
+from .domain_handler_functional_closure import build_domain_handler_functional_closure_projection
 from .export_study_projection import (
     build_study_projection,
     mapping,
@@ -32,7 +32,7 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def export_family_sidecar(
+def export_family_domain_handler(
     *,
     profile: WorkspaceProfile,
     profile_ref: Path,
@@ -45,7 +45,7 @@ def export_family_sidecar(
         opl_production_proof=opl_production_proof,
         proof_ref=opl_production_proof_ref,
     )
-    functional_closure = build_sidecar_functional_closure_projection(
+    functional_closure = build_domain_handler_functional_closure_projection(
         profile=profile,
         profile_ref=profile_ref,
         allowed_task_kinds=ALLOWED_TASK_KINDS,
@@ -60,8 +60,8 @@ def export_family_sidecar(
         opl_production_proof_ref=opl_production_proof_ref,
     )
     return {
-        "surface_kind": "mas_family_sidecar_export",
-        "version": "mas-family-sidecar.v1",
+        "surface_kind": "mas_family_domain_handler_export",
+        "version": "mas-family-domain-handler.v1",
         "target_domain_id": "medautoscience",
         "generated_at": generated_at,
         "profile": {
@@ -113,7 +113,7 @@ def export_family_sidecar(
             "not_authority_for": ["study_truth", "publication_quality", "artifact_gate", "paper_package"],
         },
         "dispatch": {
-            "entrypoint": "medautosci sidecar dispatch --task <task.json> --format json",
+            "entrypoint": "medautosci domain-handler dispatch --task <task.json> --format json",
             "allowed_task_kinds": sorted(ALLOWED_TASK_KINDS),
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
@@ -161,7 +161,7 @@ def export_family_sidecar(
             "version": "family-opl-current-control-state-handoff.v1",
             "target_domain_id": "medautoscience",
             "handoff_id": f"{profile.name}_mas_family_opl_current_control_state_handoff",
-            "adapter_id": "opl_family_runtime_provider_wakeup_to_mas_sidecar",
+            "adapter_id": "opl_family_runtime_provider_wakeup_to_mas_domain_handler",
             "cadence": {"interval_seconds": 60},
             "current_control_state_freshness": {"state": "unknown", "observed_at": generated_at, "max_age_seconds": 180},
             "slo_state": {
@@ -170,7 +170,7 @@ def export_family_sidecar(
             },
             "repair_command": f"medautosci owner-route-reconcile --profile {profile_ref} --developer-supervisor-mode developer_apply_safe",
             "safe_reconcile_hint": (
-                "Use OPL provider/runtime manager wakeup plus medautosci sidecar dispatch; "
+                "Use OPL provider/runtime manager wakeup plus medautosci domain-handler dispatch; "
                 "MAS default surfaces stay in standard OPL Agent shape."
             ),
             "standard_agent_purity": functional_closure["functional_consumer_boundary"][
@@ -328,7 +328,7 @@ def _paper_autonomy_tasks(
                 "domain_id": "medautoscience",
                 "task_kind": "paper_autonomy/repair-recheck",
                 "priority": 40,
-                "source": "mas-sidecar-export",
+                "source": "mas-domain-handler-export",
                 "requires_approval": False,
                 "dedupe_key": idempotency_key,
                 "payload": {
@@ -370,4 +370,4 @@ def _aggregate_domain_refs(studies: list[Mapping[str, Any]]) -> list[dict[str, A
     return refs[:50]
 
 
-__all__ = ["export_family_sidecar"]
+__all__ = ["export_family_domain_handler"]

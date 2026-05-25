@@ -407,7 +407,7 @@ def test_real_paper_ai_first_soak_validation_rejects_bypass_and_schema_drift() -
     }
 
 
-def test_paper_soak_memory_apply_proof_links_opl_attempt_sidecar_closeout_receipt_and_progress_guard() -> None:
+def test_paper_soak_memory_apply_proof_links_opl_attempt_domain_handler_closeout_receipt_and_progress_guard() -> None:
     module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
 
     proof = module.build_paper_soak_memory_apply_proof(
@@ -416,8 +416,8 @@ def test_paper_soak_memory_apply_proof_links_opl_attempt_sidecar_closeout_receip
             "provider": "temporal",
             "status": "completed",
         },
-        sidecar_task={
-            "task_id": "sidecar-task-001",
+        domain_handler_task={
+            "task_id": "domain-handler-task-001",
             "task_kind": "stage_memory/apply-closeout",
         },
         typed_closeout={
@@ -443,7 +443,7 @@ def test_paper_soak_memory_apply_proof_links_opl_attempt_sidecar_closeout_receip
     assert proof["overall_status"] == "complete"
     assert [step["step"] for step in proof["proof_steps"]] == [
         "opl_attempt",
-        "codex_or_domain_sidecar",
+        "codex_or_domain_handler",
         "typed_stage_closeout",
         "mas_memory_router_receipt",
         "progress_delta_or_guard",
@@ -453,7 +453,7 @@ def test_paper_soak_memory_apply_proof_links_opl_attempt_sidecar_closeout_receip
     assert proof["authority_boundary"]["can_authorize_publication_quality"] is False
     assert {ref["role"] for ref in proof["source_refs"]} == {
         "opl_attempt",
-        "sidecar_task",
+        "domain_handler_task",
         "typed_stage_closeout",
         "mas_memory_router_receipt",
         "progress_delta",
@@ -465,7 +465,7 @@ def test_paper_soak_memory_apply_proof_requires_progress_delta_human_gate_or_sto
 
     proof = module.build_paper_soak_memory_apply_proof(
         opl_attempt={"attempt_id": "opl-attempt-001"},
-        sidecar_task={"task_id": "sidecar-task-001"},
+        domain_handler_task={"task_id": "domain-handler-task-001"},
         typed_closeout={"surface": "stage_memory_closeout_packet", "idempotency_key": "closeout-001"},
         mas_receipt={"surface": "memory_write_router_receipt", "status": "applied", "idempotency_key": "closeout-001"},
     )

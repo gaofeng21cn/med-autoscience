@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `support_reference_index`
 State: `active_support`
-Machine boundary: 人读参考索引。机器真相继续归 contracts、schemas、source、runtime/controller surfaces、product-entry manifest、sidecar receipt 和真实 workspace artifact。
+Machine boundary: 人读参考索引。机器真相继续归 contracts、schemas、source、runtime/controller surfaces、product-entry manifest、owner receipt 和真实 workspace artifact。
 
 本目录保存支撑材料。References 解释背景、集成形态、parity 证据、定位、workspace 语境和 mainline assessment；它们不拥有执行 gate、runtime truth、publication authority、artifact authority 或 dated verification ledger。dated proof、real-study verification note 和过程性 audit 归 `docs/history/**`。
 

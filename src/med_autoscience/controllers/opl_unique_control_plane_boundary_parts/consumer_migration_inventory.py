@@ -35,7 +35,7 @@ DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
     "domain_authority_refs_index": {
         "domain_ref_consumer_refs": [
             "owner-route handoff records owner-receipt refs",
-            "sidecar/product-entry projections consume domain authority refs only",
+            "domain-handler/product-entry projections consume domain authority refs only",
             "workspace maintenance records archive/source/artifact locator refs only",
         ],
         "retirement_gate_status": "active_domain_authority_ref_index_not_runtime_lifecycle_owner",
@@ -55,7 +55,7 @@ DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
     "paper_work_unit_outbox_index": {
         "domain_ref_consumer_refs": [
             "paper work-unit controller keeps publication-gate context refs",
-            "sidecar dispatch consumes work-unit source refs",
+            "domain-handler dispatch consumes work-unit source refs",
         ],
         "retirement_gate_status": "domain_outbox_refs_until_opl_queue_attempt_parity",
         "delete_or_tombstone_after": [
@@ -72,7 +72,7 @@ DOMAIN_AUTHORITY_REFS_RETIREMENT_GATE_BY_MODULE = {
     },
     "runtime_storage_maintenance": {
         "domain_ref_consumer_refs": [
-            "runtime storage maintenance CLI reads workspace storage refs",
+            "runtime grouped storage audit commands read workspace storage refs",
             "workspace storage reports expose sizes and cleanup receipts only",
         ],
         "retirement_gate_status": "storage_refs_until_opl_cleanup_policy_parity",
@@ -222,7 +222,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "domain_ref_consumers": [
             "owner-route handoff domain authority refs",
             "paper work-unit and dispatch owner receipt refs",
-            "sidecar/product-entry domain authority refs projections",
+            "domain-handler/product-entry domain authority refs projections",
         ],
         "current_ref_status": "domain_authority_refs_index_no_runtime_lifecycle_owner",
         "authority_boundary": "refs_only_owner_receipt_locator_index_not_generic_runtime_owner",
@@ -263,7 +263,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "domain_authority_refs",
         "migration_class": "refs_only_domain_adapter",
         "code_paths": ["src/med_autoscience/controllers/paper_work_unit_outbox.py"],
-        "domain_ref_consumers": ["paper work-unit controller and sidecar dispatch source refs"],
+        "domain_ref_consumers": ["paper work-unit controller and domain-handler dispatch source refs"],
         "current_ref_status": "domain_outbox_refs_no_queue_attempt_owner",
         "migration_action": "declare_paper_work_unit_refs_and_queue_attempt_requirements",
         "retention_reason": "Paper work-unit identity, publication gate context, and artifact delta obligations are MAS domain facts.",
@@ -280,9 +280,8 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py",
-            "src/med_autoscience/cli_parts/runtime_storage_commands.py",
         ],
-        "domain_ref_consumers": ["runtime storage maintenance CLI", "workspace storage reports"],
+        "domain_ref_consumers": ["runtime grouped storage audit commands", "workspace storage reports"],
         "current_ref_status": "refs_only_storage_audit_adapter_consumes_opl_lifecycle_policy",
         "migration_action": "declare_storage_audit_refs_and_consume_opl_lifecycle_cleanup_policy",
         "retention_reason": "MAS may expose study/workspace refs and artifact authority receipts; generic cleanup policy belongs to OPL.",
@@ -407,13 +406,16 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
         ],
-        "domain_ref_consumers": ["progress portal CLI", "workspace cockpit", "product-entry manifest"],
+        "domain_ref_consumers": [
+            "progress portal read-model materializer",
+            "workspace cockpit",
+            "product-entry manifest",
+        ],
         "current_ref_status": "opl_generated_workbench_surface_consumes_mas_domain_projection_refs",
         "migration_action": "declare_workbench_projection_inputs_for_opl_app_generated_shell",
         "retention_reason": (
-            "MAS supplies per-study route map, quality/source refs, blockers, safe action receipt projection, "
-            "and the active no-App diagnostic Progress Portal carrier until OPL App default carrier parity "
-            "and workspace-helper no-active-caller proof are present."
+            "MAS supplies per-study route map, quality/source refs, blockers, domain-handler owner-route handoff refs, "
+            "plus the domain-owned Progress Portal payload/static HTML materializer consumed by OPL hosted workbench refs."
         ),
         "current_surface_refs": [
             "product_status",
@@ -427,25 +429,21 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "mas_domain_authority_refs": ["study_progress_projection", "safe_action_refs"],
         "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
         "latest_thinning_evidence": {
-            "status": "product_status_workbench_projection_and_active_diagnostic_carrier_split",
+            "status": "opl_hosted_workbench_projection_and_read_model_materializer_landed",
             "extracted_paths": [
                 "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
                 "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             ],
             "workspace_carrier_boundary": {
-                "status": "active_workspace_diagnostic_carrier_delete_blocked_by_callers",
+                "status": "domain_owned_read_model_materializer_no_active_workspace_helper",
                 "physical_module": (
                     "src/med_autoscience/controllers/progress_portal_parts/"
                     "workspace_carrier.py"
                 ),
                 "carrier_scope": (
-                    "workspace_static_read_model_package_and_optional_local_read_only_service"
+                    "domain_owned_payload_html_and_hosted_package_projection"
                 ),
-                "active_callers": [
-                    "medautosci workspace progress-portal",
-                    "medautosci workspace progress-portal --serve",
-                    "ops/mas/bin/start-web workspace helper",
-                ],
+                "active_callers": [],
                 "writes_only": [
                     "artifacts/runtime/progress_portal/latest.json",
                     "artifacts/runtime/progress_portal/hosted_package.json",
@@ -453,22 +451,18 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                     "ops/mas/progress/index.html",
                     "ops/mas/progress/studies/<study_id>/index.html",
                 ],
-                "delete_after": [
-                    "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs",
-                    "workspace_helper_no_active_caller_proof",
-                    "focused_progress_portal_materialization_tests_green",
-                ],
-                "delete_blockers": [
-                    "workspace_helper_active_caller_present",
-                    "progress_portal_cli_still_materializes_workspace_local_html",
-                    "opl_app_default_progress_carrier_not_proven_as_default_caller",
-                ],
                 "does_not_claim": [
-                    "workspace_helper_no_active_caller_proof",
-                    "opl_app_default_carrier_cutover_complete",
-                    "domain_repo_physical_delete_ready",
+                    "workspace_workbench_owner",
+                    "status_wrapper_owner",
+                    "generic_runtime_owner",
+                    "local_http_service_owner",
+                    "runtime_control_owner",
                 ],
                 "domain_repo_physical_delete_authorized": False,
+                "retention_reason": (
+                    "The retained module materializes MAS-owned read-model evidence and hosted package refs; "
+                    "it is not a workspace helper, service wrapper, or runtime control owner."
+                ),
                 "does_not_write": [
                     "study_truth",
                     "publication_eval/latest.json",
@@ -499,7 +493,7 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "does_not_claim_opl_default_caller": True,
             "does_not_touch_publication_or_package_authority": True,
         },
-        "proof_refs": ["product_entry_manifest.functional_consumer_boundary.generated_surface_handoff", "sidecar_export.functional_consumer_boundary.generated_surface_handoff"],
+        "proof_refs": ["product_entry_manifest.functional_consumer_boundary.generated_surface_handoff", "domain_handler_export.functional_consumer_boundary.generated_surface_handoff"],
     },
     {
         "module_id": "owner_route_reconcile_materialize_dispatch_shell",
@@ -511,14 +505,14 @@ _FUNCTIONAL_MODULE_INVENTORY = (
             "src/med_autoscience/controllers/default_executor_action_policy.py",
         ],
         "retired_code_paths": ["src/med_autoscience/controllers/domain_route_reconcile.py"],
-        "domain_ref_consumers": ["owner-route one-shot tick", "runtime owner-route reconcile", "sidecar dispatch"],
+        "domain_ref_consumers": ["owner-route one-shot tick", "runtime owner-route reconcile", "domain-handler dispatch"],
         "current_ref_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
         "migration_action": "declare_owner_route_policy_and_consume_opl_runtime_manager_loop",
         "retention_reason": "MAS must keep owner-route facts, publication gate blockers, safe action refs, and no-forbidden-write evidence.",
         "current_surface_refs": [
-            "sidecar",
-            "sidecar_export_dispatch",
-            "sidecar_dispatch",
+            "domain_handler",
+            "domain_handler_export",
+            "domain_handler_dispatch",
         ],
         "opl_expected_primitives": ["opl_generic_runner", "opl_attempt_retry_dead_letter", "opl_repair_projection", "opl_provider_runtime_manager"],
         "mas_domain_authority_refs": ["owner_route", "publication_gate", "safe_action_refs"],
@@ -565,9 +559,9 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "owner": "med-autoscience",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
-            "src/med_autoscience/cli.py",
-            "src/med_autoscience/mcp_server.py",
+            "src/med_autoscience/domain_entry.py",
             "src/med_autoscience/controllers/product_entry.py",
+            "src/med_autoscience/controllers/owner_route_handoff.py",
             "plugins/mas/skills/mas/SKILL.md",
         ],
         "domain_ref_consumers": ["MAS CLI", "MCP tool handlers", "skill direct domain entry", "product-entry manifest"],

@@ -506,8 +506,8 @@ def _closeout_evidence_refs(study: Mapping[str, Any]) -> list[dict[str, Any]]:
                 }
             )
     for payload_key, role in (
-        ("sidecar_task", "mas_sidecar_task"),
-        ("dispatch_receipt", "mas_sidecar_dispatch_receipt"),
+        ("domain_handler_task", "mas_domain_handler_task"),
+        ("dispatch_receipt", "mas_domain_handler_dispatch_receipt"),
         ("repair_execution_receipt", "mas_repair_execution_receipt"),
         ("repair_execution_evidence", "mas_repair_execution_evidence"),
     ):
@@ -661,12 +661,12 @@ def _normalize_study_id(study_id: str) -> str:
 
 def _study_soak_projection(study_root: Path) -> dict[str, Any]:
     surfaces = {
-        "sidecar_task": _latest_json_from_candidates(
-            study_root / "artifacts" / "runtime" / "opl_family_sidecar",
+        "domain_handler_task": _latest_json_from_candidates(
+            study_root / "artifacts" / "runtime" / "opl_family_domain_handler",
             patterns=("exported_task.json", "*task*.json"),
         ),
         "dispatch_receipt": _latest_json_from_candidates(
-            study_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts",
+            study_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts",
             patterns=("latest.json", "*.json"),
         ),
         "repair_execution_receipt": _read_json_mapping(
@@ -724,7 +724,7 @@ def _final_projection(surfaces: Mapping[str, Mapping[str, Any]]) -> str:
         return "stable_blocker"
     if _mapping(surfaces.get("dispatch_receipt")).get("accepted") is False:
         return "stable_blocker"
-    if _mapping(surfaces.get("sidecar_task")):
+    if _mapping(surfaces.get("domain_handler_task")):
         return "continuing_repair"
     return "unknown"
 
@@ -733,7 +733,7 @@ def _next_owner(surfaces: Mapping[str, Mapping[str, Any]]) -> str | None:
     repair_receipt = _mapping(surfaces.get("repair_execution_receipt"))
     if repair_receipt.get("execution_status") == "executed":
         return "ai_reviewer"
-    task = _mapping(surfaces.get("sidecar_task"))
+    task = _mapping(surfaces.get("domain_handler_task"))
     payload = _mapping(task.get("payload"))
     unit = _mapping(payload.get("repair_work_unit"))
     if owner := _text(unit.get("owner")):
@@ -755,7 +755,7 @@ def _ai_reviewer_evidence(publication_eval: Mapping[str, Any], ai_reviewer_reque
 def _soak_source_refs(study_root: Path) -> list[dict[str, Any]]:
     refs = []
     for relative_ref in (
-        "artifacts/runtime/opl_family_sidecar",
+        "artifacts/runtime/opl_family_domain_handler",
         "artifacts/controller/repair_execution_receipts/latest.json",
         "artifacts/controller/repair_execution_evidence/latest.json",
         "artifacts/controller/gate_replay_requests/latest.json",

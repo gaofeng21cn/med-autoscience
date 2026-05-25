@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `north_star_reference`
 State: `active_support`
-Machine boundary: 本文是人读目标态参考。机器可读真相继续归 `contracts/`、源码、CLI/MCP/API 行为、product-entry manifest、sidecar receipt、runtime/controller durable surfaces、真实 workspace 与 generated artifact proof。
+Machine boundary: 本文是人读目标态参考。机器可读真相继续归 `contracts/`、源码、CLI/MCP/API 行为、product-entry manifest、owner receipt、runtime/controller durable surfaces、真实 workspace 与 generated artifact proof。
 Date: `2026-05-21`
 
 ## 文档读法
@@ -80,7 +80,7 @@ MAS 程序只承担机械职责：
 
 ## 理想工作台边界
 
-理想用户工作台面向医生、PI、研究团队和维护者。OPL App / workbench 承担主产品面，MAS 提供 domain-owned projection、route map、stage/review/artifact refs、memory receipt refs、quality/source refs 和 safe action receipts。
+理想用户工作台面向医生、PI、研究团队和维护者。OPL App / workbench 承担主产品面，MAS 提供 domain-owned projection、route map、stage/review/artifact refs、memory receipt refs、quality/source refs 和 owner-route handoff refs。
 
 工作台应展示：
 

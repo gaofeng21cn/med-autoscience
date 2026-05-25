@@ -465,7 +465,7 @@ def validate_real_paper_ai_first_soak_observation(
 def build_paper_soak_memory_apply_proof(
     *,
     opl_attempt: Mapping[str, Any],
-    sidecar_task: Mapping[str, Any],
+    domain_handler_task: Mapping[str, Any],
     typed_closeout: Mapping[str, Any],
     mas_receipt: Mapping[str, Any],
     progress_delta: Mapping[str, Any] | None = None,
@@ -478,7 +478,7 @@ def build_paper_soak_memory_apply_proof(
         and _text(mas_receipt.get("status")) in {"applied", "blocked", "dry_run"}
     )
     attempt_ref = _text(opl_attempt.get("attempt_id"))
-    sidecar_task_id = _text(sidecar_task.get("task_id"))
+    domain_handler_task_id = _text(domain_handler_task.get("task_id"))
     progress = _mapping(progress_delta)
     gate = _mapping(human_gate)
     stop = _mapping(stop_loss)
@@ -490,10 +490,10 @@ def build_paper_soak_memory_apply_proof(
             "OPL attempt is a provider/runtime receipt ref only.",
         ),
         _proof_step(
-            "codex_or_domain_sidecar",
-            bool(sidecar_task_id),
-            sidecar_task_id or "missing_sidecar_task_id",
-            "Sidecar task carries refs to MAS owner surface.",
+            "codex_or_domain_handler",
+            bool(domain_handler_task_id),
+            domain_handler_task_id or "missing_domain_handler_task_id",
+            "Domain-handler task carries refs to MAS owner surface.",
         ),
         _proof_step(
             "typed_stage_closeout",
@@ -519,11 +519,11 @@ def build_paper_soak_memory_apply_proof(
     return {
         "surface": PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE,
         "schema_version": SCHEMA_VERSION,
-        "study_id": _text(sidecar_task.get("study_id") or _mapping(sidecar_task.get("payload")).get("study_id") or "unknown"),
+        "study_id": _text(domain_handler_task.get("study_id") or _mapping(domain_handler_task.get("payload")).get("study_id") or "unknown"),
         "stage": _text(typed_closeout.get("stage") or "all"),
         "input_refs": _paper_soak_memory_source_refs(
             opl_attempt=opl_attempt,
-            sidecar_task=sidecar_task,
+            domain_handler_task=domain_handler_task,
             typed_closeout=typed_closeout,
             mas_receipt=mas_receipt,
             progress_delta=progress,
@@ -537,7 +537,7 @@ def build_paper_soak_memory_apply_proof(
         "proof_steps": proof_steps,
         "source_refs": _paper_soak_memory_source_refs(
             opl_attempt=opl_attempt,
-            sidecar_task=sidecar_task,
+            domain_handler_task=domain_handler_task,
             typed_closeout=typed_closeout,
             mas_receipt=mas_receipt,
             progress_delta=progress,
@@ -569,7 +569,7 @@ def _proof_step(step: str, present: bool, ref: str, role: str) -> dict[str, Any]
 def _paper_soak_memory_source_refs(
     *,
     opl_attempt: Mapping[str, Any],
-    sidecar_task: Mapping[str, Any],
+    domain_handler_task: Mapping[str, Any],
     typed_closeout: Mapping[str, Any],
     mas_receipt: Mapping[str, Any],
     progress_delta: Mapping[str, Any],
@@ -578,7 +578,7 @@ def _paper_soak_memory_source_refs(
 ) -> list[dict[str, str]]:
     candidates = (
         ("opl_attempt", opl_attempt.get("attempt_id") or opl_attempt.get("attempt_ref")),
-        ("sidecar_task", sidecar_task.get("task_id") or sidecar_task.get("task_ref")),
+        ("domain_handler_task", domain_handler_task.get("task_id") or domain_handler_task.get("task_ref")),
         ("typed_stage_closeout", typed_closeout.get("idempotency_key") or typed_closeout.get("artifact_path")),
         ("mas_memory_router_receipt", mas_receipt.get("receipt_ref") or mas_receipt.get("idempotency_key")),
         ("progress_delta", progress_delta.get("delta_id") or progress_delta.get("ref")),

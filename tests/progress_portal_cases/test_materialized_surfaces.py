@@ -70,61 +70,51 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
         "payload": "artifacts/runtime/progress_portal/studies/001-risk/latest.json",
         "html": "ops/mas/progress/studies/001-risk/index.html",
     }
-    assert hosted_package["entrypoints"]["workspace_helper"] == "ops/mas/bin/start-web"
-    assert hosted_package["entrypoints"]["optional_local_read_only_service"] == (
-        "medautosci workspace progress-portal --profile <profile> --serve"
-    )
+    assert hosted_package["entrypoints"] == {
+        "opl_hosted_workbench_consumer": "OPL App/workbench consumes MAS progress payload refs",
+        "progress_payload_ref": "artifacts/runtime/progress_portal/latest.json",
+    }
     carrier = hosted_package["hosted_runtime_carrier_contract"]
-    assert carrier["surface_kind"] == "mas_progress_portal_workspace_carrier_boundary"
-    assert carrier["status"] == "active_workspace_diagnostic_carrier_delete_blocked_by_callers"
+    assert carrier["surface_kind"] == "mas_progress_portal_read_model_materializer_boundary"
+    assert carrier["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
     assert carrier["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
     )
     assert carrier["carrier_scope"] == (
-        "workspace_static_read_model_package_and_optional_local_read_only_service"
+        "domain_owned_payload_html_and_hosted_package_projection"
     )
-    assert carrier["active_callers"] == [
-        "medautosci workspace progress-portal",
-        "medautosci workspace progress-portal --serve",
-        "ops/mas/bin/start-web workspace helper",
-    ]
+    assert carrier["active_callers"] == []
     assert carrier["domain_repo_physical_delete_authorized"] is False
     assert carrier["writes_only"] == [
         "artifacts/runtime/progress_portal/latest.json",
-        "ops/mas/progress/index.html",
         "artifacts/runtime/progress_portal/hosted_package.json",
         "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+        "ops/mas/progress/index.html",
         "ops/mas/progress/studies/<study_id>/index.html",
     ]
-    assert "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs" in carrier["delete_after"]
-    assert carrier["delete_blockers"] == [
-        "workspace_helper_active_caller_present",
-        "progress_portal_cli_still_materializes_workspace_local_html",
-        "opl_app_default_progress_carrier_not_proven_as_default_caller",
-    ]
-    assert "domain_repo_physical_delete_ready" in carrier["does_not_claim"]
+    assert "runtime_control_owner" in carrier["does_not_claim"]
+    assert "read-model materializer" in carrier["retention_reason"]
     assert "MDS WebUI state" in hosted_package["hosted_runtime_carrier_contract"]["must_not_consume"]
     assert "publication_eval/latest.json" in hosted_package["hosted_runtime_carrier_contract"]["must_not_write"]
     carrier = hosted_package["hosted_runtime_carrier_contract"]
-    assert carrier["surface_kind"] == "mas_progress_portal_workspace_carrier_boundary"
-    assert carrier["status"] == "active_workspace_diagnostic_carrier_delete_blocked_by_callers"
+    assert carrier["surface_kind"] == "mas_progress_portal_read_model_materializer_boundary"
+    assert carrier["status"] == "domain_owned_read_model_materializer_no_active_workspace_helper"
     assert carrier["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
     )
     assert carrier["carrier_scope"] == (
-        "workspace_static_read_model_package_and_optional_local_read_only_service"
+        "domain_owned_payload_html_and_hosted_package_projection"
     )
     assert carrier["domain_repo_physical_delete_authorized"] is False
-    assert "progress_portal_cli_still_materializes_workspace_local_html" in carrier["delete_blockers"]
-    assert "workspace_helper_no_active_caller_proof" in carrier["does_not_claim"]
+    assert carrier["active_callers"] == []
+    assert "local_http_service_owner" in carrier["does_not_claim"]
     assert carrier["writes_only"] == [
         "artifacts/runtime/progress_portal/latest.json",
-        "ops/mas/progress/index.html",
         "artifacts/runtime/progress_portal/hosted_package.json",
         "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+        "ops/mas/progress/index.html",
         "ops/mas/progress/studies/<study_id>/index.html",
     ]
-    assert "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs" in carrier["delete_after"]
     assert result["opl_handoff"]["payload_ref"].endswith("artifacts/runtime/progress_portal/studies/001-risk/latest.json")
     assert result["opl_handoff"]["deep_link"] == str(html_path)
     assert result["hosted_package"]["package_refs"]["hosted_package"] == str(hosted_package_path)
@@ -479,47 +469,9 @@ def test_materialize_progress_portal_can_open_static_entry(monkeypatch, tmp_path
     assert opened == [Path(result["html_path"]).as_uri()]
 
 
-def test_serve_progress_portal_materializes_and_reports_read_only_local_url(monkeypatch, tmp_path: Path) -> None:
+def test_progress_portal_has_no_repo_local_http_service_entry(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
     carrier_module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.workspace_carrier")
-    profile = make_profile(tmp_path)
-    served: dict[str, object] = {}
 
-    class FakeServer:
-        server_address = ("127.0.0.1", 4301)
-
-        def __init__(self, address, handler):
-            served["address"] = address
-            served["handler"] = handler
-
-        def serve_forever(self) -> None:
-            served["served"] = True
-
-        def server_close(self) -> None:
-            served["closed"] = True
-
-    monkeypatch.setattr(carrier_module.socketserver, "TCPServer", FakeServer)
-
-    result = module.serve_progress_portal(
-        profile=profile,
-        study_id="001-risk",
-        progress_payload=_progress_payload(),
-        generated_at="2026-05-08T01:05:00+00:00",
-        host="127.0.0.1",
-        port=4301,
-        interval_seconds=20,
-        once=True,
-    )
-
-    assert result["status"] == "serving"
-    assert result["url"] == "http://127.0.0.1:4301/"
-    assert result["read_only"] is True
-    assert result["interval_seconds"] == 20
-    assert Path(result["html_path"]).exists()
-    assert result["hosted_package_path"].endswith("artifacts/runtime/progress_portal/hosted_package.json")
-    assert result["hosted_package"]["mds_webui_dependency_allowed"] is False
-    assert result["actions_enabled"] is False
-    assert result["opl_handoff"]["deep_link"] == result["html_path"]
-    assert result["opl_handoff"]["payload_ref"].endswith("artifacts/runtime/progress_portal/studies/001-risk/latest.json")
-    assert served["address"] == ("127.0.0.1", 4301)
-    assert served["closed"] is True
+    assert not hasattr(module, "serve_progress_portal")
+    assert not hasattr(carrier_module, "serve_progress_portal")

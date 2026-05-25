@@ -4,7 +4,7 @@ import hashlib
 
 from .shared import *  # noqa: F403,F401
 
-def test_sidecar_dispatch_rejects_retired_runtime_recovery_task_kind(tmp_path: Path, capsys) -> None:
+def test_domain_handler_dispatch_rejects_retired_runtime_recovery_task_kind(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
@@ -27,12 +27,12 @@ def test_sidecar_dispatch_rejects_retired_runtime_recovery_task_kind(tmp_path: P
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 1
     payload = json.loads(captured.out)
-    assert payload["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
+    assert payload["surface_kind"] == "mas_family_domain_handler_dispatch_receipt"
     assert payload["accepted"] is False
     assert payload["reason"] == "unsupported_task_kind"
     assert payload["task_kind"] == "domain_route/retired-runtime-recover"
@@ -45,7 +45,7 @@ def test_sidecar_dispatch_rejects_retired_runtime_recovery_task_kind(tmp_path: P
     assert not (workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests").exists()
 
 
-def test_sidecar_dispatch_requests_opl_admission_for_owner_route_handoff(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_domain_handler_dispatch_requests_opl_admission_for_owner_route_handoff(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     adapter = importlib.import_module("med_autoscience.controllers.owner_route_handoff_parts.dispatch_orchestration")
     profile_path = tmp_path / "profile.local.toml"
@@ -63,7 +63,7 @@ def test_sidecar_dispatch_requests_opl_admission_for_owner_route_handoff(monkeyp
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -76,7 +76,7 @@ def test_sidecar_dispatch_requests_opl_admission_for_owner_route_handoff(monkeyp
     assert payload["authority_boundary"]["writes_domain_truth"] is False
 
 
-def test_sidecar_dispatch_executes_paper_repair_work_unit_inside_mas_owner(tmp_path: Path, capsys) -> None:
+def test_domain_handler_dispatch_executes_paper_repair_work_unit_inside_mas_owner(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
@@ -113,7 +113,7 @@ def test_sidecar_dispatch_executes_paper_repair_work_unit_inside_mas_owner(tmp_p
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -130,7 +130,7 @@ def test_sidecar_dispatch_executes_paper_repair_work_unit_inside_mas_owner(tmp_p
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
-def test_sidecar_dispatch_routes_quality_repair_batch_callable_inside_mas_owner(
+def test_domain_handler_dispatch_routes_quality_repair_batch_callable_inside_mas_owner(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -185,7 +185,7 @@ def test_sidecar_dispatch_routes_quality_repair_batch_callable_inside_mas_owner(
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -203,7 +203,7 @@ def test_sidecar_dispatch_routes_quality_repair_batch_callable_inside_mas_owner(
     assert not (study_root / "manuscript" / "current_package").exists()
 
 
-def test_sidecar_dispatch_accepts_quality_repair_writer_handoff_without_dead_lettering(
+def test_domain_handler_dispatch_accepts_quality_repair_writer_handoff_without_dead_lettering(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -278,7 +278,7 @@ def test_sidecar_dispatch_accepts_quality_repair_writer_handoff_without_dead_let
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -299,7 +299,7 @@ def test_sidecar_dispatch_accepts_quality_repair_writer_handoff_without_dead_let
     assert payload["dispatch"]["downstream_worker_handoff"]["next_executable_owner"] == "write"
 
 
-def test_sidecar_dispatch_prefers_runtime_binding_quest_id_for_quality_repair_batch_callable(
+def test_domain_handler_dispatch_prefers_runtime_binding_quest_id_for_quality_repair_batch_callable(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -360,7 +360,7 @@ def test_sidecar_dispatch_prefers_runtime_binding_quest_id_for_quality_repair_ba
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -368,7 +368,7 @@ def test_sidecar_dispatch_prefers_runtime_binding_quest_id_for_quality_repair_ba
     assert calls[0]["quest_id"] == "003-dpcc-primary-care-phenotype-treatment-gap"
 
 
-def test_sidecar_dispatch_replays_paper_repair_when_owner_capability_changes(
+def test_domain_handler_dispatch_replays_paper_repair_when_owner_capability_changes(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -418,15 +418,15 @@ def test_sidecar_dispatch_replays_paper_repair_when_owner_capability_changes(
     }
     _write_json(task_path, task)
 
-    stale_receipt_dir = workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts"
+    stale_receipt_dir = workspace_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts"
     stale_receipt_dir.mkdir(parents=True, exist_ok=True)
     stale_key = "paper-task-ai-reviewer-callable:reviewer-fp"
     stale_receipt_path = stale_receipt_dir / f"{hashlib.sha256(stale_key.encode('utf-8')).hexdigest()[:20]}.json"
     _write_json(
         stale_receipt_path,
         {
-            "surface_kind": "mas_family_sidecar_dispatch_receipt",
-            "version": "mas-family-sidecar.v1",
+            "surface_kind": "mas_family_domain_handler_dispatch_receipt",
+            "version": "mas-family-domain-handler.v1",
             "accepted": False,
             "task_id": "paper-task-ai-reviewer-callable",
             "task_kind": "paper_autonomy/repair-recheck",
@@ -444,7 +444,7 @@ def test_sidecar_dispatch_replays_paper_repair_when_owner_capability_changes(
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -456,11 +456,11 @@ def test_sidecar_dispatch_replays_paper_repair_when_owner_capability_changes(
     )
     assert len(calls) == 1
     assert calls[0]["action_types"] == ("return_to_ai_reviewer_workflow",)
-    assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_sidecar/dispatch_receipts/")
+    assert payload["receipt_ref"].startswith("artifacts/runtime/opl_family_domain_handler/dispatch_receipts/")
     assert payload["receipt_ref"] != str(stale_receipt_path.relative_to(workspace_root))
 
 
-def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executor(
+def test_domain_handler_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executor(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -511,7 +511,7 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -528,7 +528,7 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
     ]
 
 
-def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
+def test_domain_handler_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -588,9 +588,9 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
         },
     )
 
-    analysis_exit = cli.main(["sidecar", "dispatch", "--task", str(analysis_task_path), "--format", "json"])
+    analysis_exit = cli.main(["domain-handler", "dispatch", "--task", str(analysis_task_path), "--format", "json"])
     analysis_payload = json.loads(capsys.readouterr().out)
-    reviewer_exit = cli.main(["sidecar", "dispatch", "--task", str(reviewer_task_path), "--format", "json"])
+    reviewer_exit = cli.main(["domain-handler", "dispatch", "--task", str(reviewer_task_path), "--format", "json"])
     reviewer_payload = json.loads(capsys.readouterr().out)
 
     assert analysis_exit == 0
@@ -617,7 +617,7 @@ def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
     assert analysis_payload["forbidden_write_guard_proof"]["can_authorize_publication_quality"] is False
 
 
-def test_sidecar_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: Path, capsys) -> None:
+def test_domain_handler_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "profile.local.toml"
@@ -641,7 +641,7 @@ def test_sidecar_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: P
         {"state": "breach", "breach_reason": "same_fingerprint_loop"},
     )
 
-    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
@@ -650,7 +650,7 @@ def test_sidecar_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: P
     assert payload["studies"][1]["autonomy_continuation"]["eligible_for_auto_dispatch"] is False
 
 
-def test_sidecar_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) -> None:
+def test_domain_handler_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     task_path = tmp_path / "task.json"
     _write_json(
@@ -663,12 +663,12 @@ def test_sidecar_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) ->
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 1
     payload = json.loads(captured.out)
-    assert payload["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
+    assert payload["surface_kind"] == "mas_family_domain_handler_dispatch_receipt"
     assert payload["accepted"] is False
     assert payload["forbidden_domain_truth_write"] is True
     assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
@@ -680,7 +680,7 @@ def test_sidecar_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) ->
     assert guard["can_write_domain_truth"] is False
 
 
-def test_sidecar_dispatch_rejects_opl_attempt_truth_substitution(tmp_path: Path, capsys) -> None:
+def test_domain_handler_dispatch_rejects_opl_attempt_truth_substitution(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     task_path = tmp_path / "task.json"
     _write_json(
@@ -698,7 +698,7 @@ def test_sidecar_dispatch_rejects_opl_attempt_truth_substitution(tmp_path: Path,
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 1
@@ -710,7 +710,7 @@ def test_sidecar_dispatch_rejects_opl_attempt_truth_substitution(tmp_path: Path,
     assert guard["can_authorize_publication_quality"] is False
 
 
-def test_sidecar_dispatch_rejects_opl_memory_body_or_router_acceptance_write(
+def test_domain_handler_dispatch_rejects_opl_memory_body_or_router_acceptance_write(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -733,7 +733,7 @@ def test_sidecar_dispatch_rejects_opl_memory_body_or_router_acceptance_write(
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 1
@@ -748,7 +748,7 @@ def test_sidecar_dispatch_rejects_opl_memory_body_or_router_acceptance_write(
     assert guard["can_write_domain_truth"] is False
 
 
-def test_sidecar_dispatch_rejects_opl_substrate_authority_surface_writes(
+def test_domain_handler_dispatch_rejects_opl_substrate_authority_surface_writes(
     tmp_path: Path,
     capsys,
 ) -> None:
@@ -777,7 +777,7 @@ def test_sidecar_dispatch_rejects_opl_substrate_authority_surface_writes(
         },
     )
 
-    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    exit_code = cli.main(["domain-handler", "dispatch", "--task", str(task_path), "--format", "json"])
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 1

@@ -97,11 +97,15 @@ def _build_phase2_user_product_loop(
 ) -> dict[str, Any]:
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
+    hosted_entry_status_command = _json_surface_command(
+        f"opl app product-entry-status --agent med-autoscience --profile {profile_arg}"
+    )
+    hosted_workbench_command = _json_surface_command(
+        f"opl app workbench --agent med-autoscience --profile {profile_arg}"
+    )
     lane = mainline_program_surfaces.build_phase2_user_product_loop_lane(
-        entry_status_command=_command(profile_ref, "product-entry-status", "--profile", profile_arg),
-        workspace_cockpit_command=_json_surface_command(
-            _command(profile_ref, "workspace-cockpit", "--profile", profile_arg)
-        ),
+        entry_status_command=hosted_entry_status_command,
+        workspace_cockpit_command=hosted_workbench_command,
         submit_task_command=(
             f"{_command(profile_ref, 'submit-study-task', '--profile', profile_arg)} "
             "--study-id <study_id> --task-intent '<task_intent>'"
@@ -126,9 +130,7 @@ def _build_phase2_user_product_loop(
             profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"
         ),
     )
-    workflow_command = _json_surface_command(
-        _command(profile_ref, "workspace-cockpit", "--profile", profile_arg)
-    )
+    workflow_command = hosted_workbench_command
     lane["workflow_steps"] = build_guarded_phase2_workflow_steps(workflow_command=workflow_command)
     return lane
 
@@ -505,7 +507,14 @@ def _build_skill_catalog_surface(
     action_catalog: Mapping[str, Any],
 ) -> dict[str, Any]:
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS product entry skill catalog."
-    command_catalog = _action_catalog_command_map(action_catalog)
+    command_catalog = {
+        **_action_catalog_command_map(action_catalog),
+        **{
+            key: str(surface.get("command"))
+            for key, surface in product_entry_shell.items()
+            if isinstance(surface, Mapping) and surface.get("command")
+        },
+    }
     skill_action_projection = _project_mas_action_catalog("skill", action_catalog)
     runtime_continuity = _build_skill_runtime_continuity_envelope(
         runtime=runtime,

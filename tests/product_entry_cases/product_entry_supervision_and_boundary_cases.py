@@ -18,12 +18,12 @@ _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
 
 _RETIRED_FLAT_COMMAND_TOKENS = (
-    " product-entry-status ",
-    " workspace-cockpit ",
-    " submit-study-task ",
-    " launch-study ",
-    " study-progress ",
-    " product-entry-manifest ",
+    " med_autoscience.cli product-entry-status ",
+    " med_autoscience.cli workspace-cockpit ",
+    " med_autoscience.cli submit-study-task ",
+    " med_autoscience.cli launch-study ",
+    " med_autoscience.cli study-progress ",
+    " med_autoscience.cli product-entry-manifest ",
 )
 
 
@@ -99,26 +99,26 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["user_interaction_contract"]["user_commands_required"] is False
     assert payload["product_entry_surface"]["shell_key"] == "product_entry_status"
     assert payload["product_entry_surface"]["command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
     assert payload["operator_loop_actions"]["open_loop"]["command"].endswith(
-        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["entry_surfaces"]["entry_status"]["command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["entry_surfaces"]["cockpit"]["command"].endswith(
-        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["entry_surfaces"]["direct_entry_builder"]["command"].endswith(
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
     )
     assert payload["summary"]["entry_status_command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["summary"]["recommended_command"].endswith(
-        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
     assert payload["product_entry_overview"]["progress_surface"]["surface_kind"] == "study_progress"
@@ -136,7 +136,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         "doctor report --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_preflight"]["recommended_start_command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_preflight"]["blocking_check_ids"] == []
     assert [check["check_id"] for check in payload["product_entry_preflight"]["checks"]] == [
@@ -149,10 +149,10 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         "workspace_domain_route_contract_ready",
     ]
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
-        "product entry_status --profile " + str(profile_ref.resolve())
+        "opl app product-entry-status --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["phase2_user_product_loop"]["single_path"][2]["surface_kind"] == "study_task_intake"
     assert payload["phase2_user_product_loop"]["proof_surfaces"][1]["surface_kind"] == "workspace_cockpit"

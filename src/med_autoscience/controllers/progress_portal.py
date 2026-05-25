@@ -413,57 +413,9 @@ def build_progress_portal_hosted_package(
     )
 
 
-def serve_progress_portal(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str | None = None,
-    study_root: Path | None = None,
-    profile_ref: str | Path | None = None,
-    progress_payload: Mapping[str, Any] | None = None,
-    cockpit_payload: Mapping[str, Any] | None = None,
-    runtime_payload: Mapping[str, Any] | None = None,
-    package_payload: Mapping[str, Any] | None = None,
-    generated_at: str | None = None,
-    local_timezone: str | None = None,
-    entry_mode: str | None = None,
-    sync_runtime_summary: bool = True,
-    host: str = "127.0.0.1",
-    port: int = 0,
-    interval_seconds: int = 30,
-    open_browser: bool = False,
-    once: bool = False,
-    enable_actions: bool = False,
-) -> dict[str, Any]:
-    return workspace_carrier.serve_progress_portal(
-        profile=profile,
-        build_payload=build_progress_portal_payload,
-        render_html=render_progress_portal_html,
-        surface_kind=SURFACE_KIND,
-        hosted_package_surface_kind=HOSTED_PACKAGE_SURFACE_KIND,
-        study_id=study_id,
-        study_root=study_root,
-        profile_ref=profile_ref,
-        progress_payload=progress_payload,
-        cockpit_payload=cockpit_payload,
-        runtime_payload=runtime_payload,
-        package_payload=package_payload,
-        generated_at=generated_at,
-        local_timezone=local_timezone,
-        entry_mode=entry_mode,
-        sync_runtime_summary=sync_runtime_summary,
-        host=host,
-        port=port,
-        interval_seconds=interval_seconds,
-        open_browser=open_browser,
-        once=once,
-        enable_actions=enable_actions,
-    )
-
-
 __all__ = [
     "build_progress_portal_payload",
     "build_progress_portal_hosted_package",
     "render_progress_portal_html",
     "materialize_progress_portal",
-    "serve_progress_portal",
 ]

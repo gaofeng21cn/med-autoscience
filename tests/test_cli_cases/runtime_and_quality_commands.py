@@ -495,26 +495,13 @@ def test_grouped_progress_projection_alias_dispatches_controller(monkeypatch, tm
     assert called["study_root"] is None
     assert called["entry_mode"] is None
     assert json.loads(captured.out)["quest_status"] == "running"
-def test_workspace_cockpit_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_retired_workspace_cockpit_group_command_fails_closed(tmp_path: Path) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
-    called: dict[str, object] = {}
 
-    def fake_read_workspace_cockpit(*, profile, profile_ref) -> dict:
-        called["profile"] = profile
-        called["profile_ref"] = profile_ref
-        return {"workspace_status": "ready", "workspace_alerts": [], "studies": []}
-
-    monkeypatch.setattr(cli.product_entry, "read_workspace_cockpit", fake_read_workspace_cockpit)
-
-    exit_code = cli.main(["workspace", "cockpit", "--profile", str(profile_path), "--format", "json"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["profile_ref"] == Path(profile_path)
-    assert json.loads(captured.out)["workspace_status"] == "ready"
+    with pytest.raises(SystemExit, match="Grouped command requires a supported subcommand under `workspace`"):
+        cli.main(["workspace", "cockpit", "--profile", str(profile_path), "--format", "json"])
 def test_workspace_profile_cycles_command_dispatches_profiler(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -556,26 +543,23 @@ def test_workspace_profile_cycles_command_dispatches_profiler(monkeypatch, tmp_p
     assert called["profile"].name == "nfpitnet"
     assert called["since"] == "2026-04-25T00:00:00Z"
     assert json.loads(captured.out)["profile_name"] == "nfpitnet"
-def test_product_entry_status_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["product", "entry_status"],
+        ["product", "preflight"],
+        ["product", "start"],
+        ["product", "skill-catalog"],
+        ["product", "build-entry"],
+    ],
+)
+def test_retired_product_group_commands_fail_closed(argv: list[str], tmp_path: Path) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
-    called: dict[str, object] = {}
 
-    def fake_build_product_entry_status(*, profile, profile_ref) -> dict:
-        called["profile"] = profile
-        called["profile_ref"] = profile_ref
-        return {"surface_kind": "product_entry_status", "summary": {"entry_status_command": "uv run python -m med_autoscience.cli product entry_status"}}
-
-    monkeypatch.setattr(cli.product_entry, "build_product_entry_status", fake_build_product_entry_status)
-
-    exit_code = cli.main(["product", "entry_status", "--profile", str(profile_path), "--format", "json"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["profile_ref"] == Path(profile_path)
-    assert json.loads(captured.out)["surface_kind"] == "product_entry_status"
+    with pytest.raises(SystemExit, match="Grouped command requires a supported subcommand under `product`"):
+        cli.main([*argv, "--profile", str(profile_path), "--format", "json"])
 
 
 def test_retired_product_entry_status_name_fails_closed(capsys) -> None:
@@ -587,69 +571,7 @@ def test_retired_product_entry_status_name_fails_closed(capsys) -> None:
 
     assert excinfo.value.code == 2
     assert "invalid choice" in captured.err
-    assert "product-entry-status" in captured.err
-
-
-def test_product_preflight_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    called: dict[str, object] = {}
-
-    def fake_build_product_entry_preflight(*, profile, profile_ref) -> dict:
-        called["profile"] = profile
-        called["profile_ref"] = profile_ref
-        return {"surface_kind": "product_entry_preflight", "ready_to_try_now": True}
-
-    monkeypatch.setattr(cli.product_entry, "build_product_entry_preflight", fake_build_product_entry_preflight)
-
-    exit_code = cli.main(["product", "preflight", "--profile", str(profile_path), "--format", "json"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["profile_ref"] == Path(profile_path)
-    assert json.loads(captured.out)["surface_kind"] == "product_entry_preflight"
-def test_product_start_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    called: dict[str, object] = {}
-
-    def fake_build_product_entry_start(*, profile, profile_ref) -> dict:
-        called["profile"] = profile
-        called["profile_ref"] = profile_ref
-        return {"surface_kind": "product_entry_start", "recommended_mode_id": "open_product_entry"}
-
-    monkeypatch.setattr(cli.product_entry, "build_product_entry_start", fake_build_product_entry_start)
-
-    exit_code = cli.main(["product", "start", "--profile", str(profile_path), "--format", "json"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["profile_ref"] == Path(profile_path)
-    assert json.loads(captured.out)["surface_kind"] == "product_entry_start"
-def test_product_skill_catalog_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    called: dict[str, object] = {}
-
-    def fake_build_skill_catalog(*, profile, profile_ref) -> dict:
-        called["profile"] = profile
-        called["profile_ref"] = profile_ref
-        return {"surface_kind": "skill_catalog", "skills": [{"skill_id": "mas_workspace_cockpit"}]}
-
-    monkeypatch.setattr(cli.product_entry, "build_skill_catalog", fake_build_skill_catalog)
-
-    exit_code = cli.main(["product", "skill-catalog", "--profile", str(profile_path), "--format", "json"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["profile_ref"] == Path(profile_path)
-    assert json.loads(captured.out)["surface_kind"] == "skill_catalog"
+    assert "product-entry-status" not in captured.err
 def test_mainline_status_command_dispatches_controller(monkeypatch, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
@@ -841,53 +763,3 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
     assert called["reference_papers"] == ("PMID:123456",)
     assert called["first_cycle_outputs"] == ("study-progress",)
     assert json.loads(captured.out)["task_intent"] == "持续推进到投稿态"
-def test_build_product_entry_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
-    called: dict[str, object] = {}
-
-    def fake_build(
-        *,
-        profile,
-        profile_ref,
-        study_id: str | None,
-        study_root: Path | None,
-        direct_entry_mode: str,
-    ) -> dict:
-        called["profile"] = profile
-        called["profile_ref"] = profile_ref
-        called["study_id"] = study_id
-        called["study_root"] = study_root
-        called["direct_entry_mode"] = direct_entry_mode
-        return {
-            "target_domain_id": "med-autoscience",
-            "entry_mode": direct_entry_mode,
-            "task_intent": "持续推进到投稿态",
-        }
-
-    monkeypatch.setattr(cli.product_entry, "build_product_entry", fake_build)
-
-    exit_code = cli.main(
-        [
-            "product",
-            "build-entry",
-            "--profile",
-            str(profile_path),
-            "--study-id",
-            "001-risk",
-            "--entry-mode",
-            "opl-handoff",
-            "--format",
-            "json",
-        ]
-    )
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["profile_ref"] == Path(profile_path)
-    assert called["study_id"] == "001-risk"
-    assert called["study_root"] is None
-    assert called["direct_entry_mode"] == "opl-handoff"
-    assert json.loads(captured.out)["entry_mode"] == "opl-handoff"

@@ -38,10 +38,10 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     assert payload["surface_kind"] == "skill_catalog"
     assert payload["recommended_shell"] == "workspace_cockpit"
     assert payload["recommended_command"].endswith(
-        "workspace cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+        "opl app workbench --agent med-autoscience --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["manifest_command"].endswith(
-        "product manifest --profile " + str(profile_ref.resolve()) + " --format json"
+        "product-entry-manifest --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["skills"][0]["domain_projection"]["skill_entry"] == "mas"
     assert payload["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"

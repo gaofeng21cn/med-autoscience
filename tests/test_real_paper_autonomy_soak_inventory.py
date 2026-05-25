@@ -156,14 +156,14 @@ def test_real_paper_autonomy_soak_projection_reports_dispatch_and_evidence_witho
     _write_profile(workspace, profile_path)
     (workspace / "portfolio").mkdir(parents=True)
     study_root = workspace / "studies" / "DM002"
-    sidecar_task = {
+    domain_handler_task = {
         "domain_id": "medautoscience",
         "task_kind": "paper_autonomy/repair-recheck",
         "dedupe_key": "reviewer_refinement_loop:dm002",
         "payload": {"study_id": "DM002"},
     }
     dispatch_receipt = {
-        "surface_kind": "mas_family_sidecar_dispatch_receipt",
+        "surface_kind": "mas_family_domain_handler_dispatch_receipt",
         "accepted": True,
         "dispatch": {"action_type": "paper_repair_executor_dispatch"},
     }
@@ -181,12 +181,12 @@ def test_real_paper_autonomy_soak_projection_reports_dispatch_and_evidence_witho
         {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
     )
     _write_json(
-        study_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts" / "receipt.json",
+        study_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts" / "receipt.json",
         dispatch_receipt,
     )
     _write_json(
-        study_root / "artifacts" / "runtime" / "opl_family_sidecar" / "exported_task.json",
-        sidecar_task,
+        study_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "exported_task.json",
+        domain_handler_task,
     )
     before = {path: path.stat().st_mtime_ns for path in study_root.rglob("*.json")}
 
@@ -210,7 +210,7 @@ def test_real_paper_autonomy_soak_projection_reports_dispatch_and_evidence_witho
     study = payload["profiles"][0]["studies"][0]
     assert study["study_id"] == "DM002"
     assert study["final_projection"] == "artifact_delta"
-    assert study["sidecar_task"]["task_kind"] == "paper_autonomy/repair-recheck"
+    assert study["domain_handler_task"]["task_kind"] == "paper_autonomy/repair-recheck"
     assert study["dispatch_receipt"]["dispatch"]["action_type"] == "paper_repair_executor_dispatch"
     assert study["repair_execution_evidence"]["progress_delta_candidate"] is True
     assert study["ai_reviewer_evidence"]["owner"] == "ai_reviewer"

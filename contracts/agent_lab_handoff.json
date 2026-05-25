@@ -206,7 +206,7 @@
         "allowed_opl_result_refs": [
           "agent_lab_suite_result_ref",
           "provider_attempt_ref",
-          "sidecar_dispatch_ref",
+          "domain_handler_dispatch_ref",
           "owner_receipt_ref",
           "progress_delta_ref",
           "ai_reviewer_gate_receipt_ref",
