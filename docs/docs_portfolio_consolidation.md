@@ -665,3 +665,47 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for remaining `docs/runtime/contracts/standard_domain_agent_skeleton.md` and source/delivery support docs that mention source truth, artifact lifecycle, baseline refresh or standard-domain-agent anchors.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
+
+### 2026-05-26 standard-domain-agent skeleton / source-delivery support coverage tranche
+
+本轮覆盖 MAS standard-domain-agent skeleton 支撑文档以及 source / delivery 目录索引中会影响 source truth、artifact authority、generated surface 和 OPL/MAS owner 边界的段落。目标是把 repo-source physical anchor、body-free locator、source readiness、artifact mutation 与 generated surface handoff 读回当前 contracts / source / tests：MAS 持有 `agent/` 语义包、source readiness / artifact authority gate、owner receipt、typed blocker 和 minimal authority functions；OPL 持有 generated CLI/MCP/Skill/product-entry/status/workbench shell、generic locator/projection/workbench 和 provider/runtime transport。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/references/positioning/mas_ideal_state.md`, this docs-governance file, and preceding artifact / runtime coverage ledger entries.
+- Reviewed support docs: `docs/runtime/contracts/standard_domain_agent_skeleton.md`, `docs/source/README.md`, and `docs/delivery/README.md`.
+- Machine / source surfaces: `agent/standard-domain-agent-anchor.json`, `contracts/runtime/standard-domain-agent-anchor.json`, `runtime/artifact_locator/workspace-runtime-artifact-root.locator.json`, `contracts/pack_compiler_input.json`, `contracts/generated_surface_handoff.json`, `contracts/functional_privatization_audit.json`, `contracts/production_acceptance/mas-production-acceptance.json`, `src/med_autoscience/controllers/opl_provider_ready_adapter_parts/skeleton_mapping.py`, `src/med_autoscience/controllers/opl_provider_ready_adapter.py`, and product-entry manifest assembly.
+- Focused test evidence read from current source: `tests/test_dev_preflight_contract.py`, `tests/test_opl_family_persistence_adapter.py`, `tests/product_entry_cases/action_catalog_parity_cases/memory_and_skeleton_cases.py`, `tests/test_opl_standard_pack.py`, `tests/test_body_free_evidence_refs_scaleout.py`, `tests/test_real_paper_autonomy_soak_inventory_cases/test_canary_body_free_packets.py`, and product-entry skeleton / workspace runtime evidence receipt cases.
+
+Fresh semantic result：
+
+- `standard_domain_agent_skeleton.md` remains active runtime support, but its first paragraph needed tightening: repo-source anchors are landed as standard placement / locator / descriptor anchors; existing callable/product/status/workbench surfaces are migration inputs and direct-path bridges, not long-term MAS-owned generated shells.
+- The standard skeleton machine surface reads `mapping_mode=repo_source_physical_anchors_landed`, `repo_tracks_real_workspace_artifacts=false`, `repo_source_boundary.required_dirs=[agent, contracts, runtime, docs]`, `repo_source_boundary.forbidden_dirs=[artifacts]`, `artifact_roots_are_locators=true`, and default new surface slots under `agent/stages`, `agent/prompts`, `agent/skills`, `agent/knowledge`, `agent/quality_gates` and `contracts/runtime/*`.
+- `runtime/artifact_locator/workspace-runtime-artifact-root.locator.json` remains locator-only. It may name workspace artifact roots, owner-route receipt refs, stage review indexes, publication-eval refs and controller-decision refs; it cannot move artifact bodies into repo source, authorize source readiness, mark publication quality, update `current_package`, or replace owner receipt / typed blocker evidence.
+- `docs/source/README.md` remains aligned: Semantic Scholar is a read-model-only adapter/source for candidate refs and metadata enrichment; it cannot authorize source readiness verdict, publication quality, submission readiness, finalize readiness, artifact mutation, controller decision or publication gate pass. PubMed/CrossRef/PMC remain the grounding / crosswalk / provenance calibration layer.
+- `docs/delivery/README.md` remains aligned as a delivery support index: manuscript/package/submission/export/review gate support stays MAS-owned; generic artifact lifecycle primitive is an OPL upscope candidate; active delivery boards must not accumulate old process logs.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/contracts/standard_domain_agent_skeleton.md`, `docs/source/README.md`, and `docs/delivery/README.md`, with live contract/source/test evidence listed above. | `docs/runtime/contracts/standard_domain_agent_skeleton.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The reviewed files remain active support docs with distinct roles; stale generated-facade wording was rewritten in place because the standard skeleton doc still owns the repo-source anchor explanation.
+
+Uncovered docs in this semantic area:
+
+- MAS source-support documents outside `docs/source/README.md`, including workspace architecture / disease workspace references and source-readiness policy docs, remain outside this tranche.
+- MAS delivery docs outside `docs/delivery/README.md` and the already-covered inspection/artifact/baseline blocks remain outside this tranche, including medical-display support docs that mention artifact lifecycle, source truth or package authority.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention and this standard skeleton/source-delivery index block.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future prose must not treat MAS repo-source anchors, existing direct-path callables, product/status/workbench wrappers or generated docs as MAS-owned generated shell ownership. They are descriptor / locator / receipt / typed-blocker / authority-function refs until OPL generated/default caller cutover proves replacement and no-active-caller deletion gates.
+- Future prose must not treat source provider ranking, citation count, abstract match, cache hit, package freshness, file presence, generated-interface readiness, test pass or provider completion as source readiness, publication quality, submission readiness, artifact mutation authorization or `current_package` update.
+- `runtime/artifact_locator` and body-free evidence packets must stay locator/ref/receipt/blocker surfaces. Any artifact body, memory body, study truth body or quality verdict body entering repo source or OPL projection is stale pollution.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for source references under `docs/references/workspace/**` and source-readiness / study-workflow policy docs, or delivery / medical-display docs that mention artifact lifecycle, source truth or package authority.
+- Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
