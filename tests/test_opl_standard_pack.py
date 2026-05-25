@@ -484,7 +484,11 @@ def test_opl_default_callers_have_mas_deletion_evidence_without_authorizing_dele
     assert by_surface["domain_handler"]["active_caller_module_id"] == (
         "owner_route_reconcile_materialize_dispatch_shell"
     )
-    assert by_surface["domain_handler"]["canonical_target_surface_ids"] == ["domain_handler"]
+    assert by_surface["domain_handler"]["canonical_target_surface_ids"] == [
+        "domain_action_adapter_export_dispatch",
+        "domain_action_adapter",
+        "domain_handler",
+    ]
     for gate in report["surface_gates"]:
         worklist = gate["deletion_evidence_worklist"]
         assert worklist["domain_owner_receipt_or_typed_blocker"]["status"] == "observed"
