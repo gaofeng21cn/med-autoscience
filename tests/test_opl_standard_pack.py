@@ -372,6 +372,18 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert storage_thinning["does_not_claim_physical_delete"] is True
     assert storage_thinning["does_not_claim_generic_cleanup_policy_owner"] is True
     assert storage_thinning["does_not_touch_publication_or_package_authority"] is True
+    owner_dispatch_thinning = inventory["owner_route_reconcile_materialize_dispatch_shell"][
+        "latest_thinning_evidence"
+    ]
+    assert owner_dispatch_thinning["status"] == (
+        "default_executor_action_policy_single_source_landed"
+    )
+    assert owner_dispatch_thinning["policy_module"] == (
+        "src/med_autoscience/controllers/default_executor_action_policy.py"
+    )
+    assert owner_dispatch_thinning["domain_repo_physical_delete_authorized"] is False
+    assert "current_package" in owner_dispatch_thinning["does_not_write"]
+    assert "publication_ready" in owner_dispatch_thinning["does_not_claim"]
     workbench_thinning = inventory["workbench_portal_generic_shell"]["latest_thinning_evidence"]
     assert workbench_thinning["status"] == (
         "product_status_workbench_projection_and_workspace_carrier_split"

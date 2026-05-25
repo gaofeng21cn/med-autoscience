@@ -18,6 +18,18 @@ from med_autoscience.controllers.domain_action_request_materializer_parts import
     writer_handoff_preservation,
 )
 from med_autoscience.controllers.domain_owner_action_dispatch_parts import output_readiness
+from med_autoscience.controllers.default_executor_action_policy import (
+    ALLOWED_WRITE_SURFACES,
+    FORBIDDEN_SURFACES,
+    RETIRED_ABSENT_SURFACES,
+    SOURCE_ACTION_REF_FIELDS,
+    SOURCE_HANDOFF_REF_FIELDS,
+    SUPPORTED_ACTION_TYPES as SUPPORTED_REQUEST_ACTION_TYPES,
+    request_output_surface_for_action_type,
+    request_owner_for_action_type,
+    request_packet_ref_for_action_type,
+    request_packet_ref_for_dispatch,
+)
 from med_autoscience.controllers.owner_route_reconcile import SUPERVISION_LATEST_RELATIVE_PATH
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
@@ -33,76 +45,7 @@ CONSUMER_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/consumer/history.js
 DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT = Path(
     "artifacts/supervision/consumer/default_executor_dispatches"
 )
-SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
-    {
-        "publication_gate_specificity_required",
-        "current_package_freshness_required",
-        "artifact_display_surface_materialization_required",
-        "return_to_ai_reviewer_workflow",
-        "canonical_paper_inputs_rehydrate_required",
-        "run_quality_repair_batch",
-        "unit_harmonized_external_validation_rerun",
-        "recover_transport_model_provenance",
-        "methodology_reframe_route_decision",
-        "provenance_limited_harmonization_audit",
-    }
-)
 SUPPORTED_MODE = "developer_apply_safe"
-FORBIDDEN_SURFACES = [
-    "paper/**",
-    "manuscript/**",
-    "current_package/**",
-    "paper/current_package/**",
-    "manuscript/current_package/**",
-    "src/med_autoscience/platform/**",
-]
-RETIRED_ABSENT_SURFACES = [
-    "src/med_autoscience/runtime_transport/",
-]
-SOURCE_ACTION_REF_FIELDS = (
-    "surface",
-    "study_id",
-    "quest_id",
-    "action_type",
-    "action_id",
-    "reason",
-    "owner",
-    "request_owner",
-    "recommended_owner",
-    "authority",
-    "required_output_surface",
-    "next_work_unit",
-    "work_unit_fingerprint",
-    "route_target",
-    "route_key_question",
-    "route_rationale",
-    "source_ref",
-    "stale_record_ref",
-    "required_currentness_refs",
-    "record_only_surface",
-    "publication_eval_latest_write_allowed",
-    "controller_decision_write_allowed",
-    "terminal_source_provenance_blocker",
-    "hard_methodology_target",
-)
-SOURCE_HANDOFF_REF_FIELDS = (
-    "surface",
-    "request_kind",
-    "authority",
-    "owner",
-    "request_owner",
-    "recommended_owner",
-    "next_executable_owner",
-    "required_output_surface",
-    "next_work_unit",
-    "work_unit_fingerprint",
-    "route_target",
-    "route_key_question",
-    "route_rationale",
-    "source_ref",
-    "terminal_source_provenance_blocker",
-    "hard_methodology_target",
-)
 RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS = frozenset(
     {
         "provider_completion",
@@ -118,22 +61,6 @@ RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS = frozenset(
         "running_worker_is_stage_state",
     }
 )
-ALLOWED_WRITE_SURFACES = [
-    "artifacts/supervision/consumer/latest.json",
-    "artifacts/supervision/consumer/history.jsonl",
-    "studies/<study_id>/artifacts/supervision/consumer/publication_gate_specificity_required.json",
-    "studies/<study_id>/artifacts/supervision/consumer/current_package_freshness_required.json",
-    "studies/<study_id>/artifacts/supervision/consumer/artifact_display_surface_materialization_required.json",
-    "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
-    "studies/<study_id>/artifacts/supervision/consumer/canonical_paper_inputs_rehydrate_required.json",
-    "studies/<study_id>/artifacts/supervision/consumer/run_quality_repair_batch.json",
-    "studies/<study_id>/artifacts/supervision/consumer/unit_harmonized_external_validation_rerun.json",
-    "studies/<study_id>/artifacts/supervision/consumer/recover_transport_model_provenance.json",
-    "studies/<study_id>/artifacts/supervision/consumer/methodology_reframe_route_decision.json",
-    "studies/<study_id>/artifacts/supervision/consumer/provenance_limited_harmonization_audit.json",
-    "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
-    "studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json",
-]
 MERGE_CLEANUP_CHECKLIST = [
     "focused pytest green",
     "git diff --check green",
@@ -236,27 +163,7 @@ def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | Non
 
 
 def _request_owner_for_action_type(action_type: str) -> str:
-    if action_type == "publication_gate_specificity_required":
-        return "publication_gate"
-    if action_type == "current_package_freshness_required":
-        return "artifact_os"
-    if action_type == "artifact_display_surface_materialization_required":
-        return "artifact_os"
-    if action_type == "return_to_ai_reviewer_workflow":
-        return "ai_reviewer"
-    if action_type == "canonical_paper_inputs_rehydrate_required":
-        return "write"
-    if action_type == "run_quality_repair_batch":
-        return "write"
-    if action_type == "unit_harmonized_external_validation_rerun":
-        return "analysis_harmonization_owner"
-    if action_type == "recover_transport_model_provenance":
-        return "source_provenance_owner"
-    if action_type == "methodology_reframe_route_decision":
-        return "decision"
-    if action_type == "provenance_limited_harmonization_audit":
-        return "provenance_limited_harmonization_owner"
-    return "controller"
+    return request_owner_for_action_type(action_type)
 
 
 def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
@@ -273,72 +180,15 @@ def _owner_from_action(action: Mapping[str, Any], action_type: str) -> str:
 
 
 def _request_output_surface_for_action_type(action_type: str) -> str:
-    if action_type == "publication_gate_specificity_required":
-        return "artifacts/publication_eval/latest.json"
-    if action_type == "current_package_freshness_required":
-        return "artifacts/controller/gate_clearing_batch/latest.json"
-    if action_type == "artifact_display_surface_materialization_required":
-        return "artifacts/controller/gate_clearing_batch/latest.json"
-    if action_type == "return_to_ai_reviewer_workflow":
-        return "artifacts/publication_eval/latest.json"
-    if action_type == "canonical_paper_inputs_rehydrate_required":
-        return "paper/medical_manuscript_blueprint_source.json"
-    if action_type == "run_quality_repair_batch":
-        return (
-            "canonical manuscript story-surface delta or "
-            "typed blocker:manuscript_story_surface_delta_missing"
-        )
-    if action_type == "unit_harmonized_external_validation_rerun":
-        return (
-            "unit-harmonized external-validation rerun evidence or "
-            "typed blocker:unit_harmonized_rerun_required"
-        )
-    if action_type == "recover_transport_model_provenance":
-        return (
-            "canonical transport model provenance bundle or "
-            "typed blocker:transport_model_provenance_recovery_required"
-        )
-    if action_type == "methodology_reframe_route_decision":
-        return (
-            "controller route decision for a provenance-limited reframe, reproducible-model restart, "
-            "stop-loss, or human gate"
-        )
-    if action_type == "provenance_limited_harmonization_audit":
-        return (
-            "provenance-limited harmonization audit or "
-            "typed blocker:provenance_limited_harmonization_audit_required"
-        )
-    return "artifacts/supervision/requests"
+    return request_output_surface_for_action_type(action_type)
 
 
 def _request_packet_ref_for_action_type(action_type: str) -> str:
-    if action_type == "publication_gate_specificity_required":
-        return "artifacts/supervision/requests/publication_gate_specificity/latest.json"
-    if action_type == "current_package_freshness_required":
-        return "artifacts/supervision/requests/current_package_freshness/latest.json"
-    if action_type == "artifact_display_surface_materialization_required":
-        return "artifacts/supervision/requests/artifact_display_materialization/latest.json"
-    if action_type == "return_to_ai_reviewer_workflow":
-        return "artifacts/supervision/requests/ai_reviewer/latest.json"
-    if action_type == "canonical_paper_inputs_rehydrate_required":
-        return "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
-    if action_type == "run_quality_repair_batch":
-        return "artifacts/supervision/requests/quality_repair_batch/latest.json"
-    if action_type == "unit_harmonized_external_validation_rerun":
-        return "artifacts/supervision/requests/analysis_harmonization/latest.json"
-    if action_type == "recover_transport_model_provenance":
-        return "artifacts/supervision/requests/source_provenance/latest.json"
-    if action_type == "methodology_reframe_route_decision":
-        return "artifacts/supervision/requests/decision/latest.json"
-    if action_type == "provenance_limited_harmonization_audit":
-        return "artifacts/supervision/requests/provenance_limited_harmonization/latest.json"
-    return "artifacts/supervision/requests"
+    return request_packet_ref_for_action_type(action_type)
 
 
 def _request_packet_ref_for_dispatch(action_type: str) -> str | None:
-    if action_type in SUPPORTED_REQUEST_ACTION_TYPES:
-        return _request_packet_ref_for_action_type(action_type)
-    return None
+    return request_packet_ref_for_dispatch(action_type)
 
 
 def _source_action_ref(action: Mapping[str, Any]) -> dict[str, Any]:

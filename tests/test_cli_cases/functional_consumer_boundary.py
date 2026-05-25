@@ -91,6 +91,9 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert handoff_by_id["domain_action_adapter_export_dispatch"]["target_role"] == (
         "opl_generated_domain_action_adapter_handoff_surface"
     )
+    assert handoff_by_id["domain_action_adapter_export_dispatch"]["policy_boundary"] == (
+        "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority"
+    )
     generated_default = boundary["generated_default_caller_boundary"]
     assert generated_default["status"] == "opl_generated_hosted_shell_is_default_caller"
     assert generated_default["default_caller_owner"] == "one-person-lab"

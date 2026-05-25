@@ -70,9 +70,13 @@ def build_generated_surface_handoff(
                     "src/med_autoscience/controllers/owner_route_reconcile.py",
                     "src/med_autoscience/controllers/domain_action_request_materializer.py",
                     "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+                    "src/med_autoscience/controllers/default_executor_action_policy.py",
                 ],
                 "current_role": "domain_action_adapter",
                 "target_role": "opl_generated_domain_action_adapter_handoff_surface",
+                "policy_boundary": (
+                    "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority"
+                ),
             },
             {
                 "surface_id": "status",

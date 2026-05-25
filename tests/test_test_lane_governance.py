@@ -274,6 +274,9 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert generated_by_id["domain_action_adapter_export_dispatch"]["target_role"] == (
         "opl_generated_domain_action_adapter_handoff_surface"
     )
+    assert generated_by_id["domain_action_adapter_export_dispatch"]["policy_boundary"] == (
+        "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority"
+    )
     assert generated_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
     assert generated_by_id["workbench"]["target_role"] == (
         "opl_hosted_workbench_shell_consuming_mas_refs"
@@ -451,6 +454,17 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )
     assert inventory_by_id["artifact_authority"]["migration_action"] == "authority_stays_in_mas"
+    owner_dispatch_thinning = inventory_by_id[
+        "owner_route_reconcile_materialize_dispatch_shell"
+    ]["latest_thinning_evidence"]
+    assert owner_dispatch_thinning["status"] == (
+        "default_executor_action_policy_single_source_landed"
+    )
+    assert owner_dispatch_thinning["policy_module"] == (
+        "src/med_autoscience/controllers/default_executor_action_policy.py"
+    )
+    assert owner_dispatch_thinning["domain_repo_physical_delete_authorized"] is False
+    assert "owner_chain_closed" in owner_dispatch_thinning["does_not_claim"]
     workbench_thinning = inventory_by_id["workbench_portal_generic_shell"][
         "latest_thinning_evidence"
     ]

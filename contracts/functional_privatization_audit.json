@@ -1047,7 +1047,8 @@
         "code_paths": [
           "src/med_autoscience/controllers/owner_route_reconcile.py",
           "src/med_autoscience/controllers/domain_action_request_materializer.py",
-          "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+          "src/med_autoscience/controllers/default_executor_action_policy.py"
         ],
         "current_ref_status": "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active",
         "current_surface_refs": [
@@ -1060,6 +1061,41 @@
           "runtime owner-route reconcile",
           "sidecar dispatch"
         ],
+        "latest_thinning_evidence": {
+          "does_not_claim": [
+            "owner_chain_closed",
+            "domain_ready",
+            "production_ready",
+            "publication_ready",
+            "artifact_mutation_authorized"
+          ],
+          "does_not_write": [
+            "study_truth",
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+            "current_package",
+            "memory_body",
+            "artifact_body"
+          ],
+          "domain_repo_physical_delete_authorized": false,
+          "policy_module": "src/med_autoscience/controllers/default_executor_action_policy.py",
+          "single_source_fields": [
+            "supported_action_types",
+            "forbidden_surfaces",
+            "retired_absent_surfaces",
+            "allowed_write_surfaces",
+            "source_action_ref_fields",
+            "source_handoff_ref_fields",
+            "request_owner_by_action_type",
+            "request_output_surface_by_action_type",
+            "request_packet_ref_by_action_type"
+          ],
+          "status": "default_executor_action_policy_single_source_landed",
+          "thin_entrypoints": [
+            "src/med_autoscience/controllers/domain_action_request_materializer.py",
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+          ]
+        },
         "mas_domain_authority_refs": [
           "owner_route",
           "publication_gate",
@@ -1607,9 +1643,11 @@
           "current_paths": [
             "src/med_autoscience/controllers/owner_route_reconcile.py",
             "src/med_autoscience/controllers/domain_action_request_materializer.py",
-            "src/med_autoscience/controllers/domain_owner_action_dispatch.py"
+            "src/med_autoscience/controllers/domain_owner_action_dispatch.py",
+            "src/med_autoscience/controllers/default_executor_action_policy.py"
           ],
           "current_role": "domain_action_adapter",
+          "policy_boundary": "default_executor_action_policy_single_source_no_domain_truth_or_artifact_authority",
           "surface_id": "domain_action_adapter_export_dispatch",
           "target_role": "opl_generated_domain_action_adapter_handoff_surface"
         },

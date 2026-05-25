@@ -29,24 +29,13 @@ from .domain_action_request_materializer import (
     FORBIDDEN_SURFACES,
     SUPPORTED_MODE,
 )
+from .default_executor_action_policy import SUPPORTED_ACTION_TYPES
 
 
 SCHEMA_VERSION = 1
 EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
 EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
 EXECUTION_HISTORY_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "history.jsonl"
-SUPPORTED_ACTION_TYPES = frozenset({
-    "publication_gate_specificity_required",
-    "current_package_freshness_required",
-    "artifact_display_surface_materialization_required",
-    "return_to_ai_reviewer_workflow",
-    "canonical_paper_inputs_rehydrate_required",
-    "run_quality_repair_batch",
-    "unit_harmonized_external_validation_rerun",
-    "recover_transport_model_provenance",
-    "methodology_reframe_route_decision",
-    "provenance_limited_harmonization_audit",
-})
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 

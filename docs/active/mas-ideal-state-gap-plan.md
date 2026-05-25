@@ -138,6 +138,7 @@ Foldback target:
 ## 当前收口完成门
 
 - MAS repo 目标源码形态按 standard OPL Agent 收口；当前仍有 active caller 的 product/status/workbench/sidecar/controller/progress shell 是 strict source-purity tail，不能再写成结构完成态。
+- 本轮已把 owner-route default-executor materialize / dispatch 的重复 policy 常量收敛到 `default_executor_action_policy.py`，减少 `domain_action_request_materializer.py` 与 `domain_owner_action_dispatch.py` 的多重语义源；这只是 `owner_route_reconcile_materialize_dispatch_shell` 的拆薄证据，不把 repo-local wrapper tail 写成已删除或可删除。
 - 本轮不触碰真实 study workspace artifact、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body。
 - 仍未闭合的真实 paper-line provider apply、publication-route memory、artifact lifecycle、human gate/resume 和 provider SLO long-soak 保留在“当前测试/证据差距”；default caller cutover 和 wrapper 删除保留在功能/结构差距，直到 active source 物理收薄。
 - Durable current truth 折回本文、`docs/status.md`、核心五件套或对应 machine-readable contracts；dated closeout、receipt id、命令流水和旧 phase checklist 进入 `docs/history/**`、runtime ledger 或提交历史。
