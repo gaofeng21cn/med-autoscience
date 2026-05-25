@@ -1,7 +1,7 @@
 # Workspace Autoscience Rules
 
 Owner: `MedAutoScience`
-Purpose: `Define stable MAS study workflow, workspace, source, and submission operating policy.`
+Purpose: `workspace_autoscience_rules`
 State: `active_policy`
 Machine boundary: Human-readable study-workflow policy only; study truth remains in workspace artifacts, source contracts, runtime/controller outputs, generated artifacts, and owner receipts.
 
@@ -25,8 +25,9 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 
 - 优先选择高可塑性、可继续优化证据面的研究路线
 - 在弱结果方向上尽快止损，而不是默认把流程跑完
-- 数据、门控、交付等状态更新优先通过平台 controller 完成
+- 数据、门控、交付等状态更新优先通过 MAS controller / owner surface 完成；OPL 只承接 provider runtime、queue、wakeup、resume、human-gate transport 和 projection shell
 - 人类主要看 summary、report、draft、final delivery，不手工维护底层 registry
 - OPL provider / App / projection 可以显示 refs、freshness、attempt 和 blocker，但不能把 provider completion、file presence、package freshness、test pass、read model 或 inventory 解释为 MAS paper closure、domain ready、quality verdict 或 artifact authority。
+- workspace literature、data asset registry、ToolUniverse 输出、provider ranking、cache hit 或 quest-local materialization 只能作为 source refs / readiness input / blocker refs；source readiness、publication quality、submission readiness、artifact authority 和 `current_package` 更新继续由 MAS owner surfaces 授权
 
 当前这份规则是从 NF-PitNET workspace 中抽出的第一版通用摘要，后续会继续规范化。
