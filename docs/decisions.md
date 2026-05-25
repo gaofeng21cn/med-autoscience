@@ -832,9 +832,9 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：MAS 需要长期自治、human gate、retry/dead-letter、route-back 和 progress projection，但医学研究 stage、AI reviewer、publication gate、evidence/review ledger、route decision 与 artifact/package authority 必须仍由 MAS 持有。Temporal/provider 可以改善运行可靠性，但不能成为第二研究 truth owner。
 - 影响：`medautosci sidecar export|dispatch` 继续是 OPL provider 到 MAS owner surface 的受控桥接；OPL/Temporal/Hermes/local provider 只能 enqueue、dispatch、signal、query、投影 attempt/receipt，不得写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、evidence ledger、review ledger 或 artifact gate。2026-05-10 Hermes-first MAS sidecar bridge 决策保留为迁移背景，但后续新投入按 Temporal-backed production runtime 解释。
 
-## 2026-05-10：Hermes-first OPL family runtime 与 MAS sidecar bridge
+## 2026-05-10：已退役 Hermes-first OPL family runtime 与 MAS sidecar bridge
 
-- 状态：已被同日 Temporal-backed production runtime 决策 supersede。保留本段用于解释 Hermes-first sidecar bridge 的迁移背景和当前 legacy provider 口径。
+- 状态：已被同日 Temporal-backed production runtime 决策 supersede。保留本段只作为已退役 Hermes-first sidecar bridge 的迁移背景和当前 legacy provider 口径。
 
 - 历史决策：当时的迁移假设是让外部 `Hermes-Agent` 由 OPL 管理，承担常驻 gateway、cron/webhook wakeup、session store、delivery/notification、approval transport 与 family queue tick；OPL 持有 typed family queue / dispatch contract；MAS 持有 study truth、publication judgment、quality gate、artifact/package authority 和 domain recovery decision。
 - 当前生命周期处置：这不是当前目标 topology。当前 OPL-hosted production path 以 Temporal-backed OPL family runtime 为生产必需 substrate；`Hermes-Agent` / `hermes_agent` 只保留为显式非默认 Agent executor/proof lane、诊断/provenance 或历史迁移背景。任何当前文档或代码入口都不得把本段写成 Full online target。
@@ -1088,7 +1088,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 ## 2026-04-11：目标 runtime 方向优先于旧 substrate 延长线
 
-- 决策：后续新增投入默认服务“OPL Temporal-backed family runtime，Temporal 作为 production required substrate”这条目标形态，而不是继续把旧默认 substrate 或 Hermes-first 路线深磨成长期产品方向。
+- 决策：后续新增投入默认服务“OPL Temporal-backed family runtime，Temporal 作为 production required substrate”这条目标形态，而不是继续把旧默认 substrate 或已退役 Hermes-first 路线深磨成长期产品方向。
 - 理由：历史基线和过渡实现仍然有价值，但它们应作为迁移桥、回归基线与 provenance 存在，不能反向决定主线目标。
 - 影响：所有后续 tranche 都必须明确区分“当前 repo-verified baseline”与“长线目标”，并保持 display 独立支线不被主线误伤。
 
