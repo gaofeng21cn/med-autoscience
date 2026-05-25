@@ -448,3 +448,48 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for a bounded subset of `docs/runtime/contracts/**`, preferably `stage_route_contract.md`, `stage_surfaces.md` or `workspace_knowledge_and_literature_contract.md`.
 - OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+### 2026-05-26 runtime contract stage / knowledge plane coverage tranche
+
+本轮覆盖 MAS runtime contract 中的 stage route、generated stage surface、workspace knowledge / literature 三个长支撑文档。目标是确认这些文档仍然只是人读 support surface，并且当前段落没有把 generated Markdown、stage route projection、workspace literature、quest-local materialization、stage memory closeout 或 provider projection 写成 MAS 之外的机器 truth、quality authority、publication/submission readiness 或 OPL-owned generic runtime control。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, this docs-governance file, and preceding runtime id / control-boundary ledger entries.
+- Runtime contract docs: `docs/runtime/contracts/stage_route_contract.md`, `docs/runtime/contracts/stage_surfaces.md`, `docs/runtime/contracts/workspace_knowledge_and_literature_contract.md`.
+- Machine / source surfaces: `agent/stages/stage_route_contract.yaml`, `contracts/stage_control_plane.json`, `contracts/generated_surface_handoff.json`, `contracts/functional_privatization_audit.json`, `contracts/test-lane-manifest.json`, `src/med_autoscience/stage_knowledge_contract.py`, `src/med_autoscience/controllers/stage_knowledge_plane.py`, `src/med_autoscience/controllers/workspace_literature.py`, `src/med_autoscience/runtime_protocol/workspace_literature_status.py`.
+- Structural context: CodeGraph context for stage knowledge packets, workspace literature and runtime workspace contract summaries.
+- Focused test inventory read as evidence: `tests/test_stage_route_contract.py`, `tests/test_stage_surface_contract.py`, `tests/test_stage_quality_contract.py`, `tests/test_stage_knowledge_plane.py`, `tests/test_stage_knowledge_entry_injection.py`, `tests/test_stage_knowledge_visibility.py`, `tests/test_workspace_literature.py`, `tests/test_cli_cases/stage_memory_cli_commands.py`, `tests/test_cli_cases/study_state_matrix_memory_writeback_receipts.py`, `tests/test_runtime_protocol_study_runtime_cases/test_owner_route_stage_knowledge_hydration.py`, `tests/product_entry_cases/action_catalog_parity_cases/stage_descriptor_cases.py`, and `tests/progress_portal_cases/test_stage_review_surface.py`.
+
+Fresh semantic result：
+
+- `stage_route_contract.md` remains a human-readable projection of `agent/stages/stage_route_contract.yaml`. The YAML still owns route ids, mode contracts, knowledge input obligations, memory closeout obligations, evidence/review contract, medical handoff, route-back, quality loop and startup boundary rules.
+- `stage_surfaces.md` already states it is generated human-reading Markdown, not machine truth. Its stage cards continue to point to canonical route contract refs, `stage_knowledge_packet`, `stage_recall_index`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, publication eval / evidence / review / controller decision refs, and OPL read/dispatch-only boundaries.
+- `workspace_knowledge_and_literature_contract.md` remains aligned with source: workspace canonical literature lives under `portfolio/research_memory/literature/*`, study reference context is study-owned, quest literature is materialized working copy only, stage closeout proposes writes, and `memory_write_router_receipt` / owner surfaces decide acceptance.
+- No paragraph in the reviewed set currently reintroduces retired default-runtime / legacy entrypoint wording, `opl_provider_backed_stage_runtime` machine id, MAS-owned generic runtime owner, publication-ready, submission-ready, artifact-ready or production-ready leakage.
+- No archive/tombstone/delete action is justified in this tranche: the three files still have distinct active runtime-support roles.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/contracts/stage_route_contract.md`, `docs/runtime/contracts/stage_surfaces.md`, and `docs/runtime/contracts/workspace_knowledge_and_literature_contract.md`, with live source/contract/test inventory checks listed above. | this coverage ledger only |
+
+Archived / tombstoned / deleted docs: none. The reviewed files remain active support docs.
+
+Uncovered docs in this semantic area:
+
+- Remaining paragraph-level coverage is still open for other long support bodies under `docs/runtime/contracts/**`, especially `runtime_event_and_outer_loop_input_contract.md`, `durable_workflow_contract.md`, `runtime_boundary.md`, `runtime_core_convergence_and_controlled_cutover.md`, `runtime_backend_interface_contract.md`, `runtime_handle_and_durable_surface_contract.md`, and delivery/artifact/source adjacent contracts not covered by prior focused tranches.
+- MAS product/status/workbench and progress/domain-ref projection coverage remains open outside prior Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary and this stage/knowledge contract block.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future prose must not treat generated stage surface Markdown, stage graph hints, route contract readability, workspace literature registry presence, stage memory closeout packet, memory router receipt, provider projection or zero forbidden writes as MAS owner receipt, publication-ready, submission-ready, artifact-ready, App release ready, physical delete authorization, domain completion or production readiness.
+- Quest-local literature materialization remains a working copy. It must not be promoted to workspace canonical literature, study reference context, evidence authority, AI reviewer verdict or controller decision.
+- Stage memory closeout remains proposed writeback plus router receipt. It must not bypass owner acceptance, evidence ledger, review ledger, controller decision or human gate.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for another bounded `docs/runtime/contracts/**` group, preferably `runtime_event_and_outer_loop_input_contract.md` + `durable_workflow_contract.md`, or `runtime_boundary.md` + runtime backend / handle contracts if current owner wording drifts.
+- Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
+- Keep App docs delayed until active release/GUI lanes are safe to govern.
