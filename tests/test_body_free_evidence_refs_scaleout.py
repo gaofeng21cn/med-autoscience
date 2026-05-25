@@ -409,8 +409,37 @@ def test_domain_dispatch_evidence_payload_can_bind_stage_level_target_without_fa
         "task_kind": "baseline_and_evidence_setup",
     }
     assert "stage_id" in payload["identity_binding"]["match_fields"]
-    assert payload["record_payload"]["typed_blocker_refs"] == [
+    typed_blocker_ref = payload["record_payload"]["typed_blocker_refs"][0]
+    assert typed_blocker_ref.startswith(
         "mas-domain-dispatch-typed-blocker:medautoscience:"
         "baseline_and_evidence_setup:stage_owner_receipt_or_live_paper_line_closeout_pending:"
-        "owner-receipt-or-live-paper-line-closeout-pending"
-    ]
+    )
+    assert typed_blocker_ref.endswith(":owner-receipt-or-live-paper-line-closeout-pending")
+
+
+def test_domain_dispatch_evidence_payload_typed_blocker_ref_keeps_identity_token() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
+
+    first = module.build_domain_dispatch_evidence_record_payload(
+        task_kind="domain_owner/default-executor-dispatch",
+        study_id="002-dm-china-us-mortality-attribution",
+        reason="opl_worklist_owner_receipt_or_default_executor_closeout_pending",
+        source_fingerprint="bd2c4f4a4b37c93f",
+        stage_attempt_source_fingerprint="mas_default_executor_source_88ef5de2fd4a4cca0ac80f96",
+        profile_name="dm-cvd-mortality-risk",
+    )
+    second = module.build_domain_dispatch_evidence_record_payload(
+        task_kind="domain_owner/default-executor-dispatch",
+        study_id="002-dm-china-us-mortality-attribution",
+        reason="opl_worklist_owner_receipt_or_default_executor_closeout_pending",
+        source_fingerprint="25ce38af2d382288",
+        stage_attempt_source_fingerprint="mas_default_executor_source_12b16bbd3018014cbf0a20a5",
+        profile_name="dm-cvd-mortality-risk",
+    )
+
+    first_ref = first["record_payload"]["typed_blocker_refs"][0]
+    second_ref = second["record_payload"]["typed_blocker_refs"][0]
+    assert first_ref != second_ref
+    assert first["ledger_receipt_ref_hint"] != second["ledger_receipt_ref_hint"]
+    assert "88ef5de2fd4a4cca0ac80f96" in first_ref
+    assert "12b16bbd3018014cbf0a20a5" in second_ref

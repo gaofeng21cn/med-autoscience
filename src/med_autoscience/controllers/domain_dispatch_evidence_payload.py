@@ -46,7 +46,6 @@ def build_domain_dispatch_evidence_record_payload(
     slug_scope = normalized_study_id or (
         normalized_stage_id if normalized_stage_id != normalized_task_kind else None
     )
-    slug = _slug(":".join(item for item in (normalized_task_kind, slug_scope, normalized_reason) if item))
     receipt_token = normalized_stage_attempt_source_fingerprint or normalized_source_fingerprint or _fingerprint(
         {
             "task_kind": normalized_task_kind,
@@ -56,12 +55,16 @@ def build_domain_dispatch_evidence_record_payload(
             "evidence_refs": evidence_ref_values,
         }
     )
+    slug = _slug(":".join(item for item in (normalized_task_kind, slug_scope, normalized_reason) if item))
+    identity_token = _slug(receipt_token)
+    typed_blocker_slug = _typed_blocker_slug(slug=slug, identity_token=identity_token)
     typed_blocker_ref = (
-        f"mas-domain-dispatch-typed-blocker:{DOMAIN_ID}:{slug}:"
+        f"mas-domain-dispatch-typed-blocker:{DOMAIN_ID}:{typed_blocker_slug}:"
         "owner-receipt-or-live-paper-line-closeout-pending"
     )
     no_forbidden_write_ref = (
-        f"mas-no-forbidden-write-proof:{DOMAIN_ID}:{slug}:refs-only-dispatch-payload"
+        f"mas-no-forbidden-write-proof:{DOMAIN_ID}:{typed_blocker_slug}:"
+        "refs-only-dispatch-payload"
     )
     typed_blocker_packet = build_body_free_evidence_packet(
         ref=typed_blocker_ref,
@@ -191,7 +194,9 @@ def build_domain_dispatch_evidence_record_payload(
         "evidence_refs": evidence_ref_values,
         "no_regression_evidence_refs": no_regression_evidence_refs,
         "no_regression_refs": no_regression_evidence_refs,
-        "ledger_receipt_ref_hint": f"mas://domain-dispatch-evidence/{DOMAIN_ID}/{slug}/{receipt_token}",
+        "ledger_receipt_ref_hint": (
+            f"mas://domain-dispatch-evidence/{DOMAIN_ID}/{typed_blocker_slug}/{receipt_token}"
+        ),
         "body_free_evidence_packets": [
             typed_blocker_packet,
             no_forbidden_write_packet,
@@ -251,6 +256,14 @@ def _slug(value: str) -> str:
 def _fingerprint(value: object) -> str:
     rendered = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
+
+
+def _typed_blocker_slug(*, slug: str, identity_token: str) -> str:
+    if not identity_token:
+        return slug
+    suffix = f":{identity_token}"
+    max_slug_length = max(1, 120 - len(suffix))
+    return f"{slug[:max_slug_length].rstrip('-:_')}{suffix}"
 
 
 def _identity_binding(
