@@ -171,7 +171,7 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 
 - 这里按“论文问题归属”统计，不按去重后的模板总数统计；
 - 同一个模板如果同时服务多个家族，会在多个家族里重复出现；
-- 所以下面各家族的小计相加，会大于当前军火库总数 `93`。
+- 所以下面各家族的小计相加，会大于当前军火库总数 `98`。
 
 ### A. 预测性能与决策类
 

@@ -924,6 +924,47 @@ Next tranche write scope:
 - MAS paragraph-level coverage for `medical_display_arsenal.md` + `medical_display_template_backlog.md` + `medical_display_template_catalog.md`, or `medical_figure_route_cookbook.md` + `medical_display_family_roadmap.md` + `medical_display_anchor_paper_audit.md`.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
 
+### 2026-05-26 medical-display catalog inventory coverage tranche
+
+本轮覆盖 MAS medical-display catalog / inventory 三件套。目标是把 `medical_display_arsenal.md`、`medical_display_template_backlog.md` 与 `medical_display_template_catalog.md` 读回当前 audited display source、audit guide、template-pack source/tests 和已完成 backlog 出队事实：catalog / arsenal / backlog 是 human-readable inventory 和 candidate pool，不是 active owner round、执行流水、吸收记录、source readiness、publication quality、submission readiness、artifact mutation、`current_package` freshness、paper closure、domain ready 或 production ready 判据。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/invariants.md`, `docs/decisions.md`, this docs-governance file, and preceding medical-display delivery authority / audit-protocol / template-pack lifecycle ledger entries.
+- Reviewed medical-display docs: `docs/delivery/medical-display/catalogs/medical_display_arsenal.md`, `docs/delivery/medical-display/catalogs/medical_display_template_backlog.md`, `docs/delivery/medical-display/catalogs/medical_display_template_catalog.md`, plus role/index review of `docs/delivery/medical-display/README.md` and `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`.
+- Machine / source surfaces: `src/med_autoscience/display_registry.py`, `src/med_autoscience/display_schema_contract.py`, `src/med_autoscience/display_schema_contract_parts/**`, `src/med_autoscience/display_pack_contract.py`, `src/med_autoscience/display_pack_loader.py`, `src/med_autoscience/display_pack_resolver.py`, `src/med_autoscience/display_pack_lock.py`, `src/med_autoscience/display_pack_bootstrap.py`, `src/med_autoscience/display_pack_runtime.py`, `src/med_autoscience/controllers/display_surface_materialization/`, `src/med_autoscience/display_layout_qc/`, `src/med_autoscience/controllers/medical_publication_surface.py`, and `src/med_autoscience/controllers/submission_minimal.py`.
+- Focused test evidence read from current source: `tests/test_display_pack_contract.py`, `tests/test_display_pack_loader.py`, `tests/test_display_pack_resolver.py`, `tests/test_display_pack_runtime.py`, `tests/test_display_pack_lock.py`, `tests/test_display_pack_bootstrap.py`, `tests/test_display_pack_surface_sync.py`, `tests/test_display_pack_renderer_structure.py`, `tests/test_display_surface_materialization.py`, `tests/test_submission_minimal_display_surface.py`, and golden / contract inventories under `tests/display_*` and `tests/test_display_*`.
+
+Fresh semantic result:
+
+- `medical_display_arsenal.md` remains active support as the human-readable capability inventory. Its current audited inventory count is `98`; the stale intra-file reference to current total `93` was corrected to `98`. Family membership counts remain paper-question duplicated counts and are not unique template totals.
+- `medical_display_template_backlog.md` remains active support for inactive candidate pool and historical backlog cleanup. It now states that it does not preserve current round execution流水、commit 指令或 absorb state; landed template truth comes from audit guide, template catalog, registry/source and focused tests. Old “本轮/上一轮 absorb” wording was normalized to current out-of-backlog state so future agents do not treat it as an active execution queue.
+- `medical_display_template_catalog.md` remains the exhaustive human-readable generated matrix for registered templates, renderers, schemas and QC profiles. Its header already ties truth to `med_autoscience.display_registry` and `med_autoscience.display_schema_contract`; no catalog rewrite was needed.
+- The reviewed index docs already route catalogs as inventory and preserve delivery authority boundaries. No index relocation was needed.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/delivery/medical-display/catalogs/medical_display_arsenal.md`, `docs/delivery/medical-display/catalogs/medical_display_template_backlog.md`, and `docs/delivery/medical-display/catalogs/medical_display_template_catalog.md`; role/index review of `docs/delivery/medical-display/README.md` and `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`, with live source/test evidence listed above. | `docs/delivery/medical-display/catalogs/medical_display_arsenal.md`; `docs/delivery/medical-display/catalogs/medical_display_template_backlog.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. All three catalog docs remain active support with distinct inventory/candidate roles.
+
+Uncovered docs in this semantic area:
+
+- Remaining long medical-display route / roadmap / provenance bodies: `medical_figure_route_cookbook.md`, `medical_display_family_roadmap.md`, and `medical_display_anchor_paper_audit.md`.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention, standard skeleton/source-delivery index, workspace/source references, study-workflow policy block and bounded medical-display blocks.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future catalog/backlog prose that reports stale template totals, preserves “本轮 absorb / 将随本轮进入 main” as current execution state, or treats inactive candidates / historical cleanup as active blocker is stale pollution.
+- Future catalog/backlog prose must not downgrade audited registry/source/schema/display-pack/QC surfaces into “not started” plan language, and must not upgrade catalog presence, candidate pool entries, generated matrix or pack refs into source readiness、publication quality、submission readiness、artifact mutation、`current_package` freshness、paper closure、domain ready or production ready.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for `medical_figure_route_cookbook.md` + `medical_display_family_roadmap.md` + `medical_display_anchor_paper_audit.md`.
+- Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
+
 ### 2026-05-26 medical-display template-pack plan lifecycle tranche
 
 本轮覆盖 MAS medical-display template-pack plan 文档生命周期。目标是把 template-pack architecture / implementation-plan 读回当前 live display-pack source、tests、contracts 和已完成迁移事实：架构文档保留为 active support design；Phase 1-2 逐步实施计划保留为 history/provenance，不能继续留在 active `plans/` 下作为当前 agent work queue、checkbox 任务包、expected-failure 流水或 commit 指令来源。

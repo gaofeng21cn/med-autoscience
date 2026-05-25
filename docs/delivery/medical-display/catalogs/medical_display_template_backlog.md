@@ -15,6 +15,8 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 
 外部 exemplar intake 只作为只读候选证据保留，不自动进入 active backlog。当前 PaperPlotHub gallery 全量枚举见 [paperplothub_exemplar_intake.md](../../../history/capabilities/medical-display/paperplothub_exemplar_intake.md)，第二轮学习穷尽账本见 [paperplothub_exemplar_exhaustion_ledger.md](../../../history/capabilities/medical-display/paperplothub_exemplar_exhaustion_ledger.md)。
 
+本文记录的是 current candidate pool 和已出队 provenance。它不保存当前 round 执行流水、commit 指令或吸收状态；已落地模板是否属于当前 audited inventory，以 audit guide、template catalog、registry/source 和 focused tests 为准。
+
 当前完成态真相优先看：
 
 - `../contracts/medical_display_audit_guide.md`
@@ -60,43 +62,43 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 
 其中：
 
-- `D/E/G / atlas-spatial-trajectory density / coverage contract follow-on beyond the current storyboard lower bound` 已在上一轮正式收口为 `atlas_spatial_trajectory_density_coverage_panel`，并已 absorb 入当前 `main`，不再留在 backlog 候选池。
-- `D/E/G / richer multi-view atlas-spatial-trajectory composite follow-on` 已在上一轮正式收口为 `atlas_spatial_trajectory_context_support_panel`，并已 absorb 入当前 `main`，不再留在 backlog 候选池。
-- `D/E/G / dual-manifold atlas-spatial-trajectory geometry follow-on` 已在本轮正式收口为 `atlas_spatial_trajectory_multimanifold_context_support_panel`，并已 absorb 入当前 `main`，不再留在 backlog 候选池。
-- `C/H / compact estimate panel follow-on` 已在本轮正式 absorb 为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
-- `C/H / broader heterogeneity summary follow-on` 已在本轮正式 absorb 为 `broader_heterogeneity_summary_panel`，不再保留在 backlog 候选池。
-- `C/H / modifier-level interaction summary follow-on` 已在本轮正式 absorb 为 `interaction_effect_summary_panel`，不再保留在 backlog 候选池。
-- `H / broader transportability and center-coverage follow-on` 已在本轮正式 absorb 为 `center_transportability_governance_summary_panel`，不再保留在 backlog 候选池。
-- `D / PHATE manifold concrete follow-on` 已在本轮正式 absorb 为 `phate_scatter_grouped`，不再保留在 backlog 候选池。
-- `D / diffusion-map manifold concrete follow-on` 已在本轮正式 absorb 为 `diffusion_map_scatter_grouped`，不再保留在 backlog 候选池。
-- `D/E/G / atlas marker dotplot concrete follow-on` 已在本轮正式 absorb 为 `celltype_marker_dotplot_panel`，不再保留在 backlog 候选池。
-- `A/E / binary confusion-matrix heatmap concrete follow-on` 已在本轮正式 absorb 为 `confusion_matrix_heatmap_binary`，不再保留在 backlog 候选池。
+- `D/E/G / atlas-spatial-trajectory density / coverage contract follow-on beyond the current storyboard lower bound` 已收口为 `atlas_spatial_trajectory_density_coverage_panel`，不再留在 backlog 候选池。
+- `D/E/G / richer multi-view atlas-spatial-trajectory composite follow-on` 已收口为 `atlas_spatial_trajectory_context_support_panel`，不再留在 backlog 候选池。
+- `D/E/G / dual-manifold atlas-spatial-trajectory geometry follow-on` 已收口为 `atlas_spatial_trajectory_multimanifold_context_support_panel`，不再留在 backlog 候选池。
+- `C/H / compact estimate panel follow-on` 已收口为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
+- `C/H / broader heterogeneity summary follow-on` 已收口为 `broader_heterogeneity_summary_panel`，不再保留在 backlog 候选池。
+- `C/H / modifier-level interaction summary follow-on` 已收口为 `interaction_effect_summary_panel`，不再保留在 backlog 候选池。
+- `H / broader transportability and center-coverage follow-on` 已收口为 `center_transportability_governance_summary_panel`，不再保留在 backlog 候选池。
+- `D / PHATE manifold concrete follow-on` 已收口为 `phate_scatter_grouped`，不再保留在 backlog 候选池。
+- `D / diffusion-map manifold concrete follow-on` 已收口为 `diffusion_map_scatter_grouped`，不再保留在 backlog 候选池。
+- `D/E/G / atlas marker dotplot concrete follow-on` 已收口为 `celltype_marker_dotplot_panel`，不再保留在 backlog 候选池。
+- `A/E / binary confusion-matrix heatmap concrete follow-on` 已收口为 `confusion_matrix_heatmap_binary`，不再保留在 backlog 候选池。
 - `D/E/G / legend / annotation / readability-only hardening` 不再作为当前 active 候选保留：
   - 原因：当前 atlas / spatial / trajectory family 的真 gap 已经抬升到更高阶 atlas geometry synthesis；只做 readability patch 还不足以承担下一条 multi-view capability cluster。
 - `D/E/G / broader omics-only matrix follow-on` 不再作为当前 active 候选保留：
   - 原因：如果先扩到更宽的 matrix / heatmap lane，容易脱离 atlas / spatial / trajectory 的 joint paper question，并和现有 `celltype_signature_heatmap` / storyboard lower bound 产生模糊重叠。
-- `C/H / coefficient-path follow-on` 已在本轮正式 absorb 为 `coefficient_path_panel`，不再保留在 backlog 候选池。
-- `H / broader QC / batch-effect / transportability shell follow-on` 已在本轮正式 absorb 为 `transportability_recalibration_governance_panel`，不再保留在 backlog 候选池。
-- `F / support-domain explanation panel follow-on beyond the current higher-order partial-dependence lower bound` 已在本轮正式收口为 `feature_response_support_domain_panel`，并已 absorb 入当前 `main` 且通过 fresh verify，不再留在 backlog 候选池。
-- `F / stronger explanation-panel readability or higher-order explanation scene beyond the current grouped-local + multigroup decision-path lower bound` 已在本轮正式收口为 `shap_grouped_local_support_domain_panel`，当前 `F` 家族后续只保留更高阶 explanation scene 候选，不再保留这条旧 backlog 表述。
-- `F / multi-group decision-path follow-on` 已在本轮正式 absorb 为 `shap_multigroup_decision_path_panel`，不再保留在 backlog 候选池。
-- `F / multigroup decision-path + support-domain explanation scene follow-on` 已在本轮正式收口为 `shap_multigroup_decision_path_support_domain_panel`，并已进入 audited inventory；当前 `F` 家族继续保留的只剩更高阶 explanation scene 与 AI-first visual hardening 候选。
-- `F / signed-importance + local-waterfall + support-domain explanation scene follow-on` 已在本轮正式收口为 `shap_signed_importance_local_support_domain_panel`，并已进入 audited inventory；当前 `F` 家族继续保留的只剩更高阶 explanation scene 与 AI-first visual hardening 候选。
+- `C/H / coefficient-path follow-on` 已收口为 `coefficient_path_panel`，不再保留在 backlog 候选池。
+- `H / broader QC / batch-effect / transportability shell follow-on` 已收口为 `transportability_recalibration_governance_panel`，不再保留在 backlog 候选池。
+- `F / support-domain explanation panel follow-on beyond the current higher-order partial-dependence lower bound` 已收口为 `feature_response_support_domain_panel`，不再留在 backlog 候选池。
+- `F / stronger explanation-panel readability or higher-order explanation scene beyond the current grouped-local + multigroup decision-path lower bound` 已收口为 `shap_grouped_local_support_domain_panel`，当前 `F` 家族后续只保留更高阶 explanation scene 候选，不再保留这条旧 backlog 表述。
+- `F / multi-group decision-path follow-on` 已收口为 `shap_multigroup_decision_path_panel`，不再保留在 backlog 候选池。
+- `F / multigroup decision-path + support-domain explanation scene follow-on` 已收口为 `shap_multigroup_decision_path_support_domain_panel`，并已进入 audited inventory；当前 `F` 家族继续保留的只剩更高阶 explanation scene 与 AI-first visual hardening 候选。
+- `F / signed-importance + local-waterfall + support-domain explanation scene follow-on` 已收口为 `shap_signed_importance_local_support_domain_panel`，并已进入 audited inventory；当前 `F` 家族继续保留的只剩更高阶 explanation scene 与 AI-first visual hardening 候选。
 - `F / multi-group grouped-local follow-on` 当前也不作为当前 active 候选保留：
   - 原因：`shap_grouped_local_explanation_panel` 当前合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才应重开更高阶 explanation scene。
 - `F / annotation-only readability hardening` 当前也不作为 active 候选保留：
   - 原因：annotation / legend 语义应附着在新的真实论文驱动场景里收口，而不是拆成 paper-local 标注微调或独立 readability patch。
-- `D/E/G / atlas_spatial_trajectory_storyboard_panel` 已在本轮正式提升为 audited five-panel storyboard baseline，不再保留为当前候选。
-- `F / higher-order partial-dependence follow-on` 已在本轮正式收口为 `partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel` 与 `accumulated_local_effects_panel`，不再保留为当前候选。
-- `H / workflow_fact_sheet_panel` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
-- `H / design_evidence_composite_shell` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
-- `H / baseline-balance / missingness / QC-shell follow-on` 已在本轮正式收口为 `baseline_missingness_qc_panel`，不再保留为当前候选。
-- `D/E/G / atlas_spatial_bridge_panel` 已在本轮正式提升为 audited four-block bridge baseline，不再保留为当前候选。
+- `D/E/G / atlas_spatial_trajectory_storyboard_panel` 已提升为 audited five-panel storyboard baseline，不再保留为当前候选。
+- `F / higher-order partial-dependence follow-on` 已收口为 `partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel` 与 `accumulated_local_effects_panel`，不再保留为当前候选。
+- `H / workflow_fact_sheet_panel` 已提升为 audited illustration shell，不再保留为当前候选。
+- `H / design_evidence_composite_shell` 已提升为 audited illustration shell，不再保留为当前候选。
+- `H / baseline-balance / missingness / QC-shell follow-on` 已收口为 `baseline_missingness_qc_panel`，不再保留为当前候选。
+- `D/E/G / atlas_spatial_bridge_panel` 已提升为 audited four-block bridge baseline，不再保留为当前候选。
 - `F / richer grouped-local-explanation variants beyond the first audited baseline` 当前降级为 monitor-only：
   - 原因：当前 grouped-local 合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才重新提升优先级。
-- `G / enrichment dotplot follow-on` 已在本轮正式收口为 `pathway_enrichment_dotplot_panel`，并将随本轮 absorb 进入当前 `main`，不再保留在 backlog 候选池。
-- `G / volcano follow-on` 已在本轮正式收口为 `omics_volcano_panel`，并已 absorb 入当前 `main`，不再保留在 backlog 候选池。
-- `G / oncoplot follow-on` 已在本轮正式收口为 `oncoplot_mutation_landscape_panel`，当前 `G` 家族后续只保留 richer mutation-landscape 或 broader genomic summary 候选，不再保留这条旧 backlog 表述。
+- `G / enrichment dotplot follow-on` 已收口为 `pathway_enrichment_dotplot_panel`，不再保留在 backlog 候选池。
+- `G / volcano follow-on` 已收口为 `omics_volcano_panel`，不再保留在 backlog 候选池。
+- `G / oncoplot follow-on` 已收口为 `oncoplot_mutation_landscape_panel`，当前 `G` 家族后续只保留 richer mutation-landscape 或 broader genomic summary 候选，不再保留这条旧 backlog 表述。
 
 这些候选不等于必须立即实现。
 
