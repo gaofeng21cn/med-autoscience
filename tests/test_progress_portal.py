@@ -976,6 +976,8 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
 
 def test_study_workbench_helper_does_not_accept_runtime_conversation_read_model() -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    portal_module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    rendering = importlib.import_module("med_autoscience.controllers.progress_portal_parts.rendering")
 
     payload = parts.build_study_workbench_payload(
         progress=_progress_payload(),
@@ -985,15 +987,38 @@ def test_study_workbench_helper_does_not_accept_runtime_conversation_read_model(
         study_id="001-risk",
     )
     html = parts.render_study_workbench_sections(payload)
+    portal_html = portal_module.render_progress_portal_html(
+        portal_module.build_progress_portal_payload(
+            profile_name="diabetes",
+            workspace_root="/workspace",
+            study_id="001-risk",
+            progress_payload=_progress_payload(),
+            runtime_payload={
+                "study_id": "001-risk",
+                "runtime_conversation_read_model": {
+                    "messages": [
+                        {"role": "user", "content": "confirm next route"},
+                    ],
+                },
+            },
+            generated_at="2026-05-08T01:05:00+00:00",
+        )
+    )
+    portal_css = rendering.portal_css()
 
     assert all(tab["id"] != "conversation" for tab in payload["tabs"])
     assert "conversation" not in payload
     assert "执行器对话" not in html
+    assert "执行器对话" not in portal_html
     assert "runtime_conversation_read_model" not in json.dumps(payload, ensure_ascii=False)
+    assert "runtime_conversation_read_model" not in portal_html
+    assert "conversation-" not in portal_css
     assert "共 4 条" not in html
     assert "用户消息" not in html
+    assert "用户消息" not in portal_html
     assert "msg-pending" not in html
     assert "执行回合" not in html
+    assert "confirm next route" not in portal_html
     assert "run-001" in html
     assert "blocked_waiting_for_user" not in html
     assert "confirm next route" not in html

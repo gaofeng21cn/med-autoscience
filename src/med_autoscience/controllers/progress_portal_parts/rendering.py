@@ -198,17 +198,6 @@ tbody tr:hover td { background: #f7fbf8; }
 .route-map-details p { margin: 6px 0 0; font-size: 13px; }
 .route-node-refs { display: grid; gap: 4px; margin-top: 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .route-node-refs a { color: var(--accent-ink); font-weight: 800; }
-.conversation-timeline { position: relative; list-style: none; margin: 12px 0 14px; padding: 0; display: grid; gap: 10px; }
-.conversation-timeline::before { content: ""; position: absolute; left: 11px; top: 12px; bottom: 12px; width: 2px; background: var(--line); }
-.conversation-item { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; margin: 0; }
-.conversation-item__marker { width: 24px; height: 24px; border-radius: 999px; border: 2px solid var(--accent); background: var(--panel); z-index: 1; margin-top: 2px; }
-.conversation-item--user_message .conversation-item__marker { background: var(--accent); border-color: var(--accent); }
-.conversation-item--turn_receipt .conversation-item__marker, .conversation-item--latest_turn_receipt_ref .conversation-item__marker { background: var(--ok-soft); border-color: var(--ok); }
-.conversation-item--runtime_lifecycle_event .conversation-item__marker { background: var(--panel-alt); border-color: var(--line-strong); }
-.conversation-item__body { border: 1px solid var(--line); border-radius: 8px; background: var(--panel-alt); padding: 10px 12px; min-width: 0; }
-.conversation-item__body strong { display: inline-block; margin-right: 8px; }
-.conversation-item__body span { color: var(--muted); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
-.conversation-item__body p { margin: 5px 0 0; font-size: 13px; overflow-wrap: anywhere; }
 .portal-nav-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
 .portal-nav-links a, .portal-nav-links strong { color: var(--accent-ink); font-weight: 800; }
 .portal-nav-links span { color: var(--muted); overflow-wrap: anywhere; }

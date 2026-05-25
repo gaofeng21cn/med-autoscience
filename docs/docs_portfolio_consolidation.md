@@ -159,7 +159,7 @@ Uncovered docs in this semantic area:
 Remaining stale / retire candidates:
 
 - Progress Portal workspace carrier remains active diagnostic / no-App / evidence path because `medautosci workspace progress-portal`, `--serve`, and `ops/mas/bin/start-web` remain active callers.
-- `progress_portal_parts/rendering.py` still contains CSS classes named `conversation-*`; current tests prove the runtime conversation read-model is not accepted by the active Portal contract, so these names are retained implementation residue/watch items, not current product semantics.
+- `progress_portal_parts/rendering.py` no longer carries `conversation-*` CSS residue; focused Progress Portal tests now guard that runtime conversation read models and conversation timeline UI remain outside the active MAS Portal contract.
 - Any future Portal prose that mentions execution conversation, terminal/log stream, provider runtime event drilldown, or old MDS WebUI must explicitly route those concerns to OPL `current_control_state` / provider attempt projection or history/provenance.
 
 Next tranche write scope:
