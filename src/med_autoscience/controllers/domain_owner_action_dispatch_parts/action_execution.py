@@ -8,7 +8,6 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 
 from med_autoscience import medical_manuscript_blueprint
-from med_autoscience.medical_prose_review_request import materialize_medical_prose_review_request
 
 from .. import (
     ai_reviewer_publication_eval_workflow,
@@ -25,6 +24,10 @@ from .action_execution_parts import quality_repair
 from .action_execution_parts import source_provenance
 from .action_execution_parts import claim_evidence_alignment
 from .action_execution_parts import ai_reviewer_request_refs
+from .action_execution_parts.ai_reviewer_medical_prose_review_production import (
+    currentness_blocker_or_handoff,
+    try_rehydrate_medical_prose_review_request,
+)
 from .action_execution_parts.ai_reviewer_record_validation import (
     ai_reviewer_owned_record,
     ai_reviewer_record_blocker,
@@ -48,19 +51,6 @@ PROVENANCE_LIMITED_HARMONIZATION_REQUEST_RELATIVE_PATH = (
     provenance_limited_harmonization.REQUEST_RELATIVE_PATH
 )
 DECISION_REQUEST_RELATIVE_PATH = methodology_reframe_decision.DECISION_REQUEST_RELATIVE_PATH
-_MEDICAL_PROSE_REVIEW_CURRENTNESS_ERRORS = frozenset(
-    {
-        "medical_prose_review_request_digest_missing",
-        "medical_prose_review_request_digest_mismatch",
-        "medical_prose_review_manuscript_ref_missing",
-        "medical_prose_review_manuscript_digest_missing",
-        "medical_prose_review_manuscript_ref_mismatch",
-        "medical_prose_review_manuscript_digest_mismatch",
-        "medical_prose_review_reviewer_os_manuscript_ref_mismatch",
-        "medical_prose_review_live_manuscript_missing",
-        "medical_prose_review_live_manuscript_digest_mismatch",
-    }
-)
 
 
 def _text(value: object) -> str | None:
@@ -264,7 +254,7 @@ def _paper_authority_clean_migration_blocker(*, study_root: Path, exc: Exception
             },
         )
     if "medical_prose_review_request" in error:
-        rehydrate = _try_rehydrate_medical_prose_review_request(study_root=study_root)
+        rehydrate = try_rehydrate_medical_prose_review_request(study_root=study_root)
         return _blocked_ai_reviewer_execution(
             apply=True,
             reason="medical_prose_review_request_rehydrate_required",
@@ -293,55 +283,25 @@ def _paper_authority_clean_migration_blocker(*, study_root: Path, exc: Exception
     return None
 
 
-def _try_rehydrate_medical_prose_review_request(*, study_root: Path) -> dict[str, Any]:
-    try:
-        result = materialize_medical_prose_review_request(study_root=study_root)
-    except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        return {
-            "surface_kind": "medical_prose_review_request_rehydrate_receipt",
-            "status": "blocked",
-            "blocked_reason": "medical_prose_review_request_rehydrate_failed",
-            "error": str(exc),
-            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"),
-        }
-    return {
-        "surface_kind": "medical_prose_review_request_rehydrate_receipt",
-        "status": "materialized",
-        "artifact_path": str(result.get("artifact_path") or study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"),
-    }
-
-
-def _medical_prose_review_currentness_blocker(*, study_root: Path, exc: Exception, request_path: Path) -> dict[str, Any] | None:
-    error = str(exc)
-    if error not in _MEDICAL_PROSE_REVIEW_CURRENTNESS_ERRORS:
-        return None
-    prose_request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
-    rehydrate = _try_rehydrate_medical_prose_review_request(study_root=study_root)
-    return _blocked_ai_reviewer_execution(
-        apply=True,
-        reason="medical_prose_review_request_rehydrate_required",
+def _medical_prose_review_currentness_blocker(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    exc: Exception,
+    request_path: Path,
+    dispatch: Mapping[str, Any] | None,
+    apply: bool,
+) -> dict[str, Any] | None:
+    return currentness_blocker_or_handoff(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        error=str(exc),
         request_path=request_path,
-        next_owner="ai_reviewer",
-        required_input_surface=str(prose_request_path),
-        error=error,
-        owner_result={
-            "surface_kind": "medical_prose_review_currentness_blocker",
-            "authority_source_signature": "ai_reviewer_publication_eval_workflow",
-            "currentness_error": error,
-            "stale_medical_prose_review_reuse_allowed": False,
-            "medical_prose_review_request_rehydrated": rehydrate["status"] == "materialized",
-            "rehydrated_request_ref": rehydrate.get("artifact_path"),
-            "quality_verdict_written": False,
-            "submission_package_regenerated": False,
-            "next_owner": "ai_reviewer",
-            "next_required_actions": [
-                "materialize_current_medical_prose_review_request",
-                "produce_ai_reviewer_medical_prose_review_against_current_manuscript",
-                "produce_ai_reviewer_medical_prose_review_against_current_request",
-                "return_to_ai_reviewer_workflow",
-            ],
-            "rehydrate_result": rehydrate,
-        },
+        dispatch=dispatch,
+        apply=apply,
+        blocked_execution_builder=_blocked_ai_reviewer_execution,
     )
 
 
@@ -507,9 +467,13 @@ def execute_ai_reviewer_workflow(
         if clean_migration_blocker is not None:
             return clean_migration_blocker
         currentness_blocker = _medical_prose_review_currentness_blocker(
+            profile=profile,
+            study_id=study_id,
             study_root=study_root,
             exc=exc,
             request_path=request_path,
+            dispatch=dispatch,
+            apply=apply,
         )
         if currentness_blocker is not None:
             return currentness_blocker
