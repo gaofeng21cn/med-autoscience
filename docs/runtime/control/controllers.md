@@ -11,9 +11,9 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 
 也就是说：
 
-- controller 是平台级稳定机器接口
-- CLI 只是 controller 的薄包装
-- 人类主要审核 controller 产出的 report、summary、delivery 和审计日志
+- controller 是 MAS domain handler / authority refs / diagnostic refs 的稳定入口之一，不是 MAS 长期 generic runtime owner。
+- CLI 只是当前 direct path 的薄包装；OPL generated/default caller 接管后，repo-local CLI/MCP/product-entry/sidecar wrapper 只能继续作为 domain target、authority function 或诊断入口，否则按 no-active-caller proof 删除。
+- 人类主要审核 controller 产出的 report、summary、delivery、owner receipt、typed blocker 和审计日志。
 
 当前已经完成最小代码迁移的能力有：
 

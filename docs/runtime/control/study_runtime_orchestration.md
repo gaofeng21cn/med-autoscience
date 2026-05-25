@@ -498,16 +498,16 @@ workspace teardown 必须满足：
 - stopped relaunch 路径
   - 仅限 direct diagnostic / explicit controller relaunch 场景；domain-route repair 不再把 stopped controller work unit 改写成 MAS 私有 relaunch
   - controller 先把 blocked stopped 或 controller-authorized stopped relaunch 状态改写为 `RELAUNCH_STOPPED`
-  - transport 必须调用 `relaunch_stopped_quest(...)`，由 backend 显式释放 stopped/failed terminal state 后再启动新 turn；生产默认 provider 的 queue、attempt、retry/dead-letter 和 relaunch ownership 属于 OPL runtime manager
-  - 普通 `resume_quest(...)` 对 `stopped` / `failed` 仍必须 fail-closed，不能被 stopped relaunch 需求放宽
-  - 但 runtime binding / launch report 的 `last_action` 必须写成 `relaunch_stopped`
+  - 当前 MAS 只能输出 `RELAUNCH_STOPPED` 意图、owner authorization、typed blocker 或 owner-route handoff refs；provider terminal-state release、attempt hydration、queue/retry/dead-letter 与 relaunch ownership 属于 OPL current-control-state / runtime manager
+  - historical `relaunch_stopped_quest(...)` 与 `resume_quest(...)` 只能作为 retired transport provenance / diagnostic mapping 读取；普通 resume 语义不得被 stopped / failed relaunch 需求放宽
+  - OPL runtime owner 接受 relaunch 后，controller-facing runtime binding / launch report 的 `last_action` 必须写成 `relaunch_stopped`
 - blocked refresh 路径
   - 只在特定 blocked 场景下刷新 startup context / hydration
   - 不触发 resume
 - pause 路径
-  - 只输出 pause intent / owner receipt / typed blocker；实际 pause 写入口归 OPL
+  - 只输出 pause intent / owner receipt / typed blocker / owner-route handoff refs；实际 pause 写入口归 OPL current-control-state / runtime manager
 - completion 路径
-  - `PAUSE_AND_COMPLETE` 会先 pause
+  - `PAUSE_AND_COMPLETE` 会先输出 pause intent / owner-route handoff refs，由 OPL 完成实际 pause 后再进入 completion sync
   - 随后统一走 completion sync，并把 decision 最终收敛到 `COMPLETED`
 
 这条历史执行链已退役为 provenance。任何仍出现的 `study_runtime_execution.py`、`study_runtime_transport.py` 或 router transport helper refs，只能作为 migration input、diagnostic explanation 或 tombstone 读取。
@@ -518,14 +518,13 @@ workspace teardown 必须满足：
 
 这一步属于稳定 contract，因为上层依赖这些 artifact 作为可审计真相，包括：
 
-- runtime binding
-- launch report
+- runtime binding / launch report 的 MAS-facing projection 字段
 - startup payload path
 - last action
 - 序列化后的 status payload
-- daemon result
+- owner-route handoff / owner receipt / typed blocker refs
 
-也就是说，即使最终 decision 是 `BLOCKED` 或 `NOOP`，只要进入了受控 orchestration，artifact 落盘仍是正式行为的一部分。
+也就是说，即使最终 decision 是 `BLOCKED` 或 `NOOP`，只要进入了受控 orchestration，MAS-facing diagnostic / domain refs artifact 落盘仍是正式行为的一部分；OPL runtime truth artifact 不在 MAS 持久化链内。
 
 当前实现上，这条 persistence 链仍由 `study_runtime_execution.py` 作为历史迁移输入暴露时机；具体 transport I/O 的历史代码只作为 retired provenance 读取。router 上对应 helper 只允许作为 test-only patch target 和 diagnostic ref，不构成兼容入口或 MAS 私有 runtime 控制面。
 

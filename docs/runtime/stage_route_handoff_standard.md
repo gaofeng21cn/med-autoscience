@@ -5,7 +5,7 @@ Owner: `MedAutoScience`
 Purpose: `stage_route_handoff_standard`
 State: `active_support`
 Machine boundary: 本文是 MAS 面向 OPL stage-led runtime 的人读标准。机器 truth 继续归 `agent/` semantic pack、`contracts/stage_control_plane.json`、`contracts/action_catalog.json`、`contracts/generated_surface_handoff.json`、sidecar export/dispatch receipt、domain transition table、owner receipt、typed blocker、publication eval、controller decision 和真实 workspace artifact。
-Date: `2026-05-21`
+Date: `2026-05-26`
 
 ## 结论
 
@@ -14,8 +14,8 @@ Date: `2026-05-21`
 - `stage` 是 OPL provider-backed attempt 的大型研究步骤与 admission 单位。
 - `route` 是 MAS 医学 owner-chain 的 domain transition recommendation，表示下一步 owner、route-back、human gate、typed blocker 或 owner action。
 - `handoff` 是 MAS 给 OPL 的 body-free refs-only 交接包，用来让 OPL hydrate queue、创建 stage attempt、执行 retry/dead-letter、唤醒 provider 或生成 operator workorder。
-- 机器入口是 sidecar owner-route pending task 上的 `route_transition_contract` 与 `stage_graph_handoff`：前者给 OPL 读 allowed / forbidden refs 与 owner 边界，后者给 OPL 读 `journal-resolution` / `finalize` 这类 route 的 stage graph hints。
-- `domain_owner/default-executor-dispatch` 的机器入口是 `Owner-Route Attempt Protocol` envelope。MAS 必须在 envelope 中给出当前 `domain_owner`、`action_type`、`work_unit_id`、currentness basis、allowed / forbidden write surfaces、typed closeout requirement 和 completion boundary；OPL 只能用它 hydrate queue/attempt/provider transport。
+- 机器入口是 sidecar owner-route pending task 上的 `route_transition_contract` 与 `stage_graph_handoff`：前者给 OPL 读 allowed / forbidden refs 与 owner 边界，后者只给 OPL 读 `journal-resolution` / `finalize` 这类 route 的 stage graph hints，不让 MAS 拥有 child scheduler。
+- `domain_owner/default-executor-dispatch` 的机器入口是 `Owner-Route Attempt Protocol` envelope。MAS 必须在 envelope 中给出 `DomainIntent`、当前 `domain_owner`、`action_type`、`work_unit_id`、currentness basis、allowed / forbidden write surfaces、typed closeout requirement 和 completion boundary；OPL 只能用它 hydrate queue/attempt/provider transport。
 
 MAS repo 内不再扩展私有 queue、scheduler、checkpoint、resume、retry/dead-letter、worker liveness arbiter、route graph runner 或 generic state-machine runtime。OPL 当前若承载能力不足，应补 OPL stage graph / transition runner / runtime manager / App read model，而不是在 MAS 回补私有 runtime。
 
@@ -57,6 +57,8 @@ MAS repo 内不再扩展私有 queue、scheduler、checkpoint、resume、retry/d
 
 这些 route contract 里出现的 `durable_outputs_minimum`、`hard_success_gate`、`memory_closeout_obligations` 是 domain obligation 和 owner receipt expectation，不是 route 自己拥有 runtime attempt lifecycle。
 
+当前 live 证据已经证明 sidecar owner-route handoff 和 default executor attempt protocol 可读、body-free 且 fail closed：`src/med_autoscience/controllers/owner_route_handoff_parts/owner_route_handoff_tasks.py` 产出 `route_transition_contract` / `stage_graph_handoff`，focused tests 证明它不写 runtime state、queue、publication eval、controller decisions 或 `current_package`；`tests/owner_route_reconcile_cases/test_owner_route_attempt_protocol.py` 证明 `mas-owner-route-attempt-protocol.v1`、registered reason、currentness basis、provider/domain completion boundary 和缺字段 fail-closed 规则。真实 paper-line provider apply、MAS owner-chain closeout、long-soak、artifact movement 和 human gate receipt 仍是独立证据尾项。
+
 ## OPL 承载方式
 
 MAS 在 OPL 中应按下面链路运行：
@@ -66,7 +68,7 @@ MAS route / transition / authority refs
   -> sidecar export pending family task
   -> OPL family-runtime queue hydrate
   -> OPL provider-backed stage attempt
-  -> OPL transition runner / stage graph
+  -> OPL generic transition runner / stage graph consumes MAS refs/hints
   -> MAS authority function or owner action dispatch
   -> MAS owner receipt / typed blocker / route-back / human gate ref
   -> OPL receipt ledger + App/operator read model
@@ -74,8 +76,8 @@ MAS route / transition / authority refs
 
 route 之间的调度由 OPL 负责：
 
-- OPL 读取 MAS `family_transition_spec`、`study_state_matrix`、route contract、stage control plane 和 owner-route handoff。
-- OPL 执行 transition / guard / matrix runner，并在 queue / stage attempt ledger 中记录 provider receipt、closeout、dead-letter、retry 和 human gate。
+- OPL 读取 MAS `family_transition_spec`、`study_state_matrix`、route contract、stage control plane、`route_transition_contract` 和 `stage_graph_handoff` refs/hints。
+- OPL 执行 transition / guard / matrix runner，并在 queue / stage attempt ledger 中记录 transport state、provider receipt、closeout、dead-letter、retry 和 human gate。
 - MAS owner callable 返回医学 owner receipt、typed blocker、no-op currentness proof、route-back reason、human gate schema 或 artifact/memory/source refs。
 - OPL 只能存 refs 和调度下一 attempt；它不能写 MAS study truth、publication verdict、artifact body、memory body、`current_package` 或 submission readiness。
 
@@ -135,25 +137,26 @@ MAS default-executor handoff 必须先通过 `mas-owner-route-attempt-protocol.v
 4. envelope 必须声明 `allowed_write_surfaces`、`forbidden_surfaces`、`required_closeout_packet` 和 `completion_boundary.provider_completion_is_domain_ready=false`。
 5. OPL 只记录 attempt started/completed/blocked/failed、typed closeout refs、stdout/session/provider timing；MAS 消费 closeout refs 后再决定 owner receipt、AI reviewer eval、publication gate、package freshness或 typed blocker。
 
-## 并行落地 Lane
+## 落地状态与证据门
 
-下面是一步到位目标下可并行推进的 MAS lane。每条 lane 必须独立 worktree、独立验证，完成后吸收回 main 并清理临时 worktree/branch。
+下面只记录当前标准的落地状态与仍需补证的门槛，不作为新的并行任务板。后续如果按这些方向实施，仍必须独立 worktree、独立验证，完成后吸收回 main 并清理本次 worktree/branch。
 
-| lane | 目标 | 完成门槛 |
+| scope | 当前状态 | 证据门 |
 | --- | --- | --- |
-| `route_contract_clarity` | route contract 与 stage control plane 文档明确 route 不是 runtime unit。 | docs/status、runtime index、migration inventory 都指向同一标准；无新增机器 truth。 |
-| `owner_route_handoff_no_write` | sidecar/export/dispatch 只写 body-free handoff 和 dispatch receipt。 | focused tests 证明不写 `.ds/runtime_state.json`、`.ds/user_message_queue.json`、publication eval、controller decisions、`current_package`。 |
-| `journal_resolution_flow` | 指定 journal 格式整理进入 `journal-resolution` / `finalize` route + OPL stage graph。 | 目标 journal refs、format delta refs、artifact authority receipt、independent review/human gate/typed blocker 可被 OPL ingest。 |
-| `executor_reviewer_auditor_split` | executor、reviewer、auditor 分离成独立 OPL invocations。 | quality/format/publication gate 不允许同一 invocation 自审关闭。 |
-| `transition_matrix_consumption` | MAS `study_state_matrix` / transition table 持续暴露给 OPL runner。 | OPL runner pass 只证明 matrix 可消费；真实 owner receipt/typed blocker 才能关闭 route。 |
-| `runtime_control_plane_retirement` | runtime_transport、SQLite lifecycle、worker lease、status/workbench shell 中的通用 runtime 控制面按 no-alias 退役；剩余只允许 domain authority refs、owner receipt、typed blocker 和 OPL handoff refs。 | 新投影不得声明 MAS generic queue、attempt ledger、scheduler、retry/dead-letter、worker residency、runtime lifecycle 或 read-model owner。 |
-| `paper_line_canary` | 真实 paper-line 证明 OPL attempt -> MAS owner chain。 | 产出 progress delta、AI reviewer/gate receipt、artifact movement、human gate、stop-loss、owner receipt 或 stable typed blocker。 |
+| `route_contract_clarity` | 已由 stage control plane、route contract、本文和 handoff contract 固化为 `route != stage`。 | 后续新增 route/stage 文案不得把 route 写成 runtime unit；新增机器面必须继续引用 canonical route/stage sources。 |
+| `owner_route_handoff_no_write` | 已由 sidecar owner-route handoff source 和 focused tests 守住 body-free / no-forbidden-write。 | 持续证明不写 `.ds/runtime_state.json`、`.ds/user_message_queue.json`、publication eval、controller decisions、`current_package`。 |
+| `journal_resolution_flow` | 已有 `journal-resolution` / `finalize` stage graph hints，表明指定 journal 格式整理属于 OPL-owned `finalize_and_publication_handoff` graph。 | 真实落地仍需 target journal refs、format delta refs、artifact authority receipt、independent review / human gate / typed blocker 被 OPL ingest。 |
+| `executor_reviewer_auditor_split` | stage control plane 和 handoff tests 已要求独立 reviewer/auditor receipt，禁止同一 invocation 自审关闭。 | 真实 quality / format / publication gate closeout 必须有独立 invocation、独立 task record 和 receipt。 |
+| `transition_matrix_consumption` | MAS transition table / study state matrix 是 OPL runner 的 refs/hints 输入。 | OPL runner pass 只证明 matrix 可消费；真实 owner receipt/typed blocker 才能关闭 route。 |
+| `runtime_control_plane_retirement` | 部分落地。当前 handoff/read-model 语义已经禁止 MAS generic queue、attempt ledger、retry/dead-letter、worker liveness owner。 | 物理删除还需要 active-caller proof、no-forbidden-write proof、owner receipt 或 typed blocker parity、tombstone/provenance refs；strict source-purity tail 未关闭前不得误报完成。 |
+| `paper_line_canary` | 仍是开放证据尾项。 | 必须产出真实 OPL attempt -> MAS owner chain 的 progress delta、AI reviewer/gate receipt、artifact movement、human gate、stop-loss、owner receipt 或 stable typed blocker。 |
 
 ## 禁止误写
 
 - 不把 `route` 写成 MAS 自己调度的小 stage。
 - 不把 transition runner pass 写成 publication-ready、submission-ready 或 artifact-ready。
 - 不把 OPL provider completion 写成 MAS owner receipt。
+- 不把 OPL stage graph hints 写成 publication-ready、submission-ready、artifact-ready、domain completion 或 physical delete authorization。
 - 不把 owner-route handoff 写成 runtime liveness/redrive 仲裁。
 - 不把旧 runtime/control adapter 写成 MAS generic runtime owner、compat alias、diagnostic fallback 或当前 active caller gate。
 - 不用同一 agent execution + 自审关闭 AI-first quality gate。
