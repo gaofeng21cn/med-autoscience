@@ -1,5 +1,10 @@
 # Data Assets Layer Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 为 MedAutoScience 增加正式的医学数据资产管理层，包括私有数据版本登记、公开数据 sidecar 登记、影响评估，以及 ToolUniverse 适配状态。

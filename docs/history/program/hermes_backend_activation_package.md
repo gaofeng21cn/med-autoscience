@@ -1,5 +1,10 @@
 # Hermes Backend Activation Package
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 这份文档把当前 repo-side 允许打开的最小 `Hermes` activation package 固定下来。
 
 它的目标不是伪造 external `Hermes` runtime 已就位，而是把 `Hermes` 作为默认 outer runtime substrate owner 的 repo-side 闭环压成一个可验证、可审计、可继续收口的 package。

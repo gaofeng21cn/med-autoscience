@@ -1,5 +1,10 @@
 # Disease Workspace Model Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 MedAutoScience 的公开模板文档改成“病种级 workspace 管理多数据版本、多 study、多篇论文”的默认入口模型。

@@ -1,5 +1,10 @@
 # One Person Lab Repo Bootstrap Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在 `/Users/gaofeng/workspace/one-person-lab` 创建一个可直接发布到 GitHub 的 OPL 顶层蓝图仓库骨架，明确 `One Person Lab` 总纲、任务版图、共享底座和 `MedAutoScience` 子项目定位。

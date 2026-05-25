@@ -1,5 +1,8 @@
 # OPL App MAS Runtime Workbench Program
 
+Purpose: `program_history_record`
+State: `history_provenance`
+
 Archive note: this is the 2026-05-11 full record of the P1 workbench plan.
 Current content-level owner: [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md).
 Current development map: [MAS Current Development Lines](../../active/current-development-lines.md).

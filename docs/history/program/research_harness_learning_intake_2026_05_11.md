@@ -5,6 +5,7 @@ Date: `2026-05-11`
 Owner: `MedAutoScience`
 Purpose: `external research-harness learning intake`
 Machine boundary: this is a human-readable clean-room intake record. It does not create machine truth, dependencies, runtime ownership, publication authority, or artifact authority.
+State: `history_provenance`
 
 ## Conclusion
 

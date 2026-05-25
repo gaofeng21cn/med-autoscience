@@ -1,5 +1,10 @@
 # 历史 OMX Worktree 启动与收尾操作规约
 
+Owner: `MedAutoScience`
+Purpose: `omx_history_record`
+State: `history_provenance`
+Machine boundary: 人读 OMX-era 历史/provenance 记录。当前项目规则、runtime truth 和 owner boundary 继续归 `AGENTS.md`、核心 docs、runtime contracts、contracts/source、CLI/API 行为和 owner receipts。
+
 > 历史归档文档。它保留 OMX 时代的 worktree 运行手册，供审计与回溯使用。当前 worktree 规则以仓库根 `AGENTS.md`、`docs/README*` 和活跃核心文档为准。
 
 这份文档保留 `Med Auto Science` 当时使用 OMX 的操作手册。

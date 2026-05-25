@@ -1,5 +1,10 @@
 # Workspace Knowledge And Literature Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `runtime_history_record`
+State: `history_provenance`
+Machine boundary: 人读 runtime 历史/provenance 记录。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、runtime/controller durable surfaces 和 owner receipts。
+
 **Status:** `historical closeout reference`
 
 **Goal:** 守住已经完成的 workspace-first canonical knowledge / literature contract。旧 `P2 controlled cutover -> physical monorepo migration` 已被 MAS Runtime OS + MAS supervision scheduler contract + behavior-equivalence closeout 取代；Hermes gateway cron 只是当前 active adapter。本文件不再作为 active implementation plan。

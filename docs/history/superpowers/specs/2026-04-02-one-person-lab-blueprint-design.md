@@ -1,6 +1,10 @@
 # One Person Lab Blueprint Design
 
 Date: `2026-04-02`
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
 
 ## Context
 

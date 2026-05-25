@@ -1,5 +1,10 @@
 # DeepScientist Learning Intake 2026-04-28
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 这份记录对应维护者触发的“学习一下 DeepScientist 的最新更新”。本轮按 [DeepScientist Latest-Update Learning Protocol](../../references/med-deepscientist/deepscientist_latest_update_learning_protocol.md) 执行：fresh upstream audit、decision matrix、MDS/MAS owner surface 分类、落地、验证、吸收回 main。
 
 ## Fresh Upstream Range

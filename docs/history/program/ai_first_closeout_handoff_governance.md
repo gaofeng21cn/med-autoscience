@@ -1,5 +1,10 @@
 # AI-first Closeout / Handoff Governance
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 本文件定义 MAS AI-first 并行 lane 的人工/AI 接力规则。它服务 closeout 审阅、handoff 续接和非冲突计划收口；不新增 wording gate，不参与 publication gate、submission gate、runtime authority 或真实论文质量判定。
 
 ## 适用范围

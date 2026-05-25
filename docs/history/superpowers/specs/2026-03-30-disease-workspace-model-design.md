@@ -1,5 +1,10 @@
 # Disease Workspace Model Design
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 ## 背景
 
 当前 `MedAutoScience` 已经把程序外置、profile 驱动、workspace 保留项目状态这套运行架构基本讲清楚，但默认入口叙事仍偏向“围绕一个课题推进到一篇稿件”的感觉。

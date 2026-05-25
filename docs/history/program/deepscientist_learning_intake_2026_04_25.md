@@ -1,5 +1,10 @@
 # DeepScientist Learning Intake 2026-04-25
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 本轮 intake 基于 fresh `git fetch upstream` 后的 `DeepScientist upstream/main`，观察范围为 `e539e2e..710792e`。
 
 目标不是同步上游代码，而是把 DeepScientist 近期强化的“长期研究伙伴”能力翻译成 `MAS` 可维护的 owner truth。

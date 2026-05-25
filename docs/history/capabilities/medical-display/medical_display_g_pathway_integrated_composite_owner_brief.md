@@ -1,5 +1,10 @@
 # Medical Display G Pathway-Integrated Genomic Composite Owner Brief
 
+Owner: `MedAutoScience`
+Purpose: `medical_display_history_record`
+State: `history_provenance`
+Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medical-display 能力真相继续归 `docs/delivery/medical-display/`、template/renderer source、contracts、generated artifacts、tests 和 audit receipts。
+
 ## 文档定位
 
 这份 brief 是当前 `G` 家族 owner round 的唯一实现锚点。

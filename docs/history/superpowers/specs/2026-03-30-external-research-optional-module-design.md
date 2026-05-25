@@ -1,5 +1,10 @@
 # External Research Optional Module Design
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 ## 背景
 
 当前 `MedAutoScience` 已经把 `portfolio/research_memory/` 上升为 workspace 级显式研究记忆层，但“是否调用外部 AI 做 deep research”仍缺少稳定的受管入口。

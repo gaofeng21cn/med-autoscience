@@ -1,5 +1,10 @@
 # PaperOrchestra Learning Intake 2026-05-02
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 这份记录对应维护者触发的 PaperOrchestra 学习吸收。目标是把外部论文写作流水线中可复用的论文生产纪律转成 MAS-owned contract、projection 和 regression surface；不是引入 PaperOrchestra 作为 MAS runtime、用户入口或第二 publication owner。
 
 ## Source Snapshot

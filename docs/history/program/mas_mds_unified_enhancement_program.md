@@ -3,6 +3,9 @@
 Status: `historical enhancement board absorbed by current portfolio`
 Date: `2026-05-04`
 Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
 
 Archive note: this record preserves the older L1-L5 enhancement grouping. Current execution owner and queue live in [Program Portfolio Consolidation](../../active/program_portfolio_consolidation.md), [MAS Single-Project MDS Absorb Program](../../active/mas_single_project_mds_absorb_program.md), and [Domain Authority Refs Index Guard](../../runtime/domain_authority_refs_index_guard.md).
 

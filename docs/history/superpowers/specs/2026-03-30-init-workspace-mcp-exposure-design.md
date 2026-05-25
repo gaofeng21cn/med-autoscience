@@ -1,5 +1,10 @@
 # Init Workspace MCP Exposure Design
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 ## 背景
 
 `init-workspace` 已经作为 CLI/controller 落地，可以让 Agent 通过 `medautosci init-workspace` 初始化病种级 workspace。

@@ -1,5 +1,10 @@
 # 医学绘图军火库扩充历史
 
+Owner: `MedAutoScience`
+Purpose: `medical_display_history_record`
+State: `history_provenance`
+Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medical-display 能力真相继续归 `docs/delivery/medical-display/`、template/renderer source、contracts、generated artifacts、tests 和 audit receipts。
+
 ## 文档定位
 
 本文记录绘图军火库是如何一步一步扩出来的，重点回答五个问题：

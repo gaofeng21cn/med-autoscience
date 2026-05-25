@@ -1,5 +1,10 @@
 # PaperPlotHub Exemplar Exhaustion Ledger
 
+Owner: `MedAutoScience`
+Purpose: `medical_display_history_record`
+State: `history_provenance`
+Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medical-display 能力真相继续归 `docs/delivery/medical-display/`、template/renderer source、contracts、generated artifacts、tests 和 audit receipts。
+
 ## Scope
 
 本账本记录 `2026-04-30` 第二轮 PaperPlotHub 学习结果。目标是回答一个问题：在不复制外部脚本、截图、PNG、论文图，不把 PaperPlotHub 变成 runtime dependency 或 display-pack source 的前提下，当前公开 gallery 还有没有可以继续吸收进 MAS medical display 的内容。

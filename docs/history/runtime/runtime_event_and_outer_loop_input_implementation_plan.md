@@ -1,5 +1,10 @@
 # Runtime Event And Outer-Loop Input Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `runtime_history_record`
+State: `history_provenance`
+Machine boundary: 人读 runtime 历史/provenance 记录。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、runtime/controller durable surfaces 和 owner receipts。
+
 **Status:** `historical closeout reference`
 
 **Goal:** 本文件记录 managed runtime native truth 消费链路的历史计划。当前默认 runtime owner 已收敛到 MAS Runtime OS；外部 `MedDeepScientist` 不再负责默认 quest-owned runtime truth，只能作为 historical fixture / explicit archive import reference / provenance reference。

@@ -1,5 +1,10 @@
 # 能力线历史归档
 
+Owner: `MedAutoScience`
+Purpose: `capability_history_index`
+State: `history_index`
+Machine boundary: 人读能力线历史索引。当前能力与交付真相继续归 `docs/delivery/`、contracts、source、generated artifacts、audit receipts 和当前 owner docs。
+
 这里保存已经退役或仅作 provenance 的能力线文档。
 
 当前能力线工作应先读：

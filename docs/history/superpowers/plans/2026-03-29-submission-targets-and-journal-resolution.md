@@ -1,5 +1,10 @@
 # Submission Targets And Journal Resolution Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 让 MedAutoScience 支持 workspace 默认投稿目标、study/quest 显式投稿目标、写作/定稿阶段的目标期刊约束，以及面向未知期刊的受控 journal-resolution 入口。

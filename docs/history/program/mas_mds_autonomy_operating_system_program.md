@@ -2,6 +2,10 @@
 
 Status: `historical board absorbed by program_portfolio_consolidation`
 Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 Scope: long-running autonomy, medical-paper quality, MAS single-project evolution, quality-preserving acceleration, natural-boundary maintainability
 
 Archive note: this record preserves the older autonomy OS board and lane vocabulary. Current program governance lives in [Program Portfolio Consolidation](../../active/program_portfolio_consolidation.md); do not treat this file as an active owner board.

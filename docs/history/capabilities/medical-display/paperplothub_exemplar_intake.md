@@ -1,5 +1,10 @@
 # PaperPlotHub Exemplar Intake
 
+Owner: `MedAutoScience`
+Purpose: `medical_display_history_record`
+State: `history_provenance`
+Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medical-display 能力真相继续归 `docs/delivery/medical-display/`、template/renderer source、contracts、generated artifacts、tests 和 audit receipts。
+
 ## Scope
 
 本文记录 `2026-04-30` 对 PaperPlotHub 当前公开 gallery 的一次只读 intake。

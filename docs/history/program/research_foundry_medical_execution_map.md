@@ -1,5 +1,10 @@
 # Research Foundry Medical Execution Map
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 这份文档把 `Med Auto Science` 当前主线压成一张可执行地图，回答四个问题：
 
 1. 这条主线的最终目标是什么

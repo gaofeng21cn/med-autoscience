@@ -1,5 +1,10 @@
 # Medical Overlay Frontload Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把医学 overlay 从 `write/finalize` 后段收口，前移到 `scout/idea/decision`，并通过 `profile/bootstrap` 让新 workspace 与新电脑进入 `MedAutoScience` 时默认就是医学发表导向模式。

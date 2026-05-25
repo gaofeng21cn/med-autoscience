@@ -1,5 +1,10 @@
 # Legacy Runtime Boundary
 
+Owner: `MedAutoScience`
+Purpose: `runtime_history_record`
+State: `history_provenance`
+Machine boundary: 人读 runtime 历史/provenance 记录。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、runtime/controller durable surfaces 和 owner receipts。
+
 这里记录 `MedAutoScience` 早期 adapter 边界为何被退休，以及当前正式运行时真相源。
 
 当前正式约束：

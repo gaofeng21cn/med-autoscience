@@ -1,5 +1,10 @@
 # DeepScientist Compatibility Shield Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 `MedAutoScience` 变成 `DeepScientist` 的兼容护城河，强制安装并验证论文绘图依赖、禁止手拼 SVG 降级、让 quest runtime 的 overlay 成为权威来源，并把医学 SCI figure hard gate 前推到 figure route。

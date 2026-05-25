@@ -1,5 +1,10 @@
 # External DeepScientist Workspace Phase 1 Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 先把医学 workspace 的 `DeepScientist` 入口收敛成显式、可审计的 contract，并补上 Phase 2.5 行为等价门，为后续真正切到“外部程序 + 本地运行状态”结构打基础。

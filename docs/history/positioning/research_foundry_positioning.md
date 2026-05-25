@@ -1,5 +1,10 @@
 # Research Foundry Positioning
 
+Owner: `MedAutoScience`
+Purpose: `positioning_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner truth 继续归核心五件套、MAS ideal-state reference、active gap plan、contracts/source 和 owner receipts。
+
 这份文档用来冻结一套新的公开口径：
 
 - `OPL / One Person Lab`

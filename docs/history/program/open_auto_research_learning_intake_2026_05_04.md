@@ -1,5 +1,10 @@
 # Open Auto Research Learning Intake 2026-05-04
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 这份记录对应维护者触发的 “PaperOrchestra 相邻 Auto Research 开源项目” fresh learning intake。目标是把近期外部 open-source auto research / deep research / multi-agent research workflow 中可复用的机制转成 `MAS` owner 下的 contract、template、watch list 和后续落地计划；不是把外部框架、skill pack、provider runtime 或论文生成器接成 `MAS` 第二运行时。
 
 本轮在线检索截至 `2026-05-04`。GitHub API 在本机请求中触发 rate limit，因此 star / release 等热度信号只作为网页可见近似信号；本记录的可执行依据以官方 repo、官方 docs、论文页和项目页中可核对的机制为准。

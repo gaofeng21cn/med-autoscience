@@ -1,5 +1,10 @@
 # 医学展示历史归档
 
+Owner: `MedAutoScience`
+Purpose: `medical_display_history_index`
+State: `history_index`
+Machine boundary: 人读医学展示历史索引。当前 medical-display 能力真相继续归 `docs/delivery/medical-display/`、template/renderer source、contracts、generated artifacts、tests 和 audit receipts。
+
 这些文件是医学展示能力线的历史记录或 provenance-only 记录。
 它们用于审计和学习脉络，不作为当前 active execution surface。
 

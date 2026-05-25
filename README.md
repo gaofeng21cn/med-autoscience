@@ -6,6 +6,13 @@
   <a href="./README.md"><strong>English</strong></a> | <a href="./README.zh-CN.md">中文</a>
 </p>
 
+<!--
+Owner: MedAutoScience
+Purpose: public repository entry
+State: current_public_entry
+Machine boundary: Human-readable public entry only. Machine truth remains in agent/, contracts, source, CLI/MCP/API behavior, product-entry manifests, sidecar receipts, runtime/controller durable surfaces, study workspace artifacts, and owner receipts.
+-->
+
 <h1 align="center">Med Auto Science</h1>
 
 <p align="center"><strong>A medical research Foundry Agent and OPL-compatible package built on OPL Framework, with a direct MAS app skill for turning data, study questions, and evidence into manuscript-ready work</strong></p>

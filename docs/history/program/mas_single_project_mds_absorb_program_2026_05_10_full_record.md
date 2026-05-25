@@ -1,5 +1,9 @@
 # MAS Single-Project MDS Absorb Program
 
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 Archive state: `historical full record`
 Current owner: [MAS Single-Project MDS Absorb Program](../../active/mas_single_project_mds_absorb_program.md)
 Read rule: this file preserves the 2026-05-10 monolith/MDS absorb evidence trail. Do not read old lane tables, dated closeout notes, or target topology here as the current implementation queue unless the current owner document still references them.

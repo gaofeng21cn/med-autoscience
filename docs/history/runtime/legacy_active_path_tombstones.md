@@ -4,6 +4,7 @@ Status: `tombstoned`
 Owner: `MedAutoScience Runtime OS`
 Purpose: preserve tombstone context for retired active-path wording and default-caller claims.
 Machine boundary: machine truth lives in `contracts/runtime/legacy-active-path-tombstones.json`, product-entry manifest tombstone proofs, sidecar receipts, and runtime/controller surfaces.
+State: `history_provenance`
 
 ## Hermes Scheduler Hosted Runtime
 

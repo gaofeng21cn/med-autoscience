@@ -1,5 +1,10 @@
 # AI-first Usable Closeout Projection
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 本 note 是 `plan_completion_ledger` 的接力附件。它定义本轮 AI-first usable closeout 的最终可填写模板和语义边界，供后续吸收并行 lane 时逐项填入真实证据。
 
 本 note 只证明运行闭环的 repo-level closeout 形态已经可用：计划项可以被登记、接力、验证和保留边界。它不宣称真实论文 soak 已完成，也不宣称真实论文质量改善、submission readiness 或 artifact 修复已经被证明。

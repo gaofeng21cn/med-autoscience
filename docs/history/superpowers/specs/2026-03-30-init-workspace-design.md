@@ -1,5 +1,10 @@
 # Init Workspace Design
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 ## 背景
 
 当前 `MedAutoScience` 已经通过文档明确了“病种级 workspace”是默认工作单元，但新项目启动仍依赖 Agent 读取文档后自行创建目录与入口文件。

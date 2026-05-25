@@ -1,5 +1,9 @@
 # Runtime Lifecycle SQLite Migration Program
 
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 Archive state: `historical full record`
 Current owner: [Domain Authority Refs Index Guard](../../runtime/domain_authority_refs_index_guard.md)
 Read rule: this file preserves the 2026-05-08 runtime lifecycle migration rationale and dated workspace evidence. Do not read schema sketches, lane tables, or old migration tasks here as the current queue unless the current owner document still references them.

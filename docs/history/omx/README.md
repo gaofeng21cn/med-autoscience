@@ -1,5 +1,10 @@
 # OMX 历史资料索引
 
+Owner: `MedAutoScience`
+Purpose: `omx_history_index`
+State: `history_index`
+Machine boundary: 人读 OMX-era 历史索引。当前项目规则、runtime truth 和 owner boundary 继续归 `AGENTS.md`、核心 docs、runtime contracts、contracts/source、CLI/API 行为和 owner receipts。
+
 这里收录 `Med Auto Science` 仓库内与 OMX 时代相关的历史资料入口。
 
 它不是当前活跃执行入口。

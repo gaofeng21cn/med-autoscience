@@ -1,5 +1,10 @@
 # Medical Display Taxonomy Unification Design
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **Status:** proposed and user-approved at the design level
 > **Scope:** unify the long-horizon product taxonomy and the current audited engineering taxonomy for the medical display system
 > **Tracking rule:** this spec lives under `docs/superpowers/specs/` as local design state and remains untracked by repo policy

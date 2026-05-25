@@ -1,5 +1,10 @@
 # External Agent Orchestration Learning Intake 2026-04-30
 
+Owner: `MedAutoScience`
+Purpose: `program_history_record`
+State: `history_provenance`
+Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
+
 这份记录对应 Lane A：把外部 agent orchestration 项目 `Symphony` 与 `agency-agents` / `NEXUS` 的学习结果转成 MAS repo-tracked intake record。目标是吸收可验证的编排纪律，不引入新的 MAS owner。
 
 ## Source Snapshot

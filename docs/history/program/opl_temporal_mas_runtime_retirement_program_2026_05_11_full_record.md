@@ -1,5 +1,7 @@
 # OPL Temporal MAS Runtime Retirement Program
 
+State: `history_provenance`
+
 Archive note: this is the 2026-05-11 full record of the P2 framework-alignment and retirement plan.
 Current content-level owners: [MAS Ideal-State Gap Plan](../../active/mas-ideal-state-gap-plan.md), [MAS Current Development Lines](../../active/current-development-lines.md), and [Runtime Boundary](../../runtime/contracts/runtime_boundary.md).
 Current development map: [MAS Current Development Lines](../../active/current-development-lines.md).

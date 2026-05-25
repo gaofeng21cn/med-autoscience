@@ -2,6 +2,9 @@
 
 Status: `history archive`
 Owner: `MedAutoScience Runtime OS`
+Purpose: `runtime_history_index`
+State: `history_index`
+Machine boundary: 人读 runtime 历史索引。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、runtime/controller durable surfaces 和 owner receipts。
 
 本目录保存运行时 implementation plan、legacy boundary 记录和不再拥有当前运行行为的 provenance。
 

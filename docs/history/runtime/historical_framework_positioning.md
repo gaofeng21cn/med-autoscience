@@ -1,5 +1,10 @@
 # Historical Domain Gateway And Harness OS
 
+Owner: `MedAutoScience`
+Purpose: `runtime_history_record`
+State: `history_provenance`
+Machine boundary: 人读 runtime 历史/provenance 记录。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、runtime/controller durable surfaces 和 owner receipts。
+
 这份文档把 `MedAutoScience` 当前更准确的定位固定下来：
 
 - 对外：它是 `Research Ops` 的 `domain gateway`

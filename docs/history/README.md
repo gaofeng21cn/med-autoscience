@@ -1,5 +1,10 @@
 # 历史归档
 
+Owner: `MedAutoScience`
+Purpose: `history_archive_index`
+State: `history_index`
+Machine boundary: 本目录是人读历史/provenance 索引。当前机器真相继续归 `agent/`、`contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和当前 owner docs。
+
 本目录保存 repo-tracked 历史材料：dated snapshot、provenance、退役 board、归档 implementation plan 和过程稿。
 
 History 是只读语境，不拥有 active backlog、runtime truth、controller decision、publication readiness、artifact authority 或 policy truth。

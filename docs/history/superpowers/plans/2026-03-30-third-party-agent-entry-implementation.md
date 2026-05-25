@@ -1,5 +1,10 @@
 # Third-Party Agent Entry Implementation Plan
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把第三方 Agent 接入设计落成一套可执行、可校验、可同步的实现，包括单一事实源、公开 guide、`Codex` 薄入口 Skill、`OpenClaw` 入口 prompt，以及 README / 技术入口文档中的统一兼容表述。

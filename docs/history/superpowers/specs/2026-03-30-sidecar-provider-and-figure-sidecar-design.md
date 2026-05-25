@@ -1,5 +1,10 @@
 # Sidecar Provider And Figure Sidecar Design
 
+Owner: `MedAutoScience`
+Purpose: `superpowers_history_record`
+State: `history_provenance`
+Machine boundary: 人读历史过程稿。当前 contract、runtime truth、policy truth、regression oracle 和 owner boundary 继续归核心 docs、contracts、source、tests、runtime/controller surfaces 和 owner receipts。
+
 ## Goal
 
 把当前 `ARIS` 的特例化 sidecar 接入升级为统一的 provider 框架，并在同一骨架下引入 `AutoFigure-Edit` 作为受约束的 `figure` sidecar。

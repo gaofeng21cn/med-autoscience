@@ -1,5 +1,10 @@
 # Medical Display Family Baseline Program
 
+Owner: `MedAutoScience`
+Purpose: `medical_display_history_record`
+State: `history_provenance`
+Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medical-display 能力真相继续归 `docs/delivery/medical-display/`、template/renderer source、contracts、generated artifacts、tests 和 audit receipts。
+
 This document defines the current long-horizon completion program for the medical display platform in `med-autoscience`.
 
 Use this file when the question is:
