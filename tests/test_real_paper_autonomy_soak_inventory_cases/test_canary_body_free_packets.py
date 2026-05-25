@@ -93,6 +93,35 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
         "artifact_movement_ref",
         "no_forbidden_write_proof_ref",
     } <= packet_roles
+    per_line_result = payload["paper_line_owner_chain_results"][0]
+    assert per_line_result["surface_kind"] == "mas_paper_line_owner_chain_result"
+    assert per_line_result["paper_line_id"] == "002-dm-china-us-mortality-attribution"
+    assert per_line_result["owner"] == "MedAutoScience"
+    assert per_line_result["result_kind"] == "owner_receipt"
+    assert per_line_result["required_return_shape_satisfied"] is True
+    assert {
+        str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"),
+        str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"),
+    } <= set(per_line_result["owner_receipt_refs"])
+    assert per_line_result["stable_typed_blocker_refs"] == []
+    assert per_line_result["progress_delta_refs"] == [
+        str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json")
+    ]
+    assert per_line_result["ai_reviewer_gate_receipt_refs"] == []
+    assert per_line_result["artifact_movement_refs"] == [
+        str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json")
+    ]
+    assert per_line_result["human_gate_or_resume_refs"] == []
+    assert per_line_result["no_forbidden_write_proof_ref"] == (
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+    )
+    assert per_line_result["body_included"] is False
+    assert per_line_result["readiness_claims"] == {
+        "claims_paper_closure": False,
+        "claims_publication_ready": False,
+        "claims_artifact_mutation_authorized": False,
+        "claims_current_package_updated": False,
+    }
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")
 
@@ -117,5 +146,14 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     assert {
         packet["role"] for packet in payload["body_free_evidence_packets"]
     } == {"stable_typed_blocker_ref", "no_forbidden_write_proof_ref"}
+    per_line_result = payload["paper_line_owner_chain_results"][0]
+    assert per_line_result["paper_line_id"] == "002-dm-china-us-mortality-attribution"
+    assert per_line_result["result_kind"] == "stable_typed_blocker"
+    assert per_line_result["required_return_shape_satisfied"] is True
+    assert per_line_result["owner_receipt_refs"] == []
+    assert per_line_result["stable_typed_blocker_refs"][0].startswith(
+        "mas_owner_apply_receipt_missing:"
+    )
+    assert per_line_result["body_included"] is False
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")

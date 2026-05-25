@@ -83,6 +83,15 @@ def test_sidecar_dispatch_records_provider_hosted_guarded_apply_receipt_without_
     assert canary["owner_chain_result"]["stable_typed_blocker_refs"][0].startswith(
         "mas_owner_apply_receipt_missing:"
     )
+    assert [item["paper_line_id"] for item in canary["paper_line_owner_chain_results"]] == [
+        "002-dm-china-us-mortality-attribution"
+    ]
+    assert canary["paper_line_owner_chain_results"][0]["result_kind"] == "stable_typed_blocker"
+    assert canary["paper_line_owner_chain_results"][0]["required_return_shape_satisfied"] is True
+    assert canary["paper_line_owner_chain_results"][0]["stable_typed_blocker_refs"][0].startswith(
+        "mas_owner_apply_receipt_missing:"
+    )
+    assert canary["paper_line_owner_chain_results"][0]["body_included"] is False
     assert canary["selected_opl_ingestable_ref_surface"]["ref"] == (
         "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
     )
@@ -231,6 +240,12 @@ def test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present(
     assert result["provider_attempt"]["attempt_state"] == "mas_owner_receipt_present"
     assert result["paper_line_provider_canary_closeout"]["required_return_shape_satisfied"] is True
     assert result["paper_line_provider_canary_closeout"]["owner_chain_result"]["result_kind"] == "owner_receipt"
+    assert result["paper_line_provider_canary_closeout"]["paper_line_owner_chain_results"][0][
+        "result_kind"
+    ] == "owner_receipt"
+    assert result["paper_line_provider_canary_closeout"]["paper_line_owner_chain_results"][0][
+        "paper_line_id"
+    ] == "002-dm-china-us-mortality-attribution"
     assert result["paper_line_provider_canary_closeout"]["provider_attempt"]["provider_attempt_wrote_mas_truth"] is False
     assert result["summary"]["provider_attempt_wrote_workspace"] is False
     assert result["summary"]["writes_performed_by_this_receipt"] is False

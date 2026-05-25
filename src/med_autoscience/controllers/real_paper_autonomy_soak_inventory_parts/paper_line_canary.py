@@ -40,6 +40,10 @@ def build_owner_chain_closeout_from_guarded_receipts(
         stable_blocker_refs=stable_blocker_refs,
     )
     no_forbidden_write_proof = _no_forbidden_write_proof(forbidden_write_guard)
+    paper_line_results = _paper_line_owner_chain_results(
+        guarded_receipts=guarded_receipts,
+        no_forbidden_write_proof=no_forbidden_write_proof,
+    )
     return {
         "surface_kind": "mas_real_paper_line_owner_chain_closeout",
         "version": VERSION,
@@ -61,6 +65,7 @@ def build_owner_chain_closeout_from_guarded_receipts(
             "stable_typed_blocker_refs": stable_blocker_refs,
             "body_included": False,
         },
+        "paper_line_owner_chain_results": paper_line_results,
         "live_paper_line_evidence_refs": live_evidence_refs,
         "body_free_evidence_packets": _body_free_owner_chain_packets(
             owner_receipt_refs=owner_receipt_refs,
@@ -71,6 +76,53 @@ def build_owner_chain_closeout_from_guarded_receipts(
         "no_forbidden_write_proof": no_forbidden_write_proof,
         "authority_boundary": _authority_boundary(),
     }
+
+
+def _paper_line_owner_chain_results(
+    *,
+    guarded_receipts: Sequence[Mapping[str, Any]],
+    no_forbidden_write_proof: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    proof_ref = _text(no_forbidden_write_proof.get("proof_ref"))
+    results: list[dict[str, Any]] = []
+    for receipt in guarded_receipts:
+        receipt_refs = _owner_receipt_refs([receipt])
+        stable_blocker_refs = _dedupe_text(
+            blocker.get("blocker_id") for blocker in _stable_mas_typed_blockers([receipt])
+        )
+        live_refs = _live_paper_line_evidence_refs(
+            guarded_receipts=[receipt],
+            stable_blocker_refs=stable_blocker_refs,
+        )
+        result_kind = (
+            "owner_receipt"
+            if receipt_refs
+            else ("stable_typed_blocker" if stable_blocker_refs else "missing_owner_chain_result")
+        )
+        results.append(
+            {
+                "surface_kind": "mas_paper_line_owner_chain_result",
+                "paper_line_id": _text(receipt.get("study_id")),
+                "owner": "MedAutoScience",
+                "result_kind": result_kind,
+                "required_return_shape_satisfied": result_kind in {"owner_receipt", "stable_typed_blocker"},
+                "owner_receipt_refs": receipt_refs,
+                "stable_typed_blocker_refs": stable_blocker_refs
+                or _sequence(live_refs.get("stable_typed_blocker_refs")),
+                "progress_delta_refs": _sequence(live_refs.get("progress_delta_refs")),
+                "ai_reviewer_gate_receipt_refs": _sequence(
+                    live_refs.get("ai_reviewer_gate_receipt_refs")
+                ),
+                "artifact_movement_refs": _sequence(live_refs.get("artifact_movement_refs")),
+                "human_gate_or_resume_refs": _sequence(
+                    live_refs.get("human_gate_or_resume_refs")
+                ),
+                "no_forbidden_write_proof_ref": proof_ref,
+                "body_included": False,
+                "readiness_claims": dict(_mapping(live_refs.get("readiness_claims"))),
+            }
+        )
+    return results
 
 
 def build_provider_canary_closeout(
