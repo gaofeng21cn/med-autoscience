@@ -200,6 +200,7 @@ def _pending_family_tasks(
     opl_production_proof_ref: str | Path | None,
 ) -> list[dict[str, Any]]:
     tasks: list[dict[str, Any]] = []
+    guarded_apply_targets = _guarded_apply_targets(studies)
     tasks.extend(
         provider_hosted_guarded_apply_tasks(
             profile=profile,
@@ -211,8 +212,9 @@ def _pending_family_tasks(
                     profile=profile,
                     target_study_id=target,
                 )
-                for target in DEFAULT_GUARDED_APPLY_TARGETS
+                for target in guarded_apply_targets
             },
+            target_studies=guarded_apply_targets,
         )
     )
     for study in studies:
@@ -259,6 +261,48 @@ def _pending_family_tasks(
         if controller_task is not None:
             tasks.append(controller_task)
     return tasks
+
+
+def _guarded_apply_targets(studies: list[Mapping[str, Any]]) -> tuple[str, ...]:
+    live_study_ids_by_target: dict[str, str] = {}
+    for study in studies:
+        study_id = text(study.get("study_id"))
+        study_root = text(study.get("study_root"))
+        if study_id is None or study_root is None:
+            continue
+        if not (Path(study_root) / "study.yaml").exists():
+            continue
+        normalized_study_id = _guarded_apply_target_key(study_id)
+        for target in DEFAULT_GUARDED_APPLY_TARGETS:
+            target_key = _guarded_apply_target_key(target)
+            if normalized_study_id == target_key and target_key not in live_study_ids_by_target:
+                live_study_ids_by_target[target_key] = study_id
+    live_target_ids = tuple(
+        live_study_ids_by_target[_guarded_apply_target_key(target)]
+        for target in DEFAULT_GUARDED_APPLY_TARGETS
+        if _guarded_apply_target_key(target) in live_study_ids_by_target
+    )
+    return live_target_ids or DEFAULT_GUARDED_APPLY_TARGETS
+
+
+def _guarded_apply_target_key(value: str) -> str:
+    normalized = value.strip().lower().replace("_", "-")
+    aliases = {
+        "dm002": "002",
+        "dm-002": "002",
+        "dm003": "003",
+        "dm-003": "003",
+        "obesity": "obesity",
+    }
+    if normalized in aliases:
+        return aliases[normalized]
+    if normalized.startswith("002-"):
+        return "002"
+    if normalized.startswith("003-"):
+        return "003"
+    if "obesity" in normalized:
+        return "obesity"
+    return normalized
 
 
 def _paper_autonomy_tasks(

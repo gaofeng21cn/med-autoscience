@@ -155,3 +155,50 @@ def test_sidecar_export_guarded_apply_fingerprint_tracks_mas_owner_decision(
     assert repeat_by_study["DM002"]["source_fingerprint"] != first_fingerprints["DM002"]
     assert repeat_by_study["DM003"]["source_fingerprint"] == first_fingerprints["DM003"]
     assert repeat_by_study["Obesity"]["source_fingerprint"] == first_fingerprints["Obesity"]
+
+
+def test_sidecar_export_guarded_apply_targets_live_canonical_studies_when_present(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    proof_ref = tmp_path / "opl-production-proof.json"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_opl_production_proof(proof_ref)
+    _write_json(
+        workspace_root / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap" / "study.yaml",
+        {"study_id": "003-dpcc-primary-care-phenotype-treatment-gap"},
+    )
+
+    exit_code = cli.main(
+        [
+            "sidecar",
+            "export",
+            "--profile",
+            str(profile_path),
+            "--opl-production-proof",
+            str(proof_ref),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    guarded_apply_tasks = [
+        task for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "paper_autonomy/guarded-apply"
+    ]
+    assert [task["payload"]["study_id"] for task in guarded_apply_tasks] == [
+        "003-dpcc-primary-care-phenotype-treatment-gap"
+    ]
+    assert guarded_apply_tasks[0]["source_refs"][-1]["ref"] == (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller_decisions/latest.json"
+    )
+    evidence_payload = guarded_apply_tasks[0]["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["study_id"] == "003-dpcc-primary-care-phenotype-treatment-gap"
+    assert evidence_payload["identity_binding"]["payload_identity"]["study_id"] == (
+        "003-dpcc-primary-care-phenotype-treatment-gap"
+    )
