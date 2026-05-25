@@ -289,3 +289,47 @@ Next tranche write scope:
 
 - MAS runtime support docs under `docs/runtime/contracts/**`, `docs/runtime/control/**` or `docs/runtime/stage_route_handoff_standard.md` that still need paragraph-level current-truth reconciliation.
 - OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+### 2026-05-26 runtime id / binding currentness tranche
+
+本轮覆盖 MAS runtime support docs 中最容易误导后续自动化的 runtime id、runtime binding 与 provider-owner 口径。目标是把 active current truth、runtime backend contract、runtime handle contract 和 capability projection 中的旧 `opl_provider_backed_stage_runtime` 机器 id 写法，对齐当前 live `opl_runtime_contract.py`、`write_runtime_binding`、product-entry manifest 和 focused tests：当前 machine ref 是 `opl_hosted_stage_runtime` / `opl-hosted-stage-runtime`，OPL/Temporal provider-backed 是 owner/topology 语义，MAS domain adapter 是 `mas_domain_intent_adapter` / `mas_domain_owner_receipt_adapter`。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/architecture.md`, `docs/invariants.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/references/positioning/mas_ideal_state.md`, this docs-governance file.
+- Runtime docs: `docs/runtime/contracts/*.md`, `docs/runtime/control/*.md`, `docs/runtime/stage_route_handoff_standard.md`, and already covered `docs/runtime/projections/runtime_capability_matrix.md` risk line.
+- Machine/source surfaces: `src/med_autoscience/opl_runtime_contract.py`, `src/med_autoscience/runtime_protocol/study_runtime.py`, `src/med_autoscience/controllers/opl_provider_ready_adapter.py`, `src/med_autoscience/controllers/product_entry_parts/entry_runtime.py`, `src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py`, `contracts/generated_surface_handoff.json`, `contracts/functional_privatization_audit.json`, `contracts/production_acceptance/mas-production-acceptance.json`, `contracts/test-lane-manifest.json`.
+- CLI/read-model: `PYTHONPATH=src python -m med_autoscience.cli --help`, `PYTHONPATH=src python -m med_autoscience.cli sidecar --help`, `PYTHONPATH=src python -m med_autoscience.cli runtime --help`, `PYTHONPATH=src python -m med_autoscience.cli runtime maintain-storage --help`, `PYTHONPATH=src python -m med_autoscience.cli runtime storage-audit --help`, and a failed stale probe for nonexistent `runtime-storage` that confirmed storage commands live under `runtime maintain-storage` / `runtime storage-audit`.
+- Focused tests / assertions read as evidence: `tests/test_opl_runtime_contract.py`, `tests/test_runtime_protocol_study_runtime.py`, `tests/test_profiles.py`, `tests/test_cli_cases/owner_route_handoff_command_cases/export_cases.py`, `tests/product_entry_cases/repo_shell_runtime_assertions.py`, `tests/test_mainline_status.py`.
+- Structural context: CodeGraph context for MAS runtime refs, runtime event records, sidecar/owner-route handoff and CLI/runtime command surfaces.
+
+Fresh semantic result：
+
+- Current runtime machine identity is `runtime_substrate=opl_hosted_stage_runtime`, `runtime_ref=opl_hosted_stage_runtime`, and `runtime_engine_id=opl-hosted-stage-runtime`.
+- `runtime_binding.yaml` writes `runtime_substrate`, `opl_runtime_ref`, `runtime_ref`, `runtime_engine_id`, `research_backend_id`, `research_backend`, `research_engine_id`, `runtime_home`, and `runtime_quests_root`; it no longer writes `runtime_backend_id` or `runtime_backend` in current protocol tests.
+- OPL/Temporal provider-backed stage runtime remains the default generic runtime owner/topology. That owner wording must not be converted back into a MAS-local backend id or callable module.
+- MAS current role is domain authority refs, owner receipt, typed blocker, artifact/source/quality refs and diagnostic explanation. Legacy `runtime_backend_id`, `runtime_backend`, `mas_runtime_core`, local scheduler, Hermes gateway cron and MDS backend fields are migration/provenance/diagnostic-only unless an explicit non-default proof lane says otherwise.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Risk scan across all files under `docs/runtime/contracts/**`, `docs/runtime/control/**`, `docs/runtime/stage_route_handoff_standard.md`, plus focused review of runtime id / backend / binding sections in `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/runtime/contracts/runtime_backend_interface_contract.md`, `docs/runtime/contracts/runtime_handle_and_durable_surface_contract.md`, `docs/runtime/contracts/agent_runtime_interface.md`, and `docs/runtime/projections/runtime_capability_matrix.md`. Support evidence came from the live truth inputs listed above. | `docs/status.md`; `docs/active/mas-ideal-state-gap-plan.md`; `docs/runtime/contracts/runtime_backend_interface_contract.md`; `docs/runtime/contracts/runtime_handle_and_durable_surface_contract.md`; `docs/runtime/contracts/agent_runtime_interface.md`; `docs/runtime/projections/runtime_capability_matrix.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. This tranche corrected current-truth wording in place; the affected documents remain active support / active current truth owners.
+
+Uncovered docs in this semantic area:
+
+- Paragraph-level coverage remains open for most of `docs/runtime/contracts/**`, especially long support bodies not touched beyond lifecycle header / heading / stale-id risk scan.
+- Paragraph-level coverage remains open for `docs/runtime/control/study_runtime_control_surface.md` and `docs/runtime/control/study_runtime_orchestration.md` beyond the runtime binding / owner split sections inspected here.
+- `docs/runtime/stage_route_handoff_standard.md` was risk-scanned and read for owner split, but not fully rewritten or marked fully paragraph-covered.
+
+Remaining stale / retire candidates:
+
+- Any future prose that writes `opl_provider_backed_stage_runtime` as a current machine id, required `runtime_backend_id`, required `runtime_backend`, or MAS-local callable backend is stale. Use `opl_hosted_stage_runtime` / `opl-hosted-stage-runtime` for machine identity and OPL/Temporal provider-backed wording for owner/topology.
+- `runtime_backend_id` and `runtime_backend` may appear only as legacy migration / provenance fields or historical input names; they must not become current required `runtime_binding.yaml` fields again.
+- MAS runtime support docs still contain older broad support text that should be compacted in future paragraph-level passes, but this tranche found no additional active-current runtime owner contradiction requiring immediate archive/tombstone/delete.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for a bounded subset of `docs/runtime/contracts/**`, preferably `runtime_event_and_outer_loop_input_contract.md`, `durable_workflow_contract.md`, `stage_route_contract.md`, `stage_surfaces.md`, or `workspace_knowledge_and_literature_contract.md`.
+- MAS `docs/runtime/control/study_runtime_control_surface.md` / `study_runtime_orchestration.md` paragraph compaction if the next tranche focuses on stop/rerun/current-control-state semantics.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.

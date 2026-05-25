@@ -28,7 +28,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 
 ## Provider / executor 分类
 
-- `opl_provider_backed_stage_runtime`：默认 hosted autonomous runtime。`provider_owner=one-person-lab`，production online substrate 为 OPL/Temporal；MAS 只消费 `current_control_state`、provider attempt refs、typed closeout、owner receipt 或 typed blocker。
+- `opl_hosted_stage_runtime`：默认 hosted autonomous runtime machine ref。`provider_owner=one-person-lab`，production online substrate 为 OPL/Temporal；MAS 只消费 `current_control_state`、provider attempt refs、typed closeout、owner receipt 或 typed blocker。
 - `codex_cli`：当前第一公民 Agent executor kind。它可以作为 direct MAS path 或 OPL provider-backed stage 内的 executor，但不能写成 MAS 自持 scheduler / queue / worker residency。
 - `med_deepscientist_backend`：历史 fixture、explicit archive/import、backend audit、upstream intake buffer 与 parity oracle reference；不作为 MAS 默认 backend。
 - `hermes_agent`：上游外部 executor / diagnostic / provenance reference，可经显式 adapter 进入 proof lane；不作为 MAS 生产 online substrate，也不替代 OPL/Temporal provider。

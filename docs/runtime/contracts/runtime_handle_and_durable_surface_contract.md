@@ -90,8 +90,9 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 - `runtime_binding.yaml`
   - substrate / backend binding 总表面
   - 必须回显：
-    - `runtime_backend_id`
-    - `runtime_backend`
+    - `runtime_substrate`
+    - `opl_runtime_ref`
+    - `runtime_ref`
     - `runtime_engine_id`
     - `research_backend_id`
     - `research_backend`
@@ -100,7 +101,7 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
     - `runtime_quests_root`
 - `progress_projection`
   - study 侧状态总表面
-  - 必须回显 `study_id`、`quest_id`、`runtime_backend_id`、`research_backend_id`、decision / reason、runtime gate 摘要
+  - 必须回显 `study_id`、`quest_id`、`opl_runtime_ref` / `runtime_ref`、`runtime_engine_id`、`research_backend_id`、decision / reason、runtime gate 摘要
 - `domain_health_diagnostic`
   - quest 侧 diagnostic / intervention 表面
   - 当前报告继续写入 legacy namespace `runtime/quests/<quest_id>/artifacts/reports/domain_health_diagnostic/`

@@ -12,14 +12,15 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 当前默认 generic runtime owner 是：
 
 - `runtime_owner = one-person-lab`
-- `runtime_substrate = opl_provider_backed_stage_runtime`
-- `runtime_backend_id = opl_provider_backed_stage_runtime`
-- `runtime_engine_id = opl-provider-backed-stage-runtime`
-- `runtime_backend_role = opl_provider_default_runtime_with_mas_domain_authority_refs`
+- `runtime_substrate = opl_hosted_stage_runtime`
+- `runtime_ref = opl_hosted_stage_runtime`
+- `runtime_engine_id = opl-hosted-stage-runtime`
+- `domain_runtime_adapter_id = mas_domain_intent_adapter`
+- `runtime_backend_role = mas_domain_owner_receipt_adapter`
 - `runtime_backend_is_generic_owner = false`
 - `default_runtime_backend_is_opl_provider_owned = true`
 
-MAS 不再声明 delegated runtime adapter identity。历史 payload 里的 `delegated_domain_adapter_id = mas_runtime_core`、`domain_runtime_adapter_id = mas_runtime_core`、`research_backend_id = mas_runtime_core` 只能按 retired provenance / migration input 读取，不能作为当前 runtime owner、diagnostic fallback 或 compatibility alias。
+MAS 不再把 `runtime_backend_id` 读成当前 MAS-local backend identity。当前机器入口优先使用 `opl_runtime_ref` / `runtime_ref` 与 `runtime_engine_id`；历史 payload 里的 `delegated_domain_adapter_id = mas_runtime_core`、`domain_runtime_adapter_id = mas_runtime_core`、`research_backend_id = mas_runtime_core` 或旧 `runtime_backend_id` 只能按 retired provenance / migration input 读取，不能作为当前 runtime owner、diagnostic fallback 或 compatibility alias。
 
 旧 `Codex-default host-agent runtime` 继续作为 executor 配置来源；direct `med_deepscientist` backend lane 只保留为 frozen source archive / historical fixture / explicit archive import reference，不作为 runnable dependency。
 
@@ -31,29 +32,36 @@ MAS 不再声明 delegated runtime adapter identity。历史 payload 里的 `del
 
 ## 2. Backend 选择规则
 
-`MedAutoScience` 解析 study execution 时，按下面顺序选择 backend：
+`MedAutoScience` 解析 study execution 时，按下面顺序解析 runtime handoff：
 
-1. `execution.runtime_backend_id`
-2. `execution.runtime_backend`
+1. 优先读取 `execution.opl_runtime_ref` / `execution.runtime_ref`。
+2. `execution.runtime_backend_id` / `execution.runtime_backend` 只作为历史 migration input 读取。
 3. 对 `auto_entry == on_managed_research_intent` 的历史 managed execution：
    - 若 legacy `execution.engine` 指向 `med_deepscientist` 或为空
-   - controller 先把 execution 归一化到 profile 默认 backend；当前默认是 `opl_provider_backed_stage_runtime`
+   - controller 先把 execution 归一化到 profile 默认 OPL runtime ref；当前默认是 `opl_hosted_stage_runtime`
    - controlled research metadata 只解析到 MAS domain authority refs、owner receipt 或 typed blocker；历史 `mas_runtime_core` 字段按 retired provenance 处理
-4. 其余场景再使用 `execution.engine` 映射到已注册 backend
+4. 其余场景再使用 `execution.engine` 映射到明确支持的 runtime ref / executor engine
 
 fail-closed 规则：
 
-- 如果 `execution.runtime_backend_id` / `execution.runtime_backend` 被显式设置，但仓内没有注册对应 backend，`progress_projection` 必须返回阻断，而不是静默降级成 lightweight
+- 如果显式 `opl_runtime_ref` / `runtime_ref` 不是当前支持的 OPL runtime ref，`progress_projection` 必须返回阻断，而不是静默降级成 lightweight
+- 如果 legacy `execution.runtime_backend_id` / `execution.runtime_backend` 被显式设置为当前不支持的 backend，它只能进入 migration / provenance 分类，不能恢复 MAS-local backend
 - 如果 execution 里没有显式 backend，且 `execution.engine` 也映射不到任何已注册 backend，才可判定为非 managed runtime execution
 
 ## 3. Backend Contract Surface
 
-managed runtime backend 必须显式暴露：
+当前 MAS repo 不再注册本地 managed runtime backend module，也不实现 provider callables。OPL provider / current-control-state owner 必须提供等价 start/query/control/closeout surface；MAS repo 只消费 runtime refs、typed closeout refs、owner receipt 或 typed blocker。
 
-- `BACKEND_ID`
-- `ENGINE_ID`
+当前 machine-readable contract surface 至少暴露：
 
-并实现下列 controller-facing 操作：
+- `OPL_HOSTED_STAGE_RUNTIME_ID = opl_hosted_stage_runtime`
+- `runtime_engine_id = opl-hosted-stage-runtime`
+- `domain_runtime_adapter_id = mas_domain_intent_adapter`
+- `runtime_backend_role = mas_domain_owner_receipt_adapter`
+- `provider_attempt_owner = one-person-lab`
+- `provider_completion_is_domain_completion = false`
+
+历史 backend / transport 曾实现下列 controller-facing 操作；这些现在只能作为 OPL provider contract expectation 或 provenance 读取，不能变成 MAS-local fallback module：
 
 - `resolve_daemon_url(...)`
 - `create_quest(...)`
@@ -122,8 +130,9 @@ managed runtime execution 的正式条件是：
 
 `runtime_binding.yaml` 现在必须同时写出：
 
-- `runtime_backend_id`
-- `runtime_backend`
+- `runtime_substrate`
+- `opl_runtime_ref`
+- `runtime_ref`
 - `runtime_engine_id`
 - `research_backend_id`
 - `research_backend`
