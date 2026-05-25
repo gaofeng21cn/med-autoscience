@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.study_truth_kernel_parts import action_policy
+
 SCHEMA_VERSION = 1
 EVENT_LOG_RELATIVE_PATH = Path("artifacts") / "truth" / "events.jsonl"
 SNAPSHOT_RELATIVE_PATH = Path("artifacts") / "truth" / "latest.json"
@@ -26,34 +28,6 @@ TRUTH_EVENT_TYPES = frozenset(
         "explicit_resume",
         "writer_lock_acquired",
         "writer_lock_released",
-    }
-)
-
-_BASE_ALLOWED_ACTIONS = (
-        "read_opl_current_control_state",
-        "open_monitoring_entry",
-        "stop_runtime",
-        "request_opl_handoff_hydration",
-        "record_user_decision",
-        "direct_study_execution",
-        "direct_paper_line_write",
-        "direct_bundle_build",
-        "direct_compiled_bundle_proofing",
-)
-
-_SUPERVISOR_ONLY_FORBIDDEN_ACTIONS = frozenset(
-    {
-        "direct_study_execution",
-        "direct_paper_line_write",
-        "direct_bundle_build",
-        "direct_compiled_bundle_proofing",
-    }
-)
-
-_DOWNSTREAM_BUNDLE_FORBIDDEN_ACTIONS = frozenset(
-    {
-        "direct_bundle_build",
-        "direct_compiled_bundle_proofing",
     }
 )
 
@@ -517,75 +491,6 @@ def _dominant_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
     return events[-1] if events else None
 
 
-def _canonical_next_action(dominant_event: dict[str, Any] | None) -> str:
-    if dominant_event is None:
-        return "observe"
-    event_type = dominant_event.get("event_type")
-    payload = _mapping(dominant_event.get("payload"))
-    if event_type == "stop_loss":
-        return "stop_runtime"
-    closure = _mapping(payload.get("quality_closure_truth"))
-    if event_type == "task_intake" and _text(closure.get("state")) == "stop_loss_recommended":
-        return "stop_runtime"
-    if event_type in {"task_intake", "explicit_resume"}:
-        return _text(payload.get("current_required_action")) or "resume_same_study_line"
-    if event_type == "opl_runtime_owner_handoff":
-        guard = _mapping(payload.get("execution_owner_guard"))
-        if guard.get("supervisor_only") is True:
-            return "request_opl_handoff_hydration"
-    if event_type == "publication_gate_eval":
-        provenance = _mapping(payload.get("assessment_provenance"))
-        owner = _text(provenance.get("owner"))
-        action = _text(payload.get("current_required_action"))
-        if owner != "ai_reviewer" and action in {
-            "reviewer_ready",
-            "bundle_only_remaining",
-            "finalize",
-            "finalize_ready",
-            "submission_ready",
-        }:
-            return "review_required"
-    return _text(payload.get("current_required_action")) or "observe"
-
-
-def _blocking_reasons(events: list[dict[str, Any]]) -> list[str]:
-    reasons: list[str] = []
-    supervision = _last_payload(events, "opl_runtime_owner_handoff")
-    guard = _mapping(supervision.get("execution_owner_guard"))
-    supervisor = _mapping(supervision.get("publication_supervisor_state"))
-    if guard.get("supervisor_only") is True:
-        reasons.append("opl_current_control_state.handoff_required")
-    if supervisor.get("bundle_tasks_downstream_only") is True:
-        reasons.append("publication_supervisor_state.bundle_tasks_downstream_only")
-    if _latest_event(events, "stop_loss") is not None:
-        reasons.append("publishability_stop_loss_recommended")
-    publication = _last_payload(events, "publication_gate_eval")
-    provenance = _mapping(publication.get("assessment_provenance"))
-    action = _text(publication.get("current_required_action"))
-    if _text(provenance.get("owner")) != "ai_reviewer" and action in {
-        "reviewer_ready",
-        "bundle_only_remaining",
-        "finalize",
-        "finalize_ready",
-        "submission_ready",
-    }:
-        reasons.append("publication_eval.ai_reviewer_required")
-    return reasons
-
-
-def _allowed_controller_actions(events: list[dict[str, Any]]) -> list[str]:
-    allowed = list(_BASE_ALLOWED_ACTIONS)
-    supervision = _last_payload(events, "opl_runtime_owner_handoff")
-    guard = _mapping(supervision.get("execution_owner_guard"))
-    supervisor = _mapping(supervision.get("publication_supervisor_state"))
-    forbidden: set[str] = set()
-    if guard.get("supervisor_only") is True:
-        forbidden.update(_SUPERVISOR_ONLY_FORBIDDEN_ACTIONS)
-    if supervisor.get("bundle_tasks_downstream_only") is True:
-        forbidden.update(_DOWNSTREAM_BUNDLE_FORBIDDEN_ACTIONS)
-    return [action for action in allowed if action not in forbidden]
-
-
 def _projection_invalidations(events: list[dict[str, Any]], dominant_event: dict[str, Any] | None) -> list[dict[str, Any]]:
     if dominant_event is None:
         return []
@@ -659,11 +564,11 @@ def _snapshot_from_events(*, study_root: Path, study_id: str, events: list[dict[
         "delivery_state": _delivery_state(events),
         "writer_epoch": _text(writer_state.get("writer_epoch")),
         "source_signature": _snapshot_source_signature(events),
-        "canonical_next_action": _canonical_next_action(dominant),
-        "blocking_reasons": _blocking_reasons(events),
+        "canonical_next_action": action_policy.canonical_next_action(dominant),
+        "blocking_reasons": action_policy.blocking_reasons(events),
         "dominant_authority_refs": [_authority_ref(dominant)] if dominant is not None else [],
         "projection_invalidations": _projection_invalidations(events, dominant),
-        "allowed_controller_actions": _allowed_controller_actions(events),
+        "allowed_controller_actions": action_policy.allowed_controller_actions(events),
         "event_count": len(events),
         "event_log_path": str(truth_events_path(study_root=study_root)),
     }

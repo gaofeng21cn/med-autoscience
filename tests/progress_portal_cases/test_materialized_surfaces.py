@@ -76,6 +76,23 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     )
     assert "MDS WebUI state" in hosted_package["hosted_runtime_carrier_contract"]["must_not_consume"]
     assert "publication_eval/latest.json" in hosted_package["hosted_runtime_carrier_contract"]["must_not_write"]
+    carrier = hosted_package["hosted_runtime_carrier_contract"]
+    assert carrier["surface_kind"] == "mas_progress_portal_workspace_carrier_boundary"
+    assert carrier["physical_module"] == (
+        "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
+    )
+    assert carrier["carrier_scope"] == (
+        "workspace_static_read_model_package_and_optional_local_read_only_service"
+    )
+    assert carrier["domain_repo_physical_delete_authorized"] is False
+    assert carrier["writes_only"] == [
+        "artifacts/runtime/progress_portal/latest.json",
+        "ops/mas/progress/index.html",
+        "artifacts/runtime/progress_portal/hosted_package.json",
+        "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+        "ops/mas/progress/studies/<study_id>/index.html",
+    ]
+    assert "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs" in carrier["delete_after"]
     assert result["opl_handoff"]["payload_ref"].endswith("artifacts/runtime/progress_portal/studies/001-risk/latest.json")
     assert result["opl_handoff"]["deep_link"] == str(html_path)
     assert result["hosted_package"]["package_refs"]["hosted_package"] == str(hosted_package_path)
@@ -414,9 +431,10 @@ def test_materialized_study_page_fails_closed_when_paper_line_workspace_proof_re
 
 def test_materialize_progress_portal_can_open_static_entry(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    carrier_module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.workspace_carrier")
     profile = make_profile(tmp_path)
     opened: list[str] = []
-    monkeypatch.setattr(module.webbrowser, "open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(carrier_module.webbrowser, "open", lambda url: opened.append(url) or True)
 
     result = module.materialize_progress_portal(
         profile=profile,
@@ -431,6 +449,7 @@ def test_materialize_progress_portal_can_open_static_entry(monkeypatch, tmp_path
 
 def test_serve_progress_portal_materializes_and_reports_read_only_local_url(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    carrier_module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.workspace_carrier")
     profile = make_profile(tmp_path)
     served: dict[str, object] = {}
 
@@ -447,7 +466,7 @@ def test_serve_progress_portal_materializes_and_reports_read_only_local_url(monk
         def server_close(self) -> None:
             served["closed"] = True
 
-    monkeypatch.setattr(module.socketserver, "TCPServer", FakeServer)
+    monkeypatch.setattr(carrier_module.socketserver, "TCPServer", FakeServer)
 
     result = module.serve_progress_portal(
         profile=profile,

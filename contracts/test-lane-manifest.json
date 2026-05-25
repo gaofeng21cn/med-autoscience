@@ -433,6 +433,7 @@
             "surface_id": "workbench",
             "current_paths": [
               "src/med_autoscience/controllers/progress_portal.py",
+              "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py",
               "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/"
             ],
             "current_role": "domain_refs_workbench_projection_source",
@@ -1738,11 +1739,36 @@
           ],
           "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
           "latest_thinning_evidence": {
-            "status": "product_status_workbench_projection_assembly_split",
+            "status": "product_status_workbench_projection_and_workspace_carrier_split",
             "extracted_paths": [
               "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
               "src/med_autoscience/controllers/product_entry_parts/attention_projection.py"
             ],
+            "workspace_carrier_boundary": {
+              "status": "physical_submodule_split_delete_ready_after_opl_default_carrier",
+              "physical_module": "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py",
+              "carrier_scope": "workspace_static_read_model_package_and_optional_local_read_only_service",
+              "writes_only": [
+                "artifacts/runtime/progress_portal/latest.json",
+                "artifacts/runtime/progress_portal/hosted_package.json",
+                "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+                "ops/mas/progress/index.html",
+                "ops/mas/progress/studies/<study_id>/index.html"
+              ],
+              "delete_after": [
+                "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs",
+                "workspace_helper_no_active_caller_proof",
+                "focused_progress_portal_materialization_tests_green"
+              ],
+              "domain_repo_physical_delete_authorized": false,
+              "does_not_write": [
+                "study_truth",
+                "publication_eval/latest.json",
+                "controller_decisions/latest.json",
+                "current_package",
+                "runtime_state"
+              ]
+            },
             "retired_combined_portal_runtime_soak_provenance": {
               "status": "physically_retired_no_alias",
               "scope": "retired_read_model_evidence_shell_provenance",

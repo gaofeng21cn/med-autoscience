@@ -80,6 +80,26 @@ def build_progress_portal_hosted_package(
             "optional_local_read_only_service": "medautosci workspace progress-portal --profile <profile> --serve",
         },
         "hosted_runtime_carrier_contract": {
+            "surface_kind": "mas_progress_portal_workspace_carrier_boundary",
+            "carrier_owner": "MedAutoScience",
+            "carrier_scope": "workspace_static_read_model_package_and_optional_local_read_only_service",
+            "physical_module": (
+                "src/med_autoscience/controllers/progress_portal_parts/"
+                "workspace_carrier.py"
+            ),
+            "delete_after": [
+                "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs",
+                "workspace_helper_no_active_caller_proof",
+                "focused_progress_portal_materialization_tests_green",
+            ],
+            "domain_repo_physical_delete_authorized": False,
+            "writes_only": [
+                progress_payload_ref,
+                progress_html_ref,
+                hosted_package_ref,
+                "artifacts/runtime/progress_portal/studies/<study_id>/latest.json",
+                "ops/mas/progress/studies/<study_id>/index.html",
+            ],
             "allowed_carriers": [
                 "local_read_only_http_server",
                 "external_hosted_runtime_static_file_carrier",

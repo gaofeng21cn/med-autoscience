@@ -87,6 +87,10 @@ def build_generated_surface_handoff(
                 "surface_id": "workbench",
                 "current_paths": [
                     "src/med_autoscience/controllers/progress_portal.py",
+                    (
+                        "src/med_autoscience/controllers/progress_portal_parts/"
+                        "workspace_carrier.py"
+                    ),
                     "src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/",
                 ],
                 "current_role": "domain_refs_workbench_projection_source",

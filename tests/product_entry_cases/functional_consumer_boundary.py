@@ -238,6 +238,19 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )
     assert by_id["artifact_authority"]["migration_action"] == "authority_stays_in_mas"
+    workbench_thinning = by_id["workbench_portal_generic_shell"]["latest_thinning_evidence"]
+    assert workbench_thinning["status"] == (
+        "product_status_workbench_projection_and_workspace_carrier_split"
+    )
+    carrier_boundary = workbench_thinning["workspace_carrier_boundary"]
+    assert carrier_boundary["physical_module"] == (
+        "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
+    )
+    assert carrier_boundary["carrier_scope"] == (
+        "workspace_static_read_model_package_and_optional_local_read_only_service"
+    )
+    assert carrier_boundary["domain_repo_physical_delete_authorized"] is False
+    assert "publication_eval/latest.json" in carrier_boundary["does_not_write"]
 
     followthrough = boundary["functional_followthrough_gap_summary"]
     assert followthrough["surface_kind"] == "mas_functional_followthrough_gap_summary"

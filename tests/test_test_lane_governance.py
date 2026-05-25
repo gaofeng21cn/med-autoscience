@@ -451,6 +451,20 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )
     assert inventory_by_id["artifact_authority"]["migration_action"] == "authority_stays_in_mas"
+    workbench_thinning = inventory_by_id["workbench_portal_generic_shell"][
+        "latest_thinning_evidence"
+    ]
+    assert workbench_thinning["status"] == (
+        "product_status_workbench_projection_and_workspace_carrier_split"
+    )
+    carrier_boundary = workbench_thinning["workspace_carrier_boundary"]
+    assert carrier_boundary["physical_module"] == (
+        "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
+    )
+    assert carrier_boundary["domain_repo_physical_delete_authorized"] is False
+    assert "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs" in (
+        carrier_boundary["delete_after"]
+    )
 
     summary = runtime_boundary["functional_module_inventory_summary"]
     assert summary["classification_counts"] == {
