@@ -1,7 +1,7 @@
 # MAS Progress Portal
 
-Status: `landed runtime read-model surface`
-Owner: `MedAutoScience Product Projection + Runtime OS`
+Status: `landed read-model display surface; OPL App workbench cutover pending`
+Owner: `MedAutoScience Product Projection + OPL App integration boundary`
 Purpose: `progress_portal_display_contract`
 State: `active_runtime_display_contract`
 Machine boundary: 本文是人读展示合同。机器真相继续归 MAS controller/domain-authority refs surfaces、Progress Portal payload、product-entry manifest、sidecar receipt、generated HTML/artifact refs、owner receipts 和真实 workspace evidence；runtime drilldown / current-control-state 归 OPL。
@@ -10,7 +10,7 @@ Related focused lane: `portal-route-decision-trail`
 
 ## 入口结论
 
-`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务。它负责 progress / status / blocker / artifact pickup，不负责 terminal attach、日志流、执行器对话或 runtime drilldown；这些运行观察能力归 OPL `current_control_state` / provider attempt projection。旧 MDS WebUI 的实时 console 和历史 MAS 私有 Console 材料只保留为 history/provenance。Progress Portal 给每个 MAS workspace 一个稳定位置：
+`MAS Progress Portal` 是面向医生、PI 和研究团队的 workspace-local read-model / diagnostic / no-App 展示入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务；这些 surface 仍是 `workbench_sidecar_status_cutover` 的 active source-purity tail，等待 OPL App default progress carrier、workspace helper no-active-caller proof 和 focused tests 后继续收薄或删除。Portal 负责 progress / status / blocker / artifact pickup 的只读展示，不负责 terminal attach、日志流、执行器对话、runtime drilldown 或长期 workbench shell；这些运行观察能力归 OPL `current_control_state` / provider attempt projection / OPL App Runtime Workbench。旧 MDS WebUI 的实时 console 和历史 MAS 私有 Console 材料只保留为 history/provenance。Progress Portal 给每个 MAS workspace 一个稳定 no-App / evidence 位置：
 
 ```text
 ops/mas/progress/index.html
@@ -18,11 +18,11 @@ ops/mas/progress/index.html
 
 用户应能直接打开这个入口，看到当前 workspace 与论文线做到了哪里、系统下一步准备做什么、为什么卡住、是否需要医生/PI 判断、交付文件在哪里。Portal 只消费 MAS 现有 truth / read-model surface，不创建第二套状态系统。
 
-这个入口是 per-workspace fixed entrance。无论未来从 Codex、浏览器、OPL App 还是 OPL Runtime Manager 打开，页面和 payload 的 domain owner 都保持为 MAS。
+这个入口是 per-workspace local display entrance。无论从 Codex、浏览器、OPL App 还是 OPL Runtime Manager 打开，页面和 payload 的 domain owner 都保持为 MAS；但主用户运行工作台的长期 owner 是 OPL App，MAS local Portal 只保留 domain-owned read-model payload、HTML evidence、diagnostic/no-App path 和 action receipt handoff，不成为 MAS 长期 generic workbench。
 
 新 workspace 中旧 `start-web` 目的的默认落点也固定到 MAS Progress Portal：`ops/mas/bin/start-web` 刷新并打开 `ops/mas/progress/index.html`。如果维护者需要外部 MDS WebUI，只能通过显式 explicit archive import reference / backend audit 路径启动；医生/PI 默认不再在旧 WebUI 与 MAS Portal 之间判断进度 truth。
 
-Portal 现在是 MAS functional monolith completion 的默认进度可视化替代面。它不表示 MDS 被函数级 1:1 搬进 MAS；它表示日常研究进度、路线、阻塞、artifact pickup 和 OPL handoff 的用户可见入口已经由 MAS-owned read-model 承接，医生/PI 默认不再去 MDS WebUI 判断研究进度。旧 MDS WebUI 的 terminal/log streaming 属于 OPL runtime drilldown 能力，不应继续混进 Portal 的完成口径。
+Portal 现在是旧 MDS WebUI 进度可视化的 MAS-owned read-model 替代面。它不表示 MDS 被函数级 1:1 搬进 MAS，也不表示 MAS 长期持有 generic workbench；它表示日常研究进度、路线、阻塞、artifact pickup 和 OPL handoff 已能用 MAS refs-only payload / HTML evidence 展示。主用户工作台继续向 OPL App-native MAS study workbench 收敛；旧 MDS WebUI 的 terminal/log streaming 属于 OPL runtime drilldown 能力，不应继续混进 Portal 的完成口径。
 
 “替代旧 MDS WebUI”的产品验收是能力等价，不是导入旧 WebUI 模块或历史代码。最低可用形态必须同时显示 workspace 级概览和 study 级详情：同一 workspace 内多篇论文线要能按 `study_id` 区分，并展示各自的 `active_run_id`、runtime health、supervisor freshness、paper/current stage 和下一步/焦点。legacy runtime 或已停驻 study 的诊断噪声不能覆盖当前 live study 的主状态；这类信息只能保留在 diagnostics / source refs 中供维护者核查。
 
@@ -58,16 +58,17 @@ Progress Portal 采用双层形态：
    - 服务只读取本地 MAS durable surfaces 和 portal payload；可以轮询刷新或使用文件变更通知。
    - 不写 study truth、publication truth、runtime authority、package authority 或 SQLite runtime lifecycle authority。
    - 实时体验应显示“最近刷新时间”和“下一次刷新/监听状态”，让用户知道页面是否仍在更新。
+   - 这是 no-App / diagnostic / evidence 体验，不是 MAS-owned long-running workbench shell；长期 App-native workbench、notification、approval transport、terminal UI shell 和 provider drilldown 归 OPL App / OPL Runtime Manager。
 
 因此，Portal 不是二选一的静态网页或动态网站。默认必须有稳定静态入口；实时体验作为同一 read-model 的本地只读增强层实现。
 
 ## OPL App 集成结论
 
-同一目的集成到 OPL App 进度看板的最优形态是分层消费，而不是把 MAS Portal 搬进 OPL 重新解释。本文只固定 MAS-owned Progress Portal projection contract；OPL App 的 product/workbench 细节归 [Progress Portal OPL App Integration](../../references/integration/progress_portal_opl_app_integration.md) 和 [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md) 持有：
+同一目的集成到 OPL App 进度看板的最优形态是分层消费，而不是把 MAS Portal 搬进 OPL 重新解释。本文只固定 MAS-owned Progress Portal projection contract、workspace-local HTML evidence 和 no-App diagnostic path；OPL App 的 product/workbench 细节和主用户运行面归 [Progress Portal OPL App Integration](../../references/integration/progress_portal_opl_app_integration.md) 和 [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md) 持有：
 
 - `MAS` 负责 domain-owned progress portal payload 和 HTML，生成 `artifacts/runtime/progress_portal/latest.json` 与 `ops/mas/progress/index.html`。
 - `MAS` 还负责 hosted packaging manifest，生成 `artifacts/runtime/progress_portal/hosted_package.json`。这个 manifest 只打包 MAS-owned workspace truth packaging，不消费 MDS WebUI，也不写任何 authority surface。
-- 本地 MAS Portal 是每个 workspace 的固定入口，适合医生、PI 或维护者直接打开查看同一条研究线。
+- 本地 MAS Portal 是每个 workspace 的 no-App / evidence / diagnostic 入口，适合医生、PI 或维护者直接打开查看同一条研究线；长期主用户工作台是 OPL App-native MAS study workbench。
 - `OPL App` / `OPL Runtime Manager` 只消费 MAS read-model / payload refs，把它们汇总到 family-level dashboard、attention queue、running/recent item 和 artifact locator。
 - `latest.json` 固定暴露 `opl_handoff`：包含 payload refs、freshness、source refs、artifact locators、workspace-local Portal deep link 和 forbidden authority 列表，供 OPL family projection 直接索引。OPL 只能消费这些引用，不重新解释 study truth，不写 MAS truth，也不接管 runtime、publication 或 package authority。
 - OPL 展示层可以打开或深链到 `ops/mas/progress/index.html`，也可以读取 `latest.json` 做跨 workspace 概览；它不能把 payload 文案升级成 OPL-owned readiness、submission-ready、publication verdict、quality verdict 或新的 study truth。
