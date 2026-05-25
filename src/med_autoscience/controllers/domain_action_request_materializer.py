@@ -14,6 +14,9 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
 )
+from med_autoscience.controllers.domain_action_request_materializer_parts import (
+    writer_handoff_preservation,
+)
 from med_autoscience.controllers.domain_owner_action_dispatch_parts import output_readiness
 from med_autoscience.controllers.owner_route_reconcile import SUPERVISION_LATEST_RELATIVE_PATH
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
@@ -394,6 +397,18 @@ def _default_executor_dispatch(
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
     )
+    preserved_writer_handoff = writer_handoff_preservation.preserved_quality_repair_writer_handoff_dispatch(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        action=action,
+        dispatch_path=dispatch_path,
+        owner_route=owner_route,
+        apply=apply,
+        forbidden_surfaces=FORBIDDEN_SURFACES,
+    )
+    if preserved_writer_handoff is not None:
+        return preserved_writer_handoff
     idempotency_key = _text(owner_route.get("idempotency_key"))
     repeat_key = repeat_suppression.repeat_key(owner_route)
     typed_closeout_contract = default_executor_typed_closeout_contract(action_type=action_type)
