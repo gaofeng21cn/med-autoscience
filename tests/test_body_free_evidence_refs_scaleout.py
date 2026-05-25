@@ -417,6 +417,85 @@ def test_domain_dispatch_evidence_payload_can_bind_stage_level_target_without_fa
     assert typed_blocker_ref.endswith(":owner-receipt-or-live-paper-line-closeout-pending")
 
 
+def test_domain_dispatch_evidence_payload_exposes_stage_evidence_handoff_refs_only() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
+
+    payload = module.build_domain_dispatch_evidence_record_payload(
+        task_kind="review_and_quality_gate",
+        stage_id="review_and_quality_gate",
+        reason="stage_expected_receipt_or_monitor_freshness_pending",
+        evidence_refs=[
+            "agent/stages/review_and_quality_gate.yaml",
+            "agent/quality_gates/medical_research_quality_gate.yaml",
+        ],
+        expected_receipt_refs=[
+            "receipt:mas/review_and_quality_gate/ai-reviewer-gate",
+            "receipt:mas/review_and_quality_gate/owner-receipt-or-typed-blocker",
+        ],
+        monitor_freshness_refs=[
+            "metric:mas/review_and_quality_gate/publication-eval-currentness",
+        ],
+        runtime_event_refs=[
+            "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+            "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded",
+        ],
+        stage_attempt_source_fingerprint="stage-attempt-review-001",
+    )
+
+    handoff = payload["stage_evidence_handoff"]
+    assert handoff["surface_kind"] == "mas_domain_dispatch_stage_evidence_handoff"
+    assert handoff["status"] == "typed_blocker_pending_real_stage_receipts"
+    assert handoff["stage_id"] == "review_and_quality_gate"
+    assert handoff["task_kind"] == "review_and_quality_gate"
+    assert handoff["expected_receipt_refs"] == [
+        "receipt:mas/review_and_quality_gate/ai-reviewer-gate",
+        "receipt:mas/review_and_quality_gate/owner-receipt-or-typed-blocker",
+    ]
+    assert handoff["monitor_freshness_refs"] == [
+        "metric:mas/review_and_quality_gate/publication-eval-currentness",
+    ]
+    assert handoff["runtime_event_refs"] == [
+        "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+        "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded",
+    ]
+    assert handoff["record_payload_ref_fields"] == [
+        "stage_expected_receipt_refs",
+        "stage_monitor_freshness_refs",
+        "stage_runtime_event_refs",
+        "typed_blocker_refs",
+        "no_regression_evidence_refs",
+    ]
+    assert handoff["identity_binding"] == payload["identity_binding"]
+    assert handoff["body_included"] is False
+    assert handoff["domain_ready_claimed"] is False
+    assert handoff["publication_ready_claimed"] is False
+    assert handoff["artifact_mutation_authorized"] is False
+    assert handoff["authority_boundary"]["opl_records_refs_only"] is True
+    assert handoff["authority_boundary"]["opl_writes_mas_truth"] is False
+    assert payload["record_payload"]["stage_expected_receipt_refs"] == handoff[
+        "expected_receipt_refs"
+    ]
+    assert payload["record_payload"]["stage_monitor_freshness_refs"] == handoff[
+        "monitor_freshness_refs"
+    ]
+    assert payload["record_payload"]["stage_runtime_event_refs"] == handoff["runtime_event_refs"]
+    assert payload["record_payload"]["typed_blocker_refs"]
+    assert {
+        packet["role"] for packet in payload["body_free_evidence_packets"]
+    } == {
+        "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
+        "stage_expected_receipt_ref",
+        "stage_monitor_freshness_ref",
+        "stage_runtime_event_ref",
+    }
+    for packet in payload["body_free_evidence_packets"]:
+        _assert_body_free_packet(packet, role=packet["role"], owner="MedAutoScience")
+    rendered = json.dumps(payload, ensure_ascii=False)
+    assert "publication_eval_body" not in rendered
+    assert "current_package_body" in payload["forbidden_payload_fields"]
+
+
 def test_domain_dispatch_evidence_payload_typed_blocker_ref_keeps_identity_token() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
 

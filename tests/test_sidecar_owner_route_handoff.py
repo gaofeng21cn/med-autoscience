@@ -155,11 +155,34 @@ def test_sidecar_export_hydrates_owner_route_handoff_artifact_without_runtime_st
         "#/paper_line_guarded_apply_evidence",
     ]
     assert evidence_payload["record_payload"]["no_regression_refs"]
+    assert evidence_payload["record_payload"]["stage_expected_receipt_refs"] == [
+        "receipt:mas/finalize_and_publication_handoff/owner-receipt-or-typed-blocker",
+        "receipt:mas/finalize_and_publication_handoff/independent-review-or-auditor",
+    ]
+    assert evidence_payload["record_payload"]["stage_monitor_freshness_refs"] == [
+        "metric:mas/finalize_and_publication_handoff/owner-route-currentness",
+        "metric:mas/finalize_and_publication_handoff/no-forbidden-write-currentness",
+    ]
+    assert evidence_payload["record_payload"]["stage_runtime_event_refs"] == [
+        "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
+        "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded",
+    ]
+    stage_handoff = evidence_payload["stage_evidence_handoff"]
+    assert stage_handoff["stage_id"] == "finalize_and_publication_handoff"
+    assert stage_handoff["identity_binding"] == evidence_payload["identity_binding"]
+    assert stage_handoff["domain_ready_claimed"] is False
+    assert stage_handoff["authority_boundary"]["opl_records_refs_only"] is True
     assert evidence_payload["authority_boundary"]["opl_records_refs_only"] is True
     assert evidence_payload["authority_boundary"]["provider_completion_is_domain_ready"] is False
     assert {
         packet["role"] for packet in evidence_payload["body_free_evidence_packets"]
-    } == {"stable_typed_blocker_ref", "no_forbidden_write_proof_ref"}
+    } == {
+        "stable_typed_blocker_ref",
+        "no_forbidden_write_proof_ref",
+        "stage_expected_receipt_ref",
+        "stage_monitor_freshness_ref",
+        "stage_runtime_event_ref",
+    }
     rendered_payload = json.dumps(evidence_payload, ensure_ascii=False)
     assert "current_package_body" in evidence_payload["forbidden_payload_fields"]
     assert "do-not-touch" not in rendered_payload

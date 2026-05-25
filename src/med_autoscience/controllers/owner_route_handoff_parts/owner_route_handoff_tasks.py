@@ -34,6 +34,7 @@ def owner_route_handoff_task(
     )
     route_transition_contract = _route_transition_contract(handoff=handoff)
     stage_graph_handoff = _stage_graph_handoff()
+    stage_evidence_refs = _stage_evidence_refs_for_handoff(stage_graph_handoff=stage_graph_handoff)
     source_refs = [
         ref
         for ref in (
@@ -60,8 +61,12 @@ def owner_route_handoff_task(
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
         task_kind="domain_route/owner-handoff",
         study_id=study_id,
+        stage_evidence_stage_id=stage_evidence_refs["stage_id"],
         reason=reason,
         evidence_refs=source_refs,
+        expected_receipt_refs=stage_evidence_refs["expected_receipt_refs"],
+        monitor_freshness_refs=stage_evidence_refs["monitor_freshness_refs"],
+        runtime_event_refs=stage_evidence_refs["runtime_event_refs"],
         source_fingerprint=source_fingerprint,
         profile_name=profile.name,
     )
@@ -227,6 +232,27 @@ def _stage_graph_handoff() -> dict[str, Any]:
                 ],
             },
         },
+    }
+
+
+def _stage_evidence_refs_for_handoff(*, stage_graph_handoff: Mapping[str, Any]) -> dict[str, list[str]]:
+    hints = _mapping(stage_graph_handoff.get("route_stage_graph_hints"))
+    finalize_hint = _mapping(hints.get("finalize"))
+    stage_id = _text(finalize_hint.get("stage")) or "finalize_and_publication_handoff"
+    return {
+        "stage_id": stage_id,
+        "expected_receipt_refs": [
+            f"receipt:mas/{stage_id}/owner-receipt-or-typed-blocker",
+            f"receipt:mas/{stage_id}/independent-review-or-auditor",
+        ],
+        "monitor_freshness_refs": [
+            f"metric:mas/{stage_id}/owner-route-currentness",
+            f"metric:mas/{stage_id}/no-forbidden-write-currentness",
+        ],
+        "runtime_event_refs": [
+            "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
+            "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded",
+        ],
     }
 
 

@@ -18,8 +18,12 @@ def build_domain_dispatch_evidence_record_payload(
     task_kind: str,
     study_id: str | None = None,
     stage_id: str | None = None,
+    stage_evidence_stage_id: str | None = None,
     reason: str,
     evidence_refs: Sequence[str | Mapping[str, Any]] = (),
+    expected_receipt_refs: Sequence[str | Mapping[str, Any]] = (),
+    monitor_freshness_refs: Sequence[str | Mapping[str, Any]] = (),
+    runtime_event_refs: Sequence[str | Mapping[str, Any]] = (),
     source_fingerprint: str | None = None,
     stage_attempt_source_fingerprint: str | None = None,
     profile_name: str | None = None,
@@ -27,6 +31,7 @@ def build_domain_dispatch_evidence_record_payload(
     normalized_task_kind = _text(task_kind) or "domain_route/owner-handoff"
     normalized_study_id = _text(study_id)
     normalized_stage_id = _text(stage_id)
+    normalized_stage_evidence_stage_id = _text(stage_evidence_stage_id) or normalized_stage_id
     normalized_reason = _text(reason) or "owner_chain_receipt_pending"
     normalized_source_fingerprint = _text(source_fingerprint)
     normalized_stage_attempt_source_fingerprint = _text(stage_attempt_source_fingerprint)
@@ -43,6 +48,9 @@ def build_domain_dispatch_evidence_record_payload(
             ),
         ]
     )
+    expected_receipt_ref_values = _unique_refs([_ref_text(ref) for ref in expected_receipt_refs])
+    monitor_freshness_ref_values = _unique_refs([_ref_text(ref) for ref in monitor_freshness_refs])
+    runtime_event_ref_values = _unique_refs([_ref_text(ref) for ref in runtime_event_refs])
     slug_scope = normalized_study_id or (
         normalized_stage_id if normalized_stage_id != normalized_task_kind else None
     )
@@ -75,6 +83,16 @@ def build_domain_dispatch_evidence_record_payload(
         ref=no_forbidden_write_ref,
         role="no_forbidden_write_proof_ref",
         owner=OWNER,
+    )
+    stage_evidence_handoff = _stage_evidence_handoff(
+        task_kind=normalized_task_kind,
+        stage_id=normalized_stage_evidence_stage_id,
+        expected_receipt_refs=expected_receipt_ref_values,
+        monitor_freshness_refs=monitor_freshness_ref_values,
+        runtime_event_refs=runtime_event_ref_values,
+    )
+    stage_evidence_packets = _stage_evidence_packets(
+        stage_evidence_handoff=stage_evidence_handoff,
     )
     owner_chain_refs = evidence_ref_values
     no_regression_evidence_refs = [no_forbidden_write_ref]
@@ -109,6 +127,12 @@ def build_domain_dispatch_evidence_record_payload(
         "domain_receipt_refs": [],
         "no_regression_refs": no_regression_evidence_refs,
     }
+    if expected_receipt_ref_values:
+        record_payload["stage_expected_receipt_refs"] = expected_receipt_ref_values
+    if monitor_freshness_ref_values:
+        record_payload["stage_monitor_freshness_refs"] = monitor_freshness_ref_values
+    if runtime_event_ref_values:
+        record_payload["stage_runtime_event_refs"] = runtime_event_ref_values
     if normalized_study_id is not None:
         record_payload["study_id"] = normalized_study_id
     if normalized_stage_id is not None:
@@ -137,6 +161,7 @@ def build_domain_dispatch_evidence_record_payload(
         profile_name=normalized_profile_name,
         stage_attempt_source_fingerprint=normalized_stage_attempt_source_fingerprint,
     )
+    stage_evidence_handoff["identity_binding"] = identity_binding
     opl_runtime_action_execute_usage = {
         "surface_kind": "mas_domain_dispatch_opl_runtime_action_execute_usage",
         "record_action_template": f"domain_dispatch:{DOMAIN_ID}:<stage_attempt_id>:record",
@@ -174,6 +199,7 @@ def build_domain_dispatch_evidence_record_payload(
         "opl_runtime_action_execute_payload": record_payload,
         "opl_runtime_action_execute_usage": opl_runtime_action_execute_usage,
         "identity_binding": identity_binding,
+        "stage_evidence_handoff": stage_evidence_handoff,
         "required_return_shapes": [
             "domain_owner_receipt_ref",
             "no_regression_evidence_ref",
@@ -200,6 +226,7 @@ def build_domain_dispatch_evidence_record_payload(
         "body_free_evidence_packets": [
             typed_blocker_packet,
             no_forbidden_write_packet,
+            *stage_evidence_packets,
         ],
         "closeout_semantics": "typed_blocker_until_real_owner_receipt_or_live_paper_line_closeout",
         "body_included": False,
@@ -246,6 +273,80 @@ def _unique_refs(values: Sequence[str | None]) -> list[str]:
         if text and text not in refs:
             refs.append(text)
     return refs
+
+
+def _stage_evidence_handoff(
+    *,
+    task_kind: str,
+    stage_id: str | None,
+    expected_receipt_refs: Sequence[str],
+    monitor_freshness_refs: Sequence[str],
+    runtime_event_refs: Sequence[str],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_domain_dispatch_stage_evidence_handoff",
+        "status": "typed_blocker_pending_real_stage_receipts",
+        "mode": "refs_only_stage_evidence_payload_hints",
+        "task_kind": task_kind,
+        **({"stage_id": stage_id} if stage_id is not None else {}),
+        "expected_receipt_refs": list(expected_receipt_refs),
+        "monitor_freshness_refs": list(monitor_freshness_refs),
+        "runtime_event_refs": list(runtime_event_refs),
+        "record_payload_ref_fields": [
+            "stage_expected_receipt_refs",
+            "stage_monitor_freshness_refs",
+            "stage_runtime_event_refs",
+            "typed_blocker_refs",
+            "no_regression_evidence_refs",
+        ],
+        "closeout_requires": [
+            "independent_stage_executor_receipt_ref_or_stable_typed_blocker_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "no_forbidden_write_proof_ref",
+        ],
+        "body_included": False,
+        "domain_ready_claimed": False,
+        "publication_ready_claimed": False,
+        "artifact_mutation_authorized": False,
+        "current_package_mutation_authorized": False,
+        "authority_boundary": {
+            "mas_owns_stage_receipt_refs": True,
+            "opl_records_refs_only": True,
+            "opl_writes_mas_truth": False,
+            "opl_reads_memory_body": False,
+            "opl_reads_artifact_body": False,
+            "opl_authorizes_quality_or_publication": False,
+            "typed_blocker_is_domain_ready": False,
+            "stage_expected_receipt_refs_close_domain_ready": False,
+        },
+    }
+
+
+def _stage_evidence_packets(*, stage_evidence_handoff: Mapping[str, Any]) -> list[dict[str, Any]]:
+    packet_specs = [
+        ("expected_receipt_refs", "stage_expected_receipt_ref"),
+        ("monitor_freshness_refs", "stage_monitor_freshness_ref"),
+        ("runtime_event_refs", "stage_runtime_event_ref"),
+    ]
+    packets = []
+    for field, role in packet_specs:
+        refs = _unique_refs([_text(ref) for ref in stage_evidence_handoff.get(field, [])])
+        if not refs:
+            continue
+        packets.append(
+            build_body_free_evidence_packet(
+                ref="|".join(refs),
+                role=role,
+                owner=OWNER,
+                freshness={
+                    "status": "refs_declared_body_free",
+                    "exists": True,
+                    "mtime_epoch": None,
+                    "size_bytes": 0,
+                },
+            )
+        )
+    return packets
 
 
 def _slug(value: str) -> str:

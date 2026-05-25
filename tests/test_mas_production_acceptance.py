@@ -309,6 +309,31 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
         "progress_delta_ref_or_stable_typed_blocker_ref",
         "no_forbidden_write_proof_ref",
     ]
+    dispatch_template = handoff["domain_dispatch_stage_evidence_payload_template"]
+    assert dispatch_template["surface_kind"] == "mas_domain_dispatch_stage_evidence_handoff"
+    assert dispatch_template["status"] == "typed_blocker_pending_real_stage_receipts"
+    assert dispatch_template["stage_scope"] == "all_mas_runtime_guard_stages"
+    assert dispatch_template["record_payload_ref_fields"] == [
+        "stage_expected_receipt_refs",
+        "stage_monitor_freshness_refs",
+        "stage_runtime_event_refs",
+        "typed_blocker_refs",
+        "no_regression_evidence_refs",
+    ]
+    assert dispatch_template["body_included"] is False
+    assert dispatch_template["domain_ready_claimed"] is False
+    assert dispatch_template["publication_ready_claimed"] is False
+    assert dispatch_template["artifact_mutation_authorized"] is False
+    assert dispatch_template["authority_boundary"] == {
+        "mas_owns_stage_receipt_refs": True,
+        "opl_records_refs_only": True,
+        "opl_writes_mas_truth": False,
+        "opl_reads_memory_body": False,
+        "opl_reads_artifact_body": False,
+        "opl_authorizes_quality_or_publication": False,
+        "typed_blocker_is_domain_ready": False,
+        "stage_expected_receipt_refs_close_domain_ready": False,
+    }
     blocker_handoff = handoff["stage_owned_typed_blocker_handoff"]
     blocker_refs = blocker_handoff["stage_typed_blocker_refs"]
     assert blocker_handoff["surface_kind"] == "mas_stage_production_evidence_typed_blocker_handoff"

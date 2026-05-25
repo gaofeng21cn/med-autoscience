@@ -400,6 +400,32 @@
         "progress_delta_ref_or_stable_typed_blocker_ref",
         "no_forbidden_write_proof_ref"
       ],
+      "domain_dispatch_stage_evidence_payload_template": {
+        "surface_kind": "mas_domain_dispatch_stage_evidence_handoff",
+        "status": "typed_blocker_pending_real_stage_receipts",
+        "stage_scope": "all_mas_runtime_guard_stages",
+        "record_payload_ref_fields": [
+          "stage_expected_receipt_refs",
+          "stage_monitor_freshness_refs",
+          "stage_runtime_event_refs",
+          "typed_blocker_refs",
+          "no_regression_evidence_refs"
+        ],
+        "body_included": false,
+        "domain_ready_claimed": false,
+        "publication_ready_claimed": false,
+        "artifact_mutation_authorized": false,
+        "authority_boundary": {
+          "mas_owns_stage_receipt_refs": true,
+          "opl_records_refs_only": true,
+          "opl_writes_mas_truth": false,
+          "opl_reads_memory_body": false,
+          "opl_reads_artifact_body": false,
+          "opl_authorizes_quality_or_publication": false,
+          "typed_blocker_is_domain_ready": false,
+          "stage_expected_receipt_refs_close_domain_ready": false
+        }
+      },
       "stage_owned_typed_blocker_handoff": {
         "surface_kind": "mas_stage_production_evidence_typed_blocker_handoff",
         "mode": "refs_only_domain_owned_blocker_refs",
