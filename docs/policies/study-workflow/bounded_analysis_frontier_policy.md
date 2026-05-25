@@ -11,6 +11,8 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 
 `bounded_analysis` 不能变成无限分析扩张。每次补充分析都必须服务明确 claim、reviewer concern、publication gate blocker 或 route-back reason。
 
+`candidate board` 是 stage 内的比较和审计面。它可以记录 explore / exploit / fusion / debug / stop 候选、证据收益、成本风险和决策理由，但不能单独授权 publication quality、claim expansion、source readiness、artifact mutation、submission readiness 或 `current_package` 更新；正式前进、降级、止损或 human gate 仍回到 MAS controller / owner receipt / typed blocker。
+
 ## Candidate board
 
 每轮 bounded analysis 至少维护一个 candidate board：
@@ -51,3 +53,4 @@ bounded analysis 结束时，必须留下：
 - evidence refs
 - reviewer concern closure status
 - next route：`write`、`finalize`、`decision` 或继续同一 bounded route
+- source fingerprint、claim boundary、controller / reviewer / human-gate refs 或 typed blocker，确保后续写作和交付不能只凭 candidate board 过线

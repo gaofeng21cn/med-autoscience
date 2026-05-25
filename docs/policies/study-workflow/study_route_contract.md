@@ -11,6 +11,8 @@ canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `route_cont
 
 `stage_route_contract.yaml` 当前是真实使用的 MAS route/stage contract 结构化源，供 `show-stage-route-contract`、stage surface contract、product-entry manifest、OPL/family descriptor 和测试读取。旧 `show-agent-entry-modes` CLI 和 `agent_entry.modes` Python API 已退役；当前公开入口只保留 stage route contract。Markdown guide、Codex skill prompt 与 OpenClaw prompt 都从它派生。它不是 domain memory，也不是给 maintainer 维护自然语言经验的正文库；论文套路、路线偏置、reviewer lesson 和可复用 display lesson 应留在 Markdown-first memory 或 workspace memory 中。
 
+Route contract 定义的是 stage 进入条件、最小 durable output、回退触发和 human-gate 边界。它可以约束执行器和投影面，但不能把 `hard_success_gate`、`durable_outputs_minimum`、stage card、human review page 或 OPL projection 解释为 publication quality verdict、submission readiness、artifact mutation authorization、source readiness verdict 或 controller decision replacement。
+
 ## 固定字段
 
 每个 route 必须稳定提供以下字段：
@@ -34,6 +36,7 @@ canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `route_cont
 - `human_gate_boundary`：该 route 何时必须进入 human gate 或停止自动推进
 - `next_routes`：当前阶段过线后的正式去向
 - `route_back_triggers`：发现缺口时应回退的触发条件
+- `hard_success_gate` 与 `durable_outputs_minimum` 是 stage closeout 义务，不是质量、投稿、artifact 或 source readiness 的授权信号；正式 verdict 仍由 MAS quality gate、controller decision、owner receipt 或 typed blocker 承接。
 
 ## Canonical Routes
 

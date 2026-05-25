@@ -792,3 +792,49 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for remaining study-workflow source-readiness / data-asset policy docs, or delivery / medical-display docs that mention artifact lifecycle, source truth, package authority or display-pack authority.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
+
+### 2026-05-26 study-workflow policy authority coverage tranche
+
+本轮覆盖 MAS `docs/policies/study-workflow/*.md` 的 study workflow policy bundle。目标是把 stage-led autonomy、route memory、data asset、bounded analysis、route contract、submission/revision 和 workspace autoscience 摘要读回当前 MAS owner boundary：policy / route memory / data asset / workspace literature / ToolUniverse / OPL projection 都可以提供 stage context、evidence input、diagnostic、locator、receipt refs 或 route-back 线索，但不能授权 source readiness、publication quality、submission readiness、artifact mutation、`current_package` 更新、domain ready 或 controller decision replacement。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/references/positioning/mas_ideal_state.md`, this docs-governance file, and preceding workspace/source policy coverage ledger entries.
+- Reviewed policy docs: all Markdown files under `docs/policies/study-workflow/`: `README.md`, `bounded_analysis_frontier_policy.md`, `data_asset_management.md`, `publication_route_memory_policy.md`, `publication_route_memory_library.md`, `research_route_bias_policy.md`, `stage_led_research_autonomy.md`, `study_archetypes.md`, `study_route_contract.md`, `submission_revision_operating_contract.md`, and `workspace_autoscience_rules.md`.
+- Machine / source surfaces: `contracts/pack_compiler_input.json`, `contracts/stage_control_plane.json`, `agent/knowledge/source_readiness_and_artifact_authority.md`, `agent/knowledge/publication_route_memory.md`, `agent/knowledge/medical_research_truth.md`, `agent/stages/stage_route_contract.yaml`, `src/med_autoscience/stage_knowledge_contract.py`, `src/med_autoscience/controllers/workspace_literature.py`, `src/med_autoscience/policies/research_route_bias.py`, and data-asset controller surfaces.
+- Structural context: CodeGraph context for workspace literature, literature records, publication route memory, data assets and stage knowledge/source readiness boundaries.
+- Focused test evidence read from current source: `tests/test_stage_surface_contract.py`, `tests/test_stage_knowledge_plane.py`, `tests/test_data_assets.py`, `tests/test_data_asset_gate.py`, `tests/test_stage_knowledge_entry_injection.py`, `tests/test_workspace_literature.py`, `tests/test_stage_route_assets.py`, and related CLI cases surfaced by the test inventory.
+
+Fresh semantic result:
+
+- `publication_route_memory_policy.md` and `publication_route_memory_library.md` remain aligned: route-memory prose is advisory natural-language experience for Codex-led stage reasoning; workspace packs, inventories, seed fixtures and OPL/Aion projections are locator/index/receipt surfaces; controller decision, publication quality, memory accept/reject and artifact/source authority remain MAS owner surfaces.
+- `stage_led_research_autonomy.md`, `study_archetypes.md` and `research_route_bias_policy.md` remain aligned: stage autonomy and first-generation route bias preserve exploratory reasoning and route context without turning scorecards, archetypes or route memory into route-authority or quality gates.
+- `data_asset_management.md` remains aligned after the prior correction: data asset registries, public-data opportunities and ToolUniverse support evidence building, impact assessment and knowledge/function analysis, but cannot replace MAS source readiness, study truth, quality gate, artifact authority or OPL runtime owner.
+- `workspace_autoscience_rules.md` needed a workspace-summary authority guard so workspace literature, data asset registry, ToolUniverse output and workspace memory are not read as source/publication/artifact/controller authority.
+- `bounded_analysis_frontier_policy.md` needed an explicit candidate-board boundary: bounded-analysis boards compare and audit stage candidates but do not authorize claim expansion, publication quality, source readiness, artifact mutation, submission readiness or `current_package` updates.
+- `study_route_contract.md` needed an explicit route-contract boundary: `hard_success_gate`, `durable_outputs_minimum`, generated stage cards, human review pages and OPL projections are stage closeout / projection obligations, not quality, submission, artifact, source readiness or controller-decision authority.
+- `submission_revision_operating_contract.md` already kept mechanical QC/projection separate from scientific quality closure and required AI reviewer-backed quality record, publication gate, source signature and package projection for submission readiness.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of all `docs/policies/study-workflow/*.md` Markdown policy files listed above, with live contract/source/test evidence listed above. | `docs/policies/study-workflow/workspace_autoscience_rules.md`; `docs/policies/study-workflow/bounded_analysis_frontier_policy.md`; `docs/policies/study-workflow/study_route_contract.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. All reviewed study-workflow policy files remain active policy or canonical memory-body support with distinct roles; stale authority leakage was corrected in place.
+
+Uncovered docs in this semantic area:
+
+- MAS delivery / medical-display docs outside the already-covered inspection, artifact/baseline/retention and delivery index blocks remain open when they mention artifact lifecycle, source truth, package authority or display-pack authority.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention, standard skeleton/source-delivery index, workspace/source references and this study-workflow block.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any future prose that treats route memory, archetypes, route-bias prose, route contract, stage cards, human review pages, bounded-analysis candidate boards, data asset registry, workspace literature, ToolUniverse output, file presence, package freshness, local test pass, provider completion or OPL projection as source readiness verdict, publication quality verdict, submission readiness, artifact mutation authorization, `current_package` update, controller decision, domain ready or production ready is stale pollution.
+- Any future prose that makes OPL read or mutate MAS memory body, accept/reject memory writebacks, choose publication route, write MAS truth, sign artifact authority or interpret medical quality must be rewritten back to locator/projection/transport boundaries or moved to history/provenance.
+- Route-memory library cards remain advisory reusable experience. They should not be turned into recipe-engine schemas, winning-route scorers, fixed workflows or ordinary-user edit UI without audited evidence obligations, owner boundary, receipt generation and failure behavior.
+
+Next tranche write scope:
+
+- MAS delivery / medical-display docs that mention artifact lifecycle, source truth, package authority or display-pack authority.
+- Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
