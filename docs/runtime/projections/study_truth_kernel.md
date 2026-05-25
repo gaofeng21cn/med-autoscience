@@ -32,6 +32,7 @@ uv run python -m med_autoscience.cli study reconcile-truth --profile <profile> -
 - `stop_loss` 强于 publication/package/finalize/readiness projection。
 - `final_line_decision` 是 stop-loss 后的显式终局输入，只有用户或 owner-authorized surface 明确 `decision=abandon/final_abandon/close` 且 `reopen_allowed=false`，才能把 study line 解释为不可重开终局。机械 retention plan 不得反向推断终局放弃。
 - 同一 study line 的新 `task_intake` / `reviewer_revision` 强于旧 stopped/finalize/submission-ready 投影。
+- `explicit_resume` 是显式用户唤醒事件；当它晚于旧 `task_intake` / methodology rebuild intake 时，read-model shadow snapshot 也必须保持该事件为 dominant authority，不能因为 status 读取重新注入旧 task intake 而倒退到旧 route。
 - `execution_owner_guard.supervisor_only=true` 时，前台只允许监督和用户沟通类动作。
 - `publication_supervisor_state.bundle_tasks_downstream_only=true` 时，bundle/build/proofing 类动作阻塞。
 - 缺少 `assessment_provenance.owner=ai_reviewer` 的 publication eval 不能宣布 reviewer-ready、finalize-ready 或 submission-ready。

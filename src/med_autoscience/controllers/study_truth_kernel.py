@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable, Mapping
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -241,6 +242,18 @@ def _source_signature_for_event(event: Mapping[str, Any]) -> str:
     return _text(event.get("source_signature")) or _event_source_signature(event_type, payload)
 
 
+def _event_dedupe_keys(event: Mapping[str, Any]) -> set[tuple[str, str]]:
+    event_type = str(event.get("event_type") or "").strip()
+    keys = {(event_type, _source_signature_for_event(event))}
+    payload = _mapping(event.get("payload"))
+    if event_type == "task_intake":
+        if task_id := _text(payload.get("task_id")):
+            keys.add(("task_intake_id", task_id))
+        if intervention_event_id := _text(payload.get("intervention_event_id")):
+            keys.add(("intervention_event_id", intervention_event_id))
+    return keys
+
+
 def _snapshot_source_signature(events: list[dict[str, Any]]) -> str | None:
     if not events:
         return None
@@ -358,7 +371,11 @@ def _package_state(events: list[dict[str, Any]], writer_state: Mapping[str, Any]
     }
 
 
-def _execution_owner_and_state(events: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any]]:
+def _execution_owner_and_state(
+    events: list[dict[str, Any]],
+    *,
+    dominant_event: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     owner = {"owner": "mas", "runtime_control_owner": "one-person-lab", "active_run_id": None}
     state = {"state": "unknown", "quest_status": None, "reason": None}
     for event in events:
@@ -398,18 +415,71 @@ def _execution_owner_and_state(events: list[dict[str, Any]]) -> tuple[dict[str, 
                     "quest_status": state.get("quest_status"),
                     "reason": _event_summary(event),
                 }
+    if dominant_event is not None and dominant_event.get("event_type") in {"task_intake", "explicit_resume"}:
+        payload = _mapping(dominant_event.get("payload"))
+        action = _text(payload.get("current_required_action"))
+        if action in {
+            "resume_same_study_line",
+            "resume_runtime",
+            "relaunch_same_study_line",
+            "authorize_clean_reproducible_model_rebuild",
+        }:
+            state = {
+                "state": "reactivation_requested",
+                "quest_status": state.get("quest_status"),
+                "reason": _event_summary(dominant_event),
+            }
     return owner, state
 
 
+def _parsed_recorded_at(value: object) -> datetime:
+    text = _text(value)
+    if text is None:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _sequence_number(event: Mapping[str, Any], fallback: int) -> int:
+    try:
+        return int(event.get("sequence") or fallback)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _latest_authority_candidate(events: Iterable[dict[str, Any]]) -> dict[str, Any] | None:
+    candidates = list(events)
+    if not candidates:
+        return None
+    return max(
+        enumerate(candidates),
+        key=lambda item: (
+            _parsed_recorded_at(item[1].get("recorded_at")),
+            _sequence_number(item[1], item[0]),
+            item[0],
+        ),
+    )[1]
+
+
 def _dominant_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
-    for event in reversed(events):
+    stop_loss_candidates: list[dict[str, Any]] = []
+    for event in events:
         if event.get("event_type") == "stop_loss":
-            return event
+            stop_loss_candidates.append(event)
+            continue
         payload = _mapping(event.get("payload"))
         closure = _mapping(payload.get("quality_closure_truth"))
         if event.get("event_type") == "task_intake" and _text(closure.get("state")) == "stop_loss_recommended":
-            return event
-    for event in reversed(events):
+            stop_loss_candidates.append(event)
+    if stop_loss := _latest_authority_candidate(stop_loss_candidates):
+        return stop_loss
+    reactivation_candidates: list[dict[str, Any]] = []
+    for event in events:
         payload = _mapping(event.get("payload"))
         if event.get("event_type") in {"task_intake", "explicit_resume"}:
             action = _text(payload.get("current_required_action"))
@@ -423,8 +493,11 @@ def _dominant_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
                 or reactivation.get("same_study_line") is True
                 or _text(revision.get("kind")) == "reviewer_revision"
             ):
-                return event
-    for event in reversed(events):
+                reactivation_candidates.append(event)
+    if reactivation := _latest_authority_candidate(reactivation_candidates):
+        return reactivation
+    handoff_candidates: list[dict[str, Any]] = []
+    for event in events:
         payload = _mapping(event.get("payload"))
         guard = _mapping(payload.get("execution_owner_guard"))
         supervisor = _mapping(payload.get("publication_supervisor_state"))
@@ -432,10 +505,15 @@ def _dominant_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
             event.get("event_type") == "opl_runtime_owner_handoff"
             and (guard.get("supervisor_only") is True or supervisor.get("bundle_tasks_downstream_only") is True)
         ):
-            return event
-    for event in reversed(events):
+            handoff_candidates.append(event)
+    if handoff := _latest_authority_candidate(handoff_candidates):
+        return handoff
+    eval_candidates: list[dict[str, Any]] = []
+    for event in events:
         if event.get("event_type") in {"publication_gate_eval", "quality_review_eval", "package_authority_eval"}:
-            return event
+            eval_candidates.append(event)
+    if eval_event := _latest_authority_candidate(eval_candidates):
+        return eval_event
     return events[-1] if events else None
 
 
@@ -560,7 +638,7 @@ def _projection_invalidations(events: list[dict[str, Any]], dominant_event: dict
 def _snapshot_from_events(*, study_root: Path, study_id: str, events: list[dict[str, Any]]) -> dict[str, Any]:
     dominant = _dominant_event(events)
     writer_state = _writer_state(events)
-    owner, execution_state = _execution_owner_and_state(events)
+    owner, execution_state = _execution_owner_and_state(events, dominant_event=dominant)
     latest_event = events[-1] if events else None
     authority_epoch = _text(dominant.get("event_id")) if dominant is not None else None
     generated_at = _text(latest_event.get("recorded_at")) if latest_event is not None else None
@@ -860,10 +938,7 @@ def derive_truth_snapshot_from_status_payload(
     persisted_events = [
         event for event in read_truth_events(study_root=study_root) if event.get("study_id") == study_id
     ]
-    seen = {
-        (str(event.get("event_type") or ""), _source_signature_for_event(event))
-        for event in persisted_events
-    }
+    seen = set().union(*(_event_dedupe_keys(event) for event in persisted_events)) if persisted_events else set()
     transient_events = _status_payload_truth_events(
         study_id=study_id,
         status_payload=status_payload,
@@ -872,11 +947,11 @@ def derive_truth_snapshot_from_status_payload(
     )
     deduped_transient_events: list[dict[str, Any]] = []
     for event in transient_events:
-        key = (str(event.get("event_type") or "").strip(), _source_signature_for_event(event))
-        if key in seen:
+        keys = _event_dedupe_keys(event)
+        if keys & seen:
             continue
         deduped_transient_events.append(event)
-        seen.add(key)
+        seen.update(keys)
     return _snapshot_from_events(
         study_root=study_root,
         study_id=study_id,
@@ -902,10 +977,7 @@ def reconcile_truth_snapshot_from_status_payload(
     path = truth_events_path(study_root=study_root)
     persisted_events = _read_jsonl(path)
     persisted_for_study = [event for event in persisted_events if event.get("study_id") == study_id]
-    seen = {
-        (str(event.get("event_type") or ""), _source_signature_for_event(event))
-        for event in persisted_for_study
-    }
+    seen = set().union(*(_event_dedupe_keys(event) for event in persisted_for_study)) if persisted_for_study else set()
     transient_events = _status_payload_truth_events(
         study_id=study_id,
         status_payload=status_payload,
@@ -917,8 +989,8 @@ def reconcile_truth_snapshot_from_status_payload(
         event_type = str(event.get("event_type") or "").strip()
         payload = _mapping(event.get("payload"))
         source_signature = _source_signature_for_event(event)
-        key = (event_type, source_signature)
-        if key in seen:
+        keys = _event_dedupe_keys(event)
+        if keys & seen:
             continue
         appended.append(
             append_truth_event(
@@ -930,7 +1002,7 @@ def reconcile_truth_snapshot_from_status_payload(
                 source_signature=source_signature,
             )
         )
-        seen.add(key)
+        seen.update(keys)
     snapshot_path = materialize_truth_snapshot(study_root=study_root, study_id=study_id)
     snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
     return {

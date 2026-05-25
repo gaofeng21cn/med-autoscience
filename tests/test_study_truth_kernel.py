@@ -526,6 +526,75 @@ def test_methodology_rebuild_authorization_task_intake_dominates_waiting_human_g
     assert task_event["payload"]["reactivation_policy"]["next_owner"] == "provenance_limited_harmonization_owner"
 
 
+def test_explicit_resume_shadow_snapshot_dominates_older_methodology_rebuild_intake(
+    tmp_path: Path,
+) -> None:
+    module = _kernel()
+    study_root = tmp_path / "studies" / "002-dm"
+    task_intake_path = study_root / "artifacts" / "controller" / "task_intake" / "latest.json"
+    task_intake_path.parent.mkdir(parents=True)
+    task_intake_path.write_text(
+        json.dumps(
+            {
+                "task_id": "study-task::002-dm::20260519T074054Z",
+                "study_id": "002-dm",
+                "emitted_at": "2026-05-19T07:40:54+00:00",
+                "task_intake_kind": "methodology_rebuild_authorization",
+                "task_intent": "Human-gate decision: authorize a clean reproducible-model rebuild route.",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    module.reconcile_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="002-dm",
+        status_payload={
+            "study_id": "002-dm",
+            "study_root": str(study_root),
+            "quest_status": "waiting_for_user",
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+        },
+        recorded_at="2026-05-19T07:41:00+00:00",
+    )
+    explicit_resume = module.append_truth_event(
+        study_root=study_root,
+        study_id="002-dm",
+        event_type="explicit_resume",
+        payload={
+            "current_required_action": "resume_same_study_line",
+            "resume_owner": "one-person-lab",
+            "summary": "User explicitly requested MAS study resume through launch-study.",
+        },
+        recorded_at="2026-05-25T08:54:00+00:00",
+    )
+
+    shadow = module.derive_truth_snapshot_from_status_payload(
+        study_root=study_root,
+        study_id="002-dm",
+        status_payload={
+            "study_id": "002-dm",
+            "study_root": str(study_root),
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+            "publication_supervisor_state": {
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+            },
+        },
+        recorded_at="2026-05-25T09:00:00+00:00",
+    )
+
+    assert shadow["canonical_next_action"] == "resume_same_study_line"
+    assert shadow["dominant_authority_refs"][0]["event_id"] == explicit_resume["event_id"]
+    assert shadow["dominant_authority_refs"][0]["event_type"] == "explicit_resume"
+    assert shadow["execution_state"]["state"] == "reactivation_requested"
+    assert shadow["truth_epoch"] == explicit_resume["event_id"]
+
+
 def test_progress_projection_carries_truth_epoch_from_status_payload(tmp_path: Path) -> None:
     progress = importlib.import_module("med_autoscience.controllers.study_progress")
     module = _kernel()
