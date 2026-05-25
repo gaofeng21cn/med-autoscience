@@ -15,10 +15,26 @@ from .. import opl_provider_ready_adapter
 from .. import paper_repair_executor
 from .. import publication_aftercare
 from .. import real_paper_autonomy_soak_inventory
+from ..ai_reviewer_story_provenance_guard import (
+    AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON,
+)
+from ..domain_action_request_lifecycle import (
+    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+    AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+)
 from ..real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 from .authority_boundary import authority_boundary_payload
 from .dispatch_receipts import write_dispatch_receipt
 from .task_kinds import ALLOWED_TASK_KINDS, FORBIDDEN_PAYLOAD_FLAGS
+
+STABLE_PAPER_REPAIR_TYPED_BLOCKERS = frozenset(
+    {
+        "authority_route_blocked",
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
+        AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON,
+    }
+)
 
 
 def _now_iso() -> str:
@@ -364,7 +380,7 @@ def _with_paper_repair(
         receipt["dispatch"]["downstream_worker_handoff"] = _mapping(result).get("writer_worker_handoff")
     if _mapping(result).get("accepted") is False:
         typed_blocker = _text(_mapping(result).get("typed_blocker")) or "paper_repair_executor_blocked"
-        if typed_blocker == "authority_route_blocked":
+        if typed_blocker in STABLE_PAPER_REPAIR_TYPED_BLOCKERS:
             receipt["accepted"] = True
             receipt["stable_typed_blocker"] = typed_blocker
         else:
