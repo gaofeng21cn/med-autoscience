@@ -28,6 +28,10 @@ def prompt_contract_error(prompt_contract: Mapping[str, Any], *, forbidden_surfa
         for item in prompt_contract.get("forbidden_surfaces") or []
         if (text := _text(item)) is not None
     }
+    if _record_only_ai_reviewer_handoff_prompt_contract(prompt_contract):
+        if not _record_only_ai_reviewer_handoff_forbidden_surfaces(forbidden):
+            return "forbidden_surfaces_incomplete"
+        return None
     if story_surface_write_handoff:
         if not _story_surface_write_handoff_forbidden_surfaces(forbidden):
             return "forbidden_surfaces_incomplete"
@@ -77,6 +81,43 @@ def _story_surface_write_handoff_forbidden_surfaces(forbidden: set[str]) -> bool
         "src/med_autoscience/platform/**",
         "artifacts/publication_eval/latest.json",
         "artifacts/controller_decisions/latest.json",
+    }.issubset(forbidden)
+
+
+def _record_only_ai_reviewer_handoff_prompt_contract(prompt_contract: Mapping[str, Any]) -> bool:
+    if _text(prompt_contract.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    if _text(prompt_contract.get("next_executable_owner")) != "ai_reviewer":
+        return False
+    if _text(prompt_contract.get("required_output_surface")) != (
+        "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    ):
+        return False
+    request = _mapping(prompt_contract.get("ai_reviewer_record_production_request"))
+    authority = _mapping(request.get("authority_contract"))
+    if authority.get("record_only_surface") is not True:
+        return False
+    if authority.get("publication_eval_latest_write_allowed") is not False:
+        return False
+    if authority.get("controller_decision_write_allowed") is not False:
+        return False
+    allowed = {
+        text
+        for item in prompt_contract.get("allowed_write_surfaces") or []
+        if (text := _text(item)) is not None
+    }
+    return allowed == {"artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"}
+
+
+def _record_only_ai_reviewer_handoff_forbidden_surfaces(forbidden: set[str]) -> bool:
+    return {
+        "paper/**",
+        "manuscript/**",
+        "paper/submission_minimal/**",
+        "manuscript/current_package/**",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+        ".ds/**",
     }.issubset(forbidden)
 
 
