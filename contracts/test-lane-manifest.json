@@ -1401,6 +1401,7 @@
           "code_paths": [
             "src/med_autoscience/controllers/runtime_storage_maintenance.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/",
+            "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py",
             "src/med_autoscience/cli_parts/runtime_storage_commands.py"
           ],
@@ -1428,23 +1429,48 @@
             "may_emit": [
               "workspace_artifact_ref",
               "cleanup_receipt_ref",
-              "typed_blocker"
+              "restore_proof_ref",
+              "typed_blocker",
+              "storage_size_ref"
             ],
             "must_not_emit": [
               "generic_cleanup_policy",
               "restore_ready_verdict",
-              "paper_closure_verdict"
+              "paper_closure_verdict",
+              "publication_ready_verdict",
+              "artifact_mutation_authorization"
             ],
             "generic_owner_claim_allowed": false
           },
           "latest_thinning_evidence": {
-            "status": "runtime_storage_cache_cleanup_shell_split",
-            "scope": "delete_safe_cache_scan_apply_shell",
+            "status": "runtime_storage_live_report_boundary_payload_landed",
+            "scope": "workspace_study_orphan_runtime_storage_reports_emit_refs_only_boundary",
             "extracted_paths": [
+              "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py",
               "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
             ],
             "domain_refs_entry_shell": "src/med_autoscience/controllers/runtime_storage_maintenance.py",
             "domain_refs_entry_role": "workspace_storage_refs_and_runtime_audit_entry",
+            "live_report_boundary_payload": {
+              "surface_kind": "mas_runtime_storage_refs_only_adapter_boundary",
+              "report_modes": [
+                "workspace_storage_audit",
+                "study_runtime_storage_maintenance",
+                "orphan_quest_runtime_storage_maintenance"
+              ],
+              "body_policy": "workspace_refs_sizes_receipts_blockers_only",
+              "must_not_emit": [
+                "generic_cleanup_policy",
+                "restore_ready_verdict",
+                "paper_closure_verdict",
+                "publication_ready_verdict",
+                "artifact_mutation_authorization"
+              ],
+              "can_write_domain_truth": false,
+              "can_write_publication_eval": false,
+              "can_write_controller_decision": false,
+              "can_write_current_package": false
+            },
             "does_not_claim_physical_delete": true,
             "does_not_claim_opl_default_caller": true,
             "does_not_claim_generic_cleanup_policy_owner": true,

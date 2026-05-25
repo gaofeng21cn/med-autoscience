@@ -8,6 +8,9 @@ from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers import study_runtime_resolution
 from med_autoscience.controllers.runtime_storage_maintenance_parts import backend_maintenance
+from med_autoscience.controllers.runtime_storage_maintenance_parts.authority_boundary import (
+    storage_refs_only_adapter_boundary,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.restore_proof_compaction import (
     compact_cold_runtime_buckets,
     restore_proof_compaction_blockers,
@@ -61,6 +64,9 @@ def maintain_quest_runtime_storage(
         "include_operator_confirmed_parked_active": include_operator_confirmed_parked_active,
         "restore_proof_buckets": list(selected_restore_proof_buckets),
         "orphan_quest_root_mode": True,
+        "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
+            report_mode="orphan_quest_runtime_storage_maintenance",
+        ),
     }
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
     result["size_before"] = _size_summary(resolved_quest_root, buckets=selected_restore_proof_buckets)

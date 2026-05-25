@@ -353,8 +353,21 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "src/med_autoscience/controllers/runtime_storage_maintenance_parts/cache_cleanup.py"
         in storage_adapter["code_paths"]
     )
+    assert (
+        "src/med_autoscience/controllers/runtime_storage_maintenance_parts/authority_boundary.py"
+        in storage_adapter["code_paths"]
+    )
     storage_thinning = storage_adapter["latest_thinning_evidence"]
-    assert storage_thinning["status"] == "runtime_storage_cache_cleanup_shell_split"
+    assert storage_thinning["status"] == "runtime_storage_live_report_boundary_payload_landed"
+    live_boundary = storage_thinning["live_report_boundary_payload"]
+    assert live_boundary["surface_kind"] == "mas_runtime_storage_refs_only_adapter_boundary"
+    assert live_boundary["report_modes"] == [
+        "workspace_storage_audit",
+        "study_runtime_storage_maintenance",
+        "orphan_quest_runtime_storage_maintenance",
+    ]
+    assert live_boundary["can_write_publication_eval"] is False
+    assert "artifact_mutation_authorization" in live_boundary["must_not_emit"]
     assert storage_thinning["does_not_claim_physical_delete"] is True
     assert storage_thinning["does_not_claim_generic_cleanup_policy_owner"] is True
     assert storage_thinning["does_not_touch_publication_or_package_authority"] is True

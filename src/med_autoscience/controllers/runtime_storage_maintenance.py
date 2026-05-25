@@ -11,6 +11,9 @@ from med_autoscience.controllers.artifact_lifecycle_inventory import build_study
 from med_autoscience.controllers.runtime_storage_maintenance_parts import backend_maintenance
 from med_autoscience.controllers.runtime_storage_maintenance_parts import cache_cleanup
 from med_autoscience.controllers.runtime_storage_maintenance_parts import git_garbage
+from med_autoscience.controllers.runtime_storage_maintenance_parts.authority_boundary import (
+    storage_refs_only_adapter_boundary,
+)
 from med_autoscience.controllers.runtime_storage_maintenance_parts.quest_root_maintenance import (
     maintain_quest_runtime_storage,
 )
@@ -548,6 +551,9 @@ def audit_workspace_storage(
         "profile_name": profile.name,
         "workspace_root": str(workspace_root),
         "mode": "apply" if apply else "dry-run",
+        "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
+            report_mode="workspace_storage_audit",
+        ),
         "selection": {
             "study_id": study_id,
             "all_studies": all_studies,
@@ -678,6 +684,9 @@ def maintain_runtime_storage(
         "include_parked_controller_stop": include_parked_controller_stop,
         "include_operator_confirmed_parked_active": include_operator_confirmed_parked_active,
         "restore_proof_buckets": list(selected_restore_proof_buckets),
+        "storage_refs_only_adapter_boundary": storage_refs_only_adapter_boundary(
+            report_mode="study_runtime_storage_maintenance",
+        ),
     }
     result["quest_runtime_before"] = _quest_runtime_snapshot(resolved_quest_root)
     result["size_before"] = _size_summary(resolved_quest_root, buckets=selected_restore_proof_buckets)

@@ -9,6 +9,7 @@ import time
 
 import pytest
 
+from tests.runtime_storage_boundary_helpers import assert_storage_refs_only_adapter_boundary
 from tests.study_runtime_test_helpers import make_profile
 
 
@@ -149,6 +150,7 @@ def test_maintain_runtime_storage_runs_backend_and_writes_audit_report(tmp_path:
     )
 
     assert result["status"] == "maintained"
+    assert_storage_refs_only_adapter_boundary(result, report_mode="study_runtime_storage_maintenance")
     assert result["study_id"] == study_id
     assert result["quest_id"] == quest_id
     assert result["quest_root"] == str(quest_root.resolve())
@@ -163,6 +165,10 @@ def test_maintain_runtime_storage_runs_backend_and_writes_audit_report(tmp_path:
     assert report_path.is_file()
     latest_payload = json.loads(latest_report_path.read_text(encoding="utf-8"))
     assert latest_payload["status"] == "maintained"
+    assert_storage_refs_only_adapter_boundary(
+        latest_payload,
+        report_mode="study_runtime_storage_maintenance",
+    )
     assert latest_payload["quest_id"] == quest_id
 
 
@@ -230,6 +236,7 @@ def test_audit_workspace_storage_dry_run_reports_runtime_dataset_cache_and_git(t
     result = module.audit_workspace_storage(profile=profile, all_studies=True, apply=False)
 
     assert result["mode"] == "dry-run"
+    assert_storage_refs_only_adapter_boundary(result, report_mode="workspace_storage_audit")
     assert result["summary"]["study_count"] == 2
     runtime_studies = result["categories"]["runtime"]["studies"]
     live_report = next(item for item in runtime_studies if item["study_id"] == live_study_id)
@@ -706,6 +713,10 @@ def test_maintain_quest_runtime_storage_compacts_legacy_unbound_quest(
 
     compaction = result["restore_proof_compaction"]
     assert result["status"] == "maintained"
+    assert_storage_refs_only_adapter_boundary(
+        result,
+        report_mode="orphan_quest_runtime_storage_maintenance",
+    )
     assert result["study_id"] is None
     assert result["study_root"] is None
     assert result["orphan_quest_root_mode"] is True
