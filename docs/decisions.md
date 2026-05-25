@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-25：current AI reviewer materialization route 必须投影为 write-owner action
+
+- 决策：当当前 `domain_transition` 为 `decision_type=route_back_same_line`、`route_target=controller`，且 `next_work_unit.unit_id=materialize_current_ai_reviewer_record_through_mas_owner_surface` 时，`owner-route-reconcile` 必须把它投影成 `write/run_quality_repair_batch` action，而不是把 `controller` 当作可执行 owner 或落到 `external_supervisor` 空队列。该 action 必须保留 `original_route_target=controller`、`controller_work_unit_id`、`executable_work_unit` 和 `domain-transition::route_back_same_line::<work_unit_id>` currentness fingerprint。
+- 决策：该规则只适用于当前 AI reviewer record materialization work unit；它不授权泛型 controller fallback，不允许 OPL 或前台写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper package 或 current package。后续仍由 MAS quality repair / AI reviewer / publication gate owner receipt 决定质量与交付状态。
+- 理由：DM002 显式 wakeup 后，fresh `publication_eval/latest.json` 与 `controller_decisions/latest.json` 已给出 “materialize current AI reviewer record through MAS owner surface”，但 owner-route reconcile 将 `run_quality_repair_batch` 绑定到 `controller` owner，随后 owner-route filter 产出 `action_queue=[]`、`next_owner=external_supervisor`。根因是 MAS domain-transition owner projection 漂移，不是 OPL provider lifecycle、队列重试或单篇论文 surface 可手工修补的问题。
+- 影响：这是 MAS owner-route read-model/currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文恢复仍必须通过 MAS owner/controller/runtime 路径物化 request、dispatch owner action，并由后续 AI reviewer-backed eval 与 publication gate 判定。
+
 ## 2026-05-25：显式用户 wakeup 必须写入 study truth reactivation ref
 
 - 决策：`launch-study --explicit-user-wakeup` 必须写入 MAS-owned `explicit_resume` study truth event，并刷新 `artifacts/truth/latest.json`，把恢复意图投影为 `canonical_next_action=resume_same_study_line`。该入口只记录用户显式恢复信号和 owner-route refs；OPL 仍持有 provider wakeup、queue、attempt、retry/dead-letter 与 liveness，MAS 不直接启动私有 runner。
