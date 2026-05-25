@@ -27,7 +27,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - OPL generated / hosted surfaces 可以生成或托管 CLI / MCP / Skill / product-entry / status / workbench descriptor，并 dispatch allowlisted MAS task；它们不能写 MAS study truth、publication-route memory body、AI reviewer verdict、publication verdict、artifact authority、source body 或 `current_package`。
 - Workspace/file lifecycle 已按 repo-source 与 live/runtime 写集分层：开发 checkout 只承载 semantic pack、机器合同、authority-function descriptor/receipt refs、domain handler/native helper 和人读治理；真实 workspace state、runtime artifact、receipt instance、paper/package/export artifact 和临时 build/cache/venv/pycache/pytest cache/install sync 副产物必须进入受控 study workspace/runtime artifact root 或用户级 runtime state。
 - `DEFAULT_MANAGED_RUNTIME_BACKEND_ID` 已切到 `opl_provider_backed_stage_runtime`；`runtime_backend_default_operation_contract`、product-entry manifest 与 sidecar export 声明默认 generic runtime owner 为 `one-person-lab`，默认 backend 为 `opl_provider_backed_stage_runtime`。`runtime_backend_default_operation_contract.default_autonomous_runtime`、`provider_topology.default_autonomous_runtime`、`managed_temporal_state_consistency.default_autonomous_runtime` 与 `opl_unique_control_plane_handoff.default_caller_policy` 共同声明：hosted autonomous runtime 默认启用，provider 为 `temporal`，wakeup/retry/resume owner 为 OPL，`codex_app_outer_driver_required=false`，`mas_daemon_scheduler_attempt_loop_allowed=false`。
-- `standard_agent_purity` 是 current product-entry / sidecar / read-model 默认口径：MAS 以 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions + refs-only domain projections` 暴露。
+- `standard_agent_purity` 是 current product-entry / sidecar / read-model 默认口径：MAS 目标形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。当前 product-entry、sidecar、status/read-model、controller-authorized shell 和 progress/workbench projection 仍有 repo-local caller，因此只能作为 strict source-purity migration input 或 domain handler target 读取；OPL generated/default caller parity 成立后应删除 repo-local generic wrapper，不把 refs-only adapter / diagnostic shell 当成长期组成。
 - `study_progress` parked operator projection、manual-hold intake、auto runtime parking 与 autonomy state surface 的当前用户可见 owner 文案已收薄到 MAS / OPL runtime owner；MDS / DeepScientist 名称只保留在 source provenance、historical fixture、explicit archive import、backend audit、upstream learning、parity oracle 或旧状态输入测试语境，不作为当前执行主体。
 - MAS stage control plane 已为 6 个 runtime-guard stage 声明 `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs`；stage cohort-loop refs 也已声明 source scope、cohort query、OPL queue trigger、monitor 和 dashboard metric refs。
 - `contracts/production_acceptance/mas-production-acceptance.json` 只承认 structural / physical conformance 与 production-like receipt chain；它不授权 domain ready、publication ready、medical ready、artifact mutation 或 `current_package` 更新。
@@ -45,19 +45,19 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 ## 当前功能/结构状态
 
-当前 MAS 源码形态已按标准 OPL Agent 收口为三类长期 surface：
+当前 MAS 目标源码形态按标准 OPL Agent 收口为三类长期 surface：
 
 | 类别 | 当前口径 |
 | --- | --- |
 | `declarative_medical_pack` | `agent/` 和 contracts 声明医学 stage、prompt、skill、knowledge、quality gate、action catalog、receipt refs 和 forbidden authority boundary。 |
-| `opl_generated_hosted_surfaces` | OPL 承担 generated / hosted CLI、MCP、Skill、product-entry、sidecar、status、workbench、projection shell、attempt、queue、retry/dead-letter、watch shell、generic state-machine runner、locator/index/lifecycle 和 operator workbench。 |
+| `opl_generated_hosted_surfaces` | OPL 承担 generated / hosted CLI、MCP、Skill、product-entry、sidecar、status、workbench、projection shell、attempt、queue、retry/dead-letter、watch shell、generic state-machine runner、locator/index/lifecycle 和 operator workbench；MAS repo 中仍有 active caller 的同类手写 shell 是待迁移/删除污染面。 |
 | `minimal_authority_functions` | MAS 保留医学 study truth、publication/source/memory/artifact verdict、AI-first record validator、owner receipt signer、typed blocker materializer、safe action refs 和 body-free domain authority refs。 |
 
-当前已关闭的结构 gate 是：
+当前已关闭的结构 gate 只证明 owner boundary 与 handoff shape 可读；不等于 strict active source purity 已物理完成：
 
 | gate | 当前口径 |
 | --- | --- |
-| `generated_surface_default_owner_cutover` | OPL generated / hosted surface 与 MAS domain handler target 边界已闭合；MAS hand-written shell 只承担 direct domain entry、domain handler、AI-first validator、owner receipt signer、diagnostic refs 或 provenance fixture。 |
+| `generated_surface_default_owner_cutover` | OPL generated / hosted surface 与 MAS domain handler target 边界已可读；MAS hand-written shell 仍承担 direct domain entry、domain handler、AI-first validator、owner receipt signer 或 diagnostic refs 的 active caller。严格完成口径是 OPL 默认 caller 接管后删除 hand-written product/status/workbench/sidecar/controller/progress shell，而不是长期保留。 |
 | `domain_authority_refs_thinning` | storage、artifact、memory、source、owner-route 和 status helper 只输出 refs、receipts、blockers 或 locators。 |
 | `runtime_storage_refs_only_adapter_boundary` | runtime storage maintenance live reports 已输出 refs-only adapter boundary；MAS 只暴露 storage refs、size refs、cleanup/restore receipt refs 与 typed blocker，不持有 generic cleanup policy、restore readiness、paper closure 或 artifact mutation authority。 |
 | `standard_agent_purity` | current product-entry、sidecar、status/read-model 默认只暴露标准 OPL Agent 口径、domain refs、owner receipts 和 typed blockers。 |
@@ -65,7 +65,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 | `family_transition_materialization_handoff` | MAS 只暴露 read-only `study_state_matrix` materialization；OPL 负责消费 spec/cases 并执行 generic transition matrix runner。MAS 不持有 generic state-machine runner，也不把 matrix pass 写成 publication / submission ready。 |
 | `hard_methodology_callable_routing` | HDL/unit harmonization 与 grouped calibration 这类 hard-methodology work unit 已路由到 `analysis_harmonization_owner` authority callable；MAS 只保留医学方法学 owner evidence / typed blocker，generic runner 与 App/workbench shell仍归 OPL。 |
 
-这些 gate 的关闭不等于真实 paper closure、publication-ready、artifact mutation authorization、provider long-soak 或 workbench / sidecar / status domain-ref shell default caller cutover。
+这些 gate 的关闭不等于真实 paper closure、publication-ready、artifact mutation authorization、provider long-soak，也不等于 workbench / sidecar / status / controller domain-ref shell 已完成 default caller cutover 或物理删除。
 
 ## 当前测试/证据差距
 
@@ -83,11 +83,11 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 ## 当前源码形态收口
 
-MAS repo 本身已收敛为标准 OPL Agent 的源码形态。当前 docs、contracts、source 和 tests 只保护当前标准 Agent 边界：declarative pack、OPL generated/hosted surfaces、minimal authority functions、domain authority refs、owner receipt、typed blocker 和 refs-only evidence。
+MAS repo 的长期源码形态必须收敛为标准 OPL Agent：declarative pack、OPL generated/hosted surfaces、minimal authority functions、domain authority refs、owner receipt、typed blocker 和 refs-only evidence。按当前 strict purity 口径，repo-local product/status/workbench/sidecar/controller/progress shell 仍是 active source-purity tail；它们只能服务迁移、direct handler 或诊断，不构成最终标准智能体组成。
 
 本轮不触碰真实 study workspace artifact、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body。
 
-真实 paper-line provider apply、publication-route memory receipt、artifact lifecycle receipt、human gate/resume、provider SLO long-soak 和 App/operator drilldown 仍是测试/证据差距。它们不改变当前源码形态已收口的结论，也不能被 repo tests 或 descriptor conformance 写成 publication-ready、paper closure、artifact mutation authorization 或 `current_package` 更新。
+真实 paper-line provider apply、publication-route memory receipt、artifact lifecycle receipt、human gate/resume、provider SLO long-soak 和 App/operator drilldown 仍是测试/证据差距；default caller cutover、no-active-caller proof 和 wrapper 删除是 strict source-purity 差距。两类差距都不能被 repo tests 或 descriptor conformance 写成 publication-ready、paper closure、artifact mutation authorization 或 `current_package` 更新。
 
 ## 当前不能声明
 
