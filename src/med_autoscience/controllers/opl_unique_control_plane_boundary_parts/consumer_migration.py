@@ -332,7 +332,7 @@ STANDARD_AGENT_PURITY = {
     "functional_structure_gap_count": 0,
     "default_caller_count": 0,
     "runtime_package_residue_count": 0,
-    "active_compatibility_aliases": [],
+    "retired_alias_residue_refs": [],
     "history_detail_in_default_read_model": False,
     "domain_projection_policy": "refs_receipts_blockers_only_no_body_verdict_or_blob",
     "retained_surface_classes": [
@@ -358,10 +358,11 @@ STANDARD_AGENT_PURITY_GUARD = {
     "default_caller_count": 0,
     "default_manager": "opl",
     "runtime_package_residue_count": 0,
-    "active_compatibility_aliases": [],
+    "retired_alias_residue_refs": [],
     "proof_items": [
         "standard_agent_purity.active_private_generic_residue_count=0",
         "standard_agent_purity.default_caller_count=0",
+        "standard_agent_purity.retired_alias_residue_refs=[]",
         "standard_agent_purity.domain_projection_policy=refs_receipts_blockers_only_no_body_verdict_or_blob",
     ],
 }

@@ -2088,7 +2088,6 @@
     ],
     "schema_version": 1,
     "standard_agent_purity": {
-      "active_compatibility_aliases": [],
       "active_private_generic_residue_count": 0,
       "agent_shape": "declarative_medical_pack_minimal_authority_functions_refs_only_projection",
       "default_caller_count": 0,
@@ -2113,20 +2112,22 @@
         "domain_authority_refs",
         "minimal_authority_function"
       ],
+      "retired_alias_residue_refs": [],
       "runtime_package_residue_count": 0,
       "schema_version": 1,
       "status": "pure_standard_agent_active",
       "surface_kind": "mas_standard_opl_agent_purity"
     },
     "standard_agent_purity_guard": {
-      "active_compatibility_aliases": [],
       "default_caller_count": 0,
       "default_manager": "opl",
       "proof_items": [
         "standard_agent_purity.active_private_generic_residue_count=0",
         "standard_agent_purity.default_caller_count=0",
+        "standard_agent_purity.retired_alias_residue_refs=[]",
         "standard_agent_purity.domain_projection_policy=refs_receipts_blockers_only_no_body_verdict_or_blob"
       ],
+      "retired_alias_residue_refs": [],
       "runtime_package_residue_count": 0,
       "status": "standard_agent_purity_guard"
     },

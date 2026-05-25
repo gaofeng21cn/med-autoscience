@@ -656,7 +656,7 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     assert focused_lanes["outer-supervision-slo"]["standard_agent_purity_guard"] == {
         "default_caller_count": 0,
         "runtime_package_residue_count": 0,
-        "active_compatibility_aliases": [],
+        "retired_alias_residue_refs": [],
         "history_detail_in_default_read_model": False,
     }
     assert focused_lanes["outer-supervision-slo"]["purity_proof_required"] == [

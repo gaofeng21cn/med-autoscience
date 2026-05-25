@@ -69,7 +69,8 @@ def assert_standard_agent_purity_boundary(boundary: Mapping[str, object]) -> Non
     assert purity["functional_structure_gap_count"] == 0
     assert purity["default_caller_count"] == 0
     assert purity["runtime_package_residue_count"] == 0
-    assert purity["active_compatibility_aliases"] == []
+    assert "active_compatibility_aliases" not in purity
+    assert purity["retired_alias_residue_refs"] == []
     assert purity["history_detail_in_default_read_model"] is False
     assert purity["domain_projection_policy"] == (
         "refs_receipts_blockers_only_no_body_verdict_or_blob"
@@ -83,7 +84,8 @@ def assert_standard_agent_purity_boundary(boundary: Mapping[str, object]) -> Non
     assert guard["default_caller_count"] == 0
     assert guard["default_manager"] == "opl"
     assert guard["runtime_package_residue_count"] == 0
-    assert guard["active_compatibility_aliases"] == []
+    assert "active_compatibility_aliases" not in guard
+    assert guard["retired_alias_residue_refs"] == []
 
     summary = boundary["functional_module_inventory_summary"]
     assert isinstance(summary, Mapping)
@@ -107,7 +109,8 @@ def assert_standard_agent_purity_handoff(handoff: Mapping[str, object]) -> None:
     assert purity["active_generic_owner_claim_allowed"] is False
     assert purity["default_caller_count"] == 0
     assert purity["runtime_package_residue_count"] == 0
-    assert purity["active_compatibility_aliases"] == []
+    assert "active_compatibility_aliases" not in purity
+    assert purity["retired_alias_residue_refs"] == []
     assert purity["history_policy"]["default_read_model_exposes_history_details"] is False
     assert purity["domain_projection_policy"] == (
         "refs_receipts_blockers_only_no_body_verdict_or_blob"

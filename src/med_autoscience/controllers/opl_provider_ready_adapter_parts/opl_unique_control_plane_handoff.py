@@ -94,7 +94,7 @@ _STANDARD_AGENT_PURITY = {
     "active_generic_owner_claim_allowed": False,
     "default_caller_count": 0,
     "runtime_package_residue_count": 0,
-    "active_compatibility_aliases": [],
+    "retired_alias_residue_refs": [],
     "mas_repo_runtime_role": "domain_authority_target_only",
     "mas_retained_surface_classes": [
         "declarative_medical_pack",

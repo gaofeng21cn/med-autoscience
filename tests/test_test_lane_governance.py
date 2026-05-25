@@ -467,7 +467,8 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert purity["active_private_generic_residue_count"] == 0
     assert purity["default_caller_count"] == 0
     assert purity["runtime_package_residue_count"] == 0
-    assert purity["active_compatibility_aliases"] == []
+    assert "active_compatibility_aliases" not in purity
+    assert purity["retired_alias_residue_refs"] == []
     assert purity["history_detail_in_default_read_model"] is False
     assert purity["domain_projection_policy"] == (
         "refs_receipts_blockers_only_no_body_verdict_or_blob"
@@ -496,10 +497,11 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "default_caller_count": 0,
         "default_manager": "opl",
         "runtime_package_residue_count": 0,
-        "active_compatibility_aliases": [],
+        "retired_alias_residue_refs": [],
         "proof_items": [
             "standard_agent_purity.active_private_generic_residue_count=0",
             "standard_agent_purity.default_caller_count=0",
+            "standard_agent_purity.retired_alias_residue_refs=[]",
             "standard_agent_purity.domain_projection_policy=refs_receipts_blockers_only_no_body_verdict_or_blob",
         ],
     }
@@ -507,7 +509,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert lane["standard_agent_purity_guard_required"] == [
         "standard_agent_purity.active_private_generic_residue_count=0",
         "standard_agent_purity.default_caller_count=0",
-        "standard_agent_purity.active_compatibility_aliases=[]",
+        "standard_agent_purity.retired_alias_residue_refs=[]",
         "standard_agent_purity.history_detail_in_default_read_model=false",
         "sidecar_exports_standard_agent_purity",
         "product_entry_manifest_exports_standard_agent_purity",

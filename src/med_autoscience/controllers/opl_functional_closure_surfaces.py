@@ -530,7 +530,8 @@ def _standard_agent_purity_status(
         standard_agent_purity.get("status") == "pure_standard_agent_active"
         and standard_agent_purity.get("active_private_generic_residue_count") == 0
         and standard_agent_purity.get("default_caller_count") == 0
-        and standard_agent_purity.get("active_compatibility_aliases") == []
+        and "active_compatibility_aliases" not in standard_agent_purity
+        and standard_agent_purity.get("retired_alias_residue_refs") == []
         and standard_agent_purity.get("history_detail_in_default_read_model") is False
     ):
         return "standard_agent_purity_landed"
