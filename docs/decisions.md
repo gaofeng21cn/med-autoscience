@@ -1069,6 +1069,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 AI reviewer 已对当前稿件产出新 blocked/write route record，但 controller projection 仍锚旧 `publication_eval/latest.json`，导致 action queue 或后续 dispatch 可能按 stale reviewer verdict 工作。正确修复面是 MAS currentness/read-model 和 work-unit registry，不是手工 patch study truth 或 delivery package。
 - 影响：OPL queue/provider 仍只消费 MAS owner-route task；MAS 继续禁止通过该路径写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或宣布 submission-ready。论文是否 ready 仍由后续 AI reviewer-backed publication gate 判定。
 
+## 2026-05-25：writer handoff request 可恢复为当前 default-executor dispatch
+
+- 决策：`domain-action-request-materialize` 处理 `run_quality_repair_batch` 时，若当前 scan owner route 仍是 `quest_waiting_opl_runtime_owner_route`，但同一 study 的 `artifacts/supervision/requests/quality_repair_batch/latest.json` 已持有同一 truth/runtime/work-unit/source currentness 的 `quality_repair_batch_writer_handoff`，materializer 必须从该 owner request 重建 `quality_repair_batch_writer_handoff` default-executor dispatch。旧 generic `mas_controller` dispatch 不得覆盖 write-owner handoff 的 `medical_claim_authoring_allowed=true`、canonical manuscript story-surface allowed-write contract 和 `manuscript_story_surface_delta_missing` owner reason。
+- 决策：该恢复只适用于 owner request 与 current route 在 `study_id`、`quest_id`、`truth_epoch`、`runtime_health_epoch`、`work_unit_fingerprint`、`source_fingerprint`、`source_eval_id`、`work_unit_id` 一致，且 request route 明确携带 `bridged_from_idempotency_key=current_route.idempotency_key` 的 story-surface bridge。其他 stale request、其他 owner、其他 action 或缺 currentness basis 的 dispatch 继续 fail closed。
+- 理由：DM002 暴露出 `requests/quality_repair_batch/latest.json` 已经是当前 `dm002_same_line_display_table_package_repair` 的 writer handoff，但 `default_executor_dispatches/run_quality_repair_batch.json` 仍停留在 generic runtime-owner dispatch。OPL worker 因而拿不到 canonical paper story-surface 写作授权，重复进入 handoff/blocked 循环。根因是 MAS materializer 没把 owner request 作为可恢复 dispatch authority，不是 OPL provider lifecycle，也不能靠手工改论文或 queue 解决。
+- 影响：新增 `test_materialize_domain_action_requests_restores_writer_handoff_from_owner_request` 作为 DM002 回归。后续同类 story-surface work unit 必须通过 owner request / writer handoff / default executor dispatch 三面 currentness 一致来恢复，不得引入宽松 normalizer 或绕过 owner 的手工 queue update。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。
