@@ -691,7 +691,10 @@ def test_submit_study_task_writes_structured_manual_hold_intake(tmp_path: Path) 
     assert written_payload["manual_hold_intake"]["kind"] == "manual_hold"
     assert written_payload["manual_hold_intake"]["auto_recovery_allowed"] is False
     assert payload["manual_hold_intake"]["opl_owner_route_auto_recovery_allowed"] is False
-    assert "Manual Hold Intake" in latest_markdown.read_text(encoding="utf-8")
+    latest_markdown_text = latest_markdown.read_text(encoding="utf-8")
+    assert "Manual Hold Intake" in latest_markdown_text
+    assert "MAS/MDS" not in latest_markdown_text
+    assert "MedDeepScientist" not in latest_markdown_text
 
 
 def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelope(tmp_path: Path) -> None:

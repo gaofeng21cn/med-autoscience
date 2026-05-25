@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-05-24**
+**更新时间：2026-05-25**
 
 Owner: `MedAutoScience`
 Purpose: `current_truth_summary`
@@ -28,6 +28,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - Workspace/file lifecycle 已按 repo-source 与 live/runtime 写集分层：开发 checkout 只承载 semantic pack、机器合同、authority-function descriptor/receipt refs、domain handler/native helper 和人读治理；真实 workspace state、runtime artifact、receipt instance、paper/package/export artifact 和临时 build/cache/venv/pycache/pytest cache/install sync 副产物必须进入受控 study workspace/runtime artifact root 或用户级 runtime state。
 - `DEFAULT_MANAGED_RUNTIME_BACKEND_ID` 已切到 `opl_provider_backed_stage_runtime`；`runtime_backend_default_operation_contract`、product-entry manifest 与 sidecar export 声明默认 generic runtime owner 为 `one-person-lab`，默认 backend 为 `opl_provider_backed_stage_runtime`。`runtime_backend_default_operation_contract.default_autonomous_runtime`、`provider_topology.default_autonomous_runtime`、`managed_temporal_state_consistency.default_autonomous_runtime` 与 `opl_unique_control_plane_handoff.default_caller_policy` 共同声明：hosted autonomous runtime 默认启用，provider 为 `temporal`，wakeup/retry/resume owner 为 OPL，`codex_app_outer_driver_required=false`，`mas_daemon_scheduler_attempt_loop_allowed=false`。
 - `standard_agent_purity` 是 current product-entry / sidecar / read-model 默认口径：MAS 以 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions + refs-only domain projections` 暴露。
+- `study_progress` parked operator projection、manual-hold intake、auto runtime parking 与 autonomy state surface 的当前用户可见 owner 文案已收薄到 MAS / OPL runtime owner；MDS / DeepScientist 名称只保留在 source provenance、historical fixture、explicit archive import、backend audit、upstream learning、parity oracle 或旧状态输入测试语境，不作为当前执行主体。
 - MAS stage control plane 已为 6 个 runtime-guard stage 声明 `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs`；stage cohort-loop refs 也已声明 source scope、cohort query、OPL queue trigger、monitor 和 dashboard metric refs。
 - `contracts/production_acceptance/mas-production-acceptance.json` 只承认 structural / physical conformance 与 production-like receipt chain；它不授权 domain ready、publication ready、medical ready、artifact mutation 或 `current_package` 更新。
 - owner-route / runtime handoff 当前固定为 body-free refs-only 交接：MAS 发布 controller authorization、domain route、owner receipt、typed blocker、current work-unit refs 和 authority boundary；OPL runtime manager 负责 liveness、queue hydration、attempt retry、dead-letter、provider resume/relaunch 和 operator status projection。MAS 不写 generic runtime queue，不把 OPL attempt 状态当 MAS study truth。

@@ -110,6 +110,8 @@ def test_auto_runtime_parking_maps_external_input_and_user_decision() -> None:
 
     assert external_input["parked_state"] == "external_input_pending"
     assert user_decision["parked_state"] == "waiting_user_decision"
+    assert "MDS" not in str(external_input["summary"])
+    assert "MedDeepScientist" not in str(external_input["summary"])
 
 
 def test_auto_runtime_parking_maps_runtime_failure_classes() -> None:
@@ -453,6 +455,15 @@ def test_runtime_failure_taxonomy_maps_plugin_auth_403_and_startup_noise_without
     assert startup_noise["action_mode"] == "platform_startup_backoff_and_recheck"
     assert startup_noise["external_blocker"] is False
     assert startup_noise["paper_quality_blocker"] is False
+
+
+def test_auto_runtime_parking_current_summaries_do_not_promote_mds_as_owner() -> None:
+    module = importlib.import_module("med_autoscience.controllers.auto_runtime_parking")
+
+    for state in module.PARKED_STATES:
+        summary = module._STATE_SUMMARIES[state]
+        assert "MDS" not in summary
+        assert "MedDeepScientist" not in summary
 
 
 def test_study_progress_task_intake_supersedes_prior_parked_projection(

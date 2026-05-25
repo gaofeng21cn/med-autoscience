@@ -103,7 +103,7 @@ _STATE_SPECS: dict[str, dict[str, Any]] = {
         "long_write_turn_allowed": False,
         "recovery_route": "repair_platform_contract_before_resume",
         "human_gate_required": True,
-        "operator_summary": "A MAS/MDS platform protocol failure owns the next step; repair the controller surface first.",
+        "operator_summary": "An OPL runtime handoff or MAS controller protocol failure owns the next step; repair the control surface first.",
     },
 }
 

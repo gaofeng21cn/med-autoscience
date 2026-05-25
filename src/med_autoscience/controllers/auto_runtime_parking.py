@@ -131,13 +131,13 @@ _STATE_SUMMARIES = {
     "manual_hold": "当前论文线已按用户任务进入手动停驻；形成新方案并显式唤醒前，MAS 不会自动恢复写入。",
     "external_metadata_pending": (
         "外部投稿元数据待补；稿件主体和投稿包骨架已生成，当前只差作者、单位、伦理、基金、COI、通讯作者等"
-        "MAS/MDS 不能自行决定的外部投稿事实。"
+        "MAS 不能自行决定的外部投稿事实。"
     ),
     "waiting_user_decision": (
         "当前需要用户做医学、策略、投稿或路线判断；MAS 不会越权继续自动运行。"
     ),
     "external_input_pending": (
-        "当前缺少外部 secret、credential、受限数据路径或第三方事实输入；MAS/MDS 不能自行生成。"
+        "当前缺少外部 secret、credential、受限数据路径或第三方事实输入；MAS 不能自行生成。"
     ),
     "external_upstream_pending": (
         "当前阻塞来自 Codex/API/provider/account/quota/rate-limit/5xx 等上游问题；"
@@ -148,7 +148,7 @@ _STATE_SUMMARIES = {
         "等待 AI reviewer 或 publication gate 生成可执行的科学锚点与证据目标。"
     ),
     "platform_startup_noise": (
-        "当前阻塞来自 MDS worker 启动阶段的外部噪声或短暂启动抖动；"
+        "当前阻塞来自平台 worker 启动阶段的外部噪声或短暂启动抖动；"
         "MAS 不会把它归因成论文质量问题。"
     ),
     "explicit_resume_pending": "当前运行已停驻，等待用户显式 rerun、relaunch 或 resume。",

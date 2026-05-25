@@ -43,6 +43,8 @@ def test_autonomy_state_surface_matrix_exposes_canonical_fields() -> None:
         assert isinstance(spec["auto_recovery_allowed"], bool)
         assert isinstance(spec["resource_release_expected"], bool)
         assert isinstance(spec["long_write_turn_allowed"], bool)
+        assert "MAS/MDS" not in spec["operator_summary"]
+        assert "MedDeepScientist" not in spec["operator_summary"]
 
 
 def test_autonomy_state_surface_uses_opl_runtime_refs_for_strict_live_projection() -> None:

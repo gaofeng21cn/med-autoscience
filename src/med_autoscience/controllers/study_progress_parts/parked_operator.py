@@ -70,13 +70,13 @@ def parked_human_surface_summary(handling_state: str) -> tuple[str, str] | None:
 
 def parked_status_verdict(handling_state: str) -> str | None:
     return {
-        "package_ready_handoff": "MAS/MDS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。",
-        "manual_hold": "MAS/MDS 已按用户任务手动停驻，等待新方案和显式唤醒。",
+        "package_ready_handoff": "MAS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。",
+        "manual_hold": "MAS 已按用户任务手动停驻，等待新方案和显式唤醒。",
         "external_metadata_pending": "MAS 已释放自动运行资源，当前等待外部投稿元数据。",
-        "waiting_user_decision": "MAS/MDS 已停在需要用户判断的节点，用户反馈会优先重新打开修订线。",
-        "external_input_pending": "MAS/MDS 正在等待外部输入，不会用本机自动运行空转替代。",
-        "external_upstream_pending": "当前阻塞属于上游 API/provider/account 问题，MAS/MDS 已停止空转。",
-        "platform_startup_noise": "当前阻塞属于 MDS worker 启动噪声，MAS/MDS 已停止把它归因到论文质量。",
+        "waiting_user_decision": "MAS 已停在需要用户判断的节点，用户反馈会优先重新打开修订线。",
+        "external_input_pending": "MAS 正在等待外部输入，不会用本机自动运行空转替代。",
+        "external_upstream_pending": "当前阻塞属于上游 API/provider/account 问题，MAS 已停止空转。",
+        "platform_startup_noise": "当前阻塞属于平台启动噪声，MAS 已停止把它归因到论文质量。",
         "explicit_resume_pending": "当前运行已停驻，等待显式 resume、rerun 或 relaunch。",
         "opl_runtime_handoff_pending": "当前阻塞属于 OPL runtime handoff 问题，需要工程修复后再恢复。",
         "preflight_contract_pending": "当前运行前置合同未满足，自动运行已停驻等待合同修复。",

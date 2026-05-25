@@ -143,7 +143,7 @@ def test_attention_queue_projects_manual_finishing_as_package_handoff_without_ge
                 "operator_status_card": {
                     "handling_state": "package_ready_handoff",
                     "handling_state_label": "投稿包/人审包交付停驻",
-                    "user_visible_verdict": "MAS/MDS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。",
+                    "user_visible_verdict": "MAS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。",
                     "current_focus": "继续保持投稿包/人审包交付停驻，不把投稿包里程碑 parked 解释为 runtime failure。",
                     "next_confirmation_signal": "看用户是否给出审阅意见、显式恢复或新的修订输入。",
                 },

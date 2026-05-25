@@ -115,13 +115,24 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
     assert result["operator_status_card"]["handling_state"] == "package_ready_handoff"
     assert result["operator_status_card"]["resource_release_expected"] is True
     assert result["operator_status_card"]["user_visible_verdict"] == (
-        "MAS/MDS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。"
+        "MAS 已到投稿包/人审包交付节点，当前停驻等待用户审阅或显式恢复。"
     )
     assert "等待用户审阅" in result["next_system_action"]
     assert "显式恢复" in result["next_system_action"]
     assert "worker" not in result["next_system_action"]
     assert "恢复 live" not in result["operator_status_card"]["current_focus"]
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+
+
+def test_parked_operator_verdicts_keep_mds_out_of_current_owner_text() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.parked_operator")
+
+    for handling_state in module.PARKED_HANDLING_STATES:
+        verdict = module.parked_status_verdict(handling_state)
+        if verdict is None:
+            continue
+        assert "MDS" not in verdict
+        assert "MedDeepScientist" not in verdict
 
 
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

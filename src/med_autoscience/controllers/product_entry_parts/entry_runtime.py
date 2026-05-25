@@ -595,7 +595,7 @@ def render_submit_study_task_markdown(payload: dict[str, Any]) -> str:
             "\n## Runtime Reactivation\n\n"
             "- 当前 runtime 不在可接收 live intervention 状态；本次 revision 已写入 durable intake，但还必须重新激活同一 study。\n"
             f"- 推荐命令: `{runtime_intervention.get('recommended_next_command') or 'none'}`\n"
-            "- 在 MAS/MDS 接管 canonical paper surface 前，不要把直接改 `manuscript/current_package/` 当作完成态。\n"
+            "- 在 MAS owner surface 接管 canonical paper surface 前，不要把直接改 `manuscript/current_package/` 当作完成态。\n"
         )
     return lines
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

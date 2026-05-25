@@ -57,7 +57,7 @@ def build_manual_hold_intake(payload: dict[str, Any] | None) -> dict[str, Any] |
 def build_manual_hold_progress_override(payload: dict[str, Any] | None) -> dict[str, Any] | None:
     if not task_intake_requests_manual_hold(payload):
         return None
-    blocker_summary = "最新 task intake 明确要求手动停驻，等待新方案和显式唤醒；MAS/MDS 不得自动恢复写入。"
+    blocker_summary = "最新 task intake 明确要求手动停驻，等待新方案和显式唤醒；MAS 不得自动恢复写入。"
     route_summary = "保持当前论文线停驻；形成新方案并显式唤醒后，再由 controller 重新判断是否重启。"
     return {
         "blocker_summary": blocker_summary,
