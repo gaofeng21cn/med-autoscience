@@ -28,7 +28,7 @@ def test_installed_medautosci_mcp_lists_authority_operation_modes() -> None:
     )
     payload = json.loads(result.stdout)
     tools = {tool["name"]: tool for tool in payload["result"]["tools"]}
-    mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
+    mode_schema = tools["authority_operations"]["inputSchema"]["properties"]["mode"]
 
     assert set(AUTHORITY_OPERATION_MCP_MODES).issubset(set(mode_schema["enum"]))
 
@@ -50,7 +50,7 @@ def test_installed_medautosci_mcp_lists_authority_surface_modes() -> None:
     )
     payload = json.loads(result.stdout)
     tools = {tool["name"]: tool for tool in payload["result"]["tools"]}
-    mode_schema = tools["product_entry"]["inputSchema"]["properties"]["mode"]
+    mode_schema = tools["authority_operations"]["inputSchema"]["properties"]["mode"]
     expected_modes = {
         item.mcp_mode
         for item in AUTHORITY_OPERATION_COMMANDS
@@ -136,7 +136,7 @@ def test_installed_medautosci_mcp_calls_artifact_lifecycle_continuous_soak_summa
         "id": 1,
         "method": "tools/call",
         "params": {
-            "name": "product_entry",
+            "name": "authority_operations",
             "arguments": {
                 "mode": "artifact_lifecycle_continuous_soak_summary",
                 "workspace_roots": [str(workspace_root)],

@@ -7,6 +7,8 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 
 这份 contract 学习 `DeepScientist` 的 baseline overwrite refresh flow，但在 `MAS` 中固定为医学 comparator / baseline 的显式刷新语义。
 
+当前 machine 承接面是 `baseline` stage route、`medical-research-baseline.block.md` 的 stage policy、stage knowledge / memory closeout obligations 和 publication / route decision refs；它不是一个独立 public CLI、controller apply command 或 artifact mutation authority。若后续实现 materializer，也只能签发 refresh record / blocker / route-decision refs，不能静默覆盖 comparator、Table 1、display pack、publication eval 或 submission package。
+
 ## 目标
 
 当 baseline、comparator、Table 1、模型对照、外部验证或 paper-facing baseline surface 需要更新时，不能静默覆盖旧结果。
@@ -64,6 +66,7 @@ route_decision_ref: <controller-decision-ref>
 - `analysis-campaign` 发现 baseline mismatch 时，必须 route back 到 baseline refresh，不得直接在分析结果中补救。
 - `write` 和 `finalize` 发现 paper-facing baseline stale 时，必须要求 refresh 或显式 waiver。
 - `publication_eval/latest.json` 可以把 stale baseline 投影成 `return_to_baseline` 或 `return_to_analysis_campaign`，但不能吞成 prose blocker。
+- OPL provider completion、stage queue completion、executor log 或 memory note 不能替代 refresh record；refresh 影响 claim boundary 时必须回到 `decision` 或 human gate。
 
 ## 与 DeepScientist 的关系
 

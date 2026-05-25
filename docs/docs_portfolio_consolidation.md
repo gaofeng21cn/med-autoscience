@@ -625,3 +625,43 @@ Next tranche write scope:
 - MAS paragraph-level coverage for delivery/artifact/source-adjacent runtime contracts, or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
 - Keep App docs delayed until active release/GUI lanes are safe to govern.
+
+### 2026-05-26 artifact / baseline / retention contract coverage tranche
+
+本轮覆盖 MAS delivery/artifact/source-adjacent runtime contracts 中的 artifact retention、canonical artifact 和 baseline refresh 三个支撑文档。目标是把文件生命周期、derived artifact authority 和 comparator/baseline refresh 读回当前 live source / tests / stage policy：MAS 可以产出 artifact authority refs、canonical rebuild proof、read-only retention candidate、baseline refresh obligation 和 typed blocker；OPL 继续持有 generic cleanup / restore / retention shell、provider stage runtime、queue / attempt / retry / dead-letter 和 App/workbench shell。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, this docs-governance file, and preceding runtime-owner / runtime-core-convergence coverage ledger entries.
+- Runtime contract docs: `docs/runtime/contracts/artifact_retention_operations_contract.md`, `docs/runtime/contracts/canonical_artifact_contract.md`, `docs/runtime/contracts/baseline_refresh_contract.md`, plus support read of `docs/runtime/contracts/delivery_plane_contract_map.md` and `docs/source/README.md`.
+- Machine / source surfaces: `contracts/functional_privatization_audit.json`, `contracts/test-lane-manifest.json`, `contracts/stage_control_plane.json`, `src/med_autoscience/controllers/artifact_retention_operations_plan.py`, `src/med_autoscience/controllers/artifact_lifecycle_operations_report.py`, `src/med_autoscience/controllers/storage_governance_policy_kernel.py`, `src/med_autoscience/controllers/canonical_artifact_contract.py`, `src/med_autoscience/stage_knowledge_contract.py`, and `src/med_autoscience/overlay/templates/medical-research-baseline.block.md`.
+- Focused test evidence read from current source: `tests/test_artifact_retention_operations_plan.py`, `tests/test_storage_governance_policy_kernel.py`, `tests/test_canonical_artifact_contract.py`, `tests/test_body_free_evidence_refs_scaleout.py`, `tests/test_domain_entry.py::test_domain_entry_rejects_control_plane_cleanup_apply`, `tests/test_installed_mcp_smoke.py`, `tests/product_entry_cases/authority_operation_manifest.py`, and `tests/test_stage_surface_contract.py`.
+
+Fresh semantic result：
+
+- `artifact_retention_operations_plan` and `artifact_lifecycle_report` remain read-only planning / report surfaces. They can mark `delete_safe_cache` as a candidate and project restore-contract gaps, but public CLI, domain entry, product-entry command contracts and installed MCP must not expose cleanup apply commands. Physical cleanup / restore / retention apply belongs to the OPL owner shell after explicit parity and receipt gates.
+- `canonical_artifact_contract` and `artifact_rebuild_integrity_contract` remain MAS artifact authority support. `manuscript/current_package/`, `artifacts/final/`, `current_package.zip` and `submission_minimal/` are derived projections / handoff surfaces, never edit source, quality authority or submission authorization root; rebuild proof requires source refs, fingerprints, quality decision ref, controller decision ref and generated artifact role.
+- `baseline_refresh_contract` is currently enforced as a route / stage policy obligation through `baseline` stage inputs, memory closeout obligations and `medical-research-baseline.block.md`, not as an independent public CLI or artifact mutation command. Comparator, cohort, endpoint, Table 1, external-validation or manuscript-facing baseline changes need durable reason, affected surface list, verification refs and route / human-gate decision before becoming authoritative.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/contracts/artifact_retention_operations_contract.md`, `docs/runtime/contracts/canonical_artifact_contract.md`, and `docs/runtime/contracts/baseline_refresh_contract.md`, with support reads and live source/test evidence listed above. | `docs/runtime/contracts/artifact_retention_operations_contract.md`; `docs/runtime/contracts/baseline_refresh_contract.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. All three docs remain active runtime support; stale apply-command wording was rewritten in place because the document still holds the current read-only retention contract role.
+
+Uncovered docs in this semantic area:
+
+- Paragraph-level coverage remains open for `docs/runtime/contracts/standard_domain_agent_skeleton.md` beyond the quick support read.
+- MAS source-support docs outside `docs/source/README.md` and delivery/medical-display documents that mention baseline refresh or artifact lifecycle remain outside this tranche.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any future prose that says MAS exposes `control-plane-cleanup-apply` / `control-plane-safe-cache-cleanup-apply`, performs physical cleanup from retention reports, or treats `delete_safe_cache` as already applied should be treated as stale pollution unless a new OPL owner shell and MAS receipt parity are proven.
+- Any future prose that treats derived packages, DOCX/PDF/zip, `current_package`, `submission_minimal`, inspection packages, display packs, provider completion or executor logs as edit source, quality authority, source readiness verdict, publication-ready, submission-ready or artifact mutation authorization is stale pollution.
+- Baseline refresh remains a stage-policy contract. A future materializer must produce durable refresh record / blocker / route refs; it must not silently overwrite comparator, Table 1, display pack, publication eval or submission package.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for remaining `docs/runtime/contracts/standard_domain_agent_skeleton.md` and source/delivery support docs that mention source truth, artifact lifecycle, baseline refresh or standard-domain-agent anchors.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
