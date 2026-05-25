@@ -13,7 +13,7 @@ studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
 # 当前 workspace 的病种级 portfolio 根目录。
 portfolio_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/portfolio"
 
-# 外部 Hermes-Agent 源码仓库；只用于 outer runtime substrate 审计与后续真实 adapter cutover。
+# 外部 Hermes-Agent 源码仓库；只用于显式非默认 executor adapter、proof lane、diagnostic 或历史参考。
 hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"
 
 # Hermes-Agent 的 state / config / gateway home，默认通常是 ~/.hermes。
