@@ -840,3 +840,46 @@ Next tranche write scope:
 - Or MAS runtime/control support docs under `docs/runtime/contracts/**` and `docs/runtime/control/**` not already covered.
 - Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
+
+### 2026-05-26 medical-display delivery authority coverage tranche
+
+本轮覆盖 MAS `docs/delivery/medical-display/` 中最容易影响下一轮 display work 路由的入口、portfolio、figure route、platform mainline 和 active board 文档。目标是把 medical-display 能力族读回当前 live route / renderer / pack contract / artifact authority 边界：display 支撑可以定义 renderer、schema、template、layout QC、route cookbook、display-to-claim audit input 和 generated display artifacts；source readiness、publication quality、submission readiness、artifact mutation、`current_package` freshness、delivery sync、paper closure、domain ready 和 production ready 继续归 MAS owner authority / receipt / typed blocker 与真实 workspace evidence。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/delivery/README.md`, this docs-governance file, and preceding source / delivery / artifact authority coverage ledger entries.
+- Reviewed medical-display docs: `docs/delivery/medical-display/README.md`, `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`, `docs/delivery/medical-display/contracts/domain_handler_figure_routes.md`, `docs/delivery/medical-display/contracts/medical_display_platform_mainline.md`, and `docs/delivery/medical-display/board/medical_display_active_board.md`.
+- Machine / source surfaces: `contracts/pack_compiler_input.json`, `contracts/stage_control_plane.json`, `contracts/artifact_locator_contract.json`, `agent/knowledge/source_readiness_and_artifact_authority.md`, `src/med_autoscience/figure_routes.py`, `src/med_autoscience/figure_renderer_contract.py`, `src/med_autoscience/display_pack_contract.py`, `src/med_autoscience/display_pack_loader.py`, and display materialization / layout QC source indexed by CodeGraph.
+- Focused test evidence read from current source: `tests/test_figure_routes.py`, `tests/test_figure_renderer_contract.py`, `tests/test_display_pack_contract.py`, `tests/test_display_pack_loader.py`, `tests/test_figure_loop_guard.py`, and the display-pack / layout-QC / materialization test inventory under `tests/display_*` and `tests/test_display_*`.
+
+Fresh semantic result:
+
+- `figure_routes.py` currently accepts only `figure_script_fix:<figure-id>` and `figure_illustration_program:<figure-id>`; ambiguous `sidecar:<figure-id>` and removed autofigure routes fail closed. The help text already states figure route metadata is display-to-claim QA input and does not authorize publication readiness.
+- `figure_renderer_contract.py` keeps evidence figures on `python` / `r_ggplot2`, allows `html_svg` only for illustration / submission companion semantics, and requires `fallback_on_failure=false` plus `failure_action=block_and_fix_environment`; renderer failure cannot justify a renderer-family switch.
+- Display pack contracts validate namespaced pack/template ids, audit families, renderer family, schema refs, QC refs, required exports, paper roles and pack source/version refs. Those contracts are template / renderer / inventory truth, not artifact mutation authority, source readiness verdict or submission readiness.
+- `domain_handler_figure_routes.md`, `medical_display_platform_mainline.md` and `medical_display_active_board.md` already preserve the main boundary: OPL owns transport/projection, MAS owns artifact / quality / domain authority, and visual/display gates are necessary support rather than final paper readiness.
+- The medical-display subtree needed one first-screen delivery-authority guard in its README so future owners do not treat display-pack readiness, generated display artifacts, route cookbook, visual audit or exemplar intake as source/publication/artifact/domain readiness.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/delivery/medical-display/README.md`, `docs/delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md`, `docs/delivery/medical-display/contracts/domain_handler_figure_routes.md`, `docs/delivery/medical-display/contracts/medical_display_platform_mainline.md`, and `docs/delivery/medical-display/board/medical_display_active_board.md`, with live source/contract/test evidence listed above. | `docs/delivery/medical-display/README.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The reviewed files remain active delivery support docs with distinct roles; stale authority leakage was handled by adding the missing first-screen boundary to the subtree README.
+
+Uncovered docs in this semantic area:
+
+- Full paragraph-level coverage remains open for the long medical-display inventory / catalog / plan / provenance bodies: `medical_display_audit_guide.md`, `medical_display_visual_audit_protocol.md`, `medical_display_arsenal.md`, `medical_display_template_backlog.md`, `medical_display_template_catalog.md`, `medical_figure_route_cookbook.md`, `medical_display_template_pack_architecture.md`, `medical_display_template_pack_implementation_plan.md`, `medical_display_family_roadmap.md`, and `medical_display_anchor_paper_audit.md`.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow, runtime-boundary/backend/handle, runtime-core-convergence, artifact/baseline/retention, standard skeleton/source-delivery index, workspace/source references, study-workflow policy block and this bounded medical-display block.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any future prose that treats display pack presence, template count, generated display artifact, visual-audit pass, route cookbook, exemplar intake, renderer success, display materialization, package source/version lock or OPL projection as source readiness verdict, publication quality verdict, submission readiness, artifact mutation authorization, `current_package` update, delivery sync, paper closure, domain ready or production ready is stale pollution.
+- External drawing / sidecar / autofigure route wording must stay retired unless a new explicit owner route, artifact authority receipt, focused tests and tombstone/provenance boundary are landed. `figure_illustration_program` cannot be used to edit evidence, claim text, result plots or source/statistics refs.
+- Long medical-display catalogs and plans still need dedicated future coverage because their size and inventory role make them unsuitable for this bounded tranche.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for the remaining medical-display catalog / plan / audit-guide bodies, preferably `medical_display_audit_guide.md` + `medical_display_visual_audit_protocol.md` or `medical_display_template_pack_architecture.md` + `medical_display_template_pack_implementation_plan.md`.
+- Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.

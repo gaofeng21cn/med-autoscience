@@ -29,6 +29,12 @@ Machine boundary: 人读能力族索引。机器真相继续归 renderer contrac
 
 `board/medical_display_active_board.md` 只维护当前唯一 active round 与下一轮 reroute 边界。已吸收 round 的 owner note、完整命令流水、exemplar intake 细节和历史 capability ledger 进入 history/provenance，不继续堆在 board 中。
 
+## Delivery Authority 边界
+
+Medical Display 文档和 template pack 可以定义 renderer family、input schema、layout QC、template catalog、route cookbook、display-to-claim 审计输入和生成型 display artifacts。它们不授权 source readiness、publication quality、submission readiness、artifact mutation、`current_package` freshness proof、delivery sync、paper closure、domain ready 或 production ready。
+
+证据型图修复必须保留 frozen data / script / statistics refs 与 MAS artifact authority refs 的直接关系。说明性图可以走程序化 illustration route，但不能承载结果证据、修改 claim、替换 source truth 或绕过 MAS owner receipt / typed blocker。OPL generated / hosted surfaces 只能展示或运输 display locator refs、owner receipt refs、typed blocker refs、pack/version refs 和 audit refs。
+
 ## Memory 边界
 
 医学展示有两层复用内容：
