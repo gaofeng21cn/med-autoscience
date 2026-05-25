@@ -201,3 +201,35 @@ Next tranche write scope:
 
 - MAS `docs/product/inspection_package.md`, or integration references under `docs/references/integration/*.md` that still carry product/workbench/Portal/owner-route current-truth claims.
 - OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+### 2026-05-26 inspection package product/delivery tranche
+
+本轮覆盖 MAS `inspection_package` 产品、交付与 delivery-plane contract 文档。目标是把 human-inspection-only inspection surface 读回 live source / tests / product-entry 事实，明确它可以物化 blocked snapshot，也可以在 existing controller-authorized current package 已 current 时只返回 `authorized_current_package_available` review pointer；两条路径都不能授权投稿、质量放行、`current_package` 写入、`submission_minimal` 写入或 eval / decision artifact 更新。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/README.md`, `docs/status.md`, `docs/architecture.md`, `docs/invariants.md`, `docs/decisions.md`, `docs/active/mas-ideal-state-gap-plan.md`, this docs-governance file.
+- Product / delivery / runtime docs: `docs/product/README.md`, `docs/product/inspection_package.md`, `docs/delivery/README.md`, `docs/delivery/inspection_package.md`, `docs/runtime/contracts/delivery_plane_contract_map.md`, `docs/runtime/control/controllers.md`.
+- Machine/source/test surfaces: `src/med_autoscience/controllers/submission_inspection_export.py`, `src/med_autoscience/controllers/delivery_visibility_projection.py`, `src/med_autoscience/action_catalog.py`, `src/med_autoscience/controllers/product_entry_parts/manifest_shell_surfaces.py`, `tests/test_inspection_package_contract.py`, `tests/test_submission_inspection_export.py`, `tests/product_entry_cases/delivery_inspection_visibility.py`.
+- Structural context: CodeGraph context / explore for `inspection_package`, `human_inspection_only`, `not_for_submission`, `gate_blocked_snapshot`, and related tests.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | `docs/product/inspection_package.md` full file; `docs/delivery/inspection_package.md` full file; `docs/runtime/contracts/delivery_plane_contract_map.md` inspection-package sections and delivery-plane artifact row; `docs/runtime/control/controllers.md` inspection package contract section; `docs/product/README.md` and `docs/delivery/README.md` inspection-package index rows. | `docs/product/inspection_package.md`; `docs/delivery/inspection_package.md`; `docs/runtime/contracts/delivery_plane_contract_map.md`; `docs/runtime/control/controllers.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The product, delivery and runtime contract docs remain active support because they hold distinct product, export and delivery-plane boundary roles.
+
+Uncovered docs in this semantic area:
+
+- Remaining integration references under `docs/references/integration/*.md` that mention product/workbench/Portal/owner-route current-truth claims.
+- Runtime support docs outside the touched delivery-plane contract and controller section, especially other `docs/runtime/contracts/**` and `docs/runtime/control/**` files not inspected in this tranche.
+
+Remaining stale / retire candidates:
+
+- `inspection_package` is not a retire candidate in this tranche; live source and tests prove it is an active human-inspection-only delivery surface.
+- Future prose must keep blocked snapshot materialization separate from `authorized_current_package_available` pointer mode, and must not describe either mode as `current_package` freshness proof, formal submission package, publication verdict, quality gate closeout, delivery-sync dispatch, or artifact mutation authority.
+
+Next tranche write scope:
+
+- MAS integration references under `docs/references/integration/*.md`, or runtime support docs under `docs/runtime/contracts/**` / `docs/runtime/control/**` that still carry product/workbench/Portal/owner-route current-truth claims.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.

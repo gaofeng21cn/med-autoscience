@@ -69,7 +69,7 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 
 ### 1.2.1 `inspection_package` human-inspection-only surface
 
-`inspection_package` 是 delivery plane 的 human-inspection-only export surface，用于在 `publishability_gate` 或 bundle gate blocked 时，把当前 draft / canonical paper surfaces 导出给人工检查。它只回答“当前稿件和 canonical 证据长什么样”，不回答“是否可投稿”。
+`inspection_package` 是 delivery plane 的 human-inspection-only export surface，用于在 `publishability_gate` 或 bundle gate blocked 时，把当前 draft / canonical paper surfaces 导出给人工检查。若 `delivery_inspector` 证明现有 `current_package.zip` 已是 controller-authorized current package，它也可以只写 human-inspection-only review pointer / receipt。它只回答“当前稿件和 canonical 证据长什么样”或“当前可打开 review pointer 在哪里”，不回答“是否可投稿”。
 
 允许读取的 source 只来自当前 study 的 canonical paper surfaces 与只读 gate context：
 
@@ -118,7 +118,7 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 | `publication_eval` | eval-owned verdict artifact | `study_root/artifacts/publication_eval/latest.json` | 表达 publishability verdict / gaps / recommended actions；读取 `runtime_context_refs` 与 `delivery_context_refs` | 从 runtime path 或 publication shell path 读取“伪 latest” |
 | `study_decision_record` | controller-owned outer-loop decision artifact | `study_root/artifacts/controller_decisions/<timestamp>_<decision_id>.json` + `latest.json` | 把 `runtime_escalation_ref` 与 `publication_eval_ref` 收口成 next controller action | 绕过 eval 或 human gate 直接 dispatch 未冻结动作 |
 | `study_delivery_sync` | controller-owned delivery materializer | `study_root/manuscript/delivery_manifest.json` 与同步出的 `manuscript/`、`artifacts/final/` | 把 controller-authorized `paper/` package 投影成 human-facing handoff surface | 把 `manuscript/` / zip / mirror 反向当成 authority root |
-| `inspection_package` | delivery-plane inspection export | `study_root/manuscript/inspection_package/` + `study_root/artifacts/inspection_package/` | 在 publishability / bundle gate blocked 时导出 current draft / canonical paper snapshot 给人工检查 | 授权投稿、写 `current_package`、写 `submission_minimal`、更新 `publication_eval` 或 `controller_decisions` |
+| `inspection_package` | delivery-plane inspection export | `study_root/manuscript/inspection_package/` + `study_root/artifacts/inspection_package/`；或 `authorized_current_package_available` review pointer manifest / receipt | 在 publishability / bundle gate blocked 时导出 current draft / canonical paper snapshot 给人工检查；或在 existing current package 已获 controller 授权时返回 human-inspection-only review pointer | 授权投稿、写 `current_package`、写 `submission_minimal`、更新 `publication_eval` 或 `controller_decisions` |
 | `publication_gate` | controller-owned delivery guard | `quest_root/artifacts/reports/publishability_gate/*.json` | 检查 `paper/`、`paper_bundle_manifest`、`submission_minimal`、medical publication surface 是否允许继续写 | 从 unmanaged submission surface 或 shell mirror 推回 controller truth |
 | `domain_health_diagnostic` | controller-owned diagnostic/report shell | `quest_root/artifacts/reports/domain_health_diagnostic/*.json` + `state.json` legacy namespace | 单次扫描 controller reports，并汇总 managed study actions | 充当新的 authority root 或直接重写 delivery truth |
 
