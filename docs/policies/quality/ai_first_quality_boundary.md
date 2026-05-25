@@ -9,6 +9,7 @@
 - AI reviewer-backed `publication_eval/latest.json` 必须来自 AI reviewer 读取 manuscript、evidence ledger、review ledger 与 study charter 后写出的 artifact。
 - AI reviewer-backed record 必须使用 `medical_publication_critique_v1`，并标记 `assessment_provenance.owner=ai_reviewer` 与 `ai_reviewer_required=false`。
 - AI reviewer-backed record 还必须携带 `medical_publication_ai_reviewer_os_v1` 结构化审稿痕迹，包括输入 bundle、rubric scores、decision matrix、provenance checks 与 route-back decision；缺少该 trace 时不得写回质量权威。
+- request-bound AI reviewer record 若携带 `currentness_checks.current_manuscript`，该字段是当前稿件 digest 的 authority source；旧 `medical_prose_review` request/provenance 只能作为 prose review provenance，不能覆盖 current manuscript binding 或 blocked publication readiness。
 
 ## Downstream read rule
 

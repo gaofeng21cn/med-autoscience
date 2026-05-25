@@ -245,6 +245,55 @@ def _record_route_target(record_payload: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _record_current_manuscript_payload(record_payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    reviewer_os = _mapping(record_payload.get("reviewer_operating_system"))
+    currentness = _mapping(reviewer_os.get("currentness_checks"))
+    current_manuscript = _mapping(currentness.get("current_manuscript"))
+    if _text(current_manuscript.get("status")) != "current":
+        return {}
+    return current_manuscript
+
+
+def _record_publication_quality_readiness(record_payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    reviewer_os = _mapping(record_payload.get("reviewer_operating_system"))
+    return _mapping(reviewer_os.get("publication_quality_readiness"))
+
+
+def _current_manuscript_currentness(
+    *,
+    study_root: Path,
+    record_payload: Mapping[str, Any],
+    ref_bundle: Mapping[str, str],
+) -> dict[str, Any] | None:
+    record_current_manuscript = _record_current_manuscript_payload(record_payload)
+    if not record_current_manuscript:
+        return None
+    manuscript_ref = _text(record_current_manuscript.get("manuscript_ref")) or _text(ref_bundle.get("manuscript"))
+    manuscript_digest = _text(record_current_manuscript.get("manuscript_digest"))
+    if not manuscript_ref:
+        raise ValueError("ai_reviewer_record_current_manuscript_ref_missing")
+    if not manuscript_digest:
+        raise ValueError("ai_reviewer_record_current_manuscript_digest_missing")
+    manuscript_input_ref = _text(ref_bundle.get("manuscript"))
+    if manuscript_input_ref and not _refs_match(
+        study_root=study_root,
+        left=manuscript_input_ref,
+        right=manuscript_ref,
+    ):
+        raise ValueError("ai_reviewer_record_current_manuscript_ref_mismatch")
+    live_manuscript_path = _resolve_ref(study_root=study_root, ref=manuscript_ref)
+    if _sha256_file(live_manuscript_path) != manuscript_digest:
+        raise ValueError("ai_reviewer_record_current_manuscript_digest_mismatch")
+    result = dict(record_current_manuscript)
+    result["status"] = "current"
+    result["manuscript_ref"] = manuscript_ref
+    result["manuscript_digest"] = manuscript_digest
+    result["authority_source_signature"] = _text(
+        result.get("authority_source_signature")
+    ) or "ai_reviewer_record_current_manuscript"
+    return result
+
+
 def _publication_quality_readiness(
     *,
     record_payload: Mapping[str, Any],
@@ -252,6 +301,7 @@ def _publication_quality_readiness(
 ) -> dict[str, Any]:
     currentness = _mapping(trace.get("currentness_checks"))
     prose_currentness = _mapping(currentness.get("medical_prose_review"))
+    current_manuscript = _mapping(currentness.get("current_manuscript"))
     evidence_ledger = _mapping(record_payload.get("quality_assessment"))
     evidence_digest = "sha256:" + hashlib.sha256(
         json.dumps(evidence_ledger, ensure_ascii=False, sort_keys=True).encode("utf-8")
@@ -261,9 +311,11 @@ def _publication_quality_readiness(
         json.dumps(claim_alignment, ensure_ascii=False, sort_keys=True).encode("utf-8")
     ).hexdigest()
     eval_id = _text(record_payload.get("eval_id")) or "unknown-eval"
-    manuscript_digest = _text(prose_currentness.get("manuscript_digest"))
+    manuscript_digest = _text(current_manuscript.get("manuscript_digest")) or _text(
+        prose_currentness.get("manuscript_digest")
+    )
     request_digest = _text(prose_currentness.get("request_digest"))
-    missing = [
+    base_missing = [
         field
         for field, value in (
             ("current_manuscript_digest", manuscript_digest),
@@ -273,9 +325,22 @@ def _publication_quality_readiness(
         )
         if not value
     ]
+    record_readiness = _record_publication_quality_readiness(record_payload)
+    record_missing = [
+        _text(item)
+        for item in _list(record_readiness.get("missing_required_fields"))
+        if _text(item)
+    ]
+    missing = list(dict.fromkeys([*base_missing, *record_missing]))
+    record_status = _text(record_readiness.get("status"))
+    status = "ready" if not missing else "blocked"
+    if record_status == "blocked":
+        status = "blocked"
+    elif record_status == "ready" and base_missing:
+        status = "blocked"
     return {
         "surface_kind": "publication_quality_authority_kernel_v1",
-        "status": "ready" if not missing else "blocked",
+        "status": status,
         "current_manuscript_digest": manuscript_digest,
         "review_request_digest": request_digest,
         "evidence_ledger_digest": evidence_digest,
@@ -452,13 +517,18 @@ def _route_back_record_medical_prose_review_currentness(
     prose_payload = _read_json(prose_path)
     provenance = _mapping(prose_payload.get("assessment_provenance"))
     request_digest = _text(provenance.get("request_digest"))
-    manuscript_ref = _text(provenance.get("manuscript_ref")) or _text(ref_bundle.get("manuscript"))
-    manuscript_digest = _text(provenance.get("manuscript_digest"))
+    current_manuscript = _current_manuscript_currentness(
+        study_root=study_root,
+        record_payload=record_payload,
+        ref_bundle=ref_bundle,
+    )
+    request_manuscript_ref = _text(provenance.get("manuscript_ref")) or _text(ref_bundle.get("manuscript"))
+    request_manuscript_digest = _text(provenance.get("manuscript_digest"))
     if not request_digest:
         raise ValueError("medical_prose_review_request_digest_missing")
-    if not manuscript_ref:
+    if not request_manuscript_ref:
         raise ValueError("medical_prose_review_manuscript_ref_missing")
-    if not manuscript_digest:
+    if not request_manuscript_digest:
         raise ValueError("medical_prose_review_manuscript_digest_missing")
 
     request_ref = _text(provenance.get("request_ref")) or str(
@@ -470,15 +540,15 @@ def _route_back_record_medical_prose_review_currentness(
     if current_request_digest and current_request_digest != request_digest:
         raise ValueError("medical_prose_review_request_digest_mismatch")
     request_manuscript = _mapping(request_payload.get("manuscript"))
-    request_manuscript_ref = _text(request_manuscript.get("path"))
-    request_manuscript_digest = _text(request_manuscript.get("digest"))
-    if request_manuscript_ref and not _refs_match(
+    request_payload_manuscript_ref = _text(request_manuscript.get("path"))
+    request_payload_manuscript_digest = _text(request_manuscript.get("digest"))
+    if request_payload_manuscript_ref and not _refs_match(
         study_root=study_root,
-        left=request_manuscript_ref,
-        right=manuscript_ref,
+        left=request_payload_manuscript_ref,
+        right=request_manuscript_ref,
     ):
         raise ValueError("medical_prose_review_manuscript_ref_mismatch")
-    if request_manuscript_digest and request_manuscript_digest != manuscript_digest:
+    if request_payload_manuscript_digest and request_payload_manuscript_digest != request_manuscript_digest:
         raise ValueError("medical_prose_review_manuscript_digest_mismatch")
 
     quality_assessment = _mapping(record_payload.get("quality_assessment"))
@@ -486,6 +556,14 @@ def _route_back_record_medical_prose_review_currentness(
     prose_quality = _mapping(prose_payload.get("medical_journal_prose_quality"))
     prose_route_back = _mapping(prose_quality.get("route_back_recommendation"))
     route_target = _record_route_target(record_payload) or _text(prose_route_back.get("route_target"))
+    manuscript_ref = (
+        _text(_mapping(current_manuscript).get("manuscript_ref"))
+        or request_manuscript_ref
+    )
+    manuscript_digest = (
+        _text(_mapping(current_manuscript).get("manuscript_digest"))
+        or request_manuscript_digest
+    )
     return {
         "status": "current",
         "ref": str(prose_path),
@@ -493,11 +571,15 @@ def _route_back_record_medical_prose_review_currentness(
         "request_digest": request_digest,
         "manuscript_ref": manuscript_ref,
         "manuscript_digest": manuscript_digest,
+        "review_request_manuscript_ref": request_manuscript_ref,
+        "review_request_manuscript_digest": request_manuscript_digest,
         "prose_status": _text(record_quality.get("status")) or _text(prose_quality.get("status")),
         "overall_style_verdict": _text(prose_quality.get("overall_style_verdict")),
         "route_back_required": True,
         "route_target": route_target,
-        "authority_source_signature": "ai_reviewer_request_record",
+        "authority_source_signature": "ai_reviewer_record_current_manuscript"
+        if current_manuscript is not None
+        else "ai_reviewer_request_record",
     }
 
 
@@ -599,7 +681,7 @@ def _currentness_checks(
     eval_id = _text(record_payload.get("eval_id"))
     if not eval_id:
         raise ValueError("AI reviewer publication eval workflow record missing eval_id")
-    return {
+    checks: dict[str, Any] = {
         "medical_prose_review": _medical_prose_review_currentness(
             study_root=study_root,
             record_payload=record_payload,
@@ -612,6 +694,14 @@ def _currentness_checks(
             delivery_downstream_only=_record_routes_back_before_delivery(record_payload),
         ),
     }
+    current_manuscript = _current_manuscript_currentness(
+        study_root=study_root,
+        record_payload=record_payload,
+        ref_bundle=ref_bundle,
+    )
+    if current_manuscript is not None:
+        checks["current_manuscript"] = current_manuscript
+    return checks
 
 
 def _record_payload_without_workflow_only_fields(record_payload: Mapping[str, Any]) -> dict[str, Any]:

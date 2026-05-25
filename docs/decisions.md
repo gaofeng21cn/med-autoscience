@@ -346,6 +346,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 2026-05-22 21:10 刷新的 Abstract 已包含核心 95% CI，但 `return_to_ai_reviewer_workflow` 在 21:12 仍把 2026-05-21 旧 request-bound AI reviewer record 中的 “Abstract lacks 95% CIs” 原样物化为最新 `publication_eval/latest.json`。后续恢复中又暴露出当前稿件已比 latest eval 新、MAS 已识别 AI reviewer record-production，但 no-worker/retry-exhausted admission wait 把 owner reason 覆盖成未注册的 `opl_stage_attempt_admission_required`，导致 `allowed_actions=[]` 且 `sidecar export` 没有 pending task。这是 reviewer record currentness / owner-route reason 优先级漏洞，不是论文 surface 缺 CI，也不是 OPL provider lifecycle 或单篇论文目录迁移问题。
 - 影响：这是 MAS AI reviewer currentness / self-evolution 修复，不写 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`；正式质量判断仍由新的 AI reviewer record 和 MAS owner workflow 生成。
 
+## 2026-05-25：request-bound route-back eval 必须优先使用 record-bound current manuscript
+
+- 决策：`request_bound_ai_reviewer_record` workflow 在 record 推荐 route-back 时，`reviewer_operating_system.currentness_checks.current_manuscript` 是当前稿件版本的一等 authority source。`medical_prose_review` 可以继续保留旧 request/prose review 的 request digest 和 review-request manuscript digest 作为 provenance，但不得把旧 prose review provenance 的 `manuscript_digest` 投影成当前稿件 digest。
+- 决策：`publication_quality_readiness.current_manuscript_digest` 必须优先来自 record-bound `current_manuscript`，并校验 live manuscript 文件 digest；record 自带的 blocked readiness 和 `missing_required_fields` 必须被保留，workflow 只补齐/重算 evidence ledger 与 claim-evidence alignment digest 等机器可验证字段。
+- 理由：DM002 在新的 AI reviewer record 已正确绑定 `paper/draft.md` 当前 digest 且判定 `publication_quality_readiness.status=blocked` 后，workflow materializer 仍从旧 `medical_prose_review` provenance 抽取 manuscript digest，导致 `publication_eval/latest.json` 同时出现旧稿件 digest 和错误的 ready readiness。该问题属于 MAS AI reviewer owner workflow 的 currentness/readiness 物化错误。
+- 影响：这是 MAS owner workflow 修复，不手写 DM002 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、submission package 或 current package；修复后必须由 MAS/OPL owner route 重新重放 AI reviewer workflow，让 study surface 自然刷新。
+
 ## 2026-05-22：workspace profile merge 必须把 root keys 插在 TOML table 之前
 
 - 决策：`medautosci init-workspace` 合并既有 workspace profile 时，缺失的 root-level entries 必须插入第一个 TOML table 之前，不得追加到文件末尾。
