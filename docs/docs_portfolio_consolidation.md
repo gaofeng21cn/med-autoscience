@@ -204,30 +204,42 @@ Next tranche write scope:
 
 ### 2026-05-26 inspection package product/delivery tranche
 
-本轮覆盖 MAS `inspection_package` 产品、交付与 delivery-plane contract 文档。目标是把 human-inspection-only inspection surface 读回 live source / tests / product-entry 事实，明确它可以物化 blocked snapshot，也可以在 existing controller-authorized current package 已 current 时只返回 `authorized_current_package_available` review pointer；两条路径都不能授权投稿、质量放行、`current_package` 写入、`submission_minimal` 写入或 eval / decision artifact 更新。
+本轮覆盖 MAS `inspection_package` 产品、交付与 delivery-plane contract 文档。目标是把 human-inspection-only inspection surface 读回 live source、tests、CLI/read-model、product-entry 和 runtime contract 事实，明确它可以物化 blocked/stale snapshot，也可以在 existing controller-authorized `current_package.zip` 已 current 时只返回 `authorized_current_package_available` review pointer；两条路径都不能授权投稿、质量放行、`current_package` 写入、`submission_minimal` 写入、delivery sync、gate closeout 或 eval / decision artifact 更新。
 
 Live truth inputs：
 
 - Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/README.md`, `docs/status.md`, `docs/architecture.md`, `docs/invariants.md`, `docs/decisions.md`, `docs/active/mas-ideal-state-gap-plan.md`, this docs-governance file.
 - Product / delivery / runtime docs: `docs/product/README.md`, `docs/product/inspection_package.md`, `docs/delivery/README.md`, `docs/delivery/inspection_package.md`, `docs/runtime/contracts/delivery_plane_contract_map.md`, `docs/runtime/control/controllers.md`.
-- Machine/source/test surfaces: `src/med_autoscience/controllers/submission_inspection_export.py`, `src/med_autoscience/controllers/delivery_visibility_projection.py`, `src/med_autoscience/action_catalog.py`, `src/med_autoscience/controllers/product_entry_parts/manifest_shell_surfaces.py`, `tests/test_inspection_package_contract.py`, `tests/test_submission_inspection_export.py`, `tests/product_entry_cases/delivery_inspection_visibility.py`.
+- Machine surfaces: `contracts/action_catalog.json`, `contracts/generated_surface_handoff.json`, `contracts/artifact_locator_contract.json`.
+- Source surfaces: `src/med_autoscience/controllers/submission_inspection_export.py`, `src/med_autoscience/controllers/delivery_visibility_projection.py`, `src/med_autoscience/action_catalog.py`, `src/med_autoscience/controllers/product_entry_parts/manifest_shell_surfaces.py`, `src/med_autoscience/controllers/product_entry_parts/workspace_cockpit/readiness_and_delivery.py`.
+- CLI/read-model: `PYTHONPATH=src python -m med_autoscience.cli publication --help`, `PYTHONPATH=src python -m med_autoscience.cli publication delivery-inspect --help`, `PYTHONPATH=src python -m med_autoscience.cli publication export-inspection-package --help`.
+- Focused tests: `tests/test_inspection_package_contract.py`, `tests/test_submission_inspection_export.py`, `tests/test_product_entry.py::test_product_entry_exposes_publication_inspection_package_operator_surface`, `tests/test_product_entry.py::test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status`, `tests/test_product_entry.py::test_product_entry_counts_layout_migration_even_when_stale_status_is_primary`, `tests/test_product_entry.py::test_product_entry_does_not_normalize_retired_delivery_projection_input`, and `tests/product_entry_cases/delivery_inspection_visibility.py`.
 - Structural context: CodeGraph context / explore for `inspection_package`, `human_inspection_only`, `not_for_submission`, `gate_blocked_snapshot`, and related tests.
+
+Fresh semantic result：
+
+- `export_inspection_package` can materialize `inspection_package_materialized` into `manuscript/inspection_package/`, `manuscript/inspection_package.zip`, `manuscript/inspection_package_manifest.json`, and `artifacts/inspection_package/*`; the receipt sets `human_inspection_only=true`, `can_submit=false`, and forbidden writes for `current_package`, `submission_minimal`, `publication_eval`, and `controller_decisions`.
+- When `delivery_inspector` sees current authorized `current_package.zip` and `--force-materialize` is not set, `export_inspection_package` returns `authorized_current_package_available`, writes only inspection metadata / receipt, and points `recommended_human_review_path` to the existing current package; it still keeps `inspection_only=true` and does not generate a new submission authority or freshness proof.
+- Product-entry exposes `export_inspection_package` as a descriptor-only / human-inspection-only operator surface; MCP descriptor projection remains non-runtime and the public tool manifest does not expose a mutable `export_inspection_package` tool.
+- `delivery_inspection` / `workspace_delivery_inspection` remain `observability_projection_only`; they can show status, source labels and inspection package availability but cannot authorize submission, publication quality or delivery sync.
 
 | repo | reviewed docs/sections | edited docs |
 | --- | --- | --- |
-| `med-autoscience` | `docs/product/inspection_package.md` full file; `docs/delivery/inspection_package.md` full file; `docs/runtime/contracts/delivery_plane_contract_map.md` inspection-package sections and delivery-plane artifact row; `docs/runtime/control/controllers.md` inspection package contract section; `docs/product/README.md` and `docs/delivery/README.md` inspection-package index rows. | `docs/product/inspection_package.md`; `docs/delivery/inspection_package.md`; `docs/runtime/contracts/delivery_plane_contract_map.md`; `docs/runtime/control/controllers.md`; this coverage ledger. |
+| `med-autoscience` | `docs/product/inspection_package.md` full file; `docs/delivery/inspection_package.md` full file; `docs/runtime/contracts/delivery_plane_contract_map.md` inspection-package sections and delivery-plane artifact row; `docs/runtime/control/controllers.md` inspection package contract section; `docs/product/README.md` and `docs/delivery/README.md` inspection-package index rows; support evidence came from the live truth inputs listed above. | `docs/product/inspection_package.md`; `docs/delivery/inspection_package.md`; `docs/runtime/contracts/delivery_plane_contract_map.md`; `docs/runtime/control/controllers.md`; this coverage ledger. |
 
 Archived / tombstoned / deleted docs: none. The product, delivery and runtime contract docs remain active support because they hold distinct product, export and delivery-plane boundary roles.
 
 Uncovered docs in this semantic area:
 
-- Remaining integration references under `docs/references/integration/*.md` that mention product/workbench/Portal/owner-route current-truth claims.
-- Runtime support docs outside the touched delivery-plane contract and controller section, especially other `docs/runtime/contracts/**` and `docs/runtime/control/**` files not inspected in this tranche.
+- Remaining integration references under `docs/references/integration/*.md` that mention Progress Portal, OPL App/workbench, domain refs, owner-route read-model consumption or inspection/delivery visibility.
+- Runtime support docs outside the touched delivery-plane contract and controller section, especially other `docs/runtime/contracts/**`, `docs/runtime/control/**`, and `docs/runtime/stage_route_handoff_standard.md` body sections not inspected in this tranche.
 
 Remaining stale / retire candidates:
 
 - `inspection_package` is not a retire candidate in this tranche; live source and tests prove it is an active human-inspection-only delivery surface.
 - Future prose must keep blocked snapshot materialization separate from `authorized_current_package_available` pointer mode, and must not describe either mode as `current_package` freshness proof, formal submission package, publication verdict, quality gate closeout, delivery-sync dispatch, or artifact mutation authority.
+- Inspection package must never be used as canonical paper repair input, AI reviewer verdict input, `submission_minimal` / `current_package` freshness proof, delivery sync authorization or publication gate closeout.
+- Product-entry / cockpit inspection surfaces remain observability / human-inspection-only. They do not close MAS `workbench_sidecar_status_cutover`, generated/default caller cutover, real paper-line provider apply, owner-chain dispatch evidence, or App/workbench production evidence tails.
 
 Next tranche write scope:
 

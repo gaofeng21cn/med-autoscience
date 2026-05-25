@@ -5,7 +5,7 @@ Purpose: `human_inspection_only_delivery_export_contract`
 State: `active_support`
 Machine boundary: 人读交付契约。正式 delivery authority 继续归 `paper/`、`submission_minimal`、`study_delivery_sync`、publication gate、AI reviewer verdict 与 controller decisions。
 
-`inspection_package` 是人工检查导出面。它在 blocked gate 下导出当前 draft / canonical paper surfaces 的快照，或在已有 controller-authorized current package 时写出 human-inspection-only review pointer，帮助人工理解当前稿件、证据、图表、review ledger 和 delivery 状态；它不创建投稿授权。
+`inspection_package` 是人工检查导出面。blocked gate、bundle blocked、`submission_minimal` / `current_package` stale 或 missing 时，它导出当前 draft / canonical paper surfaces 的快照；当 `delivery_inspector` 证明现有 `current_package.zip` 已是 controller-authorized current package 时，它可以只写 human-inspection-only review pointer，并返回 `authorized_current_package_available` 与 `recommended_human_review_path`。两种路径都帮助人工理解当前稿件、证据、图表、review ledger 和 delivery 状态；两种路径都不创建投稿授权。
 
 ## 允许输入
 
@@ -26,7 +26,7 @@ Machine boundary: 人读交付契约。正式 delivery authority 继续归 `pape
 
 ## 允许输出
 
-允许写入：
+blocked/stale snapshot 路径允许写入：
 
 - `study_root/manuscript/inspection_package/`
 - `study_root/manuscript/inspection_package.zip`
@@ -48,6 +48,8 @@ Machine boundary: 人读交付契约。正式 delivery authority 继续归 `pape
 - `forbidden_writes`
 
 当前 controller 同步写 `manuscript/inspection_package_manifest.json` 作为人读包旁路 manifest，并写 `artifacts/inspection_package/latest.json` 作为 stable owner receipt。
+
+当 `delivery_inspector` 证明正式 `current_package.zip` 已 current 且调用方未指定 `--force-materialize` 时，controller 只写 `manuscript/inspection_package_manifest.json`、`artifacts/inspection_package/latest.json` 及 `artifacts/inspection_package/*` inspection metadata；manifest status 为 `authorized_current_package_available`，`targets.authorized_current_package_zip` 指向现有正式包。该路径不写 `manuscript/inspection_package/` 或 `manuscript/inspection_package.zip`，也不更新正式 delivery authority。
 
 ## Forbidden writes
 
@@ -75,6 +77,8 @@ Machine boundary: 人读交付契约。正式 delivery authority 继续归 `pape
 - `submission_minimal` / `current_package` stale 或 missing，但 canonical `paper/` surface 可读
 
 2. Authorized current-package pointer：当 `delivery_inspector` 证明现有 `current_package.zip` 已是 current controller-authorized package，且未显式 `force_materialize` 时，只写 `manuscript/inspection_package_manifest.json` 与 `artifacts/inspection_package/*.json` receipt / source inventory，返回 `status=authorized_current_package_available` 和 `recommended_human_review_path`。这条路径不重新物化 inspection zip，不写 `current_package`，不生成新的 freshness proof。
+
+显式 `--force-materialize` 会走 blocked snapshot 物化路径，生成独立 human-inspection snapshot；它不改变投稿或 delivery authority。
 
 导出成功只代表 inspection snapshot 或 review pointer 可读。它不改变 gate status，不关闭 blocker，不更新 `publication_eval/latest.json`，不写 `controller_decisions/latest.json`，不生成 `current_package` freshness proof。
 
