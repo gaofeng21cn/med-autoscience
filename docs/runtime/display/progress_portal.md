@@ -10,7 +10,7 @@ Related focused lane: `portal-route-decision-trail`
 
 ## 入口结论
 
-`MAS Progress Portal` 是面向医生、PI 和研究团队的 workspace-local read-model / diagnostic / no-App 展示入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务；这些 surface 仍是 `workbench_sidecar_status_cutover` 的 active source-purity tail，等待 OPL App default progress carrier、workspace helper no-active-caller proof 和 focused tests 后继续收薄或删除。Portal 负责 progress / status / blocker / artifact pickup 的只读展示，不负责 terminal attach、日志流、执行器对话、runtime drilldown 或长期 workbench shell；这些运行观察能力归 OPL `current_control_state` / provider attempt projection / OPL App Runtime Workbench。旧 MDS WebUI 的实时 console 和历史 MAS 私有 Console 材料只保留为 history/provenance。Progress Portal 给每个 MAS workspace 一个稳定 no-App / evidence 位置：
+`MAS Progress Portal` 是面向医生、PI 和研究团队的 workspace-local read-model / diagnostic / no-App 展示入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务；这些 surface 仍是 `workbench_sidecar_status_cutover` 的 active source-purity tail。当前 `medautosci workspace progress-portal`、`--serve` 与 `ops/mas/bin/start-web` 仍是 active caller，因此 carrier 只能标记为 active diagnostic carrier delete-blocked；需要 OPL App default progress carrier、workspace helper no-active-caller proof 和 focused tests 同时成立后，才能继续收薄或删除。Portal 负责 progress / status / blocker / artifact pickup 的只读展示，不负责 terminal attach、日志流、执行器对话、runtime drilldown 或长期 workbench shell；这些运行观察能力归 OPL `current_control_state` / provider attempt projection / OPL App Runtime Workbench。旧 MDS WebUI 的实时 console 和历史 MAS 私有 Console 材料只保留为 history/provenance。Progress Portal 给每个 MAS workspace 一个稳定 no-App / evidence 位置：
 
 ```text
 ops/mas/progress/index.html

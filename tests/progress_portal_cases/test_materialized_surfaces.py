@@ -76,12 +76,18 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     )
     carrier = hosted_package["hosted_runtime_carrier_contract"]
     assert carrier["surface_kind"] == "mas_progress_portal_workspace_carrier_boundary"
+    assert carrier["status"] == "active_workspace_diagnostic_carrier_delete_blocked_by_callers"
     assert carrier["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
     )
     assert carrier["carrier_scope"] == (
         "workspace_static_read_model_package_and_optional_local_read_only_service"
     )
+    assert carrier["active_callers"] == [
+        "medautosci workspace progress-portal",
+        "medautosci workspace progress-portal --serve",
+        "ops/mas/bin/start-web workspace helper",
+    ]
     assert carrier["domain_repo_physical_delete_authorized"] is False
     assert carrier["writes_only"] == [
         "artifacts/runtime/progress_portal/latest.json",
@@ -91,10 +97,17 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
         "ops/mas/progress/studies/<study_id>/index.html",
     ]
     assert "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs" in carrier["delete_after"]
+    assert carrier["delete_blockers"] == [
+        "workspace_helper_active_caller_present",
+        "progress_portal_cli_still_materializes_workspace_local_html",
+        "opl_app_default_progress_carrier_not_proven_as_default_caller",
+    ]
+    assert "domain_repo_physical_delete_ready" in carrier["does_not_claim"]
     assert "MDS WebUI state" in hosted_package["hosted_runtime_carrier_contract"]["must_not_consume"]
     assert "publication_eval/latest.json" in hosted_package["hosted_runtime_carrier_contract"]["must_not_write"]
     carrier = hosted_package["hosted_runtime_carrier_contract"]
     assert carrier["surface_kind"] == "mas_progress_portal_workspace_carrier_boundary"
+    assert carrier["status"] == "active_workspace_diagnostic_carrier_delete_blocked_by_callers"
     assert carrier["physical_module"] == (
         "src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py"
     )
@@ -102,6 +115,8 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
         "workspace_static_read_model_package_and_optional_local_read_only_service"
     )
     assert carrier["domain_repo_physical_delete_authorized"] is False
+    assert "progress_portal_cli_still_materializes_workspace_local_html" in carrier["delete_blockers"]
+    assert "workspace_helper_no_active_caller_proof" in carrier["does_not_claim"]
     assert carrier["writes_only"] == [
         "artifacts/runtime/progress_portal/latest.json",
         "ops/mas/progress/index.html",

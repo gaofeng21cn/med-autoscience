@@ -166,6 +166,7 @@ def test_progress_portal_authorized_actions_mark_inspect_and_reconcile_as_dry_ru
 
 def test_progress_portal_actions_endpoint_is_default_off_and_enable_actions_writes_receipt(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    carrier_module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.workspace_carrier")
     profile = make_profile(tmp_path)
     served: dict[str, object] = {}
 
@@ -183,7 +184,7 @@ def test_progress_portal_actions_endpoint_is_default_off_and_enable_actions_writ
             served["closed"] = True
 
     monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setattr(module.socketserver, "TCPServer", FakeServer)
+    monkeypatch.setattr(carrier_module.socketserver, "TCPServer", FakeServer)
     try:
         default_off = module.serve_progress_portal(
             profile=profile,
@@ -239,6 +240,7 @@ def test_progress_portal_actions_endpoint_enable_actions_writes_owner_route_for_
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    carrier_module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.workspace_carrier")
     profile = make_profile(tmp_path)
     served: dict[str, object] = {}
 
@@ -254,7 +256,7 @@ def test_progress_portal_actions_endpoint_enable_actions_writes_owner_route_for_
         def server_close(self) -> None:
             served["closed"] = True
 
-    monkeypatch.setattr(module.socketserver, "TCPServer", FakeServer)
+    monkeypatch.setattr(carrier_module.socketserver, "TCPServer", FakeServer)
     result = module.serve_progress_portal(
         profile=profile,
         study_id="study-default",

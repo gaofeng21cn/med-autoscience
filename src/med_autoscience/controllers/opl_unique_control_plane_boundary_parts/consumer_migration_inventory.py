@@ -410,7 +410,11 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "domain_ref_consumers": ["progress portal CLI", "workspace cockpit", "product-entry manifest"],
         "current_ref_status": "opl_generated_workbench_surface_consumes_mas_domain_projection_refs",
         "migration_action": "declare_workbench_projection_inputs_for_opl_app_generated_shell",
-        "retention_reason": "MAS supplies per-study route map, quality/source refs, blockers, and safe action receipt projection for OPL-hosted workbench surfaces.",
+        "retention_reason": (
+            "MAS supplies per-study route map, quality/source refs, blockers, safe action receipt projection, "
+            "and the active no-App diagnostic Progress Portal carrier until OPL App default carrier parity "
+            "and workspace-helper no-active-caller proof are present."
+        ),
         "current_surface_refs": [
             "product_status",
             "status_read_model",
@@ -423,13 +427,13 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "mas_domain_authority_refs": ["study_progress_projection", "safe_action_refs"],
         "authority_boundary": "opl_hosts_workbench_shell_mas_supplies_refs_only_domain_projection",
         "latest_thinning_evidence": {
-            "status": "product_status_workbench_projection_and_workspace_carrier_split",
+            "status": "product_status_workbench_projection_and_active_diagnostic_carrier_split",
             "extracted_paths": [
                 "src/med_autoscience/controllers/product_entry_parts/generated_status_projection.py",
                 "src/med_autoscience/controllers/product_entry_parts/attention_projection.py",
             ],
             "workspace_carrier_boundary": {
-                "status": "physical_submodule_split_delete_ready_after_opl_default_carrier",
+                "status": "active_workspace_diagnostic_carrier_delete_blocked_by_callers",
                 "physical_module": (
                     "src/med_autoscience/controllers/progress_portal_parts/"
                     "workspace_carrier.py"
@@ -437,6 +441,11 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                 "carrier_scope": (
                     "workspace_static_read_model_package_and_optional_local_read_only_service"
                 ),
+                "active_callers": [
+                    "medautosci workspace progress-portal",
+                    "medautosci workspace progress-portal --serve",
+                    "ops/mas/bin/start-web workspace helper",
+                ],
                 "writes_only": [
                     "artifacts/runtime/progress_portal/latest.json",
                     "artifacts/runtime/progress_portal/hosted_package.json",
@@ -448,6 +457,16 @@ _FUNCTIONAL_MODULE_INVENTORY = (
                     "opl_app_default_progress_portal_carrier_consumes_mas_payload_refs",
                     "workspace_helper_no_active_caller_proof",
                     "focused_progress_portal_materialization_tests_green",
+                ],
+                "delete_blockers": [
+                    "workspace_helper_active_caller_present",
+                    "progress_portal_cli_still_materializes_workspace_local_html",
+                    "opl_app_default_progress_carrier_not_proven_as_default_caller",
+                ],
+                "does_not_claim": [
+                    "workspace_helper_no_active_caller_proof",
+                    "opl_app_default_carrier_cutover_complete",
+                    "domain_repo_physical_delete_ready",
                 ],
                 "domain_repo_physical_delete_authorized": False,
                 "does_not_write": [
