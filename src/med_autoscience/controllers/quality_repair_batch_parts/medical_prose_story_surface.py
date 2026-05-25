@@ -15,6 +15,7 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.writer_delta_
 MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID = "medical_prose_write_repair"
 DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID = "dm002_same_line_publication_paper_repair"
 DM002_SAME_LINE_METHODS_DISPLAY_PACKAGE_REPAIR_WORK_UNIT_ID = "dm002_same_line_methods_display_package_repair"
+DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID = "dm002_same_line_display_table_package_repair"
 DM002_CURRENT_PUBLICATION_HARDENING_WORK_UNIT_ID = "dm002_current_publication_hardening_after_ai_reviewer_eval"
 DM002_CURRENT_AI_REVIEWER_PUBLICATION_HARDENING_WORK_UNIT_ID = (
     "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
@@ -71,6 +72,7 @@ def materialize_medical_prose_story_surfaces(
     elif work_unit_id in {
         DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID,
         DM002_SAME_LINE_METHODS_DISPLAY_PACKAGE_REPAIR_WORK_UNIT_ID,
+        DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
         DM002_CURRENT_PUBLICATION_HARDENING_WORK_UNIT_ID,
         DM002_CURRENT_AI_REVIEWER_PUBLICATION_HARDENING_WORK_UNIT_ID,
     }:

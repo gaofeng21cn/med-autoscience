@@ -503,6 +503,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 最新 AI reviewer route-back 已把 next work unit 命名为 `dm002_same_line_methods_display_package_repair`，但旧 MAS 注册表只认识较早的 DM002 hardening / publication paper repair 名称。结果是 `run_quality_repair_batch` 在当前 owner route 下退化为 `analysis_claim_evidence_repair`，只更新 ledger 和 recheck request，却没有推进正式正文。
 - 影响：这是 MAS writer owner / work-unit registry 修复，不改 DM002 study truth、runtime-owned surface、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 submission package。质量结论仍由 AI reviewer-backed publication eval 与 publication gate 决定。
 
+## 2026-05-25：DM002 display-table-package repair 复用 story-surface write work unit contract
+
+- 决策：`dm002_same_line_display_table_package_repair` 与 `dm002_same_line_methods_display_package_repair` 属于同一 DM002 external-validation story-surface repair family，必须注册为 upstream publishability repair、`paper_write` 授权 work unit、story-surface delta work unit，并复用 DM002 external-validation manuscript materializer。它的完成证据必须包含 `paper/draft.md` 或 `paper/build/review_manuscript.md` 的 canonical manuscript delta；ledger-only evidence 变化不能闭合该 route-back。
+- 理由：当前 AI reviewer route-back 已把 next work unit 命名为 `dm002_same_line_display_table_package_repair`。若 MAS 只注册 methods-display-package 旧名称，`run_quality_repair_batch` 会回落为 claim-evidence ledger repair，无法推进 display/table/package-facing 稿件质量 blocker。
+- 影响：这是 MAS work-unit registry / writer owner 修复，不改 DM002 study truth、runtime-owned surface、publication eval、controller decisions、current package 或 submission package。
+
 ## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
 
 - 决策：`quality_repair_batch_writer_handoff` 生成 `run_quality_repair_batch` dispatch 时，必须同步物化 `artifacts/supervision/requests/quality_repair_batch/latest.json`，并把 `prompt_contract.request_packet_ref` 指向该 request surface。后续 dispatcher 以 request+dispatch 双面 currentness 为主。
