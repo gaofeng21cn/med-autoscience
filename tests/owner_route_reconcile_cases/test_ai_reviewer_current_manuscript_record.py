@@ -363,6 +363,182 @@ def test_current_manuscript_stale_ai_reviewer_request_supersedes_write_route(
     assert request["request_lifecycle"]["required_currentness_refs"] == [str(manuscript_path)]
 
 
+def test_quality_repair_digest_mismatch_routes_to_current_manuscript_ai_reviewer_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    reconcile = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    manuscript_path = study_root / "paper" / "draft.md"
+    review_manuscript_path = study_root / "paper" / "build" / "review_manuscript.md"
+    live_story = "# Draft\n\nCurrent external validation manuscript with updated intervals.\n"
+    stale_reviewer_story = "# Draft\n\nPrior external validation manuscript.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    review_manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(live_story, encoding="utf-8")
+    review_manuscript_path.write_text(live_story, encoding="utf-8")
+    eval_id = "publication-eval::dm002::stale-manuscript-digest"
+    latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": {"medical_journal_prose_quality": {"status": "blocked"}},
+        "reviewer_operating_system": {
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "request_digest": "sha256:request-current",
+                    "manuscript_ref": str(manuscript_path.resolve()),
+                    "manuscript_digest": _sha256_text(stale_reviewer_story),
+                    "route_back_required": True,
+                    "route_target": "write",
+                }
+            }
+        },
+        "recommended_actions": [
+            {
+                "action_id": "return-to-write",
+                "action_type": "route_back_same_line",
+                "route_target": "write",
+                "work_unit_fingerprint": "dm002-display-table-package-repair",
+                "next_work_unit": {
+                    "unit_id": "dm002_same_line_display_table_package_repair",
+                    "lane": "write",
+                    "summary": "Repair display, table, and package-facing manuscript surfaces.",
+                },
+            }
+        ],
+    }
+    _write_json(latest_eval_path, publication_eval)
+    mismatch_blocker = {
+        "blocked_reason": "quality_repair_batch_current_manuscript_digest_mismatch",
+        "source_eval_id": eval_id,
+        "reviewer_manuscript_ref": str(manuscript_path.resolve()),
+        "reviewer_manuscript_digest": _sha256_text(stale_reviewer_story),
+        "story_surface_digests": [
+            {"path": str(manuscript_path.resolve()), "present": True, "digest": _sha256_text(live_story)},
+            {"path": str(review_manuscript_path.resolve()), "present": True, "digest": _sha256_text(live_story)},
+        ],
+    }
+    quality_batch_path = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    _write_json(
+        quality_batch_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": eval_id,
+            "source_eval_artifact_path": str(latest_eval_path.resolve()),
+            "status": "blocked",
+            "ok": False,
+            "blocked_reason": "quality_repair_batch_current_manuscript_digest_mismatch",
+            "typed_blocker": "quality_repair_batch_current_manuscript_digest_mismatch",
+            "next_owner": "write",
+            "repair_execution_evidence": {
+                "status": "blocked",
+                "blockers": [
+                    "canonical_artifact_delta_missing",
+                    "manuscript_story_surface_delta_missing",
+                ],
+                "canonical_artifact_delta": {"status": "blocked", "meaningful_artifact_delta": False},
+            },
+            "gate_clearing_batch": {
+                "source_work_unit_fingerprint": "dm002-display-table-package-repair",
+                "unit_results": [
+                    {
+                        "unit_id": "dm002_same_line_display_table_package_repair",
+                        "status": "blocked",
+                        "result": {
+                            "status": "blocked",
+                            "work_unit_id": "dm002_same_line_display_table_package_repair",
+                            "blocked_reason": "quality_repair_batch_current_manuscript_digest_mismatch",
+                            "currentness_blocker": mismatch_blocker,
+                        },
+                    }
+                ],
+            },
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-digest-mismatch",
+            "source_signature": "truth-source-dm002-digest-mismatch",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_opl_runtime_owner_handoff_gap",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(latest_eval_path)},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "quality_review_loop": {"closure_state": "review_required"},
+    }
+    monkeypatch.setattr(
+        reconcile,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = reconcile.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "ai_reviewer"
+    assert action["reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert action["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert action["required_output_surface"] == "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    assert action["record_only_surface"] is True
+    assert action["publication_eval_latest_write_allowed"] is False
+    assert action["controller_decision_write_allowed"] is False
+    assert action["required_currentness_refs"] == [str(manuscript_path.resolve()), str(review_manuscript_path.resolve())]
+    assert action["stale_record_ref"] == str(latest_eval_path.resolve())
+    assert action["source_ref"] == str(quality_batch_path.resolve())
+    assert study["next_owner"] == "ai_reviewer"
+    assert study["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    request = json.loads(
+        (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert request["request_lifecycle"]["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert request["request_lifecycle"]["required_currentness_refs"] == [
+        str(manuscript_path.resolve()),
+        str(review_manuscript_path.resolve()),
+    ]
+    assert request["request_lifecycle"]["stale_record_ref"] == str(latest_eval_path.resolve())
+    assert request["request_lifecycle"]["source_ref"] == str(quality_batch_path.resolve())
+
+
 def test_record_production_domain_transition_supersedes_stale_story_surface_blocker(
     monkeypatch,
     tmp_path: Path,

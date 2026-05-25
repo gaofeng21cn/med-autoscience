@@ -9,6 +9,9 @@ from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers import provenance_limited_harmonization_owner_result
 from med_autoscience.controllers import ai_reviewer_publication_eval_records
+from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
+    EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+)
 from med_autoscience.controllers.story_surface_work_units import (
     is_story_surface_delta_write_work_unit,
 )
@@ -157,6 +160,59 @@ def current_story_surface_delta_blocker_route(
     return route
 
 
+def current_manuscript_digest_mismatch_ai_reviewer_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    batch_path = resolved_study_root / QUALITY_REPAIR_BATCH_RELATIVE_PATH
+    batch = _read_json_object(batch_path)
+    if batch is None:
+        return None
+    source_eval_id = _text(batch.get("source_eval_id"))
+    if source_eval_id is None or source_eval_id != _text(publication_eval_payload.get("eval_id")):
+        return None
+    blocker = _current_manuscript_digest_mismatch_blocker(batch)
+    if blocker is None:
+        return None
+    action = _publication_story_repair_action(publication_eval_payload)
+    next_work_unit = _mapping(action.get("next_work_unit")) if action is not None else {}
+    blocker_work_unit_id = _text(blocker.get("work_unit_id"))
+    work_unit_id = blocker_work_unit_id or _text(next_work_unit.get("unit_id"))
+    publication_eval_latest_path = resolved_study_root / "artifacts" / "publication_eval" / "latest.json"
+    stale_record_ref = _text(batch.get("source_eval_artifact_path")) or ai_reviewer_publication_eval_records.projection_source_ref(
+        publication_eval_payload,
+        publication_eval_latest_path,
+    )
+    return {
+        "decision_path": None,
+        "decision_id": None,
+        "controller_actions": ["return_to_ai_reviewer_workflow"],
+        "route_target": "review",
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": _text(action.get("work_unit_fingerprint")) if action is not None else None,
+        "publication_eval_id": source_eval_id,
+        "publication_eval_ref": {
+            "eval_id": source_eval_id,
+            "artifact_path": stale_record_ref,
+        },
+        "quality_repair_batch_path": str(batch_path),
+        "authorization_basis": "quality_repair_current_manuscript_digest_mismatch",
+        "blocked_reason": EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
+        "stale_record_ref": stale_record_ref,
+        "source_ref": str(batch_path),
+        "required_currentness_refs": _current_story_surface_refs(blocker),
+        "reviewer_manuscript_ref": _text(blocker.get("reviewer_manuscript_ref")),
+        "reviewer_manuscript_digest": _text(blocker.get("reviewer_manuscript_digest")),
+        "story_surface_digests": [
+            dict(item)
+            for item in blocker.get("story_surface_digests") or []
+            if isinstance(item, Mapping)
+        ],
+    }
+
+
 def current_ai_reviewer_write_routeback_route(
     *,
     study_root: Path,
@@ -265,6 +321,68 @@ def _story_surface_delta_blocker_present(batch: Mapping[str, Any]) -> bool:
         and artifact_delta.get("meaningful_artifact_delta") is False
         and "forbidden_manuscript_terms_present" in blockers
     )
+
+
+def _current_manuscript_digest_mismatch_blocker(batch: Mapping[str, Any]) -> dict[str, Any] | None:
+    fallback: dict[str, Any] | None = None
+    for payload in _current_manuscript_digest_mismatch_candidates(batch):
+        if _text(payload.get("blocked_reason")) == EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER:
+            candidate = dict(payload)
+            if candidate.get("story_surface_digests") or _text(candidate.get("reviewer_manuscript_ref")):
+                return candidate
+            if fallback is None:
+                fallback = candidate
+    return fallback
+
+
+def _current_manuscript_digest_mismatch_candidates(batch: Mapping[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    if _text(batch.get("blocked_reason")) == EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER or _text(
+        batch.get("typed_blocker")
+    ) == EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER:
+        candidates.append(dict(batch))
+    for unit in _mapping(batch.get("gate_clearing_batch")).get("unit_results") or []:
+        if not isinstance(unit, Mapping):
+            continue
+        result = _mapping(unit.get("result"))
+        currentness_blocker = _mapping(result.get("currentness_blocker"))
+        if currentness_blocker:
+            candidates.append(
+                {
+                    **currentness_blocker,
+                    "work_unit_id": _text(result.get("work_unit_id")) or _text(unit.get("unit_id")),
+                }
+            )
+        if result:
+            candidates.append(
+                {
+                    **result,
+                    "work_unit_id": _text(result.get("work_unit_id")) or _text(unit.get("unit_id")),
+                }
+            )
+    upstream_result = _mapping(batch.get("upstream_unit_result"))
+    upstream_currentness = _mapping(_mapping(upstream_result.get("result")).get("currentness_blocker"))
+    if upstream_currentness:
+        candidates.append(
+            {
+                **upstream_currentness,
+                "work_unit_id": _text(_mapping(upstream_result.get("result")).get("work_unit_id"))
+                or _text(upstream_result.get("unit_id")),
+            }
+        )
+    return candidates
+
+
+def _current_story_surface_refs(blocker: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for item in blocker.get("story_surface_digests") or []:
+        if not isinstance(item, Mapping) or item.get("present") is not True:
+            continue
+        if path := _text(item.get("path")):
+            refs.append(path)
+    if not refs and (manuscript_ref := _text(blocker.get("reviewer_manuscript_ref"))):
+        refs.append(manuscript_ref)
+    return list(dict.fromkeys(refs))
 
 
 def methodology_reframe_runtime_route_allowed(
@@ -535,6 +653,7 @@ __all__ = [
     "QUALITY_REPAIR_BATCH_RELATIVE_PATH",
     "OPL_STAGE_ATTEMPT_ADMISSION_REASON",
     "RUNTIME_CONTROLLER_REDRIVE_REASON",
+    "current_manuscript_digest_mismatch_ai_reviewer_route",
     "current_story_surface_delta_blocker_route",
     "current_controller_runtime_route",
     "next_owner_for_reason",

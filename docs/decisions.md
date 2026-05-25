@@ -539,6 +539,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 display-table-package route 暴露出旧 guard 只保护 `medical_prose_write_repair`，导致同一 AI reviewer-bound 高质量稿件在 display/table work unit 下被旧 DM002 generator 回滚。digest mismatch 场景则说明最新 evaluator 与 live manuscript 已经脱钩，继续 repair 会扩大 authority/currentness 漂移。
 - 影响：这是 MAS manuscript currentness / quality repair owner-chain 修复，不授权写 `paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。该能力作为 DM002/DM003 story-surface quality regression guard 留在 MAS 回归测试内。
 
+## 2026-05-25：quality-repair digest mismatch 必须回到 AI reviewer record owner
+
+- 决策：当 `quality_repair_batch/latest.json` 对当前 `publication_eval.eval_id` 返回 `quality_repair_batch_current_manuscript_digest_mismatch`，owner-route read model 必须把该 typed blocker 投影为 `return_to_ai_reviewer_workflow`，reason 为 `ai_reviewer_record_stale_after_current_manuscript`，next work unit 为 `produce_ai_reviewer_publication_eval_record_against_current_manuscript`。该 action 只能要求写 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`，不得授权写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical package 或 submission surface。
+- 决策：`manuscript_story_surface_delta_missing` 仍归 write owner；只有 eval-bound digest mismatch 这种 reviewer record 与 live canonical manuscript 脱钩的 typed blocker 才优先转给 AI reviewer record production。owner-route 必须把 live `paper/draft.md` / `paper/build/review_manuscript.md` refs 作为 `required_currentness_refs` 传给 request lifecycle。
+- 理由：DM002 恢复后 OPL default executor 正确调用 MAS owner，但 stale AI reviewer record 绑定旧稿 digest，导致 quality-repair fail closed 后仍被 owner-route 重新排回 writer，形成同一 stale reviewer record 的重驱动循环。根因在 MAS owner-route currentness 解释，而不是 OPL queue/provider 或单篇论文手工修稿。
+- 影响：这是 MAS owner-route / AI reviewer record currentness 修复。它不改变 study truth、runtime-owned surface、paper 正文、package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`；只让后续正式 MAS/OPL runtime 先产出 current-manuscript AI reviewer record，再由 publication gate 决定下一步。
+
 ## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
 
 - 决策：`quality_repair_batch_writer_handoff` 生成 `run_quality_repair_batch` dispatch 时，必须同步物化 `artifacts/supervision/requests/quality_repair_batch/latest.json`，并把 `prompt_contract.request_packet_ref` 指向该 request surface。后续 dispatcher 以 request+dispatch 双面 currentness 为主。

@@ -181,6 +181,23 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    digest_mismatch_ai_reviewer_route = current_truth_owner.current_manuscript_digest_mismatch_ai_reviewer_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if digest_mismatch_ai_reviewer_route is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=_ai_reviewer_record_current_manuscript_digest_mismatch_action(
+                    digest_mismatch_ai_reviewer_route
+                ),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     claim_alignment_action = claim_evidence_alignment_actions.action_from_ai_reviewer_alignment_blocker(
         study_root=study_root,
     )
@@ -419,6 +436,37 @@ def _ai_reviewer_record_current_manuscript_action(
     if stale_record_ref := _text(ai_reviewer_assessment.get("stale_record_ref")):
         action["stale_record_ref"] = stale_record_ref
     if source_ref := _text(ai_reviewer_assessment.get("source_ref")):
+        action["source_ref"] = source_ref
+    return action
+
+
+def _ai_reviewer_record_current_manuscript_digest_mismatch_action(
+    controller_route: Mapping[str, Any],
+) -> dict[str, Any]:
+    work_unit_id = "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    action = ai_reviewer_actions.ai_reviewer_required_action(
+        reason=ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON
+    )
+    action["summary"] = (
+        "The quality repair batch found that the AI reviewer-bound manuscript digest no longer matches "
+        "the canonical manuscript; produce a current AI reviewer publication-eval record before any "
+        "writer redrive."
+    )
+    action["required_output_surface"] = "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+    action["next_work_unit"] = work_unit_id
+    action["executable_work_unit"] = work_unit_id
+    action["controller_work_unit_id"] = work_unit_id
+    action["controller_route"] = dict(controller_route)
+    action["work_unit_fingerprint"] = _text(controller_route.get("work_unit_fingerprint"))
+    action["source_eval_id"] = _text(controller_route.get("publication_eval_id"))
+    action["publication_eval_latest_write_allowed"] = False
+    action["controller_decision_write_allowed"] = False
+    action["record_only_surface"] = True
+    if required_refs := _string_items(controller_route.get("required_currentness_refs")):
+        action["required_currentness_refs"] = required_refs
+    if stale_record_ref := _text(controller_route.get("stale_record_ref")):
+        action["stale_record_ref"] = stale_record_ref
+    if source_ref := _text(controller_route.get("source_ref")):
         action["source_ref"] = source_ref
     return action
 
