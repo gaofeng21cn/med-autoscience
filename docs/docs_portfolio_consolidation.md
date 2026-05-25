@@ -537,3 +537,48 @@ Next tranche write scope:
 - Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
 - Keep App docs delayed until active release/GUI lanes are safe to govern.
+
+### 2026-05-26 runtime boundary / backend / handle contract coverage tranche
+
+本轮覆盖 MAS runtime contract 中的 runtime owner boundary、backend interface、execution handle / durable surface 和 agent runtime interface 四个长支撑文档。目标是确认这些文档仍然把默认 generic runtime owner、provider attempt、queue、wakeup、retry/dead-letter、worker residency、transition runner、provider transport 与 current-control-state 归给 OPL provider-backed stage runtime；MAS 只承担 domain authority refs、DomainIntent / owner route、owner receipt、typed blocker、artifact/source/quality refs、guarded apply receipt、diagnostic explanation 和研究治理边界。
+
+Live truth inputs：
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/architecture.md`, `docs/active/mas-ideal-state-gap-plan.md`, this docs-governance file, and preceding runtime id / owner-route control / stage-knowledge / runtime-event coverage ledger entries.
+- Runtime contract docs: `docs/runtime/contracts/runtime_boundary.md`, `docs/runtime/contracts/runtime_backend_interface_contract.md`, `docs/runtime/contracts/runtime_handle_and_durable_surface_contract.md`, `docs/runtime/contracts/agent_runtime_interface.md`.
+- Machine / source surfaces: `contracts/modules/runtime/module_contract.yaml`, `contracts/modules/controller_charter/module_contract.yaml`, `contracts/functional_privatization_audit.json`, `contracts/action_catalog.json`, `contracts/production_acceptance/mas-production-acceptance.json`, `src/med_autoscience/opl_runtime_contract.py`, `src/med_autoscience/runtime_protocol/study_runtime.py`, `src/med_autoscience/controllers/opl_runtime_refs.py`, `src/med_autoscience/runtime_protocol/domain_authority_refs_index.py`, `src/med_autoscience/action_catalog.py`.
+- Structural context: CodeGraph context for runtime owner refs, `OplRuntimeRefs`, default runtime operation contract and control intent identity.
+- Focused test inventory read as evidence: `tests/test_opl_runtime_contract.py`, `tests/test_runtime_protocol_study_runtime.py`, `tests/product_entry_cases/repo_shell_runtime_assertions.py`, `tests/test_opl_family_persistence_adapter.py`, `tests/product_entry_cases/manifest_launch_and_task_intake.py`, `tests/owner_route_reconcile_cases/owner_route_test_helpers.py`, and `tests/test_control_plane_generalization_cases/test_runtime_facts.py`.
+
+Fresh semantic result：
+
+- `runtime_boundary.md` remains aligned with current owner split: OPL provider-backed stage runtime owns generic runtime core, MAS owns domain authority refs and owner surfaces, and product projection only reads OPL current-control-state plus MAS domain refs.
+- `runtime_backend_interface_contract.md` remains aligned with live machine contract: default runtime identity is `runtime_substrate/runtime_ref=opl_hosted_stage_runtime` and `runtime_engine_id=opl-hosted-stage-runtime`; `domain_runtime_adapter_id=mas_domain_intent_adapter`; `runtime_backend_role=mas_domain_owner_receipt_adapter`; `runtime_backend_is_generic_owner=false`; `default_runtime_backend_is_opl_provider_owned=true`; external MDS is not required for default operation.
+- `runtime_handle_and_durable_surface_contract.md` remains aligned with source/tests: `program_id`, `study_id`, `quest_id` and `active_run_id` stay separate; `runtime_binding.yaml` writes `runtime_substrate`, `opl_runtime_ref`, `runtime_ref`, `runtime_engine_id`, `research_backend_id`, `research_backend`, `research_engine_id`, `runtime_home` and `runtime_quests_root`; `mas_runtime_core` and `hermes` runtime refs are rejected as current OPL runtime refs.
+- `agent_runtime_interface.md` remains aligned with current product-entry / agent runtime surfaces: default executor remains `Codex CLI`, OPL is default generic runtime owner, MAS is domain entry / authority owner, MDS and Hermes wording stays in provenance / explicit diagnostic / explicit proof-lane context, and `study ensure-runtime` / MAS private scheduler style entrypoints are not reintroduced as current defaults.
+- The reviewed prose does not currently reintroduce MAS-owned generic runtime owner, provider backend, runtime backend registry, hidden MDS fallback, Hermes default substrate, publication-ready, submission-ready, artifact-ready, App release ready, domain-ready or production-ready claims.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/contracts/runtime_boundary.md`, `docs/runtime/contracts/runtime_backend_interface_contract.md`, `docs/runtime/contracts/runtime_handle_and_durable_surface_contract.md`, and `docs/runtime/contracts/agent_runtime_interface.md`, with live source/contract/test inventory checks listed above. | this coverage ledger only |
+
+Archived / tombstoned / deleted docs: none. The reviewed files remain active support docs with distinct roles.
+
+Uncovered docs in this semantic area:
+
+- MAS paragraph-level coverage remains open for `docs/runtime/contracts/runtime_core_convergence_and_controlled_cutover.md` and delivery/artifact/source-adjacent runtime contracts not covered by prior focused tranches.
+- MAS product/status/workbench, progress/domain-ref projection and source/delivery shell coverage remains open outside the already-covered Portal/projection/App-workbench, inspection-package, runtime-binding, owner-route/control-boundary, stage/knowledge, runtime-event/durable-workflow and runtime-boundary/backend/handle blocks.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future prose must not treat `mas_runtime_core`, `runtime_backend_id`, local scheduler, LaunchAgent, MDS daemon, Hermes gateway cron, `Codex-default host-agent runtime`, product-entry shell, sidecar, status or workbench helpers as current MAS-owned generic runtime owner or provider backend.
+- `runtime_binding.yaml`, `progress_projection`, `domain_health_diagnostic`, `runtime_escalation_record.json`, `controller_decisions/latest.json`, runtime health snapshots and domain authority refs are durable refs/projections; they must not be promoted into OPL provider attempt truth, publication quality verdict, artifact mutation authorization, App release readiness or production readiness.
+- Explicit MDS / Hermes / legacy local references remain source provenance, historical fixture, explicit archive import, backend audit, diagnostic adapter or proof-lane context only. Any future default-operation dependency on them is stale.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for `docs/runtime/contracts/runtime_core_convergence_and_controlled_cutover.md`, or delivery/artifact/source-adjacent runtime contracts if owner wording drifts.
+- Or MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside the already-covered blocks.
+- Or choose the next exact OPL uncovered body from the family coverage ledger.
+- Keep App docs delayed until active release/GUI lanes are safe to govern.
