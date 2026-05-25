@@ -593,6 +593,116 @@ def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_dri
     assert reference["typed_blockers"] == []
 
 
+def test_progress_portal_opl_projection_exposes_refs_only_paper_route_lens() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    progress = {
+        **_stage_review_payload(),
+        "paper_route_lens": {
+            "current_route": {
+                "route_id": "journal_resolution_after_ai_review",
+                "status": "blocked",
+                "owner": "MedAutoScience",
+                "source_ref": "studies/001-risk/artifacts/controller_decisions/latest.json",
+                "next_route_refs": ["studies/001-risk/artifacts/routes/journal_resolution/latest.json"],
+                "next_action_refs": ["studies/001-risk/artifacts/supervision/owner_route_handoff/latest.json"],
+            },
+            "route_attempts": [
+                {
+                    "attempt_id": "attempt-success",
+                    "route_id": "analysis_harmonization",
+                    "status": "success",
+                    "owner_receipt_refs": [
+                        "studies/001-risk/artifacts/owner_receipts/analysis_harmonization.json"
+                    ],
+                    "artifact_refs": ["studies/001-risk/artifacts/analysis/harmonized_results.json"],
+                    "source_refs": ["studies/001-risk/artifacts/routes/analysis_harmonization.json"],
+                },
+                {
+                    "attempt_id": "attempt-failure",
+                    "route_id": "submission_package_refresh",
+                    "status": "failure",
+                    "reviewer_gate_refs": [
+                        "studies/001-risk/artifacts/publication_eval/latest.json"
+                    ],
+                    "source_refs": ["studies/001-risk/artifacts/routes/package_refresh.json"],
+                },
+                {
+                    "attempt_id": "attempt-blocked",
+                    "route_id": "journal_resolution_after_ai_review",
+                    "status": "blocked",
+                    "typed_blocker_refs": [
+                        "studies/001-risk/artifacts/blockers/journal_resolution_blocker.json"
+                    ],
+                    "workspace_refs": ["studies/001-risk"],
+                    "next_route_refs": ["studies/001-risk/artifacts/routes/journal_resolution/latest.json"],
+                    "next_action_refs": [
+                        "studies/001-risk/artifacts/supervision/owner_route_handoff/latest.json"
+                    ],
+                    "source_refs": ["studies/001-risk/artifacts/routes/journal_resolution_attempt.json"],
+                },
+            ],
+            "owner_receipt_refs": ["studies/001-risk/artifacts/owner_receipts/latest.json"],
+            "typed_blocker_refs": ["studies/001-risk/artifacts/blockers/latest.json"],
+            "reviewer_gate_refs": ["studies/001-risk/artifacts/review_gate/latest.json"],
+            "workspace_refs": ["studies/001-risk"],
+            "next_route_refs": ["studies/001-risk/artifacts/routes/journal_resolution/latest.json"],
+            "next_action_refs": ["studies/001-risk/artifacts/supervision/owner_route_handoff/latest.json"],
+        },
+        "artifact_locators": [
+            {"group": "draft", "ref": "studies/001-risk/paper/build/review_manuscript.md"},
+            {"group": "current_package", "ref": "studies/001-risk/manuscript/current_package"},
+        ],
+    }
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        profile_ref="/workspace/ops/medautoscience/profiles/diabetes.toml",
+        study_id="001-risk",
+        progress_payload=progress,
+        runtime_payload={"study_id": "001-risk", "active_run_id": "run-runtime-001"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    study = payload["mas_opl_runtime_workbench_projection"]["studies"][0]
+    lens = study["paper_route_lens"]
+    assert lens == study["reference_projection"]["lanes"]["paper_route_lens"]
+    assert lens["surface_kind"] == "mas_opl_paper_route_lens"
+    assert lens["mode"] == "refs_only_paper_route_lens"
+    assert lens["body_included"] is False
+    assert lens["manuscript_body_included"] is False
+    assert lens["artifact_body_included"] is False
+    assert lens["claims_publication_ready"] is False
+    assert lens["publication_ready_authorized"] is False
+    assert lens["current_route"]["route_id"] == "journal_resolution_after_ai_review"
+    assert lens["route_attempt_counts"] == {
+        "total": 3,
+        "success": 1,
+        "failure": 1,
+        "blocked": 1,
+        "explored": 0,
+        "unknown": 0,
+    }
+    assert [attempt["status"] for attempt in lens["route_attempts"]] == ["success", "failure", "blocked"]
+    assert "studies/001-risk/artifacts/owner_receipts/latest.json" in lens["owner_receipt_refs"]
+    assert "studies/001-risk/artifacts/blockers/latest.json" in lens["typed_blocker_refs"]
+    assert "studies/001-risk/artifacts/review_gate/latest.json" in lens["reviewer_gate_refs"]
+    assert "studies/001-risk/paper/build/review_manuscript.md" in lens["artifact_refs"]
+    assert "studies/001-risk" in lens["workspace_refs"]
+    assert "studies/001-risk/artifacts/routes/journal_resolution/latest.json" in lens["next_route_refs"]
+    assert "studies/001-risk/artifacts/supervision/owner_route_handoff/latest.json" in lens["next_action_refs"]
+    assert lens["conditions"]["missing"] == []
+    assert lens["authority"] == {
+        "opl_role": "workbench_projection_consumer_only",
+        "writes_mas_truth": False,
+        "body_free": True,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_artifact_mutation": False,
+        "can_write_memory_body": False,
+    }
+
+
 def test_progress_portal_opl_projection_fails_closed_when_reference_proofs_are_missing() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
 
@@ -622,6 +732,7 @@ def test_progress_portal_opl_projection_fails_closed_when_reference_proofs_are_m
         "stage_review_index",
         "memory_receipt",
         "runtime_owner_route_handoffs",
+        "paper_route_lens",
     ]
     assert reference["typed_blockers"][0]["blocker_id"] == "provider_attempt_proof_missing"
     assert reference["authority"]["writes_mas_truth"] is False

@@ -228,6 +228,19 @@
       "surface_kind": "mas_opl_runtime_workbench_projection",
       "truth_owner": "MedAutoScience",
       "consumer_role": "opl_app_projection_consumer_and_action_transport_only",
+      "workbench_projection_fields": [
+        "paper_route_lens.current_route",
+        "paper_route_lens.route_attempts",
+        "paper_route_lens.route_attempt_counts",
+        "paper_route_lens.owner_receipt_refs",
+        "paper_route_lens.typed_blocker_refs",
+        "paper_route_lens.reviewer_gate_refs",
+        "paper_route_lens.artifact_refs",
+        "paper_route_lens.source_refs",
+        "paper_route_lens.workspace_refs",
+        "paper_route_lens.next_route_refs",
+        "paper_route_lens.next_action_refs"
+      ],
       "forbidden_authority_writes": [
         "study_truth",
         "publication_eval/latest.json",

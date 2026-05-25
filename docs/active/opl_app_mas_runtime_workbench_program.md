@@ -31,6 +31,7 @@ MAS 已具备相关 repo surface：
 | terminal attach gate | `retired_physical_no_alias` | 不作为 MAS owner gate 保留；terminal/log/provider drilldown 归 OPL `current_control_state` |
 | pause/resume/stop owner actions | `landed_owner_receipt_path` | domain-handler / OPL owner-route handoff refs |
 | `mas_opl_runtime_workbench_projection` | `landed_read_only_projection` | App-facing projection gate，登记在 `contracts/test-lane-manifest.json` |
+| paper route lens | `landed_refs_only_projection` | 每篇 paper/study 暴露 current route、route attempts、owner receipt refs、typed blocker refs、reviewer/gate refs、artifact/source/workspace refs 和 next route/action refs；不携带 manuscript/artifact body，不声明 publication ready |
 | Stage Deliverable Review / Index projection | `landed_read_only_locator_projection` | 展示 latest review page、deliverable index、freshness、claim impact、human annotation、next owner 和 blocker；不写 MAS truth |
 | OPL provider attempt/readiness refs | `provider_readiness_projection_ready` | OPL production proof 可被 MAS product-entry / domain projection ingestion 投影为 provider available；App 只能展示 provider refs 和 typed blocker |
 | publication-route memory refs | `body_free_grouping_review_projection_ready` | 展示 consumed refs、writeback receipt refs、freshness、rejected reason、workspace/stage/route family/status grouping 和 stale/deprecated review summary；不展示 memory body，不接受 writeback |
@@ -66,6 +67,7 @@ MAS 生产或持有：
 
 - study truth、publication judgment、paper/package authority、quality verdict、owner route、owner-route handoff refs、source refs 和 forbidden-write rules；
 - `mas_opl_runtime_workbench_projection`，它是 App-facing projection，不是第二 truth source；
+- `paper_route_lens` 是 `mas_opl_runtime_workbench_projection.studies[*]` 与 `reference_projection.lanes.paper_route_lens` 下的 refs-only 子面；字段固定为 `current_route`、`route_attempts`、`route_attempt_counts`、`owner_receipt_refs`、`typed_blocker_refs`、`reviewer_gate_refs`、`artifact_refs`、`source_refs`、`workspace_refs`、`next_route_refs` 和 `next_action_refs`，并固定 `body_included=false`、`claims_publication_ready=false`；
 - local Progress Portal read-only diagnostic artifacts；retired Live Console history/provenance refs。
 
 OPL App / OPL Runtime Manager 持有：
