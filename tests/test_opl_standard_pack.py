@@ -286,15 +286,16 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         "classification_gap_count"
     ] == 0
     followthrough = generated["functional_privatization_audit"]["functional_followthrough_gap_summary"]
-    assert followthrough["functional_structure_gap_count"] == 0
-    assert followthrough["remaining_gap_classification"] == "live_provider_paper_line_evidence_gates"
-    assert followthrough["remaining_items_are_evidence_gates"] is True
-    assert followthrough["remaining_functional_followthrough_gate_ids"] == []
-    assert followthrough["remaining_functional_followthrough_gates"] == []
+    assert followthrough["functional_structure_gap_count"] == 2
+    assert followthrough["remaining_gap_classification"] == "functional_structure_followthrough_gates"
+    assert followthrough["remaining_items_are_evidence_gates"] is False
+    assert followthrough["remaining_functional_followthrough_gate_ids"] == [
+        "standard_agent_purity_guard",
+        "domain_ref_consumer_physical_thinning",
+    ]
     assert followthrough["closed_functional_structure_gate_ids"] == [
         "generated_surface_default_owner_cutover",
         "domain_authority_refs_thinning",
-        "standard_agent_purity_guard",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
     ]
@@ -373,9 +374,11 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     assert storage_thinning["does_not_touch_publication_or_package_authority"] is True
     followthrough = functional_boundary["functional_followthrough_gap_summary"]
     assert "standard_agent_purity_guard" in followthrough[
+        "remaining_functional_followthrough_gate_ids"
+    ]
+    assert "standard_agent_purity_guard" not in followthrough[
         "closed_functional_structure_gate_ids"
     ]
-    assert followthrough["remaining_functional_followthrough_gate_ids"] == []
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:

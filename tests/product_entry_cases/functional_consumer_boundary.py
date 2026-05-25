@@ -21,7 +21,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert boundary["status"] == "opl_consumes_generic_surfaces_mas_supplies_domain_authority_pack"
     assert boundary["consumer_role"] == "domain_authority_pack_thin_program_surface"
     assert boundary["generic_surface_owner"] == "one-person-lab"
-    assert boundary["standard_agent_purity_guard"]["status"] == "standard_agent_purity_guard"
+    assert boundary["standard_agent_purity_guard"]["status"] == "standard_agent_purity_cutover_guard"
     assert_standard_agent_purity_boundary(boundary)
 
     assert boundary["mas_does_not_own"] == [
@@ -241,12 +241,12 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
 
     followthrough = boundary["functional_followthrough_gap_summary"]
     assert followthrough["surface_kind"] == "mas_functional_followthrough_gap_summary"
-    assert followthrough["status"] == "functional_structure_closed_evidence_gates_remaining"
+    assert followthrough["status"] == "functional_structure_gaps_remaining"
     assert followthrough["classification_gap_count"] == 0
-    assert followthrough["functional_structure_gap_count"] == 0
+    assert followthrough["functional_structure_gap_count"] == 2
     assert followthrough["active_private_generic_residue_count"] == 0
-    assert followthrough["remaining_items_are_evidence_gates"] is True
-    assert "standard_agent_purity_guard" in followthrough["closed_functional_structure_gate_ids"]
+    assert followthrough["remaining_items_are_evidence_gates"] is False
+    assert "standard_agent_purity_guard" not in followthrough["closed_functional_structure_gate_ids"]
     assert set(followthrough["remaining_evidence_gate_ids"]) == {
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",

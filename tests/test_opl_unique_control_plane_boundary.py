@@ -50,6 +50,6 @@ def test_functional_structure_gap_count_reopens_when_closure_proof_is_missing(
     )
 
     assert summary["status"] == "functional_structure_gaps_remaining"
-    assert summary["functional_structure_gap_count"] == 1
+    assert summary["functional_structure_gap_count"] == 3
     assert summary["remaining_items_are_evidence_gates"] is False
     assert summary["remaining_gap_classification"] == "functional_structure_followthrough_gates"

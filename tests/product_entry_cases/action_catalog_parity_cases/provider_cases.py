@@ -488,5 +488,5 @@ def test_product_entry_manifest_omits_history_only_retirement_audit_surface(
 
     boundary = manifest["functional_consumer_boundary"]
     assert_standard_agent_purity_boundary(boundary)
-    assert boundary["standard_agent_purity"]["status"] == "pure_standard_agent_active"
+    assert boundary["standard_agent_purity"]["status"] == "standard_agent_purity_cutover_pending"
     assert boundary["standard_agent_purity"]["history_detail_in_default_read_model"] is False

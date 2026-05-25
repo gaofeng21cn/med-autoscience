@@ -150,13 +150,15 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     )
 
     followthrough = boundary["functional_followthrough_gap_summary"]
-    assert followthrough["status"] == "functional_structure_closed_evidence_gates_remaining"
+    assert followthrough["status"] == "functional_structure_gaps_remaining"
     assert followthrough["classification_gap_count"] == 0
-    assert followthrough["functional_structure_gap_count"] == 0
-    assert followthrough["remaining_items_are_evidence_gates"] is True
-    assert followthrough["remaining_functional_followthrough_gate_ids"] == []
-    assert followthrough["remaining_functional_followthrough_gates"] == []
-    assert "standard_agent_purity_guard" in followthrough["closed_functional_structure_gate_ids"]
+    assert followthrough["functional_structure_gap_count"] == 2
+    assert followthrough["remaining_items_are_evidence_gates"] is False
+    assert followthrough["remaining_functional_followthrough_gate_ids"] == [
+        "standard_agent_purity_guard",
+        "domain_ref_consumer_physical_thinning",
+    ]
+    assert "standard_agent_purity_guard" not in followthrough["closed_functional_structure_gate_ids"]
     assert set(followthrough["remaining_evidence_gate_ids"]) == {
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",

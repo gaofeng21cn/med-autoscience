@@ -61,12 +61,20 @@ def assert_standard_agent_purity_boundary(boundary: Mapping[str, object]) -> Non
     purity = boundary["standard_agent_purity"]
     assert isinstance(purity, Mapping)
     assert purity["surface_kind"] == "mas_standard_opl_agent_purity"
-    assert purity["status"] == "pure_standard_agent_active"
+    assert purity["status"] == "standard_agent_purity_cutover_pending"
+    assert purity["source_purity_cutover_status"] == "physical_wrapper_retirement_pending"
+    assert purity["repo_local_wrapper_tail_count"] == 3
+    assert set(purity["repo_local_wrapper_tail_module_ids"]) == {
+        "generic_cli_mcp_product_wrappers",
+        "owner_route_reconcile_materialize_dispatch_shell",
+        "workbench_portal_generic_shell",
+    }
+    assert purity["default_caller_readiness_status"] == "opl_generated_default_caller_ready"
     assert purity["default_runtime_owner"] == "one-person-lab"
     assert purity["generated_surface_owner"] == "one-person-lab"
     assert purity["domain_owner"] == "med-autoscience"
     assert purity["active_private_generic_residue_count"] == 0
-    assert purity["functional_structure_gap_count"] == 0
+    assert purity["functional_structure_gap_count"] == 2
     assert purity["default_caller_count"] == 0
     assert purity["runtime_package_residue_count"] == 0
     assert "active_compatibility_aliases" not in purity
@@ -80,19 +88,20 @@ def assert_standard_agent_purity_boundary(boundary: Mapping[str, object]) -> Non
 
     guard = boundary["standard_agent_purity_guard"]
     assert isinstance(guard, Mapping)
-    assert guard["status"] == "standard_agent_purity_guard"
+    assert guard["status"] == "standard_agent_purity_cutover_guard"
     assert guard["default_caller_count"] == 0
     assert guard["default_manager"] == "opl"
     assert guard["runtime_package_residue_count"] == 0
     assert "active_compatibility_aliases" not in guard
     assert guard["retired_alias_residue_refs"] == []
+    assert guard["repo_local_wrapper_tail_count"] == 3
 
     summary = boundary["functional_module_inventory_summary"]
     assert isinstance(summary, Mapping)
     assert summary["total_count"] == 15
     assert summary["classification_counts"] == EXPECTED_CLASSIFICATION_COUNTS
     assert summary["classification_gap_count"] == 0
-    assert summary["functional_structure_gap_count"] == 0
+    assert summary["functional_structure_gap_count"] == 2
     assert summary["active_private_generic_residue_count"] == 0
 
 
@@ -102,7 +111,9 @@ def assert_standard_agent_purity_handoff(handoff: Mapping[str, object]) -> None:
     purity = handoff["standard_agent_purity"]
     assert isinstance(purity, Mapping)
     assert purity["surface_kind"] == "mas_standard_opl_agent_purity"
-    assert purity["status"] == "pure_standard_agent_active"
+    assert purity["status"] == "standard_agent_purity_cutover_pending"
+    assert purity["source_purity_cutover_status"] == "physical_wrapper_retirement_pending"
+    assert purity["repo_local_wrapper_tail_count"] == 3
     assert purity["default_runtime_owner"] == "one-person-lab"
     assert purity["generated_surface_owner"] == "one-person-lab"
     assert purity["domain_owner"] == "med-autoscience"

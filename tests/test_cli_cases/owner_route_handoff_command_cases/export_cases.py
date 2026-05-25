@@ -272,7 +272,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     )
     assert "local_scheduler_tombstone_ref" not in family_handoff
     assert "consumer_migration" not in family_handoff
-    assert family_handoff["standard_agent_purity"]["status"] == "pure_standard_agent_active"
+    assert family_handoff["standard_agent_purity"]["status"] == "standard_agent_purity_cutover_pending"
     assert family_handoff["read_only_authority_boundary"]["runtime_owner"] == "one-person-lab"
     assert family_handoff["read_only_authority_boundary"]["scheduler_owner"] == "one-person-lab"
     assert family_handoff["read_only_authority_boundary"]["domain_owner"] == "med-autoscience"
@@ -460,7 +460,7 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert by_line["p0_live_paper_autonomy_acceptance"]["typed_blockers"][0]["blocker_id"] == (
         "provider_hosted_live_paper_apply_pending"
     )
-    assert by_line["standard_agent_purity_projection"]["status"] == "standard_agent_purity_landed"
+    assert by_line["standard_agent_purity_projection"]["status"] == "standard_agent_purity_cutover_pending"
     guarded_apply_tasks = [
         task for task in payload["pending_family_tasks"]
         if task["task_kind"] == "paper_autonomy/guarded-apply"

@@ -6,6 +6,7 @@ from .functional_followthrough_gaps import (
     FUNCTIONAL_FOLLOWTHROUGH_GAPS_OPEN_STATUS,
     OPL_REPLACEMENT_EXPECTATION_AUDIT,
     REMAINING_GAP_CLASSIFICATION,
+    SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS,
     build_functional_followthrough_gap_summary,
 )
 from .generated_surface_handoff import build_generated_surface_handoff
@@ -323,14 +324,18 @@ GENERATED_DEFAULT_CALLER_BOUNDARY = build_generated_default_caller_boundary(
 STANDARD_AGENT_PURITY = {
     "surface_kind": "mas_standard_opl_agent_purity",
     "schema_version": SCHEMA_VERSION,
-    "status": "pure_standard_agent_active",
+    "status": "standard_agent_purity_cutover_pending",
     "agent_shape": "declarative_medical_pack_minimal_authority_functions_refs_only_projection",
     "default_runtime_owner": REPLACEMENT_OWNER,
     "generated_surface_owner": REPLACEMENT_OWNER,
     "domain_owner": "med-autoscience",
     "active_private_generic_residue_count": 0,
-    "functional_structure_gap_count": 0,
+    "functional_structure_gap_count": 2,
     "default_caller_count": 0,
+    "default_caller_readiness_status": "opl_generated_default_caller_ready",
+    "source_purity_cutover_status": "physical_wrapper_retirement_pending",
+    "repo_local_wrapper_tail_count": len(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
+    "repo_local_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
     "runtime_package_residue_count": 0,
     "retired_alias_residue_refs": [],
     "history_detail_in_default_read_model": False,
@@ -354,15 +359,21 @@ STANDARD_AGENT_PURITY = {
 
 
 STANDARD_AGENT_PURITY_GUARD = {
-    "status": "standard_agent_purity_guard",
+    "status": "standard_agent_purity_cutover_guard",
     "default_caller_count": 0,
     "default_manager": "opl",
+    "default_caller_readiness_status": "opl_generated_default_caller_ready",
+    "source_purity_cutover_status": "physical_wrapper_retirement_pending",
+    "repo_local_wrapper_tail_count": len(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
+    "repo_local_wrapper_tail_module_ids": list(SOURCE_PURITY_WRAPPER_TAIL_MODULE_IDS),
     "runtime_package_residue_count": 0,
     "retired_alias_residue_refs": [],
     "proof_items": [
         "standard_agent_purity.active_private_generic_residue_count=0",
         "standard_agent_purity.default_caller_count=0",
         "standard_agent_purity.retired_alias_residue_refs=[]",
+        "standard_agent_purity.default_caller_readiness_status=opl_generated_default_caller_ready",
+        "standard_agent_purity.source_purity_cutover_status=physical_wrapper_retirement_pending",
         "standard_agent_purity.domain_projection_policy=refs_receipts_blockers_only_no_body_verdict_or_blob",
     ],
 }
@@ -653,7 +664,20 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                 "functional_structure_gap_count"
             ],
             "active_private_generic_residue_count": 0,
-            "remaining_gap_classification": REMAINING_GAP_CLASSIFICATION,
+            "repo_local_wrapper_tail_count": functional_followthrough_gap_summary[
+                "repo_local_wrapper_tail_count"
+            ],
+            "repo_local_wrapper_tail_module_ids": list(
+                functional_followthrough_gap_summary[
+                    "repo_local_wrapper_tail_module_ids"
+                ]
+            ),
+            "source_purity_cutover_status": functional_followthrough_gap_summary[
+                "source_purity_cutover_status"
+            ],
+            "remaining_gap_classification": functional_followthrough_gap_summary[
+                "remaining_gap_classification"
+            ],
             "remaining_functional_followthrough_gate_ids": list(
                 functional_followthrough_gap_summary[
                     "remaining_functional_followthrough_gate_ids"
