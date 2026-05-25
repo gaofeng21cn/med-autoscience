@@ -254,6 +254,234 @@ def test_materialize_ai_reviewer_dispatch_inherits_owner_reason_forbidden_surfac
     assert set(persisted["prompt_contract"]["forbidden_surfaces"]) == prompt_forbidden_surfaces
 
 
+def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_refs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    review_manuscript_path = study_root / "paper" / "build" / "review_manuscript.md"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    review_manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text("# Draft\n\nCurrent story.\n", encoding="utf-8")
+    review_manuscript_path.write_text("# Draft\n\nCurrent story.\n", encoding="utf-8")
+    source_ref = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    stale_record_ref = study_root / "artifacts" / "publication_eval" / "latest.json"
+    route = _owner_route(
+        study_id=study_id,
+        quest_id=quest_id,
+        next_owner="ai_reviewer",
+        owner_reason="ai_reviewer_record_stale_after_current_manuscript",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    action = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "owner": "ai_reviewer",
+        "reason": "ai_reviewer_record_stale_after_current_manuscript",
+        "required_output_surface": "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json",
+        "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        "work_unit_fingerprint": "dm002-current-manuscript-record",
+        "source_ref": str(source_ref.resolve()),
+        "stale_record_ref": str(stale_record_ref.resolve()),
+        "required_currentness_refs": [
+            str(manuscript_path.resolve()),
+            str(review_manuscript_path.resolve()),
+        ],
+        "record_only_surface": True,
+        "publication_eval_latest_write_allowed": False,
+        "controller_decision_write_allowed": False,
+        "owner_route": route,
+        "handoff_packet": {
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "authority": "observability_only",
+            "request_owner": "ai_reviewer",
+            "owner_route": route,
+        },
+    }
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "requests"
+        / "ai_reviewer"
+        / "latest.json",
+        {
+            "surface": "domain_action_request",
+            "schema_version": 1,
+            "request_id": f"return_to_ai_reviewer_workflow::{study_id}::{quest_id}",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "request_owner": "ai_reviewer",
+            "request_lifecycle": {
+                "state": "requested",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                "stale_record_ref": str(stale_record_ref.resolve()),
+                "required_currentness_refs": [
+                    str(manuscript_path.resolve()),
+                    str(review_manuscript_path.resolve()),
+                ],
+                "source_ref": str(source_ref.resolve()),
+            },
+            "source_workflow_ref": {
+                "surface": "owner_route_reconcile",
+                "route_back_target": "ai_reviewer",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            },
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(manuscript_path.resolve()), "present": True, "valid": True},
+                    "evidence_ledger": {
+                        "path": str(study_root / "paper" / "evidence_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "review_ledger": {
+                        "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "study_charter": {
+                        "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_manuscript_blueprint": {
+                        "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "claim_evidence_map": {
+                        "path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_prose_review": {
+                        "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "publication_gate_projection": {
+                        "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                }
+            },
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260524T010000Z_publication_eval_record.json",
+        {
+            "eval_id": "publication-eval::002::quest::2026-05-24T01:00:00+00:00::ai-reviewer",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "emitted_at": "2026-05-24T01:00:00+00:00",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
+                "source_refs": [str(manuscript_path.resolve())],
+            },
+            "quality_assessment": {
+                dimension: {"status": "blocked", "summary": f"{dimension} remains blocked."}
+                for dimension in (
+                    "clinical_significance",
+                    "evidence_strength",
+                    "novelty_positioning",
+                    "medical_journal_prose_quality",
+                    "human_review_readiness",
+                )
+            },
+            "future_facing_limitations_plan": [
+                {
+                    "limitation": "Current manuscript remains below publication quality.",
+                    "impact_on_claim": "The external-validation story must stay restrained.",
+                    "required_future_analysis_data_or_design": "Produce a current manuscript-bound review.",
+                    "current_manuscript_wording_must_be_restrained": True,
+                }
+            ],
+            "reviewer_operating_system": {
+                "currentness_checks": {
+                    "current_manuscript": {
+                        "status": "current",
+                        "manuscript_ref": str(manuscript_path.resolve()),
+                        "manuscript_digest": _sha256_text(manuscript_path.read_text(encoding="utf-8")),
+                    }
+                }
+            },
+        },
+    )
+    stale_response_record_ref = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260524T010000Z_publication_eval_record.json"
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "quest_id": quest_id, "owner_route": route}],
+            "action_queue": [action],
+        },
+    )
+
+    result = module.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    request = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "requests"
+            / "ai_reviewer"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    dispatch = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_dispatches"
+            / "return_to_ai_reviewer_workflow.json"
+        ).read_text(encoding="utf-8")
+    )
+    expected_refs = [str(manuscript_path.resolve()), str(review_manuscript_path.resolve())]
+    assert result["request_tasks"][0]["dispatch_status"] == "applied"
+    assert request["request_lifecycle"]["blocked_reason"] == "ai_reviewer_record_stale_after_current_manuscript"
+    assert request["request_lifecycle"]["required_currentness_refs"] == expected_refs
+    assert request["request_lifecycle"]["stale_record_ref"] == str(stale_response_record_ref.resolve())
+    assert request["request_lifecycle"]["source_ref"] == str(source_ref.resolve())
+    assert request["source_workflow_ref"]["next_work_unit"] == "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
+    assert dispatch["source_action"]["required_currentness_refs"] == expected_refs
+    assert dispatch["source_action"]["stale_record_ref"] == str(stale_record_ref.resolve())
+    assert dispatch["source_action"]["record_only_surface"] is True
+    assert dispatch["source_action"]["publication_eval_latest_write_allowed"] is False
+    assert dispatch["source_action"]["controller_decision_write_allowed"] is False
+
+
 def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_request_to_latest_valid_record_without_new_queue_task(
     monkeypatch,
     tmp_path: Path,

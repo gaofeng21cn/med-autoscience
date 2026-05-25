@@ -546,6 +546,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 恢复后 OPL default executor 正确调用 MAS owner，但 stale AI reviewer record 绑定旧稿 digest，导致 quality-repair fail closed 后仍被 owner-route 重新排回 writer，形成同一 stale reviewer record 的重驱动循环。根因在 MAS owner-route currentness 解释，而不是 OPL queue/provider 或单篇论文手工修稿。
 - 影响：这是 MAS owner-route / AI reviewer record currentness 修复。它不改变 study truth、runtime-owned surface、paper 正文、package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`；只让后续正式 MAS/OPL runtime 先产出 current-manuscript AI reviewer record，再由 publication gate 决定下一步。
 
+## 2026-05-25：AI reviewer currentness refs 不能在 request materialization 中丢失
+
+- 决策：`domain_action_request_materializer` 必须把 `return_to_ai_reviewer_workflow` action 上的 `required_currentness_refs`、`stale_record_ref`、`record_only_surface`、`publication_eval_latest_write_allowed=false` 与 `controller_decision_write_allowed=false` 保留到 default executor dispatch 的 `source_action`。`domain_action_request_lifecycle` 在刷新已有 AI reviewer request 时，必须优先使用 request lifecycle 中的 `required_currentness_refs` 验证最新 AI reviewer record；如果任一 required ref 未被 record 覆盖，继续保持 `ai_reviewer_record_stale_after_current_manuscript` blocker。
+- 理由：DM002 digest mismatch route 已正确转为 AI reviewer record owner，但 request/dispatch materialization 会丢掉 current manuscript refs，随后 lifecycle refresh 可能只按 record 自身 source refs 判断而提前清掉 blocker。这样会让 OPL 执行器拿到不完整 request，或让 stale record 被误认为已满足 currentness。
+- 影响：这是 MAS request materializer / AI reviewer lifecycle contract 修复，不授权 OPL 或 materializer 写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper、package 或 submission surface；只保证 AI reviewer owner 拿到可验证的 currentness 输入，并保持 record-only 输出边界。
+
 ## 2026-05-23：quality_repair writer handoff 不能留下 dispatch-only 半状态
 
 - 决策：`quality_repair_batch_writer_handoff` 生成 `run_quality_repair_batch` dispatch 时，必须同步物化 `artifacts/supervision/requests/quality_repair_batch/latest.json`，并把 `prompt_contract.request_packet_ref` 指向该 request surface。后续 dispatcher 以 request+dispatch 双面 currentness 为主。

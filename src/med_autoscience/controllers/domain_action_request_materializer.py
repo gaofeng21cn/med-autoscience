@@ -77,6 +77,11 @@ SOURCE_ACTION_REF_FIELDS = (
     "route_key_question",
     "route_rationale",
     "source_ref",
+    "stale_record_ref",
+    "required_currentness_refs",
+    "record_only_surface",
+    "publication_eval_latest_write_allowed",
+    "controller_decision_write_allowed",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )

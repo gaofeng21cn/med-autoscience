@@ -333,11 +333,17 @@ def _record_missing_currentness_refs(
     *,
     study_root: Path,
     record: Mapping[str, Any],
+    request_packet: Mapping[str, Any] | None = None,
 ) -> list[str]:
-    required_refs = _analysis_harmonization_currentness_refs(study_root=study_root)
+    packet_refs = (
+        _request_required_currentness_refs(study_root=study_root, request_packet=request_packet)
+        if request_packet is not None
+        else []
+    )
+    required_refs = packet_refs or _analysis_harmonization_currentness_refs(study_root=study_root)
     source_refs = _record_source_refs(study_root=study_root, record=record)
     current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
-    if current_manuscript_ref:
+    if current_manuscript_ref and current_manuscript_ref not in set(required_refs):
         required_refs = [*required_refs, current_manuscript_ref]
     if not required_refs:
         return []
@@ -506,7 +512,11 @@ def _validate_ai_reviewer_record_for_packet(
     record_ref: str | None,
     attach_record: bool,
 ) -> dict[str, Any]:
-    missing_currentness_refs = _record_missing_currentness_refs(study_root=study_root, record=record)
+    missing_currentness_refs = _record_missing_currentness_refs(
+        study_root=study_root,
+        record=record,
+        request_packet=payload,
+    )
     if missing_currentness_refs:
         return _block_ai_reviewer_record_missing_currentness(
             payload=payload,
