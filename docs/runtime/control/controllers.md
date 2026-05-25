@@ -1,5 +1,10 @@
 # Controllers
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime control surfaces and controller responsibilities for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime control support only; runtime control truth remains in controller source, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 这个目录用于说明 `MedAutoScience` 中的外层治理控制器迁移状态。
 
 这些 controller 默认首先服务于 Agent 调用面，而不是人手工操作面。

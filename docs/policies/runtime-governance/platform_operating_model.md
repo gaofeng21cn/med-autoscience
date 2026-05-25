@@ -1,5 +1,10 @@
 # Platform Operating Model
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS runtime governance, dependency, owner-boundary, and stabilization policy.`
+State: `active_policy`
+Machine boundary: Human-readable runtime-governance policy only; runtime truth remains in contracts, source, CLI/read-model output, runtime ledgers, controller artifacts, and owner receipts.
+
 `MedAutoScience` 默认按 `Agent-first, human-auditable` 的方式运行。
 
 对外，它是疾病研究与 manuscript-delivery 方向的独立 medical research domain agent。

@@ -1,5 +1,10 @@
 # Delivery Plane Contract Map
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 这份文档把当前 `delivery / publication plane` 与相邻 `runtime / eval / outer-loop` artifact 的正式边界收口成一个 repo-tracked canonical bridge。
 
 它不替代：

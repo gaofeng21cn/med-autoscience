@@ -1,5 +1,10 @@
 # Mainline Integration And Cleanup Cadence
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS repository operation, integration, cutover, and CI preflight policy.`
+State: `active_policy`
+Machine boundary: Human-readable repository policy only; enforceable truth remains in git state, CI configuration, scripts, tests, contracts, and verification receipts.
+
 这份文档定义 `Med Auto Science` 当前主线的一个固定纪律：
 
 - 子线怎么吸收到 `main`

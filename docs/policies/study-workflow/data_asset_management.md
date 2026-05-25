@@ -1,5 +1,10 @@
 # Data Asset Management
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS study workflow, workspace, source, and submission operating policy.`
+State: `active_policy`
+Machine boundary: Human-readable study-workflow policy only; study truth remains in workspace artifacts, source contracts, runtime/controller outputs, generated artifacts, and owner receipts.
+
 `MedAutoScience` 默认把医学研究中的数据看成持续演进的研究资产，而不是一次性静态输入。
 
 这层能力默认不是给人手工维护 `registry.json` 用的，而是给 `Codex` 这类 Agent 提供稳定的 mutation / refresh 接口，再把结果回显给人类审核。

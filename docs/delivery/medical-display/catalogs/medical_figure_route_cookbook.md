@@ -1,5 +1,10 @@
 # Medical Figure Route Cookbook
 
+Owner: `MedAutoScience`
+Purpose: `Maintain the human-readable medical-display catalog and capability inventory for MAS delivery work.`
+State: `active_support`
+Machine boundary: Human-readable delivery catalog only; medical-display machine truth remains in registries, renderer/template source, tests, contracts, generated artifacts, and audit receipts.
+
 这份 cookbook 学习 `DeepScientist` paper-plot refresh 的做法，但只吸收“图形路线要有可复用 cookbook、输入 contract 和审阅标准”的方法。
 
 ## 稳定医学图形路线

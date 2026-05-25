@@ -1,5 +1,10 @@
 # Medical Manuscript First-Draft Quality Policy
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS quality, publication, evidence, and reviewer policy boundaries.`
+State: `active_policy`
+Machine boundary: Human-readable policy only; quality verdicts, publication truth, evidence state, and reviewer receipts remain in MAS authority functions, contracts, artifacts, ledgers, and owner receipts.
+
 ## 目标
 
 MAS 的医学论文初稿不能只是研究执行日志、结果汇总或投稿包清单。初稿在生成时就必须是医学期刊可读的 manuscript-shaped prose，并且在写作前绑定研究类型、报告规范、证据边界和读者问题。历史 MDS / DeepScientist 只能作为 stage discipline、fixture 或 provenance 参考，不能作为初稿质量 owner。

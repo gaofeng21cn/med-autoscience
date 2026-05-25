@@ -1,5 +1,10 @@
 # MedDeepScientist Upstream Source Provenance
 
+Owner: `MedAutoScience`
+Purpose: `Preserve Med DeepScientist upstream-learning and method reference context for MAS.`
+State: `support_reference`
+Machine boundary: Human-readable upstream-learning reference only; current study, quality, source, and runtime truth remains in MAS contracts, source, tests, generated artifacts, and owner receipts.
+
 这份文档固定说明一个边界：
 
 - 哪些 `MAS` 改进是直接从近期 `DeepScientist` 成熟实现学来的

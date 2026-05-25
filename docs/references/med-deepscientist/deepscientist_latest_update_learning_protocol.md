@@ -1,5 +1,10 @@
 # DeepScientist Latest-Update Learning Protocol
 
+Owner: `MedAutoScience`
+Purpose: `Preserve Med DeepScientist upstream-learning and method reference context for MAS.`
+State: `support_reference`
+Machine boundary: Human-readable upstream-learning reference only; current study, quality, source, and runtime truth remains in MAS contracts, source, tests, generated artifacts, and owner receipts.
+
 这份协议定义维护者说“学习一下 `DeepScientist` 的最新更新”时，`MAS` 应默认执行什么。
 
 它不是泛泛调研请求，也不是要求把 upstream 整体同步进来。它表示启动一轮受控的 learning-and-landing intake：先审计 upstream 最新变化，再把真正值得学的能力切成可验证 lane，落到 `MAS` 自己的 owner surface。外部 `MDS` 不再是默认落点，只能作为 frozen source archive、historical fixture、explicit legacy diagnostic 或 provenance/parity reference 出现。

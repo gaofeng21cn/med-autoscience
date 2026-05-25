@@ -1,5 +1,10 @@
 # MedDeepScientist Continuous Learning Plan
 
+Owner: `MedAutoScience`
+Purpose: `Preserve Med DeepScientist upstream-learning and method reference context for MAS.`
+State: `support_reference`
+Machine boundary: Human-readable upstream-learning reference only; current study, quality, source, and runtime truth remains in MAS contracts, source, tests, generated artifacts, and owner receipts.
+
 这份文档定义 `MAS` 针对 `MedDeepScientist` / `DeepScientist` 方法论的当前吸收计划、后续学习重点和长期维护方式。
 
 它处理的是 program 级问题：

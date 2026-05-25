@@ -1,6 +1,10 @@
 # Submission / Revision Operating Contract
 
 Status: `active contract`
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS study workflow, workspace, source, and submission operating policy.`
+State: `active_policy`
+Machine boundary: Human-readable study-workflow policy only; study truth remains in workspace artifacts, source contracts, runtime/controller outputs, generated artifacts, and owner receipts.
 
 This policy fixes the MAS authority boundary for manuscript revision and submission delivery. Reviewer/user revision, manual finishing, manuscript fast lane, bundle-only closeout, and submission package refresh must all start from controller-authorized `paper/` sources.
 

@@ -1,5 +1,10 @@
 # MedDeepScientist Method Learning Disciplines
 
+Owner: `MedAutoScience`
+Purpose: `Preserve Med DeepScientist upstream-learning and method reference context for MAS.`
+State: `support_reference`
+Machine boundary: Human-readable upstream-learning reference only; current study, quality, source, and runtime truth remains in MAS contracts, source, tests, generated artifacts, and owner receipts.
+
 这份文档把 `MedAutoScience` 从 `MedDeepScientist` / `DeepScientist` 持续学习时应固定的研究行为纪律沉淀为 repo-tracked program truth。
 
 它回答四个问题：

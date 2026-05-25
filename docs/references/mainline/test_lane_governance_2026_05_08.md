@@ -1,5 +1,10 @@
 # MAS Test Lane Governance 2026-05-08
 
+Owner: `MedAutoScience`
+Purpose: `Preserve MAS mainline architecture and quality reference analysis.`
+State: `support_reference`
+Machine boundary: Human-readable reference only; current architecture and quality truth remains in source, contracts, tests, diagnostics, active gap plan, and verification receipts.
+
 本记录说明 2026-05-08 测试治理的 repo-level 结果。它是维护参考，不是 runtime truth、publication readiness、controller authority 或 active execution gate。
 
 ## Fresh Baseline

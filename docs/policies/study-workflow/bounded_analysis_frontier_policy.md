@@ -1,5 +1,10 @@
 # Bounded Analysis Frontier Policy
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS study workflow, workspace, source, and submission operating policy.`
+State: `active_policy`
+Machine boundary: Human-readable study-workflow policy only; study truth remains in workspace artifacts, source contracts, runtime/controller outputs, generated artifacts, and owner receipts.
+
 这份 policy 学习 `DeepScientist` optimize skill 中的 frontier、plateau、fusion、debug、stop 思路，并把它翻译为医学补充分析和 revision repair 的候选板规则。
 
 ## 目标

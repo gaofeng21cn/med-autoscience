@@ -1,5 +1,10 @@
 # MAS Stage Surfaces
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 Canonical route source: `agent/stages/stage_route_contract.yaml`.
 Markdown is a generated human-reading surface; it is not machine truth.
 OPL may only project, dispatch, and read refs.

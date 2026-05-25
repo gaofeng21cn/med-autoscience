@@ -1,5 +1,10 @@
 # 系列项目文档治理清单
 
+Owner: `MedAutoScience`
+Purpose: `Support OPL-series and MAS documentation governance review.`
+State: `support_reference`
+Machine boundary: Human-readable governance reference only; active truth remains in the MAS active gap plan, canonical docs, contracts, source, tests, read models, and receipts.
+
 ## 目标
 
 本清单用于把 `Med Auto Science` 放进 `One Person Lab`、`Med Auto Science`、`Med Auto Grant`、`RedCube AI` 这组系列项目的统一文档管理口径里做巡检。

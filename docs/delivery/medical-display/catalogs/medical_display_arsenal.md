@@ -1,5 +1,10 @@
 # 医学绘图军火库总览
 
+Owner: `MedAutoScience`
+Purpose: `Maintain the human-readable medical-display catalog and capability inventory for MAS delivery work.`
+State: `active_support`
+Machine boundary: Human-readable delivery catalog only; medical-display machine truth remains in registries, renderer/template source, tests, contracts, generated artifacts, and audit receipts.
+
 ## 文档定位
 
 本文记录 `med-autoscience` 当前已经沉淀下来的医学绘图与表格能力总账，用于回答四个问题：

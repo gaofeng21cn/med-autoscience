@@ -1,5 +1,10 @@
 # Medical Display Family Roadmap
 
+Owner: `MedAutoScience`
+Purpose: `Maintain medical-display family roadmap and portfolio support material.`
+State: `active_support`
+Machine boundary: Human-readable portfolio support only; current capability truth remains in registries, source, tests, generated artifacts, contracts, and audit receipts.
+
 This document is the authoritative long-horizon roadmap for the medical display platform in `med-autoscience`.
 
 Use this file when the question is:

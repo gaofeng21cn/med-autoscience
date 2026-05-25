@@ -3,6 +3,10 @@
 Status: `active behavior-audit reference`
 Owner: `MedAutoScience Runtime OS`
 Date: `2026-05-09`
+Purpose: `Preserve MDS parity, backend-audit, and historical fixture reference context for MAS.`
+State: `support_reference`
+Machine boundary: Human-readable parity reference only; current MAS and MDS-source truth remains in explicit archive imports, source provenance, contracts, tests, diagnostics, and receipts.
+
 Related contract: `live-console-parity`
 
 ## 结论

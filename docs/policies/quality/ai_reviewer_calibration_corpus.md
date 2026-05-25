@@ -1,5 +1,10 @@
 # AI Reviewer Calibration Corpus
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS quality, publication, evidence, and reviewer policy boundaries.`
+State: `active_policy`
+Machine boundary: Human-readable policy only; quality verdicts, publication truth, evidence state, and reviewer receipts remain in MAS authority functions, contracts, artifacts, ledgers, and owner receipts.
+
 本 policy 把历史高成本论文修复转化为稳定回归语料。目标是让 MAS 在写作前和 finalize 前自动识别同类问题，而不是把返工推到投稿包阶段。
 
 ## Authority

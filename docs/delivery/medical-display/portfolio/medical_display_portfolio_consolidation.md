@@ -3,6 +3,9 @@
 Status: `active capability governance`
 Date: `2026-05-06`
 Owner: `MedAutoScience`
+Purpose: `Maintain medical-display family roadmap and portfolio support material.`
+State: `active_support`
+Machine boundary: Human-readable portfolio support only; current capability truth remains in registries, source, tests, generated artifacts, contracts, and audit receipts.
 
 ## Role
 

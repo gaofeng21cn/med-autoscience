@@ -1,5 +1,10 @@
 # Med Auto Science 集成参考：产品入口载荷与 OPL Handoff
 
+Owner: `MedAutoScience`
+Purpose: `Support MAS integration and OPL handoff understanding.`
+State: `support_reference`
+Machine boundary: Human-readable integration reference only; callable and generated-surface truth remains in manifests, contracts, source, tests, OPL handoff contracts, and read-model output.
+
 ## 1. 这份参考记录什么
 
 这份文档记录 `Med Auto Science` 的产品入口载荷和 `OPL` handoff 之间的集成合同。

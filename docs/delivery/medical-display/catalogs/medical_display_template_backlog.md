@@ -1,5 +1,10 @@
 # Medical Display Template Backlog
 
+Owner: `MedAutoScience`
+Purpose: `Maintain the human-readable medical-display catalog and capability inventory for MAS delivery work.`
+State: `active_support`
+Machine boundary: Human-readable delivery catalog only; medical-display machine truth remains in registries, renderer/template source, tests, contracts, generated artifacts, and audit receipts.
+
 ## Purpose
 
 这个文档现在只负责记录 display 的候选扩容池与历史 backlog 清理结果。

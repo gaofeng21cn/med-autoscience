@@ -4,6 +4,7 @@ Status: `repo-source physical anchors landed; workspace artifacts locator-only`
 Owner: `MedAutoScience`
 Purpose: record the human-facing location of the standard domain-agent skeleton anchors.
 Machine boundary: machine truth lives in the product-entry manifest, the JSON anchors under `agent/`, `contracts/runtime/`, `runtime/artifact_locator/`, and MAS workspace/runtime receipt surfaces.
+State: `active_runtime_support`
 
 MAS now keeps physical repo-source anchors for the standard domain-agent skeleton while preserving the existing callable facades and generated docs. The anchors are intentionally small: they prove where new repo-source material should land, and they do not import workspace artifact bodies, memory bodies, publication decisions, or paper packages into the repository.
 

@@ -1,5 +1,10 @@
 # Progress Projection History Contract
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 这份 contract 学习 `DeepScientist` 的 quest history、lazy detail load 和 admin ops observability，但在 `MAS` 中落为 study-progress / runtime-watch 的轻量投影规则。
 
 ## 目标

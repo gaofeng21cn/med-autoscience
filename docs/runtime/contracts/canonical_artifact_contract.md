@@ -1,5 +1,10 @@
 # Canonical Artifact Contract
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 Artifact OS 的目标是让 manuscript、figures、tables 和 submission package 全部从 canonical sources 与 AI reviewer quality decision 重建。派生产物可以交付给人看，但不能反向成为 edit source 或 quality authority。
 
 ## Layers

@@ -1,5 +1,10 @@
 # Medical Display Audit Guide
 
+Owner: `MedAutoScience`
+Purpose: `Explain the human-readable medical-display contract and audit boundary for MAS delivery work.`
+State: `active_support`
+Machine boundary: Human-readable delivery contract support only; enforceable truth remains in source, tests, machine-readable contracts, generated artifacts, and audit receipts.
+
 This guide is the stable, human-auditable view of the medical display system in `med-autoscience`.
 
 This file is the engineering audit surface, not the top-level product roadmap taxonomy.

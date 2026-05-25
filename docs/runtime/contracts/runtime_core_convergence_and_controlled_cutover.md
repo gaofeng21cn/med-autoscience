@@ -3,6 +3,9 @@
 Status: `active closeout / behavior-equivalence reference`
 Owner: `MedAutoScience domain authority refs / OPL generic runtime boundary`
 Date: `2026-05-08`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
 
 ## 1. 当前事实
 

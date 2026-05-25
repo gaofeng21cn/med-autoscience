@@ -1,5 +1,10 @@
 # Medical Display Visual Audit Protocol
 
+Owner: `MedAutoScience`
+Purpose: `Explain the human-readable medical-display contract and audit boundary for MAS delivery work.`
+State: `active_support`
+Machine boundary: Human-readable delivery contract support only; enforceable truth remains in source, tests, machine-readable contracts, generated artifacts, and audit receipts.
+
 This document defines the formal AI-first visual audit protocol for the medical display platform in `med-autoscience`.
 
 Use this file when the question is:

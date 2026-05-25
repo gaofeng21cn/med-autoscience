@@ -1,5 +1,10 @@
 # AI-first Observability
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 Observability OS 只提供可见性，不成为新的质量或运行 authority。维护者需要看到 drift、trace、route-back、cache freshness、artifact stale 和 runtime recovery；用户只需要看到当前阶段、阻塞原因、下一步和是否需要人工判断。
 
 ## Surface Contract

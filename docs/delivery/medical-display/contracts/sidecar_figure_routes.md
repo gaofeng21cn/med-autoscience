@@ -1,5 +1,10 @@
 # Sidecar Bridge 与 Figure Routes 指南
 
+Owner: `MedAutoScience`
+Purpose: `Explain the human-readable medical-display contract and audit boundary for MAS delivery work.`
+State: `active_support`
+Machine boundary: Human-readable delivery contract support only; enforceable truth remains in source, tests, machine-readable contracts, generated artifacts, and audit receipts.
+
 > 这个指南可以从 [`../../../runtime/contracts/agent_runtime_interface.md`](../../../runtime/contracts/agent_runtime_interface.md) 中的“sidecar provider 与 figure routes 指南”入口访问，是对运行层中 sidecar / figure route 边界的稳定说明。
 
 ## 1. Sidecar bridge 在 MedAutoScience 的定位

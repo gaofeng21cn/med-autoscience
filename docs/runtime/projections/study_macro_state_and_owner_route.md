@@ -1,5 +1,10 @@
 # Study Macro State and Owner Route Contract
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 ## 目标
 
 MAS 的状态读取、runtime 修复、publication gate、AI reviewer 与 dispatch executor 必须先收敛到同一条当前真相，再决定下一 owner。该合同把用户可见状态拆成短枚举和细节字段，避免用超长状态名承载所有语义，也避免各层各自按局部信号恢复或停止研究。

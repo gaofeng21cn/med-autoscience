@@ -1,5 +1,10 @@
 # Evidence Review Contract
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS quality, publication, evidence, and reviewer policy boundaries.`
+State: `active_policy`
+Machine boundary: Human-readable policy only; quality verdicts, publication truth, evidence state, and reviewer receipts remain in MAS authority functions, contracts, artifacts, ledgers, and owner receipts.
+
 本 policy 固定 `MedAutoScience` 在研究 route 之间推进时必须共享的 evidence / review 合同边界。
 canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `evidence_review_contract`。
 

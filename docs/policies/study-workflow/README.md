@@ -3,6 +3,8 @@
 Status: `policy index`
 Owner: `MedAutoScience`
 Purpose: 作为 MAS 研究路线、研究记忆、论文套路、数据资产和工作流规则的总入口。
+State: `active_policy`
+Machine boundary: Human-readable study-workflow policy only; study truth remains in workspace artifacts, source contracts, runtime/controller outputs, generated artifacts, and owner receipts.
 
 ## 总入口
 

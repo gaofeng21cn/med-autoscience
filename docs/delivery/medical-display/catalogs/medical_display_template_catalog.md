@@ -1,5 +1,10 @@
 # Medical Display Template Catalog
 
+Owner: `MedAutoScience`
+Purpose: `Maintain the human-readable medical-display catalog and capability inventory for MAS delivery work.`
+State: `active_support`
+Machine boundary: Human-readable delivery catalog only; medical-display machine truth remains in registries, renderer/template source, tests, contracts, generated artifacts, and audit receipts.
+
 Generated from `med_autoscience.display_registry` and `med_autoscience.display_schema_contract`.
 
 Paper-family labels follow the roadmap in [medical_display_family_roadmap.md](../portfolio/medical_display_family_roadmap.md).

@@ -1,5 +1,10 @@
 # DeepScientist Continuous Learning Policy
 
+Owner: `MedAutoScience`
+Purpose: `Preserve Med DeepScientist upstream-learning and method reference context for MAS.`
+State: `support_reference`
+Machine boundary: Human-readable upstream-learning reference only; current study, quality, source, and runtime truth remains in MAS contracts, source, tests, generated artifacts, and owner receipts.
+
 这份政策把 `MAS` 持续学习上游 `DeepScientist` 的方式规范下来。
 
 它处理的是长期 owner 问题：`MAS` 已经完成 functional monolith closeout 后，仍然应持续观察、学习和选择性吸收 upstream `DeepScientist` 的研究 workspace 方法论。

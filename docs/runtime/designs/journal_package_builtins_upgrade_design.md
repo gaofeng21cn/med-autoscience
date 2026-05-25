@@ -1,5 +1,10 @@
 # Journal Package Builtins Design
 
+Owner: `MedAutoScience`
+Purpose: `Record active MAS runtime design support for package and journal-output evolution.`
+State: `active_runtime_support`
+Machine boundary: Human-readable design support only; implementation truth remains in source, tests, contracts, generated artifacts, and verification receipts.
+
 ## 背景
 
 当前 `med-autoscience` 在 publication 侧已经具备两类能力：

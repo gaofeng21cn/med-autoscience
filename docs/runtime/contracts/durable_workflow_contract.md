@@ -1,5 +1,10 @@
 # Durable Workflow Contract
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 Durable workflow 的目标是让长时研究任务可暂停、可恢复、可重放、可审计。当前 generic workflow / attempt / retry / dead-letter owner 是 OPL；MAS 只消费 OPL event refs，并输出 DomainIntent、owner receipt、typed blocker 与 domain diagnostic refs。它不持有医学论文质量判断，也不持有 MAS 私有 runtime 控制面。
 
 ## State Model

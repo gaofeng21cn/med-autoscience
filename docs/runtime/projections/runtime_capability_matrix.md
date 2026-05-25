@@ -1,5 +1,10 @@
 # Runtime Capability Matrix
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 这份 contract 学习 `DeepScientist` 的 runner / settings / admin health surfaces，但在 `MAS` 中只固定 runtime capability 与 doctor 投影，不扩展 provider 主线。
 
 ## 目标

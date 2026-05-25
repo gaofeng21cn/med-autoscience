@@ -1,5 +1,10 @@
 # Study Route Contract
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS study workflow, workspace, source, and submission operating policy.`
+State: `active_policy`
+Machine boundary: Human-readable study-workflow policy only; study truth remains in workspace artifacts, source contracts, runtime/controller outputs, generated artifacts, and owner receipts.
+
 本 policy 固定 `MedAutoScience` 的研究阶段 route 合同边界。
 canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `route_contracts`。
 `modes` 只回答某个 entry mode 当前允许走哪些 route，正式 route 定义统一以 `route_contracts` 为准。

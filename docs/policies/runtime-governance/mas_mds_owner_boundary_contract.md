@@ -2,6 +2,10 @@
 
 Status: `active contract`  
 Date: `2026-05-04`
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS runtime governance, dependency, owner-boundary, and stabilization policy.`
+State: `active_policy`
+Machine boundary: Human-readable runtime-governance policy only; runtime truth remains in contracts, source, CLI/read-model output, runtime ledgers, controller artifacts, and owner receipts.
 
 ## 结论
 

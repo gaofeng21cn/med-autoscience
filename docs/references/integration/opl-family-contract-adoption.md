@@ -1,5 +1,10 @@
 # MAS Adoption of OPL Family Contracts
 
+Owner: `MedAutoScience`
+Purpose: `Support MAS integration and OPL handoff understanding.`
+State: `support_reference`
+Machine boundary: Human-readable integration reference only; callable and generated-surface truth remains in manifests, contracts, source, tests, OPL handoff contracts, and read-model output.
+
 ## Purpose
 
 这份薄适配声明说明 `MAS` 如何满足 `OPL` family runtime / quality / incident / operator projection 合同。它不把 `OPL` 变成医学研究 owner，也不把 family 合同复制成第二套 MAS runtime。

@@ -1,5 +1,10 @@
 # MAS Single-Project Quality And Autonomy Mainline
 
+Owner: `MedAutoScience`
+Purpose: `Preserve MAS mainline architecture and quality reference analysis.`
+State: `support_reference`
+Machine boundary: Human-readable reference only; current architecture and quality truth remains in source, contracts, tests, diagnostics, active gap plan, and verification receipts.
+
 这份文档把“医学论文质量优化 + 长时间全自动驾驶优化”的主体正式收口到 `MedAutoScience` 单项目主线。
 
 它回答六个问题：

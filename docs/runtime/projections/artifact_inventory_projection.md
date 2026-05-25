@@ -1,5 +1,10 @@
 # Artifact Inventory Projection
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 这份 contract 学习 `DeepScientist` 的 attachment preview、workspace file links 和 inspectable workspace，但在 `MAS` 中落为 study-level artifact inventory。
 
 ## 目标

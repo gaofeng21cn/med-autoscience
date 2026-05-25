@@ -1,5 +1,10 @@
 # Medical Display Anchor Paper Audit
 
+Owner: `MedAutoScience`
+Purpose: `Preserve medical-display provenance and anchor-paper audit context.`
+State: `history_provenance`
+Machine boundary: Human-readable provenance only; current delivery truth remains in source, tests, contracts, generated artifacts, and audit receipts.
+
 ## Purpose
 
 这个文档记录 `medical-display-anchor-paper-closure` 的当前真相：

@@ -1,5 +1,10 @@
 # Baseline Refresh Contract
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 这份 contract 学习 `DeepScientist` 的 baseline overwrite refresh flow，但在 `MAS` 中固定为医学 comparator / baseline 的显式刷新语义。
 
 ## 目标

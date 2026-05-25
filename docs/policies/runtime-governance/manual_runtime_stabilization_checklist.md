@@ -1,5 +1,10 @@
 # 手工测试与运行面稳定化清单
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS runtime governance, dependency, owner-boundary, and stabilization policy.`
+State: `active_policy`
+Machine boundary: Human-readable runtime-governance policy only; runtime truth remains in contracts, source, CLI/read-model output, runtime ledgers, controller artifacts, and owner receipts.
+
 ## 文档目的
 
 这份清单只服务当前 **论文配图资产线以外的主线**。

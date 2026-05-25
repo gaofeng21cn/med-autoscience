@@ -1,5 +1,10 @@
 # Merge And Cutover Gates
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS repository operation, integration, cutover, and CI preflight policy.`
+State: `active_policy`
+Machine boundary: Human-readable repository policy only; enforceable truth remains in git state, CI configuration, scripts, tests, contracts, and verification receipts.
+
 这份文档定义两件事：
 
 - 什么时候当前 repo-side tranche 可以吸收到 `main`

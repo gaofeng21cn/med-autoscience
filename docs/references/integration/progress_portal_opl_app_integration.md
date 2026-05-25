@@ -2,6 +2,9 @@
 
 Status: `support reference`
 Owner: `MedAutoScience Product Projection + OPL integration boundary`
+Purpose: `Support MAS integration and OPL handoff understanding.`
+State: `support_reference`
+Machine boundary: Human-readable integration reference only; callable and generated-surface truth remains in manifests, contracts, source, tests, OPL handoff contracts, and read-model output.
 
 2026-05-10 更新：此前本文把 OPL App 的最优形态写成 family dashboard + 打开 MAS workspace-local Portal deep link。新的产品结论是，OPL App 应成为 MAS 人类运行工作台的主入口；workspace-local Portal / Live Console 继续作为 legacy_restore_import、evidence 和 no-App 环境入口。OPL App 仍然只消费 MAS read model / action receipt / source refs，不接管 MAS study truth、publication quality、runtime owner 或 current package authority。
 

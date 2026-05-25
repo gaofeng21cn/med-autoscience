@@ -1,5 +1,10 @@
 # Study Runtime Control Surface
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime control surfaces and controller responsibilities for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime control support only; runtime control truth remains in controller source, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 这份文档是当前 `study runtime / domain transition / decision artifact / transport` 之间的 **canonical bridge**。
 
 它与下列文档配套使用：

@@ -3,6 +3,9 @@
 Status: `architecture fitness wave landed; hub role hardening landed`
 Date: `2026-05-08`
 Owner: `MedAutoScience`
+Purpose: `Preserve MAS mainline architecture and quality reference analysis.`
+State: `support_reference`
+Machine boundary: Human-readable reference only; current architecture and quality truth remains in source, contracts, tests, diagnostics, active gap plan, and verification receipts.
 
 ## 结论
 

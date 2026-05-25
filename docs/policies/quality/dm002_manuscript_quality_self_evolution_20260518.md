@@ -1,5 +1,10 @@
 # DM002 Manuscript Quality Self-Evolution Patch Receipt
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS quality, publication, evidence, and reviewer policy boundaries.`
+State: `active_policy`
+Machine boundary: Human-readable policy only; quality verdicts, publication truth, evidence state, and reviewer receipts remain in MAS authority functions, contracts, artifacts, ledgers, and owner receipts.
+
 - Date: 2026-05-18
 - Source Agent Lab suite: `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/agent_lab/medical_manuscript_quality/latest_suite.json`
 - OPL Agent Lab result: `oals_de7c8002af969568edd93c1b`

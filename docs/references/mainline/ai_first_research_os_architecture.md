@@ -1,5 +1,10 @@
 # MAS AI-first Research OS Architecture
 
+Owner: `MedAutoScience`
+Purpose: `Preserve MAS mainline architecture and quality reference analysis.`
+State: `support_reference`
+Machine boundary: Human-readable reference only; current architecture and quality truth remains in source, contracts, tests, diagnostics, active gap plan, and verification receipts.
+
 本文件冻结 MAS/MDS 长线目标架构。目标不是把所有代码一次搬完，也不是新增文档 wording gate，而是固定 owner、authority、contract 与 proof 口径，然后按可验证能力逐步吸收。
 
 本文是人工可读架构说明。文档线只负责把当前能用的系统说明、长线目标和证据缺口讲清楚；不新增测试程序约束文档措辞，不修改 preflight contract。

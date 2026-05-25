@@ -1,5 +1,10 @@
 # Runtime Backend Interface Contract
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 ## 1. 目标
 
 冻结 `MedAutoScience -> OPL generic runtime + MAS domain authority refs` 的单一 contract，使 `MedAutoScience` 只依赖 OPL runtime contract 与 MAS owner receipt / typed blocker / diagnostic refs，而不再把 `med-deepscientist` 或 MAS 私有 runtime core 当作通用运行框架真相。

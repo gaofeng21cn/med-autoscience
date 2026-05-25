@@ -1,5 +1,10 @@
 # AI-first Quality Boundary Policy
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS quality, publication, evidence, and reviewer policy boundaries.`
+State: `active_policy`
+Machine boundary: Human-readable policy only; quality verdicts, publication truth, evidence state, and reviewer receipts remain in MAS authority functions, contracts, artifacts, ledgers, and owner receipts.
+
 本 policy 固定 MAS 质量判断面的 owner 边界。它来自 RCA AI-first 修复后的跨项目经验：结构化 pack、schema、gate 和 scorecard 只能传递约束、引用和机械状态；创作判断、科学审稿判断、论文质量判断必须由 AI reviewer / author artifact 持有。
 
 ## Owner boundary

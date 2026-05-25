@@ -1,5 +1,10 @@
 # 运行句柄与持久表面合同
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 ## 文档目的
 
 这份文档用于把 `MedAutoScience` 当前主线的 execution handle contract 与 durable surface contract 单独冻结出来，避免它们继续散落在 README、controller 文档、测试描述和本地 handoff 说明中。

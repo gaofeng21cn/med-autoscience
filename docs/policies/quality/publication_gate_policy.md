@@ -1,5 +1,10 @@
 # Publication Gate Policy
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS quality, publication, evidence, and reviewer policy boundaries.`
+State: `active_policy`
+Machine boundary: Human-readable policy only; quality verdicts, publication truth, evidence state, and reviewer receipts remain in MAS authority functions, contracts, artifacts, ledgers, and owner receipts.
+
 `MedAutoScience` 对 paper-required quests 默认执行三层发表门槛：
 
 1. scout 后 gate

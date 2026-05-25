@@ -1,5 +1,10 @@
 # MDS Capability Parity Matrix
 
+Owner: `MedAutoScience`
+Purpose: `Preserve MDS parity, backend-audit, and historical fixture reference context for MAS.`
+State: `support_reference`
+Machine boundary: Human-readable parity reference only; current MAS and MDS-source truth remains in explicit archive imports, source provenance, contracts, tests, diagnostics, and receipts.
+
 MDS 的长线角色已经降为 frozen source archive / historical fixture / explicit legacy diagnostic / provenance reference。MAS 吸收 MDS 能力时按 capability / remaining surface 推进，不按目录搬迁。
 
 MDS 不能授权 medical quality。医学论文质量、publication readiness、controller decision 与最终 package state 都由 MedAutoScience 持有；MDS 只能提供 historical fixture、source provenance、mechanical signal fixture 和 explicit legacy diagnostic 输入。

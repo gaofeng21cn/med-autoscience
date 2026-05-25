@@ -1,5 +1,10 @@
 # Runtime Health Kernel Contract
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 ## 目标
 
 `RuntimeHealthKernel` 是 MAS 针对 `(study_id, quest_id)` 的 domain health / blocker reducer。它消费 OPL current-control-state refs、MAS owner route refs、typed closeout refs、owner receipt、typed blocker、stale progress 与 escalation 事件，归并为一个 domain diagnostic snapshot，供 `progress_projection`、`study_progress`、`domain_health_diagnostic`、workspace cockpit、product entry status 和 MCP compact projection 消费。它不再是 worker/session/runtime lifecycle truth owner。

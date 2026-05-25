@@ -1,5 +1,10 @@
 # Repository CI Preflight
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS repository operation, integration, cutover, and CI preflight policy.`
+State: `active_policy`
+Machine boundary: Human-readable repository policy only; enforceable truth remains in git state, CI configuration, scripts, tests, contracts, and verification receipts.
+
 这个仓库当前采用的是“主线可直接 push，push CI 承载 change-aware preflight 与 build，重构高漂移面进入独立 advisory/nightly workflow”的模式。
 
 这意味着：

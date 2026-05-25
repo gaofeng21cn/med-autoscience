@@ -1,5 +1,10 @@
 # Agent Runtime Interface
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 这份文档写给 `Codex` 等 Agent、内部技术合作者，以及需要审阅 Agent 行为的人。
 
 它属于仓库跟踪的运行面文档层，因此收口在 `docs/runtime/`，但不属于默认公开入口。

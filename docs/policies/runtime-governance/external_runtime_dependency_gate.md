@@ -1,5 +1,10 @@
 # Historical External Runtime Dependency Gate
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS runtime governance, dependency, owner-boundary, and stabilization policy.`
+State: `active_policy`
+Machine boundary: Human-readable runtime-governance policy only; runtime truth remains in contracts, source, CLI/read-model output, runtime ledgers, controller artifacts, and owner receipts.
+
 这份文档原本服务 MAS 吸收 MDS 过程中的 external runtime blocker。2026-05-11 之后，MAS monolith closeout 已经把默认运行、默认诊断、默认进度面和默认质量入口收回到 `med-autoscience`；因此本文降级为 **explicit executor/proof diagnostic / historical backend / explicit archive import / parity audit gate**，不再是 MAS 默认可用性的停车结论。
 
 历史停车终态

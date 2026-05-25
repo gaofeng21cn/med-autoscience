@@ -1,5 +1,10 @@
 # 医学绘图模板包架构设计
 
+Owner: `MedAutoScience`
+Purpose: `Record support design context for medical-display template-pack evolution.`
+State: `active_support`
+Machine boundary: Human-readable implementation support only; active execution truth remains in the MAS active gap plan, source, tests, contracts, generated artifacts, and receipts.
+
 ## 文档定位
 
 本文是 `med-autoscience` 医学绘图模板包化的权威设计文档。

@@ -1,5 +1,10 @@
 # Codex Plugin 接入
 
+Owner: `MedAutoScience`
+Purpose: `Support MAS integration and OPL handoff understanding.`
+State: `support_reference`
+Machine boundary: Human-readable integration reference only; callable and generated-surface truth remains in manifests, contracts, source, tests, OPL handoff contracts, and read-model output.
+
 `MedAutoScience` 现在可以通过仓库内置的 Codex plugin 暴露给 Agent，路径在 `plugins/mas/`。
 
 本文件同时承接原 `codex_plugin_release.md` 的发布说明口径。当前叙事以 repo-local plugin / skill / MCP 入口为准，不再把 MAS standalone release artifact 或系统级 skill 安装写成默认用户路径。

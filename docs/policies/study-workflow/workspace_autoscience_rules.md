@@ -1,5 +1,10 @@
 # Workspace Autoscience Rules
 
+Owner: `MedAutoScience`
+Purpose: `Define stable MAS study workflow, workspace, source, and submission operating policy.`
+State: `active_policy`
+Machine boundary: Human-readable study-workflow policy only; study truth remains in workspace artifacts, source contracts, runtime/controller outputs, generated artifacts, and owner receipts.
+
 这份规则用于描述 `MedAutoScience` 在具体医学 workspace 中的默认运行原则。
 
 它是 workspace 侧摘要，平台级的总操作模型见：

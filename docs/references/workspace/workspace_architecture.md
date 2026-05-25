@@ -1,5 +1,10 @@
 # Workspace Architecture
 
+Owner: `MedAutoScience`
+Purpose: `Support MAS workspace architecture and source/workspace boundary understanding.`
+State: `support_reference`
+Machine boundary: Human-readable workspace reference only; workspace truth remains in source contracts, runtime artifacts, workspace manifests, generated packages, and owner receipts.
+
 这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到“MAS-owned runtime/artifact/quality surfaces + OPL scheduler replacement + MAS supervision SLO/read-model contract”标准形态的约束。默认 scheduler adapter 是 OPL `opl_family_runtime_provider`；MAS `local` one-shot supervision 只保留 tombstone/provenance refs；Hermes gateway cron 只作 explicit legacy diagnostic cleanup adapter。
 
 在顶层定位上，应始终按下面这条理解：

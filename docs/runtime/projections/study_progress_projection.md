@@ -1,5 +1,10 @@
 # Study Progress Projection
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+
 这份文档冻结 `MedAutoScience` 侧“前台持续有进度”的正式落地方向。
 
 核心结论：

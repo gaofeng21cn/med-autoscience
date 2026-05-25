@@ -1,5 +1,10 @@
 # Artifact Retention Operations Contract
 
+Owner: `MedAutoScience`
+Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+State: `active_runtime_support`
+Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+
 ## 目标
 
 Artifact retention 只管理文件生命周期，不持有研究、发表或论文质量真相。它的职责是把可安全清理、可重建投影、运行态历史和终局止损线的文件保留策略投影成机器可读计划，并在真正物理操作前提供校验门。
