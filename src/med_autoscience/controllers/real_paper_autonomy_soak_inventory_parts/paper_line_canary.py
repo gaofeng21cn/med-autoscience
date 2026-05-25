@@ -4,6 +4,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 from ..body_free_evidence_packets import build_body_free_evidence_packet
+from ..domain_dispatch_evidence_payload import build_domain_dispatch_evidence_record_payload
 
 
 GATE_ID = "real_paper_line_provider_canary"
@@ -44,6 +45,12 @@ def build_owner_chain_closeout_from_guarded_receipts(
         guarded_receipts=guarded_receipts,
         no_forbidden_write_proof=no_forbidden_write_proof,
     )
+    dispatch_evidence_payload = _domain_dispatch_evidence_record_payload(
+        owner_receipt_refs=owner_receipt_refs,
+        stable_blocker_refs=stable_blocker_refs,
+        live_evidence_refs=live_evidence_refs,
+        no_forbidden_write_proof=no_forbidden_write_proof,
+    )
     return {
         "surface_kind": "mas_real_paper_line_owner_chain_closeout",
         "version": VERSION,
@@ -67,6 +74,7 @@ def build_owner_chain_closeout_from_guarded_receipts(
         },
         "paper_line_owner_chain_results": paper_line_results,
         "live_paper_line_evidence_refs": live_evidence_refs,
+        "domain_dispatch_evidence_record_payload": dispatch_evidence_payload,
         "body_free_evidence_packets": _body_free_owner_chain_packets(
             owner_receipt_refs=owner_receipt_refs,
             stable_blocker_refs=stable_blocker_refs,
@@ -318,6 +326,43 @@ def _selected_surface_ref() -> dict[str, Any]:
         "role": "only_opl_ingestable_refs_surface",
         "body_included": False,
     }
+
+
+def _domain_dispatch_evidence_record_payload(
+    *,
+    owner_receipt_refs: Sequence[str],
+    stable_blocker_refs: Sequence[str],
+    live_evidence_refs: Mapping[str, Any],
+    no_forbidden_write_proof: Mapping[str, Any],
+) -> dict[str, Any]:
+    paper_line_id = _text(live_evidence_refs.get("paper_line_id"))
+    no_forbidden_write_ref = _text(no_forbidden_write_proof.get("proof_ref"))
+    evidence_refs = _dedupe_text(
+        [
+            *owner_receipt_refs,
+            *stable_blocker_refs,
+            *_sequence(live_evidence_refs.get("progress_delta_refs")),
+            *_sequence(live_evidence_refs.get("ai_reviewer_gate_receipt_refs")),
+            *_sequence(live_evidence_refs.get("artifact_movement_refs")),
+            *_sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
+            *_sequence(live_evidence_refs.get("stable_typed_blocker_refs")),
+            no_forbidden_write_ref,
+            SOURCE_ACCEPTANCE_REF,
+        ]
+    )
+    return build_domain_dispatch_evidence_record_payload(
+        task_kind="paper_autonomy/guarded-apply",
+        study_id=paper_line_id,
+        reason=(
+            "real_paper_line_owner_receipt_observed"
+            if owner_receipt_refs
+            else "real_paper_line_stable_typed_blocker_observed"
+        ),
+        evidence_refs=evidence_refs,
+        domain_owner_receipt_refs=owner_receipt_refs,
+        typed_blocker_refs=stable_blocker_refs,
+        no_regression_evidence_refs=[no_forbidden_write_ref] if no_forbidden_write_ref else [],
+    )
 
 
 def _no_forbidden_write_proof(forbidden_write_guard: Mapping[str, Any]) -> dict[str, Any]:

@@ -21,6 +21,9 @@ def build_domain_dispatch_evidence_record_payload(
     stage_evidence_stage_id: str | None = None,
     reason: str,
     evidence_refs: Sequence[str | Mapping[str, Any]] = (),
+    domain_owner_receipt_refs: Sequence[str | Mapping[str, Any]] = (),
+    typed_blocker_refs: Sequence[str | Mapping[str, Any]] = (),
+    no_regression_evidence_refs: Sequence[str | Mapping[str, Any]] = (),
     expected_receipt_refs: Sequence[str | Mapping[str, Any]] = (),
     monitor_freshness_refs: Sequence[str | Mapping[str, Any]] = (),
     runtime_event_refs: Sequence[str | Mapping[str, Any]] = (),
@@ -51,6 +54,10 @@ def build_domain_dispatch_evidence_record_payload(
     expected_receipt_ref_values = _unique_refs([_ref_text(ref) for ref in expected_receipt_refs])
     monitor_freshness_ref_values = _unique_refs([_ref_text(ref) for ref in monitor_freshness_refs])
     runtime_event_ref_values = _unique_refs([_ref_text(ref) for ref in runtime_event_refs])
+    domain_owner_receipt_ref_values = _unique_refs(
+        [_ref_text(ref) for ref in domain_owner_receipt_refs]
+    )
+    supplied_typed_blocker_ref_values = _unique_refs([_ref_text(ref) for ref in typed_blocker_refs])
     slug_scope = normalized_study_id or (
         normalized_stage_id if normalized_stage_id != normalized_task_kind else None
     )
@@ -74,15 +81,29 @@ def build_domain_dispatch_evidence_record_payload(
         f"mas-no-forbidden-write-proof:{DOMAIN_ID}:{typed_blocker_slug}:"
         "refs-only-dispatch-payload"
     )
-    typed_blocker_packet = build_body_free_evidence_packet(
-        ref=typed_blocker_ref,
-        role="stable_typed_blocker_ref",
-        owner=OWNER,
+    supplied_no_regression_evidence_ref_values = _unique_refs(
+        [_ref_text(ref) for ref in no_regression_evidence_refs]
     )
-    no_forbidden_write_packet = build_body_free_evidence_packet(
-        ref=no_forbidden_write_ref,
-        role="no_forbidden_write_proof_ref",
-        owner=OWNER,
+    no_regression_evidence_ref_values = _unique_refs(
+        [
+            *supplied_no_regression_evidence_ref_values,
+            no_forbidden_write_ref if not supplied_no_regression_evidence_ref_values else None,
+        ]
+    )
+    typed_blocker_ref_values = (
+        []
+        if domain_owner_receipt_ref_values
+        else (supplied_typed_blocker_ref_values or [typed_blocker_ref])
+    )
+    mode = (
+        "refs_only_domain_owned_success_payload"
+        if domain_owner_receipt_ref_values
+        else "refs_only_domain_owned_typed_blocker_payload"
+    )
+    closeout_semantics = (
+        "domain_owner_receipt_refs_only_owner_chain_evidence_not_domain_ready"
+        if domain_owner_receipt_ref_values
+        else "typed_blocker_until_real_owner_receipt_or_live_paper_line_closeout"
     )
     stage_evidence_handoff = _stage_evidence_handoff(
         task_kind=normalized_task_kind,
@@ -94,8 +115,36 @@ def build_domain_dispatch_evidence_record_payload(
     stage_evidence_packets = _stage_evidence_packets(
         stage_evidence_handoff=stage_evidence_handoff,
     )
-    owner_chain_refs = evidence_ref_values
-    no_regression_evidence_refs = [no_forbidden_write_ref]
+    owner_chain_refs = _unique_refs(
+        [
+            *evidence_ref_values,
+            *domain_owner_receipt_ref_values,
+        ]
+    )
+    domain_owner_receipt_packets = [
+        build_body_free_evidence_packet(
+            ref=ref,
+            role="domain_owner_receipt_ref",
+            owner=OWNER,
+        )
+        for ref in domain_owner_receipt_ref_values
+    ]
+    typed_blocker_packets = [
+        build_body_free_evidence_packet(
+            ref=ref,
+            role="stable_typed_blocker_ref",
+            owner=OWNER,
+        )
+        for ref in typed_blocker_ref_values
+    ]
+    no_regression_evidence_packets = [
+        build_body_free_evidence_packet(
+            ref=ref,
+            role="no_forbidden_write_proof_ref",
+            owner=OWNER,
+        )
+        for ref in no_regression_evidence_ref_values
+    ]
     accepted_payload_paths = {
         "success_refs_path": {
             "required_any_operator_payload_refs": [
@@ -119,13 +168,13 @@ def build_domain_dispatch_evidence_record_payload(
     record_payload = {
         "domain_id": DOMAIN_ID,
         "task_kind": normalized_task_kind,
-        "domain_owner_receipt_refs": [],
-        "typed_blocker_refs": [typed_blocker_ref],
+        "domain_owner_receipt_refs": domain_owner_receipt_ref_values,
+        "typed_blocker_refs": typed_blocker_ref_values,
         "owner_chain_refs": owner_chain_refs,
         "evidence_refs": evidence_ref_values,
-        "no_regression_evidence_refs": no_regression_evidence_refs,
-        "domain_receipt_refs": [],
-        "no_regression_refs": no_regression_evidence_refs,
+        "no_regression_evidence_refs": no_regression_evidence_ref_values,
+        "domain_receipt_refs": domain_owner_receipt_ref_values,
+        "no_regression_refs": no_regression_evidence_ref_values,
     }
     if expected_receipt_ref_values:
         record_payload["stage_expected_receipt_refs"] = expected_receipt_ref_values
@@ -185,7 +234,7 @@ def build_domain_dispatch_evidence_record_payload(
     return {
         "surface_kind": "mas_domain_dispatch_evidence_record_payload",
         "version": DOMAIN_DISPATCH_EVIDENCE_PAYLOAD_CONTRACT,
-        "mode": "refs_only_domain_owned_typed_blocker_payload",
+        "mode": mode,
         "domain_id": DOMAIN_ID,
         "task_kind": normalized_task_kind,
         **({"study_id": normalized_study_id} if normalized_study_id is not None else {}),
@@ -214,21 +263,22 @@ def build_domain_dispatch_evidence_record_payload(
             "domain_receipt_refs": "domain_owner_receipt_refs",
             "no_regression_refs": "no_regression_evidence_refs",
         },
-        "domain_owner_receipt_refs": [],
-        "typed_blocker_refs": [typed_blocker_ref],
+        "domain_owner_receipt_refs": domain_owner_receipt_ref_values,
+        "typed_blocker_refs": typed_blocker_ref_values,
         "owner_chain_refs": owner_chain_refs,
         "evidence_refs": evidence_ref_values,
-        "no_regression_evidence_refs": no_regression_evidence_refs,
-        "no_regression_refs": no_regression_evidence_refs,
+        "no_regression_evidence_refs": no_regression_evidence_ref_values,
+        "no_regression_refs": no_regression_evidence_ref_values,
         "ledger_receipt_ref_hint": (
             f"mas://domain-dispatch-evidence/{DOMAIN_ID}/{typed_blocker_slug}/{receipt_token}"
         ),
         "body_free_evidence_packets": [
-            typed_blocker_packet,
-            no_forbidden_write_packet,
+            *domain_owner_receipt_packets,
+            *typed_blocker_packets,
+            *no_regression_evidence_packets,
             *stage_evidence_packets,
         ],
-        "closeout_semantics": "typed_blocker_until_real_owner_receipt_or_live_paper_line_closeout",
+        "closeout_semantics": closeout_semantics,
         "body_included": False,
         "domain_ready_claimed": False,
         "publication_ready_claimed": False,

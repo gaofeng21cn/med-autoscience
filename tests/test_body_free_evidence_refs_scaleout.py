@@ -522,3 +522,56 @@ def test_domain_dispatch_evidence_payload_typed_blocker_ref_keeps_identity_token
     assert first["ledger_receipt_ref_hint"] != second["ledger_receipt_ref_hint"]
     assert "88ef5de2fd4a4cca0ac80f96" in first_ref
     assert "12b16bbd3018014cbf0a20a5" in second_ref
+
+
+def test_domain_dispatch_evidence_payload_can_emit_owner_receipt_success_refs_path() -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_dispatch_evidence_payload")
+
+    payload = module.build_domain_dispatch_evidence_record_payload(
+        task_kind="paper_autonomy/guarded-apply",
+        study_id="DM002",
+        reason="real_paper_line_owner_receipt_observed",
+        evidence_refs=[
+            "studies/DM002/artifacts/controller/repair_execution_evidence/latest.json",
+            "studies/DM002/artifacts/controller_decisions/latest.json",
+        ],
+        domain_owner_receipt_refs=[
+            "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+        ],
+        no_regression_evidence_refs=[
+            "studies/DM002/artifacts/supervision/no_forbidden_write/guarded_apply.json",
+        ],
+        source_fingerprint="guarded-owner-success-001",
+        profile_name="nfpitnet",
+    )
+
+    record_payload = payload["record_payload"]
+    assert payload["mode"] == "refs_only_domain_owned_success_payload"
+    assert record_payload["domain_owner_receipt_refs"] == [
+        "studies/DM002/artifacts/owner_receipts/guarded_apply/latest.json",
+    ]
+    assert record_payload["domain_receipt_refs"] == record_payload["domain_owner_receipt_refs"]
+    assert payload["domain_owner_receipt_refs"] == record_payload["domain_owner_receipt_refs"]
+    assert record_payload["typed_blocker_refs"] == []
+    assert payload["typed_blocker_refs"] == []
+    assert record_payload["no_regression_evidence_refs"] == [
+        "studies/DM002/artifacts/supervision/no_forbidden_write/guarded_apply.json",
+    ]
+    assert record_payload["no_regression_refs"] == record_payload["no_regression_evidence_refs"]
+    assert payload["opl_runtime_action_execute_payload"] == record_payload
+    assert {
+        packet["role"] for packet in payload["body_free_evidence_packets"]
+    } == {
+        "domain_owner_receipt_ref",
+        "no_forbidden_write_proof_ref",
+    }
+    assert payload["closeout_semantics"] == (
+        "domain_owner_receipt_refs_only_owner_chain_evidence_not_domain_ready"
+    )
+    assert payload["domain_ready_claimed"] is False
+    assert payload["publication_ready_claimed"] is False
+    assert payload["artifact_mutation_authorized"] is False
+    assert payload["authority_boundary"]["provider_completion_is_domain_ready"] is False
+    rendered = json.dumps(payload, ensure_ascii=False)
+    assert "current_package_body" in payload["forbidden_payload_fields"]
+    assert "MEMORY_BODY_SHOULD_NOT_APPEAR" not in rendered

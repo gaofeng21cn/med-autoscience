@@ -122,6 +122,22 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
         "claims_artifact_mutation_authorized": False,
         "claims_current_package_updated": False,
     }
+    evidence_payload = payload["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
+    assert evidence_payload["task_kind"] == "paper_autonomy/guarded-apply"
+    assert evidence_payload["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert evidence_payload["mode"] == "refs_only_domain_owned_success_payload"
+    assert {
+        str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"),
+        str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"),
+    } <= set(evidence_payload["record_payload"]["domain_owner_receipt_refs"])
+    assert evidence_payload["record_payload"]["typed_blocker_refs"] == []
+    assert evidence_payload["record_payload"]["domain_receipt_refs"] == evidence_payload[
+        "record_payload"
+    ]["domain_owner_receipt_refs"]
+    assert evidence_payload["domain_ready_claimed"] is False
+    assert evidence_payload["publication_ready_claimed"] is False
+    assert evidence_payload["artifact_mutation_authorized"] is False
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")
 
@@ -155,5 +171,10 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
         "mas_owner_apply_receipt_missing:"
     )
     assert per_line_result["body_included"] is False
+    evidence_payload = payload["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
+    assert evidence_payload["mode"] == "refs_only_domain_owned_typed_blocker_payload"
+    assert evidence_payload["record_payload"]["domain_owner_receipt_refs"] == []
+    assert evidence_payload["record_payload"]["typed_blocker_refs"]
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")
