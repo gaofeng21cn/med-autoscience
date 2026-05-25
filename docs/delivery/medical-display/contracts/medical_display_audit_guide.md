@@ -70,8 +70,8 @@ The audited source files are:
 - For anchor-paper and paper-owned delivery surfaces, keep the directory truth simple and stable:
   - `paper/` = authoritative manuscript-facing source surface;
   - `paper/figures/*.shell.json` / `paper/tables/*.shell.json` = display contracts and shells, not rendered deliverables;
-  - `paper/figures/generated/` and `paper/tables/generated/` = authoritative generated display outputs;
-  - `paper/submission_minimal/` = stable submission-package surface that should stay continuously refreshed;
+  - `paper/figures/generated/` and `paper/tables/generated/` = authoritative generated display outputs, not artifact authority or source truth;
+  - `paper/submission_minimal/` = stable submission-package projection surface; freshness and submission readiness still require MAS owner authority and receipts;
   - `manuscript/` = the only human-facing final-delivery mirror;
   - `artifacts/` = auxiliary runtime/finalization evidence only, not duplicated figure/table lookup.
   - legacy top-level exports such as `paper/figures/Figure*.png|pdf|svg` and `paper/tables/Table*.csv|md` should be pruned once the catalog points to `generated/`.
@@ -533,7 +533,7 @@ This means the plotting path is constrained before, during, and after rendering:
 
 Publication-facing figure appearance is no longer treated as a private template concern.
 
-- `paper/publication_style_profile.json` is the article-level visual source of truth.
+- `paper/publication_style_profile.json` is the article-level visual/style source of truth; it is not source-readiness, artifact-authority, publication-quality, or submission-readiness authority.
 - `paper/display_overrides.json` is the structured figure-level adjustment layer.
 - Templates remain the audited lower bound, but they do not cap manuscript-facing expression when the formal style and override contracts require a clearer presentation.
 
@@ -549,7 +549,7 @@ A figure fails readability audit when it technically renders but does not commun
 - threshold-region utility that is not meaningfully distinguishable
 - grouped or panelized evidence that is present but not interpretable at publication surface
 
-Readability failure is a blocking audit outcome. The required correction path is:
+Readability failure is a blocking display-audit outcome for accepting the generated display surface. The required correction path is:
 
 1. adjust `display_overrides.json`
 2. adjust `publication_style_profile.json`

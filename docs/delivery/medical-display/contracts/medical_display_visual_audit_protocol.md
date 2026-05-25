@@ -112,7 +112,7 @@ Use the following fields:
 - `observed_issue`
   - what is visibly wrong
 - `paper_facing_impact`
-  - why this matters for publication quality
+  - why this matters for publication-facing display quality
 - `suspected_layer`
   - one or more of:
     - `paper_input`
@@ -180,7 +180,7 @@ A finding may remain paper-local when:
 
 ## Acceptance Standard
 
-A figure or table should only be treated as paper-ready when both layers are satisfied:
+A figure or table should only be treated as ready for the paper-facing display surface when both layers are satisfied:
 
 1. the deterministic audited layer is clear;
 2. the visual-audit finding set is either:
@@ -190,7 +190,9 @@ A figure or table should only be treated as paper-ready when both layers are sat
 Therefore:
 
 - `gate clear` is necessary;
-- `visual audit clear` is the paper-facing completion signal.
+- `visual audit clear` is the paper-facing display completion signal.
+
+This acceptance standard does not authorize source readiness, formal publication-quality verdicts, submission readiness, artifact mutation, `current_package` freshness, delivery sync, paper closure, domain ready, or production ready. Those outcomes remain MAS owner-authority decisions backed by receipts, reviewer/auditor records, typed blockers, and real workspace evidence.
 
 ## What Not To Do
 
