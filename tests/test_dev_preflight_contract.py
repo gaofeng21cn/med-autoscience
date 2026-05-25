@@ -663,6 +663,35 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
     ]
 
 
+def test_classify_changed_files_matches_production_acceptance_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "contracts/agent_lab_handoff.json",
+            "contracts/production_acceptance/mas-production-acceptance.json",
+            "tests/test_mas_production_acceptance.py",
+            "tests/test_opl_standard_pack.py",
+        ]
+    )
+
+    assert result.matched_categories == ("production_acceptance_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh tests/test_mas_production_acceptance.py -q",
+        "scripts/run-pytest-clean.sh tests/test_opl_standard_pack.py -q",
+    ]
+
+
+def test_classify_changed_files_matches_codex_plugin_skill_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(["plugins/mas/skills/mas/SKILL.md"])
+
+    assert result.matched_categories == ("codex_plugin_surface",)
+    assert result.unclassified_changes == ()
+
+
 def test_classify_changed_verify_script_as_family_shared_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 

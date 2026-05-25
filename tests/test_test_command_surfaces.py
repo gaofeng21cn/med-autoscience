@@ -36,11 +36,11 @@ REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_cli_cases/public_entry_commands.py::test_control_plane_cleanup_apply_is_not_public",
     "tests/test_cli_cases/public_entry_commands.py::test_lifecycle_report_command_dispatches_read_only_controller_options",
     "tests/test_cli_cases/authority_operation_commands.py",
-    "tests/test_mcp_server.py::test_mcp_product_entry_description_documents_authority_operation_surfaces",
-    "tests/test_mcp_server.py::test_mcp_product_entry_schema_accepts_authority_operation_options",
-    "tests/test_mcp_server.py::test_mcp_product_entry_can_call_workspace_authority_migration_audit",
-    "tests/test_mcp_server.py::test_mcp_product_entry_rejects_cleanup_apply_mode",
-    "tests/test_mcp_server.py::test_mcp_product_entry_can_call_lifecycle_report_with_scan_options",
+    "tests/test_mcp_server.py::test_mcp_authority_operations_description_documents_authority_operation_surfaces",
+    "tests/test_mcp_server.py::test_mcp_authority_operations_schema_accepts_authority_operation_options",
+    "tests/test_mcp_server.py::test_mcp_authority_operations_can_call_workspace_authority_migration_audit",
+    "tests/test_mcp_server.py::test_mcp_authority_operations_rejects_cleanup_apply_mode",
+    "tests/test_mcp_server.py::test_mcp_authority_operations_can_call_lifecycle_report_with_scan_options",
     "tests/test_test_command_surfaces.py::test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces",
     "tests/test_installed_mcp_smoke.py::test_installed_medautosci_mcp_lists_authority_operation_modes",
     "tests/test_installed_mcp_smoke.py::test_installed_medautosci_cli_lists_authority_operation_group_commands",
@@ -847,7 +847,7 @@ def test_authority_operation_command_catalog_guards_cli_mcp_manifest_and_schema_
             cli_commands.update(action.choices)
 
     mcp_tools = {tool["name"]: tool for tool in mcp_server.build_tool_manifest()}
-    mcp_modes = set(mcp_tools["product_entry"]["inputSchema"]["properties"]["mode"]["enum"])
+    mcp_modes = set(mcp_tools["authority_operations"]["inputSchema"]["properties"]["mode"]["enum"])
     domain_catalog = domain_entry_contract.build_domain_entry_command_catalog()
     product_entry_manifest_contract = domain_entry_contract.build_domain_entry_contract()
     schema = json.loads(_read("contracts/schemas/v1/product-entry-manifest.schema.json"))

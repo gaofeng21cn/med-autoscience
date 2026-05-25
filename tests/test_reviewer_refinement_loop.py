@@ -455,7 +455,7 @@ def test_reviewer_refinement_loop_generates_executable_repair_work_units_for_blo
     assert read_model["repair_loop"]["execution_contract"] == {
         "contract_id": "reviewer_refinement_repair_work_units_v1",
         "dispatch_surface": "repair_work_units",
-        "dispatch_authority": "owner_route_or_sidecar",
+            "dispatch_authority": "owner_route_or_domain_handler",
         "direct_package_mutation_allowed": False,
         "current_package_mutation_allowed": False,
         "quality_authorization_allowed": False,

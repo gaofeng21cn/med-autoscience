@@ -86,6 +86,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         category_id="codex_plugin_surface",
         exact_paths=(
             "scripts/install-codex-plugin.sh",
+            "plugins/mas/skills/mas/SKILL.md",
             "src/med_autoscience/codex_plugin_installer.py",
             "tests/test_codex_plugin.py",
             "tests/test_codex_plugin_installer.py",
@@ -262,6 +263,20 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 "tests/test_test_lane_governance.py -q"
             ),
             f"{PYTEST_CLEAN_RUNNER} tests/test_product_entry.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="production_acceptance_surface",
+        exact_paths=(
+            "contracts/agent_lab_handoff.json",
+            "contracts/production_acceptance/mas-production-acceptance.json",
+            "tests/test_mas_production_acceptance.py",
+            "tests/test_opl_standard_pack.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            f"{PYTEST_CLEAN_RUNNER} tests/test_mas_production_acceptance.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_opl_standard_pack.py -q",
         ),
     ),
     PreflightCategorySpec(
