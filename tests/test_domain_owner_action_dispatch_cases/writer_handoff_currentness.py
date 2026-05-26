@@ -301,3 +301,307 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
     assert execution["execution_status"] == "handoff_ready"
     assert execution["owner_route_current"] is True
     assert execution["owner_route_basis"] == "bridged_writer_handoff"
+
+
+def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_runtime_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    quest_root.mkdir(parents=True)
+    work_unit_id = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+    work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    runtime_route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    runtime_route.update(
+        {
+            "truth_epoch": "truth-event-000022",
+            "route_epoch": "truth-event-000022",
+            "runtime_health_epoch": "runtime-health-event-006239",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_fingerprint": "truth-snapshot::dm002-current",
+            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "idempotency_key": "owner-route::dm002::runtime-handoff",
+            "source_refs": {
+                "study_truth_epoch": "truth-event-000022",
+                "runtime_health_epoch": "runtime-health-event-006239",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+                "owner_route_currentness_basis": {
+                    "work_unit_id": work_unit_id,
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "truth_epoch": "truth-event-000022",
+                    "runtime_health_epoch": "runtime-health-event-006239",
+                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                },
+            },
+        }
+    )
+    bridged_route = dict(runtime_route)
+    bridged_route.update(
+        {
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "idempotency_key": "owner-route::dm002::story-surface-delta",
+            "source_refs": {
+                **runtime_route["source_refs"],
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "bridged_from_idempotency_key": runtime_route["idempotency_key"],
+                "bridge_authority": "domain_action_request_materializer_story_surface_bridge",
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=bridged_route,
+    )
+    dispatch_payload.update(
+        {
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "source_action": {
+                "action_type": "run_quality_repair_batch",
+                "reason": "manuscript_story_surface_delta_missing",
+                "route_target": "write",
+                "next_work_unit": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "controller_work_unit_id": work_unit_id,
+                "executable_work_unit": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+            },
+        }
+    )
+    dispatch_payload["prompt_contract"].update(
+        {
+            "owner_route": bridged_route,
+            "idempotency_key": bridged_route["idempotency_key"],
+            "repeat_suppression_key": work_unit_fingerprint,
+        }
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": runtime_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": quest_id,
+                            "action_type": "run_quality_repair_batch",
+                            "owner": "write",
+                            "request_owner": "write",
+                            "reason": "quest_waiting_opl_runtime_owner_route",
+                            "next_work_unit": work_unit_id,
+                            "controller_work_unit_id": work_unit_id,
+                            "owner_route": runtime_route,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
+    monkeypatch.setattr(
+        module.action_execution.quality_repair,
+        "execute_quality_repair_batch",
+        lambda **_: {
+            "execution_status": "handoff_ready",
+            "blocked_reason": None,
+            "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "owner_result": {"status": "handoff_ready"},
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 0
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["owner_route_current"] is True
+    assert execution["owner_route_basis"] == "bridged_writer_handoff"
+
+
+def test_execute_dispatch_rejects_materialized_story_surface_route_with_stale_bridge_idempotency(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    (profile.runtime_root / quest_id).mkdir(parents=True)
+    work_unit_id = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+    work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    runtime_route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    runtime_route.update(
+        {
+            "truth_epoch": "truth-event-000022",
+            "route_epoch": "truth-event-000022",
+            "runtime_health_epoch": "runtime-health-event-006239",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "source_fingerprint": "truth-snapshot::dm002-current",
+            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "idempotency_key": "owner-route::dm002::runtime-handoff-current",
+            "source_refs": {
+                "study_truth_epoch": "truth-event-000022",
+                "runtime_health_epoch": "runtime-health-event-006239",
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            },
+        }
+    )
+    bridged_route = dict(runtime_route)
+    bridged_route.update(
+        {
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "idempotency_key": "owner-route::dm002::story-surface-delta",
+            "source_refs": {
+                **runtime_route["source_refs"],
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "bridged_from_owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "bridged_from_idempotency_key": "owner-route::dm002::runtime-handoff-stale",
+                "bridge_authority": "domain_action_request_materializer_story_surface_bridge",
+            },
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=bridged_route,
+    )
+    dispatch_payload.update(
+        {
+            "dispatch_authority": "consumer_default_executor_dispatch",
+            "source_action": {
+                "action_type": "run_quality_repair_batch",
+                "reason": "manuscript_story_surface_delta_missing",
+                "route_target": "write",
+                "next_work_unit": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "controller_work_unit_id": work_unit_id,
+                "executable_work_unit": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+            },
+        }
+    )
+    dispatch_payload["prompt_contract"].update(
+        {
+            "owner_route": bridged_route,
+            "idempotency_key": bridged_route["idempotency_key"],
+            "repeat_suppression_key": work_unit_fingerprint,
+        }
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / module.SUPERVISION_LATEST_RELATIVE_PATH,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "owner_route": runtime_route,
+                    "action_queue": [
+                        {
+                            "study_id": study_id,
+                            "quest_id": quest_id,
+                            "action_type": "run_quality_repair_batch",
+                            "owner": "write",
+                            "request_owner": "write",
+                            "reason": "quest_waiting_opl_runtime_owner_route",
+                            "next_work_unit": work_unit_id,
+                            "controller_work_unit_id": work_unit_id,
+                            "owner_route": runtime_route,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "owner_route_stale"
+    assert execution["owner_route_basis"] == "scan_latest"

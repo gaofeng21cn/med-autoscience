@@ -6,6 +6,14 @@ from typing import Any
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
+BRIDGE_AUTHORITIES = frozenset(
+    {
+        "quality_repair_batch_writer_handoff_currentness_bridge",
+        "domain_action_request_materializer_story_surface_bridge",
+    }
+)
+
+
 def bridged_quality_repair_writer_handoff_route_from_scan_payload(
     *,
     scan_payload: Mapping[str, Any] | None,
@@ -50,13 +58,20 @@ def _bridged_quality_repair_writer_handoff_route(
 
 def _writer_handoff_dispatch_shape(dispatch: Mapping[str, Any]) -> bool:
     source_action = _mapping(dispatch.get("source_action"))
-    return (
+    dispatch_authority = _text(dispatch.get("dispatch_authority"))
+    if not (
         _text(dispatch.get("action_type")) == "run_quality_repair_batch"
-        and _text(dispatch.get("dispatch_authority")) == "quality_repair_batch_writer_handoff"
         and _text(dispatch.get("next_executable_owner")) == "write"
-        and _text(source_action.get("surface")) == "quality_repair_batch"
-        and _text(source_action.get("blocked_reason")) == "manuscript_story_surface_delta_missing"
-    )
+    ):
+        return False
+    if dispatch_authority == "quality_repair_batch_writer_handoff":
+        return (
+            _text(source_action.get("surface")) == "quality_repair_batch"
+            and _text(source_action.get("blocked_reason")) == "manuscript_story_surface_delta_missing"
+        )
+    if dispatch_authority in {None, "consumer_default_executor_dispatch"}:
+        return _text(source_action.get("reason")) == "manuscript_story_surface_delta_missing"
+    return False
 
 
 def _writer_handoff_route_shape(route: Mapping[str, Any]) -> bool:
@@ -82,7 +97,7 @@ def _bridge_refs_match_current(
 ) -> bool:
     dispatch_refs = _mapping(dispatch_route.get("source_refs"))
     return (
-        _text(dispatch_refs.get("bridge_authority")) == "quality_repair_batch_writer_handoff_currentness_bridge"
+        _text(dispatch_refs.get("bridge_authority")) in BRIDGE_AUTHORITIES
         and _text(dispatch_refs.get("bridged_from_owner_reason")) == "quest_waiting_opl_runtime_owner_route"
         and _text(dispatch_refs.get("bridged_from_idempotency_key")) == _text(current_route.get("idempotency_key"))
     )

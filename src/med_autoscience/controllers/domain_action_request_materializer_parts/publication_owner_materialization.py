@@ -15,6 +15,7 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+STORY_SURFACE_BRIDGE_AUTHORITY = "domain_action_request_materializer_story_surface_bridge"
 
 
 def materialization_action(
@@ -234,7 +235,22 @@ def _rewrite_owner_route(
 ) -> dict[str, Any]:
     route = owner_route_part.ensure_owner_route_v2(owner_route)
     source_refs = dict(_mapping(route.get("source_refs")))
-    source_refs["work_unit_id"] = work_unit_id
+    original_owner_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
+    original_idempotency_key = _text(route.get("idempotency_key"))
+    original_work_unit_id = _text(source_refs.get("work_unit_id"))
+    if _is_runtime_to_story_surface_bridge(
+        original_owner_reason=original_owner_reason,
+        original_work_unit_id=original_work_unit_id,
+        owner_reason=owner_reason,
+        work_unit_id=work_unit_id,
+    ):
+        source_refs["materialized_work_unit_id"] = work_unit_id
+        source_refs["bridged_from_owner_reason"] = original_owner_reason
+        source_refs["bridge_authority"] = STORY_SURFACE_BRIDGE_AUTHORITY
+        if original_idempotency_key is not None:
+            source_refs["bridged_from_idempotency_key"] = original_idempotency_key
+    else:
+        source_refs["work_unit_id"] = work_unit_id
     source_refs["blocked_reason"] = owner_reason
     route.update(
         {
@@ -259,6 +275,21 @@ def _rewrite_owner_route(
         if item
     )
     return owner_route_part.ensure_owner_route_v2(route)
+
+
+def _is_runtime_to_story_surface_bridge(
+    *,
+    original_owner_reason: str | None,
+    original_work_unit_id: str | None,
+    owner_reason: str,
+    work_unit_id: str,
+) -> bool:
+    return (
+        original_owner_reason == "quest_waiting_opl_runtime_owner_route"
+        and original_work_unit_id == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
+        and owner_reason == "manuscript_story_surface_delta_missing"
+        and work_unit_id == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+    )
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:
