@@ -5,7 +5,7 @@ Purpose: `Explain MAS runtime control surfaces and controller responsibilities f
 State: `active_runtime_support`
 Machine boundary: Human-readable runtime control support only; runtime control truth remains in controller source, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
 
-这个目录用于说明 `MedAutoScience` 中的外层治理控制器迁移状态。
+这个目录用于说明 `MedAutoScience` 中的 runtime control surfaces、controller responsibility 和 owner boundary。
 
 这些 controller 默认首先服务于 Agent 调用面，而不是人手工操作面。
 
@@ -15,7 +15,7 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - CLI 只是当前 direct path 的薄包装；OPL generated/default caller 接管后，repo-local CLI/MCP/product-entry/sidecar wrapper 只能继续作为 domain target、authority function 或诊断入口，否则按 no-active-caller proof 删除。
 - 人类主要审核 controller 产出的 report、summary、delivery、owner receipt、typed blocker 和审计日志。
 
-当前已经完成最小代码迁移的能力有：
+当前 controller / authority-function surface 包括：
 
 1. publishability gate
 2. medical publication surface
@@ -42,8 +42,16 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `src/med_autoscience/controllers/data_assets.py`
 - `src/med_autoscience/controllers/data_asset_updates.py`
 - `src/med_autoscience/controllers/backend_audit.py`
-- `src/med_autoscience/controllers/study_runtime_router.py`
+- `src/med_autoscience/controllers/domain_status_projection.py`
+- `src/med_autoscience/controllers/progress_projection.py`
+- `src/med_autoscience/controllers/progress_projection_parts/`
 - `src/med_autoscience/controllers/study_runtime_types.py`
+- `src/med_autoscience/controllers/study_runtime_decision.py`
+- `src/med_autoscience/controllers/study_runtime_decision_parts/`
+- `src/med_autoscience/controllers/study_runtime_startup.py`
+- `src/med_autoscience/controllers/study_runtime_completion.py`
+- `src/med_autoscience/controllers/study_runtime_resolution.py`
+- `src/med_autoscience/controllers/study_runtime_execution_parts/`
 - `src/med_autoscience/controllers/runtime_storage_maintenance.py`
 - `src/med_autoscience/controllers/owner_route_handoff.py`
 - `src/med_autoscience/controllers/delivery_inspector.py`
@@ -65,6 +73,11 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `tests/test_data_asset_updates.py`
 - upgrade-check 的专用测试模块
 - `tests/test_study_runtime_router.py`
+- `tests/test_study_runtime_router_topology.py`
+- `tests/test_study_runtime_typed_surface.py`
+- `tests/test_progress_projection_evidence_adoption.py`
+- `tests/test_study_runtime_execution_control_intent_cases/`
+- `tests/test_study_runtime_execution_evidence_adoption_cases/`
 - `tests/test_runtime_storage_maintenance.py`
 - `tests/test_cli_cases/owner_route_handoff_command.py`
 - `tests/test_delivery_inspector.py`
@@ -77,11 +90,11 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `tests/test_agent_lab_medical_manuscript_quality.py`
 - `tests/test_publication_aftercare.py`
 
-当前迁移策略是：
+当前源码形态是：
 
-- 先把已经在真实医学课题中跑通过的 controller 以最小切片迁入新 repo
-- 先保住行为和测试
-- 再做第二轮去耦，把 policy、adapter、runtime protocol 从 controller 里拆出去
+- functional / structural gates 已按 standard OPL Agent source shape 关闭，controller 代码按 domain handler target、authority function、owner receipt / typed blocker producer 或 refs-only projection input 读取。
+- `study_runtime_execution.py`、`study_runtime_transport.py` 和旧 router transport helper 只能作为 retired provenance / migration input / tombstone 语境出现；当前测试约束它们不得重新变成 importable MAS 私有 runtime 控制面。
+- former wrapper / private runtime surface 的物理删除只在 replacement parity、MAS owner receipt 或 stable typed blocker、no-active-caller proof、focused tests 与 tombstone/provenance proof 同时成立时执行，不把未授权删除门写回 active functional / structural gap。
 
 对于数据资产层，当前已经区分两类 controller 能力：
 
@@ -97,12 +110,14 @@ Machine boundary: Human-readable runtime control support only; runtime control t
   - 统一检查 repo 配置、Git 状态、workspace contract、医学 overlay 状态和 legacy provenance/audit surface
   - 输出机器可读 decision，供 Agent 判断是否进入 explicit archive import、backend audit、parity check、upstream intake 或 MAS-side capability absorption
 
-对于 managed study runtime，当前 controller 已明确分成两层：
+对于 managed study runtime，当前 controller 已明确分成当前 projection / typed surface / authority helper 三组：
 
-- `study_runtime_router`
-  - 负责 orchestration、preflight、transport 调用和 artifact 落盘
-- `study_runtime_types`
-  - 负责 `study_runtime_router` 的稳定 typed surface，并由 router 对外 re-export
+- `domain_status_projection.progress_projection(...)`
+  - 当前 diagnostic/status projection 入口，读取 MAS domain refs 并返回 status payload；不 re-export 私有 runtime control-plane binding。
+- `progress_projection.py`、`progress_projection_parts/` 与 `study_runtime_types.py`
+  - 负责 `ProgressProjectionStatus`、decision/reason/status enum 和 runtime result wrapper 等 typed surface；`study_runtime_types.py` 只是 lazy import shim，不是 router re-export 合同。
+- `study_runtime_decision.py`、`study_runtime_startup.py`、`study_runtime_completion.py`、`study_runtime_resolution.py` 与 `study_runtime_execution_parts/`
+  - 负责 status decision、startup projection、completion sync、study/root resolution、controller authorization、owner handoff、control-intent lifecycle 和 work-unit evidence adoption。
 
 对应稳定技术说明见：
 

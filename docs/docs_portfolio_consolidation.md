@@ -1216,3 +1216,47 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for the remaining `docs/runtime/contracts/**` / `docs/runtime/control/**` bodies not covered by prior ledger entries.
 - Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
+
+### 2026-05-26 runtime control docs currentness tranche
+
+本轮覆盖 MAS runtime-control support docs 中关于 controller source shape、typed status surface、OPL stage-attempt handoff 与 retired private runtime modules 的当前事实。目标是把 `docs/runtime/control/controllers.md` 与 `docs/runtime/control/study_runtime_orchestration.md` 从旧 `study_runtime_router.py` / `study_runtime_execution.py` / `study_runtime_transport.py` 兼容叙述收敛到当前 split module、typed surface 和 no-resurrection tests。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/architecture.md`, `docs/status.md`, `docs/runtime/control/study_runtime_control_surface.md`, and this coverage ledger.
+- Runtime control docs: `docs/runtime/control/controllers.md`, `docs/runtime/control/study_runtime_orchestration.md`, and `docs/runtime/control/study_runtime_control_surface.md`.
+- Source surfaces: `src/med_autoscience/controllers/domain_status_projection.py`, `src/med_autoscience/controllers/progress_projection.py`, `src/med_autoscience/controllers/progress_projection_parts/`, `src/med_autoscience/controllers/study_runtime_types.py`, `src/med_autoscience/controllers/study_runtime_decision.py`, `src/med_autoscience/controllers/study_runtime_decision_parts/`, `src/med_autoscience/controllers/study_runtime_startup.py`, `src/med_autoscience/controllers/study_runtime_completion.py`, `src/med_autoscience/controllers/study_runtime_resolution.py`, `src/med_autoscience/controllers/study_runtime_execution_parts/`, and `src/med_autoscience/runtime_control/ports.py`.
+- Machine / contract surfaces: `contracts/action_catalog.json`, `contracts/functional_privatization_audit.json`, and `contracts/test-lane-manifest.json`.
+- Focused tests read as evidence: `tests/test_study_runtime_router.py`, `tests/test_study_runtime_router_topology.py`, `tests/test_study_runtime_typed_surface.py`, `tests/test_progress_projection_evidence_adoption.py`, `tests/test_opl_standard_pack.py`, `tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py`, `tests/test_study_runtime_execution_control_intent_cases/`, and `tests/test_study_runtime_execution_evidence_adoption_cases/`.
+
+Fresh semantic result:
+
+- `study_runtime_router.py`, `study_runtime_execution.py`, and `study_runtime_transport.py` are not current importable active surfaces. Their names can appear only as retired provenance, migration input, tombstone, diagnostic explanation, or no-resurrection test context.
+- Current status/projection shape is `domain_status_projection.progress_projection(...)` plus `progress_projection.py` / `progress_projection_parts/` typed status model. `study_runtime_types.py` is a lazy typed-name import shim; it is not a router re-export compatibility contract.
+- `runtime_control.ports.request_opl_stage_attempt(...)` and the injected domain-health-diagnostic stage-attempt port read `progress_projection` payload and emit OPL admission / owner-handoff refs. They do not execute provider resume/relaunch, queue hydration, retry/dead-letter, current-control-state writes, or MAS-local lifecycle mutation.
+- `study_runtime_execution_parts/` is the current controller authorization / owner handoff / control-intent lifecycle / receipt / work-unit evidence adoption helper family. Its internals are not a stable public contract unless upgraded into explicit spec.
+- `StudyRuntimeExecutionContext` and `StudyRuntimeExecutionOutcome` are retired execution aggregates; typed-surface tests assert they remain absent from `study_runtime_types` and `domain_status_projection`.
+- `docs/runtime/control/study_runtime_control_surface.md` remained aligned with current stop/pause/rerun and owner-handoff semantics; no edit was needed beyond coverage recording.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/control/controllers.md`, `docs/runtime/control/study_runtime_orchestration.md`, and `docs/runtime/control/study_runtime_control_surface.md`, with live source/contract/test evidence listed above. | `docs/runtime/control/controllers.md`; `docs/runtime/control/study_runtime_orchestration.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The retired runtime module names were corrected in place because they function here as support-doc stale wording, not as standalone documents needing a history move.
+
+Uncovered docs in this semantic area:
+
+- Remaining MAS runtime/control docs outside this bounded group, especially `docs/runtime/contracts/**`, `docs/runtime/projections/**`, `docs/runtime/display/**`, and remaining `docs/runtime/designs/**` bodies not already paragraph-covered by prior ledger entries.
+- MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside already-covered blocks remains open.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any future active prose that writes `study_runtime_router.py`, `study_runtime_execution.py`, `study_runtime_transport.py`, router helper monkeypatches, MAS-local transport helper refs, or provider backend alias as current active implementation, compatibility surface, patch target, or MAS-owned generic runtime owner is stale pollution.
+- Any future typed-surface prose that exposes `StudyRuntimeExecutionContext` or `StudyRuntimeExecutionOutcome` as current stable names is stale unless the source and focused tests intentionally change.
+- Any future controller prose that treats OPL stage-attempt admission, owner-route handoff, provider completion, queue completion, or current-control-state metadata as MAS study truth, publication quality verdict, artifact authority, `current_package` freshness, paper closure, domain ready, or production ready is stale.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for the remaining `docs/runtime/contracts/**` bodies, or the next bounded runtime projection/display/design group not already covered.
+- Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.

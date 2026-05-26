@@ -7,7 +7,7 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 
 这份文档把 `MedAutoScience` 当前 domain runtime-facing refs 与 OPL runtime-control handoff 的最小稳定 contract 明确下来。
 
-目标不是把 `study_runtime_router` 的每个内部 helper 都文档化，而是说明：
+目标不是把 split runtime-control module 的每个内部 helper 都文档化，而是说明：
 
 - 哪些入口是正式依赖面
 - `progress_projection` / `request_opl_stage_attempt` 如何读取 MAS domain refs 并交给 OPL runtime-control owner
@@ -47,8 +47,8 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
   - runtime 可稳定引用的最小 charter 投影
 - `study_runtime_startup`
   - 负责从 controller truth 编译 startup projection
-- `study_runtime_execution`
-  - 在 create 路径 materialize durable charter，并校验 runtime-facing projection 一致性
+- `study_runtime_execution_parts`
+  - 在 controller authorization / owner handoff 路径校验 runtime-facing projection 与当前 controller decision refs；不持有 `study_charter` authority，也不承接 generic provider transport
 
 这意味着：
 
@@ -58,29 +58,30 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 
 ## 作用域
 
-当前历史实现曾分成八个层次；本 physical-retirement lane 只把它们作为 provenance、diagnostic reader 或 domain-authority refs 来源读取：
+当前 source shape 分成以下层次：
 
-- [`src/med_autoscience/controllers/study_runtime_router.py`](../../../src/med_autoscience/controllers/study_runtime_router.py)
-  - 作为 historical diagnostic reader，保留 `progress_projection(...)` / `request_opl_stage_attempt(...)` 的读取和 owner-route refs 投影语义
-  - 不再是 MAS 私有 provider、queue、attempt、resume/relaunch 或 lifecycle 控制面
-- [`src/med_autoscience/controllers/study_runtime_types.py`](../../../src/med_autoscience/controllers/study_runtime_types.py)
+- [`src/med_autoscience/controllers/domain_status_projection.py`](../../../src/med_autoscience/controllers/domain_status_projection.py)
+  - 当前 diagnostic/status projection 入口，暴露 `progress_projection(...)` 和 `study_outer_loop_tick(...)`，读取 MAS domain refs 并返回 status payload
+  - 不 re-export `request_opl_stage_attempt`、pause/resume/transport helper 或旧 private runtime control-plane binding
+- [`src/med_autoscience/controllers/progress_projection.py`](../../../src/med_autoscience/controllers/progress_projection.py) / [`src/med_autoscience/controllers/progress_projection_parts/`](../../../src/med_autoscience/controllers/progress_projection_parts/)
   - 负责 typed surface：decision / reason / quest status enums，status object，以及 execution outcome wrappers
+- [`src/med_autoscience/controllers/study_runtime_types.py`](../../../src/med_autoscience/controllers/study_runtime_types.py)
+  - 作为 lazy import shim 暴露 typed names；它不定义 router re-export 兼容合同
 - [`src/med_autoscience/controllers/study_runtime_decision.py`](../../../src/med_autoscience/controllers/study_runtime_decision.py)
   - 负责 status read-model、decision state machine、quest runtime audit 收口
 - [`src/med_autoscience/controllers/study_runtime_startup.py`](../../../src/med_autoscience/controllers/study_runtime_startup.py)
   - 负责 startup contract、create payload、overlay helper、startup hydration / context sync
 - [`src/med_autoscience/controllers/study_runtime_completion.py`](../../../src/med_autoscience/controllers/study_runtime_completion.py)
   - 负责 study-level completion state 读取、completion request message 构造、completion sync
-- [`src/med_autoscience/controllers/study_runtime_execution.py`](../../../src/med_autoscience/controllers/study_runtime_execution.py)
-  - 仅作为历史 execution contract 与迁移输入读取；当前可持续 runtime mutation、attempt、resume/relaunch、pause/stop 和 current-control-state 归 OPL runtime owner
+- [`src/med_autoscience/controllers/study_runtime_execution_parts/`](../../../src/med_autoscience/controllers/study_runtime_execution_parts/)
+  - 负责 controller authorization、owner handoff authorization、control-intent lifecycle、authorization receipt 和 work-unit evidence adoption
 - [`src/med_autoscience/controllers/study_runtime_resolution.py`](../../../src/med_autoscience/controllers/study_runtime_resolution.py)
   - 负责 study YAML 读取、study root / study id 解析，以及 execution payload 归一化
-- historical managed-runtime transport consumer refs
+- retired managed-runtime transport consumer refs
   - 只作为 retired provenance 与 domain authority handoff refs 语境读取；通用 runtime transport 已归 OPL provider-backed stage runtime
   - 薄层 consumer / test-only patch target 只能绑定 MAS DomainIntent、owner receipt、typed blocker、domain authority refs 或 OPL provider backend contract；不能把任何 MAS-local transport/backend 名称写成 generic default backend owner
   - 旧 MDS transport alias 与 MAS-local transport alias 均已退役；controller / router / test patch target 必须绑定 OPL provider backend、DomainIntent refs 或 owner receipt/typed blocker，不再使用 MAS 私有 transport alias
-`study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution / transport helper。
-因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
+`study_runtime_router.py`、`study_runtime_execution.py` 和 `study_runtime_transport.py` 当前不属于 importable active surface。`tests/test_study_runtime_router.py` 与 `tests/test_study_runtime_router_topology.py` 作为历史文件名下的防复活测试，约束 `domain_status_projection` 不重新暴露 retired private runtime binding。
 
 历史 controller 侧对 managed runtime backend 的 transport 依赖只作为 retired provenance / OPL handoff 输入保留；当前不能把这些返回形态重新声明为 MAS-owned backend contract：
 
@@ -158,22 +159,24 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 
 ## Domain Refs 入口
 
-当前 MAS-facing 入口只有两个 domain refs / diagnostic reader：
+当前 MAS-facing domain refs / diagnostic path 有两个稳定 shape：
 
-- `progress_projection(...)`
+- `domain_status_projection.progress_projection(...)`
   - 只读，返回序列化后的 `ProgressProjectionStatus`，不得写 OPL runtime truth
-- `request_opl_stage_attempt(...)`
-  - 读状态、跑 MAS domain preflight，输出 controller authorization、owner-route handoff、owner receipt 或 typed blocker；不得直接执行 provider resume/relaunch、queue hydration、attempt retry 或 MAS 私有 lifecycle mutation
+- `runtime_control.ports.request_opl_stage_attempt(...)` / injected domain-health-diagnostic `request_opl_stage_attempt` port
+  - 读 `progress_projection` status payload，输出 OPL stage-attempt admission request、controller authorization refs、owner-route handoff、owner receipt 或 typed blocker；不得直接执行 provider resume/relaunch、queue hydration、attempt retry 或 MAS 私有 lifecycle mutation
 
-两者都接受：
+`progress_projection(...)` 接受：
 
 - `profile: WorkspaceProfile`
 - `study_id` 或 `study_root` 之一
 - 可选 `entry_mode`
 
-`request_opl_stage_attempt(...)` 额外接受：
+stage-attempt request port 接受：
 
-- `force`
+- `ports: RuntimeControlPorts`
+- `profile: WorkspaceProfile`
+- `study_root`
 - `source`
 
 正式调用方应把这两个入口视为 MAS domain refs contract，而不是直接拼 transport payload、直接调用 managed runtime backend，或把历史 transport helper 当当前控制面。旧 `MedDeepScientist` runtime 只作为 frozen source archive、historical fixture、explicit archive import、backend audit 或 parity oracle reference 出现。
@@ -202,20 +205,20 @@ Machine boundary: 本文是人读 runtime control contract。MAS 机器真相归
 - `StudyRuntimeReentryGate`
 - `StudyCompletionSyncResult`
 - `ProgressProjectionStatus`
-- `StudyRuntimeExecutionContext`
-- `StudyRuntimeExecutionOutcome`
 
-这些类型现在定义在 `study_runtime_types.py`，并由 `study_runtime_router.py` 原样 re-export。
+这些类型现在由 `progress_projection.py` / `progress_projection_parts/` 定义并保持 `__module__=med_autoscience.controllers.progress_projection`；`study_runtime_types.py` 通过 lazy import 维持稳定 typed-name 入口。`domain_status_projection.py` 消费这些类型，但不承担 router re-export 兼容合同。
+
+`StudyRuntimeExecutionContext` 和 `StudyRuntimeExecutionOutcome` 属于已退役 execution aggregate，不在当前 typed surface 暴露；focused typed-surface tests 明确约束它们不得从 `study_runtime_types` 或 `domain_status_projection` 复活。
 
 约束如下：
 
 - 新增字段或 enum 值时，必须同步补测试
-- 如果要移动定义位置，必须继续保持 router re-export 不变
+- 如果要移动定义位置，必须同步 typed-name import surface、topology tests 和消费方 imports
 - 不能让外部调用方只能靠未文档化的 dict 细节才能驱动 controller
 
 ## 返回 payload 的最小稳定面
 
-两个正式入口都返回 `ProgressProjectionStatus.to_dict()` 的结果。
+`progress_projection(...)` 返回 `ProgressProjectionStatus.to_dict()` 形态的 payload。stage-attempt request port 返回同源 status 字段加 OPL admission / owner-handoff metadata；调用方不得把这层 metadata 解释成 OPL runtime truth 已写入。
 
 核心字段包括：
 
@@ -526,7 +529,7 @@ workspace teardown 必须满足：
 
 也就是说，即使最终 decision 是 `BLOCKED` 或 `NOOP`，只要进入了受控 orchestration，MAS-facing diagnostic / domain refs artifact 落盘仍是正式行为的一部分；OPL runtime truth artifact 不在 MAS 持久化链内。
 
-当前实现上，这条 persistence 链仍由 `study_runtime_execution.py` 作为历史迁移输入暴露时机；具体 transport I/O 的历史代码只作为 retired provenance 读取。router 上对应 helper 只允许作为 test-only patch target 和 diagnostic ref，不构成兼容入口或 MAS 私有 runtime 控制面。
+当前实现上，这条 persistence / authorization 链由 `study_runtime_execution_parts/` 下的 controller authorization、owner handoff、control-intent lifecycle、authorization receipt 和 work-unit evidence adoption helpers 承接；具体 transport I/O 的历史代码只作为 retired provenance 读取，不构成 active caller surface 或 MAS 私有 runtime 控制面。
 
 ## 当前明确不属于稳定面的内容
 
@@ -534,9 +537,10 @@ workspace teardown 必须满足：
 
 - `_status_state(...)`、`_run_runtime_preflight(...)`、`_execute_*` 等私有 helper 名称
 - `_load_yaml_dict(...)`、`_resolve_study(...)`、`_execution_payload(...)` 等 resolution 细节
-- `_build_execution_context(...)`、`_build_context_create_payload(...)`、`_persist_runtime_artifacts(...)` 等 execution/orchestration 细节
-- `_create_quest(...)`、`_resume_quest(...)`、`_relaunch_stopped_quest(...)`、`_pause_quest(...)`、`_inspect_quest_live_execution(...)` 等 transport seam 细节
-- `study_runtime_resolution.py` / `study_runtime_decision.py` / `study_runtime_startup.py` / `study_runtime_completion.py` / `study_runtime_execution.py` / `study_runtime_transport.py` 内部尚未升级成 spec 的组装细节
+- `study_runtime_execution_parts/*` 中尚未升级成 spec 的 controller authorization、owner handoff、receipt 与 evidence adoption 组装细节
+- `_create_quest(...)`、`_resume_quest(...)`、`_relaunch_stopped_quest(...)`、`_pause_quest(...)`、`_inspect_quest_live_execution(...)` 等 retired former transport seam 名称；它们只能出现在 tombstone/provenance 或防复活测试语境
+- `study_runtime_resolution.py` / `study_runtime_decision.py` / `study_runtime_startup.py` / `study_runtime_completion.py` 内部尚未升级成 spec 的组装细节
+- retired absent `study_runtime_execution.py` / `study_runtime_transport.py` 名称；它们不得被重新写成 active implementation detail、patch target 或 current caller surface
 - overlay materialization payload 的完整内部结构
 - analysis bundle payload 的完整内部结构
 - runtime audit payload 中未被 typed wrapper 明确收口的自由字段
@@ -550,13 +554,17 @@ workspace teardown 必须满足：
 
 - [`tests/test_study_runtime_router.py`](../../../tests/test_study_runtime_router.py)
 - [`tests/test_study_runtime_router_topology.py`](../../../tests/test_study_runtime_router_topology.py)
+- [`tests/test_study_runtime_typed_surface.py`](../../../tests/test_study_runtime_typed_surface.py)
+- [`tests/test_progress_projection_evidence_adoption.py`](../../../tests/test_progress_projection_evidence_adoption.py)
+- [`tests/test_study_runtime_execution_control_intent_cases/`](../../../tests/test_study_runtime_execution_control_intent_cases/)
+- [`tests/test_study_runtime_execution_evidence_adoption_cases/`](../../../tests/test_study_runtime_execution_evidence_adoption_cases/)
 - [`tests/test_runtime_protocol_topology.py`](../../../tests/test_runtime_protocol_topology.py)
 - [`tests/test_workspace_contracts.py`](../../../tests/test_workspace_contracts.py)
 
 其中：
 
-- router tests 约束 decision、typed surface、preflight 和 execution behavior
-- router topology tests 约束历史 router patch target 只能作为 diagnostic / provenance ref 暴露，不能重新生成兼容入口或 MAS 私有 runtime 控制面
+- router tests 和 router topology tests 约束旧 private runtime binding 不能从 `domain_status_projection` 复活，也约束 `study_runtime_execution.py` / `study_runtime_transport.py` 不可 import
+- typed surface / progress projection / execution-parts tests 约束 status typed names、work-unit evidence adoption、controller authorization 与 control-intent lifecycle
 - runtime protocol topology tests 约束 runtime layout / path contract
 - workspace contract tests 约束 orchestration 依赖的 workspace readiness 前提
 
