@@ -5,7 +5,7 @@ Purpose: `Preserve MAS mainline architecture and quality reference analysis.`
 State: `support_reference`
 Machine boundary: Human-readable reference only; current architecture and quality truth remains in source, contracts, tests, diagnostics, active gap plan, and verification receipts.
 
-这份文档把“医学论文质量优化 + 长时间全自动驾驶优化”的主体正式收口到 `MedAutoScience` 单项目主线。
+这份文档保留“医学论文质量优化 + 长时间全自动驾驶优化”主体收口到 `MedAutoScience` 单项目主线时形成的 mainline reference。它解释当时的 owner 判断、quality/autonomy 方向和 proof/soak 口径；当前执行顺序、差距和完成判断回到 `docs/active/mas-ideal-state-gap-plan.md`、核心五件套、contracts、source、tests、CLI/read-model 与真实 workspace receipt。
 
 它回答六个问题：
 
@@ -20,9 +20,11 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 
 从现在开始，新增的“论文质量 + 全自动驾驶”优化主投入统一服务 `MAS` 单项目主线；方向锁定之后，普通科研推进、论文质量判断、reviewer concern 排序、证据充分性判断与 `bounded_analysis` 一类有限补充分析推进默认由 `MAS` 自主完成；human gate 收口到重大边界与最终投稿前审计；`MDS` 收敛为迁移期 research backend、行为等价 oracle、上游 intake buffer。
 
-## 当前 tranche
+## 当时 tranche / 当前读法边界
 
-当前 active tranche 已经固定，不再讨论主方向本身，而是把主线压成一套可验收的 `MAS` truth：
+本节中的“当前 active tranche”指本文形成时的 mainline 收口阶段，不是今天的 active execution queue。今天阅读时，它只能作为 support reference：用于解释 MAS single-project owner truth 的形成依据和 forbidden dual-owner 语义；不能替代当前 active gap plan、runtime/control contracts、production evidence tail 或真实 paper-line receipt。
+
+当时 active tranche 已经固定，不再讨论主方向本身，而是把主线压成一套可验收的 `MAS` truth：
 
 1. **质量闭环结构化**
    让 `study_charter`、`paper evidence ledger`、`review ledger` 形成同一条质量总合同与执行记录，覆盖方向锁定后的普通科研推进、论文质量裁决、`bounded_analysis` 边界、reviewer concern 处理与 submission hygiene。
@@ -31,7 +33,7 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 3. **proof / soak 口径收紧**
    让 proof 直接围绕真实 study 的长期自治、质量裁决与前台 truth 是否一致展开；让 soak 直接围绕长时间运行、停滞恢复、有限补充分析自动收口、投稿前审计前的持续推进是否成立展开。
 
-这意味着当前 tranche 的判断标准已经从“是否还有双边 owner”切换为“`MAS` 是否已经形成单一 owner truth，`MDS` 是否只剩迁移期 oracle / backend / intake buffer 角色”。
+这意味着当时 tranche 的判断标准已经从“是否还有双边 owner”切换为“`MAS` 是否已经形成单一 owner truth，`MDS` 是否只剩迁移期 oracle / backend / intake buffer 角色”。
 
 当前 repo-side 已经开始把这件事压成可读、可测的具体 truth：
 
@@ -47,9 +49,9 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 - MDS no-history absorb 已完成 repo-level closeout，并把 retained capability 收口为 MAS-owned surfaces 或 optional oracle/intake/audit reference。
 - 当前 tranche 不把跨仓 `runtime core ingest`、更成熟的 hosted direct product entry 或 broader controlled cutover 当作验收项。
 
-## 当前 tranche 的主张
+## 当时 tranche 的主张
 
-当前 tranche 有四条必须同时成立的主张：
+当时 tranche 有四条必须同时成立的主张；今天只能按 historical/support boundary 读取：
 
 1. 方向锁定后，普通科研推进、质量判断与有限补充分析默认由 `MAS` 自主完成。
 2. human gate 只保留重大边界、外部授权与最终投稿审计，不再承担日常质量裁决。
@@ -58,7 +60,7 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 
 围绕这四条主张，当前 tranche 还额外带一条收口纪律：
 
-- 当前 tranche 的完成信号是 repo-tracked truth 闭合与 no-history absorb guard/parity/default-dependency-retirement 成立；runtime core ingest 和更大结构调整继续留在独立 post-gate phase。
+- 当时 tranche 的完成信号是 repo-tracked truth 闭合与 no-history absorb guard/parity/default-dependency-retirement 成立；runtime core ingest 和更大结构调整继续留在独立 post-gate phase。今天的完成性读法以 current active gap plan、contracts、tests 和 live evidence tail 为准。
 
 ## 1. 为什么优化主体在 MAS
 
@@ -356,4 +358,4 @@ human gate 收窄到少数重大边界：
 
 ## 正式主张
 
-因此，面向未来 monorepo 的“医学论文质量 + 长时间全自动驾驶”优化，当前就应该按 `MAS` 单项目主线落地；当前 tranche 应集中完成质量闭环结构化、用户可见真相投影与 proof / soak 口径收紧；`MDS` 迁移期继续服务能力守恒、等价验证和低风险吸收，不再保留长期双 owner 含义。
+因此，这份 mainline reference 的长期可用结论是：面向未来 monorepo 的“医学论文质量 + 长时间全自动驾驶”优化应按 `MAS` 单项目主线理解；质量闭环、用户可见真相投影与 proof / soak 口径必须强化 MAS owner truth；`MDS` 只服务能力守恒、等价验证、provenance、backend audit、upstream learning 和低风险吸收，不再保留长期双 owner 含义。

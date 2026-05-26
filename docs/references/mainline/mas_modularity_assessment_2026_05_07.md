@@ -7,6 +7,8 @@ Purpose: `Preserve MAS mainline architecture and quality reference analysis.`
 State: `support_reference`
 Machine boundary: Human-readable reference only; current architecture and quality truth remains in source, contracts, tests, diagnostics, active gap plan, and verification receipts.
 
+本文件是 dated support reference。2026-05-08 的 Sentrux / boundary-fitness / hub-role 读数只说明当时的 architecture fitness wave 和后续 guard 形成背景；当前结构真相、gap、completion 和验证结果必须重新读取源码、contracts、tests、`module_boundary_audit` / `architecture_owner_boundary`、active gap plan 和 repo-native verification。
+
 ## 结论
 
 MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projection 边界可识别”的阶段。本评估后续触发的一轮 architecture fitness wave 已经落地到 `main`：原先的 `exec(compile(...))` 拼接、nested `_parts`、near-limit part、oversized runtime execution facade 和 `study_progress_parts/shared_base.py` 大桶都已收口到自然子域，boundary fitness 现在是 `0 blocking / 0 advisory`。
@@ -23,9 +25,9 @@ MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projecti
 
 2026-05-08 的 hub role hardening 已把这条判断落成 repo guard：Runtime Supervisor、Product Cockpit、MCP Adapter 和 Display Validation 不再按文件数量继续拆，而是固定成 authority / read-model / adapter / materializer 四类角色。`module_boundary_audit` 与 `architecture_owner_boundary` 现在会 fail-closed 检查非 authority hub 是否声明 authority、控制 runtime/publication 或写 truth surface。下一步 portfolio 队列仍保持 workspace layout 去 MDS/DS 化、profile/entry compatibility retirement、MDS no-history physical absorb。
 
-## Fresh Evidence
+## Dated Evidence / 当前读法
 
-本评估基于当前 `main` 的 fresh read：
+本评估基于 2026-05-08 当时 `main` 的 fresh read；今天只能作为 hotspot 和 guard 设计参考，不作为永久质量预算或当前完成性证明：
 
 2026-05-08 复核：模块化治理后的关键结构信号没有漂移。Sentrux fresh scan 仍为 `quality_signal=6076`，DSM `above_diagonal=0`、`propagation_cost=63`；`.sentrux/rules.toml` 尚未定义额外架构规则，因此当前 hard gate 继续以 repo guard、boundary fitness、line budget 和 DSM 方向性为准。
 
