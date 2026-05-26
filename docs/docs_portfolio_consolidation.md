@@ -1484,3 +1484,49 @@ Next tranche write scope:
 
 - MAS exact uncovered history/reference clusters, preferably `docs/references/med-deepscientist/**` or a bounded history index tranche.
 - Keep App docs delayed until active release / GUI lanes are safe or explicitly assigned.
+
+### 2026-05-26 MedDeepScientist reference coverage tranche
+
+本轮覆盖 MAS `docs/references/med-deepscientist/**` 中尚未进入 coverage ledger 的 8 份 support-reference 文档。目标是把 MDS / DeepScientist 学习、解构、upstream intake、source provenance 与 legacy fork intake 语义读回当前 MAS / OPL owner split：MDS 只能作为 historical source archive、parity fixture、explicit legacy diagnostic、backend audit、source provenance、upstream intake 或 parity oracle reference；它不是默认 runtime owner、默认 diagnostic owner、quality authority、publication readiness surface、artifact authority、`current_package` freshness proof 或 hosted packaging surface。
+
+Live truth inputs:
+
+- MAS `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/architecture.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/active/program_portfolio_consolidation.md`, and this docs-governance file.
+- MAS med-deepscientist reference docs: `docs/references/med-deepscientist/README.md`, `docs/references/med-deepscientist/deepscientist_continuous_learning_policy.md`, `docs/references/med-deepscientist/deepscientist_latest_update_learning_protocol.md`, `docs/references/med-deepscientist/med_deepscientist_continuous_learning_plan.md`, `docs/references/med-deepscientist/med_deepscientist_deconstruction_map.md`, `docs/references/med-deepscientist/med_deepscientist_method_learning_disciplines.md`, `docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md`, and `docs/references/med-deepscientist/upstream_intake.md`.
+- Machine / source surfaces: `src/med_autoscience/med_deepscientist_repo_manifest.py`, `src/med_autoscience/controllers/backend_audit.py`, `contracts/functional_privatization_audit.json`, and `contracts/test-lane-manifest.json`.
+- Stale-risk scan over the reference cluster for default backend/runtime, WebUI/daemon, quality/publication/artifact authority, `current_package`, gateway/provider/Hermes and hosted packaging wording.
+
+Fresh semantic result:
+
+- The reference index already keeps this family in support-reference scope and points current execution queue to `docs/active/program_portfolio_consolidation.md`; it does not create a second active board.
+- The learning policy/protocol now routes normal "learn DeepScientist latest update" work directly through MAS-owned upstream audit, decision matrix, worktree landing, verification and absorb-back flow. External `med-deepscientist` checkout is only touched for explicit legacy fork maintenance, backend audit, source archive or parity fixture refresh.
+- `med_deepscientist_deconstruction_map.md`, method-learning disciplines and continuous-learning plan keep MDS in frozen source / fixture / legacy diagnostic / provenance roles. They route new quality/autonomy/operator work to MAS and keep generic provider/runtime ownership in OPL.
+- `upstream_intake.md` is scoped as explicit legacy fork intake reference; it does not make `med-deepscientist/main` the default learning target or MAS default runtime path.
+- `med_deepscientist_repo_manifest.py` exposes `truth_authority_role=event_source_only`, allows only event/source/runtime-health observations, and forbids MDS authority surfaces such as `canonical_next_action`, `publication_gate_state`, `package_state`, `delivery_state`, `runtime_health_epoch`, `canonical_runtime_action`, `worker_liveness_state`, and `allowed_controller_actions`.
+- `backend_audit.py` keeps external runtime optional (`EXTERNAL_RUNTIME_OPTIONAL=true`) and returns `default_operation_blocked=false` when the controlled backend repo is unconfigured, so unavailable legacy backend audit cannot block default MAS operation.
+- `contracts/functional_privatization_audit.json` continues to say generic runtime has been removed from MAS, OPL replacement exists, production long-run soak is not complete, MAS cannot claim generic runtime owner, and OPL cannot authorize quality/export or write domain truth.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of the 8 tracked Markdown files under `docs/references/med-deepscientist/**`, with support evidence from MAS core/current docs, MDS manifest inspection source, backend-audit source, functional privatization contract and test-lane manifest listed above. | this coverage ledger |
+
+Exact MAS med-deepscientist reference paths newly recorded by this tranche: `docs/references/med-deepscientist/README.md`; `docs/references/med-deepscientist/deepscientist_continuous_learning_policy.md`; `docs/references/med-deepscientist/deepscientist_latest_update_learning_protocol.md`; `docs/references/med-deepscientist/med_deepscientist_continuous_learning_plan.md`; `docs/references/med-deepscientist/med_deepscientist_deconstruction_map.md`; `docs/references/med-deepscientist/med_deepscientist_method_learning_disciplines.md`; `docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md`; `docs/references/med-deepscientist/upstream_intake.md`.
+
+Archived / tombstoned / deleted docs: none. The cluster remains useful support/reference material with a consistent owner/purpose/state/machine-boundary shape.
+
+Uncovered docs:
+
+- `docs/references/med-deepscientist/**` now has no exact uncovered Markdown path in the inventory-vs-ledger check after this tranche.
+- MAS repo-wide `README*` and `docs/**/*.md` full paragraph coverage remains open outside prior focused MAS chunks and this reference tranche. Remaining exact uncovered clusters are mostly `docs/history/**`, selected `docs/references/mainline/**`, selected integration / MDS parity references, `docs/public/README.md`, and `docs/specs/README.md`.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future MDS / DeepScientist reference prose that treats MDS as default runtime owner, default backend, default diagnostic owner, WebUI/daemon surface, quality/publication authority, artifact authority, `current_package` authority, hosted package surface or hidden runnable substitute is stale pollution.
+- Future upstream-learning prose must keep provider/UI/marketing changes out of MAS owner truth unless a MAS-owned contract/template/code slice and verification target are explicitly defined.
+- Legacy fork intake stays explicit-only; ordinary DeepScientist learning must keep landing and verification in `med-autoscience/main`, not external `med-deepscientist/main`.
+
+Next tranche write scope:
+
+- MAS exact uncovered history/reference clusters, preferably bounded `docs/history/**` index/provenance groups or remaining selected `docs/references/mainline/**`, `docs/references/integration/**`, `docs/references/mds-parity/**`, `docs/public/README.md`, and `docs/specs/README.md`.
+- Keep App docs delayed until active release / GUI lanes are safe or explicitly assigned.
