@@ -1176,3 +1176,43 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for another bounded runtime design/support group, or remaining `docs/runtime/contracts/**` / `docs/runtime/control/**` bodies not covered by prior tranches.
 - Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
+
+### 2026-05-26 runtime root / refs-index guard coverage tranche
+
+本轮覆盖 MAS runtime root index 与 domain authority refs index guard。目标是把 `docs/runtime/README.md` 的 runtime docs taxonomy 和 `docs/runtime/domain_authority_refs_index_guard.md` 读回当前 live refs-only contract：MAS 可以维护 owner receipt、typed blocker、archive/provenance 和 artifact/source/status locator refs；generic persistence/runtime owner、provider queue、attempt ledger、retry/dead-letter、current control state 与 hosted autonomy 继续归 OPL。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/runtime/README.md`, `docs/runtime/domain_authority_refs_index_guard.md`, and this coverage ledger.
+- Machine / source surfaces: `src/med_autoscience/runtime_protocol/domain_authority_refs_index.py`, `contracts/functional_privatization_audit.json`, `contracts/test-lane-manifest.json`, `contracts/production_acceptance/mas-production-acceptance.json`, and product-entry / family-adoption surfaces that consume the refs index.
+- Focused test inventory read as evidence: `tests/test_opl_family_persistence_adapter.py`, `tests/test_opl_standard_pack.py`, `tests/test_test_lane_governance.py`, and runtime layout / production acceptance tests that reference `domain_authority_refs_index`.
+
+Fresh semantic result:
+
+- `domain_authority_refs_index_contract()` declares `role=refs_only_domain_authority_receipt_index`, `owner=med-autoscience`, `generic_persistence_owner=one-person-lab`, `generic_runtime_owner=one-person-lab`, `stores_body=false`, `stores_domain_truth=false`, and `runtime_control_owner=one-person-lab`.
+- `record_archive_ref`, `record_owner_route_receipt`, `record_dispatch_receipt` and `workspace_authority_refs_index_path` support body-free refs, receipts and archive/provenance indexing. They do not make MAS SQLite a generic lifecycle engine, runtime queue, provider ledger, retry/dead-letter store, or current control state owner.
+- `docs/runtime/README.md` now describes `designs/` as active / landed runtime design support rather than only "not yet contract" design. This keeps the already-covered journal requirements / journal package support from being misread as an unlanded future plan while preserving source/contracts/tests/CLI-read-model as implementation truth.
+- `docs/runtime/domain_authority_refs_index_guard.md` remains active support guard and now names the current machine contract/test entrances. It still does not own schema evolution, production readiness, paper truth, publication quality, artifact mutation authorization, domain ready, or generic runtime readiness.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/README.md` and `docs/runtime/domain_authority_refs_index_guard.md`, with live refs-only source/contract/test evidence listed above; portfolio placement review in this file. | `docs/runtime/README.md`; `docs/runtime/domain_authority_refs_index_guard.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The guard remains current active support; no history move or tombstone was required.
+
+Uncovered docs in this semantic area:
+
+- Remaining MAS runtime/control/support docs under `docs/runtime/contracts/**`, `docs/runtime/control/**`, `docs/runtime/projections/**`, `docs/runtime/display/**`, and other `docs/runtime/designs/**` bodies not already paragraph-covered by prior ledger entries remain open.
+- MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside already-covered blocks remains open.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future runtime root prose that says `designs/` only contains uncontracted future plans is stale when the design has live source/test/contract support; design docs must still defer machine truth to source/contracts/tests/CLI-read-model.
+- Future refs-index prose that claims MAS owns generic persistence, lifecycle, queue, provider attempt truth, retry/dead-letter, current control state, hosted autonomy, production readiness, paper truth, publication quality, artifact mutation, or `current_package` freshness through SQLite is stale pollution.
+- Any active doc that reopens retired runtime lifecycle SQLite, root/quest Git lifecycle truth, MDS daemon, local scheduler, workspace-local generic service, alias/facade wrapper, or default MAS provider path from this guard must be retired or tombstoned.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for the remaining `docs/runtime/contracts/**` / `docs/runtime/control/**` bodies not covered by prior ledger entries.
+- Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
