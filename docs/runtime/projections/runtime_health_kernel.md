@@ -41,7 +41,7 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 
 ## Dominance Rules
 
-- live worker / live attempt 必须由 OPL `current_control_state` 证明；MAS `runtime_liveness_audit`、`worker_running` 或 `active_run_id` 只能作为 historical/provenance refs 显示。
+- live worker / live attempt 必须由 OPL `current_control_state` 证明；当 workspace-level `artifacts/supervision/opl_current_control_state/latest.json` 对当前 `study_id` 同时给出非空 `active_run_id`、`running_provider_attempt=true` 和 `runtime_health.runtime_liveness_status=live` 时，MAS `runtime_liveness_audit.source=opl_current_control_state_provider_attempt` 可以把该 OPL provider attempt 投影为 live liveness，并用该 `active_run_id` 覆盖 stale `.ds/runtime_state.json` 的空 active run。该投影只是 OPL-owned liveness evidence；MAS `runtime_liveness_audit`、`worker_running` 或 `active_run_id` 不能据此声明 owner receipt、publication readiness、artifact authority 或 package freshness。
 - fresh supervisor tick 只证明外环监管最近刷新，不能证明 worker live。
 - `last_launch_report` 只保留最近动作摘要；其 `active_run_id` 在新 liveness 观测不成立时只能降为 `last_known_run_id`。
 - 新式 resume result 一旦携带 `scheduled` / `started` / `queued` 字段，`status=active` 只表示 quest 仍为 active，不能证明 worker live。恢复后置条件必须要求 `active_run_id`、`started=true`、`queued=true` 或 `running` / `retrying` 快照；`scheduled=true` 但未 started、未 queued、无 `active_run_id` 必须 fail closed 为 `no_live_run_started`。

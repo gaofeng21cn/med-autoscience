@@ -41,16 +41,14 @@ def _status_state(
     quest_exists = quest_runtime.quest_exists
     quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
     if quest_status in _LIVE_QUEST_STATUSES and opl_runtime_contract.is_opl_hosted_research_execution(execution):
+        runtime_liveness_projection = _opl_current_control_state_runtime_liveness_projection(
+            study_root=study_root,
+            study_id=study_id,
+            quest_status=quest_status,
+        )
         quest_runtime = quest_runtime.with_runtime_liveness_audit(
-            {
-                "status": "unknown",
-                "source": "opl_current_control_state_required",
-                "runtime_owner": "one-person-lab",
-                "domain_owner": "med-autoscience",
-                "mas_provider_live_query_retired": True,
-                "provider_completion_is_domain_completion": False,
-                "snapshot": {"status": quest_status.value if quest_status is not None else None},
-            }
+            runtime_liveness_projection
+            or _unknown_opl_current_control_state_runtime_liveness(quest_status=quest_status)
         )
     contracts = router.inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
@@ -141,7 +139,11 @@ def _status_state(
         task_intake_releases_manual_finish_parking
         and not task_intake_yields_to_submission_closeout
     )
-    _record_continuation_state_if_present(status=result, quest_root=quest_root)
+    _record_continuation_state_if_present(
+        status=result,
+        quest_root=quest_root,
+        active_run_id=_runtime_liveness_active_run_id(quest_runtime.runtime_liveness_audit),
+    )
     _record_controller_authorization_if_present(status=result, quest_root=quest_root, study_root=study_root)
     _record_blocked_closeout_if_present(status=result, quest_root=quest_root)
     _record_blocked_closeout_supersession_if_present(
@@ -463,6 +465,79 @@ def _status_payload(
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=include_progress_projection,
     ).to_dict()
+
+
+def _unknown_opl_current_control_state_runtime_liveness(
+    *,
+    quest_status: StudyRuntimeQuestStatus | None,
+) -> dict[str, object]:
+    return {
+        "status": "unknown",
+        "source": "opl_current_control_state_required",
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "mas_provider_live_query_retired": True,
+        "provider_completion_is_domain_completion": False,
+        "snapshot": {"status": quest_status.value if quest_status is not None else None},
+    }
+
+
+def _runtime_health_liveness_status(study_entry: dict[str, object]) -> str | None:
+    runtime_health = study_entry.get("runtime_health")
+    if isinstance(runtime_health, dict):
+        value = str(runtime_health.get("runtime_liveness_status") or "").strip()
+        if value:
+            return value
+    return str(study_entry.get("runtime_liveness_status") or "").strip() or None
+
+
+def _runtime_liveness_active_run_id(runtime_liveness_audit: dict[str, object] | None) -> str | None:
+    if not isinstance(runtime_liveness_audit, dict):
+        return None
+    if str(runtime_liveness_audit.get("source") or "").strip() != "opl_current_control_state_provider_attempt":
+        return None
+    return str(runtime_liveness_audit.get("active_run_id") or "").strip() or None
+
+
+def _opl_current_control_state_runtime_liveness_projection(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_status: StudyRuntimeQuestStatus | None,
+) -> dict[str, object] | None:
+    latest_report_path = _opl_current_control_state_handoff_path(study_root=study_root)
+    latest_report = _read_json_mapping(latest_report_path)
+    if latest_report is None:
+        return None
+    study_entry = _opl_current_control_state_study_entry(latest_report, study_id=study_id)
+    if study_entry is None:
+        return None
+    active_run_id = str(study_entry.get("active_run_id") or "").strip() or None
+    if active_run_id is None or study_entry.get("running_provider_attempt") is not True:
+        return None
+    if _runtime_health_liveness_status(study_entry) != "live":
+        return None
+    active_stage_attempt_id = str(study_entry.get("active_stage_attempt_id") or "").strip() or None
+    active_workflow_id = str(study_entry.get("active_workflow_id") or "").strip() or None
+    runtime_health = study_entry.get("runtime_health")
+    return {
+        "status": "live",
+        "source": "opl_current_control_state_provider_attempt",
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "mas_provider_live_query_retired": True,
+        "provider_completion_is_domain_completion": False,
+        "authority": str(latest_report.get("authority") or "observability_only").strip() or "observability_only",
+        "active_run_id": active_run_id,
+        "active_stage_attempt_id": active_stage_attempt_id,
+        "active_workflow_id": active_workflow_id,
+        "running_provider_attempt": True,
+        "handoff_path": str(latest_report_path),
+        "handoff_generated_at": str(latest_report.get("generated_at") or latest_report.get("recorded_at") or "").strip()
+        or None,
+        "runtime_health": dict(runtime_health) if isinstance(runtime_health, dict) else {},
+        "snapshot": {"status": quest_status.value if quest_status is not None else None},
+    }
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]

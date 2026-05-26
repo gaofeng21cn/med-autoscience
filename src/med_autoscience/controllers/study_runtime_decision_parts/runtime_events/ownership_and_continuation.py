@@ -137,7 +137,12 @@ def _runtime_state_path(quest_root: Path) -> Path:
     return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
 
 
-def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQuestStatus | None) -> dict[str, object] | None:
+def _continuation_state_payload(
+    *,
+    quest_root: Path,
+    quest_status: StudyRuntimeQuestStatus | None,
+    active_run_id: str | None = None,
+) -> dict[str, object] | None:
     runtime_state_path = _runtime_state_path(quest_root)
     runtime_state = _load_json_dict(runtime_state_path)
     continuation_policy = str(runtime_state.get("continuation_policy") or "").strip() or None
@@ -146,9 +151,10 @@ def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQ
     stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
     if continuation_policy is None and continuation_anchor is None and continuation_reason is None and stop_reason is None:
         return None
+    resolved_active_run_id = str(runtime_state.get("active_run_id") or "").strip() or active_run_id
     return {
         "quest_status": str(runtime_state.get("status") or "").strip() or (quest_status.value if quest_status is not None else None),
-        "active_run_id": str(runtime_state.get("active_run_id") or "").strip() or None,
+        "active_run_id": resolved_active_run_id,
         "continuation_policy": continuation_policy,
         "continuation_anchor": continuation_anchor,
         "continuation_reason": continuation_reason,
@@ -372,8 +378,23 @@ def _record_blocked_closeout_supersession_if_present(
     )
 
 
-def _record_continuation_state_if_present(*, status: ProgressProjectionStatus, quest_root: Path) -> None:
-    payload = _continuation_state_payload(quest_root=quest_root, quest_status=status.quest_status)
+def _record_continuation_state_if_present(
+    *,
+    status: ProgressProjectionStatus,
+    quest_root: Path,
+    active_run_id: str | None = None,
+) -> None:
+    resolved_active_run_id = active_run_id
+    runtime_liveness = status.extras.get("runtime_liveness_audit")
+    if resolved_active_run_id is None and isinstance(runtime_liveness, dict) and str(runtime_liveness.get("source") or "").strip() == (
+        "opl_current_control_state_provider_attempt"
+    ):
+        resolved_active_run_id = str(runtime_liveness.get("active_run_id") or "").strip() or None
+    payload = _continuation_state_payload(
+        quest_root=quest_root,
+        quest_status=status.quest_status,
+        active_run_id=resolved_active_run_id,
+    )
     if payload is None:
         return
     status.record_continuation_state(StudyRuntimeContinuationState.from_payload(payload))

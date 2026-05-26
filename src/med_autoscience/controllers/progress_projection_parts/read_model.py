@@ -8,6 +8,7 @@ def resolved_active_run_id(*, extras: dict[str, Any]) -> str | None:
     if isinstance(runtime_liveness_audit, dict):
         runtime_audit = runtime_liveness_audit.get("runtime_audit")
         runtime_audit = runtime_audit if isinstance(runtime_audit, dict) else {}
+        liveness_source = str(runtime_liveness_audit.get("source") or "").strip()
         liveness_status = str(
             runtime_liveness_audit.get("status")
             or runtime_audit.get("status")
@@ -18,7 +19,11 @@ def resolved_active_run_id(*, extras: dict[str, Any]) -> str | None:
             if isinstance(runtime_audit.get("worker_running"), bool)
             else runtime_liveness_audit.get("worker_running")
         )
-        if liveness_status and (liveness_status != "live" or worker_running is not True):
+        source_proves_live_opl_attempt = liveness_source == "opl_current_control_state_provider_attempt"
+        if liveness_status and (
+            liveness_status != "live"
+            or (worker_running is not True and not source_proves_live_opl_attempt)
+        ):
             return None
     for payload in (
         runtime_liveness_audit,
