@@ -10,6 +10,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
+from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
@@ -38,6 +39,13 @@ def default_executor_dispatch_tasks(
             continue
         action_type = _text(dispatch.get("action_type"))
         if action_type is None:
+            continue
+        if _dispatch_execution_receipt_consumed(
+            profile=profile,
+            study_id=study_id,
+            dispatch=dispatch,
+            action_type=action_type,
+        ):
             continue
         dispatch_authority = _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch"
         dispatch_ref = _workspace_relative(dispatch_path, workspace_root=profile.workspace_root)
@@ -121,6 +129,26 @@ def _dispatch_ready_for_opl_attempt(dispatch: Mapping[str, Any] | None) -> bool:
         return False
     envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
     return envelope.get("dispatchable") is True
+
+
+def _dispatch_execution_receipt_consumed(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+    action_type: str,
+) -> bool:
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(
+        _mapping(dispatch.get("prompt_contract")).get("owner_route")
+    )
+    if not owner_route:
+        return False
+    receipt = study_transition_receipt_consumption.default_executor_execution_receipt_consumption(
+        study_root=profile.studies_root / study_id,
+        owner_route=owner_route,
+        actions=[{"action_type": action_type}],
+    )
+    return bool(receipt)
 
 
 def _next_executable_owner(dispatch: Mapping[str, Any]) -> str | None:

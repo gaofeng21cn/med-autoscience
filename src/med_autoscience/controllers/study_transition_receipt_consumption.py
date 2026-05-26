@@ -568,13 +568,7 @@ def _owner_route_currentness_matches(
 ) -> bool:
     if not execution_route:
         return False
-    comparisons = (
-        "idempotency_key",
-        "route_epoch",
-        "source_fingerprint",
-        "next_owner",
-        "owner_reason",
-    )
+    comparisons = ("route_epoch", "next_owner", "owner_reason")
     for key in comparisons:
         current_value = _text(owner_route.get(key))
         execution_value = _text(execution_route.get(key))
@@ -582,11 +576,55 @@ def _owner_route_currentness_matches(
             return False
         if current_value and not execution_value:
             return False
+    if not _owner_route_work_unit_currentness_matches(execution_route=execution_route, owner_route=owner_route):
+        return False
     current_allowed = {_text(item) for item in owner_route.get("allowed_actions") or []}
     execution_allowed = {_text(item) for item in execution_route.get("allowed_actions") or []}
     current_allowed.discard("")
     execution_allowed.discard("")
     return bool(current_allowed) and current_allowed == execution_allowed
+
+
+def _owner_route_work_unit_currentness_matches(
+    *,
+    execution_route: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+) -> bool:
+    current_basis = _owner_route_currentness_basis(owner_route)
+    execution_basis = _owner_route_currentness_basis(execution_route)
+    for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason"):
+        current_value = _text(current_basis.get(key))
+        execution_value = _text(execution_basis.get(key))
+        if current_value and not execution_value:
+            return False
+        if current_value and execution_value and current_value != execution_value:
+            return False
+    return bool(_text(current_basis.get("work_unit_fingerprint")) or _text(current_basis.get("work_unit_id")))
+
+
+def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:
+    source_refs = _mapping(route.get("source_refs"))
+    nested_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
+    return {
+        "truth_epoch": (
+            _text(nested_basis.get("truth_epoch"))
+            or _text(source_refs.get("study_truth_epoch"))
+            or _text(route.get("truth_epoch"))
+            or _text(route.get("route_epoch"))
+        ),
+        "work_unit_fingerprint": (
+            _text(nested_basis.get("work_unit_fingerprint"))
+            or _text(source_refs.get("work_unit_fingerprint"))
+            or _text(route.get("work_unit_fingerprint"))
+        ),
+        "work_unit_id": _text(nested_basis.get("work_unit_id")) or _text(source_refs.get("work_unit_id")),
+        "owner_reason": (
+            _text(nested_basis.get("owner_reason"))
+            or _text(source_refs.get("blocked_reason"))
+            or _text(route.get("owner_reason"))
+            or _text(route.get("failure_signature"))
+        ),
+    }
 
 
 def _default_executor_owner_result_consumable(

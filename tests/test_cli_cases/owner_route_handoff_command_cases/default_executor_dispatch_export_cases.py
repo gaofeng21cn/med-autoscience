@@ -387,6 +387,171 @@ def test_default_executor_dispatch_dedupe_key_tracks_owner_route_currentness(
     assert second_task["source_fingerprint"] in second_task["dedupe_key"]
 
 
+def test_domain_handler_export_skips_consumed_default_executor_dispatch(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_default_executor_dispatch(
+        dispatch_path=dispatch_path,
+        study_root=study_root,
+        include_owner_route=True,
+    )
+    dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    owner_route = dispatch["prompt_contract"]["owner_route"]
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_root.name,
+                    "quest_id": study_root.name,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "execution_id": "execution::dm002::run_quality_repair_batch::consumed",
+                    "idempotency_key": "owner-route::previous-runtime-health",
+                    "current_owner_route": {
+                        **owner_route,
+                        "idempotency_key": "owner-route::previous-runtime-health",
+                        "runtime_health_epoch": "runtime-health-event-previous",
+                        "source_refs": {
+                            **owner_route["source_refs"],
+                            "runtime_health_epoch": "runtime-health-event-previous",
+                        },
+                    },
+                    "prompt_contract": {"owner_route": owner_route},
+                    "owner_result": {
+                        "status": "executed",
+                        "ok": True,
+                        "repair_execution_evidence": {
+                            "status": "progress_delta_candidate",
+                            "changed_artifact_refs": [
+                                {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
+                            ],
+                        },
+                        "quality_authorized": False,
+                        "submission_authorized": False,
+                        "current_package_write_authorized": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ] == []
+
+
+def test_domain_handler_export_keeps_default_executor_dispatch_when_receipt_work_unit_differs(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_default_executor_dispatch(
+        dispatch_path=dispatch_path,
+        study_root=study_root,
+        include_owner_route=True,
+    )
+    dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    owner_route = dispatch["prompt_contract"]["owner_route"]
+    previous_route = {
+        **owner_route,
+        "idempotency_key": "owner-route::previous-work-unit",
+        "work_unit_fingerprint": "medical-prose-routeback::write::previous",
+        "source_refs": {
+            **owner_route["source_refs"],
+            "work_unit_id": "previous_work_unit",
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_root.name,
+                    "quest_id": study_root.name,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "execution_id": "execution::dm002::run_quality_repair_batch::previous",
+                    "idempotency_key": previous_route["idempotency_key"],
+                    "current_owner_route": previous_route,
+                    "prompt_contract": {"owner_route": previous_route},
+                    "owner_result": {
+                        "status": "executed",
+                        "ok": True,
+                        "repair_execution_evidence": {
+                            "status": "progress_delta_candidate",
+                            "changed_artifact_refs": [
+                                {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
+                            ],
+                        },
+                        "quality_authorized": False,
+                        "submission_authorized": False,
+                        "current_package_write_authorized": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    ]
+    assert len(tasks) == 1
+    assert tasks[0]["payload"]["work_unit_id"] == "medical_prose_write_repair"
+
+
 def test_domain_handler_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
