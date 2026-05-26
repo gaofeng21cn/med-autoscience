@@ -255,6 +255,7 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     history_path = Path(latest["history_path"])
     assert history_path.exists()
     assert latest["mode"] == "apply"
+    assert latest["post_apply"]["remaining_binding_refresh_count"] == 0
     assert latest["profile_path"] == str(profile_path.resolve())
     assert latest["restore_proofs"][0]["status"] == "verified"
     assert latest["archive_refs"][0]["archive_path"].endswith("quest-alpha-dynamic.tar.gz")

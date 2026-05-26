@@ -114,6 +114,7 @@ def run_workspace_monolith_migration(*, profile_path: Path, apply: bool) -> dict
         report["post_apply"] = {
             "remaining_binding_refresh_count": len(refreshed_inventory["binding_refreshes"]),
         }
+        _write_migration_report(report=report, workspace_root=workspace_root)
     return report
 
 
@@ -306,7 +307,6 @@ def _apply_migration(
             source_runtime_root=source_runtime_root,
             recorded_at=str(report["recorded_at"]),
         )
-    _write_migration_report(report=report, workspace_root=profile.workspace_root)
 
 
 def _write_profile_runtime_projection(
