@@ -29,6 +29,7 @@ _HUMAN_GATE_RESUME_ACTIONS = frozenset(
 _PUBLICATION_ROUTE_MEMORY_FAMILY = "publication_route_memory"
 _MEMORY_WRITEBACK_CONSUMABLE_STATUSES = frozenset({"applied", "blocked"})
 _DEFAULT_EXECUTOR_EXECUTED_STATUSES = frozenset({"executed"})
+_DEFAULT_EXECUTOR_BLOCKED_STATUSES = frozenset({"blocked"})
 _DEFAULT_EXECUTOR_CONSUMABLE_OWNER_RESULT_STATUSES = frozenset({"executed", "applied", "ok"})
 _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
     {
@@ -114,7 +115,14 @@ def default_executor_execution_nonconsumable_closeout(
         action_type = _text(execution.get("action_type"))
         if action_type not in current_action_types:
             continue
-        if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
+        blocked_typed_closeout = _default_executor_blocked_typed_closeout(
+            execution=execution,
+            receipt_ref=receipt_ref,
+        )
+        if (
+            _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES
+            and not blocked_typed_closeout
+        ):
             continue
         if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
@@ -123,7 +131,7 @@ def default_executor_execution_nonconsumable_closeout(
         )
         owner_result = _mapping(execution.get("owner_result"))
         repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
-        if not recovered_stage_packet_currentness and _default_executor_owner_result_consumable(
+        if not blocked_typed_closeout and not recovered_stage_packet_currentness and _default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
             repair_evidence=repair_evidence,
@@ -650,6 +658,19 @@ def _owner_route_work_unit_currentness_matches(
         if current_value and execution_value and current_value != execution_value:
             return False
     return bool(_text(current_basis.get("work_unit_fingerprint")) or _text(current_basis.get("work_unit_id")))
+
+
+def _default_executor_blocked_typed_closeout(
+    *,
+    execution: Mapping[str, Any],
+    receipt_ref: str,
+) -> bool:
+    if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_BLOCKED_STATUSES:
+        return False
+    if not str(receipt_ref).endswith(".closeout.json"):
+        return False
+    owner_result = _mapping(execution.get("owner_result"))
+    return bool(_text(owner_result.get("blocked_reason")))
 
 
 def _owner_route_currentness_basis(route: Mapping[str, Any]) -> dict[str, Any]:

@@ -248,3 +248,139 @@ def test_default_executor_closeout_with_recovered_stage_packet_currentness_redri
         "artifacts/supervision/consumer/default_executor_execution/sat_story_delta.closeout.json"
     )
     assert redrive["reason"] == "quality_repair_batch_current_manuscript_digest_mismatch"
+
+
+def test_default_executor_blocked_closeout_supersedes_older_executed_closeout(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    owner_route = _current_write_route()
+    dispatch_ref = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_json(
+        dispatch_ref,
+        {
+            "surface": "default_executor_dispatch_request",
+            "schema_version": 1,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "dispatch_status": "ready",
+            "executor_kind": "codex_cli_default",
+            "owner_route": owner_route,
+            "prompt_contract": {"owner_route": owner_route},
+        },
+    )
+    closeout_root = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution"
+    _write_json(
+        closeout_root / "sat_f6_latest.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat_f6_latest",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_packet_ref": (
+                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+            ),
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "closeout_id": "stage-attempt-closeout::sat_f6_latest::manuscript_story_surface_delta_missing",
+            "domain_execution": {
+                "action_type": "run_quality_repair_batch",
+                "execution_status": "blocked",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "domain_owner": "write",
+            },
+            "owner_receipt": {
+                "status": "blocked",
+                "typed_blocker": "manuscript_story_surface_delta_missing",
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
+            "status": "blocked_with_domain_owner_refs",
+            "artifact_delta": {
+                "status": "blocked",
+                "meaningful_artifact_delta": False,
+                "story_surface_delta_present": False,
+                "changed_artifact_refs": [],
+                "manuscript_surface_hygiene": {
+                    "status": "blocked",
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                    "blockers": ["manuscript_story_surface_delta_missing"],
+                },
+            },
+        },
+    )
+    _write_json(
+        closeout_root / "sat_ef_old.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat_ef_old",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_packet_ref": (
+                "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/"
+                "consumer/default_executor_dispatches/run_quality_repair_batch.json"
+            ),
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "002-dm-china-us-mortality-attribution",
+            "action_type": "run_quality_repair_batch",
+            "closeout_id": "stage-attempt-closeout::sat_ef_old::previous",
+            "domain_execution": {
+                "action_type": "run_quality_repair_batch",
+                "execution_status": "executed",
+                "domain_owner": "write",
+            },
+            "owner_receipt": {
+                "status": "closed_with_domain_owner_refs",
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
+            "status": "closed_with_domain_owner_refs",
+            "artifact_delta": {
+                "status": "closed_with_domain_owner_refs",
+                "meaningful_artifact_delta": False,
+                "story_surface_delta_present": False,
+                "changed_artifact_refs": [],
+                "manuscript_surface_hygiene": {
+                    "status": "blocked",
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                    "blockers": ["manuscript_story_surface_delta_missing"],
+                },
+            },
+        },
+    )
+
+    assert (
+        default_executor_execution_receipt_consumption(
+            study_root=study_root,
+            owner_route=owner_route,
+            actions=[{"action_type": "run_quality_repair_batch"}],
+        )
+        == {}
+    )
+    redrive = default_executor_execution_nonconsumable_closeout(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert redrive["status"] == "non_consumable_closeout"
+    assert redrive["execution_id"] == "stage-attempt-closeout::sat_f6_latest::manuscript_story_surface_delta_missing"
+    assert redrive["receipt_ref"] == (
+        "artifacts/supervision/consumer/default_executor_execution/sat_f6_latest.closeout.json"
+    )
+    assert redrive["execution_status"] == "blocked"
+    assert redrive["reason"] == "manuscript_story_surface_delta_missing"
