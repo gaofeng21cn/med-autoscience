@@ -421,6 +421,16 @@ def _work_unit_id(
     progress: Mapping[str, Any],
     actions: list[Mapping[str, Any]],
 ) -> str | None:
+    if text := _work_unit_id_from_actions(actions):
+        return text
+    transition = _mapping(status.get("domain_transition")) or _mapping(progress.get("domain_transition"))
+    if text := _work_unit_text(transition.get("next_work_unit")):
+        return text
+    publication_eval = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
+    return _work_unit_id_from_recommended_actions(publication_eval)
+
+
+def _work_unit_id_from_actions(actions: list[Mapping[str, Any]]) -> str | None:
     for action in actions:
         if text := _text(action.get("work_unit_id")):
             return text
@@ -431,10 +441,10 @@ def _work_unit_id(
         controller_route = _mapping(action.get("controller_route"))
         if text := _text(controller_route.get("work_unit_id")) or _work_unit_text(controller_route.get("next_work_unit")):
             return text
-    transition = _mapping(status.get("domain_transition")) or _mapping(progress.get("domain_transition"))
-    if text := _work_unit_text(transition.get("next_work_unit")):
-        return text
-    publication_eval = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
+    return None
+
+
+def _work_unit_id_from_recommended_actions(publication_eval: Mapping[str, Any]) -> str | None:
     for action in publication_eval.get("recommended_actions") or []:
         if not isinstance(action, Mapping):
             continue

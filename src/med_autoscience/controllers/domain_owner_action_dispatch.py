@@ -21,7 +21,6 @@ from .domain_owner_action_dispatch_parts import dispatch_contract
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import persisted_dispatches
 from .domain_owner_action_dispatch_parts import terminal_stall_handoff
-from .owner_route_reconcile import SUPERVISION_LATEST_RELATIVE_PATH
 from . import domain_transition_currentness
 from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
@@ -36,6 +35,9 @@ SCHEMA_VERSION = 1
 EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
 EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
 EXECUTION_HISTORY_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "history.jsonl"
+SUPERVISION_LATEST_RELATIVE_PATH = persisted_dispatches.SUPERVISION_LATEST_RELATIVE_PATH
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -80,31 +82,12 @@ def _consumer_latest_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / CONSUMER_LATEST_RELATIVE_PATH
 
 
-def _scan_latest_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH
-
-
 def _execution_latest_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / EXECUTION_LATEST_RELATIVE_PATH
 
 
 def _execution_history_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / EXECUTION_HISTORY_RELATIVE_PATH
-
-
-def _current_scan_study(profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
-    latest = _read_json_object(_scan_latest_path(profile))
-    if latest is None:
-        return None
-    for study in latest.get("studies") or []:
-        payload = _mapping(study)
-        if _text(payload.get("study_id")) == study_id:
-            return payload
-    return None
-
-
-def _current_scan_stall(profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
-    return _mapping(_mapping(_current_scan_study(profile, study_id)).get("paper_progress_stall"))
 
 
 def _dispatches(
@@ -120,7 +103,7 @@ def _dispatches(
         action_types=action_types,
         consumer_payload=consumer_payload,
         consumer_latest_path=_consumer_latest_path(profile),
-        scan_payload=_read_json_object(_scan_latest_path(profile)),
+        scan_payload=persisted_dispatches.scan_latest_payload(profile),
         supported_action_types=SUPPORTED_ACTION_TYPES,
         dispatch_relative_root=DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
     )
@@ -231,7 +214,7 @@ def _current_owner_route(
     dispatch: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any] | None, str | None]:
     return persisted_dispatches.current_owner_route_from_scan_payload(
-        scan_payload=_read_json_object(_scan_latest_path(profile)),
+        scan_payload=persisted_dispatches.scan_latest_payload(profile),
         study_id=study_id,
         dispatch=dispatch,
     )
@@ -265,8 +248,8 @@ def _execution_owner_route(
     scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
     if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
         return scan_route, scan_route_basis or "scan_latest"
-    bridged_route = persisted_dispatches.bridged_quality_repair_writer_handoff_route_from_scan_payload(
-        scan_payload=_read_json_object(_scan_latest_path(profile)),
+    bridged_route = persisted_dispatches.bridged_quality_repair_writer_handoff_route(
+        profile=profile,
         study_id=study_id,
         dispatch=dispatch,
     )
@@ -581,7 +564,7 @@ def _execute_dispatch(
     )
     owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    current_study = _current_scan_study(profile, study_id)
+    current_study = persisted_dispatches.current_scan_study(profile=profile, study_id=study_id)
     required_output_pending = output_readiness.required_output_pending(
         profile=profile,
         study_id=study_id,
@@ -765,7 +748,7 @@ def _dispatch_execution_payload(
         "paper_progress_stall": _mapping(dispatch.get("paper_progress_stall"))
         or _mapping(prompt_contract.get("paper_progress_stall"))
         or None,
-        "current_paper_progress_stall": _current_scan_stall(profile, study_id) or None,
+        "current_paper_progress_stall": persisted_dispatches.current_scan_stall(profile=profile, study_id=study_id) or None,
         "paper_progress_stall_handoff_allowed": bool(stall_handoff_allowed),
         "paper_work_unit_lifecycle": paper_work_unit_lifecycle,
         "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),

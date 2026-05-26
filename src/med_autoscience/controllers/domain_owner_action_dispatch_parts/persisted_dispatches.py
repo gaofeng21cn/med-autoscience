@@ -6,11 +6,13 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers.owner_route_reconcile_parts import domain_route_contract
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
 from . import writer_handoff_currentness
 
 
+SUPERVISION_LATEST_RELATIVE_PATH = domain_route_contract.SUPERVISION_LATEST_RELATIVE_PATH
 OWNER_REQUEST_RELATIVE_PATHS = {
     "publication_gate_specificity_required": Path("artifacts/supervision/requests/publication_gate_specificity/latest.json"),
     "current_package_freshness_required": Path("artifacts/supervision/requests/current_package_freshness/latest.json"),
@@ -29,6 +31,22 @@ OWNER_REQUEST_RELATIVE_PATHS = {
         "artifacts/supervision/requests/provenance_limited_harmonization/latest.json"
     ),
 }
+
+
+def scan_latest_payload(profile: WorkspaceProfile) -> dict[str, Any] | None:
+    return _read_json_object(_scan_latest_path(profile))
+
+
+def current_scan_study(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
+    latest = scan_latest_payload(profile)
+    if latest is None:
+        return None
+    study = _scan_study(latest, study_id)
+    return study or None
+
+
+def current_scan_stall(*, profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
+    return _mapping(_mapping(current_scan_study(profile=profile, study_id=study_id)).get("paper_progress_stall"))
 
 
 def explicit_action_dispatches(
@@ -222,6 +240,19 @@ def bridged_quality_repair_writer_handoff_route_from_scan_payload(
 ) -> dict[str, Any] | None:
     return writer_handoff_currentness.bridged_quality_repair_writer_handoff_route_from_scan_payload(
         scan_payload=scan_payload,
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+
+
+def bridged_quality_repair_writer_handoff_route(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return bridged_quality_repair_writer_handoff_route_from_scan_payload(
+        scan_payload=scan_latest_payload(profile),
         study_id=study_id,
         dispatch=dispatch,
     )
@@ -488,6 +519,10 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
+def _scan_latest_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -498,7 +533,11 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "SUPERVISION_LATEST_RELATIVE_PATH",
+    "bridged_quality_repair_writer_handoff_route",
     "bridged_quality_repair_writer_handoff_route_from_scan_payload",
+    "current_scan_stall",
+    "current_scan_study",
     "current_owner_route_from_scan_payload",
     "current_consumer_dispatches",
     "explicit_action_dispatches",
@@ -507,4 +546,5 @@ __all__ = [
     "owner_request_path",
     "owner_request_route",
     "selected_dispatches",
+    "scan_latest_payload",
 ]
