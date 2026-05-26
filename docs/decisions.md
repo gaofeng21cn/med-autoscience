@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-26：generated workspace wrapper 模板变化必须由 bootstrap 自动升级既有 workspace
+
+- 决策：`init_workspace` / `workspace bootstrap` 生成的 `ops/medautoscience/bin/*` 与 `ops/mas/bin/*` 薄 wrapper 属于 MAS-owned generated workspace surface。只要现有文件带有 MAS 生成脚本特征、内容与当前模板不同，bootstrap 必须把它列入 `upgraded_files` 并重写为当前模板；不要求用户手工删除或使用 `force`。
+- 决策：wrapper 内部需要兼容 macOS `/bin/bash` + `set -u`。对可能为空的数组参数，生成模板必须使用 nounset-safe 展开，保证 `progress-projection <study_id>`、`resolve-submission-targets`、`export-submission` 这类 no-extra-arg 调用不会在 shell 层失败。
+- 理由：DM002 workspace 暴露出 MAS main 已修正 wrapper 模板后，既有论文目录仍因 bootstrap 只 skip 已存在 generated wrapper 而保留旧脚本，导致新版 MAS/OPL 拓扑验证时 `progress-projection 002...` 仍失败在 `args[@]: unbound variable`。这属于 workspace generated surface 迁移缺口，不是论文 truth 或 OPL queue 问题。
+- 影响：该规则只升级 MAS-generated entry wrappers，不写 study truth、runtime-owned `.ds`、paper、submission package、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。自定义非生成脚本不因内容不同被覆盖；需要覆盖仍走显式 `force` 或更具体迁移规则。
+
 ## 2026-05-26：bridged writer handoff 必须回指当前 runtime owner route
 
 - 决策：`domain-owner-action-dispatch` 执行 `quality_repair_batch_writer_handoff` 时，只有当 dispatch route 明确携带 `quality_repair_batch_writer_handoff_currentness_bridge`，且 `bridged_from_idempotency_key` 回指当前 scan owner route 时，才可把该 bridged dispatch route 作为 `owner_route_basis=bridged_writer_handoff` 的 currentness anchor。
