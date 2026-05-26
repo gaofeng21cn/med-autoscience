@@ -542,6 +542,96 @@ def test_execute_quality_repair_batch_allows_registered_dm002_write_route_under_
     assert called["authority_route_context"]["work_unit_id"] == work_unit_id
 
 
+def test_execute_quality_repair_batch_projects_digest_mismatch_as_typed_blocker_payload(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    quest_root = profile.runtime_root / f"quest-{study_id}"
+    quest_root.mkdir(parents=True, exist_ok=True)
+    route = _owner_route(study_id=study_id, action_type="run_quality_repair_batch", owner="write")
+    route.update(
+        {
+            "failure_signature": "manuscript_story_surface_delta_missing",
+            "owner_reason": "manuscript_story_surface_delta_missing",
+            "source_fingerprint": "truth-snapshot::dm002-current-manuscript-digest",
+            "work_unit_fingerprint": "domain-transition::route_back_same_line::dm002-current-manuscript",
+            "idempotency_key": "owner-route::dm002::write::digest-mismatch",
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+        required_output_surface=(
+            "canonical manuscript story-surface delta or "
+            "typed blocker:manuscript_story_surface_delta_missing"
+        ),
+        owner_route=route,
+    )
+    dispatch_payload["source_action"] = {
+        "action_type": "run_quality_repair_batch",
+        "route_target": "write",
+        "next_work_unit": "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass",
+        "work_unit_fingerprint": "domain-transition::route_back_same_line::dm002-current-manuscript",
+    }
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    monkeypatch.setattr(module.action_execution, "quest_root_from_status", lambda *_: quest_root)
+
+    def fake_run_quality_repair_batch(**kwargs) -> dict[str, object]:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "blocked_reason": "quality_repair_batch_current_manuscript_digest_mismatch",
+            "record_path": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.quality_repair.quality_repair_batch,
+        "run_quality_repair_batch",
+        fake_run_quality_repair_batch,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_quality_repair_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "quality_repair_batch_current_manuscript_digest_mismatch"
+    assert execution["typed_blocker_refs"]
+    assert execution["no_regression_refs"]
+    evidence_payload = execution["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["mode"] == "refs_only_domain_owned_typed_blocker_payload"
+    record_payload = evidence_payload["opl_runtime_action_execute_payload"]
+    assert record_payload["task_kind"] == "domain_owner/default-executor-dispatch"
+    assert record_payload["study_id"] == study_id
+    assert record_payload["domain_source_fingerprint"] == route["source_fingerprint"]
+    assert record_payload["typed_blocker_refs"] == execution["typed_blocker_refs"]
+    assert record_payload["no_regression_refs"] == execution["no_regression_refs"]
+    assert evidence_payload["body_included"] is False
+    assert evidence_payload["domain_ready_claimed"] is False
+    assert evidence_payload["publication_ready_claimed"] is False
+
+
 def test_execute_quality_repair_batch_prefers_fresh_persisted_dispatch_over_stale_consumer_inline(
     monkeypatch,
     tmp_path: Path,

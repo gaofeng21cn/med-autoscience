@@ -5,7 +5,12 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import quality_repair_batch
+from med_autoscience.controllers.domain_dispatch_evidence_payload import (
+    build_domain_dispatch_evidence_record_payload,
+)
 from med_autoscience.profiles import WorkspaceProfile
+
+TASK_KIND = "domain_owner/default-executor-dispatch"
 
 
 def execute_quality_repair_batch(
@@ -60,19 +65,32 @@ def execute_quality_repair_batch(
             or _text(_mapping(dispatch.get("prompt_contract")).get("required_output_surface")),
             "quest_root": str(quest_root),
         }
-    executed = bool(owner_result.get("ok")) if isinstance(owner_result, Mapping) else False
+    executed = bool(result_payload.get("ok"))
+    blocked_reason = (
+        None
+        if executed or handoff_ready
+        else _text(result_payload.get("blocked_reason"))
+        or _text(result_payload.get("status"))
+        or "quality_repair_batch_not_applied"
+    )
+    evidence_payload = (
+        _blocked_owner_result_evidence_payload(
+            profile=profile,
+            study_id=study_id,
+            dispatch=dispatch,
+            owner_result=result_payload,
+            blocked_reason=blocked_reason,
+        )
+        if blocked_reason is not None
+        else {}
+    )
     return {
         "execution_status": "handoff_ready" if handoff_ready else ("executed" if executed else "blocked"),
-        "blocked_reason": (
-            None
-            if executed or handoff_ready
-            else _text(result_payload.get("blocked_reason"))
-            or _text(result_payload.get("status"))
-            or "quality_repair_batch_not_applied"
-        ),
+        "blocked_reason": blocked_reason,
         "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
         "owner_result": result_payload if result_payload else owner_result,
         **({"writer_worker_handoff": dict(result_payload["writer_worker_handoff"])} if handoff_ready else {}),
+        **evidence_payload,
         "quest_root": str(quest_root),
     }
 
@@ -115,6 +133,109 @@ def _authority_route_context(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     return {
         **flat_context,
     }
+
+
+def _blocked_owner_result_evidence_payload(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+    owner_result: Mapping[str, Any],
+    blocked_reason: str,
+) -> dict[str, Any]:
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(
+        _mapping(dispatch.get("prompt_contract")).get("owner_route")
+    )
+    evidence_record_payload = build_domain_dispatch_evidence_record_payload(
+        task_kind=TASK_KIND,
+        study_id=study_id,
+        reason=blocked_reason,
+        evidence_refs=_blocked_owner_result_evidence_refs(
+            profile=profile,
+            dispatch=dispatch,
+            owner_result=owner_result,
+            owner_route=owner_route,
+            blocked_reason=blocked_reason,
+        ),
+        source_fingerprint=_text(owner_route.get("source_fingerprint")),
+        profile_name=profile.name,
+    )
+    return {
+        "domain_dispatch_evidence_record_payload": evidence_record_payload,
+        "opl_runtime_action_execute_payload": evidence_record_payload["opl_runtime_action_execute_payload"],
+        "typed_blocker_refs": list(evidence_record_payload["typed_blocker_refs"]),
+        "domain_owner_receipt_refs": list(evidence_record_payload["domain_owner_receipt_refs"]),
+        "domain_receipt_refs": list(evidence_record_payload["domain_owner_receipt_refs"]),
+        "owner_chain_refs": list(evidence_record_payload["owner_chain_refs"]),
+        "evidence_refs": list(evidence_record_payload["evidence_refs"]),
+        "no_regression_evidence_refs": list(evidence_record_payload["no_regression_evidence_refs"]),
+        "no_regression_refs": list(evidence_record_payload["no_regression_refs"]),
+        "body_included": False,
+        "domain_ready_claimed": False,
+        "publication_ready_claimed": False,
+        "artifact_mutation_authorized": False,
+        "current_package_mutation_authorized": False,
+    }
+
+
+def _blocked_owner_result_evidence_refs(
+    *,
+    profile: WorkspaceProfile,
+    dispatch: Mapping[str, Any],
+    owner_result: Mapping[str, Any],
+    owner_route: Mapping[str, Any],
+    blocked_reason: str,
+) -> list[str]:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    dispatch_refs = _mapping(dispatch.get("refs"))
+    dispatch_ref = _workspace_relative_ref(
+        dispatch_refs.get("dispatch_path"),
+        workspace_root=profile.workspace_root,
+    )
+    refs = [
+        dispatch_ref,
+        f"{dispatch_ref}#prompt_contract" if dispatch_ref else None,
+        f"{dispatch_ref}#owner_route" if dispatch_ref else None,
+        _workspace_relative_ref(owner_result.get("record_path"), workspace_root=profile.workspace_root),
+        f"quality-repair-batch:blocked_reason={blocked_reason}",
+        _owner_route_ref("truth_epoch", owner_route),
+        _owner_route_ref("runtime_health_epoch", owner_route),
+        _owner_route_ref("route_epoch", owner_route),
+        _owner_route_ref("work_unit_fingerprint", owner_route),
+        _owner_route_ref("source_fingerprint", owner_route),
+        _owner_route_ref("idempotency_key", owner_route),
+        _owner_route_ref("required_output_surface", dispatch),
+        _owner_route_ref("prompt_required_output_surface", prompt_contract),
+    ]
+    return _unique_texts(refs)
+
+
+def _owner_route_ref(key: str, payload: Mapping[str, Any]) -> str | None:
+    if text := _text(payload.get(key)):
+        return f"owner-route:{key}={text}"
+    return None
+
+
+def _workspace_relative_ref(value: object, *, workspace_root: Path) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if not path.is_absolute():
+        return text
+    try:
+        return str(path.resolve().relative_to(workspace_root.expanduser().resolve()))
+    except ValueError:
+        return str(path.resolve())
+
+
+def _unique_texts(values: list[str | None]) -> list[str]:
+    refs: list[str] = []
+    for value in values:
+        text = _text(value)
+        if text is not None and text not in refs:
+            refs.append(text)
+    return refs
 
 
 def _dispatch_consumes_quality_repair_writer_handoff(dispatch: Mapping[str, Any]) -> bool:
