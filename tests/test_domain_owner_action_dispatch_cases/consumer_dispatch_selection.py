@@ -236,6 +236,126 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
     assert called == [str(study_root)]
 
 
+def test_execute_dispatch_preserves_prior_execution_in_study_ledger(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    quest_root.mkdir(parents=True, exist_ok=True)
+    execution_root = study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution"
+    previous_route = _owner_route(
+        study_id=study_id,
+        action_type="run_quality_repair_batch",
+        owner="write",
+    )
+    previous_route.update(
+        {
+            "idempotency_key": "owner-route::dm002::previous-quality-repair",
+            "work_unit_fingerprint": "truth-snapshot::previous-quality-repair",
+            "source_refs": {
+                "work_unit_id": "dm002_current_manuscript_reporting_consistency_write_repair",
+                "work_unit_fingerprint": "truth-snapshot::previous-quality-repair",
+                "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+            },
+        }
+    )
+    _write_json(
+        execution_root / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_id,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "execution_id": "execution::dm002::run_quality_repair_batch::previous",
+                    "idempotency_key": previous_route["idempotency_key"],
+                    "current_owner_route": previous_route,
+                    "prompt_contract": {"owner_route": previous_route},
+                    "owner_result": {
+                        "status": "executed",
+                        "ok": True,
+                        "repair_execution_evidence": {
+                            "status": "progress_delta_candidate",
+                            "changed_artifact_refs": [
+                                {"path": str(study_root / "paper" / "build" / "review_manuscript.md")},
+                            ],
+                        },
+                    },
+                }
+            ],
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "publication_gate_specificity_required.json"
+    )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="publication_gate_specificity_required",
+        owner="publication_gate",
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="publication_gate_specificity_required",
+        owner="publication_gate",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=route,
+    )
+    dispatch_payload["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, dispatch_payload)
+    _write_scan_latest(profile, study_id, route)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "domain_action_request_materializer",
+            "schema_version": 1,
+            "default_executor_dispatches": [dispatch_payload],
+        },
+    )
+    def fake_publication_gate_specificity(**kwargs) -> dict[str, object]:
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "publication_gate.write_gate_files+_materialize_publication_eval_latest",
+        }
+
+    monkeypatch.setattr(module, "_execute_publication_gate_specificity", fake_publication_gate_specificity)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("publication_gate_specificity_required",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    latest = json.loads((execution_root / "latest.json").read_text(encoding="utf-8"))
+    assert [item["action_type"] for item in latest["executions"]] == ["publication_gate_specificity_required"]
+    assert [item["execution_id"] for item in latest["execution_ledger"]] == [
+        "execution::dm002::run_quality_repair_batch::previous",
+        result["executions"][0]["execution_id"],
+    ]
+    assert latest["ledger_execution_count"] == 2
+
+
 def test_execute_dispatch_prefers_owner_request_persisted_writer_handoff_over_stale_consumer_inline(
     monkeypatch,
     tmp_path: Path,

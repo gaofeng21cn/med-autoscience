@@ -34,6 +34,7 @@ SCHEMA_VERSION = 1
 EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
 EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
 EXECUTION_HISTORY_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "history.jsonl"
+EXECUTION_LEDGER_LIMIT = 80
 SUPERVISION_LATEST_RELATIVE_PATH = persisted_dispatches.SUPERVISION_LATEST_RELATIVE_PATH
 
 
@@ -87,6 +88,43 @@ def _execution_latest_path(profile: WorkspaceProfile, study_id: str) -> Path:
 
 def _execution_history_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / EXECUTION_HISTORY_RELATIVE_PATH
+
+
+def _execution_identity(execution: Mapping[str, Any]) -> str:
+    return (
+        _text(execution.get("execution_id"))
+        or "::".join(
+            item
+            for item in (
+                _text(execution.get("action_type")),
+                _text(execution.get("idempotency_key")),
+                _text(execution.get("generated_at")),
+            )
+            if item
+        )
+        or json.dumps(dict(execution), ensure_ascii=False, sort_keys=True)
+    )
+
+
+def _mapping_list(value: object) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
+
+
+def _merged_execution_ledger(
+    *,
+    previous_payload: Mapping[str, Any] | None,
+    study_executions: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for execution in [
+        *_mapping_list(_mapping(previous_payload).get("execution_ledger")),
+        *_mapping_list(_mapping(previous_payload).get("executions")),
+        *study_executions,
+    ]:
+        merged[_execution_identity(execution)] = dict(execution)
+    return list(merged.values())[-EXECUTION_LEDGER_LIMIT:]
 
 
 def _dispatches(
@@ -685,12 +723,20 @@ def _persist_study_executions(
 ) -> list[str]:
     latest_path = _execution_latest_path(profile, study_id)
     history_path = _execution_history_path(profile, study_id)
+    previous_payload = _read_json_object(latest_path)
+    execution_ledger = _merged_execution_ledger(
+        previous_payload=previous_payload,
+        study_executions=study_executions,
+    )
     study_payload = {
         "surface": "default_executor_dispatch_execution_study_latest",
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
         "study_id": study_id,
         "executions": study_executions,
+        "execution_ledger": execution_ledger,
+        "ledger_execution_count": len(execution_ledger),
+        "ledger_retention_limit": EXECUTION_LEDGER_LIMIT,
         "executed_count": sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in study_executions),
         "blocked_count": sum(item.get("execution_status") == "blocked" for item in study_executions),
         "codex_dispatch_count": sum(item.get("will_start_llm") is True for item in study_executions),

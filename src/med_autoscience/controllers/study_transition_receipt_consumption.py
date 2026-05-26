@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
+from med_autoscience.controllers.study_transition_receipt_consumption_parts.default_executor_candidates import (
+    default_executor_execution_candidates,
+)
 
 
 _ROUTE_DECISION_OWNER_RECEIPT_VALUES = frozenset(
@@ -34,8 +37,6 @@ _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES = frozenset(
         "applied",
     }
 )
-
-
 def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
     supersession = _mapping(status.get("blocked_turn_closeout_supersession"))
     if not supersession:
@@ -61,15 +62,13 @@ def default_executor_execution_receipt_consumption(
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if not current_action_types:
         return {}
-    receipt_ref = Path("artifacts/supervision/consumer/default_executor_execution/latest.json")
-    receipt = _read_json_object(Path(study_root).expanduser().resolve() / receipt_ref)
-    if receipt is None:
-        return {}
-    for execution in reversed(_mapping_list(receipt.get("executions"))):
+    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
         action_type = _text(execution.get("action_type"))
         if action_type not in current_action_types:
             continue
         if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
+            continue
+        if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
             continue
         if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
@@ -111,11 +110,7 @@ def default_executor_execution_nonconsumable_closeout(
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if not current_action_types:
         return {}
-    receipt_ref = Path("artifacts/supervision/consumer/default_executor_execution/latest.json")
-    receipt = _read_json_object(Path(study_root).expanduser().resolve() / receipt_ref)
-    if receipt is None:
-        return {}
-    for execution in reversed(_mapping_list(receipt.get("executions"))):
+    for execution, receipt_ref in default_executor_execution_candidates(study_root=study_root):
         action_type = _text(execution.get("action_type"))
         if action_type not in current_action_types:
             continue
@@ -123,9 +118,12 @@ def default_executor_execution_nonconsumable_closeout(
             continue
         if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
+        recovered_stage_packet_currentness = (
+            _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered"
+        )
         owner_result = _mapping(execution.get("owner_result"))
         repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
-        if _default_executor_owner_result_consumable(
+        if not recovered_stage_packet_currentness and _default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
             repair_evidence=repair_evidence,
@@ -732,6 +730,8 @@ def _default_executor_nonconsumable_reason(
             and hygiene.get("story_surface_delta_present") is not True
         ):
             return "manuscript_story_surface_delta_missing"
+        if blocked_reason := _text(owner_result.get("blocked_reason")):
+            return blocked_reason
         if _text(repair_evidence.get("status")) == "progress_delta_candidate":
             return "required_story_surface_delta_or_typed_blocker_missing"
     return (
