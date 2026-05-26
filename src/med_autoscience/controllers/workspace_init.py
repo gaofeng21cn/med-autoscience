@@ -275,6 +275,17 @@ def _is_generated_workspace_guidance_path(path: Path) -> bool:
     )
 
 
+def _is_generated_workspace_wrapper_path(path: Path) -> bool:
+    return len(path.parts) >= 4 and path.parts[-4:-1] in {
+        ("ops", "medautoscience", "bin"),
+        ("ops", "mas", "bin"),
+    }
+
+
+def _looks_like_generated_workspace_wrapper(content: str) -> bool:
+    return 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in content
+
+
 def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
     if not item.path.exists():
         return "create"
@@ -289,6 +300,12 @@ def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
     if _is_generated_workspace_guidance_path(item.path) and existing_content != item.content:
         if legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
             return "upgrade"
+    if (
+        _is_generated_workspace_wrapper_path(item.path)
+        and existing_content != item.content
+        and _looks_like_generated_workspace_wrapper(existing_content)
+    ):
+        return "upgrade"
     if _is_workspace_profile_path(item.path) and existing_content != item.content:
         return "upgrade"
     if _is_medautoscience_config_path(item.path) and existing_content != item.content:

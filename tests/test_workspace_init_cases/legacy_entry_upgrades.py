@@ -104,6 +104,68 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     assert '--loop' not in domain_health_diagnostic_text
 
 
+def test_init_workspace_upgrades_generated_workspace_wrappers_when_templates_change(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "old-wrapper-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="old-wrapper",
+        dry_run=False,
+        force=False,
+    )
+
+    progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
+    resolve_targets = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-submission-targets"
+    progress_projection.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'args=("$@")\n'
+        'if [[ "${#args[@]}" -gt 0 && "${args[0]}" != -* ]]; then\n'
+        '  study_id="${args[0]}"\n'
+        '  args=("${args[@]:1}")\n'
+        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" --study-id "${study_id}" "${args[@]}"\n'
+        "else\n"
+        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"\n'
+        "fi\n",
+        encoding="utf-8",
+    )
+    resolve_targets.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'args=("$@")\n'
+        "has_profile=0\n"
+        'for arg in "${args[@]}"; do\n'
+        '  if [[ "${arg}" == "--profile" ]]; then\n'
+        "    has_profile=1\n"
+        "    break\n"
+        "  fi\n"
+        "done\n\n"
+        'if [[ "${has_profile}" -eq 1 ]]; then\n'
+        '  run_medautosci publication resolve-targets "${args[@]}"\n'
+        "else\n"
+        '  run_medautosci publication resolve-targets --profile "${PROFILE_PATH}" "${args[@]}"\n'
+        "fi\n",
+        encoding="utf-8",
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="old-wrapper",
+        dry_run=False,
+        force=False,
+    )
+
+    progress_projection_text = progress_projection.read_text(encoding="utf-8")
+    resolve_targets_text = resolve_targets.read_text(encoding="utf-8")
+    assert str(progress_projection) in result["upgraded_files"]
+    assert str(resolve_targets) in result["upgraded_files"]
+    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
+    assert 'for arg in ${args[@]+"${args[@]}"}; do' in resolve_targets_text
+
+
 def test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags_are_present(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "legacy-watch-runtime"
