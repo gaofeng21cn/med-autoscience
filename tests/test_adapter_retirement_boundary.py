@@ -8,36 +8,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src" / "med_autoscience"
 ADAPTER_ROOT = SRC_ROOT / "adapters" / "deepscientist"
 RUNTIME_TRANSPORT_ROOT = SRC_ROOT / "runtime_transport"
-RETIRED_MAS_RUNTIME_TRANSPORT_MODULES = (
-    "__init__.py",
-    "mas_runtime_core.py",
-    "mas_runtime_core_delayed_turns.py",
-    "mas_runtime_core_hard_methodology.py",
-    "mas_runtime_core_pause_resume.py",
-    "mas_runtime_core_stopped_relaunch.py",
-    "mas_runtime_core_turn_actions.py",
-    "mas_runtime_core_turn_authorization.py",
-    "mas_runtime_core_turn_blocks.py",
-    "mas_runtime_core_turn_completion.py",
-    "mas_runtime_core_turn_liveness.py",
-    "mas_runtime_core_turn_messages.py",
-    "mas_runtime_core_turn_monitor.py",
-    "mas_runtime_core_turn_owner_handoff.py",
-    "mas_runtime_core_turn_paths.py",
-    "mas_runtime_core_turn_policy.py",
-    "mas_runtime_core_turn_prompt.py",
-    "mas_runtime_core_turn_receipts.py",
-    "mas_runtime_core_turn_residency.py",
-    "mas_runtime_core_turn_runner.py",
-    "mas_runtime_core_turn_state.py",
-    "mas_runtime_core_turn_timers.py",
-    "mas_runtime_core_turn_utils.py",
-    "mas_runtime_core_turns.py",
-    "mas_runtime_core_worker_codex_isolation.py",
-    "mas_runtime_core_worker_env.py",
-    "mas_runtime_core_worker_leases.py",
-    "mas_runtime_core_worker_wrapper.py",
-)
 
 
 def test_production_code_does_not_import_deepscientist_adapters() -> None:
@@ -73,8 +43,6 @@ def test_legacy_manual_finishing_projection_field_is_not_resurrected() -> None:
 
 def test_mas_private_runtime_transport_modules_are_physically_retired() -> None:
     assert not RUNTIME_TRANSPORT_ROOT.exists()
-    for module_name in RETIRED_MAS_RUNTIME_TRANSPORT_MODULES:
-        assert not (RUNTIME_TRANSPORT_ROOT / module_name).exists(), module_name
 
 
 def test_production_code_does_not_import_retired_mas_runtime_transport_modules() -> None:

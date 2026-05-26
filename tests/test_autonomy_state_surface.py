@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
+
+
+CONTROLLERS_ROOT = Path(__file__).resolve().parents[1] / "src" / "med_autoscience" / "controllers"
 
 
 def _surface(payload: dict[str, object]) -> dict[str, object]:
@@ -9,10 +13,11 @@ def _surface(payload: dict[str, object]) -> dict[str, object]:
 
 
 def test_retired_control_plane_modules_are_not_importable() -> None:
+    assert sorted(path.name for path in CONTROLLERS_ROOT.glob("control_plane_*.py")) == []
+    assert not (CONTROLLERS_ROOT / "runtime_worker_activity.py").exists()
+
     retired_modules = (
         "med_autoscience.controllers.control_plane_state",
-        "med_autoscience.controllers.control_plane_reconciler",
-        "med_autoscience.controllers.control_plane_facts",
         "med_autoscience.controllers.runtime_worker_activity",
     )
     for module_name in retired_modules:
