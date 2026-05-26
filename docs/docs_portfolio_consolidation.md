@@ -1131,3 +1131,48 @@ Next tranche write scope:
 
 - MAS runtime/control support docs under `docs/runtime/contracts/**` / `docs/runtime/control/**` not already paragraph-covered, or MAS product/status/workbench/progress/domain-ref projection shell reconciliation outside the already-covered blocks.
 - Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
+
+### 2026-05-26 journal package builtins design coverage tranche
+
+本轮覆盖 MAS `docs/runtime/designs/journal_package_builtins_upgrade_design.md`。目标是把该 runtime design support 文档从早期“待新增 controller / workflow”读法收敛到当前 live source/test 事实：`journal_requirements`、`journal_package`、publication gate 状态解析与 supervisor sync 已落地；文档继续保留为设计边界支撑，但不能重新打开已落地 checklist，也不能把 target-specific projection 写成最终投稿 ready、publication ready、quality verdict 或 artifact authority。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, this docs-governance file, and `docs/history/program/journal_package_builtins_upgrade_plan.md`.
+- Runtime design doc: `docs/runtime/designs/journal_package_builtins_upgrade_design.md`.
+- Source surfaces: `src/med_autoscience/journal_requirements.py`, `src/med_autoscience/controllers/journal_requirements.py`, `src/med_autoscience/controllers/journal_package.py`, `src/med_autoscience/controllers/publication_gate_parts/state_resolvers.py`, `src/med_autoscience/controllers/publication_gate_parts/report_builders.py`, `src/med_autoscience/controllers/publication_gate_parts/supervisor_and_cli.py`, `src/med_autoscience/cli.py`, and `src/med_autoscience/cli_parts/parser.py`.
+- Support contracts/docs: `docs/delivery/inspection_package.md` and `docs/runtime/contracts/delivery_plane_contract_map.md` forbidden-write boundaries around journal package materialization.
+- Focused test inventory read as evidence: `tests/test_journal_requirements_controller.py`, `tests/test_journal_package_controller.py`, `tests/test_publication_gate_cases/drift_and_state_cases.py`, `tests/test_publication_gate_cases/supervisor_cases.py`, `tests/test_cli_cases/public_entry_commands.py`, and `tests/test_cli_cases/domain_handler_and_submission_commands.py`.
+- Structural context: CodeGraph context / explore for `resolve_journal_requirements`, `materialize_journal_package`, `resolve_journal_requirement_state`, `resolve_journal_package_state`, publication gate sync and `submission_packages/<journal_slug>`.
+
+Fresh semantic result:
+
+- `publication resolve-journal-requirements` and `publication materialize-journal-package` are current CLI/controller surfaces, not future design proposals.
+- `journal_requirements` writes study-local durable `paper/journal_requirements/<journal_slug>/requirements.json` / `.md`; source authority still depends on official guideline URL and structured payload provenance.
+- `materialize_journal_package` writes shallow `submission_packages/<journal_slug>/`, `audit/submission_manifest.json`, `audit/journal_requirements_snapshot.json`, target-confirmation metadata, formatting boundary and zip; unconfirmed targets remain `journal_targeted_projection`.
+- publication gate reports `journal_requirements_status`, `journal_package_status`, missing-package blockers and can materialize a stale/missing package when requirements are resolved.
+- Inspection package remains human-inspection-only and must not call journal package materialization; journal package projection also does not authorize `current_package`, publication eval, controller decisions, final submission or quality gate closure.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/designs/journal_package_builtins_upgrade_design.md`, with supporting source/test/doc evidence listed above. | `docs/runtime/designs/journal_package_builtins_upgrade_design.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The design remains active runtime support because it records current journal requirement / target-specific package boundary. The implementation plan already lives under `docs/history/program/` as provenance.
+
+Uncovered docs in this semantic area:
+
+- Other files under `docs/runtime/designs/**` were not paragraph-covered in this tranche.
+- Remaining MAS runtime/control support docs under `docs/runtime/contracts/**` / `docs/runtime/control/**` not already covered by prior ledger entries remain open.
+- MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside already-covered blocks remains open.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any future prose in this design area that says journal requirements or journal package controllers are missing, still only skill/manual/study-local temporary materialization, or still a future CLI addition is stale.
+- Any future prose that treats `submission_packages/<journal_slug>/`, requirements snapshot, package zip, package currentness, or publication gate missing-package sync as final journal-ready formatting, confirmed submission package, publication quality verdict, artifact mutation authorization, `current_package` freshness proof or paper closure is stale.
+- Cover letter / DOCX title-page wording must stay aligned with current materializer output; if future code adds these outputs, docs should cite the source/test surface rather than revive early design suggestions.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for another bounded runtime design/support group, or remaining `docs/runtime/contracts/**` / `docs/runtime/control/**` bodies not covered by prior tranches.
+- Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
