@@ -11,13 +11,14 @@ Machine boundary: Human-readable integration reference only; callable and genera
 
 对外第一主语仍然是独立 medical research domain agent 和单一 MAS app skill；这里记录的是桥接载荷如何保持一致，而不是把桥接载荷写成前台产品主线。
 
-repo 内已经把 service-safe domain entry、product-entry builder 与 shared handoff envelope 落成 machine-readable surface：
+repo 内已经把 service-safe domain entry、product-entry schema / generated shell refs 与 shared handoff envelope 落成 machine-readable surface：
 
 - `MedAutoScienceDomainEntry`
   - 给 direct MAS skill、CLI 和 OPL generated / hosted surface 复用同一个 structured entry adapter。
-  - command catalog 以 `product-entry-status`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`progress-projection`、`product-entry-manifest` 和 `build-product-entry` 为当前 service-safe 入口集合。
-- `build-product-entry`
-  - CLI 入口是 `medautosci product build-entry --profile <profile> --study-id <study_id> --entry-mode direct|opl-handoff`；内部 service-safe command id 保持 `build-product-entry`。
+  - 当前 live `SERVICE_SAFE_DOMAIN_COMMANDS` 只把 `study-progress`、`launch-study`、`submit-study-task` 和 authority-operation commands 作为 MedAutoScienceDomainEntry dispatch command。`product-entry-status`、`workspace-cockpit`、`product-entry-manifest`、`progress-projection` 和 `build-product-entry` 是 product-entry schema、manifest shell、OPL generated/default caller 或 public read-model refs，不是当前本仓 CLI parser 中的 profile-domain dispatch command。
+- product-entry builder / handoff refs
+  - `domain_entry_contract.product_entry_builder_command` 当前是 `opl-generated-product-entry`；product-entry schema 与 manifest shell 仍保留 `build-product-entry` / OPL App status / workbench refs，用于 generated/default caller handoff 与 return-surface contract 对齐。
+  - 当前本仓 CLI public groups 暴露 `study progress`、`study launch`、`study submit-task` 等 direct study commands；`domain-handler export|dispatch` 仍是当前 refs-only owner handoff CLI。不要把旧 `medautosci product build-entry` 或顶层 `build-product-entry` 写成当前可执行 CLI truth。
   - 基于已有 durable study task intake 输出共用 envelope；缺少 durable intake 或 study selector 不成立时保持 fail-closed。
   - 输出 `domain_authority_handoff_contract`、`managed_runtime_contract`、`return_surface_contract`、`domain_entry_contract` 和 `user_interaction_contract`，供 direct path 与 OPL-handoff path 共享。
 
@@ -88,5 +89,5 @@ repo 内已经把 service-safe domain entry、product-entry builder 与 shared h
 ## 7. 下一步落地方向
 
 1. 继续保持 `CLI / MCP / controller` 的入口语义稳定。
-2. 继续把 `product-entry-status`、`workspace-cockpit`、`build-product-entry`、`sidecar export|dispatch` 和 domain entry contract 对齐到同一套 `agent/` pack、contracts、owner receipt、typed blocker 和 no-forbidden-write boundary。
+2. 继续把 `product-entry-status`、`workspace-cockpit`、product-entry manifest / generated shell refs、`domain-handler export|dispatch` 和 domain entry contract 对齐到同一套 `agent/` pack、contracts、owner receipt、typed blocker 和 no-forbidden-write boundary。
 3. 当 OPL generated/default caller parity、active-caller proof、MAS owner receipt parity 和 focused tests 成立后，直接收薄或删除 repo-local product/status/workbench/sidecar shell；需要来龙去脉只保留 history/provenance，不新增 compatibility alias。

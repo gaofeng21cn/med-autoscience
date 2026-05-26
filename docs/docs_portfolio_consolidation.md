@@ -1575,3 +1575,51 @@ Next tranche write scope:
 
 - Continue MAS exact uncovered history/reference inventory, preferably a bounded `docs/references/mainline/**` / `docs/references/integration/**` tranche or `docs/history/**` index/provenance group.
 - Keep App docs delayed until active release / GUI lanes are safe or explicitly assigned.
+
+### 2026-05-27 mainline / integration exact-path reconcile tranche
+
+本轮重新覆盖 MAS `docs/references/mainline/**` 与 `docs/references/integration/**` 中仍被 exact inventory 标为未覆盖的 7 份 support-reference 文档，并修正同一 integration cluster 中 product-entry handoff 参考的当前 CLI / generated-shell 口径漂移。目标是把已有段落级覆盖转成可由 inventory 精确核对的路径记录，同时确保这些 reference 不承载 active execution queue、current CLI truth、runtime owner、domain ready、production ready、quality verdict、publication readiness、artifact authority 或 `current_package` freshness proof。
+
+Live truth inputs:
+
+- MAS `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, and this docs-governance file.
+- Mainline docs: `docs/references/mainline/ars_learning_intake.md`, `docs/references/mainline/nature_skills_learning_intake.md`, `docs/references/mainline/project_repair_priority_map.md`, and `docs/references/mainline/test_lane_governance_2026_05_08.md`.
+- Integration docs: `docs/references/integration/opl-family-contract-adoption.md`, `docs/references/integration/opl-managed-runtime-three-layer-contract.md`, and `docs/references/integration/stage_led_autonomy_family_inventory.md`; supporting currentness read of `docs/references/integration/lightweight_product_entry_and_opl_handoff.md`, `codex_plugin.md`, and `progress_portal_opl_app_integration.md`.
+- Machine / source / CLI surfaces: `src/med_autoscience/ars_learning_projection.py`, `src/med_autoscience/medical_material_passport.py`, `src/med_autoscience/stage_quality_contract.py`, `src/med_autoscience/domain_entry_contract.py`, `src/med_autoscience/domain_entry.py`, `src/med_autoscience/cli_public_surface.py`, `src/med_autoscience/cli_parts/parser.py`, `src/med_autoscience/cli_parts/study_action_commands.py`, `src/med_autoscience/controllers/product_entry_parts/manifest_shell_surfaces.py`, `src/med_autoscience/opl_domain_pack/family_adoption.py`, `contracts/opl-framework/family-contract-adoption.json`, `contracts/test-lane-manifest.json`, `contracts/action_catalog.json`, and `contracts/schemas/v1/product-entry-manifest.schema.json`.
+- CLI/read-model probes: `PYTHONPATH=src python3 -m med_autoscience.cli domain-handler export --help`, `PYTHONPATH=src python3 -m med_autoscience.cli domain-handler dispatch --help`, and negative current-parser probes for top-level `product-entry-manifest` / `build-product-entry`.
+- Structural context: CodeGraph status/context/explore for ARS projection, medical material passport, stage quality pack, family stage control plane descriptor, domain memory descriptor and domain entry command surfaces.
+
+Fresh semantic result:
+
+- `ars_learning_intake.md` matches live ARS projection and family adoption contract: ARS is external pattern source only; absorbed patterns expose refs / metadata / freshness / typed blockers / owner boundary and forbid memory body, evidence/review ledger body, publication verdict body and paper/package blobs.
+- `nature_skills_learning_intake.md` matches live `stage_quality_pack_contract`: nature-skills patterns are clean-room quality-pack / prompt / descriptor / test inputs, with maturity and promotion evidence, not vendor dependency, runtime provider, publication authority, quality verdict authority or submission readiness surface.
+- `project_repair_priority_map.md` and `test_lane_governance_2026_05_08.md` remain support/provenance references. Current execution order and gap truth stay in the MAS active plan, contracts, test-lane manifest, live source and fresh verification output.
+- The three exact integration references align with current OPL/Temporal default hosted runtime, MAS-owned quality/projection/memory/domain refs, body-free memory descriptor, stage control-plane descriptor, and explicit MDS / Hermes provenance-only boundaries.
+- `lightweight_product_entry_and_opl_handoff.md` had stale wording that described `product-entry-status`, `workspace-cockpit`, `product-entry-manifest`, `progress-projection` and `build-product-entry` as the current service-safe entry command set and named `medautosci product build-entry` as a current CLI. Live `SERVICE_SAFE_DOMAIN_COMMANDS` only contains `study-progress`, `launch-study`, `submit-study-task` and authority-operation commands; current parser exposes direct study commands and `domain-handler export|dispatch`, while product-entry status/workbench/manifest/build-entry are schema, manifest-shell, OPL generated/default caller or read-model refs. The doc was corrected in place.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph reread of the 7 exact-missing mainline / integration reference docs listed above; focused currentness correction in `docs/references/integration/lightweight_product_entry_and_opl_handoff.md`, with live source/contract/CLI/CodeGraph evidence listed above. | `docs/references/integration/lightweight_product_entry_and_opl_handoff.md`; this coverage ledger. |
+
+Exact MAS reference paths newly recorded by this tranche: `docs/references/mainline/ars_learning_intake.md`; `docs/references/mainline/nature_skills_learning_intake.md`; `docs/references/mainline/project_repair_priority_map.md`; `docs/references/mainline/test_lane_governance_2026_05_08.md`; `docs/references/integration/opl-family-contract-adoption.md`; `docs/references/integration/opl-managed-runtime-three-layer-contract.md`; `docs/references/integration/stage_led_autonomy_family_inventory.md`.
+
+Archived / tombstoned / deleted docs:
+
+- none. The target documents remain support references; one stale current-surface statement was corrected in place.
+
+Uncovered docs:
+
+- `docs/references/mainline/**` and `docs/references/integration/**` now have no exact uncovered path in the inventory-vs-ledger check for this cluster after this tranche.
+- MAS repo-wide `README*` and `docs/**/*.md` full paragraph coverage remains open outside prior focused MAS chunks and this exact-path reconcile tranche. Remaining exact uncovered clusters are history-heavy: `docs/history/program`, `docs/history/superpowers/plans`, `docs/history/superpowers/specs`, `docs/history/runtime`, `docs/history/positioning`, `docs/history/capabilities/medical-display`, `docs/history/omx`, and history directory indexes.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger; App full-doc coverage remains delayed while active release / GUI lanes are dirty or externally owned.
+
+Remaining stale / retire candidates:
+
+- Future product-entry / OPL handoff prose that writes retired top-level `product-entry-manifest`, top-level `build-product-entry`, or `medautosci product build-entry` as current MAS CLI truth is stale unless a live parser / generated caller proves it. Use source, schema, OPL generated shell refs and `domain-handler export|dispatch` boundaries instead of prose memory.
+- Future ARS / nature / external-skill prose must stay clean-room / projection-only. External patterns cannot become runtime dependency, default skill source, publication quality authority, source body owner, artifact authority, submission readiness or `current_package` freshness proof.
+- Future integration prose must keep OPL/Temporal as default hosted runtime owner and keep MDS / DeepScientist / Hermes in provenance, explicit archive/import, backend audit, upstream intake, parity oracle or explicit non-default executor/proof roles.
+
+Next tranche write scope:
+
+- Continue MAS exact uncovered history inventory, preferably a bounded `docs/history/**` index/provenance group.
+- Keep App docs delayed until active release / GUI lanes are safe or explicitly assigned.
