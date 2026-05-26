@@ -14,6 +14,8 @@ Superseded reading note: 本文中的 `Unified Harness Engineering Substrate`、
 
 ## 1) 在 Unified Harness Engineering Substrate 中的位置
 
+本节是 2026-05-08 口径的历史图示；今天不能据此把 `MAS Runtime OS` 读成 MAS 自有默认 runtime / scheduler owner。当前默认 hosted autonomous runtime 归 OPL/Temporal，MAS 保留医学 domain truth、authority refs、owner receipts、typed blockers 和必要 authority functions。
+
 可按下面这条链路理解：
 
 `User / Agent -> MAS app skill / MedAutoScience domain-agent entry -> MAS Runtime OS / Artifact OS / Quality OS -> runtime / eval / delivery surfaces`
@@ -22,7 +24,7 @@ Superseded reading note: 本文中的 `Unified Harness Engineering Substrate`、
 
 - `Unified Harness Engineering Substrate` 提供跨域共享的工程约束与运行基础
 - `Med Auto Science` 负责医学领域合同、研究推进与交付治理
-- `MAS Runtime OS` 负责当前默认 runtime owner / substrate 的 controller-facing contract
+- `MAS Runtime OS` 在本文历史语境中曾指 controller-facing runtime contract；当前不能作为 MAS 默认 runtime owner 读取
 - `MedDeepScientist` 只保留 frozen source archive、historical fixture 和 explicit legacy diagnostic / provenance reference，不承担默认执行面
 
 ## 2) 继承的统一约束（来自共享底座）
@@ -44,30 +46,30 @@ Superseded reading note: 本文中的 `Unified Harness Engineering Substrate`、
 - 决策合同：继续/停止、改题、sidecar 补充的审计化决策面
 - 交付合同：稿件、图表、补充材料、submission package 的一致性要求
 
-## 4) 当前默认 runtime 形态
+## 4) 历史默认 runtime 形态
 
-当前 repo-tracked 默认 runtime 形态已经收敛为 MAS-owned runtime + MAS-owned scheduler contract + product projection：
+下列形态是本文写作时的历史 closeout 口径，已经被当前 `OPL/Temporal hosted autonomous runtime + MAS domain authority refs` 口径取代，不能作为今天的默认 runtime topology、scheduler owner 或兼容保留理由：
 
 - `MedAutoScience` = 唯一研究入口与 domain-agent entry
-- `MAS Runtime OS` = 默认 controller-facing runtime owner / substrate
-- `MAS supervision scheduler contract` = 外层监管调度 owner；默认 adapter 是 MAS-owned local scheduler，每 300 秒调用一次 MAS-owned supervision tick script；Hermes gateway cron 是 explicit optional adapter
+- `MAS Runtime OS` = 历史 controller-facing runtime owner / substrate 语汇
+- `MAS supervision scheduler contract` = 历史外层监管调度 owner 语汇；默认 local scheduler / tick script 不能作为当前 MAS generic scheduler 或 worker residency owner 复活
 - `MedDeepScientist` = frozen source archive、historical fixture、explicit legacy diagnostic / provenance reference
-- 旧 `Codex-default host-agent runtime` = 本机外部 caller / 历史对照面，不是默认 MAS runtime owner
+- 旧 `Codex-default host-agent runtime` = 本机外部 caller / 历史对照面；当前 stage 内第一公民 executor 是 `Codex CLI`，hosted runtime owner 是 OPL/Temporal
 
-在该形态下：
+在该历史形态下：
 
 - formal-entry matrix 固定为：
   - `default_formal_entry = CLI`
   - `supported_protocol_layer = MCP`
   - `internal_controller_surface = controller`
-- 当前 repo-tracked 产品主线按 `Auto-only` 理解；future `Human-in-the-loop` 产品应作为 sibling 或 upper-layer product 复用同一 substrate
-- 外层监管通过 `scheduler adapter -> MAS Runtime OS` 的受控 tick 完成；默认 adapter 是 `local`
-- `Med Auto Science` 作为 `Domain Harness OS`，负责控制面、合同面和审计面
+- 当时 repo-tracked 产品主线按 `Auto-only` 理解；future `Human-in-the-loop` 产品应作为 sibling 或 upper-layer product 复用同一 substrate
+- 当时外层监管通过 `scheduler adapter -> MAS Runtime OS` 的受控 tick 完成；该 local scheduler / MAS Runtime OS 链路今天只能作为历史 closeout provenance 读取
+- `Med Auto Science` 当时作为 `Domain Harness OS` 被描述为控制面、合同面和审计面 owner；今天该语汇不能替代 MAS 标准 OPL Agent owner 边界
 - `MedDeepScientist` 不作为执行面或系统本体
 
-## 5) 当前 execution handle contract
+## 5) 历史 execution handle contract
 
-当前主线至少要区分四层身份：
+本文当时的主线至少要区分四层身份；今天若要判断 execution handle / attempt / stage identity，必须回到当前 contracts、runtime/controller surfaces 和 OPL provider attempt refs：
 
 - `program_id`
   - 当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针
@@ -76,13 +78,13 @@ Superseded reading note: 本文中的 `Unified Harness Engineering Substrate`、
 - `quest_id`
   - MAS managed quest 的正式运行句柄
 - `active_run_id`
-  - 当前 MAS runtime run / supervision tick / execution receipt 的细粒度执行句柄
+  - 当时 MAS runtime run / supervision tick / execution receipt 的细粒度执行句柄
 
 这四者不能互相替代，尤其不能把 `active_run_id` 或 `quest_id` 倒灌成上层 study / control-plane 身份。
 
-## 6) 当前 durable surface contract
+## 6) 历史 durable surface contract
 
-当前主线下，至少以下表面必须继续被理解为 canonical durable surface：
+本文当时列出以下 canonical durable surface。今天的 durable surface 以当前 `contracts/`、runtime/controller surfaces、真实 workspace artifact、owner receipts 和 active docs 为准；下列路径只作为历史 provenance 和迁移线索读取：
 
 - `runtime_binding.yaml`
 - `study_runtime_status`
@@ -111,5 +113,5 @@ Superseded reading note: 本文中的 `Unified Harness Engineering Substrate`、
 
 - 不把当前表述夸大为“已经形成独立公共代码框架”
 - 不把 `MedDeepScientist` 等同为 `Med Auto Science` 本体
-- 不因为未来托管形态而稀释当前医学 `Domain Harness OS` 的职责
+- 不因为未来托管形态而稀释当时医学 `Domain Harness OS` 的职责；今天该说法必须折回 MAS 标准 OPL Agent owner 边界
 - external `Hermes` runtime repo / workspace / daemon truth 未清除前，不把 repo-side contract 冻结误写成 external cutover 完成

@@ -5,6 +5,8 @@ Purpose: `positioning_history_record`
 State: `history_provenance`
 Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner truth 继续归核心五件套、MAS ideal-state reference、active gap plan、contracts/source 和 owner receipts。
 
+历史读法：本文的 `Research Foundry` 品牌、三阶段 repo 演化、GitHub 描述和公开口径建议只作为定位 provenance。当前 MAS 不承担通用 Research Ops framework owner；OPL Framework / shared family layer 持有通用 stage-led runtime、generated surfaces 与 shared primitives，MAS 持有 medical domain pack、study truth、quality / publication / artifact authority、owner receipts 和 typed blockers。
+
 这份文档用来冻结一套新的公开口径：
 
 - `OPL / One Person Lab`
@@ -54,7 +56,7 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 因此，更合理的做法是：
 
 - 在 `OPL` 与 `Med Auto Science` 之间，补上一层新的 `Research Ops Framework` 名称
-- 当前推荐这个名字是：
+- 当时推荐这个名字是：
   - `Research Foundry`
 
 ## 三层关系
@@ -178,9 +180,9 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 
 ## 对 Med Auto Science 仓库的正式影响
 
-### 当前不建议立即做的事情
+### 当时不建议立即做的事情
 
-现在不建议立刻：
+本文写作时不建议立刻：
 
 - 改 Python package 名
 - 大规模改 import path
@@ -193,9 +195,9 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 - display / monorepo 仍处于 contract 收口期
 - 过早做品牌级物理迁移，收益小于风险
 
-### 当前建议先做的事情
+### 当时建议先做的事情
 
-当前应先做“口径迁移”，不是“物理迁移”。
+本文写作时建议先做“口径迁移”，不是“物理迁移”。
 
 也就是先把公开叙事改成：
 
@@ -293,9 +295,9 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 - 已存在的用户调用面
 - 已被当前 repo-side mainline 依赖的 contract path
 
-## 推荐公开口径
+## 历史推荐公开口径
 
-今后对外介绍时，推荐统一使用下面这条口径：
+下列文案是当时的 public positioning proposal。今天使用前必须先对照当前 README、核心五件套、active gap plan、OPL family docs 和 live contracts，不能据此单独修改 GitHub 描述、repo slug、CLI command、package/import path 或 public ready claim：
 
 > `One Person Lab` 是顶层 federation。  
 > `Research Foundry` 是面向 `Research Ops` 的通用 framework。  

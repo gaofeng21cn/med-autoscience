@@ -27,12 +27,12 @@ Superseded reading note: 本文中的 `Harness OS core`、`Domain Gateway`、`Do
 
 `MedAutoScience` 可以兼容未来开放 `Harness OS` 的方向，但前提不是把医学语义原样推广到所有领域，而是把其中可复用的运行内核抽出来，同时把医学特化 contract、overlay、publication surface 与 delivery 规则保留为 `medical domain pack`。
 
-## 当前定位
+## 历史定位
 
-今天这个仓库的正式定位已经不是“医学脚本集合”，而是：
+本文写作时对这个仓库的正式定位判断如下；今天的正式定位必须回到当前 README、核心五件套、active gap plan、contracts 和 OPL family 主参考：
 
 - 对外：独立医学研究 `Foundry Agent` 与 `OPL-compatible package built on OPL Framework`
-- 对内：MAS-owned controller、runtime、eval、delivery 边界；旧 `Domain Harness OS` 词汇只作内部边界语言
+- 对内：当时写作口径中的 MAS-owned controller、runtime、eval、delivery 边界；旧 `Domain Harness OS` 词汇只作历史边界语言，不能复活为当前 MAS generic runtime owner
 
 这意味着它本来就有两层：
 
@@ -260,11 +260,11 @@ Human / Agent
 - 因为追求“通用”而弱化医学专业 contract
 - 在没有第二个真实 domain 验证前，就宣称已经完成开放化
 
-## 当前推荐口径
+## 历史推荐口径
 
-今后对内对外，推荐统一使用下面这条口径：
+下列口径属于本文写作时的开放化讨论，不是今天的 current truth owner。当前读法应回到 MAS ideal-state reference、active gap plan、核心五件套、contracts/source 和 OPL family 主参考：
 
-- `MedAutoScience` 是当前 active 的 `Research Ops` domain gateway 与 medical harness OS
+- `MedAutoScience` 是当时被讨论为 active `Research Ops` domain gateway 与 medical harness OS 的历史定位材料
 - 它不是 `OPL` 的替代物，也不是通用 HarnessOS 的完成态
 - 它是未来开放 `Harness OS` 路线上的第一份成熟参考实现
 - 如果未来开放化，正确方向是 `Harness OS core + domain packs`，而不是把医学系统直接磨平成一个通用壳

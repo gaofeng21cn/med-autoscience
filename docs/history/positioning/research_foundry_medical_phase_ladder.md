@@ -7,7 +7,7 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 
 这份维护者参考把 `Med Auto Science` 从“当前主线已成立”走到“更完整理想形态”的 5 个阶段固定下来。
 
-当前状态说明（2026-05-14）：本文是 historical / positioning reference。当前公开第一身份是独立医学研究 `Foundry Agent` 与 `OPL-compatible package built on OPL Framework`；`Domain Harness OS`、`domain gateway`、`Research Foundry` 梯子语汇只作为历史定位和内部边界语言保留。`functional_monolith_completion`、`mds_behavior_equivalence_audit` 与 supervision scheduler contract 已把默认运行口径收敛为 MAS Runtime OS + MAS-owned scheduler contract；默认 adapter 是 local，Hermes gateway cron 是 explicit optional adapter。外部 `MedDeepScientist` 不再是默认 backend，只保留 source archive / historical fixture / explicit legacy diagnostic / provenance reference。本文中早期“controlled research backend”“domain gateway”“Domain Harness OS”表述不得作为当前 execution plan 或公开第一身份使用。
+当前状态说明（2026-05-14，已 superseded）：本文是 historical / positioning reference。当前公开第一身份是独立医学研究 `Foundry Agent` 与 `OPL-compatible package built on OPL Framework`；`Domain Harness OS`、`domain gateway`、`Research Foundry` 梯子语汇只作为历史定位和内部边界语言保留。本文写作时曾用 `functional_monolith_completion`、`mds_behavior_equivalence_audit` 与 supervision scheduler contract 收敛 MAS Runtime OS / local scheduler 口径；今天默认 hosted autonomous runtime 归 OPL/Temporal，MAS 不持有 generic scheduler、queue、attempt ledger、retry/dead-letter、worker residency 或 runtime owner。外部 `MedDeepScientist` 不再是默认 backend，只保留 source archive / historical fixture / explicit legacy diagnostic / provenance reference。本文中早期“controlled research backend”“domain gateway”“Domain Harness OS”“MAS-owned scheduler”表述不得作为当前 execution plan、default runtime topology 或公开第一身份使用。
 
 它解决三个问题：
 
@@ -15,10 +15,12 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 2. 现在处在第几阶段
 3. 后面该按什么顺序继续做，而不是把高优先级与后置长线混在一起
 
-配套命令面：
+历史配套命令面：
 
 - 总览：`uv run python -m med_autoscience.cli mainline-status`
 - 分阶段：`uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`
+
+这些命令名属于旧 mainline ladder 语境；当前 CLI 入口以 `medautosci <group> <command>` 分组和当前 owner docs / contracts / read-model surfaces 为准。不要用本文的命令例子判断今天的 runnable CLI surface。
 
 ## 理想形态
 
@@ -26,7 +28,7 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 
 - `OPL Framework`：stage-led family runtime framework，持有 attempt、queue、wakeup、retry/dead-letter、human gate transport、receipt/projection 与 shared lifecycle/index primitive
 - `Med Auto Science`：独立医学研究 `Foundry Agent` 与 OPL-compatible package，持有 study truth、medical stage semantics、quality verdict、runtime owner surface、artifact authority 和 publication authority
-- `MAS supervision scheduler contract`：长期唤醒与调度 owner；默认 adapter 是 `local`，Hermes/future hosted scheduler 是 optional adapter
+- `MAS supervision scheduler contract`：历史长期唤醒与调度 owner 语汇；当前默认唤醒、调度、retry/dead-letter、attempt ledger 和 worker residency 归 OPL/Temporal
 - `MedDeepScientist`：source archive、historical fixture、explicit legacy diagnostic / provenance reference
 
 面向用户时，理想形态必须至少成立下面这件事：
@@ -40,14 +42,14 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 历史目标：
 
 - 曾用于让 `MedAutoScience -> Hermes target substrate -> MDS backend` 这条迁移链路诚实成立
-- 当前已被 MAS Runtime OS + MAS supervision scheduler contract closeout 取代；Hermes gateway cron 只是 explicit optional adapter
+- 当时已被 MAS Runtime OS + MAS supervision scheduler contract closeout 取代；今天该 closeout 本身也只作为历史 provenance，默认 hosted runtime owner 已是 OPL/Temporal
 - 后续 blocker 不得重新写成外部 MDS backend 默认依赖
 
 当前完成标志：
 
 - F1-F3 证据链成立
 - F4 blocker closeout 不再主要是 repo-side seam 问题
-- `mainline-status`、`workspace-cockpit`、`study-progress` 已能说清当前真相
+- 当时的 `mainline-status`、`workspace-cockpit`、`study-progress` 已能说清该阶段真相；今天 runnable CLI / read model 以当前 parser、contracts 和 active owner docs 为准
 
 当前状态：
 
@@ -120,7 +122,7 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 - 这是严格后置长线
 - 不属于当前默认实施入口
 
-当前这条长线已经进一步冻结成一条固定落地顺序：
+本文当时把这条长线冻结成一条历史落地顺序：
 
 1. `freeze_gateway_runtime_truth`
 2. `stabilize_user_product_loop`
@@ -128,7 +130,7 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 4. `freeze_backend_deconstruction_boundary`
 5. `physical_monorepo_absorb`
 
-当前真实进度：
+历史进度读法：
 
 - 已完成：`freeze_gateway_runtime_truth`
 - 正在进行：`stabilize_user_product_loop`
@@ -152,15 +154,15 @@ Machine boundary: 人读历史定位/provenance 记录。当前定位和 owner t
 4. 再做 backend 解构
 5. 最后才做更大平台化
 
-## 当前正式判断
+## 历史正式判断
 
-当前 repo-tracked truth 应写成：
+本文写作时的 repo-tracked truth 曾写成：
 
 - 现在处在 `Phase 1` 尾声，而不是已经跨到成熟产品态
 - 当前最重要的下一阶段是 `Phase 2`
 - `Phase 3-5` 都已经知道要做什么，但仍是后续阶段，不应抢跑
 
-因此当前最该继续推进的是：
+因此当时最该继续推进的是：
 
 - 继续收口 `F4 blocker closeout`
 - 继续强化用户可见的 product-entry loop
