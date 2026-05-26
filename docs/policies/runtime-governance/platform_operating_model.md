@@ -73,7 +73,7 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 ## 稳定操作面
 
-平台默认希望 Agent 使用稳定的 gateway / controller 接口，而不是直接编辑状态文件。
+平台默认希望 Agent 使用稳定的 domain-agent entry、controller 和 generated descriptor / read-model surface，而不是直接编辑状态文件。
 
 当前正式操作面包括：
 

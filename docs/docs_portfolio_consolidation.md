@@ -1384,3 +1384,61 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for remaining runtime projection/display/design support docs, or MAS product/status/workbench/progress/domain-ref projection shell reconciliation.
 - Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
+
+### 2026-05-26 policy governance tranche
+
+本轮覆盖 MAS `docs/policies/**` 中尚未进入 coverage ledger 的 policy index、quality policy、runtime-governance policy、repo-ops policy、publication-route memory policy 与第一代 study workflow support。目标是把 policy 文档读回当前 MAS / OPL owner split：policy 是稳定人读规则，不是 active backlog、runtime truth、publication verdict、artifact authority、submission authorization、`current_package` freshness proof、domain ready 或 production ready 判据。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/architecture.md`, `docs/active/mas-ideal-state-gap-plan.md`, and this docs-governance file.
+- Policy docs: all tracked Markdown under `docs/policies/**`, with focused reads of `docs/policies/README.md`, `docs/policies/runtime-governance/platform_operating_model.md`, `docs/policies/runtime-governance/external_runtime_dependency_gate.md`, `docs/policies/runtime-governance/mas_mds_owner_boundary_contract.md`, `docs/policies/repo-ops/mainline_integration_and_cleanup.md`, `docs/policies/repo-ops/merge_and_cutover_gates.md`, `docs/policies/repo-ops/repository_ci_preflight.md`, and `docs/policies/study-workflow/README.md`.
+- Machine surfaces: `contracts/functional_privatization_audit.json`, `contracts/generated_surface_handoff.json`, `contracts/production_acceptance/mas-production-acceptance.json`, `contracts/action_catalog.json`, and `contracts/test-lane-manifest.json`.
+- Stale-risk scan over policy docs for gateway / Hermes / MDS / DeepScientist / default runtime / production-ready / domain-ready / wrapper / alias / facade wording.
+
+Fresh semantic result:
+
+- `docs/policies/README.md` already carries the correct index role: policy docs are stable human-readable rules and must not become active backlog or runtime truth.
+- Runtime-governance and repo-ops policies already keep Hermes / MedDeepScientist / DeepScientist in explicit executor/proof diagnostic, historical fixture, explicit archive import, backend audit, upstream intake, parity oracle, history/provenance or dev/CI/offline baseline roles. They do not make those surfaces the MAS default runtime owner.
+- `platform_operating_model.md` had one stale active-surface phrase: "gateway / controller" was narrowed to `domain-agent entry`, controller, and generated descriptor / read-model surface so active policy wording follows the current domain-entry / OPL-hosted runtime split.
+- Production acceptance and generated-surface contracts still say OPL cannot authorize MAS domain ready, publication ready, medical ready, artifact mutation, memory body, publication verdict or `current_package`; policy docs must keep those authority boundaries.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | All tracked Markdown under `docs/policies/**` at directory / role level; full or focused paragraph read of policy indexes, runtime-governance policies, repo-ops policies, quality policy group, publication-route memory policy group, study archetypes, research route bias and already-covered study workflow policies, with live contract evidence listed above. | `docs/policies/runtime-governance/platform_operating_model.md`; this coverage ledger. |
+
+Exact reviewed policy paths not already named by prior ledger entries:
+
+- `docs/policies/domain_memory_markdown_first_policy.md`
+- `docs/policies/quality/ai_first_quality_boundary.md`
+- `docs/policies/quality/ai_reviewer_calibration_corpus.md`
+- `docs/policies/quality/dm002_manuscript_quality_self_evolution_20260518.md`
+- `docs/policies/quality/dm003_manuscript_quality_self_evolution_20260522.md`
+- `docs/policies/quality/evidence_review_contract.md`
+- `docs/policies/quality/medical_manuscript_first_draft_quality.md`
+- `docs/policies/quality/publication_gate_policy.md`
+- `docs/policies/runtime-governance/manual_runtime_stabilization_checklist.md`
+- `docs/policies/study-workflow/publication_route_memory_library.md`
+- `docs/policies/study-workflow/publication_route_memory_policy.md`
+- `docs/policies/study-workflow/research_route_bias_policy.md`
+- `docs/policies/study-workflow/study_archetypes.md`
+
+Archived / tombstoned / deleted docs: none. The policy docs remain active policy/support material; stale current-surface wording was corrected in place.
+
+Uncovered docs in this semantic area:
+
+- `docs/policies/**` is now covered at policy-directory level for current owner / purpose / state / machine-boundary and stale-runtime-owner risk. Future substantial policy-body edits still need focused paragraph review if they add new authority, route, memory, publication, artifact, runtime or App/workbench claims.
+- MAS repo-wide `README*` and `docs/**/*.md` full paragraph coverage remains open outside prior focused MAS chunks and this policy tranche.
+- Remaining exact uncovered clusters include large history/provenance trees, selected references, and three projection support docs already identified by the inventory-vs-ledger pass.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future policy prose that writes `gateway` as a current MAS owner surface, or treats Hermes / MDS / DeepScientist / local scheduler as default runtime owner, default diagnostic owner, production substrate, study truth, publication quality authority, artifact authority or `current_package` authority is stale pollution.
+- Future repo-ops policy prose must keep merge/verification gates separate from runtime cutover, OPL provider soak, MAS owner receipts, typed blockers and real paper-line evidence; a clean docs tranche, descriptor conformance or provider completion cannot become paper closure or production ready.
+- Publication-route memory and study-workflow policy docs must keep Markdown as human/Codex-readable body and keep JSON / generated workspace packs / receipts / projections as structured or refs-only surfaces. OPL may consume locators, freshness and receipt refs, not memory body or publication-route decisions.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for remaining exact uncovered clusters, preferably `docs/runtime/projections/artifact_inventory_projection.md`, `docs/runtime/projections/runtime_health_kernel.md`, and `docs/runtime/projections/study_truth_kernel.md`, or a bounded `docs/references/med-deepscientist/**` / `docs/history/**` tranche.
+- Keep App docs delayed until active release / GUI lanes are safe or explicitly assigned.
