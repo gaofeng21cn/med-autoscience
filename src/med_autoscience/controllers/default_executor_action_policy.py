@@ -9,6 +9,7 @@ SUPPORTED_ACTION_TYPES = frozenset(
         "return_to_ai_reviewer_workflow",
         "canonical_paper_inputs_rehydrate_required",
         "run_quality_repair_batch",
+        "run_gate_clearing_batch",
         "unit_harmonized_external_validation_rerun",
         "recover_transport_model_provenance",
         "methodology_reframe_route_decision",
@@ -38,6 +39,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
     "studies/<study_id>/artifacts/supervision/consumer/canonical_paper_inputs_rehydrate_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/run_quality_repair_batch.json",
+    "studies/<study_id>/artifacts/supervision/consumer/run_gate_clearing_batch.json",
     "studies/<study_id>/artifacts/supervision/consumer/unit_harmonized_external_validation_rerun.json",
     "studies/<study_id>/artifacts/supervision/consumer/recover_transport_model_provenance.json",
     "studies/<study_id>/artifacts/supervision/consumer/methodology_reframe_route_decision.json",
@@ -59,6 +61,8 @@ SOURCE_ACTION_REF_FIELDS = (
     "authority",
     "required_output_surface",
     "next_work_unit",
+    "controller_work_unit_id",
+    "executable_work_unit",
     "work_unit_fingerprint",
     "route_target",
     "route_key_question",
@@ -67,8 +71,12 @@ SOURCE_ACTION_REF_FIELDS = (
     "stale_record_ref",
     "required_currentness_refs",
     "record_only_surface",
+    "materialization_decision",
     "publication_eval_latest_write_allowed",
     "controller_decision_write_allowed",
+    "reviewer_record_ref",
+    "source_eval_id",
+    "story_surface_delta_refs",
     "terminal_source_provenance_blocker",
     "hard_methodology_target",
 )
@@ -99,6 +107,7 @@ REQUEST_OWNER_BY_ACTION_TYPE = {
     "return_to_ai_reviewer_workflow": "ai_reviewer",
     "canonical_paper_inputs_rehydrate_required": "write",
     "run_quality_repair_batch": "write",
+    "run_gate_clearing_batch": "gate_clearing_batch",
     "unit_harmonized_external_validation_rerun": "analysis_harmonization_owner",
     "recover_transport_model_provenance": "source_provenance_owner",
     "methodology_reframe_route_decision": "decision",
@@ -115,6 +124,7 @@ REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE = {
         "canonical manuscript story-surface delta or "
         "typed blocker:manuscript_story_surface_delta_missing"
     ),
+    "run_gate_clearing_batch": "artifacts/controller/gate_clearing_batch/latest.json",
     "unit_harmonized_external_validation_rerun": (
         "unit-harmonized external-validation rerun evidence or "
         "typed blocker:unit_harmonized_rerun_required"
@@ -140,6 +150,7 @@ REQUEST_PACKET_REF_BY_ACTION_TYPE = {
     "return_to_ai_reviewer_workflow": "artifacts/supervision/requests/ai_reviewer/latest.json",
     "canonical_paper_inputs_rehydrate_required": "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json",
     "run_quality_repair_batch": "artifacts/supervision/requests/quality_repair_batch/latest.json",
+    "run_gate_clearing_batch": "artifacts/supervision/requests/gate_clearing_batch/latest.json",
     "unit_harmonized_external_validation_rerun": "artifacts/supervision/requests/analysis_harmonization/latest.json",
     "recover_transport_model_provenance": "artifacts/supervision/requests/source_provenance/latest.json",
     "methodology_reframe_route_decision": "artifacts/supervision/requests/decision/latest.json",

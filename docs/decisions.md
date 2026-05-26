@@ -5,6 +5,14 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-26：current AI reviewer materialization 必须闭环到 publication owner 或 typed blocker
+
+- 决策：`materialize_current_ai_reviewer_record_through_mas_owner_surface` 不再作为可重复 route-back 的 controller work unit 直接回流。`domain-action-request-materialize` 必须消费当前 AI reviewer record、story-surface delta evidence 与 current-package freshness proof，把该 work unit 物化成明确 owner action：缺当前 reviewer record 时路由 `ai_reviewer/return_to_ai_reviewer_workflow`，缺 manuscript story-surface delta 时路由 `write/run_quality_repair_batch`，package freshness 或 publication gate replay 需要继续闭环时路由 `gate_clearing_batch/run_gate_clearing_batch`。
+- 决策：同一 `study_id + work_unit_id + source_fingerprint + source_eval_id` 的 current AI reviewer materialization route 若已在前一轮 owner-route scan 或 action queue 中出现，后续扫描必须输出 `owner_route_loop_guard_stale_replay` stable typed blocker，而不是重复写入同一个 controller work unit。新的 `source_fingerprint` 或 `source_eval_id` 仍可生成新的 handoff。
+- 决策：`run_gate_clearing_batch` 是 publication owner materialization 的 MAS-owned request/action surface，用于刷新 publication/controller truth、current package freshness 或产出 typed blocker。它不授权 OPL、default executor 或前台直接写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper package、`manuscript/current_package` 或 `.ds` runtime state。
+- 理由：DM002 在 AI reviewer eval 已当前、论文故事面已有修复证据但 publication gate 仍 blocked 时，controller 反复发出同一个 current reviewer materialization work unit；若 materializer 继续把它回写到原 work unit，系统只能在 owner-route / provider read-model 间绕圈。正确闭环是把当前 reviewer record 作为 MAS owner 可消费输入，推进到 AI reviewer、write 或 publication gate owner；无法推进时 fail-closed 成 typed blocker。
+- 影响：这是 MAS owner-route / materializer / publication owner boundary 修复，不写 DM002 paper body、submission package、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package` 或 runtime state。论文是否 submission-ready 仍由后续 MAS owner receipt、AI reviewer-backed publication eval、publication gate 与 package freshness proof 判定。
+
 ## 2026-05-25：current AI reviewer materialization route 必须投影为 write-owner action
 
 - 决策：当当前 `domain_transition` 为 `decision_type=route_back_same_line`、`route_target=controller`，且 `next_work_unit.unit_id=materialize_current_ai_reviewer_record_through_mas_owner_surface` 时，`owner-route-reconcile` 必须把它投影成 `write/run_quality_repair_batch` action，而不是把 `controller` 当作可执行 owner 或落到 `external_supervisor` 空队列。该 action 必须保留 `original_route_target=controller`、`controller_work_unit_id`、`executable_work_unit` 和 `domain-transition::route_back_same_line::<work_unit_id>` currentness fingerprint。

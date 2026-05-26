@@ -10,6 +10,7 @@ from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
 from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers import ai_reviewer_publication_eval_records
 from med_autoscience.controllers.runtime_ai_repair_policy import (
     default_executor_policy,
     two_layer_ai_repair_policy_payload,
@@ -47,6 +48,7 @@ DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT = Path(
     "artifacts/supervision/consumer/default_executor_dispatches"
 )
 SUPPORTED_MODE = "developer_apply_safe"
+CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
 RUNTIME_COMPLETION_SOURCE_ACTION_FIELDS = frozenset(
     {
         "provider_completion",
@@ -201,12 +203,217 @@ def _source_action_ref(action: Mapping[str, Any]) -> dict[str, Any]:
     return source_ref
 
 
+def _with_owner_route(action: Mapping[str, Any], owner_route: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(action)
+    payload["owner_route"] = dict(owner_route)
+    handoff_packet = dict(_mapping(payload.get("handoff_packet")))
+    handoff_packet["owner_route"] = dict(owner_route)
+    if idempotency_key := _text(owner_route.get("idempotency_key")):
+        handoff_packet["idempotency_key"] = idempotency_key
+    payload["handoff_packet"] = handoff_packet
+    return payload
+
+
+def _rewrite_owner_route(
+    *,
+    owner_route: Mapping[str, Any],
+    next_owner: str,
+    owner_reason: str,
+    allowed_actions: list[str],
+    work_unit_id: str,
+) -> dict[str, Any]:
+    route = owner_route_part.ensure_owner_route_v2(owner_route)
+    source_refs = dict(_mapping(route.get("source_refs")))
+    source_refs["work_unit_id"] = work_unit_id
+    source_refs["blocked_reason"] = owner_reason
+    route.update(
+        {
+            "next_owner": next_owner,
+            "owner_reason": owner_reason,
+            "failure_signature": owner_reason,
+            "allowed_actions": list(allowed_actions),
+            "blocked_actions": sorted(set(SUPPORTED_REQUEST_ACTION_TYPES) - set(allowed_actions)),
+            "source_refs": source_refs,
+        }
+    )
+    route["idempotency_key"] = "::".join(
+        item
+        for item in (
+            "owner-route",
+            _text(route.get("study_id")),
+            _text(route.get("source_fingerprint")),
+            next_owner,
+            owner_reason,
+            ",".join(allowed_actions),
+        )
+        if item
+    )
+    return owner_route_part.ensure_owner_route_v2(route)
+
+
 def _required_output_surface(action: Mapping[str, Any], action_type: str) -> str:
     handoff_packet = _mapping(action.get("handoff_packet"))
     return (
         _text(action.get("required_output_surface"))
         or _text(handoff_packet.get("required_output_surface"))
         or _request_output_surface_for_action_type(action_type)
+    )
+
+
+def _current_ai_reviewer_materialization_work_unit(action: Mapping[str, Any]) -> bool:
+    owner_route = _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    return (
+        _text(action.get("controller_work_unit_id"))
+        == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
+        or _text(action.get("next_work_unit"))
+        == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
+        or _text(source_refs.get("work_unit_id"))
+        == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
+    )
+
+
+def _story_surface_delta_refs(study_root: Path, source_eval_id: str | None) -> list[str]:
+    evidence = _read_json_object(
+        study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+    )
+    if not isinstance(evidence, Mapping):
+        return []
+    if source_eval_id and _text(evidence.get("source_eval_id")) not in {None, source_eval_id}:
+        return []
+    hygiene = _mapping(evidence.get("manuscript_surface_hygiene"))
+    if hygiene.get("story_surface_delta_present") is not True:
+        return []
+    refs: list[str] = []
+    for item in hygiene.get("story_surface_delta_refs") or []:
+        if text := _text(item):
+            refs.append(text)
+    return refs
+
+
+def _current_package_fresh_for_eval(study_root: Path, source_eval_id: str | None) -> bool:
+    freshness = _read_json_object(
+        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    )
+    if not isinstance(freshness, Mapping):
+        return False
+    if _text(freshness.get("status")) != "current":
+        return False
+    return not source_eval_id or _text(freshness.get("source_eval_id")) == source_eval_id
+
+
+def _publication_owner_materialization_action(
+    *,
+    profile: WorkspaceProfile,
+    action: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not _current_ai_reviewer_materialization_work_unit(action):
+        return None
+    study_id = _text(action.get("study_id"))
+    if study_id is None:
+        return None
+    owner_route = owner_route_part.ensure_owner_route_v2(
+        _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    )
+    source_refs = _mapping(owner_route.get("source_refs"))
+    source_eval_id = _text(source_refs.get("source_eval_id"))
+    study_root = _study_root(profile, study_id)
+    current_record = ai_reviewer_publication_eval_records.latest_current_ai_reviewer_publication_eval_record(
+        study_root=study_root,
+        current_publication_eval=None,
+    )
+    if current_record is None:
+        request = domain_action_request_lifecycle.read_ai_reviewer_request(study_root=study_root)
+        lifecycle = _mapping(_mapping(request).get("request_lifecycle"))
+        blocked_reason = (
+            _text(lifecycle.get("blocked_reason"))
+            or domain_action_request_lifecycle.AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+        )
+        rewritten_route = _rewrite_owner_route(
+            owner_route=owner_route,
+            next_owner="ai_reviewer",
+            owner_reason=blocked_reason,
+            allowed_actions=["return_to_ai_reviewer_workflow"],
+            work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        )
+        return _with_owner_route(
+            {
+                **dict(action),
+                "action_type": "return_to_ai_reviewer_workflow",
+                "owner": "ai_reviewer",
+                "request_owner": "ai_reviewer",
+                "recommended_owner": "ai_reviewer",
+                "reason": blocked_reason,
+                "required_output_surface": "artifacts/publication_eval/latest.json",
+                "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+                "materialization_decision": "ai_reviewer_currentness_required",
+                "required_currentness_refs": list(lifecycle.get("required_currentness_refs") or []),
+            },
+            rewritten_route,
+        )
+    record, record_ref_path = current_record
+    record_eval_id = _text(record.get("eval_id"))
+    story_refs = _story_surface_delta_refs(study_root, source_eval_id or record_eval_id)
+    if not story_refs:
+        rewritten_route = _rewrite_owner_route(
+            owner_route=owner_route,
+            next_owner="write",
+            owner_reason="manuscript_story_surface_delta_missing",
+            allowed_actions=["run_quality_repair_batch"],
+            work_unit_id="dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+        )
+        return _with_owner_route(
+            {
+                **dict(action),
+                "action_type": "run_quality_repair_batch",
+                "owner": "write",
+                "request_owner": "write",
+                "recommended_owner": "write",
+                "reason": "manuscript_story_surface_delta_missing",
+                "required_output_surface": (
+                    "canonical manuscript story-surface delta or "
+                    "typed blocker:manuscript_story_surface_delta_missing"
+                ),
+                "next_work_unit": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+                "materialization_decision": "story_surface_delta_or_typed_blocker_required",
+                "reviewer_record_ref": str(record_ref_path.resolve()),
+            },
+            rewritten_route,
+        )
+    if not _current_package_fresh_for_eval(study_root, source_eval_id or record_eval_id):
+        rewritten_route = _rewrite_owner_route(
+            owner_route=owner_route,
+            next_owner="gate_clearing_batch",
+            owner_reason="current_package_freshness_required",
+            allowed_actions=["run_gate_clearing_batch"],
+            work_unit_id="current_package_freshness_required",
+        )
+        materialization_decision = "current_package_freshness_required"
+    else:
+        rewritten_route = _rewrite_owner_route(
+            owner_route=owner_route,
+            next_owner="gate_clearing_batch",
+            owner_reason="publication_owner_materialization_required",
+            allowed_actions=["run_gate_clearing_batch"],
+            work_unit_id="publication_gate_replay",
+        )
+        materialization_decision = "publication_gate_replay"
+    return _with_owner_route(
+        {
+            **dict(action),
+            "action_type": "run_gate_clearing_batch",
+            "owner": "gate_clearing_batch",
+            "request_owner": "gate_clearing_batch",
+            "recommended_owner": "gate_clearing_batch",
+            "reason": _text(rewritten_route.get("owner_reason")),
+            "required_output_surface": "artifacts/controller/gate_clearing_batch/latest.json",
+            "next_work_unit": _text(_mapping(rewritten_route.get("source_refs")).get("work_unit_id")),
+            "materialization_decision": materialization_decision,
+            "reviewer_record_ref": str(record_ref_path.resolve()),
+            "source_eval_id": source_eval_id or record_eval_id,
+            "story_surface_delta_refs": story_refs,
+        },
+        rewritten_route,
     )
 
 
@@ -554,6 +761,7 @@ def _ignored_action(action: Mapping[str, Any], reason: str) -> dict[str, Any]:
 
 def _selected_actions(
     *,
+    profile: WorkspaceProfile,
     scan_payload: Mapping[str, Any],
     study_ids: tuple[str, ...],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -571,12 +779,13 @@ def _selected_actions(
         if study_id not in allowed_studies:
             ignored.append(_ignored_action(action, "study_not_requested"))
             continue
-        action_type = _text(action.get("action_type"))
+        selected_action = _publication_owner_materialization_action(profile=profile, action=action) or dict(action)
+        action_type = _text(selected_action.get("action_type"))
         if action_type in SUPPORTED_REQUEST_ACTION_TYPES:
-            request_selected.append(dict(action))
+            request_selected.append(selected_action)
             continue
         else:
-            ignored.append(_ignored_action(action, "unsupported_action_type"))
+            ignored.append(_ignored_action(selected_action, "unsupported_action_type"))
             continue
     return request_selected, ignored
 
@@ -673,6 +882,7 @@ def materialize_domain_action_requests(
     scan_payload = _read_json_object(_scan_latest_path(profile)) or {}
     resolved_study_ids = _resolve_study_ids_from_scan(scan_payload, study_ids)
     selected_request_actions, ignored_actions = _selected_actions(
+        profile=profile,
         scan_payload=scan_payload,
         study_ids=resolved_study_ids,
     )

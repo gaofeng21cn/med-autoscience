@@ -329,6 +329,16 @@ def _artifact_entry(*regression_refs: str) -> dict[str, Any]:
     )
 
 
+def _gate_clearing_entry(*regression_refs: str) -> dict[str, Any]:
+    return _entry(
+        owner="gate_clearing_batch",
+        allowed_actions=["run_gate_clearing_batch"],
+        required_output="artifacts/controller/gate_clearing_batch/latest.json",
+        priority_class="package_freshness",
+        regression_refs=regression_refs or ("tests/owner_route_reconcile_cases",),
+    )
+
+
 _REASON_REGISTRY = {
     "ai_reviewer_request_pending": _ai_reviewer_entry("DM002:pending_ai_reviewer_request"),
     "ai_reviewer_assessment_required": _ai_reviewer_entry(),
@@ -365,6 +375,10 @@ _REASON_REGISTRY = {
         regression_refs=("DM002:claim_evidence_alignment",),
     ),
     "run_quality_repair_batch": _write_entry("tests:legacy_action_reason_write_route"),
+    "publication_owner_materialization_required": _gate_clearing_entry(
+        "DM002:current_ai_reviewer_materialization"
+    ),
+    "run_gate_clearing_batch": _gate_clearing_entry("tests:legacy_action_reason_gate_clearing"),
     "quest_waiting_opl_runtime_owner_route": _write_entry("DM002:runtime_redrive_route_back"),
     "controller_decision_route_back": _entry(
         owner="owner_route_next_owner",
@@ -553,6 +567,7 @@ _ROUTED_ACTION_TYPES = (
     "return_to_ai_reviewer_workflow",
     "canonical_paper_inputs_rehydrate_required",
     "run_quality_repair_batch",
+    "run_gate_clearing_batch",
 )
 
 
