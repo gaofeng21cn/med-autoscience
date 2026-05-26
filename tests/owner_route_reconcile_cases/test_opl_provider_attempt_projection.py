@@ -196,3 +196,105 @@ def test_scan_projects_live_opl_provider_attempt_for_current_owner_route(monkeyp
     assert study["blocked_reason"] is None
     assert study["why_not_applied"] is None
     assert study["next_owner"] == "supervisor_only/live_provider_attempt"
+
+
+def test_scan_does_not_project_terminal_stage_attempt_as_active_run(monkeypatch, tmp_path: Path) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    opl_attempts = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "decision": "blocked",
+        "reason": "quest_waiting_opl_runtime_owner_route",
+        "active_run_id": "opl-stage-attempt://sat-terminal",
+        "runtime_liveness_audit": {
+            "status": "unknown",
+            "source": "opl_current_control_state_required",
+            "active_run_id": None,
+        },
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-terminal",
+            "canonical_runtime_action": "external_supervisor_required",
+            "active_run_id": None,
+            "last_known_run_id": "opl-stage-attempt://sat-terminal",
+            "worker_liveness_state": {
+                "state": "unknown",
+                "runtime_liveness_status": "live",
+                "worker_running": None,
+                "active_run_id": None,
+            },
+            "blocking_reasons": [
+                "live_worker_requires_worker_running",
+                "runtime_recovery_retry_budget_exhausted",
+            ],
+            "retry_budget_remaining": 0,
+        },
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "owner": "write",
+            "controller_action": "request_opl_stage_attempt",
+            "next_work_unit": {
+                "unit_id": "dm002_methods_write_pass",
+                "lane": "write",
+                "summary": "Repair manuscript methods and package currentness.",
+            },
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-dm002",
+            "source_signature": "truth-source-dm002",
+        },
+    }
+    progress_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_runtime_escalated",
+        "paper_stage": "publishability_gate_blocked",
+        "active_run_id": None,
+        "supervision": {"active_run_id": None, "health_status": "stale"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::write-route",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "ai_reviewer"},
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+    monkeypatch.setattr(opl_attempts, "live_provider_attempt_for_study", lambda **_: None)
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["running_provider_attempt"] is False
+    assert study["active_run_id"] is None
+    assert study["owner_route"]["active_run_id"] is None
+    assert study["runtime_health"]["last_known_run_id"] == "opl-stage-attempt://sat-terminal"
+    assert [item["action_type"] for item in study["action_queue"]] == ["run_quality_repair_batch"]
