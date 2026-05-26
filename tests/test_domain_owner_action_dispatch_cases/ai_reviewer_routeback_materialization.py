@@ -236,6 +236,7 @@ def test_current_opl_dispatch_materializes_current_route_back_ai_reviewer_eval(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
@@ -280,12 +281,16 @@ def test_current_opl_dispatch_materializes_current_route_back_ai_reviewer_eval(
         apply=True,
     )
 
-    latest = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
-    prose_currentness = latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
-
     assert result["executed_count"] == 1
     execution = result["executions"][0]
     assert execution["execution_status"] == "executed"
+    owner_result = execution["owner_result"]
+    assert owner_result["publication_eval_surface"] == "artifacts/publication_eval/latest.json"
+    assert Path(owner_result["artifact_path"]).exists(), owner_result
+
+    latest = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
+    prose_currentness = latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
+
     assert "managed_runtime" + "_authorization" not in execution
     assert execution["owner_route_current"] is True
     assert execution["owner_route_basis"] == "scan_latest"

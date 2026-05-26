@@ -625,6 +625,86 @@ def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path:
     assert (study_root / "artifacts" / "publication_eval" / "latest.json").is_file()
 
 
+def test_execute_dispatch_blocks_ai_reviewer_workflow_without_materialized_latest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    input_refs = _complete_ai_reviewer_input_refs(study_root)
+    _write_json(
+        request_path,
+        {
+            "surface": "domain_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": input_refs,
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+            "ai_reviewer_record": _minimal_ai_reviewer_record(
+                study_id,
+                f"quest-{study_id}",
+                "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
+            ),
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+
+    def fake_run_ai_reviewer_publication_eval_workflow(**_: object) -> dict[str, object]:
+        return {
+            "surface": "ai_reviewer_publication_eval_workflow",
+            "status": "materialized",
+            "publication_eval_surface": "artifacts/publication_eval/latest.json",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "eval_id": "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
+        }
+
+    monkeypatch.setattr(
+        module.action_execution.ai_reviewer_publication_eval_workflow,
+        "run_ai_reviewer_publication_eval_workflow",
+        fake_run_ai_reviewer_publication_eval_workflow,
+    )
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 0
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "ai_reviewer_workflow_output_missing"
+    assert execution["error"] == "artifact_path_not_written"
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_execute_dispatch_routes_stale_live_manuscript_prose_review_to_rehydrate(
     monkeypatch,
     tmp_path: Path,
