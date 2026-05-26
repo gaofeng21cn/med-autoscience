@@ -132,11 +132,13 @@ def test_init_workspace_removes_retired_service_wrapper_family(tmp_path: Path) -
     service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
     runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
+    start_web = workspace_root / "ops" / "mas" / "bin" / "start-web"
     retired_payloads = {
         install_service: 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"\n',
         service_status: 'run_medautosci runtime supervision-status --profile "${PROFILE_PATH}" "$@"\n',
         uninstall_service: 'run_medautosci runtime remove-supervision --profile "${PROFILE_PATH}" "$@"\n',
         runner: 'WATCH_RUNTIME_RUNNER="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime-service-runner"\n',
+        start_web: 'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" --open "$@"\n',
     }
     for path, marker in retired_payloads.items():
         path.parent.mkdir(parents=True, exist_ok=True)
