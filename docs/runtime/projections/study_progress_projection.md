@@ -12,7 +12,7 @@ Machine boundary: Human-readable projection support only; projection truth remai
 - `study_progress` 是 `controller-owned progress projection`
 - 用户可见状态只从 `study_macro_state` 派生
 - 前台判断围绕同一条 study authority 展开，不再各入口自行拼装 runtime / publication / controller 细节
-- `MAS Progress Portal` 是这套投影的 workspace-local read-model / diagnostic / no-App 展示入口：默认生成静态快照，后续可由本地只读服务实时刷新；它只消费 `study_progress` / `workspace-cockpit` / durable truth，不成为第二套状态系统，也不成为 MAS 长期 generic workbench。主用户运行工作台和 App-native drilldown 归 OPL App / OPL Runtime Manager。
+- `MAS Progress Portal` 是这套投影的 workspace-local read-model / display materializer：默认生成静态快照和 OPL handoff refs；它只消费 `study_progress` / `workspace-cockpit` / durable truth，不提供 repo-local HTTP service、action endpoint 或 MAS-owned generic workbench。主用户运行工作台和 App-native drilldown 归 OPL App / OPL Runtime Manager。
 
 ## 1. 目标
 
@@ -234,5 +234,5 @@ Progress Portal 的开发合同见 [MAS Progress Portal](../display/progress_por
 - `study_progress.user_visible_projection` 是 Portal 和 OPL App-native MAS study workbench 的主要用户状态输入。
 - `workspace-cockpit`、`product-entry-status`、MCP compact/markdown、Portal 和 OPL App workbench 应消费同一套 projection，而不是各自解释状态。
 - 默认 Portal 产物是 `ops/mas/progress/index.html` 静态快照；它必须显示生成时间、freshness、stale/missing/conflict 状态和 source refs。
-- 可选本地实时服务只能刷新同一 read-model 和 HTML，不写 study truth、publication truth、runtime authority 或 package authority。
+- 本仓不再提供 Progress Portal 本地实时服务；需要长期托管、刷新、跨域唤醒或统一状态面时，由 OPL App / OPL Runtime Manager 消费同一 read-model、HTML refs 和 OPL handoff refs。
 - 旧 MDS WebUI 的可视化价值可以被吸收，但默认品牌、路径和用户可见语义必须是 `Med Auto Science`。
