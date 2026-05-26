@@ -121,6 +121,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_handler_dispatch_parser = domain_handler_subparsers.add_parser("dispatch")
     domain_handler_dispatch_parser.add_argument("--task", required=True)
     domain_handler_dispatch_parser.add_argument("--format", choices=("json",), default="json")
+    domain_handler_dispatch_evidence_payload_parser = domain_handler_subparsers.add_parser(
+        "dispatch-evidence-payload"
+    )
+    domain_handler_dispatch_evidence_payload_parser.add_argument("--profile", required=True)
+    domain_handler_dispatch_evidence_payload_parser.add_argument("--workorder", required=True)
+    domain_handler_dispatch_evidence_payload_parser.add_argument("--format", choices=("json",), default="json")
 
     owner_route_reconcile_parser = subparsers.add_parser("owner-route-reconcile")
     owner_route_reconcile_parser.add_argument("--profile", required=True)
