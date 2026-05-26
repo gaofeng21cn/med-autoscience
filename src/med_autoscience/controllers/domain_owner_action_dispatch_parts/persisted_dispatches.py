@@ -232,6 +232,26 @@ def current_owner_route_from_scan_payload(
     return None, None
 
 
+def live_provider_attempt_owner_route_from_scan_payload(
+    *,
+    scan_payload: Mapping[str, Any] | None,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    current_study = _scan_study(scan_payload, study_id)
+    if current_study.get("running_provider_attempt") is not True:
+        return None
+    live_attempt = _mapping(current_study.get("opl_provider_attempt")) or current_study
+    if not _live_provider_attempt_matches_dispatch(live_attempt=live_attempt, dispatch=dispatch):
+        return None
+    route = _dispatch_owner_route(dispatch)
+    if not route:
+        return None
+    if not owner_route_part.route_allows_action(action=dispatch, owner_route=route):
+        return None
+    return route
+
+
 def bridged_quality_repair_writer_handoff_route_from_scan_payload(
     *,
     scan_payload: Mapping[str, Any] | None,
@@ -291,6 +311,58 @@ def _dispatch_stall_matches_scan(*, dispatch: Mapping[str, Any], current_study: 
     dispatch_fingerprint = _text(dispatch_stall.get("action_fingerprint"))
     current_fingerprint = _text(current_stall.get("action_fingerprint"))
     return dispatch_fingerprint is not None and dispatch_fingerprint == current_fingerprint
+
+
+def _live_provider_attempt_matches_dispatch(
+    *,
+    live_attempt: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if live_attempt.get("running_provider_attempt") is not True:
+        return False
+    live_action_type = _text(live_attempt.get("action_type"))
+    action_type = _text(dispatch.get("action_type"))
+    if live_action_type is None or action_type is None or live_action_type != action_type:
+        return False
+    live_work_unit = _work_unit_id(live_attempt.get("work_unit_id"))
+    dispatch_work_unit = _dispatch_work_unit_id(dispatch)
+    if live_work_unit is None or dispatch_work_unit is None or live_work_unit != dispatch_work_unit:
+        return False
+    live_dispatch_ref = _text(live_attempt.get("dispatch_ref"))
+    if live_dispatch_ref is None:
+        return True
+    dispatch_path = _text(_mapping(dispatch.get("refs")).get("dispatch_path"))
+    if dispatch_path is None:
+        return False
+    normalized_dispatch_path = dispatch_path.replace("\\", "/")
+    normalized_live_ref = live_dispatch_ref.replace("\\", "/")
+    return (
+        normalized_dispatch_path == normalized_live_ref
+        or normalized_dispatch_path.endswith(f"/{normalized_live_ref}")
+    )
+
+
+def _dispatch_work_unit_id(dispatch: Mapping[str, Any]) -> str | None:
+    route = _dispatch_owner_route(dispatch)
+    route_refs = _mapping(route.get("source_refs"))
+    route_basis = _mapping(route_refs.get("owner_route_currentness_basis")) or _mapping(
+        _mapping(route.get("currentness_contract")).get("basis")
+    )
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    source_action = _mapping(dispatch.get("source_action"))
+    return (
+        _work_unit_id(route_refs.get("work_unit_id"))
+        or _work_unit_id(route_basis.get("work_unit_id"))
+        or _work_unit_id(prompt_contract.get("next_work_unit"))
+        or _work_unit_id(dispatch.get("next_work_unit"))
+        or _work_unit_id(source_action.get("next_work_unit"))
+    )
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id")) or _text(value.get("work_unit_id"))
+    return _text(value)
 
 
 def _scan_study(scan_payload: Mapping[str, Any] | None, study_id: str) -> dict[str, Any]:
@@ -541,6 +613,7 @@ __all__ = [
     "current_owner_route_from_scan_payload",
     "current_consumer_dispatches",
     "explicit_action_dispatches",
+    "live_provider_attempt_owner_route_from_scan_payload",
     "owner_request_matches_dispatch",
     "owner_request_payload",
     "owner_request_path",

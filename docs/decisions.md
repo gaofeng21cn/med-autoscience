@@ -5,6 +5,20 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-26：DM002 默认执行器 live attempt currentness 与 wrapper dry-run 入口
+
+- 决策：`owner-route-reconcile` 必须把同一 study 的 live OPL `domain_owner/default-executor-dispatch` stage attempt 投影为 `running_provider_attempt=true`，并暴露 `active_run_id`、`active_stage_attempt_id`、`active_workflow_id` 与 `runtime_liveness_status=live`。live attempt 覆盖同一 action/work unit 时，scan 不应继续把该 action 留在 `action_queue` 或误报为等待人工 owner pickup。
+- 决策：`domain-owner-action-dispatch` 在 live OPL provider attempt 正在消费某个 `default_executor_dispatches/<action>.json` 时，可以使用 dispatch-bound owner route 作为 `owner_route_basis=live_provider_attempt_dispatch`；前提是 live attempt 同时匹配 study、action type、work-unit id 和 dispatch ref，且该 route 仍允许对应 action。live attempt 结束后，该依据失效，旧 persisted dispatch 仍按 scan/owner request currentness fail closed。
+- 决策：生成的 `ops/medautoscience/bin/domain-action-request-materialize` 与 `domain-owner-action-dispatch` wrapper 默认无参数继续追加 `--apply`，但当调用方显式传入 `--dry-run` 或 `--apply` 时不得再自动追加另一个 apply mode。这样 Codex App heartbeat 可维持默认 apply 行为，人工/开发者巡检也能用同一入口 dry-run 诊断。
+- 理由：DM002 暴露出 OPL provider attempt 已启动并完成 typed closeout，但 MAS read-model 曾显示 `active_run_id=null`、`managed_runtime_audit_unhealthy`，且 closeout 中的 `domain-owner-action-dispatch` 因 scan action queue 被清空而落到 `current_owner_route_missing`。同时 workspace wrapper 固定 `--apply "$@"`，显式 dry-run 会在 argparse 层冲突。根因是 MAS/OPL 接力 currentness 与 generated wrapper 入口缺口，不是论文 truth、paper package 或手工 queue 状态可修补的问题。
+- 影响：这是 MAS controller/read-model 与 generated workspace entry 修复。它不写 DM002 `paper/`、`manuscript/current_package/`、`paper/submission_minimal/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict；论文推进仍必须经 MAS owner/controller/runtime path。
+
+## 2026-05-26：Sentrux structure baseline 必须随当前扫描器口径刷新
+
+- 决策：`.sentrux/baseline.json` 记录的是 Sentrux 扫描器当前口径下的 repo structural baseline，不是医学研究 truth 或 MAS runtime contract。当 `origin/main` 在同一 `sentrux` 版本下已经因 baseline drift 失败，且 OPL quality details 未显示本轮新增复杂函数或规则违例时，应通过 `sentrux gate --save` 刷新 baseline，再让 `scripts/verify.sh structure` 继续阻断后续真实结构回退。
+- 理由：DM002 live-attempt currentness 修复期间，`scripts/verify.sh structure` 报 `God files: 3 -> 4`；fresh lineage 验证显示 `origin/main` 在 `sentrux 0.5.7` 下同样失败，而 `.sentrux/baseline.json` 上次刷新于 2026-05-21。该失败来自 structure baseline 与当前扫描器/主线事实不同步，不是 DM002 修复引入的新增复杂函数、cycle、规则违例或论文 owner blocker。
+- 影响：这是 MAS repo verification baseline currentness 修复，不放宽 line budget、rules check、OPL quality details 或后续 structure gate。它不写 DM002 study truth、runtime-owned `.ds`、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。
+
 ## 2026-05-26：repair execution evidence stable latest 不得被无 currentness 的弱 blocker 降级
 
 - 决策：`artifacts/controller/repair_execution_evidence/latest.json` 是跨 MAS owner callable 共享的 stable evidence surface，不能采用简单 last-writer-wins。若已有同一 study/quest 的 `progress_delta_candidate` 或 `controller_progress_delta_candidate` 证据，后续缺少 `source_eval_id` / publication-eval currentness 绑定且没有 meaningful artifact delta 的 blocked evidence 不得覆盖 stable latest。

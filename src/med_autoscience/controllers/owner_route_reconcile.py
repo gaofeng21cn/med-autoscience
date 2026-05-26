@@ -22,6 +22,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import lifecycle_pr
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
 from med_autoscience.controllers.owner_route_reconcile_parts import paper_progress_stall_projection
 from med_autoscience.controllers.owner_route_reconcile_parts import projection_errors
+from med_autoscience.controllers.owner_route_reconcile_parts import opl_provider_attempts
 from med_autoscience.controllers.owner_route_reconcile_parts import queue_slo
 from med_autoscience.controllers.owner_route_reconcile_parts import repo_write_policy
 from med_autoscience.controllers.owner_route_reconcile_parts import request_packets
@@ -516,6 +517,10 @@ def _study_projection(
         )
     if developer_mode.mode == "external_observe":
         actions = []
+    live_provider_attempt = opl_provider_attempts.live_provider_attempt_for_study(
+        profile=profile,
+        study_id=study_id,
+    )
     initial_lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
     lifecycle = initial_lifecycle
     lifecycle = _mapping(_maybe_blocked_lifecycle_from_scan(
@@ -607,6 +612,14 @@ def _study_projection(
             active_run_id=_active_run_id(status_payload, progress_payload),
         )
     )
+    owner_overlay = opl_provider_attempts.owner_state_overlay(
+        live_attempt=live_provider_attempt,
+        owner_route=owner_route,
+    )
+    why_not_applied = owner_overlay.get("why_not_applied", why_not_applied)
+    blocked_reason = owner_overlay.get("blocked_reason", blocked_reason)
+    next_owner = owner_overlay.get("next_owner", next_owner)
+    lifecycle = _mapping(owner_overlay.get("lifecycle", lifecycle))
     if default_executor_execution_receipt_consumption:
         why_not_applied = None
         blocked_reason = None
@@ -616,6 +629,10 @@ def _study_projection(
         status=status_payload,
         progress=progress_payload,
         owner_route=owner_route,
+        actions=actions,
+    )
+    actions = opl_provider_attempts.filter_actions_covered_by_live_attempt(
+        live_attempt=live_provider_attempt,
         actions=actions,
     )
     repeat_guard = repeat_suppression.scan_repeat_suppression(
@@ -657,6 +674,14 @@ def _study_projection(
         persist_surfaces=persist_surfaces,
     )
     supervision = _mapping(progress_payload.get("supervision"))
+    provider_attempt_projection = opl_provider_attempts.projection_fields(
+        live_attempt=live_provider_attempt,
+        fallback_active_run_id=_active_run_id(status_payload, progress_payload),
+        fallback_runtime_health=(
+            _mapping(status_payload.get("runtime_health_snapshot"))
+            or _mapping(progress_payload.get("runtime_health_snapshot"))
+        ),
+    )
     return {
         "study_id": study_id,
         "study_root": str(study_root),
@@ -665,11 +690,13 @@ def _study_projection(
         "quest_status": _text(status_payload.get("quest_status")),
         "domain_transition": _mapping(status_payload.get("domain_transition")) or None,
         "current_stage": _text(progress_payload.get("current_stage")),
-        "active_run_id": _active_run_id(status_payload, progress_payload),
+        "active_run_id": provider_attempt_projection["active_run_id"],
+        "active_stage_attempt_id": provider_attempt_projection["active_stage_attempt_id"],
+        "active_workflow_id": provider_attempt_projection["active_workflow_id"],
+        "running_provider_attempt": provider_attempt_projection["running_provider_attempt"],
         "supervision_url": _text(supervision.get("browser_url")),
         "paper_stage": _text(progress_payload.get("paper_stage")),
-        "runtime_health": _mapping(status_payload.get("runtime_health_snapshot"))
-        or _mapping(progress_payload.get("runtime_health_snapshot")),
+        "runtime_health": provider_attempt_projection["runtime_health"],
         "meaningful_artifact_delta": artifact_freshness.meaningful_artifact_delta_observed(progress_payload),
         "artifact_delta": artifact_freshness.artifact_delta(progress_payload),
         "gate_specificity": _gate_specificity_status(gate_specificity),
@@ -677,6 +704,7 @@ def _study_projection(
         "ai_reviewer_status": ai_reviewer.status(ai_reviewer_assessment),
         "ai_repair_lifecycle": lifecycle or None,
         "action_queue": actions,
+        "opl_provider_attempt": live_provider_attempt,
         "submission_milestone_parked_refresh": submission_milestone_parked_refresh,
         "domain_authority_handoff": domain_handoff,
         "paper_progress_stall": paper_progress_stall_payload,

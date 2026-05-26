@@ -27,6 +27,7 @@ from med_autoscience.cli_parts.stage_memory_commands import handle_stage_memory_
 from med_autoscience.cli_parts.study_action_commands import handle_study_action_command
 from med_autoscience.cli_parts.study_read_commands import handle_study_read_command
 from med_autoscience.cli_parts.domain_health_diagnostic_commands import handle_domain_health_diagnostic_command
+from med_autoscience.cli_parts.domain_handler_commands import handle_domain_handler_command
 from med_autoscience.cli_parts.workspace_data_commands import handle_workspace_data_command
 
 @lru_cache(maxsize=None)
@@ -296,43 +297,16 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "domain-handler":
-        if args.domain_handler_command == "export":
-            profile_ref = Path(args.profile)
-            profile = load_profile(profile_ref)
-            result = owner_route_handoff.export_family_domain_handler(
-                profile=profile,
-                profile_ref=profile_ref,
-                opl_production_proof_ref=args.opl_production_proof,
-            )
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0
-        if args.domain_handler_command == "dispatch":
-            result = owner_route_handoff.dispatch_family_domain_handler_task(task_path=Path(args.task))
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0 if bool(result.get("accepted")) else 1
-        if args.domain_handler_command == "dispatch-evidence-payload":
-            profile_ref = Path(args.profile)
-            profile = load_profile(profile_ref)
-            workorder = _load_json_object_file(args.workorder)
-            payload_export = _load_module(
-                "med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export"
-            )
-            study_id = payload_export.study_id_from_workorder(workorder)
-            owner_route_scan = owner_route_reconcile.scan_domain_routes(
-                profile=profile,
-                study_ids=(study_id,) if study_id else tuple(),
-                apply_safe_actions=False,
-                developer_supervisor_mode=None,
-            )
-            result = payload_export.build_dispatch_evidence_payload_export(
-                profile=profile,
-                profile_ref=profile_ref,
-                workorder=workorder,
-                owner_route_scan=owner_route_scan,
-            )
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0 if result.get("status") == "typed_blocker_payload_ready" else 1
+    domain_handler_result = handle_domain_handler_command(
+        args,
+        load_profile=load_profile,
+        load_json_object_file=_load_json_object_file,
+        load_module=_load_module,
+        owner_route_handoff=owner_route_handoff,
+        owner_route_reconcile=owner_route_reconcile,
+    )
+    if domain_handler_result is not None:
+        return domain_handler_result
 
     if args.command == "preflight-changes":
         input_mode = "files"

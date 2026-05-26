@@ -46,12 +46,16 @@ def test_init_workspace_omits_retired_watch_runtime_service_wrappers(tmp_path: P
     assert '--profile "${PROFILE_PATH}"' in materialize_domain_action_requests_text
     assert "--mode developer_apply_safe" in materialize_domain_action_requests_text
     assert "--apply" in materialize_domain_action_requests_text
+    assert 'if [[ "${arg}" == "--apply" || "${arg}" == "--dry-run" ]]' in materialize_domain_action_requests_text
+    assert '${apply_mode:+"${apply_mode}"}' in materialize_domain_action_requests_text
 
     supervisor_execute_dispatch_text = supervisor_execute_dispatch.read_text(encoding="utf-8")
     assert "run_medautosci runtime domain-owner-action-dispatch" in supervisor_execute_dispatch_text
     assert '--profile "${PROFILE_PATH}"' in supervisor_execute_dispatch_text
     assert "--mode developer_apply_safe" in supervisor_execute_dispatch_text
     assert "--apply" in supervisor_execute_dispatch_text
+    assert 'if [[ "${arg}" == "--apply" || "${arg}" == "--dry-run" ]]' in supervisor_execute_dispatch_text
+    assert '${apply_mode:+"${apply_mode}"}' in supervisor_execute_dispatch_text
 
 
 def test_init_workspace_does_not_render_workspace_local_scheduler_templates(tmp_path: Path) -> None:

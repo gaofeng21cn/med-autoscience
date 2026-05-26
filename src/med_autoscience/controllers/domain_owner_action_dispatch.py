@@ -247,6 +247,16 @@ def _execution_owner_route(
     scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
     if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
         return scan_route, scan_route_basis or "scan_latest"
+    live_attempt_route = persisted_dispatches.live_provider_attempt_owner_route_from_scan_payload(
+        scan_payload=persisted_dispatches.scan_latest_payload(profile),
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+    if (
+        live_attempt_route is not None
+        and _owner_route_block_reason(dispatch=dispatch, current_route=live_attempt_route) is None
+    ):
+        return live_attempt_route, "live_provider_attempt_dispatch"
     bridged_route = persisted_dispatches.bridged_quality_repair_writer_handoff_route(
         profile=profile,
         study_id=study_id,
