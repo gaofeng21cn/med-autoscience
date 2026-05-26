@@ -25,10 +25,10 @@ repo-level 论文自治 loop 已具备 callable surface、owner receipt 和 focu
 | canonical delta / gate replay / reviewer recheck | `repo_surface_landed` | MAS publication gate、AI reviewer workflow、artifact authority |
 | route decision / weak-result handling | `repo_surface_landed` | MAS route decision 与 controller decision surfaces |
 | stage knowledge / publication-route memory | `repo_contract_and_read_model_landed` | MAS stage knowledge packet、closeout packet、memory router receipt |
-| provider-hosted paper apply | `live_apply_pending` | OPL provider transport + MAS domain-handler / owner chain |
+| provider-hosted paper apply | `dm002_owner_receipt_refs_observed_scaleout_pending` | OPL provider transport + MAS domain-handler / owner chain |
 |真实 paper closure | `evidence_gated_live_soak` | live MAS study truth surfaces |
 
-当前可以声明的是：MAS 有 provider-guarded apply receipt surface、route-memory consumed / writeback ref chain、多条真实 paper line 的 guarded proof surface、OPL production proof ingestion 和 no-forbidden-write boundary。不能声明 OPL provider proof、queue completion、repo tests 或 provider attempt completion 等于 paper closure、submission readiness 或 publication-ready。
+当前可以声明的是：MAS 有 provider-guarded apply receipt surface、route-memory consumed / writeback ref chain、多条真实 paper line 的 guarded proof surface、DM002 owner receipt success refs、OPL production proof ingestion 和 no-forbidden-write boundary。不能声明 OPL provider proof、queue completion、repo tests、provider attempt completion 或单条 DM002 success refs 等于 paper closure、submission readiness 或 publication-ready。
 
 ## 验收合同
 
