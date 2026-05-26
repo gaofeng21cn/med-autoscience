@@ -81,9 +81,71 @@ def stable_repair_execution_evidence_path(*, study_root: Path) -> Path:
 
 def write_repair_execution_evidence(*, study_root: Path, evidence: Mapping[str, Any]) -> Path:
     path = stable_repair_execution_evidence_path(study_root=study_root)
+    if _preserve_existing_stable_evidence(path=path, candidate=evidence):
+        return path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(dict(evidence), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def _preserve_existing_stable_evidence(*, path: Path, candidate: Mapping[str, Any]) -> bool:
+    existing = _read_existing_stable_evidence(path)
+    if not existing:
+        return False
+    if _text(existing.get("study_id")) != _text(candidate.get("study_id")):
+        return False
+    if _text(existing.get("quest_id")) != _text(candidate.get("quest_id")):
+        return False
+    return (
+        _evidence_rank(existing) > _evidence_rank(candidate)
+        and _candidate_lacks_eval_currentness(candidate)
+        and _candidate_is_no_delta_blocker(candidate)
+    )
+
+
+def _read_existing_stable_evidence(path: Path) -> dict[str, Any]:
+    if not path.exists() or not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _evidence_rank(evidence: Mapping[str, Any]) -> int:
+    if evidence.get("progress_delta_candidate") is True or _text(evidence.get("status")) == "progress_delta_candidate":
+        return 30
+    if (
+        evidence.get("controller_progress_delta_candidate") is True
+        or _text(evidence.get("status")) == "controller_progress_delta_candidate"
+    ):
+        return 20
+    if _text(evidence.get("status")) == "pending":
+        return 10
+    return 0
+
+
+def _candidate_lacks_eval_currentness(candidate: Mapping[str, Any]) -> bool:
+    finding = _mapping(candidate.get("review_finding"))
+    if _text(finding.get("source_eval_id")) is not None:
+        return False
+    work_unit = _mapping(candidate.get("repair_work_unit"))
+    for key in ("source_eval_id", "publication_eval_id", "current_eval_id"):
+        if _text(work_unit.get(key)) is not None:
+            return False
+    return True
+
+
+def _candidate_is_no_delta_blocker(candidate: Mapping[str, Any]) -> bool:
+    if _text(candidate.get("status")) != "blocked":
+        return False
+    delta = _mapping(candidate.get("canonical_artifact_delta"))
+    return (
+        candidate.get("progress_delta_candidate") is False
+        and candidate.get("controller_progress_delta_candidate") is not True
+        and delta.get("meaningful_artifact_delta") is False
+    )
 
 
 def build_repair_execution_evidence(

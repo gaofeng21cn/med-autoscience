@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-26：repair execution evidence stable latest 不得被无 currentness 的弱 blocker 降级
+
+- 决策：`artifacts/controller/repair_execution_evidence/latest.json` 是跨 MAS owner callable 共享的 stable evidence surface，不能采用简单 last-writer-wins。若已有同一 study/quest 的 `progress_delta_candidate` 或 `controller_progress_delta_candidate` 证据，后续缺少 `source_eval_id` / publication-eval currentness 绑定且没有 meaningful artifact delta 的 blocked evidence 不得覆盖 stable latest。
+- 决策：调用方仍可收到自己的 blocked evidence 和 typed blocker；该规则只保护 stable `latest.json` 的当前进展语义，避免 reviewer-refinement 或其他 unbound no-delta path 把当前 AI reviewer-backed quality repair delta 降级为 stale blocker。带有明确 current eval 绑定、同等或更强等级的新证据仍可写入。
+- 理由：DM002 暴露出 `quality_repair_batch/latest.json` 内嵌 evidence 已证明当前 `publication_eval` 下有 canonical progress delta，但同一时间段稳定 `repair_execution_evidence/latest.json` 被 reviewer-refinement text-repair blocked/no-delta evidence 覆盖，导致 owner route/read-model 看到的 stable surface 与真实 batch 结果不一致。根因是 MAS stable owner surface 缺 currentness/monotonicity guard，不是 OPL worker、queue 或单篇论文 truth 可手工修补的问题。
+- 影响：这是 MAS repair evidence stable surface 修复，不写 DM002 canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 submission-ready verdict。论文是否 ready 仍由当前 MAS owner delta、AI reviewer-backed eval 与 publication gate 判定。
+
 ## 2026-05-26：generated workspace wrapper 模板变化必须由 bootstrap 自动升级既有 workspace
 
 - 决策：`init_workspace` / `workspace bootstrap` 生成的 `ops/medautoscience/bin/*` 与 `ops/mas/bin/*` 薄 wrapper 属于 MAS-owned generated workspace surface。只要现有文件带有 MAS 生成脚本特征、内容与当前模板不同，bootstrap 必须把它列入 `upgraded_files` 并重写为当前模板；不要求用户手工删除或使用 `force`。

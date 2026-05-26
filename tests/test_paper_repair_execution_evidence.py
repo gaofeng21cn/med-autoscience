@@ -135,6 +135,60 @@ def test_delta_with_gate_replay_projects_progress_delta_candidate(tmp_path: Path
     assert evidence["source_fingerprint"].startswith("sha256:")
 
 
+def test_stable_repair_execution_evidence_preserves_current_progress_from_unbound_no_delta_blocker(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
+    study_root = tmp_path / "studies" / "002-dm"
+    draft = study_root / "paper" / "draft.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text("Updated manuscript story.\n", encoding="utf-8")
+    evidence_ledger = _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
+    review_ledger = _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
+    gate_replay = _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"eval_id": "eval-1"})
+    ai_request = _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {"request_id": "ai-reviewer-recheck::002"},
+    )
+    current_progress = module.build_repair_execution_evidence(
+        study_id="002-dm",
+        quest_id="quest-002",
+        study_root=study_root,
+        repair_work_unit={"unit_id": "analysis_claim_evidence_repair"},
+        review_finding={"source_eval_id": "publication-eval::002::current"},
+        source_refs=[str(gate_replay)],
+        changed_artifact_refs=[{"path": "paper/draft.md", "artifact_role": "canonical_manuscript"}],
+        evidence_ledger_ref=str(evidence_ledger),
+        review_ledger_ref=str(review_ledger),
+        gate_replay_target="publication_gate",
+        gate_replay_refs=[str(gate_replay)],
+        ai_reviewer_recheck_request_ref=str(ai_request),
+    )
+    stable_path = module.write_repair_execution_evidence(study_root=study_root, evidence=current_progress)
+
+    unbound_blocker = module.build_repair_execution_evidence(
+        study_id="002-dm",
+        quest_id="quest-002",
+        study_root=study_root,
+        repair_work_unit={
+            "unit_id": "reviewer_refinement_loop::quality_dimension_novelty_positioning",
+            "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+            "source_comment_id": "quality_dimension:novelty_positioning",
+        },
+        review_finding=None,
+        source_refs=[str(gate_replay)],
+        changed_artifact_refs=[],
+    )
+    assert unbound_blocker["status"] == "blocked"
+    assert unbound_blocker["progress_delta_candidate"] is False
+
+    returned_path = module.write_repair_execution_evidence(study_root=study_root, evidence=unbound_blocker)
+
+    assert returned_path == stable_path
+    stable_payload = json.loads(stable_path.read_text(encoding="utf-8"))
+    assert stable_payload == current_progress
+
+
 def test_manuscript_story_repair_with_invalid_analysis_history_residue_cannot_claim_progress(
     tmp_path: Path,
 ) -> None:
