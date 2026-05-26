@@ -1530,3 +1530,48 @@ Next tranche write scope:
 
 - MAS exact uncovered history/reference clusters, preferably bounded `docs/history/**` index/provenance groups or remaining selected `docs/references/mainline/**`, `docs/references/integration/**`, `docs/references/mds-parity/**`, `docs/public/README.md`, and `docs/specs/README.md`.
 - Keep App docs delayed until active release / GUI lanes are safe or explicitly assigned.
+
+### 2026-05-26 MDS parity runtime-drift coverage tranche
+
+本轮覆盖 MAS `docs/references/mds-parity/**` 中仍未进入 coverage ledger 的 3 份 support-reference 文档，并顺手修正同一 cluster 内已覆盖但已被当前机器事实 supersede 的 behavior-equivalence prose。目标是把 MDS WebUI / Live Console / terminal attach parity 口径读回当前 MAS / OPL owner split：MAS 只保留 Progress Portal payload、per-study static page、route-decision read-only projection、source/artifact refs、owner receipt 和 typed blocker refs；MAS private Live Console、conversation/session read model、terminal attach gate 和 Portal local action endpoint 已物理退役；运行对话、terminal/log/provider drilldown 和未来 attach/control 必须来自 OPL `current_control_state` 或 provider attempt projection。
+
+Live truth inputs:
+
+- MAS `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/active/opl_app_mas_runtime_workbench_program.md`, and this docs-governance file.
+- MAS mds-parity docs: `docs/references/mds-parity/mds_capability_parity_matrix.md`, `docs/references/mds-parity/mds_webui_cleanroom_behavior_spec.md`, `docs/references/mds-parity/mds_webui_user_parity_gap_review.md`, plus supporting read of `docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md`.
+- Machine / source / test surfaces: `src/med_autoscience/controllers/mds_capability_parity.py`, `src/med_autoscience/controllers/mds_capability_parity_parts/behavior_equivalence.py`, `src/med_autoscience/controllers/progress_portal_parts/workspace_carrier.py`, `contracts/functional_privatization_audit.json`, `contracts/test-lane-manifest.json`, `tests/test_mds_capability_parity.py`, `tests/test_progress_portal.py`, `tests/progress_portal_cases/test_materialized_surfaces.py`, `tests/test_mas_mds_absorb_governance.py`, and `tests/test_mds_truth_boundary.py`.
+
+Fresh semantic result:
+
+- `mds_capability_parity_matrix.md` now reflects current machine truth: `runtime_core_daemon` is `retired_mas_runtime_surface`; `worker_runner_lifecycle` is read as MAS domain authority refs / owner receipt / typed blocker consumer; generic queue, attempt continuation, provider lifecycle, worker liveness, terminal/log/provider drilldown and future attach/control belong to OPL `current_control_state` / provider attempt projection.
+- `mds_webui_user_parity_gap_review.md` no longer claims `landed_mas_native_terminal_attach_mvp`, MAS terminal attach owner gate, MAS runtime owner apply, or MAS private Live Console as current landed surface. It now states that MAS Progress Portal owns paper/domain progress while runtime drilldown joins through OPL.
+- `mds_webui_cleanroom_behavior_spec.md` now describes MAS Progress Portal + OPL runtime drilldown clean-room behavior, not a MAS Live Console implementation spec. MAS-owned projection topics are progress/domain topics; terminal/log/provider/attach/control topics are OPL runtime-owner topics.
+- `mds_behavior_equivalence_gap_matrix.md` was corrected as supporting stale prose so its human reference agrees with `build_mds_behavior_equivalence_matrix()` and focused tests: private runtime console, terminal attach gate, authorized Portal actions and terminal attach are retired/no-alias or OPL-owned; MAS Portal does not expose runtime control or terminal command files.
+- Current tests/source already fixed the hard machine boundary: `tests/test_mds_capability_parity.py` asserts `mas_private_runtime_console=retired_physical_no_alias_surface`, `websocket_terminal_attach=not_exposed_by_mas`, `terminal_attach_gate=retired_physical_no_alias_surface`, `terminal_attach_owner=one-person-lab`, and `authorized_portal_actions=not_supported_by_mas_portal`; `tests/test_progress_portal.py` keeps the Portal free of private Live Console links; materialized Progress Portal writes only read-model/static HTML artifacts with `active_callers=[]`.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/references/mds-parity/mds_capability_parity_matrix.md`, `docs/references/mds-parity/mds_webui_cleanroom_behavior_spec.md`, and `docs/references/mds-parity/mds_webui_user_parity_gap_review.md`; focused support correction of `docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md`, with live source/contract/test evidence listed above. | `docs/references/mds-parity/mds_capability_parity_matrix.md`; `docs/references/mds-parity/mds_webui_cleanroom_behavior_spec.md`; `docs/references/mds-parity/mds_webui_user_parity_gap_review.md`; `docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md`; this coverage ledger. |
+
+Exact MAS mds-parity reference paths newly recorded by this tranche: `docs/references/mds-parity/mds_capability_parity_matrix.md`; `docs/references/mds-parity/mds_webui_cleanroom_behavior_spec.md`; `docs/references/mds-parity/mds_webui_user_parity_gap_review.md`.
+
+Archived / tombstoned / deleted docs:
+
+- none. The cluster remains support-reference material; stale current-surface wording was corrected in place rather than archived because the behavior / UX oracle remains useful.
+
+Uncovered docs:
+
+- `docs/references/mds-parity/**` now has no exact uncovered Markdown path in the inventory-vs-ledger check after this tranche.
+- MAS repo-wide `README*` and `docs/**/*.md` full paragraph coverage remains open outside prior focused MAS chunks and this mds-parity tranche. Remaining exact uncovered clusters are `docs/history/program`, `docs/history/superpowers/plans`, `docs/history/superpowers/specs`, `docs/history/runtime`, `docs/history/positioning`, `docs/history/capabilities/medical-display`, selected `docs/references/mainline/**`, selected `docs/references/integration/**`, `docs/history/omx`, `docs/history/README.md`, `docs/history/capabilities/README.md`, and `docs/history/superpowers/README.md`.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger; App full-doc coverage remains delayed while active release / GUI lanes are dirty or externally owned.
+
+Remaining stale / retire candidates:
+
+- Future mds-parity prose that claims MAS private Live Console, MAS conversation/session read model, terminal attach owner gate, Portal `--serve --enable-actions`, MAS runtime owner apply, terminal command queue, or local HTTP action endpoint is current landed capability is stale pollution.
+- Future WebUI parity prose must keep old MDS WebUI / daemon as clean-room UX oracle and historical fixture, not source import, default runtime owner, diagnostic owner, quality/publication authority, artifact authority, terminal owner, or hidden runnable substitute.
+- Runtime drilldown, terminal/log/provider refs and attach/control belong to OPL `current_control_state` / provider attempt projection; MAS may expose domain refs, owner receipts, typed blockers and handoff links only.
+
+Next tranche write scope:
+
+- Continue MAS exact uncovered history/reference inventory, preferably a bounded `docs/references/mainline/**` / `docs/references/integration/**` tranche or `docs/history/**` index/provenance group.
+- Keep App docs delayed until active release / GUI lanes are safe or explicitly assigned.
