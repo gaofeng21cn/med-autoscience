@@ -10,6 +10,7 @@ UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS = frozenset(
         "claim_evidence_alignment_repair",
         "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
         "dm002_current_publication_hardening_after_ai_reviewer_eval",
+        "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass",
         "dm002_current_manuscript_reporting_consistency_write_repair",
         "dm002_same_line_display_table_package_repair",
         "dm002_same_line_methods_display_package_repair",
@@ -98,6 +99,14 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         }
     ),
     "dm002_current_manuscript_reporting_consistency_write_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "sync_publication_shell_surface",
+            "materialize_display_surface",
+        }
+    ),
+    "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass": frozenset(
         {
             "repair_paper_live_paths",
             "workspace_display_repair_script",

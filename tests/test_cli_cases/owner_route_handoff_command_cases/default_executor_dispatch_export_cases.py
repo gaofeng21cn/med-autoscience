@@ -552,6 +552,113 @@ def test_domain_handler_export_keeps_default_executor_dispatch_when_receipt_work
     assert tasks[0]["payload"]["work_unit_id"] == "medical_prose_write_repair"
 
 
+def test_domain_handler_export_redrives_nonconsumable_same_work_unit_closeout(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_quality_repair_batch.json"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_default_executor_dispatch(
+        dispatch_path=dispatch_path,
+        study_root=study_root,
+        include_owner_route=True,
+    )
+
+    first_exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    first_payload = json.loads(capsys.readouterr().out)
+    assert first_exit_code == 0
+    first_task = next(
+        task
+        for task in first_payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    )
+    dispatch = json.loads(dispatch_path.read_text(encoding="utf-8"))
+    owner_route = dispatch["prompt_contract"]["owner_route"]
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_root.name,
+                    "quest_id": study_root.name,
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "execution_id": "execution::dm002::run_quality_repair_batch::ledger-only",
+                    "idempotency_key": owner_route["idempotency_key"],
+                    "current_owner_route": owner_route,
+                    "prompt_contract": {"owner_route": owner_route},
+                    "owner_result": {
+                        "status": "executed",
+                        "ok": True,
+                        "repair_execution_evidence": {
+                            "status": "progress_delta_candidate",
+                            "manuscript_surface_hygiene": {
+                                "story_surface_delta_required": True,
+                                "story_surface_delta_present": False,
+                            },
+                            "changed_artifact_refs": [
+                                {"path": str(study_root / "paper" / "claim_evidence_map.json")},
+                            ],
+                        },
+                        "quality_authorized": False,
+                        "submission_authorized": False,
+                        "current_package_write_authorized": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    second_exit_code = cli.main(["domain-handler", "export", "--profile", str(profile_path), "--format", "json"])
+    second_payload = json.loads(capsys.readouterr().out)
+
+    assert second_exit_code == 0
+    second_task = next(
+        task
+        for task in second_payload["pending_family_tasks"]
+        if task["task_kind"] == "domain_owner/default-executor-dispatch"
+    )
+    assert second_task["source_fingerprint"] != first_task["source_fingerprint"]
+    assert second_task["dedupe_key"] != first_task["dedupe_key"]
+    assert second_task["payload"]["redrive_context"] == {
+        "status": "non_consumable_closeout",
+        "receipt_kind": "default_executor_execution",
+        "receipt_ref": "artifacts/supervision/consumer/default_executor_execution/latest.json",
+        "execution_id": "execution::dm002::run_quality_repair_batch::ledger-only",
+        "action_type": "run_quality_repair_batch",
+        "execution_status": "executed",
+        "owner_result_status": "executed",
+        "repair_execution_evidence_status": "progress_delta_candidate",
+        "reason": "manuscript_story_surface_delta_missing",
+        "changed_artifact_ref_count": 1,
+        "quality_authorized": False,
+        "submission_authorized": False,
+        "current_package_write_authorized": False,
+        "next_action": "redrive_owner_route_with_closeout_context",
+    }
+    roles = {ref["role"] for ref in second_task["source_refs"]}
+    assert "nonconsumable_default_executor_closeout" in roles
+    assert "nonconsumable_default_executor_execution_id" in roles
+
+
 def test_domain_handler_export_projects_bridged_dm003_writer_handoff(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"

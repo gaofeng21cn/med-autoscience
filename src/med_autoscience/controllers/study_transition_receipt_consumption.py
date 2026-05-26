@@ -102,6 +102,58 @@ def default_executor_execution_receipt_consumption(
     return {}
 
 
+def default_executor_execution_nonconsumable_closeout(
+    *,
+    study_root: Path,
+    owner_route: Mapping[str, Any],
+    actions: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
+    current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
+    if not current_action_types:
+        return {}
+    receipt_ref = Path("artifacts/supervision/consumer/default_executor_execution/latest.json")
+    receipt = _read_json_object(Path(study_root).expanduser().resolve() / receipt_ref)
+    if receipt is None:
+        return {}
+    for execution in reversed(_mapping_list(receipt.get("executions"))):
+        action_type = _text(execution.get("action_type"))
+        if action_type not in current_action_types:
+            continue
+        if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
+            continue
+        if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
+            continue
+        owner_result = _mapping(execution.get("owner_result"))
+        repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
+        if _default_executor_owner_result_consumable(
+            action_type=action_type,
+            owner_result=owner_result,
+            repair_evidence=repair_evidence,
+        ):
+            continue
+        return {
+            "status": "non_consumable_closeout",
+            "receipt_kind": "default_executor_execution",
+            "receipt_ref": str(receipt_ref),
+            "execution_id": _text(execution.get("execution_id")),
+            "action_type": action_type,
+            "execution_status": _text(execution.get("execution_status")),
+            "owner_result_status": _text(owner_result.get("status")),
+            "repair_execution_evidence_status": _text(repair_evidence.get("status")),
+            "reason": _default_executor_nonconsumable_reason(
+                action_type=action_type,
+                owner_result=owner_result,
+                repair_evidence=repair_evidence,
+            ),
+            "changed_artifact_ref_count": len(_mapping_list(repair_evidence.get("changed_artifact_refs"))),
+            "quality_authorized": False,
+            "submission_authorized": False,
+            "current_package_write_authorized": False,
+            "next_action": "redrive_owner_route_with_closeout_context",
+        }
+    return {}
+
+
 def ai_reviewer_publication_eval_receipt_consumption(
     *,
     publication_eval: Mapping[str, Any],
@@ -667,6 +719,30 @@ def _quality_repair_batch_owner_result_satisfies_route_output(
     return bool(_story_surface_changed_refs(repair_evidence.get("changed_artifact_refs")))
 
 
+def _default_executor_nonconsumable_reason(
+    *,
+    action_type: str | None,
+    owner_result: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> str:
+    if action_type == "run_quality_repair_batch":
+        hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
+        if (
+            hygiene.get("story_surface_delta_required") is True
+            and hygiene.get("story_surface_delta_present") is not True
+        ):
+            return "manuscript_story_surface_delta_missing"
+        if _text(repair_evidence.get("status")) == "progress_delta_candidate":
+            return "required_story_surface_delta_or_typed_blocker_missing"
+    return (
+        _text(owner_result.get("blocked_reason"))
+        or _text(repair_evidence.get("blocked_reason"))
+        or _text(owner_result.get("status"))
+        or _text(repair_evidence.get("status"))
+        or "default_executor_closeout_not_consumable"
+    )
+
+
 def _story_surface_changed_refs(value: object) -> list[Mapping[str, Any]]:
     return [
         ref
@@ -729,6 +805,7 @@ def _string_set(value: object) -> set[str]:
 __all__ = [
     "ai_reviewer_publication_eval_receipt_consumption",
     "bundle_stage_completion_receipt_consumption",
+    "default_executor_execution_nonconsumable_closeout",
     "default_executor_execution_receipt_consumption",
     "execution_receipt_consumption",
     "mas_owner_apply_receipt_consumption",

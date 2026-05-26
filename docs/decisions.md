@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-26：DM002 story-surface work unit 与 non-consumable closeout redrive
+
+- 决策：`dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass` 属于 DM002 external-validation manuscript-facing story-surface work unit，必须进入 canonical story-surface registry、gate-clearing upstream work-unit registry 和 authority route gate。该 work unit 的完成证据必须包含 `paper/draft.md` 或 `paper/build/review_manuscript.md` 的 canonical story-surface delta，ledger-only delta 不能关闭 write route。
+- 决策：同一 owner route 下的 default-executor closeout 若已执行但未满足 MAS required output，不得被 MAS receipt-consumption 判定为 consumed；同时 `domain-handler export` 必须把该 non-consumable closeout 投入新的 redrive identity 和 refs-only source context，使 OPL queue 能继续调度下一次 owner attempt，而不是因为旧 dedupe key 原地 no-op。
+- 理由：DM002 暴露出 `run_quality_repair_batch` 已成功执行并更新 claim/evidence/review ledger，但当前 write work unit 要求 methods/model/display provenance 与 package currentness 的稿面修订；旧 MAS 未把该 work unit 注册为 story-surface work unit，导致 quality repair 未返回 `manuscript_story_surface_delta_missing` handoff。随后 MAS 又继续导出同一个 dispatch identity，OPL 只能按已完成 dedupe key 跳过，表现为 worker/scheduler 在线但论文不前进。
+- 影响：这是 MAS medical manuscript owner-chain 与 MAS->OPL dispatch identity 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍由后续 MAS owner/controller/runtime path 生成 story-surface delta、typed blocker、AI reviewer eval 和 publication gate verdict。
+
 ## 2026-05-26：DM002 默认执行器 live attempt currentness 与 wrapper dry-run 入口
 
 - 决策：`default_executor_execution_receipt_consumption` 消费已执行的 `domain_owner/default-executor-dispatch` receipt 时，currentness 绑定当前 domain work unit、truth epoch、owner reason、owner/action 集合；`runtime_health_epoch`、route `idempotency_key` 和派生 `source_fingerprint` 可以因 OPL/MAS 心跳刷新而变化，不能单独让同一 work unit 的 accepted typed closeout 失效。若 work unit id/fingerprint、truth epoch、owner reason 或 allowed action 不一致，仍 fail closed。

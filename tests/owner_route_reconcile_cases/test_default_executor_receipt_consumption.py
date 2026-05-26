@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers.study_transition_receipt_consumption import (
+    default_executor_execution_nonconsumable_closeout,
     default_executor_execution_receipt_consumption,
 )
 
@@ -340,6 +341,89 @@ def test_scan_does_not_consume_quality_repair_receipt_without_story_surface_delt
     assert study["default_executor_execution_receipt_consumption"] is None
     assert study["owner_route"]["next_owner"] == "write"
     assert study["owner_route"]["allowed_actions"] == ["run_quality_repair_batch"]
+
+
+def test_default_executor_nonconsumable_closeout_reports_missing_story_surface_delta(
+    tmp_path: Path,
+) -> None:
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    owner_route = {
+        "route_epoch": "truth-event-000024-daa5883571a64a07",
+        "truth_epoch": "truth-event-000024-daa5883571a64a07",
+        "work_unit_fingerprint": (
+            "domain-transition::route_back_same_line::"
+            "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
+        ),
+        "next_owner": "write",
+        "owner_reason": "quest_waiting_opl_runtime_owner_route",
+        "allowed_actions": ["run_quality_repair_batch"],
+        "source_refs": {
+            "study_truth_epoch": "truth-event-000024-daa5883571a64a07",
+            "work_unit_id": "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass",
+            "work_unit_fingerprint": (
+                "domain-transition::route_back_same_line::"
+                "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
+            ),
+            "blocked_reason": "quest_waiting_opl_runtime_owner_route",
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "executed_count": 1,
+            "blocked_count": 0,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "quest_id": "002-dm-china-us-mortality-attribution",
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "execution_id": "execution::dm002::run_quality_repair_batch::ledger-only",
+                    "idempotency_key": "owner-route::same-work-unit",
+                    "current_owner_route": owner_route,
+                    "prompt_contract": {"owner_route": owner_route},
+                    "owner_result": {
+                        "status": "executed",
+                        "ok": True,
+                        "repair_execution_evidence": {
+                            "status": "progress_delta_candidate",
+                            "manuscript_surface_hygiene": {
+                                "story_surface_delta_required": True,
+                                "story_surface_delta_present": False,
+                            },
+                            "changed_artifact_refs": [
+                                {"path": str(study_root / "paper" / "claim_evidence_map.json")},
+                            ],
+                        },
+                        "quality_authorized": False,
+                        "submission_authorized": False,
+                        "current_package_write_authorized": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    assert default_executor_execution_receipt_consumption(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    ) == {}
+    redrive = default_executor_execution_nonconsumable_closeout(
+        study_root=study_root,
+        owner_route=owner_route,
+        actions=[{"action_type": "run_quality_repair_batch"}],
+    )
+
+    assert redrive["status"] == "non_consumable_closeout"
+    assert redrive["execution_id"] == "execution::dm002::run_quality_repair_batch::ledger-only"
+    assert redrive["reason"] == "manuscript_story_surface_delta_missing"
+    assert redrive["next_action"] == "redrive_owner_route_with_closeout_context"
 
 
 def test_scan_consumes_quality_repair_receipt_with_review_manuscript_story_delta(

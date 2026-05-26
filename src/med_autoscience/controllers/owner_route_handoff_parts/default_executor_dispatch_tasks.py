@@ -47,6 +47,12 @@ def default_executor_dispatch_tasks(
             action_type=action_type,
         ):
             continue
+        redrive_context = _dispatch_execution_redrive_context(
+            profile=profile,
+            study_id=study_id,
+            dispatch=dispatch,
+            action_type=action_type,
+        )
         dispatch_authority = _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch"
         dispatch_ref = _workspace_relative(dispatch_path, workspace_root=profile.workspace_root)
         owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
@@ -63,11 +69,16 @@ def default_executor_dispatch_tasks(
             dispatch_ref=dispatch_ref,
             prompt_contract_ref=prompt_contract_ref,
             workspace_root=profile.workspace_root,
+            redrive_context=redrive_context,
         )
         quest_id = _text(dispatch.get("quest_id")) or study_id
         next_owner = _next_executable_owner(dispatch) or DEFAULT_NEXT_OWNER
         executor_kind = _text(dispatch.get("executor_kind")) or REQUIRED_EXECUTOR_KIND
-        source_fingerprint = _source_fingerprint(dispatch=dispatch, dispatch_path=dispatch_path)
+        source_fingerprint = _source_fingerprint(
+            dispatch=dispatch,
+            dispatch_path=dispatch_path,
+            redrive_context=redrive_context,
+        )
         evidence_record_payload = build_domain_dispatch_evidence_record_payload(
             task_kind=TASK_KIND,
             study_id=study_id,
@@ -99,6 +110,7 @@ def default_executor_dispatch_tasks(
                     "dispatch_ref": dispatch_ref,
                     "authority_boundary": "mas_default_executor_dispatch_request_only",
                     "next_executable_owner": next_owner,
+                    **({"redrive_context": redrive_context} if redrive_context else {}),
                 },
                 "source_refs": source_refs,
                 "owner_route_attempt_envelope": owner_route_attempt_envelope,
@@ -151,6 +163,25 @@ def _dispatch_execution_receipt_consumed(
     return bool(receipt)
 
 
+def _dispatch_execution_redrive_context(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+    action_type: str,
+) -> dict[str, Any]:
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(
+        _mapping(dispatch.get("prompt_contract")).get("owner_route")
+    )
+    if not owner_route:
+        return {}
+    return study_transition_receipt_consumption.default_executor_execution_nonconsumable_closeout(
+        study_root=profile.studies_root / study_id,
+        owner_route=owner_route,
+        actions=[{"action_type": action_type}],
+    )
+
+
 def _next_executable_owner(dispatch: Mapping[str, Any]) -> str | None:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
@@ -167,6 +198,7 @@ def _source_refs(
     dispatch_ref: str,
     prompt_contract_ref: str,
     workspace_root: Path,
+    redrive_context: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     refs: list[dict[str, Any]] = [
         {
@@ -207,6 +239,26 @@ def _source_refs(
             workspace_root=workspace_root,
         )
     )
+    redrive = _mapping(redrive_context)
+    if redrive:
+        if receipt_ref := _text(redrive.get("receipt_ref")):
+            refs.append(
+                {
+                    "role": "nonconsumable_default_executor_closeout",
+                    "ref": receipt_ref,
+                    "exists": True,
+                    "body_included": False,
+                }
+            )
+        if execution_id := _text(redrive.get("execution_id")):
+            refs.append(
+                {
+                    "role": "nonconsumable_default_executor_execution_id",
+                    "ref": execution_id,
+                    "exists": True,
+                    "body_included": False,
+                }
+            )
     return refs
 
 
@@ -308,7 +360,12 @@ def _ref_text(value: object, *, workspace_root: Path) -> str | None:
     return text
 
 
-def _source_fingerprint(*, dispatch: Mapping[str, Any], dispatch_path: Path) -> str:
+def _source_fingerprint(
+    *,
+    dispatch: Mapping[str, Any],
+    dispatch_path: Path,
+    redrive_context: Mapping[str, Any] | None = None,
+) -> str:
     digest_payload = {
         "path": str(dispatch_path),
         "idempotency_key": _text(dispatch.get("idempotency_key")),
@@ -317,8 +374,23 @@ def _source_fingerprint(*, dispatch: Mapping[str, Any], dispatch_path: Path) -> 
         "owner_route_fingerprint": _text(_mapping(dispatch.get("owner_route")).get("work_unit_fingerprint")),
         "file_digest": hashlib.sha256(dispatch_path.read_bytes()).hexdigest(),
     }
+    redrive_fingerprint = _source_fingerprint_redrive_context(redrive_context)
+    if redrive_fingerprint is not None:
+        digest_payload["redrive_context"] = redrive_fingerprint
     rendered = json.dumps(digest_payload, ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
+
+
+def _source_fingerprint_redrive_context(redrive_context: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    redrive = _mapping(redrive_context)
+    if not redrive:
+        return None
+    return {
+        "status": _text(redrive.get("status")),
+        "execution_id": _text(redrive.get("execution_id")),
+        "action_type": _text(redrive.get("action_type")),
+        "reason": _text(redrive.get("reason")),
+    }
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
