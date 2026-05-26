@@ -203,6 +203,9 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
         ],
         "per_paper_line_result_surface": "paper_line_owner_chain_results",
         "per_paper_line_result_required": True,
+        "per_paper_line_domain_dispatch_payload_surface": "paper_line_domain_dispatch_evidence_record_payloads",
+        "per_paper_line_owner_payload_summary_surface": "paper_line_owner_payload_summary",
+        "per_paper_line_domain_dispatch_payload_required": True,
         "per_paper_line_result_roles": [
             "paper_line_id",
             "owner_receipt_refs",

@@ -153,6 +153,9 @@
       "opl_may_authorize_publication_or_quality": false,
       "per_paper_line_result_surface": "paper_line_owner_chain_results",
       "per_paper_line_result_required": true,
+      "per_paper_line_domain_dispatch_payload_surface": "paper_line_domain_dispatch_evidence_record_payloads",
+      "per_paper_line_owner_payload_summary_surface": "paper_line_owner_payload_summary",
+      "per_paper_line_domain_dispatch_payload_required": true,
       "per_paper_line_result_roles": [
         "paper_line_id",
         "owner_receipt_refs",

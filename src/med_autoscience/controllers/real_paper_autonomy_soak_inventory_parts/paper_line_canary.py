@@ -45,6 +45,10 @@ def build_owner_chain_closeout_from_guarded_receipts(
         guarded_receipts=guarded_receipts,
         no_forbidden_write_proof=no_forbidden_write_proof,
     )
+    paper_line_payloads = _paper_line_domain_dispatch_evidence_record_payloads(
+        guarded_receipts=guarded_receipts,
+        no_forbidden_write_proof=no_forbidden_write_proof,
+    )
     dispatch_evidence_payload = _domain_dispatch_evidence_record_payload(
         owner_receipt_refs=owner_receipt_refs,
         stable_blocker_refs=stable_blocker_refs,
@@ -73,6 +77,8 @@ def build_owner_chain_closeout_from_guarded_receipts(
             "body_included": False,
         },
         "paper_line_owner_chain_results": paper_line_results,
+        "paper_line_domain_dispatch_evidence_record_payloads": paper_line_payloads,
+        "paper_line_owner_payload_summary": _paper_line_owner_payload_summary(paper_line_payloads),
         "live_paper_line_evidence_refs": live_evidence_refs,
         "domain_dispatch_evidence_record_payload": dispatch_evidence_payload,
         "body_free_evidence_packets": _body_free_owner_chain_packets(
@@ -131,6 +137,60 @@ def _paper_line_owner_chain_results(
             }
         )
     return results
+
+
+def _paper_line_domain_dispatch_evidence_record_payloads(
+    *,
+    guarded_receipts: Sequence[Mapping[str, Any]],
+    no_forbidden_write_proof: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    for receipt in guarded_receipts:
+        receipt_refs = _owner_receipt_refs([receipt])
+        stable_blocker_refs = _dedupe_text(
+            blocker.get("blocker_id") for blocker in _stable_mas_typed_blockers([receipt])
+        )
+        live_refs = _live_paper_line_evidence_refs(
+            guarded_receipts=[receipt],
+            stable_blocker_refs=stable_blocker_refs,
+        )
+        payloads.append(
+            _domain_dispatch_evidence_record_payload(
+                owner_receipt_refs=receipt_refs,
+                stable_blocker_refs=stable_blocker_refs,
+                live_evidence_refs=live_refs,
+                no_forbidden_write_proof=no_forbidden_write_proof,
+            )
+        )
+    return payloads
+
+
+def _paper_line_owner_payload_summary(payloads: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+    return {
+        "paper_line_count": len(payloads),
+        "success_payload_count": sum(
+            1
+            for payload in payloads
+            if _text(payload.get("mode")) == "refs_only_domain_owned_success_payload"
+        ),
+        "typed_blocker_payload_count": sum(
+            1
+            for payload in payloads
+            if _text(payload.get("mode")) == "refs_only_domain_owned_typed_blocker_payload"
+        ),
+        "domain_ready_claim_count": sum(
+            1 for payload in payloads if payload.get("domain_ready_claimed") is True
+        ),
+        "production_ready_claim_count": sum(
+            1
+            for payload in payloads
+            if _mapping(payload.get("authority_boundary")).get("provider_completion_is_domain_ready")
+            is True
+        ),
+        "artifact_mutation_authorized_count": sum(
+            1 for payload in payloads if payload.get("artifact_mutation_authorized") is True
+        ),
+    }
 
 
 def build_provider_canary_closeout(

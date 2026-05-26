@@ -206,3 +206,79 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     )
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")
+
+
+def test_canary_closeout_exposes_per_paper_line_owner_payloads(tmp_path: Path) -> None:
+    workspace = tmp_path / "Yang" / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    dm003 = workspace / "studies" / "003-dm-cvd-ehr-risk-calibration"
+    _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
+    _write_json(dm003 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm003.name})
+    _write_json(
+        dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json",
+        {
+            "surface": "paper_repair_owner_receipt",
+            "accepted": True,
+            "execution_status": "executed",
+            "canonical_artifact_delta_refs": [{"path": str(dm002 / "paper" / "manuscript.md")}],
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    _write_json(
+        dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {
+            "canonical_artifact_delta": {"meaningful_artifact_delta": True},
+            "progress_delta_candidate": True,
+        },
+    )
+    _write_json(
+        dm003 / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm003"},
+    )
+
+    payload = build_real_paper_autonomy_guarded_apply_proof(
+        yang_root=tmp_path / "Yang",
+        profile_paths=[profile_path],
+        target_studies=("DM002", "DM003"),
+    )["paper_line_provider_canary_closeout"]
+
+    assert payload["paper_line_owner_payload_summary"] == {
+        "paper_line_count": 2,
+        "success_payload_count": 1,
+        "typed_blocker_payload_count": 1,
+        "domain_ready_claim_count": 0,
+        "production_ready_claim_count": 0,
+        "artifact_mutation_authorized_count": 0,
+    }
+    payloads = {
+        item["study_id"]: item
+        for item in payload["paper_line_domain_dispatch_evidence_record_payloads"]
+    }
+    assert set(payloads) == {
+        "002-dm-china-us-mortality-attribution",
+        "003-dm-cvd-ehr-risk-calibration",
+    }
+    assert payloads["002-dm-china-us-mortality-attribution"]["mode"] == (
+        "refs_only_domain_owned_success_payload"
+    )
+    assert payloads["002-dm-china-us-mortality-attribution"]["record_payload"][
+        "domain_owner_receipt_refs"
+    ]
+    assert payloads["002-dm-china-us-mortality-attribution"]["record_payload"][
+        "typed_blocker_refs"
+    ] == []
+    assert payloads["003-dm-cvd-ehr-risk-calibration"]["mode"] == (
+        "refs_only_domain_owned_typed_blocker_payload"
+    )
+    assert payloads["003-dm-cvd-ehr-risk-calibration"]["record_payload"]["typed_blocker_refs"][
+        0
+    ].startswith("mas_owner_apply_receipt_missing:")
+    for evidence_payload in payloads.values():
+        assert evidence_payload["domain_ready_claimed"] is False
+        assert evidence_payload["publication_ready_claimed"] is False
+        assert evidence_payload["artifact_mutation_authorized"] is False
+        assert evidence_payload["current_package_mutation_authorized"] is False
