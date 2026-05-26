@@ -89,6 +89,26 @@ def _publication_eval_latest_path(study_root: Path) -> Path:
     return study_root / PUBLICATION_EVAL_LATEST_RELATIVE_PATH
 
 
+def _ai_reviewer_workflow_output_error(*, study_root: Path, owner_result: object) -> str | None:
+    if not isinstance(owner_result, Mapping):
+        return "owner_result_missing_or_invalid"
+    latest_path = _publication_eval_latest_path(study_root)
+    artifact_path_text = _text(owner_result.get("artifact_path"))
+    if artifact_path_text is None:
+        return "artifact_path_missing"
+    artifact_path = Path(artifact_path_text).expanduser()
+    if not artifact_path.is_absolute():
+        artifact_path = study_root / artifact_path
+    if artifact_path.resolve() != latest_path.resolve():
+        return "artifact_path_not_publication_eval_latest"
+    if not artifact_path.is_file():
+        return "artifact_path_not_written"
+    surface = _text(owner_result.get("publication_eval_surface"))
+    if surface is not None and surface != str(PUBLICATION_EVAL_LATEST_RELATIVE_PATH):
+        return "publication_eval_surface_mismatch"
+    return None
+
+
 def quest_root_from_status(profile: WorkspaceProfile, study_id: str) -> Path | None:
     try:
         status = domain_status_projection.progress_projection(profile=profile, study_id=study_id, study_root=None, entry_mode=None)
@@ -391,6 +411,17 @@ def execute_ai_reviewer_workflow(
             return alignment_blocker
         payload = _blocked_ai_reviewer_execution(apply=True, reason="ai_reviewer_workflow_failed", request_path=request_path)
         payload["error"] = str(exc)
+        return payload
+    output_error = _ai_reviewer_workflow_output_error(study_root=study_root, owner_result=owner_result)
+    if output_error is not None:
+        payload = _blocked_ai_reviewer_execution(
+            apply=True,
+            reason="ai_reviewer_workflow_output_missing",
+            request_path=request_path,
+        )
+        payload["error"] = output_error
+        if isinstance(owner_result, Mapping):
+            payload["owner_result"] = dict(owner_result)
         return payload
     refresh = controller_decision_refresh(profile=profile, study_id=study_id, study_root=study_root)
     if isinstance(owner_result, Mapping):

@@ -280,12 +280,16 @@ def test_current_opl_dispatch_materializes_current_route_back_ai_reviewer_eval(
         apply=True,
     )
 
-    latest = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
-    prose_currentness = latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
-
     assert result["executed_count"] == 1
     execution = result["executions"][0]
     assert execution["execution_status"] == "executed"
+    owner_result = execution["owner_result"]
+    assert owner_result["publication_eval_surface"] == "artifacts/publication_eval/latest.json"
+    assert Path(owner_result["artifact_path"]).exists(), owner_result
+
+    latest = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
+    prose_currentness = latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
+
     assert "managed_runtime" + "_authorization" not in execution
     assert execution["owner_route_current"] is True
     assert execution["owner_route_basis"] == "scan_latest"
