@@ -303,6 +303,87 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
     ] == manifest["stage_skill_surface_projection"]
 
 
+def test_product_entry_manifest_exposes_real_paper_owner_payload_closeout(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    dm002 = profile.studies_root / "002-dm-china-us-mortality-attribution"
+    write_text(
+        dm002 / "artifacts" / "runtime" / "runtime_status_summary.json",
+        json.dumps({"study_id": dm002.name}) + "\n",
+    )
+    write_text(
+        dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json",
+        json.dumps(
+            {
+                "surface": "paper_repair_owner_receipt",
+                "accepted": True,
+                "execution_status": "executed",
+                "canonical_artifact_delta_refs": [
+                    {"path": str(dm002 / "paper" / "manuscript.md")}
+                ],
+                "direct_current_package_write": False,
+                "quality_authorized": False,
+                "submission_authorized": False,
+            }
+        )
+        + "\n",
+    )
+    write_text(
+        dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        json.dumps(
+            {
+                "canonical_artifact_delta": {"meaningful_artifact_delta": True},
+                "progress_delta_candidate": True,
+            }
+        )
+        + "\n",
+    )
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+
+    proof = manifest["real_paper_autonomy_guarded_apply_proof"]
+    assert proof["surface"] == "real_paper_autonomy_guarded_apply_proof"
+    assert proof["mode"] == "mas_owned_guarded_apply_proof"
+    assert proof["guarded_apply_status"] == "mas_owner_apply_receipt_observed"
+    assert proof["provider_attempt_projection"]["attempt_owner"] == "one-person-lab"
+    assert proof["provider_attempt_projection"]["can_advance_paper_progress_without_mas_owner_receipt"] is False
+    assert proof["summary"]["writes_performed"] is True
+    assert proof["summary"]["real_workspace_mutation_allowed"] is True
+    closeout = proof["paper_line_provider_canary_closeout"]
+    assert closeout["surface_kind"] == "mas_real_paper_line_provider_canary_closeout"
+    assert closeout["selected_opl_ingestable_ref_surface"]["ref"] == (
+        "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
+    )
+    assert closeout["provider_completion_is_success"] is False
+    assert closeout["required_return_shape_satisfied"] is True
+    assert closeout["owner_chain_result"]["result_kind"] == "owner_receipt"
+    assert closeout["paper_line_owner_payload_summary"] == {
+        "paper_line_count": 1,
+        "success_payload_count": 1,
+        "typed_blocker_payload_count": 0,
+        "domain_ready_claim_count": 0,
+        "production_ready_claim_count": 0,
+        "artifact_mutation_authorized_count": 0,
+    }
+    payload = closeout["paper_line_domain_dispatch_evidence_record_payloads"][0]
+    assert payload["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert payload["mode"] == "refs_only_domain_owned_success_payload"
+    assert payload["record_payload"]["domain_owner_receipt_refs"]
+    assert payload["record_payload"]["typed_blocker_refs"] == []
+    assert payload["body_included"] is False
+    assert payload["domain_ready_claimed"] is False
+    assert payload["publication_ready_claimed"] is False
+    assert payload["artifact_mutation_authorized"] is False
+    assert payload["current_package_mutation_authorized"] is False
+    assert payload["authority_boundary"]["provider_completion_is_domain_ready"] is False
+    assert closeout["no_forbidden_write_proof"]["provider_or_opl_wrote_domain_truth"] is False
+    assert closeout["no_forbidden_write_proof"]["provider_or_opl_wrote_current_package"] is False
+
+
 def test_product_entry_manifest_consumes_opl_production_proof_for_provider_availability(
     tmp_path: Path,
 ) -> None:
