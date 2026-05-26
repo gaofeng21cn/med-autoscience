@@ -138,6 +138,23 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     assert evidence_payload["domain_ready_claimed"] is False
     assert evidence_payload["publication_ready_claimed"] is False
     assert evidence_payload["artifact_mutation_authorized"] is False
+    stage_handoff = evidence_payload["stage_evidence_handoff"]
+    expected_stage_refs = [
+        str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"),
+        str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"),
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+    ]
+    assert evidence_payload["record_payload"]["stage_expected_receipt_refs"] == expected_stage_refs
+    assert stage_handoff["expected_receipt_refs"] == expected_stage_refs
+    assert set(evidence_payload["record_payload"]["stage_monitor_freshness_refs"]) == set(
+        expected_stage_refs
+    )
+    assert set(stage_handoff["monitor_freshness_refs"]) == set(expected_stage_refs)
+    assert stage_handoff["status"] == "refs_only_stage_evidence_refs_observed"
+    assert stage_handoff["authority_boundary"]["stage_expected_receipt_refs_close_domain_ready"] is False
+    stage_packet_roles = {packet["role"] for packet in evidence_payload["body_free_evidence_packets"]}
+    assert "stage_expected_receipt_ref" in stage_packet_roles
+    assert "stage_monitor_freshness_ref" in stage_packet_roles
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")
 
@@ -176,5 +193,16 @@ def test_stable_blocker_canary_closeout_materializes_body_free_packets(tmp_path:
     assert evidence_payload["mode"] == "refs_only_domain_owned_typed_blocker_payload"
     assert evidence_payload["record_payload"]["domain_owner_receipt_refs"] == []
     assert evidence_payload["record_payload"]["typed_blocker_refs"]
+    expected_stage_refs = [
+        evidence_payload["record_payload"]["typed_blocker_refs"][0],
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+    ]
+    assert evidence_payload["record_payload"]["stage_expected_receipt_refs"] == expected_stage_refs
+    assert set(evidence_payload["record_payload"]["stage_monitor_freshness_refs"]) == set(
+        expected_stage_refs
+    )
+    assert evidence_payload["stage_evidence_handoff"]["status"] == (
+        "refs_only_stage_evidence_refs_observed"
+    )
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")

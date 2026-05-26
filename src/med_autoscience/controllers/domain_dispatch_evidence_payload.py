@@ -333,9 +333,14 @@ def _stage_evidence_handoff(
     monitor_freshness_refs: Sequence[str],
     runtime_event_refs: Sequence[str],
 ) -> dict[str, Any]:
+    status = (
+        "refs_only_stage_evidence_refs_observed"
+        if expected_receipt_refs or monitor_freshness_refs or runtime_event_refs
+        else "typed_blocker_pending_real_stage_receipts"
+    )
     return {
         "surface_kind": "mas_domain_dispatch_stage_evidence_handoff",
-        "status": "typed_blocker_pending_real_stage_receipts",
+        "status": status,
         "mode": "refs_only_stage_evidence_payload_hints",
         "task_kind": task_kind,
         **({"stage_id": stage_id} if stage_id is not None else {}),

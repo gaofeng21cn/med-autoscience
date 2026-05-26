@@ -350,9 +350,23 @@ def _domain_dispatch_evidence_record_payload(
             SOURCE_ACCEPTANCE_REF,
         ]
     )
+    expected_receipt_refs = _stage_expected_receipt_refs(
+        owner_receipt_refs=owner_receipt_refs,
+        stable_blocker_refs=stable_blocker_refs,
+        live_evidence_refs=live_evidence_refs,
+        no_forbidden_write_ref=no_forbidden_write_ref,
+    )
+    monitor_freshness_refs = _stage_monitor_freshness_refs(
+        owner_receipt_refs=owner_receipt_refs,
+        stable_blocker_refs=stable_blocker_refs,
+        live_evidence_refs=live_evidence_refs,
+        no_forbidden_write_ref=no_forbidden_write_ref,
+    )
     return build_domain_dispatch_evidence_record_payload(
         task_kind="paper_autonomy/guarded-apply",
         study_id=paper_line_id,
+        stage_id="finalize_and_publication_handoff",
+        stage_evidence_stage_id="finalize_and_publication_handoff",
         reason=(
             "real_paper_line_owner_receipt_observed"
             if owner_receipt_refs
@@ -362,6 +376,50 @@ def _domain_dispatch_evidence_record_payload(
         domain_owner_receipt_refs=owner_receipt_refs,
         typed_blocker_refs=stable_blocker_refs,
         no_regression_evidence_refs=[no_forbidden_write_ref] if no_forbidden_write_ref else [],
+        expected_receipt_refs=expected_receipt_refs,
+        monitor_freshness_refs=monitor_freshness_refs,
+    )
+
+
+def _stage_expected_receipt_refs(
+    *,
+    owner_receipt_refs: Sequence[str],
+    stable_blocker_refs: Sequence[str],
+    live_evidence_refs: Mapping[str, Any],
+    no_forbidden_write_ref: str | None,
+) -> list[str]:
+    return _dedupe_text(
+        [
+            *owner_receipt_refs,
+            *_sequence(live_evidence_refs.get("progress_delta_refs")),
+            *_sequence(live_evidence_refs.get("ai_reviewer_gate_receipt_refs")),
+            *_sequence(live_evidence_refs.get("artifact_movement_refs")),
+            *_sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
+            *stable_blocker_refs,
+            *_sequence(live_evidence_refs.get("stable_typed_blocker_refs")),
+            no_forbidden_write_ref,
+        ]
+    )
+
+
+def _stage_monitor_freshness_refs(
+    *,
+    owner_receipt_refs: Sequence[str],
+    stable_blocker_refs: Sequence[str],
+    live_evidence_refs: Mapping[str, Any],
+    no_forbidden_write_ref: str | None,
+) -> list[str]:
+    return _dedupe_text(
+        [
+            *_sequence(live_evidence_refs.get("progress_delta_refs")),
+            *_sequence(live_evidence_refs.get("ai_reviewer_gate_receipt_refs")),
+            *_sequence(live_evidence_refs.get("artifact_movement_refs")),
+            *_sequence(live_evidence_refs.get("human_gate_or_resume_refs")),
+            *stable_blocker_refs,
+            *_sequence(live_evidence_refs.get("stable_typed_blocker_refs")),
+            *owner_receipt_refs,
+            no_forbidden_write_ref,
+        ]
     )
 
 

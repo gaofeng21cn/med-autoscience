@@ -444,7 +444,7 @@ def test_domain_dispatch_evidence_payload_exposes_stage_evidence_handoff_refs_on
 
     handoff = payload["stage_evidence_handoff"]
     assert handoff["surface_kind"] == "mas_domain_dispatch_stage_evidence_handoff"
-    assert handoff["status"] == "typed_blocker_pending_real_stage_receipts"
+    assert handoff["status"] == "refs_only_stage_evidence_refs_observed"
     assert handoff["stage_id"] == "review_and_quality_gate"
     assert handoff["task_kind"] == "review_and_quality_gate"
     assert handoff["expected_receipt_refs"] == [
