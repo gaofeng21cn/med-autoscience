@@ -21,7 +21,6 @@ from .domain_owner_action_dispatch_parts import dispatch_contract
 from .domain_owner_action_dispatch_parts import output_readiness
 from .domain_owner_action_dispatch_parts import persisted_dispatches
 from .domain_owner_action_dispatch_parts import terminal_stall_handoff
-from . import domain_transition_currentness
 from .domain_action_request_materializer import (
     CONSUMER_LATEST_RELATIVE_PATH,
     DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT,
@@ -344,115 +343,13 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
     apply: bool = True,
     source: str = "ai_reviewer_publication_eval_workflow",
 ) -> dict[str, Any]:
-    try:
-        status = domain_status_projection.progress_projection(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            entry_mode=None,
-        )
-        status_payload = dict(status) if isinstance(status, Mapping) else status.to_dict()
-    except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        return {
-            "refresh_status": "blocked",
-            "blocked_reason": "progress_projection_unavailable",
-            "error": str(exc),
-        }
-
-    from . import study_outer_loop
-
-    try:
-        tick_request = study_outer_loop.build_domain_health_diagnostic_outer_loop_tick_request(
-            study_root=study_root,
-            status_payload=status_payload,
-        )
-    except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        return {
-            "refresh_status": "blocked",
-            "blocked_reason": "outer_loop_tick_request_failed",
-            "error": str(exc),
-        }
-    fallback_tick_request = domain_transition_currentness.status_domain_transition_tick_request(
-        study_root=study_root,
-        status_payload=status_payload,
-    )
-    fallback_transition = (
-        (status_payload.get("domain_transition") or {})
-        if isinstance(status_payload.get("domain_transition"), Mapping)
-        else {}
-    )
-    fallback_transition_unit = (
-        (fallback_transition.get("next_work_unit") or {})
-        if isinstance(fallback_transition.get("next_work_unit"), Mapping)
-        else {}
-    )
-    if isinstance(fallback_tick_request, dict) and not domain_transition_currentness.tick_request_matches_domain_transition(
-        tick_request=tick_request if isinstance(tick_request, Mapping) else {},
-        transition_action=str(fallback_transition.get("controller_action") or "").strip(),
-        transition_type=str(fallback_transition.get("decision_type") or "").strip(),
-        transition_unit_id=str(fallback_transition_unit.get("unit_id") or "").strip(),
-    ):
-        tick_request = fallback_tick_request
-    if tick_request is None:
-        return {
-            "refresh_status": "skipped",
-            "skipped_reason": "outer_loop_tick_request_unavailable",
-        }
-    if not apply:
-        return {
-            "refresh_status": "dry_run",
-            "study_id": study_id,
-            "publication_eval_ref": dict(tick_request.get("publication_eval_ref") or {}),
-            "decision_type": _text(tick_request.get("decision_type")),
-            "work_unit_fingerprint": _text(tick_request.get("work_unit_fingerprint")),
-            "next_work_unit": (
-                dict(tick_request.get("next_work_unit"))
-                if isinstance(tick_request.get("next_work_unit"), Mapping)
-                else None
-            ),
-            "blocking_work_units": list(tick_request.get("blocking_work_units") or []),
-        }
-
-    try:
-        refresh_result = study_outer_loop.materialize_non_dispatching_outer_loop_decision(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            status_payload=status_payload,
-            charter_ref=tick_request["charter_ref"],
-            publication_eval_ref=tick_request["publication_eval_ref"],
-            decision_type=tick_request["decision_type"],
-            route_target=tick_request.get("route_target"),
-            route_key_question=tick_request.get("route_key_question"),
-            route_rationale=tick_request.get("route_rationale"),
-            source_route_key_question=tick_request.get("source_route_key_question"),
-            work_unit_fingerprint=tick_request.get("work_unit_fingerprint"),
-            next_work_unit=tick_request.get("next_work_unit"),
-            blocking_work_units=tick_request.get("blocking_work_units") or [],
-            requires_human_confirmation=bool(tick_request.get("requires_human_confirmation")),
-            controller_actions=tick_request.get("controller_actions") or [],
-            reason=str(tick_request.get("reason") or ""),
-            source=source,
-        )
-    except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        return {
-            "refresh_status": "blocked",
-            "blocked_reason": "non_dispatching_controller_decision_materialization_failed",
-            "error": str(exc),
-        }
-    runtime_authorization = controller_refresh.authorize_current_controller_decision_after_refresh(
+    return controller_refresh.refresh_controller_decision_after_ai_reviewer_eval(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
-        status_payload=status_payload,
-        tick_request=tick_request,
+        apply=apply,
         source=source,
     )
-    return {
-        "refresh_status": "materialized",
-        **dict(refresh_result),
-        "runtime_authorization": runtime_authorization,
-    }
 
 
 def refresh_controller_decisions_for_current_publication_eval(
@@ -769,6 +666,52 @@ def _dispatch_execution_payload(
     }
 
 
+def _persist_study_executions(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    generated_at: str,
+    study_executions: list[dict[str, Any]],
+) -> list[str]:
+    latest_path = _execution_latest_path(profile, study_id)
+    history_path = _execution_history_path(profile, study_id)
+    study_payload = {
+        "surface": "default_executor_dispatch_execution_study_latest",
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "study_id": study_id,
+        "executions": study_executions,
+        "executed_count": sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in study_executions),
+        "blocked_count": sum(item.get("execution_status") == "blocked" for item in study_executions),
+        "codex_dispatch_count": sum(item.get("will_start_llm") is True for item in study_executions),
+        "suppressed_dispatch_count": sum(
+            item.get("execution_status") in {"repeat_suppressed", "blocked"} for item in study_executions
+        ),
+        "dispatch_budget_window": runtime_dispatch_cost.dispatch_budget_window(),
+        "dry_run": False,
+    }
+    _write_json(latest_path, study_payload)
+    _append_json_line(
+        history_path,
+        {
+            "generated_at": generated_at,
+            "study_id": study_id,
+            "execution_statuses": [item.get("execution_status") for item in study_executions],
+            "blocked_reasons": [item.get("blocked_reason") for item in study_executions if item.get("blocked_reason")],
+        },
+    )
+    for execution in study_executions:
+        quest_root = profile.runtime_root / (_text(execution.get("quest_id")) or study_id)
+        execution["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
+            quest_root=quest_root,
+            receipt=execution,
+            receipt_path=latest_path,
+            db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
+        )
+    _write_json(latest_path, study_payload)
+    return [str(latest_path), str(history_path)]
+
+
 def dispatch_domain_owner_actions(
     *,
     profile: WorkspaceProfile,
@@ -807,44 +750,14 @@ def dispatch_domain_owner_actions(
             executions.append(execution)
         study_executions = [execution for execution in executions if execution["study_id"] == study_id]
         if apply and study_executions:
-            latest_path = _execution_latest_path(profile, study_id)
-            history_path = _execution_history_path(profile, study_id)
-            study_payload = {
-                "surface": "default_executor_dispatch_execution_study_latest",
-                "schema_version": SCHEMA_VERSION,
-                "generated_at": generated_at,
-                "study_id": study_id,
-                "executions": study_executions,
-                "executed_count": sum(item.get("execution_status") in {"executed", "handoff_ready"} for item in study_executions),
-                "blocked_count": sum(item.get("execution_status") == "blocked" for item in study_executions),
-                "codex_dispatch_count": sum(item.get("will_start_llm") is True for item in study_executions),
-                "suppressed_dispatch_count": sum(
-                    item.get("execution_status") in {"repeat_suppressed", "blocked"} for item in study_executions
-                ),
-                "dispatch_budget_window": runtime_dispatch_cost.dispatch_budget_window(),
-                "dry_run": False,
-            }
-            _write_json(latest_path, study_payload)
-            _append_json_line(
-                history_path,
-                {
-                    "generated_at": generated_at,
-                    "study_id": study_id,
-                    "execution_statuses": [item.get("execution_status") for item in study_executions],
-                    "blocked_reasons": [item.get("blocked_reason") for item in study_executions if item.get("blocked_reason")],
-                },
-            )
-            written_files.append(str(latest_path))
-            written_files.append(str(history_path))
-            for execution in study_executions:
-                quest_root = profile.runtime_root / (_text(execution.get("quest_id")) or study_id)
-                execution["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
-                    quest_root=quest_root,
-                    receipt=execution,
-                    receipt_path=latest_path,
-                    db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
+            written_files.extend(
+                _persist_study_executions(
+                    profile=profile,
+                    study_id=study_id,
+                    generated_at=generated_at,
+                    study_executions=study_executions,
                 )
-            _write_json(latest_path, study_payload)
+            )
     payload = {
         "surface": "default_executor_dispatch_executor",
         "schema_version": SCHEMA_VERSION,

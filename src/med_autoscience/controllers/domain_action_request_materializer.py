@@ -17,6 +17,7 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
 from med_autoscience.controllers.domain_action_request_materializer_parts import (
     current_action_selection,
     publication_owner_materialization,
+    supervisor_request_packets,
     writer_handoff_preservation,
 )
 from med_autoscience.controllers.domain_owner_action_dispatch_parts import output_readiness
@@ -349,10 +350,51 @@ def _default_executor_dispatch(
     owner_route_attempt_envelope = owner_route_attempt_protocol.default_executor_attempt_envelope(
         dispatch=dispatch_shell
     )
+    return _default_executor_dispatch_payload(
+        profile=profile,
+        action=action,
+        action_type=action_type,
+        study_id=study_id,
+        dispatch_path=dispatch_path,
+        executor_policy=executor_policy,
+        next_executable_owner=next_executable_owner,
+        required_output_surface=required_output_surface,
+        owner_route=owner_route,
+        idempotency_key=idempotency_key,
+        repeat_key=repeat_key,
+        dispatch_status=dispatch_status,
+        blocked_reason=blocked_reason,
+        repeat_guard=repeat_guard,
+        typed_closeout_contract=typed_closeout_contract,
+        owner_route_attempt_envelope=owner_route_attempt_envelope,
+        prompt_contract=prompt_contract,
+    )
+
+
+def _default_executor_dispatch_payload(
+    *,
+    profile: WorkspaceProfile,
+    action: Mapping[str, Any],
+    action_type: str,
+    study_id: str,
+    dispatch_path: Path,
+    executor_policy: Mapping[str, Any],
+    next_executable_owner: str,
+    required_output_surface: str,
+    owner_route: Mapping[str, Any],
+    idempotency_key: str | None,
+    repeat_key: str | None,
+    dispatch_status: str,
+    blocked_reason: str | None,
+    repeat_guard: Mapping[str, Any],
+    typed_closeout_contract: Mapping[str, Any],
+    owner_route_attempt_envelope: Mapping[str, Any],
+    prompt_contract: Mapping[str, Any],
+) -> dict[str, Any]:
     return {
         "surface": "default_executor_dispatch_request",
         "schema_version": SCHEMA_VERSION,
-        **executor_policy,
+        **dict(executor_policy),
         "study_id": study_id,
         "quest_id": prompt_contract["quest_id"],
         "action_type": action_type,
@@ -368,14 +410,14 @@ def _default_executor_dispatch(
         "blocked_reason": blocked_reason,
         "repeat_suppressed": bool(repeat_guard["repeat_suppressed"]),
         "why_not_applied": repeat_guard["why_not_applied"],
-        "repeat_suppression": repeat_guard,
+        "repeat_suppression": dict(repeat_guard),
         "consumer_mutation_scope": "executor_dispatch_request_only",
-        "required_closeout_packet": typed_closeout_contract,
-        "owner_route_attempt_envelope": owner_route_attempt_envelope,
+        "required_closeout_packet": dict(typed_closeout_contract),
+        "owner_route_attempt_envelope": dict(owner_route_attempt_envelope),
         "terminal_output_instruction": typed_closeout_contract["terminal_output_instruction"],
-        "default_executor_policy": executor_policy,
+        "default_executor_policy": dict(executor_policy),
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
-        "prompt_contract": prompt_contract,
+        "prompt_contract": dict(prompt_contract),
         "executor_prompt": _executor_prompt(
             action_type=action_type,
             study_id=study_id,
@@ -431,117 +473,17 @@ def _request_task(
 ) -> dict[str, Any]:
     study_id = _text(action.get("study_id")) or "unknown-study"
     action_type = _text(action.get("action_type")) or "unknown_action"
-    handoff_packet = _mapping(action.get("handoff_packet"))
-    packet_path = _request_packet_path(profile, study_id, action_type)
-    apply_allowed = (
-        apply
-        and _text(developer_mode_payload.get("mode")) == SUPPORTED_MODE
-        and developer_mode_payload.get("safe_actions_enabled") is True
+    return supervisor_request_packets.request_task(
+        action=action,
+        schema_version=SCHEMA_VERSION,
+        developer_mode_payload=developer_mode_payload,
+        apply=apply,
+        supported_mode=SUPPORTED_MODE,
+        packet_path=_request_packet_path(profile, study_id, action_type),
+        scan_latest_path=_scan_latest_path(profile),
+        forbidden_surfaces=FORBIDDEN_SURFACES,
+        allowed_write_surfaces=ALLOWED_WRITE_SURFACES,
     )
-    blocked_reason = None if apply_allowed or not apply else _github_block_reason(developer_mode_payload)
-    authority = _text(action.get("authority")) or _text(handoff_packet.get("authority")) or "observability_only"
-    request_owner = _owner_from_action(action, action_type)
-    required_output_surface = _required_output_surface(action, action_type)
-    request_packet_ref = _request_packet_ref_for_action_type(action_type)
-    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(action.get("owner_route")) or _mapping(handoff_packet.get("owner_route")))
-    idempotency_key = _text(owner_route.get("idempotency_key"))
-    owner_route_current = owner_route_part.route_allows_action(
-        action={
-            **dict(action),
-            "next_executable_owner": request_owner,
-            "action_type": action_type,
-        },
-        owner_route=owner_route,
-    )
-    if blocked_reason is None and apply and not owner_route_current:
-        blocked_reason = "owner_route_next_owner_mismatch"
-    dispatch_status = (
-        "applied"
-        if apply_allowed and owner_route_current
-        else "dry_run" if not apply else "blocked"
-    )
-    owner_pickup = {
-        "owner": request_owner,
-        "state": "pending",
-        "required_output_surface": required_output_surface,
-        "owner_route": owner_route or None,
-        "idempotency_key": idempotency_key,
-        "request_packet_ref": request_packet_ref,
-        "supervisor_authority_boundary": "request_only",
-    }
-    return {
-        "surface": "supervisor_request_handoff_task",
-        "schema_version": SCHEMA_VERSION,
-        "study_id": study_id,
-        "quest_id": _text(action.get("quest_id")) or _text(handoff_packet.get("quest_id")),
-        "action_type": action_type,
-        "action_id": _text(action.get("action_id")),
-        "reason": _text(action.get("reason")) or _text(handoff_packet.get("reason")),
-        "authority": authority,
-        "request_owner": request_owner,
-        "expected_owner": request_owner,
-        "next_executable_owner": request_owner,
-        "required_output_surface": required_output_surface,
-        "request_packet_ref": request_packet_ref,
-        "owner_pickup": owner_pickup,
-        "owner_route": owner_route or None,
-        "idempotency_key": idempotency_key,
-        "owner_route_current": owner_route_current,
-        "dispatch_status": dispatch_status,
-        "blocked_reason": blocked_reason,
-        "dry_run": not apply,
-        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
-        "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
-        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
-        "github_gate": dict(_mapping(developer_mode_payload.get("github_user_gate"))),
-        "effective_mode": _text(developer_mode_payload.get("mode")),
-        "requested_mode": _text(developer_mode_payload.get("requested_mode")),
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-        "manual_study_patch_allowed": False,
-        "medical_claim_authoring_allowed": False,
-        "platform_code_mutation_allowed": False,
-        "source_action": dict(action),
-        "handoff_packet": {
-            **handoff_packet,
-            "surface": "supervisor_request_handoff_packet",
-            "schema_version": SCHEMA_VERSION,
-            "study_id": study_id,
-            "quest_id": _text(action.get("quest_id")) or _text(handoff_packet.get("quest_id")),
-            "request_kind": _text(handoff_packet.get("request_kind")) or action_type,
-            "action_type": action_type,
-            "authority": authority,
-            "request_owner": request_owner,
-            "expected_owner": request_owner,
-            "next_executable_owner": request_owner,
-            "required_output_surface": required_output_surface,
-            "owner_route": owner_route or None,
-            "idempotency_key": idempotency_key,
-            "request_packet_ref": request_packet_ref,
-            "owner_pickup": owner_pickup,
-            "supervisor_authority_boundary": "request_only",
-            "consumer_mutation_scope": "supervision_handoff_only",
-            "consumer_does_not_mutate": [
-                "paper",
-                "manuscript",
-                "current_package",
-                "submission_minimal",
-                "publication_eval",
-                "medical_claims",
-            ],
-            "retired_absent_surfaces": list(RETIRED_ABSENT_SURFACES),
-            "effective_mode": _text(developer_mode_payload.get("mode")),
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "manual_study_patch_allowed": False,
-            "medical_claim_authoring_allowed": False,
-            "platform_code_mutation_allowed": False,
-        },
-        "refs": {
-            "scan_latest": str(_scan_latest_path(profile)),
-            "request_packet_path": str(packet_path),
-        },
-    }
 
 
 def _ignored_action(action: Mapping[str, Any], reason: str) -> dict[str, Any]:
@@ -661,6 +603,68 @@ def _ai_reviewer_request_refreshes(
     return refreshes
 
 
+def _persist_default_executor_dispatches(
+    *,
+    profile: WorkspaceProfile,
+    dispatches: list[dict[str, Any]],
+) -> list[str]:
+    written_files: list[str] = []
+    for dispatch in dispatches:
+        if _text(dispatch.get("dispatch_status")) != "ready":
+            continue
+        dispatch_path = Path(_mapping(dispatch.get("refs")).get("dispatch_path"))
+        _write_json(dispatch_path, dispatch)
+        dispatch["dispatch_id"] = f"dispatch::{_text(dispatch.get('study_id'))}::{_text(dispatch.get('action_type'))}"
+        quest_root = profile.runtime_root / (_text(dispatch.get("quest_id")) or _text(dispatch.get("study_id")) or "")
+        dispatch["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
+            quest_root=quest_root,
+            receipt=dispatch,
+            receipt_path=dispatch_path,
+            db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
+        )
+        _write_json(dispatch_path, dispatch)
+        written_files.append(str(dispatch_path))
+    return written_files
+
+
+def _persist_request_packets(request_tasks: list[dict[str, Any]]) -> list[str]:
+    written_files: list[str] = []
+    for task in request_tasks:
+        if _text(task.get("dispatch_status")) != "applied":
+            continue
+        packet_path = Path(_mapping(task.get("refs")).get("request_packet_path"))
+        packet = _mapping(task.get("handoff_packet"))
+        _write_json(packet_path, packet)
+        written_files.append(str(packet_path))
+    return written_files
+
+
+def _persist_consumer_payload(
+    *,
+    profile: WorkspaceProfile,
+    payload: Mapping[str, Any],
+    generated_at: str,
+    study_ids: tuple[str, ...],
+    request_task_count: int,
+    ai_reviewer_request_refresh_count: int,
+    written_files: list[str],
+    effective_mode: str,
+) -> None:
+    written_files.append(str(_consumer_latest_path(profile)))
+    _write_json(_consumer_latest_path(profile), payload)
+    _append_json_line(
+        _consumer_history_path(profile),
+        {
+            "generated_at": generated_at,
+            "study_ids": list(study_ids),
+            "request_task_count": request_task_count,
+            "ai_reviewer_request_refresh_count": ai_reviewer_request_refresh_count,
+            "written_files": list(written_files),
+            "effective_mode": effective_mode,
+        },
+    )
+
+
 def materialize_domain_action_requests(
     *,
     profile: WorkspaceProfile,
@@ -708,28 +712,8 @@ def materialize_domain_action_requests(
     ai_reviewer_request_refreshes: list[dict[str, Any]] = []
     written_files: list[str] = []
     if apply and developer_mode.safe_actions_enabled:
-        for dispatch in default_executor_dispatches:
-            if _text(dispatch.get("dispatch_status")) != "ready":
-                continue
-            dispatch_path = Path(_mapping(dispatch.get("refs")).get("dispatch_path"))
-            _write_json(dispatch_path, dispatch)
-            dispatch["dispatch_id"] = f"dispatch::{_text(dispatch.get('study_id'))}::{_text(dispatch.get('action_type'))}"
-            quest_root = profile.runtime_root / (_text(dispatch.get("quest_id")) or _text(dispatch.get("study_id")) or "")
-            dispatch["domain_authority_ref_index"] = domain_authority_refs_index.record_dispatch_receipt(
-                quest_root=quest_root,
-                receipt=dispatch,
-                receipt_path=dispatch_path,
-                db_path=domain_authority_refs_index.workspace_authority_refs_index_path(profile.workspace_root),
-            )
-            _write_json(dispatch_path, dispatch)
-            written_files.append(str(dispatch_path))
-        for task in request_tasks:
-            if _text(task.get("dispatch_status")) != "applied":
-                continue
-            packet_path = Path(_mapping(task.get("refs")).get("request_packet_path"))
-            packet = _mapping(task.get("handoff_packet"))
-            _write_json(packet_path, packet)
-            written_files.append(str(packet_path))
+        written_files.extend(_persist_default_executor_dispatches(profile=profile, dispatches=default_executor_dispatches))
+        written_files.extend(_persist_request_packets(request_tasks))
         ai_reviewer_request_refreshes = _ai_reviewer_request_refreshes(
             profile=profile,
             study_ids=resolved_study_ids,
@@ -779,19 +763,16 @@ def materialize_domain_action_requests(
         },
     }
     if apply and developer_mode.safe_actions_enabled:
-        written_files.append(str(_consumer_latest_path(profile)))
         payload["written_files"] = written_files
-        _write_json(_consumer_latest_path(profile), payload)
-        _append_json_line(
-            _consumer_history_path(profile),
-            {
-                "generated_at": generated_at,
-                "study_ids": list(resolved_study_ids),
-                "request_task_count": len(request_tasks),
-                "ai_reviewer_request_refresh_count": len(ai_reviewer_request_refreshes),
-                "written_files": list(written_files),
-                "effective_mode": developer_mode.mode,
-            },
+        _persist_consumer_payload(
+            profile=profile,
+            payload=payload,
+            generated_at=generated_at,
+            study_ids=resolved_study_ids,
+            request_task_count=len(request_tasks),
+            ai_reviewer_request_refresh_count=len(ai_reviewer_request_refreshes),
+            written_files=written_files,
+            effective_mode=developer_mode.mode,
         )
     return payload
 
