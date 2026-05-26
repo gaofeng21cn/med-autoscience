@@ -140,6 +140,19 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(status)
+    if consumed_ai_reviewer_route_back is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+            for action in consumed_ai_reviewer_route_back
+        ]
     analysis_handoff_action = analysis_harmonization_ai_review.completed_ai_reviewer_action(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -358,6 +371,20 @@ def _owner_handoff_action(status: Mapping[str, Any]) -> dict[str, Any] | None:
         "paper_package_mutation_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+
+
+def _consumed_ai_reviewer_route_back_actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
+    transition = _mapping(status.get("domain_transition"))
+    receipt_consumption = _mapping(transition.get("completion_receipt_consumption"))
+    if _text(receipt_consumption.get("status")) != "consumed":
+        return None
+    if _text(receipt_consumption.get("receipt_kind")) != "ai_reviewer_publication_eval":
+        return None
+    if _text(transition.get("decision_type")) != "route_back_same_line":
+        return None
+    if _text(transition.get("controller_action")) != "request_opl_stage_attempt":
+        return None
+    return domain_transition_actions.actions(status)
 
 
 def _ai_reviewer_record_production_transition_action(

@@ -378,6 +378,7 @@ def _maybe_blocked_lifecycle_from_scan(
     *,
     developer_mode: DeveloperSupervisorMode,
     lifecycle: Mapping[str, Any],
+    status: Mapping[str, Any],
     actions: list[dict[str, Any]],
     gate_specificity: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
@@ -388,6 +389,7 @@ def _maybe_blocked_lifecycle_from_scan(
     return lifecycle_projection.maybe_blocked_lifecycle_from_scan(
         developer_mode=developer_mode,
         lifecycle=lifecycle,
+        status=status,
         actions=actions,
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
@@ -519,6 +521,7 @@ def _study_projection(
     lifecycle = _mapping(_maybe_blocked_lifecycle_from_scan(
         developer_mode=developer_mode,
         lifecycle=lifecycle,
+        status=status_payload,
         actions=actions,
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
@@ -581,12 +584,16 @@ def _study_projection(
         and _active_run_id(status_payload, progress_payload) is not None
         and not actions
     )
-    next_owner = (
-        "supervisor_only/live_quality_repair"
-        if supervisor_only_live_quality_repair
-        else block_state["next_owner"] or ("external_supervisor" if block_state["external_supervisor_required"] else None)
-    )
     blocked_reason = block_state["blocked_reason"] or why_not_applied
+    block_state_next_owner = block_state["next_owner"] or (
+        "external_supervisor" if block_state["external_supervisor_required"] else None
+    )
+    if supervisor_only_live_quality_repair:
+        next_owner = "supervisor_only/live_quality_repair"
+    else:
+        next_owner = block_state_next_owner
+        if next_owner is None and blocked_reason:
+            next_owner = block_state_part.next_owner_for_blocked_reason(blocked_reason)
     owner_route, actions, default_executor_execution_receipt_consumption = (
         default_executor_receipts.route_and_consume_current_execution_receipt(
             study_id=study_id,

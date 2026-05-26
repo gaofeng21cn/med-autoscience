@@ -12,6 +12,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import current_trut
 from med_autoscience.controllers.owner_route_reconcile_parts import evidence_adoption
 from med_autoscience.controllers.owner_route_reconcile_parts import hard_methodology_currentness
 from med_autoscience.controllers.owner_route_reconcile_parts import ai_reviewer_actions
+from med_autoscience.controllers.owner_route_reconcile_parts import opl_owner_route_handoff
 from med_autoscience.controllers.owner_route_reconcile_parts import parked_truth
 from med_autoscience.controllers.owner_route_reconcile_parts import runtime_facts
 
@@ -20,19 +21,56 @@ def ai_reviewer_lifecycle_resolved(
     *,
     lifecycle: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
+    status: Mapping[str, Any] | None = None,
 ) -> bool:
     blocked_reason = _text(lifecycle.get("blocked_reason"))
     if blocked_reason == "ai_reviewer_assessment_required":
         return ai_reviewer_assessment.get("missing") is not True
+    if blocked_reason == ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON:
+        return _consumed_ai_reviewer_route_back(status) and _current_ai_reviewer_present(ai_reviewer_assessment)
+    if blocked_reason == opl_owner_route_handoff.OPL_RUNTIME_OWNER_ROUTE_REASON:
+        return (
+            _consumed_ai_reviewer_route_back(status)
+            and _current_ai_reviewer_present(ai_reviewer_assessment)
+            and _text(lifecycle.get("next_owner")) == "external_supervisor"
+            and lifecycle.get("external_supervisor_required") is True
+        )
     if blocked_reason in {
         ai_reviewer_actions.RECORD_STALE_AFTER_CURRENT_MANUSCRIPT_REASON,
         ai_reviewer_actions.RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN_REASON,
     }:
-        return (
-            ai_reviewer_assessment.get("present") is True
-            and _text(ai_reviewer_assessment.get("owner")) == "ai_reviewer"
-        )
+        return _current_ai_reviewer_present(ai_reviewer_assessment)
     return False
+
+
+def ai_reviewer_lifecycle_superseded_by_consumed_route_back(
+    *,
+    lifecycle: Mapping[str, Any],
+    ai_reviewer_assessment: Mapping[str, Any],
+    status: Mapping[str, Any] | None = None,
+) -> bool:
+    return (
+        _text(lifecycle.get("blocked_reason")) == opl_owner_route_handoff.OPL_RUNTIME_OWNER_ROUTE_REASON
+        and _consumed_ai_reviewer_route_back(status)
+        and _current_ai_reviewer_present(ai_reviewer_assessment)
+        and _text(lifecycle.get("next_owner")) == "external_supervisor"
+        and lifecycle.get("external_supervisor_required") is True
+    )
+
+
+def _consumed_ai_reviewer_route_back(status: Mapping[str, Any] | None) -> bool:
+    transition = _mapping(_mapping(status).get("domain_transition"))
+    receipt_consumption = _mapping(transition.get("completion_receipt_consumption"))
+    return (
+        _text(receipt_consumption.get("status")) == "consumed"
+        and _text(receipt_consumption.get("receipt_kind")) == "ai_reviewer_publication_eval"
+        and _text(transition.get("decision_type")) == "route_back_same_line"
+        and _text(transition.get("controller_action")) == "request_opl_stage_attempt"
+    )
+
+
+def _current_ai_reviewer_present(ai_reviewer_assessment: Mapping[str, Any]) -> bool:
+    return ai_reviewer_assessment.get("present") is True and _text(ai_reviewer_assessment.get("owner")) == "ai_reviewer"
 
 
 def runtime_relaunch_lifecycle_resolved(
@@ -369,6 +407,10 @@ def _clear_block_state() -> dict[str, Any]:
     }
 
 
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -376,6 +418,7 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "ai_reviewer_lifecycle_resolved",
+    "ai_reviewer_lifecycle_superseded_by_consumed_route_back",
     "runtime_relaunch_lifecycle_resolved",
     "projection_only_runtime_recovery_lifecycle_resolved",
     "next_owner_for_blocked_reason",

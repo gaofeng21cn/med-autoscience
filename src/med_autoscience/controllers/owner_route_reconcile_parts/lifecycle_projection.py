@@ -14,6 +14,7 @@ def maybe_blocked_lifecycle_from_scan(
     *,
     developer_mode: DeveloperSupervisorMode,
     lifecycle: Mapping[str, Any],
+    status: Mapping[str, Any],
     actions: list[dict[str, Any]],
     gate_specificity: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
@@ -29,9 +30,16 @@ def maybe_blocked_lifecycle_from_scan(
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
     )
+    if block_state.ai_reviewer_lifecycle_superseded_by_consumed_route_back(
+        lifecycle=lifecycle,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+        status=status,
+    ):
+        return {}
     if blocked_reason is None and block_state.ai_reviewer_lifecycle_resolved(
         lifecycle=lifecycle,
         ai_reviewer_assessment=ai_reviewer_assessment,
+        status=status,
     ):
         return {}
     if not should_refresh_blocked_lifecycle(
