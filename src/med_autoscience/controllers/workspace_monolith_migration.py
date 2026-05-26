@@ -80,6 +80,7 @@ def run_workspace_monolith_migration(*, profile_path: Path, apply: bool) -> dict
             "runtime_role": "OPL provider-backed stage runtime with MAS domain authority refs",
         },
         "migrated": inventory["migrated"],
+        "binding_refreshes": inventory["binding_refreshes"],
         "skipped": inventory["skipped"],
         "orphan": inventory["orphan"],
         "duplicate": inventory["duplicate"],
@@ -105,6 +106,14 @@ def run_workspace_monolith_migration(*, profile_path: Path, apply: bool) -> dict
             target_quests_root=target_quests_root,
             source_runtime_root=source_runtime_root,
         )
+        refreshed_inventory = _build_inventory(
+            profile=load_profile(resolved_profile_path),
+            source_quests_root=source_quests_root,
+            target_quests_root=target_quests_root,
+        )
+        report["post_apply"] = {
+            "remaining_binding_refresh_count": len(refreshed_inventory["binding_refreshes"]),
+        }
     return report
 
 
@@ -123,6 +132,7 @@ def _build_inventory(
             quest_ids_by_study_id.setdefault(study_id, []).append(quest_id)
 
     migrated: list[dict[str, Any]] = []
+    binding_refreshes: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
     duplicate: list[dict[str, Any]] = []
     quest_mapping: list[dict[str, Any]] = []
@@ -167,6 +177,20 @@ def _build_inventory(
         new_quest_root = target_quests_root / quest_id
         runtime_state = quest["runtime_state"] if isinstance(quest.get("runtime_state"), dict) else {}
         status = _runtime_status(runtime_state)
+        if quest.get("source") == "target":
+            refresh = _binding_refresh_entry(
+                study_id=study_id,
+                study=study,
+                quest_id=quest_id,
+                quest=quest,
+                target_runtime_home=target_quests_root.parent,
+                target_quests_root=target_quests_root,
+                source_quests_root=source_quests_root,
+                runtime_status=status,
+            )
+            if refresh is not None:
+                binding_refreshes.append(refresh)
+            continue
         active_run_id = _text(runtime_state.get("active_run_id"))
         worker_running = runtime_state.get("worker_running")
         if active_run_id or worker_running is True or status in LIVE_RUNTIME_STATUSES:
@@ -233,6 +257,7 @@ def _build_inventory(
     ]
     return {
         "migrated": migrated,
+        "binding_refreshes": binding_refreshes,
         "skipped": skipped,
         "orphan": orphan,
         "duplicate": duplicate,
@@ -266,6 +291,14 @@ def _apply_migration(
             item=item,
             recorded_at=str(report["recorded_at"]),
         )
+        _write_runtime_binding_for_item(
+            item=item,
+            target_runtime_home=target_runtime_home,
+            target_quests_root=target_quests_root,
+            source_runtime_root=source_runtime_root,
+            recorded_at=str(report["recorded_at"]),
+        )
+    for item in report.get("binding_refreshes") or []:
         _write_runtime_binding_for_item(
             item=item,
             target_runtime_home=target_runtime_home,
@@ -530,12 +563,78 @@ def _sanitize_runtime_binding_previous(previous: Mapping[str, Any]) -> dict[str,
         "med_deepscientist_runtime_root",
         "med_deepscientist_repo_root",
         "legacy_diagnostic",
+        "runtime_backend_id",
+        "runtime_backend",
         "research_backend_id",
         "research_backend",
         "research_engine_id",
     ):
         payload.pop(key, None)
     return payload
+
+
+def _binding_refresh_entry(
+    *,
+    study_id: str,
+    study: Mapping[str, Any],
+    quest_id: str,
+    quest: Mapping[str, Any],
+    target_runtime_home: Path,
+    target_quests_root: Path,
+    source_quests_root: Path,
+    runtime_status: str,
+) -> dict[str, Any] | None:
+    binding = study["binding"] if isinstance(study.get("binding"), Mapping) else {}
+    if not _runtime_binding_refresh_required(
+        binding=binding,
+        target_runtime_home=target_runtime_home,
+        target_quests_root=target_quests_root,
+    ):
+        return None
+    historical = binding.get("historical_fixture_ref")
+    old_quest_root = _text((historical or {}).get("old_quest_root")) if isinstance(historical, Mapping) else None
+    old_runtime_root = _text((historical or {}).get("old_runtime_root")) if isinstance(historical, Mapping) else None
+    return {
+        "study_id": study_id,
+        "study_root": str(study["study_root"]),
+        "quest_id": quest_id,
+        "old_runtime_root": old_runtime_root or str(source_quests_root.parent),
+        "new_runtime_root": str(target_runtime_home),
+        "old_quest_root": old_quest_root or str(source_quests_root / quest_id),
+        "new_quest_root": str(Path(str(quest["quest_root"])).resolve()),
+        "reason": "refresh_runtime_binding_to_opl_hosted_stage_runtime",
+        "runtime_status": runtime_status,
+        "auto_wakeup": False,
+    }
+
+
+def _runtime_binding_refresh_required(
+    *,
+    binding: Mapping[str, Any],
+    target_runtime_home: Path,
+    target_quests_root: Path,
+) -> bool:
+    research_backend_id, research_engine_id = controlled_research_backend_metadata_for_runtime_ref(
+        OPL_HOSTED_STAGE_RUNTIME_ID
+    )
+    expected = {
+        "engine": engine_id_for_runtime_ref(OPL_HOSTED_STAGE_RUNTIME_ID),
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "runtime_substrate": OPL_HOSTED_STAGE_RUNTIME_ID,
+        "opl_runtime_ref": OPL_HOSTED_STAGE_RUNTIME_ID,
+        "runtime_ref": OPL_HOSTED_STAGE_RUNTIME_ID,
+        "runtime_engine_id": engine_id_for_runtime_ref(OPL_HOSTED_STAGE_RUNTIME_ID),
+        "research_backend_id": research_backend_id,
+        "research_backend": research_backend_id,
+        "research_engine_id": research_engine_id,
+        "runtime_home": str(target_runtime_home),
+        "runtime_root": str(target_quests_root),
+        "runtime_quests_root": str(target_quests_root),
+    }
+    if any(key in binding for key in ("runtime_backend_id", "runtime_backend")):
+        return True
+    return any(_text(binding.get(key)) != value for key, value in expected.items())
 
 
 def _sanitize_migrated_quest_payload(previous: Mapping[str, Any]) -> dict[str, Any]:
@@ -627,15 +726,19 @@ def _discover_quests(*, source_quests_root: Path, target_quests_root: Path) -> d
             payload = _read_yaml_mapping(quest_root / "quest.yaml")
             runtime_state = _read_json_mapping(quest_root / ".ds" / "runtime_state.json")
             quest_id = _text(payload.get("quest_id")) or _text(runtime_state.get("quest_id")) or quest_root.name
+            source = "target" if root == target_quests_root else "legacy"
             existing = quests.get(quest_id)
             if existing is not None and str(existing.get("quest_root")) != str(quest_root.resolve()):
-                continue
+                if existing.get("source") == "legacy" and source == "target":
+                    pass
+                else:
+                    continue
             quests[quest_id] = {
                 "quest_id": quest_id,
                 "study_id": _text(payload.get("study_id")) or _text(runtime_state.get("study_id")),
                 "quest_root": quest_root.resolve(),
                 "runtime_state": runtime_state,
-                "source": "target" if root == target_quests_root else "legacy",
+                "source": source,
             }
     return quests
 

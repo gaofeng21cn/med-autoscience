@@ -274,12 +274,15 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert alpha_binding["runtime_home"] == str(workspace_root / "runtime")
     assert alpha_binding["runtime_root"] == str(workspace_root / "runtime" / "quests")
     assert alpha_binding["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
-    assert alpha_binding["runtime_backend_id"] == "med_deepscientist"
-    assert alpha_binding["runtime_backend"] == "med_deepscientist"
+    assert alpha_binding["runtime_substrate"] == "opl_hosted_stage_runtime"
+    assert alpha_binding["opl_runtime_ref"] == "opl_hosted_stage_runtime"
+    assert alpha_binding["runtime_ref"] == "opl_hosted_stage_runtime"
     assert alpha_binding["runtime_engine_id"] == "opl-hosted-stage-runtime"
     assert alpha_binding["research_backend_id"] == "mas_domain_intent_adapter"
     assert alpha_binding["research_backend"] == "mas_domain_intent_adapter"
     assert alpha_binding["research_engine_id"] == "mas-domain-intent-adapter"
+    assert "runtime_backend_id" not in alpha_binding
+    assert "runtime_backend" not in alpha_binding
     assert "med_deepscientist_runtime_root" not in alpha_binding
     assert "legacy_diagnostic" not in alpha_binding
     assert alpha_binding["historical_fixture_ref"]["read_only"] is True
@@ -365,6 +368,78 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert live_binding.read_text(encoding="utf-8") == live_binding_before
     assert alpha_paper.read_text(encoding="utf-8") == alpha_paper_before
     assert not list((workspace_root / "studies").glob("*/paper/current_package/*.tmp"))
+
+
+def test_workspace_monolith_migration_refreshes_already_migrated_target_binding_without_replaying_legacy(
+    tmp_path: Path,
+) -> None:
+    migration = importlib.import_module("med_autoscience.controllers.workspace_monolith_migration")
+    profile_path, workspace_root = _build_fixture(tmp_path)
+    legacy_runtime_root = workspace_root / "ops" / "med-deepscientist" / "runtime"
+    target_quest_root = workspace_root / "runtime" / "quests" / "quest-alpha-dynamic"
+    _write_quest(
+        workspace_root / "runtime" / "quests",
+        "quest-alpha-dynamic",
+        study_id="010-alpha-dynamic",
+        runtime_state={"status": "active", "active_run_id": None, "worker_running": False},
+    )
+    target_quest_yaml = target_quest_root / "quest.yaml"
+    target_runtime_state = target_quest_root / ".ds" / "runtime_state.json"
+    target_quest_yaml_before = target_quest_yaml.read_text(encoding="utf-8")
+    target_runtime_state_before = target_runtime_state.read_text(encoding="utf-8")
+    binding_path = workspace_root / "studies" / "010-alpha-dynamic" / "runtime_binding.yaml"
+    binding_path.write_text(
+        "\n".join(
+            [
+                "schema_version: 1",
+                "engine: opl-provider-backed-stage-runtime",
+                "runtime_backend_id: opl_provider_backed_stage_runtime",
+                "runtime_backend: opl_provider_backed_stage_runtime",
+                "runtime_engine_id: opl-provider-backed-stage-runtime",
+                "research_backend_id: mas_runtime_core",
+                "research_backend: mas_runtime_core",
+                "research_engine_id: mas-runtime-core",
+                f"runtime_home: {workspace_root / 'runtime'}",
+                "study_id: 010-alpha-dynamic",
+                f"study_root: {workspace_root / 'studies' / '010-alpha-dynamic'}",
+                "quest_id: quest-alpha-dynamic",
+                f"runtime_root: {workspace_root / 'runtime' / 'quests'}",
+                f"runtime_quests_root: {workspace_root / 'runtime' / 'quests'}",
+                "historical_fixture_ref:",
+                f"  old_quest_root: {legacy_runtime_root / 'quests' / 'quest-alpha-dynamic'}",
+                f"  old_runtime_root: {legacy_runtime_root}",
+                "  read_only: true",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    dry_run = migration.run_workspace_monolith_migration(profile_path=profile_path, apply=False)
+
+    assert dry_run["migrated"] == []
+    assert dry_run["binding_refreshes"][0]["study_id"] == "010-alpha-dynamic"
+    assert dry_run["binding_refreshes"][0]["reason"] == "refresh_runtime_binding_to_opl_hosted_stage_runtime"
+    assert dry_run["binding_refreshes"][0]["runtime_status"] == "active"
+
+    report = migration.run_workspace_monolith_migration(profile_path=profile_path, apply=True)
+    refreshed_binding = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
+
+    assert report["post_apply"]["remaining_binding_refresh_count"] == 0
+    assert refreshed_binding["runtime_substrate"] == "opl_hosted_stage_runtime"
+    assert refreshed_binding["opl_runtime_ref"] == "opl_hosted_stage_runtime"
+    assert refreshed_binding["runtime_ref"] == "opl_hosted_stage_runtime"
+    assert refreshed_binding["runtime_engine_id"] == "opl-hosted-stage-runtime"
+    assert refreshed_binding["research_backend_id"] == "mas_domain_intent_adapter"
+    assert refreshed_binding["research_backend"] == "mas_domain_intent_adapter"
+    assert refreshed_binding["research_engine_id"] == "mas-domain-intent-adapter"
+    assert "runtime_backend_id" not in refreshed_binding
+    assert "runtime_backend" not in refreshed_binding
+    assert refreshed_binding["historical_fixture_ref"]["old_quest_root"].endswith(
+        "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
+    )
+    assert target_quest_yaml.read_text(encoding="utf-8") == target_quest_yaml_before
+    assert target_runtime_state.read_text(encoding="utf-8") == target_runtime_state_before
 
 
 def test_workspace_monolith_migration_controller_has_no_hardcoded_fixture_study_ids() -> None:
