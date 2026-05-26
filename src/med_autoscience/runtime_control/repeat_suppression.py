@@ -62,14 +62,15 @@ def scan_repeat_suppression(
     required_output_pending: bool = False,
 ) -> dict[str, Any]:
     key = repeat_key(owner_route)
-    route_signature = _route_signature(owner_route)
-    materialization_guard = _current_ai_reviewer_materialization_loop_guard(
+    materialization_guard = _materialization_loop_guard_or_none(
         previous_payload=previous_payload,
         study_id=study_id,
         owner_route=owner_route,
     )
     if materialization_guard is not None:
         return materialization_guard
+    if _current_ai_reviewer_materialization_identity(study_id=study_id, owner_route=owner_route) is not None:
+        return _not_suppressed(key)
     if (
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
@@ -81,6 +82,33 @@ def scan_repeat_suppression(
         return _not_suppressed(key)
     if key is None or current_meaningful_artifact_delta or required_output_pending:
         return _not_suppressed(key)
+    route_signature = _route_signature(owner_route)
+    study_suppression = _previous_scan_study_suppression(
+        previous_payload=previous_payload,
+        study_id=study_id,
+        key=key,
+        route_signature=route_signature,
+    )
+    if study_suppression is not None:
+        return study_suppression
+    action_suppression = _previous_scan_action_suppression(
+        previous_payload=previous_payload,
+        study_id=study_id,
+        key=key,
+        route_signature=route_signature,
+    )
+    if action_suppression is not None:
+        return action_suppression
+    return _not_suppressed(key)
+
+
+def _previous_scan_study_suppression(
+    *,
+    previous_payload: Mapping[str, Any] | None,
+    study_id: str,
+    key: str,
+    route_signature: tuple[str | None, str | None, tuple[str, ...]],
+) -> dict[str, Any] | None:
     for study in _list(_mapping(previous_payload).get("studies")):
         study_payload = _mapping(study)
         if _text(study_payload.get("study_id")) != study_id:
@@ -94,6 +122,16 @@ def scan_repeat_suppression(
             and _study_owner_receipt_observed(study_payload)
         ):
             return _suppressed(key, "previous_scan_same_work_unit_without_artifact_delta")
+    return None
+
+
+def _previous_scan_action_suppression(
+    *,
+    previous_payload: Mapping[str, Any] | None,
+    study_id: str,
+    key: str,
+    route_signature: tuple[str | None, str | None, tuple[str, ...]],
+) -> dict[str, Any] | None:
     for action in _list(_mapping(previous_payload).get("action_queue")):
         action_payload = _mapping(action)
         if _text(action_payload.get("study_id")) != study_id:
@@ -105,7 +143,21 @@ def scan_repeat_suppression(
             and _action_owner_receipt_observed(action_payload)
         ):
             return _suppressed(key, "previous_scan_action_same_work_unit_without_artifact_delta")
-    return _not_suppressed(key)
+    return None
+
+
+def _materialization_loop_guard_or_none(
+    *,
+    previous_payload: Mapping[str, Any] | None,
+    study_id: str,
+    owner_route: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    guard = _current_ai_reviewer_materialization_loop_guard(
+        previous_payload=previous_payload,
+        study_id=study_id,
+        owner_route=owner_route,
+    )
+    return guard
 
 
 def dispatch_repeat_suppression(

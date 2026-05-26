@@ -8,6 +8,8 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
 
+from . import writer_handoff_currentness
+
 
 OWNER_REQUEST_RELATIVE_PATHS = {
     "publication_gate_specificity_required": Path("artifacts/supervision/requests/publication_gate_specificity/latest.json"),
@@ -152,15 +154,27 @@ def _prefer_current_dispatch(
 
 def _dispatch_currentness_score(dispatch: Mapping[str, Any], current_study: Mapping[str, Any]) -> tuple[int, int]:
     route = _current_owner_route_from_scan(current_study, dispatch=dispatch)
-    route_current = (
-        1
-        if route
-        and owner_route_part.owner_route_matches(dispatch=dispatch, current_route=route)
-        and owner_route_part.route_allows_action(action=dispatch, owner_route=route)
-        else 0
+    bridged_route = writer_handoff_currentness.bridged_quality_repair_writer_handoff_route_from_study(
+        current_study=current_study,
+        dispatch=dispatch,
     )
+    route_current = 1 if _dispatch_matches_current_route(dispatch=dispatch, current_route=route) else 0
+    if bridged_route is not None:
+        route_current = 1
     stall_current = 1 if _dispatch_stall_matches_scan(dispatch=dispatch, current_study=current_study) else 0
     return route_current, stall_current
+
+
+def _dispatch_matches_current_route(
+    *,
+    dispatch: Mapping[str, Any],
+    current_route: Mapping[str, Any] | None,
+) -> bool:
+    return bool(
+        current_route
+        and owner_route_part.owner_route_matches(dispatch=dispatch, current_route=current_route)
+        and owner_route_part.route_allows_action(action=dispatch, owner_route=current_route)
+    )
 
 
 def _current_owner_route_from_scan(
@@ -198,6 +212,19 @@ def current_owner_route_from_scan_payload(
     if action_route is not None:
         return action_route, "scan_action_queue"
     return None, None
+
+
+def bridged_quality_repair_writer_handoff_route_from_scan_payload(
+    *,
+    scan_payload: Mapping[str, Any] | None,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    return writer_handoff_currentness.bridged_quality_repair_writer_handoff_route_from_scan_payload(
+        scan_payload=scan_payload,
+        study_id=study_id,
+        dispatch=dispatch,
+    )
 
 
 def _current_action_queue_owner_route(
@@ -326,14 +353,6 @@ def _owner_request_effective_route(
         owner_route=request_route,
     ):
         return owner_route_part.ensure_owner_route_v2(request_route)
-    if _request_accepts_bridged_quality_repair_writer_handoff(
-        request=request or {},
-        study_id=study_id,
-        action_type=action_type,
-        dispatch=dispatch,
-    ):
-        route = _dispatch_owner_route(dispatch)
-        return route or None
     return None
 
 
@@ -372,56 +391,6 @@ def _request_owner_route(
     if not request_route:
         request_route = _owner_request_fallback_route(action_type=action_type, dispatch=dispatch)
     return owner_route_part.ensure_owner_route_v2(request_route)
-
-
-def _request_accepts_bridged_quality_repair_writer_handoff(
-    *,
-    request: Mapping[str, Any],
-    study_id: str,
-    action_type: str,
-    dispatch: Mapping[str, Any],
-) -> bool:
-    if _text(request.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
-        return False
-    if not _self_authorized_quality_repair_writer_handoff(
-        study_id=study_id,
-        action_type=action_type,
-        dispatch=dispatch,
-    ):
-        return False
-    route = _dispatch_owner_route(dispatch)
-    route_refs = _mapping(route.get("source_refs"))
-    if _text(route_refs.get("bridge_authority")) != "quality_repair_batch_writer_handoff_currentness_bridge":
-        return False
-    request_source_action = _mapping(request.get("source_action"))
-    dispatch_source_action = _mapping(dispatch.get("source_action"))
-    if not request_source_action or not dispatch_source_action:
-        return False
-    return _quality_repair_source_actions_match(
-        request_source_action=request_source_action,
-        dispatch_source_action=dispatch_source_action,
-    )
-
-
-def _quality_repair_source_actions_match(
-    *,
-    request_source_action: Mapping[str, Any],
-    dispatch_source_action: Mapping[str, Any],
-) -> bool:
-    for key in ("surface", "blocked_reason", "source_eval_id"):
-        expected = _text(dispatch_source_action.get(key))
-        if expected is not None and _text(request_source_action.get(key)) != expected:
-            return False
-    expected_work_unit = _work_unit_id(dispatch_source_action.get("next_work_unit"))
-    if expected_work_unit is not None and _work_unit_id(request_source_action.get("next_work_unit")) != expected_work_unit:
-        return False
-    expected_evidence_ref = _text(dispatch_source_action.get("repair_execution_evidence_ref"))
-    if (
-        expected_evidence_ref is not None
-        and _text(request_source_action.get("repair_execution_evidence_ref")) != expected_evidence_ref
-    ):
-        return False
-    return True
 
 
 def _self_authorized_quality_repair_writer_handoff(
@@ -519,12 +488,6 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
-def _work_unit_id(value: object) -> str | None:
-    if isinstance(value, Mapping):
-        return _text(value.get("unit_id"))
-    return _text(value)
-
-
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -535,6 +498,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "bridged_quality_repair_writer_handoff_route_from_scan_payload",
     "current_owner_route_from_scan_payload",
     "current_consumer_dispatches",
     "explicit_action_dispatches",

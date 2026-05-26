@@ -990,4 +990,4 @@ def test_execute_dispatch_accepts_request_bound_writer_handoff_bridged_from_runt
     assert result["blocked_count"] == 0
     assert execution["execution_status"] == "handoff_ready"
     assert execution["owner_route_current"] is True
-    assert execution["owner_route_basis"] == "owner_request"
+    assert execution["owner_route_basis"] == "bridged_writer_handoff"

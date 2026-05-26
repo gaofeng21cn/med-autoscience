@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-26：bridged writer handoff 必须回指当前 runtime owner route
+
+- 决策：`domain-owner-action-dispatch` 执行 `quality_repair_batch_writer_handoff` 时，只有当 dispatch route 明确携带 `quality_repair_batch_writer_handoff_currentness_bridge`，且 `bridged_from_idempotency_key` 回指当前 scan owner route 时，才可把该 bridged dispatch route 作为 `owner_route_basis=bridged_writer_handoff` 的 currentness anchor。
+- 决策：桥接校验必须要求当前 runtime route 仍是 `quest_waiting_opl_runtime_owner_route`、writer route 是 `manuscript_story_surface_delta_missing`，并且两者在 `study_id`、`quest_id`、truth/runtime epoch、source fingerprint、work-unit fingerprint、work-unit id 和可用 source eval id 上一致。旧 request packet 或 dispatch 自身不能单独证明 currentness。
+- 理由：DM002 暴露出合法 story-surface writer handoff 可能来自当前 runtime owner route 的受控桥接；若 dispatcher 只按 owner-route 全字段等价，会误判 `owner_route_stale`。但若允许 stale request 自证，又会重新打开 silent spin 和旧 work-unit 抢占问题。
+- 影响：这是 MAS owner-dispatch currentness 修复，不写 DM002 study truth、canonical paper、`paper/submission_minimal`、`manuscript/current_package`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。它只允许当前 runtime-authorized writer handoff 进入 MAS quality repair callable；论文质量、publishability、package freshness 和 submission readiness 仍由后续 owner receipt、AI reviewer-backed eval 与 publication gate 判定。
+
 ## 2026-05-26：current AI reviewer materialization 必须闭环到 publication owner 或 typed blocker
 
 - 决策：`materialize_current_ai_reviewer_record_through_mas_owner_surface` 不再作为可重复 route-back 的 controller work unit 直接回流。`domain-action-request-materialize` 必须消费当前 AI reviewer record、story-surface delta evidence 与 current-package freshness proof，把该 work unit 物化成明确 owner action：缺当前 reviewer record 时路由 `ai_reviewer/return_to_ai_reviewer_workflow`，缺 manuscript story-surface delta 时路由 `write/run_quality_repair_batch`，package freshness 或 publication gate replay 需要继续闭环时路由 `gate_clearing_batch/run_gate_clearing_batch`。

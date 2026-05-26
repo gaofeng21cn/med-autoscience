@@ -265,6 +265,16 @@ def _execution_owner_route(
     scan_route, scan_route_basis = _current_owner_route(profile, study_id, dispatch=dispatch)
     if _owner_route_block_reason(dispatch=dispatch, current_route=scan_route) is None:
         return scan_route, scan_route_basis or "scan_latest"
+    bridged_route = persisted_dispatches.bridged_quality_repair_writer_handoff_route_from_scan_payload(
+        scan_payload=_read_json_object(_scan_latest_path(profile)),
+        study_id=study_id,
+        dispatch=dispatch,
+    )
+    if (
+        bridged_route is not None
+        and _owner_route_block_reason(dispatch=dispatch, current_route=bridged_route) is None
+    ):
+        return bridged_route, "bridged_writer_handoff"
     request_route = persisted_dispatches.owner_request_route(
         profile=profile,
         study_id=study_id,
