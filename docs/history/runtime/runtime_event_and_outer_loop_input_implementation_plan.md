@@ -7,7 +7,7 @@ Machine boundary: 人读 runtime 历史/provenance 记录。当前 runtime truth
 
 **Status:** `historical closeout reference`
 
-**Goal:** 本文件记录 managed runtime native truth 消费链路的历史计划。当前默认 runtime owner 已收敛到 MAS Runtime OS；外部 `MedDeepScientist` 不再负责默认 quest-owned runtime truth，只能作为 historical fixture / explicit archive import reference / provenance reference。
+**Goal:** 本文件记录 managed runtime native truth 消费链路的历史计划。当前默认 runtime owner 是 OPL/Temporal hosted runtime；MAS 只保留 domain authority refs、owner receipt、typed blocker、artifact/source/quality refs 和 minimal authority functions。外部 `MedDeepScientist` 不再负责默认 quest-owned runtime truth，只能作为 historical fixture、explicit backend audit / explicit archive import reference、source provenance 或 parity oracle reference。
 
 **Architecture:** 当前 active architecture 以 `runtime_event_and_outer_loop_input_contract.md`、`runtime_handle_and_durable_surface_contract.md` 和 `mds_behavior_equivalence_gap_matrix.md` 为准。
 

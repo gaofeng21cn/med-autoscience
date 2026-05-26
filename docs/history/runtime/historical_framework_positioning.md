@@ -3,14 +3,16 @@
 Owner: `MedAutoScience`
 Purpose: `runtime_history_record`
 State: `history_provenance`
-Machine boundary: 人读 runtime 历史/provenance 记录。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、runtime/controller durable surfaces 和 owner receipts。
+Machine boundary: 人读 runtime 历史/provenance 记录。当前 runtime truth 继续归 `docs/runtime/`、contracts、source、CLI/API payload、sidecar receipts、runtime/controller durable surfaces、OPL current-control-state / provider attempt refs 和 owner receipts。
 
-这份文档把 `MedAutoScience` 当前更准确的定位固定下来：
+Historical read rule: 本文件记录 `Domain Gateway` / `Domain Harness OS` 时代的定位草案。正文中的“当前”“正式”“推荐”“必须”等语气只按当时架构讨论读取；今天的 active truth 是 MAS 作为医学研究 domain agent / OPL-compatible package，由 OPL/Temporal 承担默认 hosted autonomous runtime，MAS 保留 study truth、quality verdict、artifact authority、owner receipt、typed blocker 和 domain authority refs。
+
+这份文档记录当时对 `MedAutoScience` 的 runtime / framework 定位：
 
 - 对外：它是 `Research Ops` 的 `domain gateway`
 - 对内：它是承载医学自动科研控制、执行、治理与交付的 `Domain Harness OS`
 
-这不是一句宣传口号，而是后续架构、monorepo 迁移、runtime 边界与公开文档都必须遵守的定位约束。
+这不是今天的 active positioning 约束。当前公开定位、runtime 边界和 OPL-hosted owner split 以 `docs/status.md`、`docs/architecture.md`、`docs/active/mas-ideal-state-gap-plan.md`、`docs/runtime/` 和 machine-readable contracts 为准。
 
 ## 一句话定义
 
@@ -32,7 +34,7 @@ Human / Agent
 
 - `OPL Gateway` 负责顶层路由语义与跨 domain 联邦语言
 - `MedAutoScience` 负责 `Research Ops` 这个 domain 的正式入口与运行底座
-- `MAS Runtime OS` 是当前默认 runtime owner / substrate；`MedDeepScientist` 只作为 frozen source archive、historical fixture 和 explicit legacy diagnostic / provenance reference 保留
+- 历史草案曾把 `MAS Runtime OS` 写成默认 runtime owner / substrate；当前默认 generic runtime owner 是 OPL provider-backed stage runtime，`MedDeepScientist` 只作为 frozen source archive、historical fixture、explicit backend audit / explicit archive import reference 或 provenance reference 保留。
 
 ## Domain Gateway 负责什么
 
@@ -135,21 +137,21 @@ Human / Agent
 - `startup_contract` 应是 runtime-facing projection，而不是 study authority root
 - publication eval 应产生 verdict，而不是反向重写 controller truth
 
-## 当前阶段的推荐理解
+## 历史阶段的推荐理解
 
-在今天这个仓库的实际状态下，更准确的理解是：
+在这份历史草案形成时，更准确的理解曾是：
 
 - `MedAutoScience`
   - 已经是正式的 `Research Ops` domain gateway
   - 正在把内部能力收敛成更清晰的 `Domain Harness OS`
   - 当前 repo-tracked 产品主线按 `Auto-only` 理解
 - `MedDeepScientist`
-  - 当前仍是最核心的 runtime execution substrate
-  - 但未来会被更系统地收进 `MedAutoScience` harness OS 的 monorepo 拓扑中
+  - 当时仍被讨论为核心 runtime execution substrate
+  - 现在只作为 source provenance、historical fixture、explicit archive import、backend audit、upstream learning 或 parity oracle reference 读取
 
 如果未来要做高判断密度的 `Human-in-the-loop` 产品，更合理的形态是建立在这些稳定 contract 与执行模块之上的 sibling 或 upper-layer product，而不是把当前仓改造成同仓双模。
 
-所以当前主线不是“再造一个新系统”，而是：
+所以本文的历史主线不是“再造一个新系统”，而是：
 
 - 保持 gateway 角色稳定
 - 把 harness OS 的 controller / runtime / eval 分层收紧

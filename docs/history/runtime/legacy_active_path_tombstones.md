@@ -1,10 +1,12 @@
 # Legacy Active Path Tombstones
 
 Status: `tombstoned`
-Owner: `MedAutoScience Runtime OS`
+Owner: `MedAutoScience documentation`
 Purpose: preserve tombstone context for retired active-path wording and default-caller claims.
-Machine boundary: machine truth lives in `contracts/runtime/legacy-active-path-tombstones.json`, product-entry manifest tombstone proofs, sidecar receipts, and runtime/controller surfaces.
+Machine boundary: machine truth lives in `contracts/runtime/legacy-active-path-tombstones.json`, product-entry manifest tombstone proofs, sidecar receipts, OPL current-control-state / provider attempt refs, and MAS runtime/controller surfaces.
 State: `history_provenance`
+
+Current read rule: this file is a tombstone/provenance guard. It does not define a MAS `Runtime OS`, hosted runtime owner, scheduler owner, product surface, or runnable CLI path. Current runtime ownership is OPL/Temporal hosted runtime plus MAS domain authority refs, owner receipts and typed blockers.
 
 ## Hermes Scheduler Hosted Runtime
 

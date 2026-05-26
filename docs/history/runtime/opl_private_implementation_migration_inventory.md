@@ -1,10 +1,12 @@
 # MAS 标准 OPL Agent 私有实现台账
 
-Status: `active_migration_inventory`
+Status: `history_provenance`
 Owner: `MedAutoScience`
 Purpose: `standard_opl_agent_private_surface_inventory`
-State: `active_support`
+State: `history_provenance`
 Machine boundary: 本文是 machine-adjacent human-readable 台账，不是机器真相。机器真相继续归 `contracts/functional_privatization_audit.json`、`contracts/private_functional_surface_policy.json`、`contracts/generated_surface_handoff.json`、`contracts/pack_compiler_input.json`、CLI/MCP/API 行为、sidecar receipt、runtime/controller durable surfaces、owner receipt 和真实 workspace artifact。
+
+Current read rule: this runtime-history copy is a provenance snapshot. Current private-surface / standard OPL Agent truth is the live machine-readable contracts plus `docs/active/mas-ideal-state-gap-plan.md`, where current functional / structural gaps are closed and remaining work is production evidence tail. Do not use this file as an active migration queue or proof that OPL provider long soak, paper closure, publication-ready, artifact mutation authorization or real workspace scaleout is complete.
 
 ## 当前目标态
 

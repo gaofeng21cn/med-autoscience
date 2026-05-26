@@ -1,9 +1,11 @@
 Owner: `Med Auto Science`
 Purpose: 记录 MAS 仓内仍可见的私有平台化 surface、当前分类、保留 authority 与 OPL 上收/默认化门槛。
-State: `active_inventory`
+State: `history_provenance`
 Machine boundary: 本文是人读迁移台账；机器真相以源码、contracts、runtime receipts 与 repo-native tests 为准。
 
 # MAS 私有平台化实现迁移台账
+
+Current read rule: this hyphenated inventory is a historical snapshot kept for migration provenance. Current functional/private-surface truth is owned by `contracts/functional_privatization_audit.json`, `contracts/production_acceptance/mas-production-acceptance.json`, `docs/active/mas-ideal-state-gap-plan.md` and the canonical underscore inventory in this directory. Do not read `active_inventory`, line counts or “still needs OPL defaulting” below as today's backlog without rechecking live source, contracts and tests.
 
 ## 当前 Clean Truth
 

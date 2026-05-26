@@ -7,9 +7,9 @@ Machine boundary: 人读 runtime 历史/provenance 记录。当前 runtime truth
 
 **Status:** `historical closeout reference`
 
-**Goal:** 本文件记录旧 `P2 controlled cutover -> physical monorepo migration` 的历史执行计划。当前默认运行 closeout 已由 MAS Runtime OS + MAS supervision scheduler contract + behavior-equivalence matrix 接管；Hermes gateway cron 只是当前 active adapter。不得把本文作为重开 Hermes/MDS backend migration 或 workspace-local service 的 active plan。
+**Goal:** 本文件记录旧 `P2 controlled cutover -> physical monorepo migration` 的历史执行计划。当前默认 runtime owner 是 OPL/Temporal hosted runtime；MAS 只保留 domain authority refs、owner receipt、typed blocker、artifact/source/quality refs 和 minimal authority functions。不得把本文作为重开 Hermes/MDS backend migration、Hermes active adapter、MAS Runtime OS default owner 或 workspace-local service 的 active plan。
 
-**Architecture:** 当前 active architecture 以 `runtime_core_convergence_and_controlled_cutover.md`、`runtime_supervision_loop.md` 和 `mds_behavior_equivalence_gap_matrix.md` 为准。
+**Architecture:** 当前 active architecture 以 `../../runtime/contracts/runtime_boundary.md`、`../../runtime/control/study_runtime_control_surface.md`、`../../runtime/contracts/runtime_event_and_outer_loop_input_contract.md`、`../../runtime/contracts/runtime_core_convergence_and_controlled_cutover.md` 和 machine-readable contracts 为准。`runtime_supervision_loop.md` 现在只是 history/tombstone provenance。
 
 ---
 
