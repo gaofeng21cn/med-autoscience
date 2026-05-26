@@ -373,6 +373,147 @@ def test_scan_projects_current_ai_reviewer_record_materialization_controller_rou
     assert study["owner_route"]["source_refs"]["work_unit_fingerprint"] == work_unit_fingerprint
 
 
+def test_current_ai_reviewer_materialization_loop_guard_blocks_stale_replay_but_allows_fresh_source(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    work_unit_id = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+    state = {
+        "truth_source": "truth-source-dm002-current-ai-reviewer-materialize-v1",
+        "eval_id": "publication-eval::dm002::current-ai-reviewer-materialization-v1",
+    }
+
+    def projection_inputs(**_: object) -> tuple[dict[str, object], dict[str, object], str, dict[str, object]]:
+        publication_eval_payload = {
+            "schema_version": 1,
+            "eval_id": state["eval_id"],
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+        }
+        status_payload = {
+            "schema_version": 1,
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "quest_root": str(quest_root),
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+            "active_run_id": None,
+            "publication_eval": dict(publication_eval_payload),
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": False, "active_run_id": None},
+            },
+            "runtime_health_snapshot": {
+                "attempt_state": "escalated",
+                "canonical_runtime_action": "external_supervisor_required",
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+                "retry_budget_remaining": 0,
+                "worker_liveness_state": {"state": "not_live", "worker_running": False},
+                "runtime_health_epoch": "runtime-health-dm002-current-ai-reviewer-materialize",
+            },
+            "domain_transition": {
+                "study_id": study_id,
+                "decision_type": "route_back_same_line",
+                "route_target": "controller",
+                "owner": "controller",
+                "controller_action": "request_opl_stage_attempt",
+                "next_work_unit": {
+                    "unit_id": work_unit_id,
+                    "lane": "controller",
+                    "summary": "Materialize the current AI reviewer record through MAS owner surface.",
+                },
+                "guard_boundary": {
+                    "runner_boundary": "mas_domain_read_model_only",
+                    "can_write_domain_truth": False,
+                    "can_execute_generic_state_machine": False,
+                    "opl_generic_runner_may_resume": False,
+                    "mas_owner_apply_receipt_required": False,
+                    "required_owner_surface": "artifacts/publication_eval/latest.json",
+                },
+            },
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-dm002-current-ai-reviewer-materialize",
+                "source_signature": state["truth_source"],
+            },
+        }
+        progress_payload = {
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "quest_root": str(quest_root),
+            "current_stage": "runtime_blocked",
+            "paper_stage": "publishability_gate_blocked",
+            "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        }
+        return status_payload, progress_payload, quest_id, publication_eval_payload
+
+    monkeypatch.setattr(scan, "_read_study_projection_inputs", projection_inputs)
+
+    first = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=True,
+    )
+    first_study = first["studies"][0]
+    assert [item["action_type"] for item in first_study["action_queue"]] == ["run_quality_repair_batch"]
+    assert first_study["owner_route"]["source_fingerprint"] == state["truth_source"]
+    assert first_study["owner_route"]["source_refs"]["source_eval_id"] == state["eval_id"]
+
+    stale_replay = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=True,
+    )
+
+    stale_study = stale_replay["studies"][0]
+    assert stale_study["action_queue"] == []
+    assert stale_replay["action_queue"] == []
+    assert stale_study["repeat_suppression"]["repeat_suppressed"] is True
+    assert stale_study["repeat_suppression"]["why_not_applied"] == "owner_route_loop_guard_stale_replay"
+    assert stale_study["repeat_suppression"]["loop_guard"]["status"] == "stale_replay"
+    assert stale_study["repeat_suppression"]["loop_guard"]["identity"] == {
+        "study_id": study_id,
+        "work_unit_id": work_unit_id,
+        "source_fingerprint": state["truth_source"],
+        "source_eval_id": state["eval_id"],
+    }
+
+    state["truth_source"] = "truth-source-dm002-current-ai-reviewer-materialize-v2"
+    state["eval_id"] = "publication-eval::dm002::current-ai-reviewer-materialization-v2"
+    fresh = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    fresh_study = fresh["studies"][0]
+    assert [item["action_type"] for item in fresh_study["action_queue"]] == ["run_quality_repair_batch"]
+    assert fresh_study["repeat_suppression"]["repeat_suppressed"] is False
+    assert fresh_study["owner_route"]["source_fingerprint"] == state["truth_source"]
+    assert fresh_study["owner_route"]["source_refs"]["source_eval_id"] == state["eval_id"]
+
+
 def test_scan_projects_runtime_redrive_domain_transition_and_owner_action(monkeypatch, tmp_path: Path) -> None:
     scan = __import__("med_autoscience.controllers.owner_route_reconcile", fromlist=["owner_route_reconcile"])
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")

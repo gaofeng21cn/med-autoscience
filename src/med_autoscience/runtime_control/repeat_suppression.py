@@ -5,6 +5,7 @@ from typing import Any
 
 
 REPEAT_SUPPRESSED_REASON = "repeat_suppressed"
+LOOP_GUARD_STALE_REPLAY_REASON = "owner_route_loop_guard_stale_replay"
 OWNER_HANDOFF_REASON = "controller_work_unit_owner_handoff_required"
 CLEAN_MIGRATION_OWNER_HANDOFF_REASON = "paper_authority_clean_migration_required"
 OWNER_HANDOFF_REASONS = frozenset({OWNER_HANDOFF_REASON, CLEAN_MIGRATION_OWNER_HANDOFF_REASON})
@@ -18,6 +19,7 @@ SOURCE_PROVENANCE_OWNER = "source_provenance_owner"
 PROVENANCE_LIMITED_REASON = "provenance_limited_harmonization_audit_required"
 PROVENANCE_LIMITED_ACTION = "provenance_limited_harmonization_audit"
 PROVENANCE_LIMITED_OWNER = "provenance_limited_harmonization_owner"
+CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
 
 
 def repeat_key(payload: Mapping[str, Any] | None) -> str | None:
@@ -61,6 +63,13 @@ def scan_repeat_suppression(
 ) -> dict[str, Any]:
     key = repeat_key(owner_route)
     route_signature = _route_signature(owner_route)
+    materialization_guard = _current_ai_reviewer_materialization_loop_guard(
+        previous_payload=previous_payload,
+        study_id=study_id,
+        owner_route=owner_route,
+    )
+    if materialization_guard is not None:
+        return materialization_guard
     if (
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
@@ -181,6 +190,88 @@ def _not_suppressed(key: str | None) -> dict[str, Any]:
         "work_unit_fingerprint": key,
         "repeat_suppression_key": key,
     }
+
+
+def _current_ai_reviewer_materialization_loop_guard(
+    *,
+    previous_payload: Mapping[str, Any] | None,
+    study_id: str,
+    owner_route: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    identity = _current_ai_reviewer_materialization_identity(
+        study_id=study_id,
+        owner_route=owner_route,
+    )
+    if identity is None:
+        return None
+    if _previous_materialization_identity_observed(previous_payload, identity):
+        key = repeat_key(owner_route)
+        return {
+            "repeat_suppressed": True,
+            "why_not_applied": LOOP_GUARD_STALE_REPLAY_REASON,
+            "work_unit_fingerprint": key,
+            "repeat_suppression_key": key,
+            "suppression_source": "previous_scan_same_current_ai_reviewer_materialization_identity",
+            "loop_guard": {
+                "status": "stale_replay",
+                "identity": identity,
+                "stable_typed_blocker": {
+                    "blocker_id": LOOP_GUARD_STALE_REPLAY_REASON,
+                    "owner": "med-autoscience",
+                    "write_permitted": False,
+                },
+            },
+        }
+    return _not_suppressed(repeat_key(owner_route))
+
+
+def _current_ai_reviewer_materialization_identity(
+    *,
+    study_id: str,
+    owner_route: Mapping[str, Any],
+) -> dict[str, str] | None:
+    route = _mapping(owner_route)
+    refs = _mapping(route.get("source_refs"))
+    work_unit_id = _text(refs.get("work_unit_id"))
+    if work_unit_id != CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT:
+        return None
+    source_fingerprint = _text(route.get("source_fingerprint"))
+    source_eval_id = _text(refs.get("source_eval_id"))
+    if not source_fingerprint or not source_eval_id:
+        return None
+    return {
+        "study_id": study_id,
+        "work_unit_id": work_unit_id,
+        "source_fingerprint": source_fingerprint,
+        "source_eval_id": source_eval_id,
+    }
+
+
+def _previous_materialization_identity_observed(
+    previous_payload: Mapping[str, Any] | None,
+    identity: Mapping[str, str],
+) -> bool:
+    payload = _mapping(previous_payload)
+    for study in _list(payload.get("studies")):
+        study_payload = _mapping(study)
+        if _text(study_payload.get("study_id")) != identity["study_id"]:
+            continue
+        if _current_ai_reviewer_materialization_identity(
+            study_id=identity["study_id"],
+            owner_route=_mapping(study_payload.get("owner_route")),
+        ) == dict(identity):
+            return True
+    for action in _list(payload.get("action_queue")):
+        action_payload = _mapping(action)
+        if _text(action_payload.get("study_id")) != identity["study_id"]:
+            continue
+        action_route = _mapping(action_payload.get("owner_route")) or _mapping(_mapping(action_payload.get("handoff_packet")).get("owner_route"))
+        if _current_ai_reviewer_materialization_identity(
+            study_id=identity["study_id"],
+            owner_route=action_route,
+        ) == dict(identity):
+            return True
+    return False
 
 
 def _owner_handoff_route(owner_route: Mapping[str, Any]) -> bool:
