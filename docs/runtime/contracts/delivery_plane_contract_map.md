@@ -25,7 +25,8 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 - `pause_runtime = recoverable`
 - `stop_runtime = terminal stop`
 - `stop_after_current_step = unsupported / fail-closed`
-- `rerun = unsupported executable action`
+- generic `rerun = unsupported executable action`
+- explicit stopped-quest relaunch = supported only through `request_opl_stage_attempt_relaunch` or the direct controller entry with explicit stopped relaunch permission
 - `requires_human_confirmation = dispatch gate`
 
 ### 1.1 不新增 delivery authority root
@@ -40,23 +41,24 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 
 ### 1.2 当前 controller-authorized delivery surface
 
-当前允许被 controller 当作正式 delivery source 的 surface 只有：
+当前允许被 controller 当作正式 delivery source / projection 的 surface 只有：
 
 - `study_root/paper/`
 - `study_root/paper/submission_minimal/`
 - `study_root/paper/journal_submissions/<publication_profile>/`
+- `study_root/submission_packages/<journal_slug>/`
 - 上述 surface 上的 `paper_bundle_manifest.json`、`audit/submission_manifest.json`、`compile_report.json`
 
-`submission_minimal/`、journal-specific package、`manuscript/current_package/` 采用 `submission-package.v2` layout：根目录保留 `manuscript.docx`、`paper.pdf`、`references.bib`、`figures/`、`tables/` 等人最常打开的投稿文件；`audit/` 放 `submission_manifest.json`、`evidence_ledger.json`、`review_ledger.json`、`study_charter.json`；`reproducibility/` 放 `source_signature.json`、`source_relative_paths.json` 和可选 `analysis_manifest.json`。根级 `submission_manifest.json` 只作为 legacy 输入识别，不再由新包重复生成。
+`submission_minimal/`、paper-local `journal_submissions/<publication_profile>/`、shallow `submission_packages/<journal_slug>/` 和 `manuscript/current_package/` 采用 `submission-package.v2` layout：根目录保留 `manuscript.docx`、`paper.pdf`、`references.bib`、`figures/`、`tables/` 等人最常打开的投稿文件；`audit/` 放 `submission_manifest.json`、`evidence_ledger.json`、`review_ledger.json`、`study_charter.json`；`reproducibility/` 放 `source_signature.json`、`source_relative_paths.json` 和可选 `analysis_manifest.json`。根级 `submission_manifest.json` 只作为 legacy 输入识别，不再由新包重复生成。
 
 用户视角的读取顺序固定如下：
 
-1. 打开投稿文件：优先打开 `submission_minimal/` 或 `manuscript/current_package/` 根目录下的 DOCX、PDF、BibTeX、figures 和 tables。
+1. 打开投稿文件：优先打开 `submission_minimal/`、`submission_packages/<journal_slug>/` 或 `manuscript/current_package/` 根目录下的 DOCX、PDF、BibTeX、figures 和 tables。
 2. 核查 audit/：在 v2 package 中读取 `audit/submission_manifest.json`、`audit/evidence_ledger.json`、`audit/review_ledger.json`、`audit/study_charter.json`；legacy package 只能把根级审计文件作为旧输入识别。
 3. 核查 reproducibility/：读取 `reproducibility/source_signature.json`、`reproducibility/source_relative_paths.json` 和可选 `reproducibility/analysis_manifest.json`。
 4. 遇到 `unknown` layout：只把已发现的 DOCX/PDF/ZIP 当作可打开文件，不把它解释成完整投稿包；需要由 controller 从 canonical sources 重新生成 v2 projection。
 
-上述文件都不是 edit source。人工或 reviewer 修改必须回到 `paper/` authority surface 与 MAS quality/runtime chain；`audit/`、`reproducibility/`、DOCX/PDF、zip、`current_package` 只能作为 projection、traceability 或 handoff。
+上述文件都不是 edit source。人工或 reviewer 修改必须回到 `paper/` authority surface 与 MAS quality/runtime chain；`audit/`、`reproducibility/`、DOCX/PDF、zip、`current_package` 和 target-specific `submission_packages/<journal_slug>/` 只能作为 projection、traceability 或 handoff。
 
 这些 surface 可以被：
 
@@ -101,6 +103,7 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 - `study_root/artifacts/final/`
 - `study_root/manuscript/current_package/`
 - `study_root/manuscript/current_package.zip`
+- `study_root/submission_packages/<journal_slug>/`
 - `study_root/manuscript/inspection_package/`
 - `study_root/manuscript/inspection_package.zip`
 - `study_root/artifacts/inspection_package/`
@@ -118,13 +121,14 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 | `publication_eval` | eval-owned verdict artifact | `study_root/artifacts/publication_eval/latest.json` | 表达 publishability verdict / gaps / recommended actions；读取 `runtime_context_refs` 与 `delivery_context_refs` | 从 runtime path 或 publication shell path 读取“伪 latest” |
 | `study_decision_record` | controller-owned outer-loop decision artifact | `study_root/artifacts/controller_decisions/<timestamp>_<decision_id>.json` + `latest.json` | 把 `runtime_escalation_ref` 与 `publication_eval_ref` 收口成 next controller action | 绕过 eval 或 human gate 直接 dispatch 未冻结动作 |
 | `study_delivery_sync` | controller-owned delivery materializer | `study_root/manuscript/delivery_manifest.json` 与同步出的 `manuscript/`、`artifacts/final/` | 把 controller-authorized `paper/` package 投影成 human-facing handoff surface | 把 `manuscript/` / zip / mirror 反向当成 authority root |
+| `journal_package` | controller-owned target-specific package projection | `study_root/submission_packages/<journal_slug>/`、`audit/submission_manifest.json`、`audit/journal_requirements_snapshot.json` 与 package zip | 在 journal requirements resolved 后物化 target-specific projection、requirements snapshot 与 formatting boundary | 充当 final journal-ready formatting、publication quality verdict、submission authorization、artifact mutation authorization、`current_package` freshness proof 或 paper closure |
 | `inspection_package` | delivery-plane inspection export | `study_root/manuscript/inspection_package/` + `study_root/artifacts/inspection_package/`；或 `authorized_current_package_available` review pointer manifest / receipt | 在 publishability / bundle gate blocked 时导出 current draft / canonical paper snapshot 给人工检查；或在 existing current package 已获 controller 授权时返回 human-inspection-only review pointer | 授权投稿、写 `current_package`、写 `submission_minimal`、更新 `publication_eval` 或 `controller_decisions` |
 | `publication_gate` | controller-owned delivery guard | `quest_root/artifacts/reports/publishability_gate/*.json` | 检查 `paper/`、`paper_bundle_manifest`、`submission_minimal`、medical publication surface 是否允许继续写 | 从 unmanaged submission surface 或 shell mirror 推回 controller truth |
 | `domain_health_diagnostic` | controller-owned diagnostic/report shell | `quest_root/artifacts/reports/domain_health_diagnostic/*.json` + `state.json` legacy namespace | 单次扫描 controller reports，并汇总 managed study actions | 充当新的 authority root 或直接重写 delivery truth |
 
 ## 3. 当前闭环的正式读写顺序
 
-1. `study_runtime_execution` / `study_runtime_protocol` 落 `launch_report`
+1. `runtime_protocol.study_runtime.persist_runtime_artifacts(...)` 落 MAS-facing `launch_report` / `runtime_binding` projection；OPL current-control-state / provider attempt ledger 仍持有 runtime truth
 2. runtime 需要升级时写 `runtime_escalation_record`
 3. eval plane 在 `study_root/artifacts/publication_eval/latest.json` 写 `publication_eval`
 4. `study_outer_loop_tick(...)` 读取：
@@ -133,11 +137,13 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 5. outer-loop durable 写 `study_decision_record`
 6. downstream controller 只允许在冻结动作面内继续：
    - `request_opl_stage_attempt`
+   - `request_opl_stage_attempt_relaunch`（只用于显式 stopped relaunch）
    - `pause_runtime`
    - `stop_runtime`
 7. delivery/publication plane 继续消费 controller-authorized delivery source：
-   - `publication_gate` 看 `paper/` / `paper_bundle_manifest` / `submission_minimal`
+   - `publication_gate` 看 `paper/` / `paper_bundle_manifest` / `submission_minimal` / journal requirements / journal package state
    - `study_delivery_sync` 把 `paper/` package materialize 到 `manuscript/`
+   - `journal_package` 把 target-specific projection materialize 到 `submission_packages/<journal_slug>/`
 8. `domain_health_diagnostic` 作为 diagnostic/report shell 聚合 controller reports 与 managed study actions，但不升格成 authority root；当前它仍是 **diagnostic/report shell**，不是已经直接内建 `study_outer_loop_tick(...)` dispatch 的 owner
    - 当 `domain_health_diagnostic` 触发了 autonomous outer-loop wakeup，它可以把 dispatch outcome 作为 durable breadcrumb 写进 legacy namespace `domain_health_diagnostic/latest.json`，供 `study_progress` / proof surface 读取；这条 breadcrumb 只用于解释“自动续跑已经发生”，不替代 `study_decision_record` 作为 authority decision record
    - 在同一扫描内，`domain_health_diagnostic` 必须先评估 `medical_publication_surface`，再评估 `publication_gate`；不能让同一扫描里的 gate verdict 忽略刚暴露出的 publication-surface blocker
@@ -152,6 +158,7 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 4. `publication_gate` 发现 unmanaged submission surface 时必须阻塞
 5. `domain_health_diagnostic` 只记录/聚合 controller report，不重新定义 controller truth
 6. `inspection_package` 只能写 inspection 专属输出，不得刷新投稿包、不得关闭 quality / bundle gate、不得 materialize eval 或 decision artifact
+7. `journal_package` 缺少 confirmed target、requirements/QC current 或 publication/quality authority refs 时，只能保持 `journal_targeted_projection`，不得写成 final journal-ready 或 submission-ready
 
 ## 5. 与现有文档的桥接
 

@@ -1260,3 +1260,45 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for the remaining `docs/runtime/contracts/**` bodies, or the next bounded runtime projection/display/design group not already covered.
 - Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
+
+### 2026-05-26 delivery plane contract full currentness tranche
+
+本轮覆盖 MAS `docs/runtime/contracts/delivery_plane_contract_map.md` 全文。目标是把 delivery-plane contract support 读回当前 runtime/control、journal requirements / journal package、publication gate、inspection export 与 study decision record 的 live source/test 事实：delivery map 继续作为人读 contract support，不承载 runtime truth、publication quality verdict、artifact mutation authority、`current_package` freshness proof、paper closure、domain ready 或 production ready。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/runtime/contracts/delivery_plane_contract_map.md`, `docs/runtime/control/study_runtime_control_surface.md`, `docs/runtime/control/study_runtime_orchestration.md`, `docs/runtime/designs/journal_package_builtins_upgrade_design.md`, and this coverage ledger.
+- Source surfaces: `src/med_autoscience/runtime_protocol/study_runtime.py`, `src/med_autoscience/runtime_protocol/study_runtime_models.py`, `src/med_autoscience/study_decision_record.py`, `src/med_autoscience/controllers/gate_authority_currentness.py`, `src/med_autoscience/controllers/publication_gate_parts/state_resolvers.py`, `src/med_autoscience/controllers/journal_package.py`, `src/med_autoscience/journal_requirements.py`, `src/med_autoscience/controllers/study_delivery_sync_parts/`, `src/med_autoscience/controllers/submission_inspection_export.py`, and `src/med_autoscience/controllers/delivery_inspector.py`.
+- Focused test inventory read as evidence: `tests/test_journal_package_controller.py`, `tests/test_publication_gate_cases/supervisor_cases.py`, `tests/test_study_outer_loop_cases/runtime_resume_cases.py`, `tests/test_domain_health_diagnostic_cases/event_scan_cases.py`, `tests/test_autonomy_governance.py`, `tests/test_study_delivery_sync_cases/delivery_sync_cases.py`, `tests/test_inspection_package_contract.py`, and `tests/test_submission_inspection_export.py`.
+- Structural context: CodeGraph context for delivery/artifact/runtime authority surfaces including `persist_runtime_artifacts`, `StudyRuntimeArtifacts`, `StudyDecisionRecord`, `write_runtime_escalation_record`, `write_study_decision_record`, `GateAuthorityCurrentness`, and `materialize_journal_package`.
+
+Fresh semantic result:
+
+- The delivery-plane map now distinguishes generic `rerun` as an unsupported executable action from explicit stopped-quest relaunch, which is supported only through `request_opl_stage_attempt_relaunch` or a direct controller entry with explicit stopped relaunch permission.
+- `runtime_protocol.study_runtime.persist_runtime_artifacts(...)` is documented as writing MAS-facing `launch_report` / `runtime_binding` projections. OPL current-control-state and provider attempt ledgers remain runtime truth.
+- Current delivery projection surfaces include `study_root/submission_packages/<journal_slug>/` alongside `submission_minimal/`, paper-local `journal_submissions/<publication_profile>/`, `manuscript/current_package/`, inspection packages and artifact mirrors.
+- `journal_package` is documented as a controller-owned target-specific package projection with requirements snapshot and formatting boundary. Missing confirmed target, requirements/QC currentness or publication/quality authority refs keeps it at `journal_targeted_projection`; it must not be read as final journal-ready formatting, submission authorization, publication quality verdict, artifact mutation authority, `current_package` freshness proof or paper closure.
+- Inspection package, publication gate and study delivery sync remain projection / guard / handoff surfaces only; they do not create a second delivery authority root.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/runtime/contracts/delivery_plane_contract_map.md`, with support reads of `docs/runtime/control/study_runtime_control_surface.md`, `docs/runtime/control/study_runtime_orchestration.md`, and `docs/runtime/designs/journal_package_builtins_upgrade_design.md`; live source/test/structural evidence listed above. | `docs/runtime/contracts/delivery_plane_contract_map.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The contract support doc is still active; stale currentness wording was corrected in place.
+
+Uncovered docs in this semantic area:
+
+- Remaining MAS runtime projections/display/design bodies not already paragraph-covered by prior ledger entries remain open.
+- MAS product/status/workbench and progress/domain-ref projection shell reconciliation outside already-covered blocks remains open.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future delivery-plane prose that treats generic rerun as fully supported, or treats explicit stopped relaunch as generic automatic rerun, is stale.
+- Future prose saying `study_runtime_execution.py` writes current runtime truth or owns `launch_report` is stale; current docs must route MAS-facing projection wording through `runtime_protocol.study_runtime.persist_runtime_artifacts(...)` and runtime truth through OPL control/provider surfaces.
+- Future prose treating `submission_packages/<journal_slug>/`, `journal_package`, inspection exports or delivery sync as final journal-ready / submission-ready / publication-quality / artifact-authority / `current_package`-freshness / paper-closure proof is stale.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for remaining runtime projection/display/design support docs, or MAS product/status/workbench/progress/domain-ref projection shell reconciliation.
+- Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
