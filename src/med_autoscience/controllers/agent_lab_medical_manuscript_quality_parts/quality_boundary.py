@@ -38,6 +38,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
     "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
     "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
+    "mechanism-edit-ref:mas/structured-evidence-text-table-consistency",
     "mechanism-edit-ref:mas/ai-reviewer-record-production-handoff",
     "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding",
     "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
@@ -66,6 +67,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "regression-suite:mas/publication-work-unit-registry-consistency",
     "regression-suite:mas/story-surface-delta-or-typed-blocker",
     "regression-suite:mas/medical-manuscript-quality-floor",
+    "regression-suite:mas/structured-evidence-text-table-consistency",
     "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution",
 ]
 OWNER_CHAIN_REGRESSION_SUITE_REFS = [
@@ -74,6 +76,7 @@ OWNER_CHAIN_REGRESSION_SUITE_REFS = [
     "regression-suite:mas/publication-work-unit-registry-consistency",
     "regression-suite:mas/story-surface-delta-or-typed-blocker",
     "regression-suite:mas/medical-manuscript-quality-floor",
+    "regression-suite:mas/structured-evidence-text-table-consistency",
 ]
 OWNER_CHAIN_REGRESSION_FAMILY = {
     "surface_kind": "mas_agent_lab_owner_chain_regression_family",
@@ -88,6 +91,7 @@ OWNER_CHAIN_REGRESSION_FAMILY = {
     "medical_quality_floor_targets": [
         "medical_manuscript_no_runtime_language",
         "methods_results_numeric_reproducibility_floor",
+        "structured_evidence_text_table_consistency",
     ],
     "can_authorize_quality_verdict": False,
     "can_write_study_truth": False,

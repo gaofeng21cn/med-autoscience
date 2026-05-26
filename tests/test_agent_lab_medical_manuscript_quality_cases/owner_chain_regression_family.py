@@ -51,6 +51,7 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
         "story_surface_delta_or_typed_blocker",
         "medical_manuscript_no_runtime_language",
         "methods_results_numeric_reproducibility_floor",
+        "structured_evidence_text_table_consistency",
     }.issubset(target_ids)
     assert {
         "owner_chain_authority_monotonicity",
@@ -65,6 +66,7 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
         "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
         "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
         "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
+        "mechanism-edit-ref:mas/structured-evidence-text-table-consistency",
     }.issubset(target_refs)
     assert {
         "regression-suite:mas/owner-chain-authority-monotonicity",
@@ -72,6 +74,7 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
         "regression-suite:mas/publication-work-unit-registry-consistency",
         "regression-suite:mas/story-surface-delta-or-typed-blocker",
         "regression-suite:mas/medical-manuscript-quality-floor",
+        "regression-suite:mas/structured-evidence-text-table-consistency",
     }.issubset(regression_refs)
     assert {
         "owner_chain_authority_monotonicity_regression",

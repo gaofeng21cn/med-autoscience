@@ -403,7 +403,16 @@ def test_medical_prose_methodology_route_authorizes_analysis_repair_under_downst
     assert gate["blocking_reasons"] == []
 
 
-def test_medical_prose_write_repair_route_authorizes_paper_write_under_downstream_bundle_gate() -> None:
+@pytest.mark.parametrize(
+    "work_unit_id",
+    [
+        "medical_prose_write_repair",
+        "dm002_current_manuscript_reporting_consistency_write_repair",
+    ],
+)
+def test_medical_prose_write_repair_route_authorizes_paper_write_under_downstream_bundle_gate(
+    work_unit_id: str,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
 
     gate = module.authorize_authority_route(
@@ -417,12 +426,10 @@ def test_medical_prose_write_repair_route_authorizes_paper_write_under_downstrea
             "controller_route_context": {
                 "control_surface": "quality_repair_batch",
                 "controller_action_type": "run_quality_repair_batch",
-                "work_unit_id": "medical_prose_write_repair",
+                "work_unit_id": work_unit_id,
                 "requires_human_confirmation": False,
                 "source_eval_id": "publication-eval::003-dpcc::latest",
-                "work_unit_fingerprint": (
-                    "domain-transition::route_back_same_line::medical_prose_write_repair"
-                ),
+                "work_unit_fingerprint": f"domain-transition::route_back_same_line::{work_unit_id}",
             },
         },
     )
@@ -430,7 +437,7 @@ def test_medical_prose_write_repair_route_authorizes_paper_write_under_downstrea
     assert gate["authorized"] is True
     assert gate["route_authorization_flag"] == "paper_write_allowed"
     assert gate["controller_route_gate"]["authorized"] is True
-    assert gate["controller_repair_authorization_ref"]["work_unit_id"] == "medical_prose_write_repair"
+    assert gate["controller_repair_authorization_ref"]["work_unit_id"] == work_unit_id
     assert gate["blocking_reasons"] == []
 
 

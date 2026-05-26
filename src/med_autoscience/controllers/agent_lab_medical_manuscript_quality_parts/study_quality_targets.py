@@ -48,6 +48,7 @@ def _prediction_model_external_validation_profile() -> dict[str, Any]:
             "nhanes-survey-weighting-and-unweighted-framing",
             "calibration-risk-collapse-and-figure-quality",
             "grouped-calibration-with-observed-rate-intervals",
+            "structured-evidence-text-table-consistency",
             "claim-evidence-display-alignment-without-runtime-language",
             "ai-reviewer-record-current-manuscript-binding",
             "internal-quality-language-purge",
@@ -107,6 +108,16 @@ def _prediction_model_external_validation_profile() -> dict[str, Any]:
                     "predicted risks without using grouped calibration as a readiness verdict"
                 ),
                 "route_target": "analysis-campaign",
+            },
+            {
+                "target_id": "structured_evidence_text_table_consistency",
+                "requirement": (
+                    "prediction-model manuscript text and main performance tables must be materialized from the same "
+                    "structured validation evidence; if C-index, O:E, Brier, calibration intercept, calibration slope, "
+                    "or their 95% CIs exist in the current evidence, Table 2 and Results must not report them as "
+                    "unavailable or omit them"
+                ),
+                "route_target": "write",
             },
             {
                 "target_id": "claim_evidence_display_alignment_without_runtime_language",

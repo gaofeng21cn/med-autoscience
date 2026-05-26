@@ -12,6 +12,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 `quality_repair_batch/latest.json` 内嵌 evidence 已证明当前 `publication_eval` 下有 canonical progress delta，但同一时间段稳定 `repair_execution_evidence/latest.json` 被 reviewer-refinement text-repair blocked/no-delta evidence 覆盖，导致 owner route/read-model 看到的 stable surface 与真实 batch 结果不一致。根因是 MAS stable owner surface 缺 currentness/monotonicity guard，不是 OPL worker、queue 或单篇论文 truth 可手工修补的问题。
 - 影响：这是 MAS repair evidence stable surface 修复，不写 DM002 canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 submission-ready verdict。论文是否 ready 仍由当前 MAS owner delta、AI reviewer-backed eval 与 publication gate 判定。
 
+## 2026-05-26：DM002 Table 2 必须由同一结构化 rerun evidence 物化
+
+- 决策：DM002 external-validation writer 在处理 `dm002_current_manuscript_reporting_consistency_write_repair` 及同族 story-surface work unit 时，必须从 `unit_harmonized_external_validation_rerun.json` 同时物化正文和 `paper/tables/generated/T2_time_to_event_performance_summary.md`。Table 2 中的 C-index、O:E、Brier、calibration intercept 和 calibration slope 不得保留旧的 “interval unavailable” 文案，只要结构化 rerun evidence 已提供相应估计或 95% CI。
+- 决策：`dm002_current_manuscript_reporting_consistency_write_repair` 属于 DM002 write-owner story-surface work unit，必须注册到 canonical story-surface registry 和 DM002 deterministic writer materializer。该 work unit 只能更新 canonical manuscript story surface 与相应 generated main table，不授权改写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`paper/submission_minimal/`、`manuscript/current_package/` 或 readiness verdict。
+- 理由：DM002 暴露出正文已经报告 O:E、Brier、calibration intercept/slope 的 95% CI，但 generated Table 2 仍显示 O:E/Brier 区间不可用、calibration slope 不可用。根因是 MAS writer/table generation 没有把同一结构化 rerun evidence 同步用于正文和主文表格，不是 OPL provider、queue 或单篇 paper truth 可手工修补的问题。
+- 影响：这是 MAS medical manuscript quality / writer regression 修复。正式论文是否达到医学期刊初稿标准仍由后续 MAS owner path 生成的新稿件、AI reviewer-backed publication eval 与 publication gate 判定。
+
 ## 2026-05-26：generated workspace wrapper 模板变化必须由 bootstrap 自动升级既有 workspace
 
 - 决策：`init_workspace` / `workspace bootstrap` 生成的 `ops/medautoscience/bin/*` 与 `ops/mas/bin/*` 薄 wrapper 属于 MAS-owned generated workspace surface。只要现有文件带有 MAS 生成脚本特征、内容与当前模板不同，bootstrap 必须把它列入 `upgraded_files` 并重写为当前模板；不要求用户手工删除或使用 `force`。

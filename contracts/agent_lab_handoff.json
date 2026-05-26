@@ -336,6 +336,7 @@
         "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
         "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
         "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
+        "mechanism-edit-ref:mas/structured-evidence-text-table-consistency",
         "mechanism-edit-ref:mas/ai-reviewer-record-current-manuscript-binding"
       ],
       "quality_target_refs": [
@@ -345,9 +346,10 @@
               "methods_reproducibility_complete_case_external_validation",
               "numeric_abstract_results_with_uncertainty",
               "uncertainty_intervals_and_validation_metrics",
-              "nhanes_weighting_or_unweighted_framing",
+        "nhanes_weighting_or_unweighted_framing",
         "calibration_risk_collapse_figure_quality",
         "grouped_calibration_with_observed_rate_intervals",
+        "structured_evidence_text_table_consistency",
         "claim_evidence_display_alignment_without_runtime_language",
         "owner_chain_authority_monotonicity",
         "quality_repair_writer_handoff_currentness",
