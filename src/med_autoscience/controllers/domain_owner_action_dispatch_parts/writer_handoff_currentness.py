@@ -51,7 +51,11 @@ def _bridged_quality_repair_writer_handoff_route(
         and _runtime_handoff_route_shape(normalized_current)
         and _bridge_refs_match_current(dispatch_route=dispatch_route, current_route=normalized_current)
         and _currentness_refs_match(dispatch_route=dispatch_route, current_route=normalized_current)
-        and owner_route_part.route_allows_action(action=dispatch, owner_route=normalized_current)
+        and _current_route_allows_bridge_source_action(
+            dispatch=dispatch,
+            dispatch_route=dispatch_route,
+            current_route=normalized_current,
+        )
         and owner_route_part.route_allows_action(action=dispatch, owner_route=dispatch_route)
     )
 
@@ -83,11 +87,14 @@ def _writer_handoff_route_shape(route: Mapping[str, Any]) -> bool:
 
 
 def _runtime_handoff_route_shape(route: Mapping[str, Any]) -> bool:
-    return (
-        bool(route)
-        and _text(route.get("next_owner")) == "write"
-        and _route_reason(route) == "quest_waiting_opl_runtime_owner_route"
-    )
+    if not route:
+        return False
+    reason = _route_reason(route)
+    if reason == "quest_waiting_opl_runtime_owner_route":
+        return _text(route.get("next_owner")) == "write"
+    if reason == "ai_reviewer_assessment_required":
+        return _text(route.get("next_owner")) == "ai_reviewer"
+    return False
 
 
 def _bridge_refs_match_current(
@@ -96,11 +103,38 @@ def _bridge_refs_match_current(
     current_route: Mapping[str, Any],
 ) -> bool:
     dispatch_refs = _mapping(dispatch_route.get("source_refs"))
+    current_reason = _route_reason(current_route)
+    if current_reason == "ai_reviewer_assessment_required":
+        return (
+            _text(dispatch_refs.get("bridge_authority")) in BRIDGE_AUTHORITIES
+            and _text(dispatch_refs.get("bridged_from_owner_reason")) == current_reason
+            and _text(dispatch_refs.get("bridged_from_idempotency_key")) == _text(current_route.get("idempotency_key"))
+            and _text(dispatch_refs.get("materialized_from_action_type")) == "return_to_ai_reviewer_workflow"
+        )
     return (
         _text(dispatch_refs.get("bridge_authority")) in BRIDGE_AUTHORITIES
         and _text(dispatch_refs.get("bridged_from_owner_reason")) == "quest_waiting_opl_runtime_owner_route"
         and _text(dispatch_refs.get("bridged_from_idempotency_key")) == _text(current_route.get("idempotency_key"))
     )
+
+
+def _current_route_allows_bridge_source_action(
+    *,
+    dispatch: Mapping[str, Any],
+    dispatch_route: Mapping[str, Any],
+    current_route: Mapping[str, Any],
+) -> bool:
+    current_reason = _route_reason(current_route)
+    if current_reason == "ai_reviewer_assessment_required":
+        source_action_type = _text(_mapping(dispatch_route.get("source_refs")).get("materialized_from_action_type"))
+        return owner_route_part.route_allows_action(
+            action={
+                "action_type": source_action_type,
+                "next_executable_owner": _text(current_route.get("next_owner")),
+            },
+            owner_route=current_route,
+        )
+    return owner_route_part.route_allows_action(action=dispatch, owner_route=current_route)
 
 
 def _currentness_refs_match(

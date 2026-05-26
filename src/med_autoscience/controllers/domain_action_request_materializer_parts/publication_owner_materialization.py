@@ -245,6 +245,8 @@ def _rewrite_owner_route(
         work_unit_id=work_unit_id,
     ):
         source_refs["materialized_work_unit_id"] = work_unit_id
+        if original_owner_reason == "ai_reviewer_assessment_required":
+            source_refs["materialized_from_action_type"] = "return_to_ai_reviewer_workflow"
         source_refs["bridged_from_owner_reason"] = original_owner_reason
         source_refs["bridge_authority"] = STORY_SURFACE_BRIDGE_AUTHORITY
         if original_idempotency_key is not None:
@@ -285,7 +287,7 @@ def _is_runtime_to_story_surface_bridge(
     work_unit_id: str,
 ) -> bool:
     return (
-        original_owner_reason == "quest_waiting_opl_runtime_owner_route"
+        original_owner_reason in {"quest_waiting_opl_runtime_owner_route", "ai_reviewer_assessment_required"}
         and original_work_unit_id == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
         and owner_reason == "manuscript_story_surface_delta_missing"
         and work_unit_id == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
