@@ -5,14 +5,16 @@ Purpose: `medical_display_history_record`
 State: `history_provenance`
 Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medical-display 能力真相继续归 `docs/delivery/medical-display/`、template/renderer source、contracts、generated artifacts、tests 和 audit receipts。
 
-This document defines the current long-horizon completion program for the medical display platform in `med-autoscience`.
+This document preserves the completed first-baseline completion program for the medical display platform in `med-autoscience`.
+
+Historical read rule: read this file as baseline-completion provenance. It records the `A-H` first audited baseline target and its continuation logic at the time it was active; it is not the current active board, current owner round, or current backlog.
 
 Use this file when the question is:
 
-- what the current display program is trying to complete across `A-H`;
-- what should count as "enough coverage" for a paper family in the current long run;
-- how the active Codex execution lane should continue automatically after the current owner round finishes;
-- when the platform should keep hardening an existing family versus opening a missing one.
+- what first-baseline milestone was completed across `A-H`;
+- what counted as "enough coverage" for that historical first-baseline program;
+- how the historical Codex execution lane was expected to continue after an owner round;
+- why current rolling hardening still treats the completed `A-H` baseline as a lower coverage floor.
 
 For the top-level family roadmap, see [medical_display_family_roadmap.md](../../../delivery/medical-display/portfolio/medical_display_family_roadmap.md).
 
@@ -31,7 +33,7 @@ That milestone is already complete.
 It is intentionally:
 
 - narrower than "every family is fully mature";
-- broader than "the current owner round is done";
+- broader than "the then-active owner round is done";
 - more concrete than a generic desire to "keep improving displays."
 
 ## What Counts As A First Audited Baseline
@@ -61,15 +63,15 @@ Three statements can all be true at once:
 
 So:
 
-- `first audited baseline` is the current completion metric for this program;
+- `first audited baseline` was the completion metric for this historical program;
 - `partial` roadmap status still matters;
 - later hardening work does not mean the first baseline was fake.
 
-## Current Scoreboard
+## Completed Baseline Scoreboard
 
-The current best-grounded baseline scoreboard is:
+The completed first-baseline scoreboard is:
 
-| Paper Family | First Audited Baseline | Current Program State | Current Notes |
+| Paper Family | First Audited Baseline | Historical Program State | Notes At Completion |
 | --- | --- | --- | --- |
 | `A. Predictive Performance and Decision` | `yes` | `baseline_complete / hardening_active` | binary performance, decision, and composite panel evidence already audited |
 | `B. Survival and Time-to-Event` | `yes` | `baseline_complete / hardening_active` | grouped survival, horizon, calibration, and risk-summary surfaces audited |
@@ -82,7 +84,7 @@ The current best-grounded baseline scoreboard is:
 
 In other words:
 
-- current completion score is `8 / 8`;
+- completed first-baseline score is `8 / 8`;
 - every `A-H` family now has a first audited baseline.
 
 ## Current Operating Implication
@@ -93,41 +95,41 @@ Because the milestone is already complete:
 - the active display program should be understood as rolling hardening, visual audit, and paper-driven strengthening;
 - the first-baseline scoreboard remains the lower coverage floor, not the current stopping rule.
 
-## Execution Strategy
+## Historical Execution Strategy
 
-The user-approved execution strategy is:
+The user-approved execution strategy for this completed first-baseline program was:
 
 1. keep `A-H` first-baseline coverage as the minimum coverage floor;
 2. keep real paper demand as the default source of truth for what to build next;
 3. do not reduce the program to a mechanical checklist;
-4. but if a family remains completely missing and no higher-priority paper blocker is active, the active Codex execution lane should proactively onboard that missing family instead of parking.
+4. but if a family remained completely missing and no higher-priority paper blocker was active, the Codex execution lane should proactively onboard that missing family instead of parking.
 
-This means:
+For historical interpretation, this means:
 
 - the old `A-H` coverage target remains the completed milestone floor;
 - real-paper priority is still the execution policy.
 
-## Default Continuation Order
+## Historical Default Continuation Order
 
-The active Codex execution lane should continue in the following order unless a hard blocker overrides it:
+When this program was active, the Codex execution lane was expected to continue in the following order unless a hard blocker overrode it:
 
-1. finish the currently active owner round;
+1. finish the then-active owner round;
 2. finish required integration / merge-back;
 3. perform formal visual audit if the freshly integrated outputs still need paper-facing review;
 4. if no urgent visual-audit reopen exists and any family still lacks a first audited baseline, open that missing family next;
 5. once all `A-H` families have a first audited baseline, continue hardening the weakest or most paper-relevant family.
 
-## Current Default Next Family
+## Historical Default Next Family
 
-Now that `G` has its first audited baseline, the default next family should be:
+At the point this program completed `G` first-baseline coverage, the historical default next family was:
 
 - `F. Model Explanation`
 
-unless one of the following is true:
+unless one of the following was true:
 
-1. the newly integrated `G` outputs require a formal `Phase 3` visual-audit round;
-2. a harder cross-family deterministic gap is exposed in another weaker family;
-3. a higher-priority real paper demand appears and clearly outranks proactive `F` hardening.
+1. the newly integrated `G` outputs required a formal `Phase 3` visual-audit round;
+2. a harder cross-family deterministic gap was exposed in another weaker family;
+3. a higher-priority real paper demand appeared and clearly outranked proactive `F` hardening.
 
 ## Acceptable First-Baseline Shapes For `G`
 
@@ -143,15 +145,15 @@ Acceptable candidates include:
 - oncoplot;
 - another omics-native display, if a real paper anchor justifies it more strongly.
 
-The correct choice should still be driven by the strongest real anchor available at execution time.
+The historical choice was expected to be driven by the strongest real anchor available at execution time.
 
 ## After `G` Is Over The Line
 
-Once `G` reaches its first audited baseline:
+Once `G` reached its first audited baseline:
 
-1. the current completion program target across `A-H` is met;
+1. the first-baseline completion program target across `A-H` was met;
 2. the display mainline itself does **not** end;
-3. the active Codex execution lane should shift to rolling hardening mode:
+3. the Codex execution lane was expected to shift to rolling hardening mode:
    - strengthen the weakest family;
    - keep improving deterministic lower-bound protection;
    - keep running visual audit where paper-facing quality demands it.
@@ -163,28 +165,28 @@ The most likely next weak families after `G` are:
 - `D`
 - `C`
 
-but the exact order should remain paper-driven where possible.
+but the exact order was expected to remain paper-driven where possible.
 
-## Autonomous Continuation Rule
+## Historical Autonomous Continuation Rule
 
-Within the display-only scope, the active Codex execution lane should not stop at phase boundaries just because one baton succeeded.
+Within the historical display-only completion program, the Codex execution lane was not expected to stop at phase boundaries just because one baton succeeded.
 
-It should continue automatically unless one of the following is true:
+It was expected to continue automatically unless one of the following was true:
 
 1. a hard blocker exists;
 2. a scope decision genuinely requires the user;
 3. the display truth surfaces conflict and cannot be reconciled locally.
 
-If none of those are true, the active Codex execution lane should keep moving:
+If none of those were true, the historical execution lane was expected to keep moving:
 
 - from implementation to integration;
 - from integration to visual audit;
 - from visual audit to missing-family onboarding;
 - from missing-family onboarding to the next hardening round.
 
-## Stop Conditions
+## Historical Stop Conditions
 
-The current rolling-hardening program should only stop when at least one of the following is true:
+The historical rolling-hardening continuation rule stopped only when at least one of the following was true:
 
 1. a hard blocker prevents reliable continuation;
 2. the next family or paper demand requires a user priority decision that cannot be inferred from current truth;
@@ -195,6 +197,7 @@ The current rolling-hardening program should only stop when at least one of the 
 If the docs appear to disagree:
 
 1. [medical_display_family_roadmap.md](../../../delivery/medical-display/portfolio/medical_display_family_roadmap.md) defines the long-horizon family target model;
-2. this document defines the current completion program across those families;
+2. [medical_display_active_board.md](../../../delivery/medical-display/board/medical_display_active_board.md) defines the current owner round and reroute surface;
 3. [medical_display_platform_mainline.md](../../../delivery/medical-display/contracts/medical_display_platform_mainline.md) defines how the mainline executes;
-4. [medical_display_audit_guide.md](../../../delivery/medical-display/contracts/medical_display_audit_guide.md) defines the strict audited engineering truth.
+4. [medical_display_audit_guide.md](../../../delivery/medical-display/contracts/medical_display_audit_guide.md) defines the strict audited engineering truth;
+5. this document preserves the completed first-baseline program and must not reopen a missing-family queue by itself.

@@ -7,7 +7,9 @@ Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medi
 
 ## 文档定位
 
-这份 brief 是当前 `G` 家族 owner round 的唯一实现锚点。
+这份 brief 是 `2026-04-19` `G` 家族 pathway-integrated genomic composite owner round 的历史实现锚点。
+
+历史读法：这轮 owner round 已经吸收为 `genomic_alteration_pathway_integrated_composite_panel` 的 audited 模板 provenance。本文不是当前 active owner round、当前 worktree 指令或当前 backlog；当前执行面和 reroute 以 [medical_display_active_board.md](../../../delivery/medical-display/board/medical_display_active_board.md) 为准。
 
 它回答 5 个问题：
 
@@ -17,12 +19,13 @@ Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medi
 4. 这一轮允许做什么，不允许做什么；
 5. merge-back 前必须拿到哪些验证证据。
 
-## 当前轮次身份
+## 历史轮次身份
 
 - Family：`G. 生物信息与组学证据`
-- Capability cluster：`pathway-integrated genomic composite beyond the current landscape-plus-three-omics lower bound`
-- 当前 owner branch：`codex/medical-display-g-pathway-integrated-composite-20260419T130417Z`
-- 当前 owner worktree：`.worktrees/medical-display-g-pathway-integrated-composite-20260419T130417Z`
+- Capability cluster：`pathway-integrated genomic composite beyond the then-current landscape-plus-three-omics lower bound`
+- 历史 owner branch：`codex/medical-display-g-pathway-integrated-composite-20260419T130417Z`
+- 历史 owner worktree：`.worktrees/medical-display-g-pathway-integrated-composite-20260419T130417Z`
+- 闭环状态：已关闭并吸收为 audited inventory provenance；不得从本文重开同名 owner worktree。
 
 ## 这轮要落成的模板
 
@@ -30,7 +33,7 @@ Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medi
 
 - provisional template id：`genomic_alteration_pathway_integrated_composite_panel`
 
-它是在当前 3 条已吸收能力之上继续上提一层：
+它是在当时已经吸收的 3 条能力之上继续上提一层：
 
 1. `genomic_alteration_landscape_panel`
 2. `genomic_alteration_multiomic_consequence_panel`
@@ -40,7 +43,7 @@ Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medi
 
 ## 论文问题
 
-当前模板必须稳定回答下面这个问题：
+这轮模板必须稳定回答下面这个问题：
 
 > 关键 driver alteration 在样本层是否形成明确的 mutation-plus-CNV landscape，并且这种 alteration 是否在 proteome / phosphoproteome / glycoproteome 三个层面同时表现出可解释的基因级 consequence 与 pathway-level enrichment 偏移。
 
@@ -68,7 +71,7 @@ Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medi
 本轮新模板固定为 `1 + 3 + 3` 结构：
 
 1. 左列 `A`
-   - 沿用当前 genomic alteration landscape 主骨架：
+   - 沿用当时已经吸收的 genomic alteration landscape 主骨架：
    - burden
    - annotation tracks
    - alteration matrix
@@ -126,9 +129,9 @@ Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medi
 这轮必须复用已有 contract，而不是另起体系：
 
 1. alteration landscape 左列直接继承 `genomic_alteration_multiomic_consequence_panel`
-2. 右上三层 consequence 直接继承当前 multiomic consequence contract
+2. 右上三层 consequence 直接继承当时已经吸收的 multiomic consequence contract
 3. 右下三层 pathway 继承 `pathway_enrichment_dotplot_panel` 的 shared-pathway grid 语义
-4. palette、typography、panel-label、title policy 继续服从当前 audited display contract
+4. palette、typography、panel-label、title policy 继续服从当时的 audited display contract
 
 ## 这一轮明确不做的事
 
@@ -170,10 +173,11 @@ Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medi
 4. `make test-meta` fresh 通过
 5. 相关 docs/catalog/changelog fresh 对齐
 
-## 当前推荐实现顺序
+## 历史推荐实现顺序
+
+以下顺序保留为历史执行计划，不能作为今天的 owner round 指令直接执行。新的 medical-display owner round 必须先从 active board reroute，再读取当前 audit guide、template catalog、arsenal 和 backlog。
 
 1. 先写 registry/schema/source failing tests
 2. 再写 materialization / QC / DEG golden failing tests
 3. 再补 renderer 与 sidecar
 4. 最后回刷 catalog 与 docs
-

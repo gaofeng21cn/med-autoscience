@@ -15,6 +15,8 @@ Machine boundary: 人读医学展示能力历史/provenance 记录。当前 medi
 4. 具体落成了哪个模板、契约、质控或回归能力；
 5. 当前这次扩充处于什么状态。
 
+历史读法：本文的“当前状态”列描述的是每条历史扩充记录在该记录语境中的落地状态，不是今天的 active board、backlog 或 owner round。今天的库存和执行面分别以 `docs/delivery/medical-display/` 下的 audit guide、template catalog、arsenal、backlog 和 active board 为准。
+
 与 [medical_display_arsenal.md](../../../delivery/medical-display/catalogs/medical_display_arsenal.md) 的分工是：
 
 - `medical_display_arsenal.md` 记录“现在军火库里有什么”；
