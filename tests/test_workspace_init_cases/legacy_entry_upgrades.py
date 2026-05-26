@@ -95,7 +95,7 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in shared_text
     assert "command -v uv" not in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
-    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in progress_projection_text
+    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
     assert '--request-opl-stage-attempts' not in domain_health_diagnostic_text

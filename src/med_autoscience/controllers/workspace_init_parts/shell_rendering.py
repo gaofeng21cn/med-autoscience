@@ -100,16 +100,16 @@ def _render_profile_optional_forward_script(command: str) -> str:
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
         'args=("$@")\n'
         "has_profile=0\n"
-        'for arg in "${args[@]}"; do\n'
+        'for arg in ${args[@]+"${args[@]}"}; do\n'
         '  if [[ "${arg}" == "--profile" ]]; then\n'
         "    has_profile=1\n"
         "    break\n"
         "  fi\n"
         "done\n\n"
         'if [[ "${has_profile}" -eq 1 ]]; then\n'
-        f'  run_medautosci {command} "${{args[@]}}"\n'
+        f'  run_medautosci {command} ${{args[@]+"${{args[@]}}"}}\n'
         "else\n"
-        f'  run_medautosci {command} --profile "${{PROFILE_PATH}}" "${{args[@]}}"\n'
+        f'  run_medautosci {command} --profile "${{PROFILE_PATH}}" ${{args[@]+"${{args[@]}}"}}\n'
         "fi\n"
     )
 
@@ -123,9 +123,9 @@ def _render_progress_projection_script() -> str:
         'if [[ "${#args[@]}" -gt 0 && "${args[0]}" != -* ]]; then\n'
         '  study_id="${args[0]}"\n'
         '  args=("${args[@]:1}")\n'
-        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" --study-id "${study_id}" "${args[@]}"\n'
+        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" --study-id "${study_id}" ${args[@]+"${args[@]}"}\n'
         "else\n"
-        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"\n'
+        '  run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}\n'
         "fi\n"
     )
 

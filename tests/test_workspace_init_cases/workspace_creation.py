@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import os
 from pathlib import Path
+import subprocess
 
 
 def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Path) -> None:
@@ -207,7 +208,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
     assert 'run_medautosci launch-study --profile "${PROFILE_PATH}" "$@"' in enter_study_text
-    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" "${args[@]}"' in progress_projection_text
+    assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
     assert '--study-id "${study_id}"' in progress_projection_text
     assert '--profile "${PROFILE_PATH}"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
@@ -317,6 +318,89 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
     assert "ops/med-deepscientist" not in domain_health_diagnostic_text
+
+
+def test_generated_progress_projection_accepts_study_id_without_extra_args(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "progress-wrapper-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="progress-wrapper",
+        dry_run=False,
+        force=False,
+    )
+
+    progress_projection = workspace_root / "ops" / "medautoscience" / "bin" / "progress-projection"
+    shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "progress-wrapper.local.toml"
+    shared.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        f'PROFILE_PATH="{profile_path}"\n'
+        "run_medautosci() {\n"
+        "  printf '%s\\n' \"$@\"\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["/bin/bash", str(progress_projection), "002-dm-china-us-mortality-attribution"],
+        check=True,
+        cwd=workspace_root,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.stderr == ""
+    assert result.stdout.splitlines() == [
+        "progress-projection",
+        "--profile",
+        str(profile_path),
+        "--study-id",
+        "002-dm-china-us-mortality-attribution",
+    ]
+
+
+def test_generated_profile_optional_wrapper_accepts_no_args_under_bash_nounset(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "profile-wrapper-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="profile-wrapper",
+        dry_run=False,
+        force=False,
+    )
+
+    resolve_targets = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-submission-targets"
+    shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "profile-wrapper.local.toml"
+    shared.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        f'PROFILE_PATH="{profile_path}"\n'
+        "run_medautosci() {\n"
+        "  printf '%s\\n' \"$@\"\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        ["/bin/bash", str(resolve_targets)],
+        check=True,
+        cwd=workspace_root,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.stderr == ""
+    assert result.stdout.splitlines() == [
+        "publication",
+        "resolve-targets",
+        "--profile",
+        str(profile_path),
+    ]
 
 
 def test_init_workspace_records_detected_github_username_in_profile(monkeypatch, tmp_path: Path) -> None:
