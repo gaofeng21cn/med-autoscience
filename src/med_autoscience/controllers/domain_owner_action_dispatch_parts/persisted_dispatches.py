@@ -280,21 +280,12 @@ def owner_request_route(
     action_type: str,
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if not owner_request_matches_dispatch(
+    return _owner_request_effective_route(
         profile=profile,
         study_id=study_id,
         action_type=action_type,
         dispatch=dispatch,
-    ):
-        return None
-    request = owner_request_payload(profile, study_id, action_type)
-    request_route = _mapping(_mapping(request).get("owner_route")) or _mapping(
-        _mapping(_mapping(request).get("owner_pickup")).get("owner_route")
     )
-    if not request_route:
-        request_route = _owner_request_fallback_route(action_type=action_type, dispatch=dispatch)
-    route = owner_route_part.ensure_owner_route_v2(request_route)
-    return route or None
 
 
 def owner_request_matches_dispatch(
@@ -304,7 +295,54 @@ def owner_request_matches_dispatch(
     action_type: str,
     dispatch: Mapping[str, Any],
 ) -> bool:
+    return (
+        _owner_request_effective_route(
+            profile=profile,
+            study_id=study_id,
+            action_type=action_type,
+            dispatch=dispatch,
+        )
+        is not None
+    )
+
+
+def _owner_request_effective_route(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any] | None:
     request = owner_request_payload(profile, study_id, action_type)
+    if not _owner_request_basics_match_dispatch(
+        request=request,
+        action_type=action_type,
+        dispatch=dispatch,
+    ):
+        return None
+    request_route = _request_owner_route(request=request, action_type=action_type, dispatch=dispatch)
+    if owner_route_part.owner_route_matches(dispatch=dispatch, current_route=request_route) and owner_route_part.route_allows_action(
+        action=dispatch,
+        owner_route=request_route,
+    ):
+        return owner_route_part.ensure_owner_route_v2(request_route)
+    if _request_accepts_bridged_quality_repair_writer_handoff(
+        request=request or {},
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    ):
+        route = _dispatch_owner_route(dispatch)
+        return route or None
+    return None
+
+
+def _owner_request_basics_match_dispatch(
+    *,
+    request: Mapping[str, Any] | None,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+) -> bool:
     if not request:
         return False
     request_kind = _text(request.get("request_kind")) or _text(request.get("action_type"))
@@ -321,12 +359,69 @@ def owner_request_matches_dispatch(
     dispatch_owner = _text(dispatch.get("next_executable_owner")) or _text(_dispatch_owner_route(dispatch).get("next_owner"))
     if request_owner is not None and dispatch_owner is not None and request_owner != dispatch_owner:
         return False
+    return True
+
+
+def _request_owner_route(
+    *,
+    request: Mapping[str, Any],
+    action_type: str,
+    dispatch: Mapping[str, Any],
+) -> dict[str, Any]:
     request_route = _mapping(request.get("owner_route")) or _mapping(_mapping(request.get("owner_pickup")).get("owner_route"))
     if not request_route:
         request_route = _owner_request_fallback_route(action_type=action_type, dispatch=dispatch)
-    if not owner_route_part.owner_route_matches(dispatch=dispatch, current_route=request_route):
+    return owner_route_part.ensure_owner_route_v2(request_route)
+
+
+def _request_accepts_bridged_quality_repair_writer_handoff(
+    *,
+    request: Mapping[str, Any],
+    study_id: str,
+    action_type: str,
+    dispatch: Mapping[str, Any],
+) -> bool:
+    if _text(request.get("dispatch_authority")) != "quality_repair_batch_writer_handoff":
         return False
-    return owner_route_part.route_allows_action(action=dispatch, owner_route=request_route)
+    if not _self_authorized_quality_repair_writer_handoff(
+        study_id=study_id,
+        action_type=action_type,
+        dispatch=dispatch,
+    ):
+        return False
+    route = _dispatch_owner_route(dispatch)
+    route_refs = _mapping(route.get("source_refs"))
+    if _text(route_refs.get("bridge_authority")) != "quality_repair_batch_writer_handoff_currentness_bridge":
+        return False
+    request_source_action = _mapping(request.get("source_action"))
+    dispatch_source_action = _mapping(dispatch.get("source_action"))
+    if not request_source_action or not dispatch_source_action:
+        return False
+    return _quality_repair_source_actions_match(
+        request_source_action=request_source_action,
+        dispatch_source_action=dispatch_source_action,
+    )
+
+
+def _quality_repair_source_actions_match(
+    *,
+    request_source_action: Mapping[str, Any],
+    dispatch_source_action: Mapping[str, Any],
+) -> bool:
+    for key in ("surface", "blocked_reason", "source_eval_id"):
+        expected = _text(dispatch_source_action.get(key))
+        if expected is not None and _text(request_source_action.get(key)) != expected:
+            return False
+    expected_work_unit = _work_unit_id(dispatch_source_action.get("next_work_unit"))
+    if expected_work_unit is not None and _work_unit_id(request_source_action.get("next_work_unit")) != expected_work_unit:
+        return False
+    expected_evidence_ref = _text(dispatch_source_action.get("repair_execution_evidence_ref"))
+    if (
+        expected_evidence_ref is not None
+        and _text(request_source_action.get("repair_execution_evidence_ref")) != expected_evidence_ref
+    ):
+        return False
+    return True
 
 
 def _self_authorized_quality_repair_writer_handoff(
@@ -422,6 +517,12 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     except (OSError, json.JSONDecodeError):
         return None
     return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _work_unit_id(value: object) -> str | None:
+    if isinstance(value, Mapping):
+        return _text(value.get("unit_id"))
+    return _text(value)
 
 
 def _mapping(value: object) -> dict[str, Any]:
