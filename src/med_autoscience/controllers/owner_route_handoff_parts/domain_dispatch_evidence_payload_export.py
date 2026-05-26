@@ -14,6 +14,9 @@ SURFACE_KIND = "mas_domain_dispatch_evidence_payload_export"
 PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION = (
     "stale_return_to_ai_reviewer_dispatch_superseded_by_consumed_ai_reviewer_routeback"
 )
+PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK = (
+    "stale_run_quality_repair_dispatch_superseded_by_consumed_ai_reviewer_routeback"
+)
 PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION = (
     "stale_run_quality_repair_dispatch_superseded_by_ai_reviewer_currentness_route"
 )
@@ -25,6 +28,7 @@ SUPPORTED_SUPERSEDED_ACTION_TYPE = "return_to_ai_reviewer_workflow"
 SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE = "run_quality_repair_batch"
 OPL_STAGE_ATTEMPT_ADMISSION_REASON = "opl_stage_attempt_admission_required"
 OPL_RUNTIME_OWNER_ROUTE_REASON = "quest_waiting_opl_runtime_owner_route"
+RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON = "runtime_recovery_not_authorized"
 WRITE_OWNER = "write"
 WRITE_ACTION_TYPE = "run_quality_repair_batch"
 
@@ -187,8 +191,8 @@ def _opl_stage_admission_observed(
     return (
         _text(owner_route.get("next_owner")) == "one-person-lab"
         and (
-            _text(study_scan.get("blocked_reason")) == OPL_STAGE_ATTEMPT_ADMISSION_REASON
-            or _text(owner_route.get("owner_reason")) == OPL_STAGE_ATTEMPT_ADMISSION_REASON
+            _text(study_scan.get("blocked_reason")) in _opl_stage_admission_reasons()
+            or _text(owner_route.get("owner_reason")) in _opl_stage_admission_reasons()
         )
     )
 
@@ -240,6 +244,11 @@ def _payload_reason_for_superseded_dispatch(
         and _consumed_ai_reviewer_routeback_observed(study_scan)
     ):
         return PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION
+    if (
+        action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
+        and _consumed_ai_reviewer_routeback_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK
     if (
         action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
         and _ai_reviewer_currentness_supersession_observed(study_scan)
@@ -408,6 +417,13 @@ def _sequence(value: object) -> Sequence[object]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _opl_stage_admission_reasons() -> set[str]:
+    return {
+        OPL_STAGE_ATTEMPT_ADMISSION_REASON,
+        RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON,
+    }
 
 
 def _texts(values: Sequence[object]) -> list[str]:
