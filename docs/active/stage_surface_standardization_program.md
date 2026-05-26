@@ -1,11 +1,15 @@
 # MAS Stage Surface Standardization Program
 
 Status: `stage skill surfaces landed / ideal-state proof surfaces landed / route-memory grouping landed / provider live apply pending`
-Date: `2026-05-14`
+Date: `2026-05-26`
 Owner: `MedAutoScience Stage-Led Autonomy + Quality OS`
-Purpose: 定义 MAS 在 OPL stage-led framework 下更理想、更统一、更易维护的 stage 表达形态，并记录当前差距、统一模板与后续执行计划。
+Purpose: 定义 MAS 在 OPL stage-led framework 下的 stage 表达形态，并维护 stage / review / memory / workbench projection 边界与剩余 evidence tail。
 State: `stage_skill_surfaces_landed; provider_residency_read_model_landed; guarded_apply_harness_landed; review_index_workspace_locator_proof_landed; memory_receipt_inventory_grouping_review_landed; workbench_ref_projection_landed; runtime_owner_followthrough_landed; opl_production_proof_ingested; standard_agent_purity_projection_landed; production_provider_live_apply_pending`
 Machine boundary: 本文是人读规划与维护合同。机器真相继续归 canonical route / contract / runtime surfaces：`stage_route_contract.yaml`、stage knowledge plane contracts、stage quality contract、MAS controller/domain-authority refs surfaces、OPL current-control-state、product-entry manifest、domain-handler receipts、AI reviewer artifacts、publication gate、evidence/review ledgers 和真实 workspace artifact proof；Markdown 只解释和导航，不成为机器 truth。
+
+## 当前读法
+
+本文是 stage-surface / review-index / memory-receipt / workbench-projection 的 active support owner，不是 MAS production closure 总计划，也不是按日期增长的执行流水。已落地内容读作当前 stage surface shape、machine-boundary guard 和 evidence-tail 分类；剩余工作只保留会继续约束后续 stage surface 变更的 live paper-line、owner receipt、memory receipt、human gate 和 provider-soak 证据门。
 
 ## 结论
 
@@ -315,7 +319,9 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 
 明确拒绝的边界是：不新增 vendor/runtime dependency，不把外部 skill runner 写成 MAS provider、Agent executor adapter、default skill source 或 publication authority，不复制外部代码、prompt、schema、HTML 模板或目录布局，也不让 citation/export UI、checklist 或 runner completion 直接授权 publication readiness。详细 closeout 与 acceptance evidence 见 [Nature-skills Learning Intake](../references/mainline/nature_skills_learning_intake.md)。
 
-## 执行计划
+## 当前完成状态与剩余证据门
+
+本表是当前 landed / pending gate map。它不保存 tranche 执行记录、commit 指令或旧计划步骤；已落地项的证明入口继续归 machine contracts、focused tests、product-entry / domain-handler surfaces 和 history/provenance。
 
 | priority | status | task | output | validation |
 | --- | --- | --- | --- | --- |

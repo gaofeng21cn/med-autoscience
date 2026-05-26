@@ -1300,8 +1300,49 @@ Remaining stale / retire candidates:
 
 Next tranche write scope:
 
-- MAS paragraph-level coverage for remaining runtime projection/display/design support docs, or MAS product/status/workbench/progress/domain-ref projection shell reconciliation.
+- MAS paragraph-level coverage for remaining runtime projection/display/design support docs, or MAS product/status/workbench/progress/domain-ref projection shell reconciliation. The stage-surface support owner is covered by the tranche below.
 - Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
+
+### 2026-05-26 stage-surface support owner currentness tranche
+
+本轮覆盖 MAS `docs/active/stage_surface_standardization_program.md` 全文。目标是把该 active support owner 从旧“stage 统一计划 / 后续执行计划”读法收窄到当前 live stage-surface support 角色：它维护 stage card / route / prompt / skill / knowledge / closeout / review-index / memory / quality pack / workbench projection 边界与剩余 evidence tail；它不再作为 MAS production closure 总计划、按日期增长的执行流水、OPL framework closure 平行计划或 Markdown-only stage truth。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/runtime/contracts/stage_surfaces.md`, this docs-governance file, and prior stage route / stage knowledge / product-workbench / runtime projection ledger entries.
+- Machine / source surfaces: `agent/stages/stage_route_contract.yaml`, `src/med_autoscience/stage_surface_contract.py`, `src/med_autoscience/stage_knowledge_contract.py`, `src/med_autoscience/stage_quality_contract.py`, `src/med_autoscience/controllers/progress_portal_parts/stage_review_parts/locator.py`, `src/med_autoscience/controllers/progress_portal_parts/stage_review_parts/materializer.py`, `src/med_autoscience/controllers/progress_portal_parts/runtime_workbench_projection.py`, `src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/generated_surface_handoff.py`, `src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/consumer_migration.py`, `contracts/generated_surface_handoff.json`, `contracts/functional_privatization_audit.json`, and `contracts/test-lane-manifest.json`.
+- Focused test evidence read from current source: `tests/test_stage_surface_contract.py`, `tests/test_stage_knowledge_plane.py`, `tests/test_stage_quality_contract.py`, `tests/test_stage_route_assets.py`, `tests/test_progress_portal.py`, `tests/product_entry_cases/action_catalog_parity_cases/memory_and_skeleton_cases.py`, and workbench / stage-review projection tests referenced by `contracts/test-lane-manifest.json`.
+- Structural context: CodeGraph context for `build_stage_surface_contract`, stage knowledge closeout packets, stage quality pack projections, stage deliverable review locator/materializer and `mas_opl_runtime_workbench_projection`.
+
+Fresh semantic result:
+
+- `stage_surface_standardization_program.md` remains active support because it is the only content-level owner that ties stage surface shape, AI-first verdict wording, stage quality pack maturity, Stage Deliverable Review / Index, publication-route memory receipt scaleout and workbench projection together.
+- The document now has a current date and first-screen `当前读法` guard. It explicitly states that the file is a support owner, not a production closure plan, execution log, OPL framework closure parallel plan or Markdown truth surface.
+- Live machine surfaces remain aligned: `build_stage_surface_contract()` declares Markdown as generated human-reading surface, OPL as projection / dispatch / read-refs only, and MAS as domain truth / quality verdict / artifact authority / owner receipt / typed blocker owner. `stage_knowledge_contract.py` keeps stage knowledge / closeout / memory router receipts as context/router contracts that cannot authorize publication quality, submission readiness or controller decisions. `stage_quality_contract.py` keeps quality packs as descriptors / reviewer rubrics with `publication_readiness_authority=false` and `quality_verdict_authority=false`.
+- Stage review and workbench projection source keeps review/index/materialized refs body-free and read-only. OPL App / workbench may consume latest review page, deliverable index, memory receipt and freshness refs; it must not write MAS truth, memory body, publication eval, controller decisions, artifact authority or `current_package`.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/active/stage_surface_standardization_program.md`, with live route / stage-surface / stage-knowledge / stage-quality / stage-review / workbench projection evidence listed above. | `docs/active/stage_surface_standardization_program.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The file remains active support with a unique stage-surface owner role; stale plan wording was narrowed in place.
+
+Uncovered docs in this semantic area:
+
+- MAS product/status/workbench/progress/domain-ref shell docs outside prior Portal/projection/App-workbench, integration, inspection-package, runtime projection/control and this stage-surface owner tranche remain open only where the cumulative ledger has not already marked them paragraph-covered.
+- MAS repo-wide `README*` and `docs/**/*.md` full paragraph coverage remains open outside prior focused MAS chunks.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future stage-surface prose that treats this file as MAS production closure plan, OPL framework closure owner, execution diary, commit checklist, generated `stage_surfaces.md` truth source or proof ledger is stale pollution.
+- Future prose must not treat stage card, generated Markdown, quality pack descriptor, stage review page, deliverable index, publication-route memory refs, workbench projection, provider completion, queue completion or product-entry descriptor as source readiness, publication quality verdict, submission readiness, artifact mutation authorization, `current_package` freshness, paper closure, domain ready or production ready.
+- External research-harness / nature-skills patterns remain clean-room support patterns only; they must not become MAS runtime dependency, provider, default executor adapter, skill source, quality authority or artifact authority.
+
+Next tranche write scope:
+
+- Continue MAS repo-wide paragraph coverage from the remaining exact uncovered doc list, or choose the next OPL/RCA/MAG/App uncovered body from the family coverage ledger.
+- Keep RCA/App docs delayed while their main checkouts carry unrelated dirty implementation / release changes.
 
 ### 2026-05-26 governance reference six-repo scope tranche
 
