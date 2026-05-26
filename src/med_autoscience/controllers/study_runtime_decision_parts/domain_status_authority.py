@@ -11,6 +11,8 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .status_projection_shell import *  # noqa: F403
     from .supervisor_state_overrides import *  # noqa: F403
 
+from med_autoscience.controllers.owner_route_reconcile_parts import opl_provider_attempts
+
 
 def _status_state(
     *,
@@ -42,6 +44,7 @@ def _status_state(
     quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
     if quest_status in _LIVE_QUEST_STATUSES and opl_runtime_contract.is_opl_hosted_research_execution(execution):
         runtime_liveness_projection = _opl_current_control_state_runtime_liveness_projection(
+            profile=profile,
             study_root=study_root,
             study_id=study_id,
             quest_status=quest_status,
@@ -504,17 +507,44 @@ def _runtime_liveness_active_run_id(runtime_liveness_audit: dict[str, object] | 
 
 def _opl_current_control_state_runtime_liveness_projection(
     *,
+    profile: WorkspaceProfile,
     study_root: Path,
     study_id: str,
     quest_status: StudyRuntimeQuestStatus | None,
 ) -> dict[str, object] | None:
     latest_report_path = _opl_current_control_state_handoff_path(study_root=study_root)
-    latest_report = _read_json_mapping(latest_report_path)
-    if latest_report is None:
-        return None
+    latest_report = _read_json_mapping(latest_report_path) or {}
     study_entry = _opl_current_control_state_study_entry(latest_report, study_id=study_id)
-    if study_entry is None:
-        return None
+    if study_entry is not None:
+        handoff_projection = _opl_current_control_state_handoff_liveness_projection(
+            latest_report=latest_report,
+            latest_report_path=latest_report_path,
+            study_entry=study_entry,
+            quest_status=quest_status,
+        )
+        if handoff_projection is not None:
+            return handoff_projection
+    live_attempt = opl_provider_attempts.live_provider_attempt_for_study(
+        profile=profile,
+        study_id=study_id,
+    )
+    if live_attempt is not None:
+        return _opl_live_provider_attempt_liveness_projection(
+            latest_report=latest_report,
+            latest_report_path=latest_report_path,
+            live_attempt=live_attempt,
+            quest_status=quest_status,
+        )
+    return None
+
+
+def _opl_current_control_state_handoff_liveness_projection(
+    *,
+    latest_report: dict[str, object],
+    latest_report_path: Path,
+    study_entry: dict[str, object],
+    quest_status: StudyRuntimeQuestStatus | None,
+) -> dict[str, object] | None:
     active_run_id = str(study_entry.get("active_run_id") or "").strip() or None
     if active_run_id is None or study_entry.get("running_provider_attempt") is not True:
         return None
@@ -534,6 +564,39 @@ def _opl_current_control_state_runtime_liveness_projection(
         "active_run_id": active_run_id,
         "active_stage_attempt_id": active_stage_attempt_id,
         "active_workflow_id": active_workflow_id,
+        "running_provider_attempt": True,
+        "handoff_path": str(latest_report_path),
+        "handoff_generated_at": str(latest_report.get("generated_at") or latest_report.get("recorded_at") or "").strip()
+        or None,
+        "runtime_health": dict(runtime_health) if isinstance(runtime_health, dict) else {},
+        "snapshot": {"status": quest_status.value if quest_status is not None else None},
+    }
+
+
+def _opl_live_provider_attempt_liveness_projection(
+    *,
+    latest_report: dict[str, object],
+    latest_report_path: Path,
+    live_attempt: dict[str, object],
+    quest_status: StudyRuntimeQuestStatus | None,
+) -> dict[str, object] | None:
+    active_run_id = str(live_attempt.get("active_run_id") or "").strip() or None
+    if active_run_id is None or live_attempt.get("running_provider_attempt") is not True:
+        return None
+    runtime_health = live_attempt.get("runtime_health")
+    return {
+        "status": "live",
+        "source": "opl_current_control_state_provider_attempt",
+        "provider_attempt_source": str(live_attempt.get("source") or "opl_family_runtime_queue_inspect").strip()
+        or "opl_family_runtime_queue_inspect",
+        "runtime_owner": "one-person-lab",
+        "domain_owner": "med-autoscience",
+        "mas_provider_live_query_retired": True,
+        "provider_completion_is_domain_completion": False,
+        "authority": str(latest_report.get("authority") or "observability_only").strip() or "observability_only",
+        "active_run_id": active_run_id,
+        "active_stage_attempt_id": str(live_attempt.get("active_stage_attempt_id") or "").strip() or None,
+        "active_workflow_id": str(live_attempt.get("active_workflow_id") or "").strip() or None,
         "running_provider_attempt": True,
         "handoff_path": str(latest_report_path),
         "handoff_generated_at": str(latest_report.get("generated_at") or latest_report.get("recorded_at") or "").strip()
