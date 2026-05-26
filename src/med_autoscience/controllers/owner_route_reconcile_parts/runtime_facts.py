@@ -394,6 +394,13 @@ def _live_status_active_run_id(status: Mapping[str, Any]) -> str | None:
     worker_liveness = _mapping(health.get("worker_liveness_state"))
     if _text(worker_liveness.get("state")) in {"not_live", "parked", "stale"}:
         return None
+    if (
+        _text(liveness.get("source")) != "opl_current_control_state_provider_attempt"
+        and runtime_audit.get("worker_running") is not True
+        and liveness.get("worker_running") is not True
+        and worker_liveness.get("worker_running") is not True
+    ):
+        return None
     return (
         _text(status.get("active_run_id"))
         or _text(liveness.get("active_run_id"))

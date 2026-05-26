@@ -299,4 +299,7 @@ def test_progress_projection_uses_opl_current_control_state_as_live_liveness_pro
     assert result["execution_owner_guard"]["guard_reason"] == "live_managed_runtime"
     assert result["execution_owner_guard"]["active_run_id"] == "opl-stage-attempt://sat-live-001"
     assert result["continuation_state"]["active_run_id"] == "opl-stage-attempt://sat-live-001"
+    assert result["continuation_state"]["continuation_policy"] == "auto"
+    assert result["continuation_state"]["continuation_anchor"] == "decision"
+    assert result["continuation_state"]["continuation_reason"] == "controller_work_unit_pending"
     assert result["active_run_id"] == "opl-stage-attempt://sat-live-001"

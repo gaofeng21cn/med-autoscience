@@ -143,6 +143,9 @@ def _status_state(
         status=result,
         quest_root=quest_root,
         active_run_id=_runtime_liveness_active_run_id(quest_runtime.runtime_liveness_audit),
+        live_opl_provider_attempt=(
+            _runtime_liveness_active_run_id(quest_runtime.runtime_liveness_audit) is not None
+        ),
     )
     _record_controller_authorization_if_present(status=result, quest_root=quest_root, study_root=study_root)
     _record_blocked_closeout_if_present(status=result, quest_root=quest_root)

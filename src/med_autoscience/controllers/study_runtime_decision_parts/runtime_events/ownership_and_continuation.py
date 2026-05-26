@@ -383,12 +383,17 @@ def _record_continuation_state_if_present(
     status: ProgressProjectionStatus,
     quest_root: Path,
     active_run_id: str | None = None,
+    live_opl_provider_attempt: bool = False,
 ) -> None:
     resolved_active_run_id = active_run_id
     runtime_liveness = status.extras.get("runtime_liveness_audit")
-    if resolved_active_run_id is None and isinstance(runtime_liveness, dict) and str(runtime_liveness.get("source") or "").strip() == (
-        "opl_current_control_state_provider_attempt"
-    ):
+    live_opl_provider_attempt = live_opl_provider_attempt or (
+        isinstance(runtime_liveness, dict)
+        and str(runtime_liveness.get("source") or "").strip() == "opl_current_control_state_provider_attempt"
+        and str(runtime_liveness.get("status") or "").strip() == "live"
+        and str(runtime_liveness.get("active_run_id") or "").strip()
+    )
+    if resolved_active_run_id is None and live_opl_provider_attempt:
         resolved_active_run_id = str(runtime_liveness.get("active_run_id") or "").strip() or None
     payload = _continuation_state_payload(
         quest_root=quest_root,
@@ -397,6 +402,15 @@ def _record_continuation_state_if_present(
     )
     if payload is None:
         return
+    if live_opl_provider_attempt and resolved_active_run_id is not None:
+        payload = {
+            **payload,
+            "active_run_id": resolved_active_run_id,
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+            "stop_reason": None,
+        }
     status.record_continuation_state(StudyRuntimeContinuationState.from_payload(payload))
 
 
