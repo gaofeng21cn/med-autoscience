@@ -8,8 +8,8 @@ from typing import Any
 from med_autoscience.controllers import stage_knowledge_plane
 from med_autoscience.controllers.real_paper_autonomy_soak_inventory_parts import (
     apply_evidence,
-    forbidden_write_guard,
     guarded_apply,
+    projection_builders,
     provider_guarded_apply,
 )
 from med_autoscience.profiles import WorkspaceProfile, load_profile, profile_to_dict
@@ -109,24 +109,23 @@ def build_real_paper_autonomy_soak_projection(
     paths = [Path(path).expanduser().resolve() for path in profile_paths] if profile_paths else discover_yang_profile_paths(yang_root)
     targets = tuple(target_studies)
     profiles = [_profile_soak_projection(path, target_studies=targets) for path in paths]
-    target_coverage = _target_coverage(profiles=profiles, target_studies=targets)
-    state_counts = _projection_state_counts(profiles)
-    return {
-        "surface": SOAK_PROJECTION_SURFACE,
-        "schema_version": SCHEMA_VERSION,
-        "mode": "read_only_soak_projection",
-        "read_only_contract": dict(READ_ONLY_CONTRACT, mode="read_only_soak_projection"),
-        "profile_count": len(profiles),
-        "profiles": profiles,
-        "summary": {
-            "target_studies": list(targets),
-            "accepted_state_counts": state_counts,
-            "target_coverage": target_coverage,
-            "typed_blocker_count": sum(len(item.get("typed_blockers", [])) for item in target_coverage),
-            "writes_performed": False,
-            "real_workspace_mutation_allowed": False,
-        },
-    }
+    return projection_builders.build_soak_projection_payload(
+        profiles=profiles,
+        target_studies=targets,
+    )
+
+
+def build_real_paper_autonomy_soak_projection_for_profile(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+    target_studies: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    return projection_builders.build_soak_projection_for_profile(
+        profile=profile,
+        profile_ref=profile_ref,
+        target_studies=target_studies,
+    )
 
 
 def build_real_paper_autonomy_soak_closeout_projection(
@@ -140,51 +139,23 @@ def build_real_paper_autonomy_soak_closeout_projection(
         profile_paths=profile_paths,
         target_studies=target_studies,
     )
-    source_summary = _mapping(projection.get("summary"))
-    target_coverage = list(source_summary.get("target_coverage") or [])
-    selected = _dedupe_target_studies(projection.get("profiles", []))
-    closeouts = _target_closeout_packets(
-        selected_studies=selected,
+    return projection_builders.build_soak_closeout_projection_payload(
+        projection=projection,
         target_studies=target_studies,
-        target_coverage=target_coverage,
     )
-    typed_blocker_study_ids = [
-        study_id
-        for study_id, closeout in closeouts
-        if closeout["domain_ready_verdict"] == "typed_blocker"
-    ]
-    return {
-        "surface": SOAK_CLOSEOUT_SURFACE,
-        "schema_version": SCHEMA_VERSION,
-        "mode": "read_only_closeout_projection",
-        "read_only_contract": dict(READ_ONLY_CONTRACT, mode="read_only_closeout_projection"),
-        "target_studies": list(target_studies),
-        "closeout_packets": [closeout for _, closeout in closeouts],
-        "summary": {
-            "target_study_count": len(target_studies),
-            "resolved_closeout_count": len(closeouts),
-            "typed_blocker_count": len(typed_blocker_study_ids),
-            "typed_blocker_study_ids": typed_blocker_study_ids,
-            "target_coverage": target_coverage,
-            "writes_performed": False,
-            "real_workspace_mutation_allowed": False,
-        },
-        "authority_boundary": _closeout_authority_boundary(),
-        "source_projection_summary": {
-            "surface": projection.get("surface"),
-            "schema_version": projection.get("schema_version"),
-            "mode": projection.get("mode"),
-            "profile_count": projection.get("profile_count"),
-            "summary": {
-                "target_studies": list(source_summary.get("target_studies") or []),
-                "accepted_state_counts": dict(_mapping(source_summary.get("accepted_state_counts"))),
-                "target_coverage": target_coverage,
-                "typed_blocker_count": source_summary.get("typed_blocker_count"),
-                "writes_performed": source_summary.get("writes_performed"),
-                "real_workspace_mutation_allowed": source_summary.get("real_workspace_mutation_allowed"),
-            },
-        },
-    }
+
+
+def build_real_paper_autonomy_soak_closeout_projection_for_profile(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+    target_studies: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    return projection_builders.build_soak_closeout_projection_for_profile(
+        profile=profile,
+        profile_ref=profile_ref,
+        target_studies=target_studies,
+    )
 
 
 def build_real_paper_autonomy_provider_hosted_paper_proof(
@@ -198,67 +169,10 @@ def build_real_paper_autonomy_provider_hosted_paper_proof(
         profile_paths=profile_paths,
         target_studies=target_studies,
     )
-    closeout_packets = [dict(_mapping(packet)) for packet in closeout_projection.get("closeout_packets", [])]
-    memory_refs = _dedupe_text(
-        ref
-        for packet in closeout_packets
-        for ref in packet.get("consumed_memory_refs", [])
+    return projection_builders.build_provider_hosted_paper_proof_from_projection(
+        closeout_projection=closeout_projection,
+        target_studies=target_studies,
     )
-    writeback_receipt_refs = _dedupe_text(
-        ref
-        for packet in closeout_packets
-        for ref in packet.get("writeback_receipt_refs", [])
-    )
-    forbidden_guard = forbidden_write_guard.build_provider_forbidden_write_guard(closeout_packets=closeout_packets)
-    return {
-        "surface": PROVIDER_HOSTED_PROOF_SURFACE,
-        "schema_version": SCHEMA_VERSION,
-        "mode": "read_only_provider_hosted_paper_proof",
-        "provider_hosted_status": "readonly_closeout_packet_ready_guarded_apply_pending",
-        "target_studies": list(target_studies),
-        "provider_attempt_projection": {
-            "attempt_owner": "one-person-lab",
-            "domain_owner": "med-autoscience",
-            "attempt_kind": "opl_provider_hosted_stage_attempt",
-            "attempt_receipt_policy": "transport_receipt_only_no_domain_truth_authority",
-            "typed_closeout_packet_count": len(closeout_packets),
-            "can_advance_paper_progress_without_mas_owner_receipt": False,
-            "guarded_apply_performed": False,
-        },
-        "typed_closeout_packets": closeout_packets,
-        "publication_route_memory": {
-            "consumed_refs": memory_refs,
-            "writeback_receipt_refs": writeback_receipt_refs,
-            "body_included": False,
-            "writeback_acceptance_owner": "med-autoscience",
-            "opl_can_read_memory_body": False,
-            "opl_can_accept_or_reject_writeback": False,
-        },
-        "forbidden_write_guard": forbidden_guard,
-        "summary": {
-            "target_study_count": closeout_projection["summary"]["target_study_count"],
-            "typed_closeout_packet_count": len(closeout_packets),
-            "typed_blocker_count": closeout_projection["summary"]["typed_blocker_count"],
-            "memory_consumed_ref_count": len(memory_refs),
-            "writeback_receipt_ref_count": len(writeback_receipt_refs),
-            "forbidden_write_guard_result": forbidden_guard["aggregate_result"],
-            "writes_performed": False,
-            "real_workspace_mutation_allowed": False,
-            "guarded_apply_performed": False,
-        },
-        "authority_boundary": _closeout_authority_boundary()
-        | {
-            "provider_attempt_owner": "one-person-lab",
-            "provider_attempt_is_truth": False,
-            "provider_completion_is_publication_quality": False,
-        },
-        "source_closeout_projection_summary": {
-            "surface": closeout_projection.get("surface"),
-            "schema_version": closeout_projection.get("schema_version"),
-            "mode": closeout_projection.get("mode"),
-            "summary": dict(_mapping(closeout_projection.get("summary"))),
-        },
-    }
 
 
 def build_real_paper_autonomy_guarded_apply_proof(
@@ -276,6 +190,19 @@ def build_real_paper_autonomy_guarded_apply_proof(
         provider_proof=provider_proof,
         schema_version=SCHEMA_VERSION,
         surface=GUARDED_APPLY_PROOF_SURFACE,
+        target_studies=target_studies,
+    )
+
+
+def build_real_paper_autonomy_guarded_apply_proof_for_profile(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+    target_studies: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    return projection_builders.build_guarded_apply_proof_for_profile(
+        profile=profile,
+        profile_ref=profile_ref,
         target_studies=target_studies,
     )
 

@@ -28,6 +28,7 @@ _module_reexport(_workspace_surfaces)
 
 from .manifest_status_surface import build_product_entry_status_payload as _build_product_entry_status_payload
 from med_autoscience.controllers import opl_provider_ready_adapter
+from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers.opl_unique_control_plane_boundary_parts import consumer_migration
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
@@ -294,6 +295,12 @@ def build_product_entry_manifest(
     )
     provider_guarded_soak_read_model = opl_provider_ready_contract["provider_guarded_soak_read_model"]
     provider_residency_read_model = opl_provider_ready_contract["provider_residency_read_model"]
+    real_paper_autonomy_guarded_apply_proof = (
+        real_paper_autonomy_soak_inventory.build_real_paper_autonomy_guarded_apply_proof_for_profile(
+            profile=profile,
+            profile_ref=profile_ref,
+        )
+    )
     standard_domain_agent_skeleton = (
         opl_provider_ready_adapter.build_standard_domain_agent_skeleton_surface()
     )
@@ -451,6 +458,7 @@ def build_product_entry_manifest(
             "stage_quality_pack_contract": stage_quality_pack_contract,
             "stage_skill_surface_projection": build_stage_skill_surface_projection(),
             "ars_learning_projection": ars_learning_projection,
+            "real_paper_autonomy_guarded_apply_proof": real_paper_autonomy_guarded_apply_proof,
             "provider_guarded_soak_read_model": provider_guarded_soak_read_model,
             "provider_residency_read_model": provider_residency_read_model,
             "domain_memory_descriptor": domain_memory_descriptor,
