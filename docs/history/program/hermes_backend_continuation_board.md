@@ -5,6 +5,8 @@ Purpose: `program_history_record`
 State: `history_provenance`
 Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
 
+Read rule: 本文冻结的是 Hermes-first continuation board 的历史语境。下文关于 repo-side seam、default outer substrate、allowed write-set、promotion invariants 和 next action 的文字不能覆盖当前 MAS truth：默认 hosted runtime 归 OPL/Temporal，`Codex CLI` 是 stage 内默认 executor，`Hermes-Agent` 只可经 OPL 显式 adapter/proof/provenance 读取。
+
 这份文档把 `P2 controlled cutover -> physical monorepo migration` 中，当前仍可在 repo 内诚实继续推进的 runtime / gateway / architecture 主线冻结下来。文件名沿用了历史 `hermes` 命名，但当前真相是：它描述的是“上游 `Hermes-Agent` 目标 + repo-side seam”的 continuation，而不是“仓内已经接入上游 Hermes-Agent”。
 
 它明确声明：

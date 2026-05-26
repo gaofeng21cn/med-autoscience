@@ -10,6 +10,8 @@ Machine boundary: 本文是人读 program owner。MAS 机器真相继续归 cont
 
 Current owner surfaces: [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md), [MAS 当前开发线路](../../active/current-development-lines.md), and [Runtime Boundary](../../runtime/contracts/runtime_boundary.md).
 
+Read rule: 本文是 P2 framework-transition 的历史/provenance program 记录，不是第二份 active plan。下文“当前状态”“活跃内容 Lane”和旧 P2 gates 只作为 framework/runtime owner 边界与退役门槛参考；当前完成进度、open evidence tail 和下一轮 prompt 归 `docs/active/mas-ideal-state-gap-plan.md`。
+
 ## 当前角色
 
 本文是 MAS program portfolio 的 P2，也是当前执行顺序的第一优先级。P2 不是针对每个 scheduler、Hermes、MDS、Portal 或 SQLite 相关 surface 的整包退役清单。它持有内容级 framework transition：
@@ -48,7 +50,7 @@ cutover 或物理退役前仍未完成：
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
 - provider parity 证明之后，旧 scheduler/Hermes/MDS/legacy alias 的物理删除或 history/provenance 归档仍需按 stale-surface、无 active caller 和 replacement proof 逐项执行；已满足删除口径的 wrapper / alias 不再保留兼容入口或可调用测试。
 
-这些剩余项现在按 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 的一步到位 standard Agent morphology closure 路线执行，不再拆成另一份 P2 大计划，也不再沿旧 phase checklist 漂移。P2 只持有 framework/runtime owner 边界；`runtime_transport`、SQLite lifecycle、worker lease、workbench、sidecar 和 status projection 中的通用 runtime 控制面必须按 OPL 唯一控制面处理，MAS 侧只允许保留 domain authority refs、owner receipt、typed blocker、no-forbidden-write proof 或 history/provenance-only legacy references：
+这些剩余项现在按 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md) 的一步到位 standard Agent morphology closure 路线执行，不再拆成另一份 P2 大计划，也不再沿旧 phase checklist 漂移。P2 只持有 framework/runtime owner 边界；`runtime_transport`、SQLite lifecycle、worker lease、workbench、sidecar 和 status projection 中的通用 runtime 控制面必须按 OPL 唯一控制面处理，MAS 侧只允许保留 domain authority refs、owner receipt、typed blocker、no-forbidden-write proof 或 history/provenance-only legacy references：
 
 | remaining gate | gate class | P2 responsibility | completion evidence |
 | --- | --- | --- | --- |

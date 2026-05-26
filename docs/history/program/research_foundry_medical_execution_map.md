@@ -5,6 +5,8 @@ Purpose: `program_history_record`
 State: `history_provenance`
 Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
 
+Read rule: 本文是旧 Research Foundry / integration-harness 执行图的历史记录。下文层级图、Hermes continuation、blocked/readiness 和“当前 repo-side”表述不能作为今天的 active execution queue；当前执行顺序、runtime owner 和证据差距以 MAS active plan、核心五件套、contracts 与 live read-model 为准。
+
 这份文档把 `Med Auto Science` 当前主线压成一张可执行地图，回答四个问题：
 
 1. 这条主线的最终目标是什么

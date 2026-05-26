@@ -5,6 +5,8 @@ Purpose: `program_history_record`
 State: `history_provenance`
 Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
 
+Read rule: 本文是 2026-04-12 fast-cutover 历史 board。下文把上游 `Hermes-Agent` 写成最快 outer runtime substrate 的路线只保留为历史方案与 no-resurrection 参考；当前默认 hosted autonomous runtime、attempt ledger、wakeup/retry/resume 和 worker residency 归 OPL/Temporal。
+
 状态锚点：`2026-04-12`
 
 ## 文档目的

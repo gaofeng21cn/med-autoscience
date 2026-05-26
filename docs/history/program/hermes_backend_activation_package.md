@@ -5,6 +5,8 @@ Purpose: `program_history_record`
 State: `history_provenance`
 Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
 
+Read rule: 本文是 Hermes-first repo-side activation 的历史快照。下文所有“当前”“默认”“activation rule”“最小实现面”只按当时 package 语境读取；当前默认 hosted autonomous runtime 是 OPL/Temporal provider-backed stage runtime，`Hermes-Agent` 只能作为 OPL 显式非默认 executor / proof lane / history provenance reference。
+
 这份文档把当前 repo-side 允许打开的最小 `Hermes` activation package 固定下来。
 
 它的目标不是伪造 external `Hermes` runtime 已就位，而是把 `Hermes` 作为默认 outer runtime substrate owner 的 repo-side 闭环压成一个可验证、可审计、可继续收口的 package。

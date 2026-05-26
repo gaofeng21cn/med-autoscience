@@ -5,6 +5,8 @@ Purpose: `program_history_record`
 State: `history_provenance`
 Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
 
+Read rule: 本文保留 journal package builtins 的旧 implementation plan 和 checkbox 流水。下文 REQUIRED SUB-SKILL、task checklist、文件清单与 RED/GREEN 步骤不是当前 active queue；当前 journal/submission target、artifact authority、publication gate 与 evidence gap 以 active plan、contracts、source 和 focused tests 为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 MAS 的选刊与期刊定制投稿包升级成 controller-owned 内置能力，打通 shortlist、official requirements、journal package materialization、delivery sync 和 publication gate。

@@ -5,6 +5,8 @@ Purpose: `program_history_record`
 State: `history_provenance`
 Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
 
+Read rule: 本文是 Research Foundry / Domain Harness OS 语汇的历史主线记录。下文“当前主线”“当前 immediate next step”“Phase” 和旧 CLI 示例只能按历史定位读取；当前 MAS 目标态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal medical authority functions`，执行顺序归 single Active Truth plan。
+
 这份文档把 `Med Auto Science` 当前真正的主线固定下来。
 
 它回答五个问题：

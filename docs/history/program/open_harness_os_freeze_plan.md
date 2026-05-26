@@ -5,6 +5,8 @@ Purpose: `program_history_record`
 State: `history_provenance`
 Machine boundary: 人读 program/process 历史记录。当前执行顺序、gap、runtime truth 和 owner boundary 继续归 active owner docs、核心五件套、contracts、source、runtime/controller surfaces 和 owner receipts。
 
+Read rule: 本文是 Open Harness OS / Harness OS vocabulary freeze 的历史快照。下文“当前正式判断”“可以冻结”“不能冻结”和 L1/L2/L3 状态只说明当时定位；当前 MAS 与 OPL 分层、runtime topology、pack 目标态和 evidence gaps 以 active plan、核心五件套、contracts 与 live source/read-model 为准。
+
 这份文档定义 `MedAutoScience` 在走向开放 `Harness OS` 过程中，哪些东西现在可以冻结，哪些东西不能冻结，以及它们分别依赖哪些主线收口。
 
 它的目标不是宣布“系统已经定型”，而是避免把不同层级的冻结混成一件事。
