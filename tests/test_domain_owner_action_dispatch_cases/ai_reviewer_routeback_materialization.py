@@ -236,6 +236,7 @@ def test_current_opl_dispatch_materializes_current_route_back_ai_reviewer_eval(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     quest_id = study_id
