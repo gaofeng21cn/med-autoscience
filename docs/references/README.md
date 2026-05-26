@@ -9,6 +9,7 @@ Machine boundary: 人读参考索引。机器真相继续归 contracts、schemas
 
 | 目录 | 用途 |
 | --- | --- |
+| [governance](./governance/) | OPL series 文档治理与跨仓一致性巡检参考。 |
 | [mainline](./mainline/) | 当前 MAS 质量、自治、模块化、修复优先级和文档治理参考。 |
 | [integration](./integration/) | Codex/plugin、OPL handoff、product-entry、family integration 和 Stage-Led Autonomy family inventory 参考。 |
 | [mds-parity](./mds-parity/) | MDS 行为/能力 parity、WebUI cleanroom 行为和用户体验差距评估。 |

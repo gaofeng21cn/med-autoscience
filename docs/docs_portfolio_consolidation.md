@@ -1302,3 +1302,44 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for remaining runtime projection/display/design support docs, or MAS product/status/workbench/progress/domain-ref projection shell reconciliation.
 - Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
+
+### 2026-05-26 governance reference six-repo scope tranche
+
+本轮覆盖 MAS `docs/references/governance/series-doc-governance-checklist.md` 与 `docs/references/README.md` 的 reference-governance discoverability。目标是把 MAS 的系列文档治理 checklist 从旧四仓口径校准到当前六仓 OPL series scope，并避免把 App/OMA 角色误写成 domain truth、artifact authority、owner receipt authority 或默认 runtime owner。
+
+Live truth inputs:
+
+- MAS core / active docs: `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/architecture.md`, `docs/active/mas-ideal-state-gap-plan.md`, `docs/references/positioning/mas_ideal_state.md`, and this docs-governance file.
+- MAS reviewed references: `docs/references/governance/series-doc-governance-checklist.md`, `docs/references/README.md`, and the prior `docs/references/integration/*.md` coverage ledger.
+- MAS machine surfaces: `contracts/generated_surface_handoff.json`, `contracts/functional_privatization_audit.json`, and `contracts/production_acceptance/mas-production-acceptance.json`.
+- OPL support truth: OPL current status / decisions / coverage ledger for the `OPL Framework -> One Person Lab App -> Foundry Agents` layering, plus App and OMA status/readme surfaces confirming One Person Lab App is the desktop workbench and OPL Meta Agent is the Agent Foundry / builder-test managed module.
+
+Fresh semantic result:
+
+- MAS governance checklist now names the current six-repo OPL series scope: `one-person-lab`, `one-person-lab-app`, `med-autoscience`, `med-autogrant`, `redcube-ai`, and `opl-meta-agent`.
+- The same checklist now keeps MAS runtime wording at the current split: MAS owns runtime-facing domain authority refs, owner receipt and typed blocker; OPL/Temporal owns the default hosted autonomous runtime.
+- One Person Lab App is written as App/workbench and operator projection consumer.
+- OPL Meta Agent is written as Agent Foundry / new-agent builder-test managed module, not MAS/MAG/RCA domain truth, artifact authority or owner receipt authority.
+- `docs/references/README.md` now links the governance reference directory so this support checklist is discoverable from the references index.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | Full paragraph read of `docs/references/governance/series-doc-governance-checklist.md`; support read of `docs/references/README.md`, MAS core/current docs, prior MAS integration-reference coverage ledger, MAS generated-surface / functional-privatization / production-acceptance contracts, and OPL/App/OMA role docs. | `docs/references/governance/series-doc-governance-checklist.md`; `docs/references/README.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The governance checklist remains an active support reference; stale scope wording was corrected in place.
+
+Uncovered docs in this semantic area:
+
+- MAS repo-wide `README*` and `docs/**/*.md` full paragraph coverage remains open outside prior focused MAS chunks.
+- Runtime support docs, product/status/workbench/progress/domain-ref projection shell reconciliation, and remaining display/design bodies stay under the cumulative MAS coverage ledger unless already listed in earlier tranches.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Any future MAS governance checklist wording that reverts to four-repo scope, omits One Person Lab App, or promotes OPL Meta Agent into MAS/MAG/RCA domain truth, artifact authority, owner receipt authority, default runtime owner, production-ready claim or quality verdict is stale pollution.
+- Any future MAS reference wording that treats MAS runtime-facing refs or owner receipts as MAS-owned generic queue/provider/worker runtime ownership is stale; default hosted autonomous runtime remains OPL/Temporal.
+
+Next tranche write scope:
+
+- MAS paragraph-level coverage for remaining runtime projection/display/design support docs, or MAS product/status/workbench/progress/domain-ref projection shell reconciliation.
+- Or choose the next exact OPL/RCA/App uncovered body from the family coverage ledger.
