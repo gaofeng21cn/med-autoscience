@@ -1047,3 +1047,42 @@ Next tranche write scope:
 
 - MAS paragraph-level coverage for `medical_display_arsenal.md` + `medical_display_template_backlog.md` + `medical_display_template_catalog.md`, or `medical_figure_route_cookbook.md` + `medical_display_family_roadmap.md` + `medical_display_anchor_paper_audit.md`.
 - Or choose the next exact OPL uncovered body from the family coverage ledger.
+
+### 2026-05-26 MAS active-truth source-shape reconciliation tranche
+
+本轮覆盖 MAS active truth plan 与 status 中关于 standard OPL Agent source shape、product/status/workbench/domain-handler/controller/progress shell 和 functional structure gap 的当前口径。目标是把 `docs/active/mas-ideal-state-gap-plan.md` 读回当前 machine-readable contract 与 focused tests：functional / structural gates 已关闭，剩余 work 是真实 paper-line / workspace / provider evidence tail；former wrapper 物理删除仍需要 replacement parity、MAS owner receipt 或 stable typed blocker、no-active-caller proof、focused tests 与 tombstone/provenance proof，但不能继续在 active plan 里写成 open functional / structural gap。
+
+Live truth inputs:
+
+- Core / active docs: `AGENTS.md`, `TASTE.md`, `docs/status.md`, `docs/active/mas-ideal-state-gap-plan.md`, this docs-governance file.
+- Machine surfaces: `contracts/functional_privatization_audit.json`, `contracts/generated_surface_handoff.json`, `contracts/test-lane-manifest.json`.
+- Source / generated contract source: `src/med_autoscience/controllers/opl_unique_control_plane_boundary_parts/functional_followthrough_gaps.py`.
+- Focused tests read as evidence: `tests/test_opl_standard_pack.py`, `tests/test_opl_family_contract_adoption.py`.
+
+Fresh semantic result:
+
+- `functional_privatization_audit` now fixes `classification_gap_count=0`, `functional_structure_gap_count=0`, `active_private_generic_residue_count=0`, `repo_local_wrapper_tail_count=0`, `source_purity_cutover_status=standard_agent_source_shape_landed`, `remaining_functional_followthrough_gate_ids=[]`, and `remaining_gap_classification=live_provider_paper_line_evidence_gates`.
+- Closed functional / structural gates include `generated_surface_default_owner_cutover`, `domain_authority_refs_thinning`, `standard_agent_purity_guard`, `opl_app_workbench_drilldown`, `lifecycle_locator_retention_restore_ledger_reconciliation`, and `domain_ref_consumer_physical_thinning`.
+- The active plan now treats product/status/workbench/domain-handler/controller/progress retained code as MAS domain handler target, authority function, owner receipt / typed blocker producer or refs-only projection input. It no longer preserves `workbench_domain_handler_status_cutover` or `domain_ref_consumer_thinning` as open functional / structural gaps.
+- `physical_delete_authorized=false` remains true for former wrapper tails. Direct retirement remains gated by OPL generated/default parity, MAS owner receipt or stable typed blocker, no-active-caller proof, focused tests and tombstone/provenance proof; this is a delete authorization gate, not a current structure gap.
+
+| repo | reviewed docs/sections | edited docs |
+| --- | --- | --- |
+| `med-autoscience` | `docs/active/mas-ideal-state-gap-plan.md` current progress, landed rows, functional / structural gap section, next-round prompt required actions, closeout gate and cannot-declare guard; `docs/status.md` functional/structure state and source-shape closeout sections; `docs/docs_portfolio_consolidation.md` product/status/workbench carry-forward lines; machine/test evidence listed above. | `docs/active/mas-ideal-state-gap-plan.md`; this coverage ledger. |
+
+Archived / tombstoned / deleted docs: none. The tranche corrected stale active-truth wording in place; no retired doc or history move was needed.
+
+Uncovered docs in this semantic area:
+
+- MAS runtime/control/support docs not already paragraph-covered remain outside this source-shape reconciliation tranche.
+- OPL series coverage outside MAS remains open per the OPL family coverage ledger.
+
+Remaining stale / retire candidates:
+
+- Future prose that puts `strict_purity_cutover_pending`, `workbench_domain_handler_status_cutover`, `domain_ref_consumer_thinning`, product/status/workbench/domain-handler/controller/progress wrapper tail, or active private generic residue back into MAS functional / structural gap tables is stale unless the machine contract regresses.
+- Future prose must not use functional / structural closure to claim paper closure, publication quality, source readiness, artifact mutation authorization, `current_package` freshness, domain ready or production ready.
+- Former wrapper physical deletion remains a direct-retirement candidate only after replacement parity, MAS owner receipt or stable typed blocker, no-active-caller proof, focused tests and tombstone/provenance proof.
+
+Next tranche write scope:
+
+- MAS runtime/control support docs under `docs/runtime/contracts/**` / `docs/runtime/control/**` not already paragraph-covered, or the next exact OPL/App uncovered body from the family coverage ledger.
