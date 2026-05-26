@@ -55,6 +55,38 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
     assert (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
 
 
+def test_codex_plugin_installer_script_replaces_stale_uv_tool_symlink(tmp_path: Path) -> None:
+    home_dir = tmp_path / "home"
+    uv_tool_bin = home_dir / ".local" / "share" / "uv" / "tools" / "med-autoscience" / "bin"
+    local_bin = home_dir / ".local" / "bin"
+    uv_tool_bin.mkdir(parents=True)
+    local_bin.mkdir(parents=True)
+    stale_target = uv_tool_bin / "medautosci"
+    stale_target.write_text("#!/usr/bin/env python3\nprint('stale uv tool')\n", encoding="utf-8")
+    stale_target.chmod(0o755)
+    (local_bin / "medautosci").symlink_to(stale_target)
+
+    env = os.environ.copy()
+    env["HOME"] = str(home_dir)
+
+    result = subprocess.run(
+        ["bash", str(INSTALLER_PATH), "--home", str(home_dir), "--repo-root", str(REPO_ROOT)],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    installed = local_bin / "medautosci"
+    assert result.returncode == 0, result.stderr
+    assert installed.exists()
+    assert not installed.is_symlink()
+    assert "stale uv tool" in stale_target.read_text(encoding="utf-8")
+    assert 'exec "' + str(REPO_ROOT) + '/scripts/run-python-clean.sh" -m "med_autoscience.cli" "$@"' in installed.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_codex_plugin_installer_script_skip_tools_only_syncs_plugin_paths(tmp_path: Path) -> None:
     home_dir = tmp_path / "home"
     home_dir.mkdir()
