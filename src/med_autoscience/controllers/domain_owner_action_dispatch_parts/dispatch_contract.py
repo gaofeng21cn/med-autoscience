@@ -28,6 +28,10 @@ def prompt_contract_error(prompt_contract: Mapping[str, Any], *, forbidden_surfa
         for item in prompt_contract.get("forbidden_surfaces") or []
         if (text := _text(item)) is not None
     }
+    if _medical_prose_review_ai_reviewer_handoff_prompt_contract(prompt_contract):
+        if not _medical_prose_review_ai_reviewer_handoff_forbidden_surfaces(forbidden):
+            return "forbidden_surfaces_incomplete"
+        return None
     if _record_only_ai_reviewer_handoff_prompt_contract(prompt_contract):
         if not _record_only_ai_reviewer_handoff_forbidden_surfaces(forbidden):
             return "forbidden_surfaces_incomplete"
@@ -110,6 +114,41 @@ def _record_only_ai_reviewer_handoff_prompt_contract(prompt_contract: Mapping[st
 
 
 def _record_only_ai_reviewer_handoff_forbidden_surfaces(forbidden: set[str]) -> bool:
+    return {
+        "paper/**",
+        "manuscript/**",
+        "paper/submission_minimal/**",
+        "manuscript/current_package/**",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+        ".ds/**",
+    }.issubset(forbidden)
+
+
+def _medical_prose_review_ai_reviewer_handoff_prompt_contract(prompt_contract: Mapping[str, Any]) -> bool:
+    if _text(prompt_contract.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    if _text(prompt_contract.get("next_executable_owner")) != "ai_reviewer":
+        return False
+    if _text(prompt_contract.get("required_output_surface")) != "artifacts/publication_eval/medical_prose_review.json":
+        return False
+    request = _mapping(prompt_contract.get("ai_reviewer_medical_prose_review_production_request"))
+    authority = _mapping(request.get("authority_contract"))
+    if authority.get("medical_prose_review_only_surface") is not True:
+        return False
+    if authority.get("publication_eval_latest_write_allowed") is not False:
+        return False
+    if authority.get("controller_decision_write_allowed") is not False:
+        return False
+    allowed = {
+        text
+        for item in prompt_contract.get("allowed_write_surfaces") or []
+        if (text := _text(item)) is not None
+    }
+    return allowed == {"artifacts/publication_eval/medical_prose_review.json"}
+
+
+def _medical_prose_review_ai_reviewer_handoff_forbidden_surfaces(forbidden: set[str]) -> bool:
     return {
         "paper/**",
         "manuscript/**",

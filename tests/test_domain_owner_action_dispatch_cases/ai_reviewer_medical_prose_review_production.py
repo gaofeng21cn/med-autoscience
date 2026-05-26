@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.controllers.domain_owner_action_dispatch_parts import dispatch_contract
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     write_current_dispatch as _write_current_dispatch,
@@ -130,6 +131,13 @@ def test_execute_dispatch_hands_off_stale_medical_prose_review_request_to_ai_rev
     assert handoff["prompt_contract"]["allowed_write_surfaces"] == [
         "artifacts/publication_eval/medical_prose_review.json",
     ]
+    assert (
+        dispatch_contract.prompt_contract_error(
+            handoff["prompt_contract"],
+            forbidden_surfaces=module.FORBIDDEN_SURFACES,
+        )
+        is None
+    )
     assert "artifacts/publication_eval/latest.json" in handoff["forbidden_surfaces"]
     assert "artifacts/controller_decisions/latest.json" in handoff["forbidden_surfaces"]
     assert execution["ai_reviewer_medical_prose_review_worker_handoff_path"] == str(handoff_path)
