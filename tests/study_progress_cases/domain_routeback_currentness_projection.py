@@ -139,6 +139,8 @@ def test_study_progress_current_write_routeback_supersedes_stale_runtime_recover
     assert "显式 resume" not in result["next_system_action"]
     assert "补元数据" not in result["next_system_action"]
     assert "当前包已经可直接交给用户审阅" not in result["next_system_action"]
+    assert result["next_system_action"] == result["user_visible_projection"]["next_system_action"]
+    assert result["status_narration_contract"]["next_step"] == result["next_system_action"]
     assert result["study_macro_state"]["writer_state"] == "queued"
     assert result["study_macro_state"]["user_next"] == "repair"
     assert result["study_macro_state"]["reason"] == "quality"
@@ -263,6 +265,7 @@ def test_existing_progress_projection_refreshes_top_level_routeback_action(
 
     assert result["study_macro_state"]["writer_state"] == "queued"
     assert result["user_visible_projection"]["writer_state"] == "queued"
+    assert result["user_visible_projection"]["owner_resolution_state"] == "ready_for_owner_action"
     assert result["user_visible_projection"]["next_system_action"] == "等待质量修复/复审 owner 完成处理。"
     assert "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass" in (
         result["next_system_action"]

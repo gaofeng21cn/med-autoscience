@@ -110,6 +110,7 @@ def _provider_hosted_guarded_apply_task(
         profile_name=profile.name,
     )
     return {
+        "task_id": dedupe_key,
         "domain_id": "medautoscience",
         "task_kind": "paper_autonomy/guarded-apply",
         "priority": 30,

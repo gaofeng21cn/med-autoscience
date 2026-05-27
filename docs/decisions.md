@@ -5,6 +5,16 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-27：非终局 study 必须 always resolve to next owner
+
+- 决策：MAS current-state / read-model / owner-route / materializer / dispatch 闭环必须满足 “always resolve to next owner”。任何非终局 study 的当前回合都只能落到唯一可执行状态：`running`、`ready_for_owner_action`、`waiting_human`、`blocked_with_typed_owner`、`terminal_success` 或 `terminal_stop_loss`。缺 currentness basis、缺 owner callable、OPL retry/dead-letter、authority refusal、stale dispatch、forbidden write 或 missing receipt 时，必须稳定化为 MAS-owned typed blocker、owner receipt、human gate 或 stop-loss，不能静默停住。
+- 决策：`study-progress` / `progress-projection` / `study_macro_state` 的用户态投影必须优先展示当前 `domain_transition.route_back_same_line` / AI reviewer re-eval / publication gate blocker / bundle finalize 的 owner 与 work unit。没有可靠 OPL live provider attempt 证明时，旧 `active_run_id`、terminal package handoff、package-ready 文案或 stale live projection 只能作为 provenance，不能投射为 live/watch 或当前下一步。
+- 决策：`domain-action-request-materialize` 与 `domain-owner-action-dispatch` 只能接受绑定同一 `study_id`、`quest_id`、truth epoch、runtime epoch、source fingerprint、source eval id、work unit id 与 work unit fingerprint 的 current owner request。bridged writer handoff 可以跨 AI reviewer/write route，但 bridge 必须回指当前 runtime owner route；terminal paper-progress stall 不能阻断已经 current 的 bridged writer handoff。
+- 决策：OPL provider completion、queue succeeded、retry exhausted 或 dead-letter 都只是 transport / attempt 事实，不是 MAS owner receipt。MAS 必须在消费 typed closeout、owner receipt refs、stable typed blocker refs 或 human gate refs 后，才推进 publication owner/read-model；provider dead-letter 不得成为最终语义。
+- 决策：Agent Lab medical manuscript quality regression family 必须覆盖 DM002 暴露的控制面缺陷族：owner-chain monotonicity、writer handoff currentness、story-surface delta-or-typed-blocker、stale AI reviewer/current eval drift、dead-letter stabilization 和 macro-state no-stale-live。该 family 只指向 MAS repo patch / regression / documentation surface，不授权论文质量 verdict。
+- 理由：DM002 长时间卡住的共同根因不是单个 paper 文稿、单个 OPL worker 或某条 queue 状态，而是 MAS owner-route / currentness / read-model / dispatch 闭环没有把每次非终局状态收敛到唯一 next owner。结果表现为旧 live run 误报当前、route-back 被 package handoff 覆盖、OPL closeout/dead-letter 后无人接、materializer 或 dispatcher 因 stale route 空转。
+- 影响：这是 MAS controller/read-model/contract 修复，不写 DM002 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission package。它不声明 DM002 paper ready、publication ready、package ready 或 submission ready；论文推进仍必须由后续 MAS owner/controller/runtime path 产生 canonical delta、AI reviewer-backed eval、publication gate verdict、owner receipt、typed blocker、human gate 或 stop-loss。
+
 ## 2026-05-26：DM002 story-surface work unit 与 non-consumable closeout redrive
 
 - 决策：`dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass` 属于 DM002 external-validation manuscript-facing story-surface work unit，必须进入 canonical story-surface registry、gate-clearing upstream work-unit registry 和 authority route gate。该 work unit 的完成证据必须包含 `paper/draft.md` 或 `paper/build/review_manuscript.md` 的 canonical story-surface delta，ledger-only delta 不能关闭 write route。

@@ -483,6 +483,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
         study_id = task["payload"]["study_id"]
         dedupe_key = f"mas:nfpitnet:{study_id}:provider-hosted-guarded-apply:opl-temporal"
         evidence_payload = task.pop("domain_dispatch_evidence_record_payload")
+        assert task["task_id"] == dedupe_key
         assert evidence_payload["surface_kind"] == "mas_domain_dispatch_evidence_record_payload"
         assert evidence_payload["domain_id"] == "medautoscience"
         assert evidence_payload["task_kind"] == "paper_autonomy/guarded-apply"
@@ -520,6 +521,7 @@ def test_domain_handler_export_consumes_opl_production_proof_without_domain_auth
         } == {"stable_typed_blocker_ref", "no_forbidden_write_proof_ref"}
         assert task == {
             "domain_id": "medautoscience",
+            "task_id": dedupe_key,
             "task_kind": "paper_autonomy/guarded-apply",
             "priority": 30,
             "source": "mas-domain-handler-export",

@@ -144,6 +144,15 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "study_id": _non_empty_text(payload.get("study_id")),
         "quest_id": _non_empty_text(payload.get("quest_id")),
         "state": _state_key(writer_state=writer_state, user_next=user_next, reason=reason),
+        "owner_resolution_state": _owner_resolution_state(
+            writer_state=writer_state,
+            user_next=user_next,
+            reason=reason,
+            actual_write_active=actual_write_active,
+            next_owner=next_owner,
+            user_action_required=user_action_required,
+            current_blockers=current_blockers,
+        ),
         "writer_state": writer_state,
         "user_next": user_next,
         "reason": reason,
@@ -249,6 +258,7 @@ def _conflict_projection(
         "study_id": _non_empty_text(payload.get("study_id")),
         "quest_id": _non_empty_text(payload.get("quest_id")),
         "state": "inspect/conflict",
+        "owner_resolution_state": "blocked_with_typed_owner",
         "writer_state": "conflict",
         "user_next": "inspect",
         "reason": "truth_conflict",
@@ -420,6 +430,31 @@ def _state_key(*, writer_state: str, user_next: str, reason: str) -> str:
     if writer_state == "conflict" or user_next == "inspect" and reason == "truth_conflict":
         return "inspect/conflict"
     return f"{writer_state}/{user_next}/{reason}"
+
+
+def _owner_resolution_state(
+    *,
+    writer_state: str,
+    user_next: str,
+    reason: str,
+    actual_write_active: bool,
+    next_owner: str | None,
+    user_action_required: bool,
+    current_blockers: list[str],
+) -> str:
+    if actual_write_active or writer_state == "live":
+        return "running"
+    if user_action_required:
+        return "terminal_stop_loss" if reason == "stop_loss" else "waiting_human"
+    if writer_state == "parked" and user_next == "none":
+        return "terminal_stop_loss" if reason == "stop_loss" else "terminal_success"
+    if next_owner:
+        return "ready_for_owner_action"
+    if writer_state == "queued":
+        return "ready_for_owner_action"
+    if current_blockers:
+        return "blocked_with_typed_owner"
+    return "blocked_with_typed_owner"
 
 
 def _state_label(

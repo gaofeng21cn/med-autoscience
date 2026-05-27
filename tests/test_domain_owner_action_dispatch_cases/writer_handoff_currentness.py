@@ -387,11 +387,20 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
             },
         }
     )
+    paper_progress_stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "action_fingerprint": "paper_progress_stall::dm002-current-story-surface",
+        "stall_reasons": ["runtime_recovery_retry_budget_exhausted"],
+    }
+    dispatch_payload["paper_progress_stall"] = paper_progress_stall
     dispatch_payload["prompt_contract"].update(
         {
             "owner_route": bridged_route,
             "idempotency_key": bridged_route["idempotency_key"],
             "repeat_suppression_key": work_unit_fingerprint,
+            "paper_progress_stall": paper_progress_stall,
         }
     )
     dispatch_path = (
@@ -413,6 +422,7 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
                     "study_id": study_id,
                     "quest_id": quest_id,
                     "owner_route": runtime_route,
+                    "paper_progress_stall": paper_progress_stall,
                     "action_queue": [
                         {
                             "study_id": study_id,
@@ -462,6 +472,7 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
     assert execution["execution_status"] == "handoff_ready"
     assert execution["owner_route_current"] is True
     assert execution["owner_route_basis"] == "bridged_writer_handoff"
+    assert execution["paper_progress_stall_handoff_allowed"] is True
 
 
 def test_execute_dispatch_rejects_materialized_story_surface_route_with_stale_bridge_idempotency(
@@ -691,11 +702,20 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
             },
         }
     )
+    ai_reviewer_paper_progress_stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "action_fingerprint": "paper_progress_stall::dm002-current-ai-reviewer",
+        "stall_reasons": ["runtime_recovery_retry_budget_exhausted"],
+    }
+    dispatch_payload["paper_progress_stall"] = ai_reviewer_paper_progress_stall
     dispatch_payload["prompt_contract"].update(
         {
             "owner_route": bridged_route,
             "idempotency_key": bridged_route["idempotency_key"],
             "repeat_suppression_key": work_unit_fingerprint,
+            "paper_progress_stall": ai_reviewer_paper_progress_stall,
         }
     )
     dispatch_path = (
@@ -717,6 +737,7 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
                     "study_id": study_id,
                     "quest_id": quest_id,
                     "owner_route": current_route,
+                    "paper_progress_stall": ai_reviewer_paper_progress_stall,
                     "action_queue": [
                         {
                             "study_id": study_id,
@@ -766,3 +787,4 @@ def test_execute_dispatch_accepts_materialized_story_surface_route_bridged_from_
     assert execution["execution_status"] == "handoff_ready"
     assert execution["owner_route_current"] is True
     assert execution["owner_route_basis"] == "bridged_writer_handoff"
+    assert execution["paper_progress_stall_handoff_allowed"] is True

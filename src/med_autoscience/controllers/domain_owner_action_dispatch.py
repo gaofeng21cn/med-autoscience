@@ -347,6 +347,7 @@ def _paper_progress_stall_block_reason(
             action_type=action_type,
             dispatch=dispatch,
             current_study=current_study,
+            current_route=current_route,
         ):
             return None, True
         return "paper_progress_stall_terminal", False

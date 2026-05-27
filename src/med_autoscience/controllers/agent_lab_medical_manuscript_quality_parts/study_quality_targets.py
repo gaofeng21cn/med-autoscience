@@ -335,6 +335,31 @@ def _shared_manuscript_quality_targets() -> list[dict[str, str]]:
             "route_target": "write",
         },
         {
+            "target_id": "stale_ai_reviewer_current_eval_drift",
+            "requirement": (
+                "AI reviewer and publication-eval projections must bind to current reviewer record, "
+                "source eval id, manuscript digest, and work-unit currentness; stale eval drift routes "
+                "to a current owner action or typed blocker"
+            ),
+            "route_target": "ai_reviewer",
+        },
+        {
+            "target_id": "dead_letter_stabilizes_to_owner_blocker",
+            "requirement": (
+                "OPL retry or dead-letter outcomes are converted into MAS-owned owner receipt, "
+                "stable typed blocker, human gate, or stop-loss route instead of becoming terminal silence"
+            ),
+            "route_target": "controller",
+        },
+        {
+            "target_id": "macro_state_no_stale_live",
+            "requirement": (
+                "study_macro_state and user-visible progress must not project old active_run_id or "
+                "provider attempt provenance as live without current OPL liveness proof"
+            ),
+            "route_target": "controller",
+        },
+        {
             "target_id": "medical_manuscript_no_runtime_language",
             "requirement": (
                 "formal medical manuscript body excludes MAS, AI reviewer, QA, package, readiness, "

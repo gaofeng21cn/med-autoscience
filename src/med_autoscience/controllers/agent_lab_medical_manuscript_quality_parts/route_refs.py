@@ -32,6 +32,9 @@ def failure_delta_refs(
         f"failure-delta:mas/{study_id}/quality-repair-writer-handoff-currentness",
         f"failure-delta:mas/{study_id}/publication-work-unit-registry-consistency",
         f"failure-delta:mas/{study_id}/story-surface-delta-or-typed-blocker",
+        f"failure-delta:mas/{study_id}/stale-ai-reviewer-current-eval-drift",
+        f"failure-delta:mas/{study_id}/dead-letter-stabilizes-to-owner-blocker",
+        f"failure-delta:mas/{study_id}/macro-state-no-stale-live",
         f"failure-delta:mas/{study_id}/medical-manuscript-quality-floor",
     ]
     refs.extend(f"failure-delta:{ref}" for ref in blocker_refs)

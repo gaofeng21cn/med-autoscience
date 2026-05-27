@@ -49,6 +49,9 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
         "quality_repair_writer_handoff_currentness",
         "publication_work_unit_registry_consistency",
         "story_surface_delta_or_typed_blocker",
+        "stale_ai_reviewer_current_eval_drift",
+        "dead_letter_stabilizes_to_owner_blocker",
+        "macro_state_no_stale_live",
         "medical_manuscript_no_runtime_language",
         "methods_results_numeric_reproducibility_floor",
         "structured_evidence_text_table_consistency",
@@ -58,12 +61,18 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
         "quality_repair_writer_handoff_currentness",
         "publication_work_unit_registry_consistency",
         "story_surface_delta_or_typed_blocker",
+        "stale_ai_reviewer_current_eval_drift",
+        "dead_letter_stabilizes_to_owner_blocker",
+        "macro_state_no_stale_live",
     }.issubset(set(inputs["owner_chain_regression_family"]["required_regression_targets"]))
     assert {
         "mechanism-edit-ref:mas/owner-chain-authority-monotonicity",
         "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
         "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
         "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
+        "mechanism-edit-ref:mas/stale-ai-reviewer-current-eval-drift",
+        "mechanism-edit-ref:mas/dead-letter-stabilizes-to-owner-blocker",
+        "mechanism-edit-ref:mas/macro-state-no-stale-live",
         "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
         "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
         "mechanism-edit-ref:mas/structured-evidence-text-table-consistency",
@@ -73,6 +82,9 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
         "regression-suite:mas/quality-repair-writer-handoff-currentness",
         "regression-suite:mas/publication-work-unit-registry-consistency",
         "regression-suite:mas/story-surface-delta-or-typed-blocker",
+        "regression-suite:mas/stale-ai-reviewer-current-eval-drift",
+        "regression-suite:mas/dead-letter-stabilizes-to-owner-blocker",
+        "regression-suite:mas/macro-state-no-stale-live",
         "regression-suite:mas/medical-manuscript-quality-floor",
         "regression-suite:mas/structured-evidence-text-table-consistency",
     }.issubset(regression_refs)
@@ -81,6 +93,9 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
         "quality_repair_writer_handoff_currentness_regression",
         "publication_work_unit_registry_consistency_regression",
         "story_surface_delta_or_typed_blocker_regression",
+        "stale_ai_reviewer_current_eval_drift_regression",
+        "dead_letter_stabilizes_to_owner_blocker_regression",
+        "macro_state_no_stale_live_regression",
         "medical_manuscript_quality_floor_regression",
     }.issubset(set(work_order["required_patch_scopes"]))
     assert {
@@ -88,6 +103,9 @@ def test_agent_lab_quality_suite_projects_owner_chain_regression_family(
         "failure-delta:mas/002-dm-china-us-mortality-attribution/quality-repair-writer-handoff-currentness",
         "failure-delta:mas/002-dm-china-us-mortality-attribution/publication-work-unit-registry-consistency",
         "failure-delta:mas/002-dm-china-us-mortality-attribution/story-surface-delta-or-typed-blocker",
+        "failure-delta:mas/002-dm-china-us-mortality-attribution/stale-ai-reviewer-current-eval-drift",
+        "failure-delta:mas/002-dm-china-us-mortality-attribution/dead-letter-stabilizes-to-owner-blocker",
+        "failure-delta:mas/002-dm-china-us-mortality-attribution/macro-state-no-stale-live",
         "failure-delta:mas/002-dm-china-us-mortality-attribution/medical-manuscript-quality-floor",
     }.issubset(failure_refs)
     assert inputs["owner_chain_regression_family"]["can_authorize_quality_verdict"] is False

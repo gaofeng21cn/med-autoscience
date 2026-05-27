@@ -334,6 +334,9 @@
         "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
         "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
         "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
+        "mechanism-edit-ref:mas/stale-ai-reviewer-current-eval-drift",
+        "mechanism-edit-ref:mas/dead-letter-stabilizes-to-owner-blocker",
+        "mechanism-edit-ref:mas/macro-state-no-stale-live",
         "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
         "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor",
         "mechanism-edit-ref:mas/structured-evidence-text-table-consistency",
@@ -355,6 +358,9 @@
         "quality_repair_writer_handoff_currentness",
         "publication_work_unit_registry_consistency",
         "story_surface_delta_or_typed_blocker",
+        "stale_ai_reviewer_current_eval_drift",
+        "dead_letter_stabilizes_to_owner_blocker",
+        "macro_state_no_stale_live",
         "medical_manuscript_no_runtime_language",
         "methods_results_numeric_reproducibility_floor",
         "ai_reviewer_record_current_manuscript_binding"
@@ -373,6 +379,9 @@
         "mechanism-edit-ref:mas/quality-repair-writer-handoff-currentness",
         "mechanism-edit-ref:mas/publication-work-unit-registry-consistency",
         "mechanism-edit-ref:mas/story-surface-delta-or-typed-blocker",
+        "mechanism-edit-ref:mas/stale-ai-reviewer-current-eval-drift",
+        "mechanism-edit-ref:mas/dead-letter-stabilizes-to-owner-blocker",
+        "mechanism-edit-ref:mas/macro-state-no-stale-live",
         "mechanism-edit-ref:mas/medical-manuscript-no-runtime-language",
         "mechanism-edit-ref:mas/methods-results-numeric-reproducibility-floor"
       ],
@@ -391,6 +400,9 @@
         "quality_repair_writer_handoff_currentness",
         "publication_work_unit_registry_consistency",
         "story_surface_delta_or_typed_blocker",
+        "stale_ai_reviewer_current_eval_drift",
+        "dead_letter_stabilizes_to_owner_blocker",
+        "macro_state_no_stale_live",
         "medical_manuscript_no_runtime_language",
         "methods_results_numeric_reproducibility_floor"
       ]

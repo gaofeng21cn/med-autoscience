@@ -421,12 +421,55 @@ def assemble_study_progress_payload(
     payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
+    payload = _apply_current_redrive_user_visible_status(payload)
     payload = _apply_terminal_delivery_user_visible_status(payload)
     return attach_ai_first_runtime_projection(
         payload,
         study_root=study_root,
         generated_at=generated_at,
     )
+
+
+def _apply_current_redrive_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
+    if not _current_redrive_domain_transition(payload):
+        return payload
+    user_visible = _mapping_copy(payload.get("user_visible_projection"))
+    next_step = _current_redrive_next_action(payload, user_visible=user_visible)
+    if next_step is None:
+        return payload
+    updated = dict(payload)
+    updated["next_system_action"] = next_step
+    if user_visible:
+        user_visible["next_system_action"] = next_step
+        user_visible["next_step"] = next_step
+        updated["user_visible_projection"] = user_visible
+    status_contract = _mapping_copy(updated.get("status_narration_contract"))
+    if status_contract:
+        status_contract["next_step"] = next_step
+        updated["status_narration_contract"] = status_contract
+    operator_status = _mapping_copy(updated.get("operator_status_card"))
+    if operator_status:
+        operator_status["current_focus"] = next_step
+        updated["operator_status_card"] = operator_status
+    return updated
+
+
+def _current_redrive_next_action(payload: Mapping[str, Any], *, user_visible: Mapping[str, Any]) -> str | None:
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    transition = _mapping_copy(payload.get("domain_transition"))
+    next_work_unit = _mapping_copy(transition.get("next_work_unit"))
+    work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+    route_target = _non_empty_text(transition.get("route_target")) or _non_empty_text(intervention_lane.get("route_target"))
+    owner = _non_empty_text(transition.get("owner")) or route_target
+    if route_summary := (
+        _non_empty_text(intervention_lane.get("route_summary"))
+        or _non_empty_text(intervention_lane.get("summary"))
+    ):
+        return route_summary
+    if work_unit_id is not None:
+        owner_text = f"{owner} owner" if owner is not None else "当前 owner"
+        return f"等待 {owner_text} 处理 work unit {work_unit_id}。"
+    return _non_empty_text(user_visible.get("next_system_action")) or _non_empty_text(user_visible.get("next_step"))
 
 
 def _apply_terminal_delivery_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:

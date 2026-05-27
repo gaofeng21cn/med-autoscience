@@ -15,29 +15,30 @@ def owner_handoff_allowed(
     action_type: str,
     dispatch: Mapping[str, Any],
     current_study: Mapping[str, Any] | None,
+    current_route: Mapping[str, Any] | None = None,
 ) -> bool:
     if action_type == "publication_gate_specificity_required":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
         return repeat_suppression.publication_gate_specificity_route(owner_route) and owner_route_part.route_allows_action(
             action=dispatch,
             owner_route=owner_route,
         )
     if action_type == "unit_harmonized_external_validation_rerun":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
         return repeat_suppression.hard_methodology_harmonization_route(
             owner_route
         ) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type == "recover_transport_model_provenance":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
         return repeat_suppression.source_provenance_recovery_route(owner_route) and owner_route_part.route_allows_action(
             action=dispatch,
             owner_route=owner_route,
         )
     if action_type == "methodology_reframe_route_decision":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
         return (
             _text(owner_route.get("next_owner")) == "decision"
@@ -45,13 +46,13 @@ def owner_handoff_allowed(
             and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
         )
     if action_type == "provenance_limited_harmonization_audit":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
         return repeat_suppression.provenance_limited_harmonization_route(
             owner_route
         ) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type == "run_quality_repair_batch":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
         if _text(owner_route.get("next_owner")) != "write":
             return False
@@ -135,15 +136,26 @@ def _registered_write_route_back_handoff(
     if _text(protocol.get("priority_class")) != "write_route_back":
         return False
 
-    currentness_contract = _mapping(owner_route.get("currentness_contract"))
-    if not currentness_contract:
-        currentness_contract = owner_route_attempt_protocol.currentness_contract(owner_route)
-    if currentness_contract.get("missing_required_fields"):
+    if _currentness_missing_required_fields(owner_route):
         return False
     if _text(owner_route.get("source_fingerprint")) is None:
         return False
     currentness_basis = _owner_route_currentness_basis(owner_route)
     return _text(currentness_basis.get("work_unit_id")) is not None
+
+
+def _currentness_missing_required_fields(owner_route: Mapping[str, Any]) -> list[str]:
+    basis = _owner_route_currentness_basis(owner_route)
+    return [
+        field
+        for field in (
+            "work_unit_fingerprint",
+            "truth_epoch",
+            "runtime_health_epoch",
+            "owner_reason",
+        )
+        if _text(basis.get(field)) is None
+    ]
 
 
 def _owner_route_currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:

@@ -602,18 +602,21 @@ def test_user_visible_projection_labels_all_macro_state_classes() -> None:
             "自动运行中",
             True,
             False,
+            "running",
         ),
         (
             {"writer_state": "queued", "user_next": "watch", "reason": "runtime", "details": {}},
             "系统排队处理中",
             False,
             False,
+            "ready_for_owner_action",
         ),
         (
             {"writer_state": "parked", "user_next": "none", "reason": "runtime", "details": {"package_delivered": True}},
             "投稿包已交付，自动停驻",
             False,
             False,
+            "terminal_success",
         ),
         (
             {
@@ -625,28 +628,32 @@ def test_user_visible_projection_labels_all_macro_state_classes() -> None:
             "投稿包已交付，等待外部投稿信息",
             False,
             True,
+            "waiting_human",
         ),
         (
             {"writer_state": "parked", "user_next": "none", "reason": "user_stop", "details": {}},
             "用户暂停/手动停驻",
             False,
             True,
+            "waiting_human",
         ),
         (
             {"writer_state": "queued", "user_next": "repair", "reason": "quality", "details": {}},
             "质量修复/复审中",
             False,
             False,
+            "ready_for_owner_action",
         ),
         (
             {"writer_state": "parked", "user_next": "none", "reason": "stop_loss", "details": {}},
             "止损/终止",
             False,
             True,
+            "terminal_stop_loss",
         ),
     ]
 
-    for macro_fields, expected_label, expected_write_active, expected_user_action in cases:
+    for macro_fields, expected_label, expected_write_active, expected_user_action, expected_resolution in cases:
         projection = module.build_user_visible_projection(
             {
                 "study_id": "001-risk",
@@ -661,5 +668,6 @@ def test_user_visible_projection_labels_all_macro_state_classes() -> None:
         )
 
         assert projection["state_label"] == expected_label
+        assert projection["owner_resolution_state"] == expected_resolution
         assert projection["actual_write_active"] is expected_write_active
         assert projection["user_action_required"] is expected_user_action
