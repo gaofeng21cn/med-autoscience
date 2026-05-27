@@ -261,3 +261,183 @@ def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeou
     ]
     assert payload["domain_dispatch_evidence_record_payload"]["domain_ready_claimed"] is False
     assert payload["domain_dispatch_evidence_record_payload"]["publication_ready_claimed"] is False
+
+
+def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_owner_receipt_closeout(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    stage_attempt_id = "sat_2b6eac11610af2c3a80ef14c"
+    stage_attempt_source = "mas_default_executor_source_880838dc77dfd024def89a98"
+    domain_source = "79a7c0b25a33e01d"
+    dispatch_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        "consumer/default_executor_dispatches/return_to_ai_reviewer_workflow.json"
+    )
+    closeout_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        f"consumer/default_executor_execution/{stage_attempt_id}.closeout.json"
+    )
+    publication_eval_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/publication_eval/"
+        "latest.json"
+    )
+    request_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/supervision/"
+        "requests/ai_reviewer/latest.json"
+    )
+    controller_decision_ref = (
+        "studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/"
+        "controller_decisions/20260527T162207Z-route_back_same_line.json"
+    )
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        workspace_root
+        / "studies"
+        / study_id
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / f"{stage_attempt_id}.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": stage_attempt_id,
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "action_type": "return_to_ai_reviewer_workflow",
+            "status": "executed",
+            "owner": "ai_reviewer",
+            "owner_reason": "ai_reviewer_assessment_required",
+            "route_outcome": "publication_eval_latest_materialized",
+            "owner_receipt": {
+                "status": "executed",
+                "owner": "ai_reviewer",
+                "owner_callable_surface": (
+                    "ai_reviewer_publication_eval_workflow."
+                    "run_ai_reviewer_publication_eval_workflow"
+                ),
+                "request_ref": request_ref,
+                "publication_eval_ref": publication_eval_ref,
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
+            "domain_execution": {
+                "execution_status": "executed",
+                "domain_owner": "ai_reviewer",
+                "request_ref": request_ref,
+                "publication_eval_ref": publication_eval_ref,
+                "controller_decision_ref": controller_decision_ref,
+            },
+            "verification": {
+                "quality_status": "blocked",
+                "claim_evidence_alignment_status": "ready",
+                "remaining_publication_quality_missing_fields": [
+                    "claim_evidence_alignment_digest",
+                    "owner_authorized_publication_gate_recheck",
+                ],
+            },
+            "artifact_delta_refs": [
+                publication_eval_ref,
+                controller_decision_ref,
+            ],
+            "closeout_refs": [
+                closeout_ref,
+                dispatch_ref,
+                request_ref,
+                publication_eval_ref,
+                controller_decision_ref,
+            ],
+            "domain_completion_claimed": False,
+            "provider_completion_is_domain_completion": False,
+            "provider_completion_is_domain_ready": False,
+        },
+    )
+    workorder_path = tmp_path / "opl-workorder.json"
+    _write_json(
+        workorder_path,
+        {
+            "action_id": f"domain_dispatch:medautoscience:{stage_attempt_id}:record",
+            "target_identity": {
+                "domain_id": "medautoscience",
+                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_attempt_id": stage_attempt_id,
+                "task_kind": "domain_owner/default-executor-dispatch",
+                "study_id": study_id,
+                "source_fingerprint": stage_attempt_source,
+                "domain_source_fingerprint": domain_source,
+                "profile_name": "dm-cvd-mortality-risk",
+            },
+            "dispatch_identity_fields": {
+                "action_type": "return_to_ai_reviewer_workflow",
+                "dispatch_ref": dispatch_ref,
+            },
+        },
+    )
+
+    def fake_scan_domain_routes(*, profile, study_ids, apply_safe_actions, developer_supervisor_mode):
+        return {
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "blocked_reason": "ai_reviewer_assessment_required",
+                    "domain_transition": {
+                        "controller_action": "return_to_ai_reviewer_workflow",
+                        "owner": "ai_reviewer",
+                        "completion_receipt_consumption": {"status": "missing"},
+                    },
+                    "owner_route": {
+                        "next_owner": "ai_reviewer",
+                        "owner_reason": "ai_reviewer_assessment_required",
+                    },
+                }
+            ]
+        }
+
+    monkeypatch.setattr(cli.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+
+    exit_code = cli.main(
+        [
+            "domain-handler",
+            "dispatch-evidence-payload",
+            "--profile",
+            str(profile_path),
+            "--workorder",
+            str(workorder_path),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "owner_receipt_payload_ready"
+    assert payload["payload_reason"] == (
+        "stage_attempt_closeout_owner_receipt_observed_for_default_executor_dispatch"
+    )
+    evidence_payload = payload["domain_dispatch_evidence_record_payload"]
+    assert evidence_payload["mode"] == "refs_only_domain_owned_success_payload"
+    record_payload = payload["opl_runtime_action_execute_payload"]
+    assert record_payload["source_fingerprint"] == stage_attempt_source
+    assert record_payload["domain_source_fingerprint"] == domain_source
+    assert record_payload["typed_blocker_refs"] == []
+    assert record_payload["domain_owner_receipt_refs"] == [f"{closeout_ref}#owner_receipt"]
+    assert record_payload["domain_receipt_refs"] == record_payload["domain_owner_receipt_refs"]
+    assert dispatch_ref in record_payload["evidence_refs"]
+    assert publication_eval_ref in record_payload["evidence_refs"]
+    assert "stage-attempt-closeout:status=executed" in record_payload["evidence_refs"]
+    assert "stage-attempt-closeout:route_outcome=publication_eval_latest_materialized" in record_payload[
+        "evidence_refs"
+    ]
+    assert record_payload["no_regression_refs"]
+    assert evidence_payload["domain_ready_claimed"] is False
+    assert evidence_payload["publication_ready_claimed"] is False
+    assert evidence_payload["artifact_mutation_authorized"] is False

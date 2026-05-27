@@ -16,6 +16,9 @@ PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION = (
 PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER = (
     "stage_attempt_closeout_typed_blocker_observed_for_default_executor_dispatch"
 )
+PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT = (
+    "stage_attempt_closeout_owner_receipt_observed_for_default_executor_dispatch"
+)
 TASK_KIND = "domain_owner/default-executor-dispatch"
 SUPPORTED_SUPERSEDED_ACTION_TYPE = "return_to_ai_reviewer_workflow"
 SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE = "run_quality_repair_batch"

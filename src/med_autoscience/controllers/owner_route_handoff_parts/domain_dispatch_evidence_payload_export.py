@@ -7,6 +7,8 @@ from med_autoscience.controllers.domain_dispatch_evidence_payload import (
 )
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.closeout_evidence import (
     closeout_evidence_refs,
+    owner_receipt_closeout_evidence_refs,
+    stage_attempt_closeout_owner_receipt_evidence,
     stage_attempt_closeout_typed_blocker_evidence,
 )
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.route_reasons import (
@@ -15,6 +17,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
 )
 from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evidence_payload_export_parts.shared import (
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
+    PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT,
     PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER,
     SUPPORTED_SUPERSEDED_ACTION_TYPE,
     SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE,
@@ -80,6 +83,15 @@ def build_dispatch_evidence_payload_export(
         dispatch_identity=dispatch_identity,
         action_type=action_type,
     )
+    owner_receipt_closeout = stage_attempt_closeout_owner_receipt_evidence(
+        profile=profile,
+        study_id=study_id,
+        target_identity=target_identity,
+        dispatch_identity=dispatch_identity,
+        action_type=action_type,
+    )
+    if payload_reason is None and owner_receipt_closeout is not None:
+        payload_reason = PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
     if payload_reason is None and closeout_evidence is not None:
         payload_reason = PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER
     if payload_reason is None:
@@ -94,7 +106,22 @@ def build_dispatch_evidence_payload_export(
     completion = mapping(domain_transition.get("completion_receipt_consumption"))
     owner_route = mapping(study_scan.get("owner_route"))
     typed_blocker_refs: Sequence[object] = ()
-    if closeout_evidence is not None and payload_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER:
+    domain_owner_receipt_refs: Sequence[object] = ()
+    no_regression_evidence_refs: Sequence[object] = ()
+    if (
+        owner_receipt_closeout is not None
+        and payload_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
+    ):
+        evidence_refs = owner_receipt_closeout_evidence_refs(owner_receipt_closeout)
+        domain_owner_receipt_refs = sequence(owner_receipt_closeout.get("owner_receipt_refs"))
+        no_regression_evidence_refs = [
+            (
+                "mas-no-forbidden-write-proof:medautoscience:"
+                f"{text(target_identity.get('stage_attempt_id'))}:"
+                "refs-only-owner-receipt-closeout"
+            )
+        ]
+    elif closeout_evidence is not None and payload_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER:
         evidence_refs = closeout_evidence_refs(closeout_evidence)
         typed_blocker_refs = sequence(closeout_evidence.get("typed_blocker_refs"))
     else:
@@ -113,14 +140,20 @@ def build_dispatch_evidence_payload_export(
         stage_id=text(target_identity.get("stage_id")),
         reason=payload_reason,
         evidence_refs=evidence_refs,
+        domain_owner_receipt_refs=domain_owner_receipt_refs,
         typed_blocker_refs=typed_blocker_refs,
+        no_regression_evidence_refs=no_regression_evidence_refs,
         source_fingerprint=domain_source_fingerprint,
         stage_attempt_source_fingerprint=stage_attempt_source_fingerprint,
         profile_name=text(target_identity.get("profile_name")) or profile.name,
     )
     return {
         "surface_kind": SURFACE_KIND,
-        "status": "typed_blocker_payload_ready",
+        "status": (
+            "owner_receipt_payload_ready"
+            if payload_reason == PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT
+            else "typed_blocker_payload_ready"
+        ),
         "profile": str(profile_ref),
         "profile_name": profile.name,
         "study_id": study_id,
