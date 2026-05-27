@@ -19,12 +19,16 @@ PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER = (
 PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_OWNER_RECEIPT = (
     "stage_attempt_closeout_owner_receipt_observed_for_default_executor_dispatch"
 )
+PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER = (
+    "runtime_recovery_retry_budget_terminal_blocker"
+)
 TASK_KIND = "domain_owner/default-executor-dispatch"
 SUPPORTED_SUPERSEDED_ACTION_TYPE = "return_to_ai_reviewer_workflow"
 SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE = "run_quality_repair_batch"
 OPL_STAGE_ATTEMPT_ADMISSION_REASON = "opl_stage_attempt_admission_required"
 OPL_RUNTIME_OWNER_ROUTE_REASON = "quest_waiting_opl_runtime_owner_route"
 RUNTIME_RECOVERY_NOT_AUTHORIZED_REASON = "runtime_recovery_not_authorized"
+RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON = "runtime_recovery_retry_budget_exhausted"
 WRITE_OWNER = "write"
 WRITE_ACTION_TYPE = "run_quality_repair_batch"
 
