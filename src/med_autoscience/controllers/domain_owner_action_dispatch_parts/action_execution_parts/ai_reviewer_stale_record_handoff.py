@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ...domain_action_request_lifecycle import (
+    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
@@ -31,11 +32,14 @@ def stale_ai_reviewer_record_handoff(
     if blocked_reason not in {
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
     }:
         return None
     record_request_kind = (
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
         if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+        else "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+        if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS
         else "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
     )
     required_currentness_refs = _string_items(lifecycle.get("required_currentness_refs"))

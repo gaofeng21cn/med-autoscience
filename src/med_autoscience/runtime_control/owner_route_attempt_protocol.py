@@ -358,6 +358,9 @@ _REASON_REGISTRY = {
     "ai_reviewer_record_stale_after_current_manuscript": _ai_reviewer_entry(
         "DM002:reviewer_currentness"
     ),
+    "ai_reviewer_record_stale_after_current_inputs": _ai_reviewer_entry(
+        "DM003:reviewer_input_currentness"
+    ),
     "ai_reviewer_record_stale_after_unit_harmonized_rerun": _ai_reviewer_entry(),
     "analysis_harmonization_completed_ai_reviewer_review_required": _ai_reviewer_entry(),
     "ai_reviewer_repair_recheck_required": _ai_reviewer_entry(),

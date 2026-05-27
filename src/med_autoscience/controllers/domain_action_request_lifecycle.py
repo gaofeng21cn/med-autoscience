@@ -14,6 +14,9 @@ from med_autoscience.controllers.ai_reviewer_story_provenance_guard import (
 from med_autoscience.controllers.ai_reviewer_record_contract import (
     ai_reviewer_record_has_valid_evaluation_scope,
 )
+from med_autoscience.controllers.domain_action_request_lifecycle_parts.ai_reviewer_currentness_inputs import (
+    request_record_currentness_input_refs,
+)
 
 AI_REVIEWER_REQUEST_STATES = ("requested", "assigned", "assessment_written", "blocked", "stale")
 AI_REVIEWER_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/ai_reviewer/latest.json")
@@ -45,6 +48,7 @@ AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN = (
     "ai_reviewer_record_stale_after_unit_harmonized_rerun"
 )
 AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT = "ai_reviewer_record_stale_after_current_manuscript"
+AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS = "ai_reviewer_record_stale_after_current_inputs"
 AI_REVIEWER_REQUIRED_QUALITY_DIMENSIONS = (
     "clinical_significance",
     "evidence_strength",
@@ -52,8 +56,6 @@ AI_REVIEWER_REQUIRED_QUALITY_DIMENSIONS = (
     "medical_journal_prose_quality",
     "human_review_readiness",
 )
-
-
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -340,11 +342,19 @@ def _record_missing_currentness_refs(
         if request_packet is not None
         else []
     )
+    input_refs = (
+        _request_record_currentness_input_refs(study_root=study_root, request_packet=request_packet)
+        if request_packet is not None
+        else []
+    )
     required_refs = packet_refs or _analysis_harmonization_currentness_refs(study_root=study_root)
     source_refs = _record_source_refs(study_root=study_root, record=record)
     current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
     if current_manuscript_ref and current_manuscript_ref not in set(required_refs):
         required_refs = [*required_refs, current_manuscript_ref]
+    for ref in input_refs:
+        if ref in source_refs and ref not in set(required_refs):
+            required_refs = [*required_refs, ref]
     if not required_refs:
         return []
     record_timestamp = _reviewer_assessment_timestamp(record)
@@ -366,10 +376,18 @@ def _record_currentness_blocked_reason(
     study_root: Path,
     record: Mapping[str, Any],
     missing_currentness_refs: list[str],
+    request_packet: Mapping[str, Any] | None = None,
 ) -> str:
     current_manuscript_ref = _current_manuscript_ref(study_root=study_root, record=record)
     if current_manuscript_ref and current_manuscript_ref in set(missing_currentness_refs):
         return AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+    input_refs = (
+        set(_request_record_currentness_input_refs(study_root=study_root, request_packet=request_packet))
+        if request_packet is not None
+        else set()
+    )
+    if input_refs and input_refs.intersection(missing_currentness_refs):
+        return AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS
     return AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN
 
 
@@ -526,6 +544,7 @@ def _validate_ai_reviewer_record_for_packet(
                 study_root=study_root,
                 record=record,
                 missing_currentness_refs=missing_currentness_refs,
+                request_packet=payload,
             ),
         )
     leakage = ai_reviewer_record_story_provenance_leakage(record)
@@ -713,10 +732,16 @@ def _publication_eval_consumes_record_blocked_request(
         return False
     if blocked_reason not in {
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
     }:
         return False
     required_refs = _request_required_currentness_refs(study_root=study_root, request_packet=request_packet)
+    if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS and not required_refs:
+        required_refs = _request_record_currentness_input_refs(
+            study_root=study_root,
+            request_packet=request_packet,
+        )
     if not required_refs:
         return False
     reviewer_os = _mapping(publication_eval_payload.get("reviewer_operating_system"))
@@ -745,6 +770,19 @@ def _request_required_currentness_refs(
         if resolved:
             refs.append(resolved)
     return list(dict.fromkeys(refs))
+
+
+def _request_record_currentness_input_refs(
+    *,
+    study_root: Path,
+    request_packet: Mapping[str, Any],
+) -> list[str]:
+    return request_record_currentness_input_refs(
+        study_root=study_root,
+        request_packet=request_packet,
+        required_inputs=_required_inputs,
+        resolved_text_ref=_resolved_text_ref,
+    )
 
 
 def _currentness_checks_cover_live_ref(
@@ -827,6 +865,7 @@ def _request_packet_record_blocker_reason(request_packet: Mapping[str, Any]) -> 
     blocked_reason = _text(_mapping(request_packet.get("request_lifecycle")).get("blocked_reason"))
     if blocked_reason in {
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
         AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON,
     }:

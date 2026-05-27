@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.domain_action_request_lifecycle import (
+    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
@@ -120,12 +121,15 @@ def project_stale_ai_reviewer_record_transition(
     blocked_reason = _text(lifecycle.get("blocked_reason"))
     if blocked_reason not in {
         AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
+        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
         AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
     }:
         return None
     request_kind = (
         "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
         if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
+        else "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+        if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS
         else "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
     )
     stale_record_ref = _text(lifecycle.get("stale_record_ref"))

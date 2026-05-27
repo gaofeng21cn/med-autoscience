@@ -10,6 +10,7 @@ from med_autoscience.controllers.default_executor_closeout_contract import (
     default_executor_typed_closeout_contract,
 )
 from med_autoscience.controllers.domain_action_request_lifecycle import (
+    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 )
@@ -32,6 +33,7 @@ FORBIDDEN_SURFACES = [
     ".ds/**",
 ]
 STALENESS_HANDOFF_REASONS = {
+    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
 }

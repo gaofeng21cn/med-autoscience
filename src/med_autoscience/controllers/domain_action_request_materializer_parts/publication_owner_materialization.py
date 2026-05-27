@@ -77,7 +77,7 @@ def _ai_reviewer_currentness_action(
         next_owner="ai_reviewer",
         owner_reason=blocked_reason,
         allowed_actions=["return_to_ai_reviewer_workflow"],
-        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+        work_unit_id=_ai_reviewer_record_production_work_unit_id(blocked_reason),
     )
     return _with_owner_route(
         {
@@ -88,12 +88,20 @@ def _ai_reviewer_currentness_action(
             "recommended_owner": "ai_reviewer",
             "reason": blocked_reason,
             "required_output_surface": "artifacts/publication_eval/latest.json",
-            "next_work_unit": "produce_ai_reviewer_publication_eval_record_against_current_manuscript",
+            "next_work_unit": _ai_reviewer_record_production_work_unit_id(blocked_reason),
             "materialization_decision": "ai_reviewer_currentness_required",
             "required_currentness_refs": list(lifecycle.get("required_currentness_refs") or []),
         },
         rewritten_route,
     )
+
+
+def _ai_reviewer_record_production_work_unit_id(blocked_reason: str | None) -> str:
+    if blocked_reason == domain_action_request_lifecycle.AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS:
+        return "produce_ai_reviewer_publication_eval_record_against_current_inputs"
+    if blocked_reason == domain_action_request_lifecycle.AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN:
+        return "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
+    return "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
 
 
 def _story_surface_delta_action(

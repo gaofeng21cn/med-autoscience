@@ -4,6 +4,7 @@ import importlib
 from pathlib import Path
 
 from tests.reviewer_os_fixture_helpers import claim_evidence_map_payload, evidence_ledger_payload
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
@@ -285,6 +286,133 @@ def test_execute_dispatch_accepts_record_only_handoff_contract_when_selected_fro
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
+def test_execute_dispatch_hands_off_ai_reviewer_record_production_when_request_record_stale_after_current_inputs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    stale_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260527T111037Z_publication_eval_record.json"
+    )
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    request_payload = {
+        "surface": "supervisor_action_request",
+        "request_kind": "return_to_ai_reviewer_workflow",
+        "request_owner": "ai_reviewer",
+        "request_lifecycle": {
+            "state": "requested",
+            "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+            "stale_record_ref": str(stale_record_path),
+            "required_currentness_refs": [str(evidence_path), str(claim_map_path)],
+        },
+        "input_contract": {
+            "required_refs": {
+                "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
+                "evidence_ledger": {"path": str(evidence_path), "present": True, "valid": True},
+                "claim_evidence_map": {"path": str(claim_map_path), "present": True, "valid": True},
+                "review_ledger": {
+                    "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                    "present": True,
+                    "valid": True,
+                },
+                "study_charter": {
+                    "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                    "present": True,
+                    "valid": True,
+                },
+            },
+            "all_required_refs_present": True,
+            "missing_or_invalid_refs": [],
+        },
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        request_payload,
+    )
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    route.update(
+        {
+            "failure_signature": "ai_reviewer_record_stale_after_current_inputs",
+            "owner_reason": "ai_reviewer_record_stale_after_current_inputs",
+            "source_refs": {
+                "work_unit_id": "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+                "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
+            },
+        }
+    )
+    source_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=route,
+    )
+    production_request = build_ai_reviewer_record_production_request(
+        request=request_payload,
+        required_refs={
+            "manuscript": str(study_root / "paper" / "draft.md"),
+            "evidence_ledger": str(evidence_path),
+            "claim_evidence_map": str(claim_map_path),
+            "review_ledger": str(study_root / "paper" / "review" / "review_ledger.json"),
+            "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+        },
+        stale_record_ref=str(stale_record_path),
+        required_currentness_refs=[str(evidence_path), str(claim_map_path)],
+        request_kind="produce_ai_reviewer_publication_eval_record_against_current_inputs",
+    )
+    handoff = build_ai_reviewer_record_worker_handoff(
+        profile=profile,
+        study_id=study_id,
+        request=request_payload,
+        dispatch=source_dispatch,
+        production_request=production_request,
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, handoff)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    execution = result["executions"][0]
+    assert execution["dispatch_authority"] == "ai_reviewer_record_production_handoff"
+    assert execution["execution_status"] == "handoff_ready"
+    assert execution["blocked_reason"] is None
+    assert execution["ai_reviewer_record_production_request"] == production_request
+    assert execution["next_required_actions"] == [
+        "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+        "rematerialize_ai_reviewer_request",
+        "return_to_ai_reviewer_workflow",
+    ]
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_execute_dispatch_routes_claim_evidence_alignment_blocker_to_write_owner(
     monkeypatch,
     tmp_path: Path,
@@ -296,8 +424,9 @@ def test_execute_dispatch_routes_claim_evidence_alignment_blocker_to_write_owner
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
     paper_root = study_root / "paper"
     manuscript_path = paper_root / "draft.md"
+    manuscript_text = "# Manuscript\n\nCurrent claim text.\n"
     manuscript_path.parent.mkdir(parents=True, exist_ok=True)
-    manuscript_path.write_text("# Manuscript\n\nCurrent claim text.\n", encoding="utf-8")
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
     evidence_path = paper_root / "evidence_ledger.json"
     claim_map_path = paper_root / "claim_evidence_map.json"
     _write_json(claim_map_path, claim_evidence_map_payload(evidence_ledger_ref=str(evidence_path)))
@@ -314,26 +443,42 @@ def test_execute_dispatch_routes_claim_evidence_alignment_blocker_to_write_owner
             "request_kind": "return_to_ai_reviewer_workflow",
             "request_owner": "ai_reviewer",
             "request_lifecycle": {"state": "requested", "blocked_reason": None},
-            "ai_reviewer_record": {
-                "schema_version": 1,
-                "eval_id": "publication-eval::dm002::2026-05-24T20:09:53+00:00",
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "source_kind": "publication_eval_ai_reviewer",
-                    "ai_reviewer_required": False,
-                },
-                "quality_assessment": {
-                    key: {"status": "ready", "summary": "ready", "evidence_refs": [str(manuscript_path)]}
+                "ai_reviewer_record": {
+                    "schema_version": 1,
+                    "eval_id": "publication-eval::dm002::2026-05-24T20:09:53+00:00",
+                    "evaluation_scope": "publication",
+                    "assessment_provenance": {
+                        "owner": "ai_reviewer",
+                        "source_kind": "publication_eval_ai_reviewer",
+                        "policy_id": "medical_publication_critique_v1",
+                        "source_refs": [str(manuscript_path), str(evidence_path), str(claim_map_path)],
+                        "ai_reviewer_required": False,
+                    },
+                    "quality_assessment": {
+                        key: {"status": "ready", "summary": "ready", "evidence_refs": [str(manuscript_path)]}
                     for key in (
                         "clinical_significance",
                         "evidence_strength",
                         "novelty_positioning",
                         "medical_journal_prose_quality",
                         "human_review_readiness",
-                    )
+                        )
+                    },
+                    "future_facing_limitations_plan": [
+                        {
+                            "limitation": "Recorded treatment coverage may be incomplete.",
+                            "impact_on_claim": "Coverage claims remain documentation-aware.",
+                            "required_future_analysis_data_or_design": "Link dispensing records.",
+                            "current_manuscript_wording_must_be_restrained": True,
+                        }
+                    ],
+                    "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+                        study_root=study_root,
+                        manuscript_path=manuscript_path,
+                        manuscript_text=manuscript_text,
+                        eval_id="publication-eval::dm002::2026-05-24T20:09:53+00:00",
+                    ),
                 },
-                "future_facing_limitations_plan": [{"limitation": "none"}],
-            },
             "input_contract": {
                 "required_refs": {
                     "manuscript": {"path": str(manuscript_path)},

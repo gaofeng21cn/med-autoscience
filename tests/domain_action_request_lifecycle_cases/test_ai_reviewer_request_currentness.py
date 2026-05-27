@@ -149,6 +149,113 @@ def test_ai_reviewer_request_materialization_rejects_record_stale_after_current_
     assert persisted["request_lifecycle"]["required_currentness_refs"] == [str(manuscript_path.resolve())]
 
 
+def test_ai_reviewer_request_materialization_rejects_record_stale_after_current_claim_evidence_inputs(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    response_root = study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses"
+    stale_record_path = response_root / "20260527T111037Z_publication_eval_record.json"
+    evidence_path = study_root / "paper" / "evidence_ledger.json"
+    claim_map_path = study_root / "paper" / "claim_evidence_map.json"
+    evidence_path.parent.mkdir(parents=True)
+    evidence_path.write_text(
+        json.dumps(
+            {
+                "updated_at": "2026-05-27T14:30:00+00:00",
+                "claims": [{"claim_id": "A1_boundary_metric_provenance"}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    claim_map_path.write_text(
+        json.dumps(
+            {
+                "updated_at": "2026-05-27T14:30:00+00:00",
+                "claims": [{"claim_id": "A1_boundary_metric_provenance"}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    quality_assessment = {
+        dimension: {
+            "status": "blocked" if dimension == "evidence_strength" else "ready",
+            "summary": f"{dimension} reviewer assessment.",
+        }
+        for dimension in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "medical_journal_prose_quality",
+            "human_review_readiness",
+        )
+    }
+    stale_record = {
+        "eval_id": "publication-eval::003-dpcc::quest-003::2026-05-27T11:10:37+00:00",
+        "study_id": "003-dpcc",
+        "quest_id": "quest-003",
+        "emitted_at": "2026-05-27T11:10:37+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [str(evidence_path), str(claim_map_path)],
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": quality_assessment,
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "The old reviewer record predates claim-evidence repair.",
+                "impact_on_claim": "The evidence-strength verdict cannot authorize current claim-evidence quality.",
+                "required_future_analysis_data_or_design": "Re-run AI reviewer against the current claim-evidence inputs.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+    }
+    stale_record_path.parent.mkdir(parents=True)
+    stale_record_path.write_text(json.dumps(stale_record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        source_surface="runtime_supervisor_scan",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+        },
+        input_refs={
+            "evidence_ledger": {
+                "path": str(evidence_path),
+                "present": True,
+                "valid": True,
+            },
+            "claim_evidence_map": {
+                "path": str(claim_map_path),
+                "present": True,
+                "valid": True,
+            },
+        },
+    )
+
+    materialized = materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    persisted = read_ai_reviewer_request(study_root=study_root)
+
+    assert "ai_reviewer_record" not in materialized
+    assert "publication_eval_record_ref" not in materialized
+    assert persisted is not None
+    assert "ai_reviewer_record" not in persisted
+    assert persisted["request_lifecycle"]["blocked_reason"] == "ai_reviewer_record_stale_after_current_inputs"
+    assert persisted["request_lifecycle"]["stale_record_ref"] == str(stale_record_path.resolve())
+    assert persisted["request_lifecycle"]["required_currentness_refs"] == [
+        str(evidence_path.resolve()),
+        str(claim_map_path.resolve()),
+    ]
+
+
 def test_stale_record_lifecycle_stays_requested_despite_old_publication_eval_timestamp(
     tmp_path,
 ) -> None:

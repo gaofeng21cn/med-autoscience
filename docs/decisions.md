@@ -5,6 +5,15 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-27：AI reviewer record currentness 绑定当前核心输入
+
+- 决策：AI reviewer request 物化不能只检查旧 reviewer record 是否早于当前 manuscript；当 request 的核心输入 `manuscript`、`evidence_ledger` 或 `claim_evidence_map` 已更新，且旧 reviewer record 的 provenance/source refs 消费过这些输入时，该 record 必须 fail closed 为 `ai_reviewer_record_stale_after_current_inputs`，并 route 到 `produce_ai_reviewer_publication_eval_record_against_current_inputs`。不得继续复用旧 record 的 `quality_assessment` 或 `recommended_actions` 来重驱已经闭合的 repair work unit。
+- 决策：进入 `return_to_ai_reviewer_workflow` 的 request-bound AI reviewer record 必须满足完整 production reviewer OS 合同；测试 fixture、current manuscript routeback record、clean paper-authority migration 合成 record 都不能绕过 `reviewer_operating_system`、claim-evidence alignment、publication-quality readiness 和 future-facing limitations plan 校验。clean-migration record 只能表达 blocked/route-back/rebuild authority，不能授权 publication ready。
+- 决策：`family_stage_control_plane.stages[].stage_contract.user_stage_log_contract` 必须声明 OPL standard `opl_standard_agent_user_stage_log_contract`，并把 MAS typed closeout 中的 `paper_stage_log` 映射为标准 `user_stage_log` / `stage_log_summary` 语义来源。每个 stage 必须暴露 problem_summary、stage_work_done、changed_stage_surfaces、remaining_blockers 以及 duration/token_usage/cost 观测字段；OPL 只能投影该日志，不得推断医学语义、写 study truth 或授权 publication/quality/submission ready。
+- 理由：DM003 暴露出 claim-evidence A1 repair 已经由 MAS owner path 闭合，且最新 reviewer OS alignment 为 ready，但旧 AI reviewer response record 仍早于当前 evidence ledger / claim-evidence map。旧 record 的顶层 `evidence_strength` 与 `recommended_actions` 继续把 next work unit 指向已闭合的 claim-evidence repair，形成 AI reviewer currentness split-brain。另一处真实路径中 clean-migration 合成 record 缺完整 reviewer OS，导致 paper-authority clean migration 被 `ai_reviewer_record_incomplete`/invalid blocker 卡住。
+- 理由：OPL scaffold validation 新增 user-stage-log 合同后，MAS 已有 default-executor `paper_stage_log` closeout contract 仍未投影到 stage control plane，导致标准 agent pack admission fail closed。正确修复位置是 MAS stage pack machine contract，不是放宽 OPL validator 或手工编辑 generated contract JSON。
+- 影响：这是 MAS AI reviewer owner-route/currentness 与 production record completeness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续 DM003 仍必须通过 MAS owner/controller/runtime path 生成当前 AI reviewer record、publication eval、publication gate 和 package refresh。
+
 ## 2026-05-27：claim-evidence repair 可从同 ID ledger items 物化缺失 claim row
 
 - 决策：`claim_evidence_alignment` gate 继续要求正式 `evidence_ledger.claims[].evidence[].evidence_id` 与 `claim_evidence_map.claims[].evidence_items[].item_id` 对齐，不把 top-level `items[]` 直接视为 claim-level 对齐成功。`claim_evidence_alignment_repair` / `current_manuscript_claim_evidence_alignment_repair` 在 claim row 缺失时，可以把 claim map 中所有 evidence item 精确匹配到同 ID `evidence_ledger.items[]` 后，物化一条 claim-level ledger row，并继续请求 AI reviewer recheck。

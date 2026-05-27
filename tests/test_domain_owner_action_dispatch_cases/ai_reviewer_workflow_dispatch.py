@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.ai_reviewer_record_fixture_helpers import minimal_ai_reviewer_record as _minimal_ai_reviewer_record
 from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
@@ -11,23 +12,6 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_json as _write_json,
 )
 from tests.study_runtime_test_helpers import make_profile, write_study
-
-
-def _minimal_ai_reviewer_record(study_id: str, quest_id: str, eval_id: str) -> dict[str, object]:
-    return {
-        "eval_id": eval_id,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
-        "future_facing_limitations_plan": [
-            {
-                "limitation": "Medication coverage is based on recorded medication fields.",
-                "impact_on_claim": "Treatment-gap claims must remain documentation-aware.",
-                "required_future_analysis_data_or_design": "Link pharmacy or insurance dispensing data.",
-                "current_manuscript_wording_must_be_restrained": True,
-            }
-        ],
-    }
 
 
 def _complete_ai_reviewer_input_refs(
