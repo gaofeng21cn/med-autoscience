@@ -21,6 +21,20 @@ def scan_text_file(path: Path) -> list[dict[str, Any]]:
 
 
 TEXT_ASSET_SUFFIXES = {".svg", ".md", ".txt", ".html", ".xml", ".json"}
+FIGURE_LAYOUT_TEXT_BOX_TYPES = {
+    "caption",
+    "footnote",
+    "panel_label",
+    "panel_title",
+    "row_action",
+    "row_label",
+    "row_metric",
+    "subplot_x_axis_title",
+    "title",
+    "verdict_detail",
+    "verdict_value",
+}
+FIGURE_LAYOUT_TEXT_OVERLAP_AREA_THRESHOLD = 0.0002
 MARKDOWN_TABLE_ROW_RE = re.compile(r"^\s*\|?.+\|.+\|?\s*$")
 MARKDOWN_TABLE_DELIMITER_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
 MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
@@ -114,6 +128,97 @@ def extract_svg_text_nodes(path: Path) -> list[str]:
     return nodes
 
 
+def _layout_box_coordinates(box: dict[str, Any]) -> tuple[float, float, float, float] | None:
+    coordinates: list[float] = []
+    for key in ("x0", "y0", "x1", "y1"):
+        value = box.get(key)
+        if isinstance(value, bool) or not isinstance(value, int | float):
+            return None
+        coordinates.append(float(value))
+    return coordinates[0], coordinates[1], coordinates[2], coordinates[3]
+
+
+def _layout_box_id(box: dict[str, Any], index: int) -> str:
+    return str(box.get("box_id") or f"layout_box_{index}").strip()
+
+
+def _layout_box_type(box: dict[str, Any]) -> str:
+    return str(box.get("box_type") or "").strip()
+
+
+def inspect_figure_layout_box_geometry(
+    *,
+    layout_sidecar_path: Path,
+    figure_id: str,
+    layout_boxes: list[Any],
+) -> list[dict[str, Any]]:
+    hits: list[dict[str, Any]] = []
+    normalized_boxes: list[tuple[int, dict[str, Any], tuple[float, float, float, float]]] = []
+    for index, raw_box in enumerate(layout_boxes):
+        if not isinstance(raw_box, dict):
+            continue
+        coordinates = _layout_box_coordinates(raw_box)
+        if coordinates is None:
+            continue
+        x0, y0, x1, y1 = coordinates
+        box_id = _layout_box_id(raw_box, index)
+        normalized_boxes.append((index, raw_box, coordinates))
+        if not (0 <= x0 <= 1 and 0 <= x1 <= 1 and 0 <= y0 <= 1 and 0 <= y1 <= 1):
+            hits.append(
+                {
+                    "path": str(layout_sidecar_path),
+                    "location": f"layout_boxes[{index}]",
+                    "pattern_id": "figure_layout_box_out_of_bounds",
+                    "phrase": figure_id,
+                    "excerpt": f"Figure `{figure_id}` layout box `{box_id}` has normalized coordinates outside [0, 1].",
+                }
+            )
+        if x1 <= x0 or y1 <= y0:
+            hits.append(
+                {
+                    "path": str(layout_sidecar_path),
+                    "location": f"layout_boxes[{index}]",
+                    "pattern_id": "figure_layout_box_invalid_extent",
+                    "phrase": figure_id,
+                    "excerpt": f"Figure `{figure_id}` layout box `{box_id}` has non-positive width or height.",
+                }
+            )
+
+    text_boxes = [
+        (index, box, coordinates)
+        for index, box, coordinates in normalized_boxes
+        if _layout_box_type(box) in FIGURE_LAYOUT_TEXT_BOX_TYPES
+    ]
+    for left_index, (index_a, box_a, coords_a) in enumerate(text_boxes):
+        ax0, ay0, ax1, ay1 = coords_a
+        if ax1 <= ax0 or ay1 <= ay0:
+            continue
+        for index_b, box_b, coords_b in text_boxes[left_index + 1 :]:
+            bx0, by0, bx1, by1 = coords_b
+            if bx1 <= bx0 or by1 <= by0:
+                continue
+            overlap_width = max(0.0, min(ax1, bx1) - max(ax0, bx0))
+            overlap_height = max(0.0, min(ay1, by1) - max(ay0, by0))
+            overlap_area = overlap_width * overlap_height
+            if overlap_area <= FIGURE_LAYOUT_TEXT_OVERLAP_AREA_THRESHOLD:
+                continue
+            left_box_id = _layout_box_id(box_a, index_a)
+            right_box_id = _layout_box_id(box_b, index_b)
+            hits.append(
+                {
+                    "path": str(layout_sidecar_path),
+                    "location": f"layout_boxes[{index_a}], layout_boxes[{index_b}]",
+                    "pattern_id": "figure_layout_text_box_overlap",
+                    "phrase": figure_id,
+                    "excerpt": (
+                        f"Figure `{figure_id}` text layout boxes `{left_box_id}` and `{right_box_id}` "
+                        f"overlap in normalized layout space."
+                    ),
+                }
+            )
+    return hits
+
+
 def inspect_figure_layout_sidecar_contract(
     *,
     paper_root: Path,
@@ -153,6 +258,14 @@ def inspect_figure_layout_sidecar_contract(
                         "for auditability."
                     ),
                 }
+            )
+        if isinstance(layout_boxes, list):
+            hits.extend(
+                inspect_figure_layout_box_geometry(
+                    layout_sidecar_path=layout_sidecar_path,
+                    figure_id=figure_id,
+                    layout_boxes=layout_boxes,
+                )
             )
         panel_labels: set[str] = set()
         if isinstance(metrics, dict):
@@ -589,4 +702,3 @@ def scan_methodology_labels_text_file(path: Path) -> list[dict[str, Any]]:
                     }
                 )
     return hits
-

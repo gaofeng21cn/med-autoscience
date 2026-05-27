@@ -8,3 +8,4 @@ from tests.medical_publication_surface_cases.catalog_tables_and_public_data_cont
 from tests.medical_publication_surface_cases.statistical_disclosure_contracts import *
 from tests.medical_publication_surface_cases.controller_and_surface_state import *
 from tests.medical_publication_surface_cases.prose_style_gate import *
+from tests.medical_publication_surface_cases.reference_citation_coverage import *
