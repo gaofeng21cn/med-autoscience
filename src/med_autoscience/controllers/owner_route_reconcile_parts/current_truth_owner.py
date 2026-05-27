@@ -17,6 +17,7 @@ from med_autoscience.controllers.story_surface_work_units import (
     is_claim_evidence_alignment_write_work_unit,
     is_story_surface_delta_write_work_unit,
 )
+from med_autoscience.controllers.study_domain_transition_table_parts import ai_reviewer_transitions
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -226,6 +227,8 @@ def current_ai_reviewer_write_routeback_route(
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    if ai_reviewer_transitions.requires_owner_authorized_publication_gate_recheck_only(publication_eval_payload):
+        return None
     if not _ai_reviewer_write_routeback_current(publication_eval_payload):
         return None
     action = _publication_story_repair_action(publication_eval_payload)

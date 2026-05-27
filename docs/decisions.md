@@ -5,6 +5,13 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-27：gate-recheck-only 质量态优先于旧 write route-back
+
+- 决策：当 AI reviewer-backed `reviewer_operating_system.claim_evidence_alignment.status=ready`，且 `publication_quality_readiness` 唯一缺项是 `owner_authorized_publication_gate_recheck` 时，`owner-route-reconcile` 必须把旧 `recommended_actions.route_back_same_line -> write` 视为已被当前 AI reviewer readiness supersede。当前 next owner 应回到 `publication_gate_blocker` / `run_gate_clearing_batch`，由 MAS publication gate replay 消费最新 reviewer OS，而不是重新 redrive 已闭合的 claim-evidence write repair。
+- 决策：该抑制只适用于严格的 gate-recheck-only 状态：AI reviewer provenance 为当前 owner、`ai_reviewer_required=false`、claim-evidence 无 missing/blocker、readiness digests 完整，且 missing fields 精确等于 `owner_authorized_publication_gate_recheck`。一般的 current AI reviewer write route-back、story-surface blocker 和 claim-evidence repair route 继续归 `write` owner 的 `run_quality_repair_batch`。
+- 理由：DM003 暴露出最新 AI reviewer OS 已确认 claim-evidence alignment ready，但顶层旧 `recommended_actions` 仍保留 `current_manuscript_claim_evidence_alignment_repair`。旧 owner-route 优先读取该 stale write route，导致 study 在已闭合 repair 后继续排 `run_quality_repair_batch`，无法进入 publication gate replay。
+- 影响：这是 MAS owner-route currentness / supersession 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。论文后续仍必须由 MAS owner/controller/runtime path 生成 gate-clearing batch、AI reviewer-backed eval、publication gate verdict 和 package refresh。
+
 ## 2026-05-27：AI reviewer record currentness 绑定当前核心输入
 
 - 决策：AI reviewer request 物化不能只检查旧 reviewer record 是否早于当前 manuscript；当 request 的核心输入 `manuscript`、`evidence_ledger` 或 `claim_evidence_map` 已更新，且旧 reviewer record 的 provenance/source refs 消费过这些输入时，该 record 必须 fail closed 为 `ai_reviewer_record_stale_after_current_inputs`，并 route 到 `produce_ai_reviewer_publication_eval_record_against_current_inputs`。不得继续复用旧 record 的 `quality_assessment` 或 `recommended_actions` 来重驱已经闭合的 repair work unit。
