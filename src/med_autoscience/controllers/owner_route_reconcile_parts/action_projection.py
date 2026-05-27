@@ -521,6 +521,8 @@ def _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
         return True
     if gate_specificity.get("required") is True:
         return True
+    if _publication_gate_blocker_domain_transition(status):
+        return True
     if current_truth_owner.current_story_surface_delta_blocker_route(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -565,6 +567,8 @@ def _higher_priority_owner_truth_blocks_generic_ai_reviewer(
         return True
     if gate_specificity.get("required") is True:
         return True
+    if _publication_gate_blocker_domain_transition(status):
+        return True
     if current_truth_owner.current_story_surface_delta_blocker_route(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -588,6 +592,15 @@ def _higher_priority_owner_truth_blocks_generic_ai_reviewer(
     if source_provenance_owner_result.typed_blocker_state(study_root=study_root):
         return True
     return False
+
+
+def _publication_gate_blocker_domain_transition(status: Mapping[str, Any]) -> bool:
+    transition = _mapping(status.get("domain_transition"))
+    return (
+        _text(transition.get("decision_type")) == "publication_gate_blocker"
+        and _text(transition.get("controller_action")) == "run_gate_clearing_batch"
+        and _text(_mapping(transition.get("next_work_unit")).get("unit_id")) is not None
+    )
 
 
 def _pending_ai_reviewer_recheck_consumes_current_write_routeback(

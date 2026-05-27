@@ -152,6 +152,122 @@ def test_refresh_domain_transition_controller_decision_authorizes_runtime_withou
     assert ensure_calls == []
 
 
+def test_refresh_publication_gate_blocker_domain_transition_materializes_gate_replay(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    work_unit_fingerprint = "domain-transition::publication_gate_blocker::publication_gate_replay"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::current-gate-blocked",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "assessment_provenance": {"owner": "ai_reviewer"},
+            "verdict": {"overall_verdict": "mixed"},
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "waiting_for_user",
+            "quest_id": study_id,
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 0,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "decision": "blocked",
+        "reason": "quest_waiting_for_submission_metadata",
+        "quest_status": "waiting_for_user",
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "publication_gate_blocker",
+            "route_target": "review",
+            "controller_action": "run_gate_clearing_batch",
+            "owner": "publication_gate",
+            "next_work_unit": {
+                "unit_id": "publication_gate_replay",
+                "lane": "review",
+                "summary": "Replay the MAS publication gate and route blockers to a bounded repair unit.",
+            },
+        },
+    }
+    ensure_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_domain_health_diagnostic_outer_loop_tick_request", lambda **_: None)
+
+    def fake_materialize_non_dispatching_outer_loop_decision(**kwargs: object) -> dict[str, object]:
+        _write_json(
+            study_root / "artifacts" / "controller_decisions" / "latest.json",
+            {
+                "schema_version": 1,
+                "decision_id": "fresh-publication-gate-replay-decision",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "requires_human_confirmation": False,
+                "controller_actions": kwargs["controller_actions"],
+                "route_target": "review",
+                "work_unit_fingerprint": kwargs["work_unit_fingerprint"],
+                "next_work_unit": kwargs["next_work_unit"],
+            },
+        )
+        return {
+            "dispatch_status": "recorded_non_dispatching",
+            "study_decision_ref": {
+                "artifact_path": str(study_root / "artifacts" / "controller_decisions" / "latest.json")
+            },
+        }
+
+    def fail_request_opl_stage_attempt(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
+        raise AssertionError("MAS must not resume OPL-owned runtime workers")
+
+    monkeypatch.setattr(
+        outer_loop,
+        "materialize_non_dispatching_outer_loop_decision",
+        fake_materialize_non_dispatching_outer_loop_decision,
+    )
+    monkeypatch.setattr(module.domain_status_projection, "request_opl_stage_attempt", fail_request_opl_stage_attempt, raising=False)
+
+    result = module.refresh_controller_decisions_for_current_publication_eval(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    refresh = result["refreshes"][0]
+    runtime_authorization = refresh["runtime_authorization"]
+    current_authorization = runtime_authorization["current_controller_authorization"]
+    assert result["materialized_count"] == 1
+    assert refresh["refresh_status"] == "materialized"
+    assert refresh["dispatch_status"] == "recorded_non_dispatching"
+    assert runtime_authorization["authorization_status"] == "owner_handoff_ready"
+    assert runtime_authorization["runtime_resume_status"] == "owner_route_required"
+    assert runtime_authorization["queue_owner"] == "one-person-lab"
+    assert runtime_authorization["runtime_state_mutated"] is False
+    assert current_authorization["controller_actions"] == ["run_gate_clearing_batch"]
+    assert current_authorization["work_unit_id"] == "publication_gate_replay"
+    assert current_authorization["work_unit_fingerprint"] == work_unit_fingerprint
+    assert ensure_calls == []
+
+
 def test_refresh_bundle_stage_domain_transition_controller_decision_authorizes_finalize_runtime(
     monkeypatch,
     tmp_path: Path,

@@ -149,6 +149,12 @@ def status_domain_transition_tick_request(
     )
     if ai_reviewer_request is not None:
         return ai_reviewer_request
+    publication_gate_request = status_domain_transition_publication_gate_tick_request(
+        study_root=study_root,
+        status_payload=status_payload,
+    )
+    if publication_gate_request is not None:
+        return publication_gate_request
     return status_domain_transition_route_back_tick_request(
         study_root=study_root,
         status_payload=status_payload,
@@ -241,6 +247,54 @@ def status_domain_transition_route_back_tick_request(
         "controller_actions": [
             {
                 "action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+                "payload_ref": str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": reason,
+        "work_unit_fingerprint": f"domain-transition::{transition_type}::{transition_unit_id}",
+        "next_work_unit": dict(transition_unit),
+        "blocking_work_units": [dict(transition_unit)],
+        "currentness_basis": "status_domain_transition",
+    }
+
+
+def status_domain_transition_publication_gate_tick_request(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if _status_payload_requests_human_gate(status_payload):
+        return None
+    domain_transition = _mapping(status_payload.get("domain_transition"))
+    transition_unit = _mapping(domain_transition.get("next_work_unit"))
+    transition_unit_id = _text(transition_unit.get("unit_id"))
+    transition_action = _text(domain_transition.get("controller_action"))
+    transition_type = _text(domain_transition.get("decision_type"))
+    if (
+        transition_type != "publication_gate_blocker"
+        or transition_action != StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
+        or transition_unit_id is None
+    ):
+        return None
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    charter_ref = _stable_charter_ref(resolved_study_root)
+    publication_eval_ref = _stable_publication_eval_ref(resolved_study_root)
+    if charter_ref is None or publication_eval_ref is None:
+        return None
+    reason = _text(transition_unit.get("summary")) or "Replay the MAS publication gate after owner-authorized repair."
+    return {
+        "study_root": resolved_study_root,
+        "charter_ref": charter_ref,
+        "publication_eval_ref": publication_eval_ref,
+        "decision_type": "publication_gate_blocker",
+        "route_target": _text(domain_transition.get("route_target")) or "review",
+        "route_key_question": "当前 AI reviewer-backed publication eval 是否已经通过 MAS publication gate？",
+        "route_rationale": "The current AI reviewer evaluation must be replayed through the publication gate before package or submission work can proceed.",
+        "source_route_key_question": None,
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value,
                 "payload_ref": str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
             }
         ],
@@ -347,6 +401,11 @@ def _tick_request_spec_for_transition(
         }
     ):
         return StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
+    if (
+        transition_type == "publication_gate_blocker"
+        and transition_action == StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
+    ):
+        return StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
     return None
 
 
@@ -424,6 +483,7 @@ __all__ = [
     "status_domain_transition_route_back_tick_request",
     "status_domain_transition_tick_request",
     "status_domain_transition_ai_reviewer_tick_request",
+    "status_domain_transition_publication_gate_tick_request",
     "tick_request_matches_domain_transition",
     "tick_request_matches_ai_reviewer_domain_transition",
     "work_unit_id_from_tick_request",

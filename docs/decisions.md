@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-28：publication gate replay transition 必须压过 stale AI reviewer pending request
+
+- 决策：当 `progress_projection.domain_transition` 已是 `publication_gate_blocker` 且 `controller_action=run_gate_clearing_batch` 时，owner-route 必须把它作为当前更高优先级 owner truth，阻断旧的 pending `return_to_ai_reviewer_workflow` request；`domain-owner-action-refresh-controller-decisions` 也必须能从该 transition 合成 non-dispatching gate replay controller decision，而不依赖旧 outer-loop tick request。
+- 理由：DM003 暴露出 AI reviewer recheck 已刷新当前 `publication_eval/latest.json` 后，read model 正确进入 `publication_gate_replay`，但稳定 AI reviewer request residue 仍让 owner-route 重复派 `return_to_ai_reviewer_workflow`，controller refresh 也返回 `outer_loop_tick_request_unavailable`。根因是 MAS currentness / route fallback 未覆盖 gate replay transition，不是 OPL queue/provider lifecycle，也不是论文稿件可手工 patch 的内容问题。
+- 影响：gate replay 由 MAS publication gate owner 接管，后续若 gate 把问题 route back 到 write，再由 `run_quality_repair_batch` 修 manuscript/story surfaces；不得让 stale reviewer request 抢占已消费的 reviewer verdict。
+
 ## 2026-05-27：gate-recheck-only 质量态优先于旧 write route-back
 
 - 决策：当 AI reviewer-backed `reviewer_operating_system.claim_evidence_alignment.status=ready`，且 `publication_quality_readiness` 唯一缺项是 `owner_authorized_publication_gate_recheck` 时，`owner-route-reconcile` 必须把旧 `recommended_actions.route_back_same_line -> write` 视为已被当前 AI reviewer readiness supersede。当前 next owner 应回到 `publication_gate_blocker` / `run_gate_clearing_batch`，由 MAS publication gate replay 消费最新 reviewer OS，而不是重新 redrive 已闭合的 claim-evidence write repair。
