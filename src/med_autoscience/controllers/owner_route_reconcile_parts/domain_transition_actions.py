@@ -42,7 +42,7 @@ def actions(status: Mapping[str, Any]) -> list[dict[str, Any]] | None:
         work_unit_id = "unit_harmonized_external_validation_rerun"
     owner = (
         _owner_for_domain_action(action_type)
-        if unit_harmonized_analysis_route
+        if unit_harmonized_analysis_route or decision_type == "publication_gate_blocker"
         else "write"
         if write_repair_route or current_ai_reviewer_materialization_route
         else domain_transition_guard.owner(status) or _owner_for_domain_action(action_type)

@@ -200,6 +200,12 @@ def projection_block_state(
             "next_owner": "write",
             "external_supervisor_required": False,
         }
+    if _has_gate_clearing_batch_action(actions):
+        return {
+            "blocked_reason": _gate_clearing_batch_blocked_reason(actions),
+            "next_owner": "gate_clearing_batch",
+            "external_supervisor_required": False,
+        }
     if completion_evidence.completed_current_truth(status, progress):
         return _clear_block_state()
     parked_state = parked_truth.block_state(
@@ -259,6 +265,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "publication_gate"
     if blocked_reason == evidence_adoption.OWNER_HANDOFF_REASON:
         return "mas_controller"
+    if blocked_reason in {"domain_transition_publication_gate_blocker", "run_gate_clearing_batch"}:
+        return "gate_clearing_batch"
     if blocked_reason == "current_package_freshness_required":
         return "artifact_os"
     if blocked_reason == "display_surface_materialization_failed":
@@ -327,6 +335,21 @@ def _has_write_quality_repair_action(actions: list[dict[str, Any]]) -> bool:
         and _text(action.get("owner")) == "write"
         for action in actions
     )
+
+
+def _has_gate_clearing_batch_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "run_gate_clearing_batch"
+        and _text(action.get("owner")) == "gate_clearing_batch"
+        for action in actions
+    )
+
+
+def _gate_clearing_batch_blocked_reason(actions: list[dict[str, Any]]) -> str:
+    for action in actions:
+        if _text(action.get("action_type")) == "run_gate_clearing_batch":
+            return _text(action.get("reason")) or "run_gate_clearing_batch"
+    return "run_gate_clearing_batch"
 
 
 def _write_quality_repair_blocked_reason(
