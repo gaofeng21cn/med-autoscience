@@ -250,7 +250,7 @@ def payload_fields_for_default_executor_dispatch(
 
 
 def closeout_packet_for_transport(closeout_packet: Mapping[str, Any]) -> dict[str, Any]:
-    return {
+    packet = {
         "typed_closeout_required_for_completion": bool(
             closeout_packet.get("typed_closeout_required_for_completion")
         ),
@@ -259,6 +259,16 @@ def closeout_packet_for_transport(closeout_packet: Mapping[str, Any]) -> dict[st
         "required_ref_field": _text(closeout_packet.get("required_ref_field")),
         "minimum_closeout_refs": int(closeout_packet.get("minimum_closeout_refs") or 0),
     }
+    for key in (
+        "required_user_stage_log_field",
+        "accepted_user_stage_log_fields",
+        "required_user_stage_log_fields",
+        "user_stage_log_policy",
+    ):
+        value = closeout_packet.get(key)
+        if value:
+            packet[key] = value
+    return packet
 
 
 def route_protocol_dispatchable(owner_route: Mapping[str, Any], *, action_type: str | None = None) -> bool:

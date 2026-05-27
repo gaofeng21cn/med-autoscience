@@ -340,7 +340,9 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-05-22：quality repair writer handoff 继承当前 owner route
 
 - 决策：`quality_repair_batch` 生成 `quality_repair_batch_writer_handoff` 时，必须优先继承当前 dispatch/scan owner route；只有当 study、quest、next owner、blocked reason 与 allowed action 全部匹配时才可继承。不能用由 publication blockers 或内部 selected work unit 推导出的新 route 替换当前 owner route。
+- 决策：`required_closeout_packet` 的 `paper_stage_log` 要求必须贯穿 default-executor dispatch payload、prompt contract、owner-route attempt envelope、family-task payload 和 MAS `default_executor_execution` receipt。若 provider typed closeout 未直接提供 `paper_stage_log` / `user_stage_log` / `stage_log_summary`，MAS receipt 也必须提供 read-model-only `paper_stage_log`，供 OPL `stage_progress_log.user_stage_log` 投影 stage 做了什么、剩余 blocker、证据 refs、耗时/token/cost 观测。该摘要不写论文正文，不授权 paper/package/publication truth。
 - 理由：DM002 暴露出 writer handoff 的 `quality-repair-writer-handoff::*` route 与当前 `run_quality_repair_batch` owner route 不一致时，study-level persisted dispatch 无法匹配 owner request，stale consumer inline dispatch 会再次抢占并触发 `paper_progress_stall_fingerprint_stale`。修复应保持 fail-closed currentness，不放宽 owner-route guard。
+- 理由：DM002 的 OPL `stage_progress_log` 已能稳定显示 intended/actual timeline，但因 MAS closeout 和 fallback receipt 缺少 user-stage semantics，只能输出 `missing_domain_semantic_summary`。这让“每个 stage 做了什么”继续黑箱。OPL 不应推断医学论文语义；MAS 必须在 owner handoff/receipt 中提供这块语义。
 - 影响：domain owner dispatch 会把当前 owner route 传给 quality repair owner callable；writer handoff 继续只授权 Codex default writer attempt，不授权 MAS 直接改 `paper/submission_minimal`、`manuscript/current_package` 或 publication truth surface。
 
 ## 2026-05-22：default executor dispatch 必须显式要求 typed closeout packet

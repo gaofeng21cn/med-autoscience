@@ -14,6 +14,7 @@ from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import domain_authority_refs_index
 
 from . import runtime_dispatch_cost, domain_status_projection
+from .default_executor_stage_log import paper_stage_log_for_default_executor_execution
 from .domain_owner_action_dispatch_parts import action_execution
 from .domain_owner_action_dispatch_parts import action_router
 from .domain_owner_action_dispatch_parts import controller_refresh
@@ -668,9 +669,9 @@ def _dispatch_execution_payload(
     apply: bool,
     developer_mode_payload: Mapping[str, Any],
     execution: Mapping[str, Any],
-) -> dict[str, Any]:
+    ) -> dict[str, Any]:
     paper_work_unit_lifecycle = paper_work_unit_lifecycle_for_action(action_type)
-    return {
+    execution_payload = {
         "surface": "default_executor_dispatch_execution",
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -713,6 +714,17 @@ def _dispatch_execution_payload(
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         **execution,
     }
+    if "paper_stage_log" not in execution_payload:
+        execution_payload["paper_stage_log"] = paper_stage_log_for_default_executor_execution(
+            study_id=study_id,
+            action_type=action_type,
+            next_executable_owner=_text(dispatch.get("next_executable_owner")),
+            required_output_surface=_text(dispatch.get("required_output_surface")),
+            dispatch_path=dispatch_path,
+            dispatch=dispatch,
+            execution=execution_payload,
+        )
+    return execution_payload
 
 
 def _persist_study_executions(

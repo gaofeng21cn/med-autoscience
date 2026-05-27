@@ -198,6 +198,13 @@ def test_execute_dispatch_treats_quality_repair_writer_handoff_as_dispatchable_n
         "requires_owner_receipt_or_typed_blocker"
     ] is True
     assert execution["writer_worker_handoff"]["next_executable_owner"] == "write"
+    assert execution["paper_stage_log"]["surface_kind"] == "mas_paper_facing_stage_log_summary"
+    assert execution["paper_stage_log"]["stage_name"] == "medical_prose_write_repair"
+    assert execution["paper_stage_log"]["current_owner"] == "write"
+    assert execution["paper_stage_log"]["status"] == "available"
+    assert execution["paper_stage_log"]["language_boundary"]["paper_body_included"] is False
+    assert execution["paper_stage_log"]["authority"]["can_write_paper"] is False
+    assert execution["paper_stage_log"]["authority"]["can_authorize_quality_verdict"] is False
     closeout_contract = execution["writer_worker_handoff"]["required_closeout_packet"]
     assert closeout_contract["typed_closeout_required_for_completion"] is True
     assert closeout_contract["free_text_closeout_accepted"] is False
@@ -677,6 +684,13 @@ def test_execute_dispatch_does_not_empty_spin_consumed_quality_repair_writer_han
     assert execution["owner_callable_surface"] == "quality_repair_batch.run_quality_repair_batch"
     assert execution["consumed_writer_handoff_empty_spin_blocked"] is True
     assert execution["required_next_owner"] == "write"
+    assert execution["paper_stage_log"]["surface_kind"] == "mas_paper_facing_stage_log_summary"
+    assert execution["paper_stage_log"]["stage_name"] == "medical_prose_write_repair"
+    assert execution["paper_stage_log"]["outcome"] == "blocked:manuscript_story_surface_delta_missing"
+    assert execution["paper_stage_log"]["remaining_blockers"] == ["manuscript_story_surface_delta_missing"]
+    assert execution["paper_stage_log"]["paper_work_done"] == [
+        "Recorded a typed owner blocker without claiming paper readiness."
+    ]
     assert called["authority_route_context"]["work_unit_id"] == "medical_prose_write_repair"
 
 

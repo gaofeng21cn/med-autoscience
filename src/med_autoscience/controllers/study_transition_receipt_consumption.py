@@ -67,14 +67,21 @@ def default_executor_execution_receipt_consumption(
         action_type = _text(execution.get("action_type"))
         if action_type not in current_action_types:
             continue
-        if _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES:
+        owner_result = _mapping(execution.get("owner_result"))
+        repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
+        blocked_typed_closeout = _default_executor_blocked_typed_closeout(
+            execution=execution,
+            receipt_ref=receipt_ref,
+        )
+        if (
+            _text(execution.get("execution_status")) not in _DEFAULT_EXECUTOR_EXECUTED_STATUSES
+            and not blocked_typed_closeout
+        ):
             continue
         if _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered":
             continue
         if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
-        owner_result = _mapping(execution.get("owner_result"))
-        repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
         if not _default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
@@ -131,7 +138,7 @@ def default_executor_execution_nonconsumable_closeout(
         )
         owner_result = _mapping(execution.get("owner_result"))
         repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
-        if not blocked_typed_closeout and not recovered_stage_packet_currentness and _default_executor_owner_result_consumable(
+        if not recovered_stage_packet_currentness and _default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
             repair_evidence=repair_evidence,
@@ -730,6 +737,8 @@ def _quality_repair_batch_owner_result_satisfies_route_output(
     if _text(owner_result.get("blocked_reason")) == "manuscript_story_surface_delta_missing":
         return True
     hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
+    if "manuscript_story_surface_delta_missing" in _string_set(hygiene.get("blockers")):
+        return True
     if (
         hygiene.get("story_surface_delta_required") is True
         and hygiene.get("story_surface_delta_present") is not True

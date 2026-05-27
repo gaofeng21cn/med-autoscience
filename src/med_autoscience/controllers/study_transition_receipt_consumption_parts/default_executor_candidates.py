@@ -117,9 +117,6 @@ def _stage_closeout_execution_status(closeout: Mapping[str, Any]) -> str:
 
 
 def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path) -> tuple[dict[str, Any], str]:
-    stage_packet_route = _stage_closeout_stage_packet_owner_route(closeout=closeout, study_root=study_root)
-    if stage_packet_route:
-        return stage_packet_route, "stage_packet_ref_recovered"
     basis = _mapping(closeout.get("owner_route_basis")) or _mapping(closeout.get("owner_route_currentness"))
     if not basis:
         basis = {
@@ -128,33 +125,36 @@ def _stage_closeout_owner_route(*, closeout: Mapping[str, Any], study_root: Path
             "work_unit_id": _text(closeout.get("work_unit_id")),
             "owner_reason": _text(closeout.get("owner_reason")),
         }
-    if not any(_text(basis.get(key)) for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason")):
-        return {}, "missing"
-    action_type = _text(closeout.get("action_type"))
-    owner = _text(closeout.get("owner")) or _text(_mapping(closeout.get("domain_execution")).get("domain_owner"))
-    return {
-        "truth_epoch": _text(basis.get("truth_epoch")),
-        "route_epoch": _text(basis.get("truth_epoch")),
-        "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
-        "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
-        "next_owner": "write" if owner in {"quality_repair_batch", "write"} else owner,
-        "owner_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
-        "allowed_actions": [action_type] if action_type else [],
-        "source_refs": {
-            "owner_route_currentness_basis": {
-                "truth_epoch": _text(basis.get("truth_epoch")),
+    if any(_text(basis.get(key)) for key in ("truth_epoch", "work_unit_fingerprint", "work_unit_id", "owner_reason")):
+        action_type = _text(closeout.get("action_type"))
+        owner = _text(closeout.get("owner")) or _text(_mapping(closeout.get("domain_execution")).get("domain_owner"))
+        return {
+            "truth_epoch": _text(basis.get("truth_epoch")),
+            "route_epoch": _text(basis.get("truth_epoch")),
+            "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
+            "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
+            "next_owner": "write" if owner in {"quality_repair_batch", "write"} else owner,
+            "owner_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
+            "allowed_actions": [action_type] if action_type else [],
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    "truth_epoch": _text(basis.get("truth_epoch")),
+                    "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
+                    "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
+                    "work_unit_id": _text(basis.get("work_unit_id")),
+                    "owner_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
+                },
+                "study_truth_epoch": _text(basis.get("truth_epoch")),
                 "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
                 "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
                 "work_unit_id": _text(basis.get("work_unit_id")),
-                "owner_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
+                "blocked_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
             },
-            "study_truth_epoch": _text(basis.get("truth_epoch")),
-            "runtime_health_epoch": _text(basis.get("runtime_health_epoch")),
-            "work_unit_fingerprint": _text(basis.get("work_unit_fingerprint")),
-            "work_unit_id": _text(basis.get("work_unit_id")),
-            "blocked_reason": _text(basis.get("owner_reason")) or _text(closeout.get("blocked_reason")),
-        },
-    }, "embedded_currentness_basis"
+        }, "embedded_currentness_basis"
+    stage_packet_route = _stage_closeout_stage_packet_owner_route(closeout=closeout, study_root=study_root)
+    if stage_packet_route:
+        return stage_packet_route, "stage_packet_ref_recovered"
+    return {}, "missing"
 
 
 def _stage_closeout_stage_packet_owner_route(*, closeout: Mapping[str, Any], study_root: Path) -> dict[str, Any]:
