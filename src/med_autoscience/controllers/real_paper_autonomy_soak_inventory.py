@@ -275,7 +275,7 @@ def _dedupe_target_studies(profiles: Sequence[object]) -> list[dict[str, Any]]:
             study_map = dict(_mapping(study))
             if not study_map:
                 continue
-            target_key = _normalize_study_id(_text(study_map.get("study_id")))
+            target_key = _study_identity_key(_text(study_map.get("study_id")))
             current = by_target.get(target_key)
             if current is None or _study_evidence_rank(study_map) > _study_evidence_rank(current):
                 study_map["profile_path"] = _text(profile_map.get("profile_path"))
@@ -291,9 +291,8 @@ def _target_closeout_packets(
     target_studies: Sequence[str],
     target_coverage: Sequence[object],
 ) -> list[tuple[str, dict[str, Any]]]:
-    by_target = {_normalize_study_id(_text(study.get("study_id"))): study for study in selected_studies}
     coverage_by_target = {
-        _normalize_study_id(_text(_mapping(item).get("target_study"))): _mapping(item)
+        _study_identity_key(_text(_mapping(item).get("target_study"))): _mapping(item)
         for item in target_coverage
     }
     closeouts: list[tuple[str, dict[str, Any]]] = []
@@ -301,8 +300,14 @@ def _target_closeout_packets(
         target_text = _text(target)
         if not target_text:
             continue
-        target_key = _normalize_study_id(target_text)
-        if study := by_target.get(target_key):
+        target_key = _study_identity_key(target_text)
+        matches = [
+            study
+            for study in selected_studies
+            if _matches_target_study(_text(study.get("study_id")), {target_text})
+        ]
+        if matches:
+            study = max(matches, key=_study_evidence_rank)
             closeouts.append(_study_closeout_packet(study))
         else:
             closeouts.append(_target_blocker_closeout_packet(target=target_text, coverage=coverage_by_target.get(target_key, {})))
@@ -373,7 +378,7 @@ def _target_blocker_closeout_packet(*, target: str, coverage: Mapping[str, Any])
     if not typed_blockers:
         typed_blockers = [
             {
-                "blocker_id": f"target_study_not_discovered:{_normalize_study_id(target)}",
+                "blocker_id": f"target_study_not_discovered:{_target_blocker_key(target)}",
                 "target_study": target,
                 "owner": "MedAutoScience",
                 "reason": "no matching study directory was found under the inspected MAS workspace profiles",
@@ -526,7 +531,7 @@ def _target_coverage(
         if not matched:
             typed_blockers.append(
                 {
-                    "blocker_id": f"target_study_not_discovered:{_normalize_study_id(target_text)}",
+                    "blocker_id": f"target_study_not_discovered:{_target_blocker_key(target_text)}",
                     "target_study": target_text,
                     "owner": "MedAutoScience",
                     "reason": "no matching study directory was found under the inspected MAS workspace profiles",
@@ -537,7 +542,7 @@ def _target_coverage(
         elif not any((_text(study.get("final_projection")) or "unknown") in SOAK_EVIDENCE_STATES for study in matched):
             typed_blockers.append(
                 {
-                    "blocker_id": f"target_study_has_no_projection_evidence:{_normalize_study_id(target_text)}",
+                    "blocker_id": f"target_study_has_no_projection_evidence:{_target_blocker_key(target_text)}",
                     "target_study": target_text,
                     "owner": "MedAutoScience",
                     "reason": (
@@ -562,12 +567,34 @@ def _target_coverage(
 
 
 def _matches_target_study(study_id: str, target_studies: set[str]) -> bool:
-    normalized = _normalize_study_id(study_id)
-    return any(normalized == _normalize_study_id(target) for target in target_studies)
+    study_key = _study_identity_key(study_id)
+    return any(_study_matches_target_key(study_key, _study_identity_key(target)) for target in target_studies)
 
 
 def _normalize_study_id(study_id: str) -> str:
-    text = str(study_id or "").strip().lower().replace("_", "-")
+    return _target_blocker_key(study_id)
+
+
+def _study_identity_key(study_id: str) -> str:
+    return str(study_id or "").strip().lower().replace("_", "-")
+
+
+def _study_matches_target_key(study_key: str, target_key: str) -> bool:
+    if not target_key:
+        return False
+    if study_key == target_key:
+        return True
+    if _is_dm002_alias(target_key):
+        return study_key in {"dm002", "dm-002", "002", "002-dm-china-us-mortality-attribution"}
+    if _is_dm003_alias(target_key):
+        return study_key in {"dm003", "dm-003", "003", "003-dpcc-primary-care-phenotype-treatment-gap"}
+    if _is_obesity_alias(target_key):
+        return "obesity" in study_key
+    return False
+
+
+def _target_blocker_key(study_id: str) -> str:
+    text = _study_identity_key(study_id)
     aliases = {
         "dm002": "002",
         "dm-002": "002",
@@ -577,13 +604,19 @@ def _normalize_study_id(study_id: str) -> str:
     }
     if text in aliases:
         return aliases[text]
-    if text.startswith("002-"):
-        return "002"
-    if text.startswith("003-"):
-        return "003"
-    if "obesity" in text:
-        return "obesity"
     return text
+
+
+def _is_dm002_alias(target_key: str) -> bool:
+    return target_key in {"dm002", "dm-002", "002"}
+
+
+def _is_dm003_alias(target_key: str) -> bool:
+    return target_key in {"dm003", "dm-003", "003"}
+
+
+def _is_obesity_alias(target_key: str) -> bool:
+    return target_key == "obesity"
 
 
 def _study_soak_projection(study_root: Path) -> dict[str, Any]:

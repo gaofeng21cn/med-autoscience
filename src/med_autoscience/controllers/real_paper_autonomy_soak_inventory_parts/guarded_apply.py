@@ -101,7 +101,7 @@ def _guarded_apply_receipt(packet: Mapping[str, Any]) -> dict[str, Any]:
             "domain_ready_verdict": verdict,
             "mas_owner_apply_receipt_refs": owner_refs,
             "typed_blocker": {
-                "blocker_id": f"mas_owner_apply_receipt_missing:{_normalize_study_id(study_id)}",
+                "blocker_id": f"mas_owner_apply_receipt_missing:{_typed_blocker_study_key(study_id)}",
                 "study_id": study_id,
                 "owner": "MedAutoScience",
                 "reason": (
@@ -169,8 +169,7 @@ def _dm002_publication_route_memory_final_proof(closeout_packets: Sequence[Mappi
         (
             packet
             for packet in closeout_packets
-            if _normalize_study_id(_text(_mapping(packet.get("route_impact")).get("study_id"))) == "002"
-            or _normalize_study_id(_text(packet.get("closeout_id"))) == "002"
+            if _is_dm002_packet(packet)
         ),
         {},
     )
@@ -229,7 +228,15 @@ def _dedupe_text(values: Iterable[object]) -> list[str]:
 
 
 def _normalize_study_id(study_id: str) -> str:
-    text = str(study_id or "").strip().lower().replace("_", "-")
+    return _typed_blocker_study_key(study_id)
+
+
+def _study_identity_key(study_id: str) -> str:
+    return str(study_id or "").strip().lower().replace("_", "-")
+
+
+def _typed_blocker_study_key(study_id: str) -> str:
+    text = _study_identity_key(study_id)
     aliases = {
         "dm002": "002",
         "dm-002": "002",
@@ -237,15 +244,15 @@ def _normalize_study_id(study_id: str) -> str:
         "dm-003": "003",
         "obesity": "obesity",
     }
-    if text in aliases:
-        return aliases[text]
-    if text.startswith("002-"):
-        return "002"
-    if text.startswith("003-"):
-        return "003"
-    if "obesity" in text:
-        return "obesity"
-    return text
+    return aliases.get(text, text)
+
+
+def _is_dm002_packet(packet: Mapping[str, Any]) -> bool:
+    study_key = _study_identity_key(_text(_mapping(packet.get("route_impact")).get("study_id")))
+    if study_key in {"dm002", "dm-002", "002", "002-dm-china-us-mortality-attribution"}:
+        return True
+    closeout_key = _study_identity_key(_text(packet.get("closeout_id")))
+    return "002-dm-china-us-mortality-attribution" in closeout_key
 
 
 __all__ = ["build_guarded_apply_proof_from_provider_proof"]

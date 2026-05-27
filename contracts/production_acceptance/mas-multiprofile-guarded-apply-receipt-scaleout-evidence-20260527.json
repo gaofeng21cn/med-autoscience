@@ -1,0 +1,562 @@
+{
+  "surface_kind": "mas_multiprofile_guarded_apply_receipt_scaleout_evidence",
+  "schema_version": 1,
+  "version": "mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.v1",
+  "domain_id": "med-autoscience",
+  "owner": "MedAutoScience",
+  "updated_at": "2026-05-27",
+  "snapshot_status": "refs_only_multiprofile_owner_chain_snapshot_observed",
+  "source_live_proof": {
+    "command": "scripts/run-python-clean.sh -m med_autoscience.cli real-paper-autonomy-guarded-apply-proof --yang-root /Users/gaofeng/workspace/Yang --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml --profile /Users/gaofeng/workspace/Yang/NF-PitNET/ops/medautoscience/profiles/nfpitnet.workspace.toml --profile /Users/gaofeng/workspace/Yang/Obesity/ops/medautoscience/profiles/obesity.local.toml --target-study 001-dm-cvd-mortality-risk --target-study 002-dm-china-us-mortality-attribution --target-study 003-dpcc-primary-care-phenotype-treatment-gap --target-study 004-dpcc-longitudinal-care-inertia-intensification-gap --target-study 001-lineage-pfs --target-study 002-early-residual-risk --target-study 003-endocrine-burden-followup --target-study 004-invasive-architecture --target-study obesity_multicenter_phenotype_atlas",
+    "export_path": "/var/folders/zs/xgbvv4x933d66thpsgz0kqm00000gn/T/mas-multiprofile-alltargets-guarded-apply.xWxUbhEQ5M",
+    "sha256": "18703e4599ac9d18c92dde5691903303a955833b28e7ba67661d0bf59f23d6a6",
+    "body_included": false,
+    "repo_tracks_live_proof_body": false
+  },
+  "selected_acceptance_surface": {
+    "ref": "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
+    "role": "selected_existing_mas_evidence_surface",
+    "body_included": false
+  },
+  "live_summary": {
+    "target_study_count": 9,
+    "guarded_receipt_count": 9,
+    "typed_blocker_count": 5,
+    "mas_owner_apply_receipt_count": 4,
+    "artifact_delta_or_gate_progress_count": 2,
+    "memory_final_proof_status": "final_ref_chain_proven",
+    "forbidden_write_guard_result": "fail_closed_no_forbidden_writes",
+    "writes_performed": true,
+    "real_workspace_mutation_allowed": true,
+    "guarded_apply_performed": true,
+    "mas_owner_receipt_observed": true
+  },
+  "paper_line_owner_payload_summary": {
+    "paper_line_count": 9,
+    "success_payload_count": 4,
+    "typed_blocker_payload_count": 5,
+    "domain_ready_claim_count": 0,
+    "production_ready_claim_count": 0,
+    "artifact_mutation_authorized_count": 0
+  },
+  "paper_line_identity_order": [
+    "001-dm-cvd-mortality-risk",
+    "002-dm-china-us-mortality-attribution",
+    "003-dpcc-primary-care-phenotype-treatment-gap",
+    "004-dpcc-longitudinal-care-inertia-intensification-gap",
+    "001-lineage-pfs",
+    "002-early-residual-risk",
+    "003-endocrine-burden-followup",
+    "004-invasive-architecture",
+    "obesity_multicenter_phenotype_atlas"
+  ],
+  "paper_line_owner_chain_results": [
+    {
+      "paper_line_id": "001-dm-cvd-mortality-risk",
+      "result_kind": "owner_receipt",
+      "owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/001-dm-cvd-mortality-risk/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "stable_typed_blocker_refs": [],
+      "progress_delta_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/001-dm-cvd-mortality-risk/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "ai_reviewer_gate_receipt_refs": [],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "paper_line_id": "002-dm-china-us-mortality-attribution",
+      "result_kind": "owner_receipt",
+      "owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "stable_typed_blocker_refs": [],
+      "progress_delta_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json"
+      ],
+      "ai_reviewer_gate_receipt_refs": [],
+      "artifact_movement_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json"
+      ],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "paper_line_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+      "result_kind": "owner_receipt",
+      "owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "stable_typed_blocker_refs": [],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "paper_line_id": "004-dpcc-longitudinal-care-inertia-intensification-gap",
+      "result_kind": "stable_typed_blocker",
+      "owner_receipt_refs": [],
+      "stable_typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:004-dpcc-longitudinal-care-inertia-intensification-gap"
+      ],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "paper_line_id": "001-lineage-pfs",
+      "result_kind": "stable_typed_blocker",
+      "owner_receipt_refs": [],
+      "stable_typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:001-lineage-pfs"
+      ],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "paper_line_id": "002-early-residual-risk",
+      "result_kind": "stable_typed_blocker",
+      "owner_receipt_refs": [],
+      "stable_typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:002-early-residual-risk"
+      ],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "paper_line_id": "003-endocrine-burden-followup",
+      "result_kind": "owner_receipt",
+      "owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/NF-PitNET/studies/003-endocrine-burden-followup/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "stable_typed_blocker_refs": [],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/NF-PitNET/studies/003-endocrine-burden-followup/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "paper_line_id": "004-invasive-architecture",
+      "result_kind": "stable_typed_blocker",
+      "owner_receipt_refs": [],
+      "stable_typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:004-invasive-architecture"
+      ],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "paper_line_id": "obesity_multicenter_phenotype_atlas",
+      "result_kind": "stable_typed_blocker",
+      "owner_receipt_refs": [],
+      "stable_typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:obesity-multicenter-phenotype-atlas"
+      ],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    }
+  ],
+  "domain_dispatch_payload_summaries": [
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_success_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "001-dm-cvd-mortality-risk",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_owner_receipt_observed",
+      "domain_owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/001-dm-cvd-mortality-risk/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "typed_blocker_refs": [],
+      "stage_expected_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/001-dm-cvd-mortality-risk/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/001-dm-cvd-mortality-risk/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_success_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "002-dm-china-us-mortality-attribution",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_owner_receipt_observed",
+      "domain_owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "typed_blocker_refs": [],
+      "stage_expected_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_evidence/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_success_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_owner_receipt_observed",
+      "domain_owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "typed_blocker_refs": [],
+      "stage_expected_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_typed_blocker_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "004-dpcc-longitudinal-care-inertia-intensification-gap",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_stable_typed_blocker_observed",
+      "domain_owner_receipt_refs": [],
+      "typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:004-dpcc-longitudinal-care-inertia-intensification-gap"
+      ],
+      "stage_expected_receipt_refs": [
+        "mas_owner_apply_receipt_missing:004-dpcc-longitudinal-care-inertia-intensification-gap",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "mas_owner_apply_receipt_missing:004-dpcc-longitudinal-care-inertia-intensification-gap",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_typed_blocker_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "001-lineage-pfs",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_stable_typed_blocker_observed",
+      "domain_owner_receipt_refs": [],
+      "typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:001-lineage-pfs"
+      ],
+      "stage_expected_receipt_refs": [
+        "mas_owner_apply_receipt_missing:001-lineage-pfs",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "mas_owner_apply_receipt_missing:001-lineage-pfs",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_typed_blocker_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "002-early-residual-risk",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_stable_typed_blocker_observed",
+      "domain_owner_receipt_refs": [],
+      "typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:002-early-residual-risk"
+      ],
+      "stage_expected_receipt_refs": [
+        "mas_owner_apply_receipt_missing:002-early-residual-risk",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "mas_owner_apply_receipt_missing:002-early-residual-risk",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_success_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "003-endocrine-burden-followup",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_owner_receipt_observed",
+      "domain_owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/NF-PitNET/studies/003-endocrine-burden-followup/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "typed_blocker_refs": [],
+      "stage_expected_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/NF-PitNET/studies/003-endocrine-burden-followup/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "/Users/gaofeng/workspace/Yang/NF-PitNET/studies/003-endocrine-burden-followup/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_typed_blocker_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "004-invasive-architecture",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_stable_typed_blocker_observed",
+      "domain_owner_receipt_refs": [],
+      "typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:004-invasive-architecture"
+      ],
+      "stage_expected_receipt_refs": [
+        "mas_owner_apply_receipt_missing:004-invasive-architecture",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "mas_owner_apply_receipt_missing:004-invasive-architecture",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_typed_blocker_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "obesity_multicenter_phenotype_atlas",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_stable_typed_blocker_observed",
+      "domain_owner_receipt_refs": [],
+      "typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:obesity-multicenter-phenotype-atlas"
+      ],
+      "stage_expected_receipt_refs": [
+        "mas_owner_apply_receipt_missing:obesity-multicenter-phenotype-atlas",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_monitor_freshness_refs": [
+        "mas_owner_apply_receipt_missing:obesity-multicenter-phenotype-atlas",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard"
+      ],
+      "stage_evidence_handoff_status": "refs_only_stage_evidence_refs_observed",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    }
+  ],
+  "publication_route_memory_final_proof": {
+    "surface_kind": "dm002_publication_route_memory_final_proof",
+    "target_study": "DM002",
+    "status": "final_ref_chain_proven",
+    "consumed_refs": [
+      "publication_route_memory_seed__negative_result_stoploss"
+    ],
+    "writeback_receipt_refs": [
+      "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/stage_knowledge/memory_write_router_receipts/dm002-paper-soak-memory-proof-20260512.json",
+      "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/portfolio/research_memory/publication_route_memory/writeback_receipts/dm002-paper-soak-memory-proof-20260512.json"
+    ],
+    "body_included": false,
+    "memory_body_included": false,
+    "opl_can_read_memory_body": false,
+    "opl_can_accept_or_reject_writeback": false,
+    "mas_memory_owner": "med-autoscience",
+    "typed_blocker": null
+  },
+  "authority_boundary": {
+    "domain_truth_owner": "med-autoscience",
+    "provider_attempt_owner": "one-person-lab",
+    "owner_chain_authority": "MedAutoScience",
+    "opl_ingestable_surface": "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence",
+    "provider_completion_can_close_canary": false,
+    "opl_records_refs_only": true,
+    "opl_can_write_mas_truth": false,
+    "opl_can_write_artifact_body": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_write_current_package": false,
+    "opl_can_authorize_quality_or_publication": false,
+    "typed_blocker_is_domain_ready": false,
+    "stage_expected_receipt_refs_close_domain_ready": false
+  },
+  "claim_boundary": {
+    "workspace_receipt_scaleout_claimed": false,
+    "domain_ready_claimed": false,
+    "production_ready_claimed": false,
+    "publication_ready_claimed": false,
+    "medical_ready_claimed": false,
+    "paper_closure_claimed": false,
+    "artifact_mutation_authorized": false,
+    "current_package_update_claimed": false,
+    "long_soak_claimed": false,
+    "writes_artifact_blob": false,
+    "writes_memory_body": false,
+    "writes_publication_eval_body": false,
+    "writes_controller_decision_body": false
+  },
+  "forbidden_payload_fields": [
+    "study_truth_body",
+    "paper_body",
+    "publication_verdict_body",
+    "artifact_body",
+    "memory_body",
+    "current_package_body"
+  ],
+  "verification_refs": [
+    {
+      "ref": "tests/test_mas_multiprofile_guarded_apply_receipt_scaleout_evidence.py",
+      "role": "focused_contract_test",
+      "body_included": false
+    },
+    {
+      "ref": "tests/test_real_paper_autonomy_soak_inventory_cases/test_study_identity_matching.py",
+      "role": "identity_collision_regression_test",
+      "body_included": false
+    },
+    {
+      "ref": "tests/test_real_paper_autonomy_soak_inventory_cases/test_canary_body_free_packets.py",
+      "role": "canary_body_free_packet_shape_test",
+      "body_included": false
+    }
+  ]
+}

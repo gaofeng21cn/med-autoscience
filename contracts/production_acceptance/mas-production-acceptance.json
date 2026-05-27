@@ -94,14 +94,14 @@
     "provider_attempt_owner": "one-person-lab",
     "scaleout_status": "pending_real_paper_line_owner_receipts",
     "latest_live_scaleout_snapshot_ref": {
-      "ref": "contracts/production_acceptance/mas-multiline-guarded-apply-receipt-scaleout-evidence-20260527.json",
-      "role": "refs_only_multiline_owner_chain_snapshot",
+      "ref": "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json",
+      "role": "refs_only_multiprofile_owner_chain_snapshot",
       "body_included": false
     },
     "latest_live_scaleout_snapshot_summary": {
-      "paper_line_count": 3,
-      "success_payload_count": 2,
-      "typed_blocker_payload_count": 1,
+      "paper_line_count": 9,
+      "success_payload_count": 4,
+      "typed_blocker_payload_count": 5,
       "domain_ready_claimed": false,
       "production_ready_claimed": false,
       "publication_ready_claimed": false,

@@ -81,6 +81,20 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
     assert evidence["selected_evidence_surface"] == (
         "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
     )
+    assert evidence["latest_live_scaleout_snapshot_ref"] == {
+        "ref": "contracts/production_acceptance/mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json",
+        "role": "refs_only_multiprofile_owner_chain_snapshot",
+        "body_included": False,
+    }
+    assert evidence["latest_live_scaleout_snapshot_summary"] == {
+        "paper_line_count": 9,
+        "success_payload_count": 4,
+        "typed_blocker_payload_count": 5,
+        "domain_ready_claimed": False,
+        "production_ready_claimed": False,
+        "publication_ready_claimed": False,
+        "artifact_mutation_authorized": False,
+    }
     assert evidence["body_included"] is False
     assert evidence["artifact_body_included"] is False
     assert evidence["memory_body_included"] is False

@@ -297,6 +297,23 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
         "owner": DOMAIN_OWNER,
         "provider_attempt_owner": OPL_OWNER,
         "scaleout_status": "pending_real_paper_line_owner_receipts",
+        "latest_live_scaleout_snapshot_ref": {
+            "ref": (
+                "contracts/production_acceptance/"
+                "mas-multiprofile-guarded-apply-receipt-scaleout-evidence-20260527.json"
+            ),
+            "role": "refs_only_multiprofile_owner_chain_snapshot",
+            "body_included": False,
+        },
+        "latest_live_scaleout_snapshot_summary": {
+            "paper_line_count": 9,
+            "success_payload_count": 4,
+            "typed_blocker_payload_count": 5,
+            "domain_ready_claimed": False,
+            "production_ready_claimed": False,
+            "publication_ready_claimed": False,
+            "artifact_mutation_authorized": False,
+        },
         "selected_evidence_surface": "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence",
         "real_paper_line_provider_canary_contract": {
             "gate_id": REAL_PAPER_LINE_PROVIDER_CANARY_GATE,

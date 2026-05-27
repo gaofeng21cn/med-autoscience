@@ -213,7 +213,7 @@ def test_canary_closeout_exposes_per_paper_line_owner_payloads(tmp_path: Path) -
     profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
     _write_profile(workspace, profile_path)
     dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
-    dm003 = workspace / "studies" / "003-dm-cvd-ehr-risk-calibration"
+    dm003 = workspace / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
     _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
     _write_json(dm003 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm003.name})
     _write_json(
@@ -260,7 +260,7 @@ def test_canary_closeout_exposes_per_paper_line_owner_payloads(tmp_path: Path) -
     }
     assert set(payloads) == {
         "002-dm-china-us-mortality-attribution",
-        "003-dm-cvd-ehr-risk-calibration",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
     }
     assert payloads["002-dm-china-us-mortality-attribution"]["mode"] == (
         "refs_only_domain_owned_success_payload"
@@ -271,10 +271,10 @@ def test_canary_closeout_exposes_per_paper_line_owner_payloads(tmp_path: Path) -
     assert payloads["002-dm-china-us-mortality-attribution"]["record_payload"][
         "typed_blocker_refs"
     ] == []
-    assert payloads["003-dm-cvd-ehr-risk-calibration"]["mode"] == (
+    assert payloads["003-dpcc-primary-care-phenotype-treatment-gap"]["mode"] == (
         "refs_only_domain_owned_typed_blocker_payload"
     )
-    assert payloads["003-dm-cvd-ehr-risk-calibration"]["record_payload"]["typed_blocker_refs"][
+    assert payloads["003-dpcc-primary-care-phenotype-treatment-gap"]["record_payload"]["typed_blocker_refs"][
         0
     ].startswith("mas_owner_apply_receipt_missing:")
     for evidence_payload in payloads.values():
