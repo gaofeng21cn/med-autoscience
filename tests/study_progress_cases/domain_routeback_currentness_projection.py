@@ -51,12 +51,31 @@ def test_study_progress_current_write_routeback_supersedes_stale_runtime_recover
             "runtime_binding_exists": True,
             "study_completion_contract": {},
             "decision": "blocked",
-            "reason": "quest_waiting_for_submission_metadata",
+            "reason": "quest_parked_on_unchanged_finalize_state",
+            "active_run_id": None,
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                "source_signature": "truth-snapshot::stale",
+                "active_run_id": "mas-run-002-dm-china-us-mortality-attribution-20260519T074054793831Z",
+                "execution_owner": {
+                    "owner": "opl",
+                    "active_run_id": "mas-run-002-dm-china-us-mortality-attribution-20260519T074054793831Z",
+                },
+            },
+            "runtime_liveness_status": "parked",
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {
+                    "active_run_id": None,
+                    "worker_running": False,
+                },
+            },
             "runtime_health_snapshot": {
                 "attempt_state": "escalated",
                 "canonical_runtime_action": "escalate_runtime",
                 "running_provider_attempt": False,
                 "last_known_run_id": "opl-stage-attempt://sat_dm002_terminal_attempt",
+                "worker_liveness_state": {"state": "parked"},
             },
             "publication_supervisor_state": {
                 "supervisor_phase": "publishability_gate_blocked",
@@ -86,10 +105,10 @@ def test_study_progress_current_write_routeback_supersedes_stale_runtime_recover
             "interaction_arbitration": None,
             "continuation_state": {
                 "quest_status": "active",
-                "active_run_id": "opl-stage-attempt://sat_dm002_current_write_attempt",
-                "continuation_policy": "auto",
-                "continuation_anchor": "decision",
-                "continuation_reason": "controller_work_unit_pending",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
                 "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
             "supervisor_tick_audit": {
@@ -119,6 +138,14 @@ def test_study_progress_current_write_routeback_supersedes_stale_runtime_recover
     )
     assert "显式 resume" not in result["next_system_action"]
     assert "补元数据" not in result["next_system_action"]
+    assert "当前包已经可直接交给用户审阅" not in result["next_system_action"]
+    assert result["study_macro_state"]["writer_state"] == "queued"
+    assert result["study_macro_state"]["user_next"] == "repair"
+    assert result["study_macro_state"]["reason"] == "quality"
+    assert result["user_visible_projection"]["writer_state"] == "queued"
+    assert result["user_visible_projection"]["user_next"] == "repair"
+    assert result["user_visible_projection"]["reason"] == "quality"
+    assert result["user_visible_projection"]["next_system_action"] != "观察自动运行推进。"
     assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
     assert "OPL current_control_state" not in result["operator_status_card"]["current_focus"]
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)

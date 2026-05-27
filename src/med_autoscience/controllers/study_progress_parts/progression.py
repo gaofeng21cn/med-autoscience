@@ -498,8 +498,6 @@ def _next_system_action(
     if _supervisor_tick_gap_present(supervisor_tick_audit) and supervisor_tick_next_action is not None:
         return supervisor_tick_next_action
     decision = _non_empty_text(status.get("decision"))
-    if finalize_milestone_parking_active(status):
-        return finalize_milestone_parking_summary(status)
     runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
     runtime_health_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
     runtime_health_attempt_state = _non_empty_text(runtime_health_snapshot.get("attempt_state"))
@@ -514,6 +512,8 @@ def _next_system_action(
         route_summary = _route_repair_summary(domain_transition_repair)
         if route_summary is not None:
             return route_summary
+    if finalize_milestone_parking_active(status):
+        return finalize_milestone_parking_summary(status)
     if (
         runtime_health_action in {"recover_runtime", "escalate_runtime"}
         or runtime_health_attempt_state in {"recovering", "degraded", "escalated"}

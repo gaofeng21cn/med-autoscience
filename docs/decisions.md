@@ -1187,6 +1187,12 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 暴露出 `run_quality_repair_batch` 已改 claim/evidence/review ledgers，但没有更新正式稿件正文；旧 receipt consumer 把该 progress delta 当成同一路由完成，导致 `study-runtime-status` 仍 blocked 而 `owner-route-reconcile` action queue 为空。
 - 影响：后续医学论文硬化路线必须把“是否像高质量医学论文”的核心反馈落到 manuscript-native story surface 和 AI reviewer recheck，而不是让 evidence ledger delta、controller receipt 或 package/display materialization 伪装成正文质量完成。
 
+## 2026-05-27：current route-back 优先于旧 run 与交付停驻投射
+
+- 决策：当 `domain_transition` 当前指向 `route_back_same_line`、`publication_gate_blocker`、`ai_reviewer_re_eval` 或 `bundle_stage_finalize` 时，`study_macro_state` 只能用 status / liveness / runtime-audit 当前 live run 证明 writer live；不得用 `study_truth_snapshot.active_run_id` 或 `study_truth_snapshot.execution_owner.active_run_id` 把旧 run 投射成 live。`study_progress.next_system_action` 也必须让当前 route-back owner/work-unit 压过旧 `quest_parked_on_unchanged_finalize_state` handoff 文案。
+- 理由：DM002 暴露出 `quest_status=active`、top-level `active_run_id=null`、当前 write route-back 已存在时，truth snapshot 中 2026-05-19 的旧 `active_run_id` 仍会把 macro state 投射为 `live/watch/runtime`，同时顶层 action 显示“当前包可审阅/显式 resume”。这会让外围巡检误以为论文在自动推进或已可交付，实际 owner work unit 没被清楚暴露。
+- 影响：current route-back 的 read-model 现在 fail-closed 到 `queued/repair/quality`，并显示当前 `next_work_unit`；真实 live run 仍必须由 runtime liveness/current status refs 证明。该修复只改变 MAS read-model 与巡检判断，不写 study truth、paper、submission package、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 OPL queue。
+
 ## 2026-05-23：AI reviewer request materializer 必须刷新现有 stable request
 
 - 决策：`domain-action-request-materialize --apply` 不只物化当前 scan 中的新 request task；当目标 study 已存在 `artifacts/supervision/requests/ai_reviewer/latest.json` 时，也必须通过 AI reviewer request lifecycle owner 刷新该 stable request，使其吸收最新合规、current 的 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`。没有新 action queue item 不能成为 stale AI reviewer record 留在 stable request 的理由。

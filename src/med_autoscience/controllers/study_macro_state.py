@@ -409,6 +409,7 @@ def _runtime_redrive_route(*, status: Mapping[str, Any]) -> dict[str, Any] | Non
 
 
 def _live_status_active_run_id(*, status: Mapping[str, Any], truth: Mapping[str, Any]) -> str | None:
+    del truth
     if _text(status.get("quest_status")) in {"paused", "stopped", "completed", "waiting_for_user"}:
         return None
     runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
@@ -423,8 +424,8 @@ def _live_status_active_run_id(*, status: Mapping[str, Any], truth: Mapping[str,
         return None
     return (
         _text(status.get("active_run_id"))
-        or _text(truth.get("active_run_id"))
-        or _text(_mapping(truth.get("execution_owner")).get("active_run_id"))
+        or _text(liveness.get("active_run_id"))
+        or _text(runtime_audit.get("active_run_id"))
     )
 
 

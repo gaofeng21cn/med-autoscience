@@ -112,6 +112,58 @@ def test_paused_quest_ignores_stale_truth_active_run_id() -> None:
     assert derived["details"].get("active_run_id") is None
 
 
+def test_current_routeback_ignores_stale_truth_active_run_id_on_active_quest() -> None:
+    derived = _derive(
+        study_id="002-dm-china-us-mortality-attribution",
+        status={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_status": "active",
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+            "active_run_id": None,
+            "domain_transition": {
+                "decision_type": "route_back_same_line",
+                "route_target": "write",
+                "owner": "write",
+                "next_work_unit": {
+                    "unit_id": "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass",
+                    "lane": "write",
+                },
+            },
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                "source_signature": "truth-snapshot::stale",
+                "active_run_id": "mas-run-002-dm-china-us-mortality-attribution-20260519T074054793831Z",
+                "execution_owner": {
+                    "owner": "opl",
+                    "active_run_id": "mas-run-002-dm-china-us-mortality-attribution-20260519T074054793831Z",
+                },
+            },
+            "runtime_liveness_status": "parked",
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {
+                    "active_run_id": None,
+                    "worker_running": False,
+                },
+            },
+            "runtime_health_snapshot": {
+                "attempt_state": "escalated",
+                "canonical_runtime_action": "escalate_runtime",
+                "worker_liveness_state": {"state": "parked"},
+            },
+        },
+    )
+
+    assert derived["writer_state"] == "queued"
+    assert derived["user_next"] == "repair"
+    assert derived["reason"] == "quality"
+    assert derived["details"]["next_work_unit"] == (
+        "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
+    )
+    assert derived["details"].get("active_run_id") is None
+
+
 def test_running_quest_with_retry_exhausted_no_worker_requires_opl_runtime_handoff() -> None:
     derived = _derive(
         study_id="002-dm-china-us-mortality-attribution",
