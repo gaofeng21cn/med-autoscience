@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import timezone
+
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .domain_transition_arbitration import *  # noqa: F403
     from .manual_finish_dominance import *  # noqa: F403
@@ -11,7 +13,10 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .status_projection_shell import *  # noqa: F403
     from .supervisor_state_overrides import *  # noqa: F403
 
+from . import publication_and_submission as _publication_and_submission
 from med_autoscience.controllers.owner_route_reconcile_parts import opl_provider_attempts
+
+_OPL_CURRENT_CONTROL_STATE_STALE_AFTER_SECONDS = 10 * 60
 
 
 def _status_state(
@@ -542,6 +547,23 @@ def _runtime_liveness_active_run_id(runtime_liveness_audit: dict[str, object] | 
     return str(runtime_liveness_audit.get("active_run_id") or "").strip() or None
 
 
+def _timestamp_is_fresh(value: object, *, stale_after_seconds: int) -> bool:
+    text = str(value or "").strip()
+    if not text:
+        return False
+    try:
+        recorded_at = datetime.fromisoformat(text)
+    except ValueError:
+        return False
+    if recorded_at.tzinfo is None:
+        recorded_at = recorded_at.replace(tzinfo=timezone.utc)
+    age_seconds = max(
+        0,
+        int((_publication_and_submission._supervisor_tick_now().astimezone(timezone.utc) - recorded_at).total_seconds()),
+    )
+    return age_seconds <= stale_after_seconds
+
+
 def _opl_current_control_state_runtime_liveness_projection(
     *,
     profile: WorkspaceProfile,
@@ -582,6 +604,20 @@ def _opl_current_control_state_handoff_liveness_projection(
     study_entry: dict[str, object],
     quest_status: StudyRuntimeQuestStatus | None,
 ) -> dict[str, object] | None:
+    handoff_generated_at = (
+        str(
+            study_entry.get("handoff_generated_at")
+            or latest_report.get("generated_at")
+            or latest_report.get("recorded_at")
+            or ""
+        ).strip()
+        or None
+    )
+    if not _timestamp_is_fresh(
+        handoff_generated_at,
+        stale_after_seconds=_OPL_CURRENT_CONTROL_STATE_STALE_AFTER_SECONDS,
+    ):
+        return None
     active_run_id = str(study_entry.get("active_run_id") or "").strip() or None
     if active_run_id is None or study_entry.get("running_provider_attempt") is not True:
         return None
@@ -603,8 +639,7 @@ def _opl_current_control_state_handoff_liveness_projection(
         "active_workflow_id": active_workflow_id,
         "running_provider_attempt": True,
         "handoff_path": str(latest_report_path),
-        "handoff_generated_at": str(latest_report.get("generated_at") or latest_report.get("recorded_at") or "").strip()
-        or None,
+        "handoff_generated_at": handoff_generated_at,
         "runtime_health": dict(runtime_health) if isinstance(runtime_health, dict) else {},
         "stage_progress_log": _stage_progress_log(study_entry.get("stage_progress_log")),
         "snapshot": {"status": quest_status.value if quest_status is not None else None},

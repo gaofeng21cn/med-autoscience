@@ -292,7 +292,11 @@ def _record_supervisor_tick_audit(
         return
 
     payload["last_known_health_status"] = _current_control_state_health_status(study_entry)
-    recorded_at = _normalize_timestamp(latest_report.get("generated_at") or latest_report.get("recorded_at"))
+    recorded_at = _normalize_timestamp(
+        study_entry.get("handoff_generated_at")
+        or latest_report.get("generated_at")
+        or latest_report.get("recorded_at")
+    )
     if recorded_at is None:
         payload.update(
             {

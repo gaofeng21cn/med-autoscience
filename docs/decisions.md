@@ -14,6 +14,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：OPL scaffold validation 新增 user-stage-log 合同后，MAS 已有 default-executor `paper_stage_log` closeout contract 仍未投影到 stage control plane，导致标准 agent pack admission fail closed。正确修复位置是 MAS stage pack machine contract，不是放宽 OPL validator 或手工编辑 generated contract JSON。
 - 影响：这是 MAS AI reviewer owner-route/currentness 与 production record completeness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续 DM003 仍必须通过 MAS owner/controller/runtime path 生成当前 AI reviewer record、publication eval、publication gate 和 package refresh。
 
+## 2026-05-27：OPL current-control handoff 必须按 study 合并并独立判鲜
+
+- 决策：`artifacts/supervision/opl_current_control_state/latest.json` 是 workspace-level durable handoff。`owner-route-reconcile` 持久化单个 study 扫描时，必须只替换本次扫描的 study 条目和 action queue，保留未扫描 study 的既有 refs-only handoff；非持久化扫描继续返回本次请求的 study 投影，不扩成全 workspace 读面。
+- 决策：每个 study handoff 必须携带 `handoff_generated_at` 与 `handoff_scan_status`。MAS supervisor tick audit 和 runtime liveness projection 优先按 study 条目自身的 `handoff_generated_at` 判定 freshness；root `generated_at` 只能作为旧 payload 的回退时间，不能让 retained study 冒充刚扫描过。
+- 决策：只有新鲜且 `running_provider_attempt=true`、runtime health 为 live 的 OPL current-control study entry 可以证明 live runtime。过期 retained handoff 只能作为 owner-route / typed-blocker / action queue 的 refs-only provenance，不能生成 `live_managed_runtime`、active run 或 publication readiness 结论。
+- 理由：DM002 暴露出 DM003 单 study heartbeat 会重写 workspace-level `opl_current_control_state/latest.json`，导致 DM002 从 MAS liveness handoff 中消失，并被误报为 `opl_current_control_state_required` / `managed_runtime_audit_unhealthy`。根因是 MAS handoff 写入采用 last-writer-wins，而不是按 study 合并；同时 live 判定依赖 root timestamp，存在 retained entry 被误判 fresh 的风险。
+- 影响：这是 MAS refs-only read-model / supervisor handoff 修复，不写 DM002 study truth、canonical paper、runtime-owned `.ds`、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。论文推进仍必须由 MAS owner/controller/runtime path 和 OPL provider attempt 产生真实 delta、typed blocker、owner receipt 或 live liveness。
+
 ## 2026-05-27：claim-evidence repair 可从同 ID ledger items 物化缺失 claim row
 
 - 决策：`claim_evidence_alignment` gate 继续要求正式 `evidence_ledger.claims[].evidence[].evidence_id` 与 `claim_evidence_map.claims[].evidence_items[].item_id` 对齐，不把 top-level `items[]` 直接视为 claim-level 对齐成功。`claim_evidence_alignment_repair` / `current_manuscript_claim_evidence_alignment_repair` 在 claim row 缺失时，可以把 claim map 中所有 evidence item 精确匹配到同 ID `evidence_ledger.items[]` 后，物化一条 claim-level ledger row，并继续请求 AI reviewer recheck。

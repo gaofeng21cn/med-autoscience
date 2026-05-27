@@ -111,6 +111,46 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
+def _merge_previous_unscanned_study_handoff(
+    *,
+    previous_payload: Mapping[str, Any] | None,
+    scanned_studies: list[dict[str, Any]],
+    scanned_action_queue: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    scanned_ids = {
+        study_id
+        for study in scanned_studies
+        if (study_id := _text(study.get("study_id"))) is not None
+    }
+    if not scanned_ids:
+        return scanned_studies, scanned_action_queue
+    previous = _mapping(previous_payload)
+    retained_studies = [
+        {
+            **dict(item),
+            "handoff_generated_at": _text(item.get("handoff_generated_at"))
+            or _text(previous.get("generated_at"))
+            or _text(previous.get("recorded_at")),
+            "handoff_scan_status": _text(item.get("handoff_scan_status")) or "retained_from_previous_scan",
+        }
+        for item in previous.get("studies") or []
+        if isinstance(item, Mapping)
+        and (study_id := _text(item.get("study_id"))) is not None
+        and study_id not in scanned_ids
+    ]
+    retained_action_queue = [
+        dict(item)
+        for item in previous.get("action_queue") or []
+        if isinstance(item, Mapping)
+        and (study_id := _text(item.get("study_id"))) is not None
+        and study_id not in scanned_ids
+    ]
+    return (
+        [*retained_studies, *scanned_studies],
+        [*retained_action_queue, *scanned_action_queue],
+    )
+
+
 def _repair_lifecycle_path(study_root: Path) -> Path:
     return study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
 
@@ -684,6 +724,8 @@ def _study_projection(
     )
     return {
         "study_id": study_id,
+        "handoff_generated_at": generated_at,
+        "handoff_scan_status": "scanned",
         "study_root": str(study_root),
         "quest_id": resolved_quest_id,
         "quest_root": _text(status_payload.get("quest_root")) or _text(progress_payload.get("quest_root")),
@@ -781,7 +823,7 @@ def scan_domain_routes(
         previous_payload=previous_payload,
         generated_at=generated_at,
     )
-    action_queue = [
+    scanned_action_queue = [
         {"study_id": study["study_id"], **action}
         for study in studies
         for action in study.get("action_queue", [])
@@ -801,6 +843,14 @@ def scan_domain_routes(
                 _mapping(study.get("queue_slo")).get("developer_supervisor_attention_required_count") or 0
             ),
         }
+    if persist_surfaces:
+        output_studies, action_queue = _merge_previous_unscanned_study_handoff(
+            previous_payload=previous_payload,
+            scanned_studies=studies,
+            scanned_action_queue=scanned_action_queue,
+        )
+    else:
+        output_studies, action_queue = studies, scanned_action_queue
     queue_history = {
         "history_path": str(history_path),
         "latest_action_count": len(action_queue),
@@ -818,7 +868,7 @@ def scan_domain_routes(
         developer_mode_payload=developer_mode.to_dict(),
         safe_actions_enabled=developer_mode.safe_actions_enabled,
         two_layer_ai_repair_policy=two_layer_ai_repair_policy_payload(),
-        studies=studies,
+        studies=output_studies,
         action_queue=action_queue,
         queue_history=queue_history,
         workspace_daemon_lifecycle=workspace_daemon_lifecycle,
@@ -828,7 +878,7 @@ def scan_domain_routes(
     if persist_surfaces:
         scan_output.persist_scan_domain_routes_payload(
             payload=payload,
-            studies=studies,
+            studies=output_studies,
             action_queue=action_queue,
             profile=profile,
             latest_path=latest_path,

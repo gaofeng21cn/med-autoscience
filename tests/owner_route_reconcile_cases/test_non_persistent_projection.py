@@ -88,6 +88,109 @@ def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
     assert not (profile.workspace_root / "artifacts" / "supervision" / "hourly" / "history.jsonl").exists()
 
 
+def test_persisted_single_study_scan_preserves_unscanned_study_handoff(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    retained_study_id = "002-dm-china-us-mortality-attribution"
+    scanned_study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    retained_root = write_study(profile.workspace_root, retained_study_id, quest_id="quest-dm002")
+    scanned_root = write_study(profile.workspace_root, scanned_study_id, quest_id="quest-dpcc")
+    scanned_quest_root = profile.runtime_root / "quest-dpcc"
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        latest_path,
+        {
+            "surface": "opl_current_control_state_handoff",
+            "schema_version": 1,
+            "generated_at": "2026-05-27T17:00:00+00:00",
+            "studies": [
+                {
+                    "study_id": retained_study_id,
+                    "study_root": str(retained_root),
+                    "active_run_id": None,
+                    "running_provider_attempt": False,
+                    "blocked_reason": "paper_surface_blocked",
+                    "action_queue": [
+                        {
+                            "action_id": "supervisor-action::dm002::write-repair",
+                            "action_type": "return_to_write",
+                            "status": "queued",
+                        }
+                    ],
+                }
+            ],
+            "action_queue": [
+                {
+                    "study_id": retained_study_id,
+                    "action_id": "supervisor-action::dm002::write-repair",
+                    "action_type": "return_to_write",
+                    "status": "queued",
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": scanned_study_id,
+            "study_root": str(scanned_root),
+            "quest_id": "quest-dpcc",
+            "quest_root": str(scanned_quest_root),
+            "quest_status": "running",
+            "decision": "blocked",
+            "reason": "runtime_recovery_retry_budget_exhausted",
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "publication_eval": {
+                "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": scanned_study_id,
+            "paper_stage": "publication_supervision",
+            "supervision": {"active_run_id": None, "health_status": "recovering"},
+            "ai_repair_lifecycle": {
+                "state": "external_supervisor_required",
+                "blocked_reason": "runtime_recovery_not_authorized",
+                "external_supervisor_required": True,
+            },
+        },
+    )
+
+    result = module.scan_domain_routes(
+        profile=profile,
+        study_ids=(scanned_study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=True,
+    )
+
+    assert [study["study_id"] for study in result["studies"]] == [retained_study_id, scanned_study_id]
+    assert result["studies"][0]["handoff_generated_at"] == "2026-05-27T17:00:00+00:00"
+    assert result["studies"][0]["handoff_scan_status"] == "retained_from_previous_scan"
+    assert result["studies"][1]["handoff_scan_status"] == "scanned"
+    assert retained_study_id in [action["study_id"] for action in result["action_queue"]]
+    persisted = json.loads(latest_path.read_text(encoding="utf-8"))
+    assert [study["study_id"] for study in persisted["studies"]] == [retained_study_id, scanned_study_id]
+    assert persisted["studies"][0]["handoff_generated_at"] == "2026-05-27T17:00:00+00:00"
+    assert persisted["studies"][0]["handoff_scan_status"] == "retained_from_previous_scan"
+    assert persisted["studies"][1]["handoff_scan_status"] == "scanned"
+    assert retained_study_id in [action["study_id"] for action in persisted["action_queue"]]
+
+
 def test_scan_domain_routes_rejects_unknown_study_id_before_reading_status(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
