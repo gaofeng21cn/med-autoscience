@@ -10,6 +10,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_json as _write_json,
     write_scan_latest as _write_scan_latest,
 )
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -116,6 +117,10 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript snapshot for consumer dispatch.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
     dispatch_path = (
         study_root
         / "artifacts"
@@ -171,24 +176,14 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
                 "all_required_refs_present": True,
                 "missing_or_invalid_refs": [],
             },
-            "ai_reviewer_record": {
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "source_kind": "publication_eval_ai_reviewer",
-                    "ai_reviewer_required": False,
-                },
-                "quality_assessment": {
-                    "medical_journal_prose_quality": {"status": "underdefined"},
-                },
-                "future_facing_limitations_plan": [
-                    {
-                        "limitation": "Pending reviewer confirmation.",
-                        "impact_on_claim": "Claims remain provisional.",
-                        "required_future_analysis_data_or_design": "Rerun reviewer workflow.",
-                        "current_manuscript_wording_must_be_restrained": True,
-                    }
-                ],
-            },
+            "ai_reviewer_record": current_manuscript_routeback_record(
+                study_root=study_root,
+                manuscript_path=manuscript_path,
+                manuscript_text=manuscript_text,
+                study_id=study_id,
+                quest_id=study_id,
+                eval_id="publication-eval::003::current-consumer-payload",
+            ),
         },
     )
     _write_json(
@@ -207,6 +202,15 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
 
     def fake_run_ai_reviewer_publication_eval_workflow(**kwargs) -> dict[str, object]:
         called.append(str(kwargs["study_root"]))
+        _write_json(
+            study_root / "artifacts" / "publication_eval" / "latest.json",
+            {
+                "eval_id": "publication-eval::003::current-consumer-payload",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "assessment_provenance": {"owner": "ai_reviewer"},
+            },
+        )
         return {
             "surface": "ai_reviewer_publication_eval_workflow",
             "status": "materialized",

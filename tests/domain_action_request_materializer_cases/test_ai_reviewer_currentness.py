@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -385,45 +386,15 @@ def test_materialize_ai_reviewer_request_preserves_current_manuscript_record_ref
         / "publication_eval"
         / "ai_reviewer_responses"
         / "20260524T010000Z_publication_eval_record.json",
-        {
-            "eval_id": "publication-eval::002::quest::2026-05-24T01:00:00+00:00::ai-reviewer",
-            "study_id": study_id,
-            "quest_id": quest_id,
-            "emitted_at": "2026-05-24T01:00:00+00:00",
-            "assessment_provenance": {
-                "owner": "ai_reviewer",
-                "source_kind": "publication_eval_ai_reviewer",
-                "ai_reviewer_required": False,
-                "source_refs": [str(manuscript_path.resolve())],
-            },
-            "quality_assessment": {
-                dimension: {"status": "blocked", "summary": f"{dimension} remains blocked."}
-                for dimension in (
-                    "clinical_significance",
-                    "evidence_strength",
-                    "novelty_positioning",
-                    "medical_journal_prose_quality",
-                    "human_review_readiness",
-                )
-            },
-            "future_facing_limitations_plan": [
-                {
-                    "limitation": "Current manuscript remains below publication quality.",
-                    "impact_on_claim": "The external-validation story must stay restrained.",
-                    "required_future_analysis_data_or_design": "Produce a current manuscript-bound review.",
-                    "current_manuscript_wording_must_be_restrained": True,
-                }
-            ],
-            "reviewer_operating_system": {
-                "currentness_checks": {
-                    "current_manuscript": {
-                        "status": "current",
-                        "manuscript_ref": str(manuscript_path.resolve()),
-                        "manuscript_digest": _sha256_text(manuscript_path.read_text(encoding="utf-8")),
-                    }
-                }
-            },
-        },
+        current_manuscript_routeback_record(
+            study_root=study_root,
+            manuscript_path=manuscript_path,
+            manuscript_text=manuscript_path.read_text(encoding="utf-8"),
+            study_id=study_id,
+            quest_id=quest_id,
+            eval_id="publication-eval::002::quest::2026-05-24T01:00:00+00:00::ai-reviewer",
+            emitted_at="2026-05-24T01:00:00+00:00",
+        ),
     )
     stale_response_record_ref = (
         study_root
@@ -555,37 +526,16 @@ def test_materialize_domain_action_requests_refreshes_existing_ai_reviewer_reque
     )
     _write_json(
         new_record_path,
-        {
-            "eval_id": "publication-eval::002::quest::2026-05-22T20:30:41+00:00::ai-reviewer",
-            "study_id": study_id,
-            "quest_id": quest_id,
-            "emitted_at": "2026-05-22T20:30:41+00:00",
-            "assessment_provenance": {
-                "owner": "ai_reviewer",
-                "source_kind": "publication_eval_ai_reviewer",
-                "policy_id": "medical_publication_critique_v1",
-                "ai_reviewer_required": False,
-                "source_refs": [str(manuscript_path.resolve())],
-            },
-            "quality_assessment": quality_assessment,
-            "future_facing_limitations_plan": [
-                {
-                    "limitation": "Current manuscript remains below publication quality.",
-                    "impact_on_claim": "The external-validation story must stay restrained.",
-                    "required_future_analysis_data_or_design": "Repair prose and display alignment before package refresh.",
-                    "current_manuscript_wording_must_be_restrained": True,
-                }
-            ],
-            "reviewer_operating_system": {
-                "currentness_checks": {
-                    "manuscript": {
-                        "status": "current",
-                        "manuscript_ref": str(manuscript_path.resolve()),
-                        "manuscript_digest": _sha256_text(manuscript_text),
-                    }
-                }
-            },
-        },
+        current_manuscript_routeback_record(
+            study_root=study_root,
+            manuscript_path=manuscript_path,
+            manuscript_text=manuscript_text,
+            study_id=study_id,
+            quest_id=quest_id,
+            eval_id="publication-eval::002::quest::2026-05-22T20:30:41+00:00::ai-reviewer",
+            emitted_at="2026-05-22T20:30:41+00:00",
+        )
+        | {"quality_assessment": quality_assessment},
     )
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",

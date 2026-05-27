@@ -8,6 +8,7 @@ from tests.domain_owner_action_dispatch_helpers import (
     write_current_dispatch as _write_current_dispatch,
     write_json as _write_json,
 )
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -654,6 +655,10 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
     profile = make_profile(tmp_path)
     study_id = "001-dm-cvd-mortality-risk"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    manuscript_path = study_root / "paper" / "draft.md"
+    manuscript_text = "# Draft\n\nCurrent manuscript snapshot for reviewer refresh.\n"
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    manuscript_path.write_text(manuscript_text, encoding="utf-8")
     input_refs = {
         "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
         "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
@@ -699,20 +704,14 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
                 "all_required_refs_present": True,
                 "missing_or_invalid_refs": [],
             },
-            "ai_reviewer_record": {
-                "eval_id": "publication-eval::stale",
-                "study_id": study_id,
-                "quest_id": f"quest-{study_id}",
-                "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
-                "future_facing_limitations_plan": [
-                    {
-                        "limitation": "The manuscript requires current AI reviewer materialization before route-back.",
-                        "impact_on_claim": "Claims must remain tied to reviewer-authorized evidence.",
-                        "required_future_analysis_data_or_design": "Use the refreshed publication evaluation.",
-                        "current_manuscript_wording_must_be_restrained": True,
-                    }
-                ],
-            },
+            "ai_reviewer_record": current_manuscript_routeback_record(
+                study_root=study_root,
+                manuscript_path=manuscript_path,
+                manuscript_text=manuscript_text,
+                study_id=study_id,
+                quest_id=f"quest-{study_id}",
+                eval_id="publication-eval::stale",
+            ),
         },
     )
     dispatch_path = (
