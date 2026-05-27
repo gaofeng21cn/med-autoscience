@@ -140,6 +140,54 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    record_production_action = _ai_reviewer_record_production_transition_action(
+        status=status,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+    )
+    if record_production_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=record_production_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    if _explicit_ai_reviewer_record_current_manuscript_request_pending(ai_reviewer_assessment):
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=_ai_reviewer_record_current_manuscript_action(ai_reviewer_assessment),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
+    if (
+        _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
+        and not _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
+            status=status,
+            progress=progress,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            gate_specificity=gate_specificity,
+        )
+    ):
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=ai_reviewer_actions.ai_reviewer_required_action(
+                    reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
+                ),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     consumed_ai_reviewer_route_back = _consumed_ai_reviewer_route_back_actions(status)
     if consumed_ai_reviewer_route_back is not None:
         return [
@@ -163,32 +211,6 @@ def action_queue(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=analysis_handoff_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    record_production_action = _ai_reviewer_record_production_transition_action(
-        status=status,
-        ai_reviewer_assessment=ai_reviewer_assessment,
-    )
-    if record_production_action is not None:
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=record_production_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    if _explicit_ai_reviewer_record_current_manuscript_request_pending(ai_reviewer_assessment):
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=_ai_reviewer_record_current_manuscript_action(ai_reviewer_assessment),
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,
@@ -263,28 +285,6 @@ def action_queue(
                 study_id=study_id,
                 quest_id=quest_id,
                 action=ai_reviewer_freshness_action,
-                request_allowed_write_surfaces=request_allowed_write_surfaces,
-                control_allowed_write_surfaces=control_allowed_write_surfaces,
-                forbidden_actions=forbidden_actions,
-            )
-        ]
-    if (
-        _explicit_ai_reviewer_request_pending(ai_reviewer_assessment)
-        and not _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
-            status=status,
-            progress=progress,
-            study_root=study_root,
-            publication_eval_payload=publication_eval_payload,
-            gate_specificity=gate_specificity,
-        )
-    ):
-        return [
-            decorate_action(
-                study_id=study_id,
-                quest_id=quest_id,
-                action=ai_reviewer_actions.ai_reviewer_required_action(
-                    reason=_text(ai_reviewer_assessment.get("blocked_reason")) or "ai_reviewer_assessment_required"
-                ),
                 request_allowed_write_surfaces=request_allowed_write_surfaces,
                 control_allowed_write_surfaces=control_allowed_write_surfaces,
                 forbidden_actions=forbidden_actions,

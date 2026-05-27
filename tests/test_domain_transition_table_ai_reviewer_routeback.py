@@ -9,6 +9,7 @@ from med_autoscience.controllers.owner_route_reconcile_parts import current_trut
 from med_autoscience.controllers.study_outer_loop_parts.domain_transition_actions import (
     domain_transition_recommended_action,
 )
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -319,16 +320,12 @@ def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_pa
                     "human_review_readiness",
                 )
             },
-            "reviewer_operating_system": {
-                "currentness_checks": {
-                    "medical_prose_review": {"status": "stale_for_live_manuscript"},
-                    "current_manuscript": {
-                        "status": "current",
-                        "manuscript_ref": str(manuscript_path.resolve()),
-                        "manuscript_digest": _sha256_text(manuscript_text),
-                    },
-                }
-            },
+            "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+                study_root=study_root,
+                manuscript_path=manuscript_path,
+                manuscript_text=manuscript_text,
+                eval_id="publication-eval::dm002::new::2026-05-24T17:58:27+00:00::ai-reviewer",
+            ),
             "recommended_actions": [
                 {
                     "action_id": "route-back-same-line-current-publication-hardening-dm002-20260524T175827Z",
@@ -362,6 +359,14 @@ def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_pa
     json.dumps(transition, ensure_ascii=False, sort_keys=True)
     assert str(current_record_path.resolve()) in transition["source_refs"]
     assert all(isinstance(ref, str) for ref in transition["source_refs"])
+    assert transition["completion_receipt_consumption"] == {
+        "status": "consumed",
+        "receipt_kind": "ai_reviewer_publication_eval",
+        "receipt_ref": str(current_record_path.resolve()),
+        "eval_id": current_record["eval_id"],
+        "reviewer_trace_ref": f"{current_record_path.resolve()}#reviewer_operating_system",
+        "next_action": "honor_ai_reviewer_publication_eval_authority",
+    }
 
 
 def test_current_ai_reviewer_routeback_materializes_outer_loop_controller_action(

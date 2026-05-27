@@ -64,7 +64,7 @@ def project_domain_transition(
     ai_reviewer_receipt_consumption = (
         study_transition_receipt_consumption.ai_reviewer_publication_eval_receipt_consumption(
             publication_eval=publication_eval,
-            publication_eval_ref=PUBLICATION_EVAL_RELATIVE_PATH,
+            publication_eval_ref=Path(publication_eval_ref) if publication_eval_ref else PUBLICATION_EVAL_RELATIVE_PATH,
         )
     )
     human_gate_resume_receipt_consumption = (
