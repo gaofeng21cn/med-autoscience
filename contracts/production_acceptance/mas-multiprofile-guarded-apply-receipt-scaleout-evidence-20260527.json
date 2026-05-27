@@ -8,8 +8,7 @@
   "snapshot_status": "refs_only_multiprofile_owner_chain_snapshot_observed",
   "source_live_proof": {
     "command": "scripts/run-python-clean.sh -m med_autoscience.cli real-paper-autonomy-guarded-apply-proof --yang-root /Users/gaofeng/workspace/Yang --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml --profile /Users/gaofeng/workspace/Yang/NF-PitNET/ops/medautoscience/profiles/nfpitnet.workspace.toml --profile /Users/gaofeng/workspace/Yang/Obesity/ops/medautoscience/profiles/obesity.local.toml --target-study 001-dm-cvd-mortality-risk --target-study 002-dm-china-us-mortality-attribution --target-study 003-dpcc-primary-care-phenotype-treatment-gap --target-study 004-dpcc-longitudinal-care-inertia-intensification-gap --target-study 001-lineage-pfs --target-study 002-early-residual-risk --target-study 003-endocrine-burden-followup --target-study 004-invasive-architecture --target-study obesity_multicenter_phenotype_atlas",
-    "export_path": "/var/folders/zs/xgbvv4x933d66thpsgz0kqm00000gn/T/mas-multiprofile-alltargets-guarded-apply.xWxUbhEQ5M",
-    "sha256": "18703e4599ac9d18c92dde5691903303a955833b28e7ba67661d0bf59f23d6a6",
+    "compact_projection_sha256": "bac10666d6c88267764f887fabc1c62ba1a584e4a57c72898ada4baa394187b5",
     "body_included": false,
     "repo_tracks_live_proof_body": false
   },

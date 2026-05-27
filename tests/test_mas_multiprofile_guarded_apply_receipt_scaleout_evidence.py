@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -154,7 +155,9 @@ def test_multiprofile_guarded_apply_snapshot_is_refs_only_and_replayable() -> No
     payload = _snapshot()
     source = payload["source_live_proof"]
 
-    assert source["sha256"] == "18703e4599ac9d18c92dde5691903303a955833b28e7ba67661d0bf59f23d6a6"
+    assert "export_path" not in source
+    assert "sha256" not in source
+    assert source["compact_projection_sha256"] == _compact_projection_sha256(payload)
     assert source["body_included"] is False
     assert source["repo_tracks_live_proof_body"] is False
     assert source["command"].startswith(
@@ -162,7 +165,6 @@ def test_multiprofile_guarded_apply_snapshot_is_refs_only_and_replayable() -> No
     )
     assert "nfpitnet.workspace.toml" in source["command"]
     assert "obesity.local.toml" in source["command"]
-    assert source["export_path"].startswith("/var/folders/")
 
     memory_proof = payload["publication_route_memory_final_proof"]
     assert memory_proof["surface_kind"] == "dm002_publication_route_memory_final_proof"
@@ -189,3 +191,17 @@ def test_multiprofile_guarded_apply_snapshot_is_refs_only_and_replayable() -> No
             "body_included": False,
         },
     ]
+
+
+def _compact_projection_sha256(payload: dict[str, object]) -> str:
+    projection = {
+        "live_summary": payload["live_summary"],
+        "paper_line_owner_payload_summary": payload["paper_line_owner_payload_summary"],
+        "paper_line_identity_order": payload["paper_line_identity_order"],
+        "paper_line_owner_chain_results": payload["paper_line_owner_chain_results"],
+        "domain_dispatch_payload_summaries": payload["domain_dispatch_payload_summaries"],
+        "publication_route_memory_final_proof": payload["publication_route_memory_final_proof"],
+        "claim_boundary": payload["claim_boundary"],
+    }
+    rendered = json.dumps(projection, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
