@@ -82,6 +82,8 @@ def default_executor_execution_receipt_consumption(
             continue
         if not _execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
+        if _default_executor_dispatch_zero_execution_blocker(owner_result):
+            continue
         if not _default_executor_owner_result_consumable(
             action_type=action_type,
             owner_result=owner_result,
@@ -711,6 +713,8 @@ def _default_executor_owner_result_consumable(
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
 ) -> bool:
+    if _default_executor_dispatch_zero_execution_blocker(owner_result):
+        return False
     if action_type == "run_quality_repair_batch":
         return _quality_repair_batch_owner_result_satisfies_route_output(
             owner_result=owner_result,
@@ -723,6 +727,24 @@ def _default_executor_owner_result_consumable(
     if _text(repair_evidence.get("status")) in _DEFAULT_EXECUTOR_CONSUMABLE_REPAIR_EVIDENCE_STATUSES:
         return True
     return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
+
+
+def _default_executor_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
+    dispatcher_result = _mapping(owner_result.get("dispatcher_result"))
+    if not dispatcher_result:
+        return False
+    execution_count = dispatcher_result.get("execution_count")
+    if execution_count not in {0, "0"}:
+        return False
+    blocked_reason = _text(owner_result.get("blocked_reason"))
+    blocked_reasons = _string_set(owner_result.get("blocked_reasons"))
+    dispatch_reason = _text(dispatcher_result.get("reason"))
+    return (
+        blocked_reason == "domain_owner_action_dispatch_execution_count_zero"
+        or "domain_owner_action_dispatch_execution_count_zero" in blocked_reasons
+        or "run_quality_repair_batch_not_visible_in_current_opl_control_state" in blocked_reasons
+        or "no current executable" in dispatch_reason
+    )
 
 
 def _quality_repair_batch_owner_result_satisfies_route_output(
@@ -754,6 +776,8 @@ def _default_executor_nonconsumable_reason(
     repair_evidence: Mapping[str, Any],
 ) -> str:
     if action_type == "run_quality_repair_batch":
+        if _default_executor_dispatch_zero_execution_blocker(owner_result):
+            return "domain_owner_action_dispatch_execution_count_zero"
         hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
         if (
             hygiene.get("story_surface_delta_required") is True

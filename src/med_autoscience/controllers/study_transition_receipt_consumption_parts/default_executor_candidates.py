@@ -96,6 +96,8 @@ def _execution_from_stage_closeout(
             "blocked_reason": _text(domain_execution.get("blocked_reason"))
             or _text(owner_receipt.get("typed_blocker"))
             or _text(closeout.get("blocked_reason")),
+            "blocked_reasons": list(owner_receipt.get("blocked_reasons") or []),
+            "dispatcher_result": _mapping(domain_execution.get("dispatcher_result")),
             "repair_execution_evidence": repair_evidence,
             "quality_authorized": False,
             "submission_authorized": False,
