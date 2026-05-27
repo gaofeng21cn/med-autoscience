@@ -25,6 +25,11 @@ def write_owner_action(
             publication_eval_payload=publication_eval_payload,
         )
     if controller_route is None:
+        controller_route = current_truth_owner.current_gate_replay_routeback_route(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+    if controller_route is None:
         return None
     work_unit_id = _text(controller_route.get("work_unit_id")) or "medical_prose_write_repair"
     reason = _reason_for_route(controller_route)
@@ -62,6 +67,8 @@ def write_owner_action(
 def _reason_for_route(controller_route: Mapping[str, Any]) -> str:
     if _text(controller_route.get("authorization_basis")) == "quality_repair_story_surface_delta_blocker":
         return "manuscript_story_surface_delta_missing"
+    if _text(controller_route.get("authorization_basis")) == "gate_replay_route_back":
+        return "publication_gate_route_back_write_required"
     return "quest_waiting_opl_runtime_owner_route"
 
 

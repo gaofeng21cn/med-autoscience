@@ -377,6 +377,9 @@ _REASON_REGISTRY = {
     "ai_reviewer_record_incomplete": _ai_reviewer_entry(),
     "dm002_publication_eval_requires_ai_reviewer_and_canonical_refresh": _ai_reviewer_entry(),
     "manuscript_story_surface_delta_missing": _write_entry("DM003:medical_prose_route_back"),
+    "publication_gate_route_back_write_required": _write_entry(
+        "DM003:blocked_gate_replay_route_back_write"
+    ),
     "claim_evidence_alignment_required": _entry(
         owner="write",
         allowed_actions=["run_quality_repair_batch"],
