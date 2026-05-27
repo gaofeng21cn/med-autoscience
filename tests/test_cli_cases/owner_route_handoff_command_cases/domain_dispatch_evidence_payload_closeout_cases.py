@@ -1,6 +1,117 @@
 from __future__ import annotations
 
 from .shared import *  # noqa: F403,F401
+import builtins
+
+
+def test_domain_handler_dispatch_evidence_payload_does_not_require_pdf_dependency(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    for module_name in list(sys.modules):
+        if (
+            module_name == "pypdf"
+            or module_name.startswith("pypdf.")
+            or module_name == "med_autoscience.cli"
+            or module_name == "med_autoscience.controllers.owner_route_reconcile"
+            or module_name == "med_autoscience.controllers.domain_status_projection"
+            or module_name == "med_autoscience.controllers.study_runtime_decision"
+            or module_name == "med_autoscience.controllers.submission_minimal"
+            or module_name.startswith("med_autoscience.controllers.submission_minimal_parts.")
+        ):
+            sys.modules.pop(module_name, None)
+
+    real_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "pypdf" or name.startswith("pypdf."):
+            raise ModuleNotFoundError("No module named 'pypdf'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_id = "002-dm-china-us-mortality-attribution"
+    stage_attempt_source = "mas_default_executor_source_import_light"
+    domain_source = "domain_source_import_light"
+    dispatch_ref = (
+        "studies/002-dm-china-us-mortality-attribution/artifacts/supervision/consumer/"
+        "default_executor_dispatches/run_quality_repair_batch.json"
+    )
+    workorder_path = tmp_path / "opl-workorder.json"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        workorder_path,
+        {
+            "action_id": "domain_dispatch:medautoscience:sat_import_light:record",
+            "target_identity": {
+                "domain_id": "medautoscience",
+                "stage_id": "domain_owner/default-executor-dispatch",
+                "stage_attempt_id": "sat_import_light",
+                "task_kind": "domain_owner/default-executor-dispatch",
+                "study_id": study_id,
+                "source_fingerprint": stage_attempt_source,
+                "domain_source_fingerprint": domain_source,
+                "profile_name": "nfpitnet",
+            },
+            "dispatch_identity_fields": {
+                "action_type": "run_quality_repair_batch",
+                "dispatch_ref": dispatch_ref,
+            },
+        },
+    )
+
+    def fake_scan_domain_routes(*, profile, study_ids, apply_safe_actions, developer_supervisor_mode):
+        assert study_ids == (study_id,)
+        return {
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "blocked_reason": "runtime_recovery_not_authorized",
+                    "domain_transition": {
+                        "decision_type": "route_back_same_line",
+                        "route_target": "write",
+                        "owner": "write",
+                        "controller_action": "request_opl_stage_attempt",
+                        "source_refs": [
+                            "artifacts/publication_eval/latest.json",
+                            "artifacts/controller_decisions/latest.json",
+                        ],
+                        "completion_receipt_consumption": {
+                            "status": "consumed",
+                            "receipt_kind": "ai_reviewer_publication_eval",
+                            "receipt_ref": "artifacts/publication_eval/latest.json",
+                        },
+                    },
+                    "owner_route": {
+                        "next_owner": "one-person-lab",
+                        "owner_reason": "runtime_recovery_not_authorized",
+                    },
+                }
+            ]
+        }
+
+    monkeypatch.setattr(cli.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+
+    exit_code = cli.main(
+        [
+            "domain-handler",
+            "dispatch-evidence-payload",
+            "--profile",
+            str(profile_path),
+            "--workorder",
+            str(workorder_path),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "typed_blocker_payload_ready"
+    assert payload["opl_runtime_action_execute_payload"]["source_fingerprint"] == stage_attempt_source
 
 
 def test_domain_handler_dispatch_evidence_payload_projects_stage_attempt_closeout_typed_blocker(

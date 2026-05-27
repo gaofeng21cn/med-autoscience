@@ -4,6 +4,7 @@ import json
 import os
 import signal
 import subprocess
+import time
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
@@ -18,25 +19,31 @@ def live_provider_attempt_for_study(
     profile: Any,
     study_id: str,
     timeout_seconds: float = 3.0,
+    max_inspect_count: int = 2,
 ) -> dict[str, Any] | None:
     opl_bin = _opl_bin()
     if opl_bin is None:
         return None
+    deadline = time.monotonic() + max(timeout_seconds, 0.0)
     queue_payload = _run_opl_json(
         opl_bin,
         ("family-runtime", "queue", "list", "--json"),
-        timeout_seconds=timeout_seconds,
+        timeout_seconds=_remaining_seconds(deadline),
     )
     if queue_payload is None:
         return None
-    for task in _candidate_tasks(queue_payload, profile=profile, study_id=study_id):
+    candidate_tasks = _candidate_tasks(queue_payload, profile=profile, study_id=study_id)
+    for task in candidate_tasks[: max(0, max_inspect_count)]:
+        remaining_seconds = _remaining_seconds(deadline)
+        if remaining_seconds <= 0:
+            return None
         task_id = _text(task.get("task_id"))
         if task_id is None:
             continue
         inspected = _run_opl_json(
             opl_bin,
             ("family-runtime", "queue", "inspect", task_id, "--json"),
-            timeout_seconds=timeout_seconds,
+            timeout_seconds=remaining_seconds,
         )
         projection = _live_projection_from_inspect(inspected, profile=profile, study_id=study_id)
         if projection is not None:
@@ -141,6 +148,8 @@ def _opl_bin() -> Path | None:
 
 
 def _run_opl_json(opl_bin: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, Any] | None:
+    if timeout_seconds <= 0:
+        return None
     process: subprocess.Popen[str] | None = None
     try:
         process = subprocess.Popen(
@@ -164,6 +173,10 @@ def _run_opl_json(opl_bin: Path, args: tuple[str, ...], *, timeout_seconds: floa
     except json.JSONDecodeError:
         return None
     return dict(parsed) if isinstance(parsed, Mapping) else None
+
+
+def _remaining_seconds(deadline: float) -> float:
+    return max(0.0, deadline - time.monotonic())
 
 
 def _terminate_process_group(process: subprocess.Popen[str]) -> None:

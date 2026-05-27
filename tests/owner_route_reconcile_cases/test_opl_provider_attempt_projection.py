@@ -142,6 +142,61 @@ def test_live_provider_attempt_projection_skips_non_live_tasks(monkeypatch, tmp_
     assert commands == [("family-runtime", "queue", "list", "--json")]
 
 
+def test_live_provider_attempt_projection_limits_queue_inspect_candidates(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"
+    )
+    profile = make_profile(tmp_path)
+    profile_ref = profile.workspace_root / "ops" / "medautoscience" / "profiles" / "local.toml"
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict:
+        commands.append(args)
+        if args == ("family-runtime", "queue", "list", "--json"):
+            return {
+                "family_runtime_queue": {
+                    "tasks": [
+                        {
+                            "task_id": f"frt-{index}",
+                            "task_kind": "domain_owner/default-executor-dispatch",
+                            "status": "running",
+                            "updated_at": f"2026-05-26T13:35:2{index}Z",
+                            "payload": {
+                                "profile": str(profile_ref),
+                                "study_id": "001-risk",
+                            },
+                        }
+                        for index in range(5)
+                    ]
+                }
+            }
+        return {
+            "family_runtime_task": {
+                "task": {
+                    "task_id": args[3],
+                    "payload": {"study_id": "001-risk"},
+                    "current_control_state": {"running_provider_attempt": False},
+                }
+            }
+        }
+
+    monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
+    monkeypatch.setattr(module, "_run_opl_json", fake_run)
+
+    result = module.live_provider_attempt_for_study(
+        profile=profile,
+        study_id="001-risk",
+        max_inspect_count=2,
+    )
+
+    assert result is None
+    assert commands == [
+        ("family-runtime", "queue", "list", "--json"),
+        ("family-runtime", "queue", "inspect", "frt-4", "--json"),
+        ("family-runtime", "queue", "inspect", "frt-3", "--json"),
+    ]
+
+
 def test_run_opl_json_timeout_kills_process_group(tmp_path: Path) -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_reconcile_parts.opl_provider_attempts"

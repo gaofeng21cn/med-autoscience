@@ -11,6 +11,14 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM003 的 A1 边界证据已经存在于 canonical ledger `items[]`，但缺少 `A1_boundary_metric_provenance` 的 claim-level row，导致已修证据仍被 AI reviewer claim-evidence gate fail closed。修复应落在 MAS paper repair owner，把 evidence inventory 提升为正式 ledger claim 结构，而不是放宽 gate 或手改 study truth。
 - 影响：该 repair 只接受 `item_id` 精确匹配和具备 source paths / summary 的 ledger item；不能用 source path overlap 启发式生成缺失 claim row。修复完成后质量仍由 AI reviewer-backed publication eval 决定，不能由 repair receipt 直接授权 publication ready 或 submission ready。
 
+## 2026-05-27：domain-dispatch owner surface 必须 import-light，OPL live probe 必须有边界
+
+- 决策：`domain-handler dispatch-evidence-payload` 属于 MAS owner-route / domain-dispatch refs-only owner surface，不得在导入或生成 payload 时要求 PDF inspection dependency。PDF surface inspection 只在实际读取 submission PDF 时局部导入 PDF reader；缺 PDF 依赖不能阻断 OPL workorder 回查、typed blocker payload 生成或 refs-only ledger closure。
+- 决策：owner-route 对 OPL live provider attempt 的读取是 bounded liveness projection。MAS 可以读取 OPL queue list 并有限 inspect 最近候选，但必须共享总时间预算、限制 inspect 数量，并在超时时终止整个 subprocess group；该 probe 失败只能返回 no live projection，不能阻塞 MAS owner route、遗留 OPL/Node 子进程，或改变 study truth。
+- 决策：live domain-dispatch workorder 的 OPL `record/verify` 闭合如果是 `closed_by_receipt_ref` / `receipt_verified` 或 typed-blocker closure，只表示 OPL refs-only ledger 验证了 MAS-owned owner-chain refs、typed blocker refs、no-regression refs 或对应 receipt ref。它不能升级为 MAS owner receipt、paper closure、publication-ready、domain-ready、artifact/memory lifecycle receipt 或 production-ready。
+- 理由：`sat_41e80e3f9e48b4e46977ba18` domain-dispatch workorder 暴露出两个 runtime hygiene 缺口：一是 payload owner surface 因 `submission_minimal` 顶层 `pypdf` 导入而在无 PDF 依赖环境 fail；二是 optional OPL live-provider queue inspect 可能超过调用预算并留下子进程。根因分别是 import boundary 放错层、liveness probe 没有进程组和候选上限。
+- 影响：这是 MAS owner-route/read-model/import-light hygiene，不写真实 study workspace artifact、paper body、`publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、memory body 或 artifact body。后续 owner-chain scaleout 仍需新的 MAS owner receipt、stage receipt、monitor freshness receipt、stable typed blocker、human gate、artifact/memory lifecycle receipt 或 no-forbidden-write proof。
+
 ## 2026-05-27：非终局 study 必须 always resolve to next owner
 
 - 决策：MAS current-state / read-model / owner-route / materializer / dispatch 闭环必须满足 “always resolve to next owner”。任何非终局 study 的当前回合都只能落到唯一可执行状态：`running`、`ready_for_owner_action`、`waiting_human`、`blocked_with_typed_owner`、`terminal_success` 或 `terminal_stop_loss`。缺 currentness basis、缺 owner callable、OPL retry/dead-letter、authority refusal、stale dispatch、forbidden write 或 missing receipt 时，必须稳定化为 MAS-owned typed blocker、owner receipt、human gate 或 stop-loss，不能静默停住。

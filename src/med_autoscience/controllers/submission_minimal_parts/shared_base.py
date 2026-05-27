@@ -16,8 +16,6 @@ from pathlib import Path
 from typing import Any
 from urllib import request
 
-from pypdf import PdfReader
-
 from med_autoscience.adapters.literature import pubmed as pubmed_adapter
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience.controllers import study_delivery_sync

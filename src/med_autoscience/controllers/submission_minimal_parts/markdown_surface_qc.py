@@ -113,6 +113,8 @@ def inspect_submission_pdf_surface(pdf_path: Path) -> dict[str, Any]:
             "page_count": 0,
         }
     try:
+        from pypdf import PdfReader
+
         reader = PdfReader(str(pdf_path))
         embedded_image_count = sum(len(page.images) for page in reader.pages)
     except Exception:
