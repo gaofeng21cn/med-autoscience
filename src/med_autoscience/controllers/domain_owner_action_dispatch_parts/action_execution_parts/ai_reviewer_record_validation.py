@@ -6,6 +6,9 @@ from typing import Any
 from med_autoscience.controllers.ai_reviewer_record_contract import (
     ai_reviewer_record_has_valid_evaluation_scope,
 )
+from med_autoscience.publication_eval_reviewer_os import (
+    validate_ai_reviewer_operating_system_trace,
+)
 
 
 _AI_REVIEWER_REQUIRED_RECORD_FIELDS = (
@@ -41,12 +44,16 @@ def ai_reviewer_record_blocker(record: Mapping[str, Any]) -> dict[str, Any] | No
         }
     invalid_fields = invalid_ai_reviewer_record_fields(record)
     if invalid_fields:
+        reviewer_os_errors = reviewer_operating_system_errors(record)
+        payload: dict[str, Any] = {
+            "invalid_record_fields": invalid_fields,
+            "owner_record_requirements": ai_reviewer_record_requirements(),
+        }
+        if reviewer_os_errors:
+            payload["reviewer_operating_system_errors"] = reviewer_os_errors
         return {
             "reason": "ai_reviewer_record_invalid",
-            "payload": {
-                "invalid_record_fields": invalid_fields,
-                "owner_record_requirements": ai_reviewer_record_requirements(),
-            },
+            "payload": payload,
         }
     missing_fields = missing_ai_reviewer_record_fields(record)
     if missing_fields:
@@ -84,6 +91,8 @@ def missing_ai_reviewer_record_fields(record: Mapping[str, Any]) -> list[str]:
     future_plan = record.get("future_facing_limitations_plan")
     if not isinstance(future_plan, list) or not future_plan:
         missing.append("future_facing_limitations_plan")
+    if not isinstance(record.get("reviewer_operating_system"), Mapping):
+        missing.append("reviewer_operating_system")
     return missing
 
 
@@ -91,7 +100,16 @@ def invalid_ai_reviewer_record_fields(record: Mapping[str, Any]) -> list[str]:
     invalid: list[str] = []
     if not ai_reviewer_record_has_valid_evaluation_scope(record):
         invalid.append("evaluation_scope")
+    if reviewer_operating_system_errors(record):
+        invalid.append("reviewer_operating_system")
     return invalid
+
+
+def reviewer_operating_system_errors(record: Mapping[str, Any]) -> list[str]:
+    reviewer_os = record.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, Mapping):
+        return []
+    return validate_ai_reviewer_operating_system_trace(dict(reviewer_os))
 
 
 def ai_reviewer_record_requirements() -> dict[str, list[str]]:

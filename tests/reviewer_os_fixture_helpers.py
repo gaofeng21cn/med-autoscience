@@ -45,6 +45,111 @@ def claim_evidence_alignment_digest(gate: dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
+def current_manuscript_routeback_reviewer_os(
+    *,
+    study_root: Path,
+    manuscript_path: Path,
+    manuscript_text: str,
+    eval_id: str,
+) -> dict[str, Any]:
+    manuscript_ref = str(manuscript_path.resolve())
+    manuscript_digest = "sha256:" + hashlib.sha256(manuscript_text.encode("utf-8")).hexdigest()
+    evidence_ref = str(study_root / "paper" / "evidence_ledger.json")
+    review_ref = str(study_root / "paper" / "review" / "review_ledger.json")
+    claim_evidence_ref = str(study_root / "paper" / "claim_evidence_map.json")
+    dimensions = (
+        "clinical_significance",
+        "evidence_strength",
+        "novelty_positioning",
+        "medical_journal_prose_quality",
+        "human_review_readiness",
+    )
+    claim_alignment = ready_claim_evidence_alignment_gate(
+        claim_evidence_map_ref=claim_evidence_ref,
+        evidence_ledger_ref=evidence_ref,
+    )
+    return {
+        "contract_id": "medical_publication_ai_reviewer_os_v1",
+        "input_bundle": {
+            "manuscript": manuscript_ref,
+            "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "evidence_ledger": evidence_ref,
+            "review_ledger": review_ref,
+            "medical_manuscript_blueprint": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+            "claim_evidence_map": claim_evidence_ref,
+            "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+            "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        },
+        "rubric_scores": {
+            dimension: {
+                "status": "blocked" if dimension == "medical_journal_prose_quality" else "ready",
+                "rationale": f"{dimension} was reviewed against the current manuscript.",
+                "evidence_refs": [manuscript_ref, evidence_ref],
+            }
+            for dimension in dimensions
+        },
+        "decision_matrix": [
+            {
+                "dimension": dimension,
+                "status": "blocked" if dimension == "medical_journal_prose_quality" else "ready",
+                "rationale": f"{dimension} was reviewed against the current manuscript.",
+            }
+            for dimension in dimensions
+        ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": "sha256:" + "a" * 64,
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+                "route_back_required": True,
+                "route_target": "write",
+            },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+                "reviewed_at": "2026-05-24T17:58:27+00:00",
+            },
+            "current_package_freshness": {
+                "status": "downstream_pending",
+                "source_eval_id": eval_id,
+            },
+        },
+        "claim_evidence_alignment": claim_alignment,
+        "publication_quality_readiness": {
+            "surface_kind": "publication_quality_authority_kernel_v1",
+            "status": "ready",
+            "current_manuscript_digest": manuscript_digest,
+            "review_request_digest": "sha256:" + "a" * 64,
+            "evidence_ledger_digest": "sha256:" + "d" * 64,
+            "claim_evidence_alignment_digest": claim_evidence_alignment_digest(claim_alignment),
+            "rubric_version": "medical_publication_critique_v1",
+            "owner_attempt_id": f"ai-reviewer-publication-eval::{eval_id}",
+            "fail_closed_when_missing": True,
+            "missing_required_fields": [],
+        },
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "AI reviewer authorization is scoped to the current manuscript snapshot.",
+                "impact_on_claim": "Claims must remain tied to the reviewed manuscript and evidence refs.",
+                "required_future_analysis_data_or_design": "Repeat AI reviewer evaluation after substantive manuscript changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+        "provenance_checks": {
+            "assessment_owner": "ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "route_back_decision": {
+            "recommended_action": "route_back_same_line",
+            "rationale": "Current manuscript review still routes publication hardening to write.",
+        },
+    }
+
+
 def claim_evidence_map_payload(*, evidence_ledger_ref: str) -> dict[str, Any]:
     return {
         "claims": [

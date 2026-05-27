@@ -10,6 +10,9 @@ from typing import Any
 from med_autoscience.controllers.ai_reviewer_record_contract import (
     ai_reviewer_record_has_valid_evaluation_scope,
 )
+from med_autoscience.publication_eval_reviewer_os import (
+    validate_ai_reviewer_operating_system_trace,
+)
 
 
 AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB = (
@@ -102,7 +105,10 @@ def ai_reviewer_publication_eval_record_valid(payload: Mapping[str, Any]) -> boo
         if not isinstance(quality_assessment.get(dimension), Mapping):
             return False
     future_plan = payload.get("future_facing_limitations_plan")
-    return isinstance(future_plan, list) and bool(future_plan)
+    if not isinstance(future_plan, list) or not future_plan:
+        return False
+    reviewer_os = _mapping(payload.get("reviewer_operating_system"))
+    return not validate_ai_reviewer_operating_system_trace(dict(reviewer_os))
 
 
 def record_supersedes_publication_eval(

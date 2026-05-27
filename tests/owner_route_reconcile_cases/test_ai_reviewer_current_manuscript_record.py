@@ -5,6 +5,9 @@ import json
 import hashlib
 from pathlib import Path
 
+from tests.reviewer_os_fixture_helpers import (
+    current_manuscript_routeback_reviewer_os,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -82,9 +85,10 @@ def test_current_ai_reviewer_response_record_drives_write_route_without_latest_m
         / "ai_reviewer_responses"
         / "20260524T175827Z_publication_eval_record.json"
     )
+    current_eval_id = "publication-eval::dm002::new::2026-05-24T17:58:27+00:00::ai-reviewer"
     current_record = {
         "schema_version": 1,
-        "eval_id": "publication-eval::dm002::new::2026-05-24T17:58:27+00:00::ai-reviewer",
+        "eval_id": current_eval_id,
         "study_id": study_id,
         "quest_id": quest_id,
         "emitted_at": "2026-05-24T17:58:27+00:00",
@@ -111,20 +115,12 @@ def test_current_ai_reviewer_response_record_drives_write_route_without_latest_m
                 "current_manuscript_wording_must_be_restrained": True,
             }
         ],
-        "reviewer_operating_system": {
-            "currentness_checks": {
-                "medical_prose_review": {
-                    "status": "stale_for_live_manuscript",
-                    "used_as_context_not_clearance": True,
-                },
-                "current_manuscript": {
-                    "status": "current",
-                    "manuscript_ref": str(manuscript_path.resolve()),
-                    "manuscript_digest": _sha256_text(manuscript_text),
-                    "reviewed_at": "2026-05-24T17:58:27+00:00",
-                },
-            }
-        },
+        "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+            study_root=study_root,
+            manuscript_path=manuscript_path,
+            manuscript_text=manuscript_text,
+            eval_id=current_eval_id,
+        ),
         "recommended_actions": [
             {
                 "action_id": "route-back-same-line-current-publication-hardening-dm002-20260524T175827Z",
