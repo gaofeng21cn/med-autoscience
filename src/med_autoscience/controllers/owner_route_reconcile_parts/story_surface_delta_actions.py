@@ -5,6 +5,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.owner_route_reconcile_parts import current_truth_owner
+from med_autoscience.controllers.story_surface_work_units import (
+    is_claim_evidence_alignment_write_work_unit,
+)
 
 
 def write_owner_action(
@@ -37,10 +40,7 @@ def write_owner_action(
             "redrive the write owner through the quality repair batch until the canonical "
             "manuscript surface changes or a typed blocker remains."
         ),
-        "required_output_surface": (
-            "canonical manuscript story-surface delta or "
-            "typed blocker:manuscript_story_surface_delta_missing"
-        ),
+        "required_output_surface": _required_output_surface(work_unit_id),
         "route_target": "write",
         "next_work_unit": work_unit_id,
         "executable_work_unit": work_unit_id,
@@ -63,6 +63,18 @@ def _reason_for_route(controller_route: Mapping[str, Any]) -> str:
     if _text(controller_route.get("authorization_basis")) == "quality_repair_story_surface_delta_blocker":
         return "manuscript_story_surface_delta_missing"
     return "quest_waiting_opl_runtime_owner_route"
+
+
+def _required_output_surface(work_unit_id: str) -> str:
+    if is_claim_evidence_alignment_write_work_unit(work_unit_id):
+        return (
+            "claim-evidence map and evidence ledger alignment or "
+            "typed blocker:claim_evidence_alignment_required"
+        )
+    return (
+        "canonical manuscript story-surface delta or "
+        "typed blocker:manuscript_story_surface_delta_missing"
+    )
 
 
 def _text(value: object) -> str | None:

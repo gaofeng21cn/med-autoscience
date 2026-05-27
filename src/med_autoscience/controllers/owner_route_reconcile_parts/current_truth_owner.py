@@ -14,6 +14,7 @@ from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_cu
     EVAL_BOUND_CURRENT_MANUSCRIPT_DIGEST_MISMATCH_BLOCKER,
 )
 from med_autoscience.controllers.story_surface_work_units import (
+    is_claim_evidence_alignment_write_work_unit,
     is_story_surface_delta_write_work_unit,
 )
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
@@ -232,7 +233,7 @@ def current_ai_reviewer_write_routeback_route(
         return None
     next_work_unit = _mapping(action.get("next_work_unit"))
     work_unit_id = _text(next_work_unit.get("unit_id"))
-    if not is_story_surface_delta_write_work_unit(work_unit_id):
+    if not _is_ai_reviewer_write_repair_work_unit(next_work_unit):
         return None
     source_eval_id = _text(publication_eval_payload.get("eval_id"))
     resolved_study_root = Path(study_root).expanduser().resolve()
@@ -311,6 +312,15 @@ def _publication_story_repair_action(publication_eval_payload: Mapping[str, Any]
             continue
         return dict(action)
     return None
+
+
+def _is_ai_reviewer_write_repair_work_unit(next_work_unit: Mapping[str, Any]) -> bool:
+    work_unit_id = _text(next_work_unit.get("unit_id"))
+    return (
+        _text(next_work_unit.get("lane")) == "write"
+        or is_story_surface_delta_write_work_unit(work_unit_id)
+        or is_claim_evidence_alignment_write_work_unit(work_unit_id)
+    )
 
 
 def _story_surface_delta_blocker_present(batch: Mapping[str, Any]) -> bool:
