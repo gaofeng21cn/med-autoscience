@@ -23,3 +23,4 @@ from tests.study_progress_cases.open_auto_research_projection import *
 from tests.study_progress_cases.opl_current_control_state_handoff_projection import *
 from tests.study_progress_cases.delivery_inspection_visibility import *
 from tests.study_progress_cases.user_visible_projection import *
+from tests.study_progress_cases.domain_routeback_currentness_projection import *
