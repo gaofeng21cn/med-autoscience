@@ -14,13 +14,25 @@ STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS = frozenset(
         "medical_prose_write_repair",
     }
 )
+CLAIM_EVIDENCE_ALIGNMENT_WRITE_WORK_UNIT_IDS = frozenset(
+    {
+        "claim_evidence_alignment_repair",
+        "current_manuscript_claim_evidence_alignment_repair",
+    }
+)
 
 
 def is_story_surface_delta_write_work_unit(unit_id: object) -> bool:
     return str(unit_id or "").strip() in STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS
 
 
+def is_claim_evidence_alignment_write_work_unit(unit_id: object) -> bool:
+    return str(unit_id or "").strip() in CLAIM_EVIDENCE_ALIGNMENT_WRITE_WORK_UNIT_IDS
+
+
 __all__ = [
     "STORY_SURFACE_DELTA_WRITE_WORK_UNIT_IDS",
+    "CLAIM_EVIDENCE_ALIGNMENT_WRITE_WORK_UNIT_IDS",
+    "is_claim_evidence_alignment_write_work_unit",
     "is_story_surface_delta_write_work_unit",
 ]

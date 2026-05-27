@@ -724,8 +724,10 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
     assert request["action_type"] == "run_gate_clearing_batch"
     assert request["request_owner"] == "gate_clearing_batch"
     assert request["reason"] == "publication_owner_materialization_required"
+    assert request["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
     assert dispatch["action_type"] == "run_gate_clearing_batch"
     assert dispatch["next_executable_owner"] == "gate_clearing_batch"
+    assert dispatch["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
     assert dispatch["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
     assert dispatch["owner_route"]["source_refs"]["work_unit_id"] == "publication_gate_replay"
     assert dispatch["source_action"]["controller_work_unit_id"] == work_unit_id

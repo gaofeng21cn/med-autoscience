@@ -115,6 +115,7 @@ def test_scan_routes_publication_gate_blocker_to_gate_clearing_despite_external_
     assert action["owner_route"]["next_owner"] == "gate_clearing_batch"
     assert action["owner_route"]["owner_reason"] == "domain_transition_publication_gate_blocker"
     assert action["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert action["required_output_surface"] == "artifacts/controller/gate_clearing_batch/latest.json"
     assert study["owner_route"]["next_owner"] == "gate_clearing_batch"
     assert study["owner_route"]["allowed_actions"] == ["run_gate_clearing_batch"]
     assert study["next_owner"] == "gate_clearing_batch"
