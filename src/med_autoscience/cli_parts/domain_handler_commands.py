@@ -55,7 +55,8 @@ def handle_domain_handler_command(
             owner_route_scan=owner_route_scan,
         )
         _print_json(result)
-        return 0 if result.get("status") == "typed_blocker_payload_ready" else 1
+        ready_statuses = {"typed_blocker_payload_ready", "owner_receipt_payload_ready"}
+        return 0 if result.get("status") in ready_statuses else 1
 
     return None
 
