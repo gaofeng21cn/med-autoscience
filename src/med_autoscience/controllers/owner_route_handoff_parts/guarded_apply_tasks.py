@@ -112,6 +112,7 @@ def _provider_hosted_guarded_apply_task(
     return {
         "task_id": dedupe_key,
         "domain_id": "medautoscience",
+        "task_id": dedupe_key,
         "task_kind": "paper_autonomy/guarded-apply",
         "priority": 30,
         "source": "mas-domain-handler-export",
