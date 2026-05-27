@@ -54,6 +54,7 @@ def compact_opl_current_control_state_handoff(value: object) -> dict[str, Any] |
             "artifact_delta",
             "gate_specificity",
             "ai_reviewer_status",
+            "stage_progress_log",
             "queue_slo",
             "owner_pickup_overdue",
             "developer_supervisor_attention_required",
@@ -64,6 +65,14 @@ def compact_opl_current_control_state_handoff(value: object) -> dict[str, Any] |
     )
     if compact is None:
         return None
+    stage_progress_log = compact.get("stage_progress_log")
+    if isinstance(stage_progress_log, dict):
+        attempt_refs = stage_progress_log.get("attempt_refs")
+        if isinstance(attempt_refs, list):
+            stage_progress_log["attempt_refs"] = _compact_string_list(attempt_refs, limit=6)
+        temporal_refs = stage_progress_log.get("temporal_webui_refs")
+        if isinstance(temporal_refs, list):
+            stage_progress_log["temporal_webui_refs"] = _compact_string_list(temporal_refs, limit=6)
     action_queue = value.get("action_queue")
     if isinstance(action_queue, list):
         compact["action_queue"] = [
@@ -131,6 +140,18 @@ def render_mcp_progress_opl_current_control_state_handoff(compact: dict[str, Any
     blocked_reason = str(dashboard.get("blocked_reason") or gate_specificity.get("blocked_reason") or "").strip()
     if blocked_reason:
         lines.append(f"- blocked_reason: `{blocked_reason}`")
+    stage_progress_log = dashboard.get("stage_progress_log")
+    if isinstance(stage_progress_log, dict):
+        lines.append(
+            f"- stage_progress_log: attempts `{stage_progress_log.get('attempt_count') or 0}`；"
+            f"completed `{stage_progress_log.get('completed_attempt_count') or 0}`；"
+            f"blocked `{stage_progress_log.get('blocked_attempt_count') or 0}`"
+        )
+        if stage_progress_log.get("missing_usage_telemetry_attempt_count") is not None:
+            lines.append(
+                "- missing_usage_telemetry_attempt_count: "
+                f"`{stage_progress_log.get('missing_usage_telemetry_attempt_count')}`"
+            )
     for action in dashboard.get("action_queue") or []:
         if not isinstance(action, dict):
             continue

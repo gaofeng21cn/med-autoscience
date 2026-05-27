@@ -187,6 +187,7 @@ def _progress_publication_and_runtime_fields(
     open_auto_research_state: dict[str, Any],
     ai_reviewer_request_lifecycle: dict[str, Any] | None,
     opl_current_control_state_handoff: dict[str, Any] | None,
+    runtime_medical_publication_surface: dict[str, Any] | None,
     gate_specificity_request: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
@@ -201,6 +202,7 @@ def _progress_publication_and_runtime_fields(
         "open_auto_research_projection": open_auto_research_state,
         "ai_reviewer_request_lifecycle": ai_reviewer_request_lifecycle,
         "opl_current_control_state_handoff": opl_current_control_state_handoff,
+        "runtime_medical_publication_surface": runtime_medical_publication_surface,
         "publication_gate_specificity_request": gate_specificity_request,
     }
 
@@ -298,6 +300,7 @@ def assemble_study_progress_payload(
     open_auto_research_state: dict[str, Any],
     ai_reviewer_request_lifecycle: dict[str, Any] | None,
     opl_current_control_state_handoff: dict[str, Any] | None,
+    runtime_medical_publication_surface: dict[str, Any] | None,
     gate_specificity_request: dict[str, Any] | None,
     ai_first_default_entry_state: dict[str, Any],
     paper_orchestra_operator_projection: dict[str, Any],
@@ -386,6 +389,7 @@ def assemble_study_progress_payload(
             open_auto_research_state=open_auto_research_state,
             ai_reviewer_request_lifecycle=ai_reviewer_request_lifecycle,
             opl_current_control_state_handoff=opl_current_control_state_handoff,
+            runtime_medical_publication_surface=runtime_medical_publication_surface,
             gate_specificity_request=gate_specificity_request,
         ),
         **_progress_ai_first_and_snapshot_fields(
@@ -424,6 +428,7 @@ def assemble_study_progress_payload(
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     payload = _apply_current_redrive_user_visible_status(payload)
+    payload = _apply_runtime_medical_publication_surface_user_visible_status(payload)
     payload = _apply_terminal_delivery_user_visible_status(payload)
     return attach_ai_first_runtime_projection(
         payload,
@@ -454,6 +459,47 @@ def _apply_current_redrive_user_visible_status(payload: dict[str, Any]) -> dict[
         operator_status["current_focus"] = next_step
         updated["operator_status_card"] = operator_status
     return updated
+
+
+def _apply_runtime_medical_publication_surface_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
+    blockers = _current_runtime_medical_publication_surface_blockers(payload)
+    if not blockers:
+        return payload
+    updated = dict(payload)
+    updated["current_blockers"] = _merge_blockers(updated.get("current_blockers"), blockers)
+    user_visible = _mapping_copy(updated.get("user_visible_projection"))
+    if user_visible:
+        user_visible["current_blockers"] = _merge_blockers(user_visible.get("current_blockers"), blockers)
+        user_visible["state_summary"] = _non_empty_text(user_visible.get("state_summary")) or blockers[0]
+        user_visible["current_stage_summary"] = (
+            _non_empty_text(user_visible.get("current_stage_summary")) or user_visible["state_summary"]
+        )
+        updated["user_visible_projection"] = user_visible
+    status_contract = _mapping_copy(updated.get("status_narration_contract"))
+    if status_contract:
+        status_contract["current_blockers"] = _merge_blockers(status_contract.get("current_blockers"), blockers)[:8]
+        updated["status_narration_contract"] = status_contract
+    return updated
+
+
+def _current_runtime_medical_publication_surface_blockers(payload: Mapping[str, Any]) -> list[str]:
+    surface = _mapping_copy(payload.get("runtime_medical_publication_surface"))
+    if _non_empty_text(surface.get("status")) != "blocked":
+        return []
+    return [
+        text
+        for item in surface.get("blocker_summaries") or surface.get("blockers") or []
+        if (text := _non_empty_text(item)) is not None
+    ]
+
+
+def _merge_blockers(existing: object, blockers: list[str]) -> list[str]:
+    merged: list[str] = []
+    for item in [*(existing or []), *blockers]:
+        text = _non_empty_text(item)
+        if text is not None and text not in merged:
+            merged.append(text)
+    return merged
 
 
 def _current_redrive_next_action(payload: Mapping[str, Any], *, user_visible: Mapping[str, Any]) -> str | None:
@@ -609,6 +655,7 @@ def build_projection_refs(
     details_projection_path: Path | None,
     ai_first_observability_snapshots: dict[str, Any],
     opl_current_control_state_handoff: dict[str, Any] | None,
+    runtime_medical_publication_surface: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
         "launch_report_path": str(launch_report_path),
@@ -654,6 +701,11 @@ def build_projection_refs(
         ),
         "opl_current_control_state_handoff_path": (
             opl_current_control_state_handoff.get("source_path") if opl_current_control_state_handoff is not None else None
+        ),
+        "runtime_medical_publication_surface_report_path": (
+            runtime_medical_publication_surface.get("source_path")
+            if runtime_medical_publication_surface is not None
+            else None
         ),
         "publication_gate_specificity_request_path": (
             str(gate_specificity_request_path) if gate_specificity_request is not None else None

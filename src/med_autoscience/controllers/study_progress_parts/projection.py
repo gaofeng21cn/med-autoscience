@@ -28,6 +28,7 @@ from .opl_current_control_state_handoff import (
     build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection,
     current_status_publication_gate_stationary as _current_status_publication_gate_stationary,
     current_status_suppresses_ai_repair_lifecycle as _current_status_suppresses_ai_repair_lifecycle,
+    opl_current_control_state_live_attempt_handoff_projection as _opl_current_control_state_live_attempt_handoff_projection,
     opl_current_control_state_study_handoff_projection as _opl_current_control_state_study_handoff_projection,
     read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
 )
@@ -48,6 +49,7 @@ from .projection_quality_surfaces import build_quality_projection_surfaces as _q
 from .projection_runtime_surfaces import (
     supervision_health_status as _supervision_health_status,
 )
+from .runtime_medical_publication_surface import build_runtime_medical_publication_surface_projection
 from .projection_status_context import build_projection_status_context
 from .task_intake_override import task_intake_override_superseded_by_gate_specificity
 from .user_visible_projection import build_user_visible_projection
@@ -213,6 +215,11 @@ def build_study_progress_projection(
     authority_snapshot = status_context.authority_snapshot
     manual_finish_contract = status_context.manual_finish_contract
     medical_writing_quality_surfaces = medical_writing_quality_surface_status(study_root=resolved_study_root)
+    runtime_medical_publication_surface = build_runtime_medical_publication_surface_projection(
+        study_root=resolved_study_root,
+        quest_root=quest_root,
+        domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+    )
     readiness_builder = (
         medical_paper_readiness.build_medical_paper_readiness_surface
         if materialize_read_model_artifacts
@@ -375,6 +382,7 @@ def build_study_progress_projection(
                 status=status,
                 publication_eval_payload=publication_eval_payload,
                 domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+                runtime_medical_publication_surface=runtime_medical_publication_surface,
                 runtime_escalation_payload=runtime_escalation_payload,
                 controller_confirmation_summary=controller_confirmation_summary,
                 controller_decision_payload=controller_decision_payload,
@@ -545,6 +553,12 @@ def build_study_progress_projection(
         profile=profile,
         study_id=resolved_study_id,
     )
+    if opl_current_control_state_handoff is None:
+        opl_current_control_state_handoff = _opl_current_control_state_live_attempt_handoff_projection(
+            profile=profile,
+            study_id=resolved_study_id,
+            runtime_liveness_audit=_mapping_copy(status.get("runtime_liveness_audit")),
+        )
     operator_status_card = _operator_status_card(
         study_id=resolved_study_id,
         current_stage=current_stage,
@@ -773,6 +787,7 @@ def build_study_progress_projection(
         details_projection_path=details_projection_path,
         ai_first_observability_snapshots=ai_first_observability_snapshots,
         opl_current_control_state_handoff=opl_current_control_state_handoff,
+        runtime_medical_publication_surface=runtime_medical_publication_surface,
     )
     refs["ai_reviewer_request_lifecycle_path"] = (
         str(
@@ -837,6 +852,7 @@ def build_study_progress_projection(
         open_auto_research_state=open_auto_research_state,
         ai_reviewer_request_lifecycle=ai_reviewer_request_lifecycle,
         opl_current_control_state_handoff=opl_current_control_state_handoff,
+        runtime_medical_publication_surface=runtime_medical_publication_surface,
         gate_specificity_request=gate_specificity_request,
         ai_first_default_entry_state=ai_first_default_entry_state,
         paper_orchestra_operator_projection=paper_orchestra_operator_projection,

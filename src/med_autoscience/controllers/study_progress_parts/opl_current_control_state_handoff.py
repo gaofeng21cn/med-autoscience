@@ -240,6 +240,27 @@ def opl_current_control_state_study_handoff_projection(
             matching.get("ai_reviewer_status"),
             ("status", "summary", "owner", "trace_complete", "blocked_reason"),
         ),
+        "stage_progress_log": _copy_mapping_keys(
+            matching.get("stage_progress_log"),
+            (
+                "surface_kind",
+                "projection_scope",
+                "attempt_count",
+                "completed_attempt_count",
+                "blocked_attempt_count",
+                "activity_event_count",
+                "runner_progress_event_count",
+                "duration_observed_attempt_count",
+                "missing_usage_telemetry_attempt_count",
+                "temporal_attempt_count",
+                "temporal_webui_ref_count",
+                "temporal_visibility_readiness_statuses",
+                "activity_event_ref_count",
+                "attempt_refs",
+                "temporal_webui_refs",
+                "authority_boundary",
+            ),
+        ),
         "queue_slo": _copy_mapping_keys(
             matching.get("queue_slo"),
             (
@@ -260,3 +281,69 @@ def opl_current_control_state_study_handoff_projection(
     }
     projection.update(_opl_current_control_state_mode_fields(payload))
     return projection
+
+
+def opl_current_control_state_live_attempt_handoff_projection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    runtime_liveness_audit: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if _non_empty_text(runtime_liveness_audit.get("source")) != "opl_current_control_state_provider_attempt":
+        return None
+    stage_progress_log = _copy_mapping_keys(
+        runtime_liveness_audit.get("stage_progress_log"),
+        (
+            "surface_kind",
+            "projection_scope",
+            "attempt_count",
+            "completed_attempt_count",
+            "blocked_attempt_count",
+            "activity_event_count",
+            "runner_progress_event_count",
+            "duration_observed_attempt_count",
+            "missing_usage_telemetry_attempt_count",
+            "temporal_attempt_count",
+            "temporal_webui_ref_count",
+            "temporal_visibility_readiness_statuses",
+            "activity_event_ref_count",
+            "attempt_refs",
+            "temporal_webui_refs",
+            "authority_boundary",
+        ),
+    )
+    if not stage_progress_log:
+        return None
+    source_path = _non_empty_text(runtime_liveness_audit.get("handoff_path")) or str(
+        opl_current_control_state_handoff_path(profile=profile)
+    )
+    runtime_health = _copy_mapping_keys(
+        runtime_liveness_audit.get("runtime_health"),
+        ("health_status", "runtime_liveness_status", "summary", "blocked_reason"),
+    )
+    return {
+        "surface_kind": "opl_current_control_state_provider_attempt_handoff",
+        "read_model": "study_opl_current_control_state_handoff_projection",
+        "authority": _non_empty_text(runtime_liveness_audit.get("authority")) or "observability_only",
+        "source_path": source_path,
+        "generated_at": _non_empty_text(runtime_liveness_audit.get("handoff_generated_at")),
+        "study_id": study_id,
+        "quest_status": None,
+        "active_run_id": _non_empty_text(runtime_liveness_audit.get("active_run_id")),
+        "active_stage_attempt_id": _non_empty_text(runtime_liveness_audit.get("active_stage_attempt_id")),
+        "active_workflow_id": _non_empty_text(runtime_liveness_audit.get("active_workflow_id")),
+        "running_provider_attempt": bool(runtime_liveness_audit.get("running_provider_attempt")),
+        "runtime_health": runtime_health,
+        "artifact_delta": {},
+        "gate_specificity": {},
+        "ai_reviewer_status": {},
+        "stage_progress_log": stage_progress_log,
+        "queue_slo": {},
+        "owner_pickup_overdue": False,
+        "developer_supervisor_attention_required": False,
+        "action_queue": [],
+        "why_not_applied": [],
+        "next_owner": "supervisor_only/live_provider_attempt",
+        "external_supervisor_required": False,
+        "blocked_reason": None,
+    }

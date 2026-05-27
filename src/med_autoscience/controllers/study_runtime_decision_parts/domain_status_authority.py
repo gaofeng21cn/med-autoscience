@@ -606,6 +606,7 @@ def _opl_current_control_state_handoff_liveness_projection(
         "handoff_generated_at": str(latest_report.get("generated_at") or latest_report.get("recorded_at") or "").strip()
         or None,
         "runtime_health": dict(runtime_health) if isinstance(runtime_health, dict) else {},
+        "stage_progress_log": _stage_progress_log(study_entry.get("stage_progress_log")),
         "snapshot": {"status": quest_status.value if quest_status is not None else None},
     }
 
@@ -639,8 +640,34 @@ def _opl_live_provider_attempt_liveness_projection(
         "handoff_generated_at": str(latest_report.get("generated_at") or latest_report.get("recorded_at") or "").strip()
         or None,
         "runtime_health": dict(runtime_health) if isinstance(runtime_health, dict) else {},
+        "stage_progress_log": _stage_progress_log(live_attempt.get("stage_progress_log")),
         "snapshot": {"status": quest_status.value if quest_status is not None else None},
     }
+
+
+def _stage_progress_log(value: object) -> dict[str, object] | None:
+    if not isinstance(value, dict):
+        return None
+    keys = (
+        "surface_kind",
+        "projection_scope",
+        "attempt_count",
+        "completed_attempt_count",
+        "blocked_attempt_count",
+        "activity_event_count",
+        "runner_progress_event_count",
+        "duration_observed_attempt_count",
+        "missing_usage_telemetry_attempt_count",
+        "temporal_attempt_count",
+        "temporal_webui_ref_count",
+        "temporal_visibility_readiness_statuses",
+        "activity_event_ref_count",
+        "attempt_refs",
+        "temporal_webui_refs",
+        "authority_boundary",
+    )
+    projection = {key: value[key] for key in keys if key in value}
+    return projection or None
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]

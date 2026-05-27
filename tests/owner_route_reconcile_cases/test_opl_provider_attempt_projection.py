@@ -59,6 +59,22 @@ def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, t
                                 "provider_status": "running",
                                 "last_heartbeat_at": "2026-05-26T13:35:24Z",
                             },
+                            "stage_progress_log": {
+                                "surface_kind": "opl_stage_progress_log_summary",
+                                "projection_scope": "stage_attempt_workbench",
+                                "attempt_count": 2,
+                                "completed_attempt_count": 1,
+                                "blocked_attempt_count": 0,
+                                "missing_usage_telemetry_attempt_count": 1,
+                                "attempt_refs": [
+                                    "/stage_attempt_workbench/attempts/sat-live/stage_progress_log"
+                                ],
+                                "authority_boundary": {
+                                    "opl": "stage_attempt_progress_observability_projection_only",
+                                    "domain": "truth_quality_artifact_gate_owner",
+                                    "can_authorize_quality_verdict": False,
+                                },
+                            },
                         },
                     },
                     "stage_attempts": [
@@ -87,6 +103,12 @@ def test_live_provider_attempt_projection_reads_opl_queue_inspect(monkeypatch, t
     assert result["runtime_health"]["runtime_liveness_status"] == "live"
     assert result["action_type"] == "run_quality_repair_batch"
     assert result["work_unit_id"] == "dm002_methods_write_pass"
+    assert result["stage_progress_log"]["attempt_count"] == 2
+    assert result["stage_progress_log"]["missing_usage_telemetry_attempt_count"] == 1
+    assert result["stage_progress_log"]["attempt_refs"] == [
+        "/stage_attempt_workbench/attempts/sat-live/stage_progress_log"
+    ]
+    assert result["stage_progress_log"]["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert result["authority_boundary"]["provider_completion_is_domain_ready"] is False
     assert commands == [
         ("family-runtime", "queue", "list", "--json"),

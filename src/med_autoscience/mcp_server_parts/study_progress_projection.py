@@ -287,6 +287,49 @@ def _compact_medical_paper_v4_operations(value: Any) -> dict[str, Any] | None:
     return compact
 
 
+def _compact_runtime_medical_publication_surface(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        (
+            "surface_kind",
+            "authority",
+            "source_path",
+            "study_shadow_path",
+            "runtime_report_newer_than_study_shadow",
+            "status",
+            "generated_at",
+            "recommended_action",
+            "paper_root",
+            "study_root",
+            "figure_catalog_path",
+        ),
+    )
+    if compact is None:
+        return None
+    compact["blockers"] = _compact_string_list(value.get("blockers"), limit=12)
+    compact["blocker_summaries"] = _compact_string_list(value.get("blocker_summaries"), limit=12)
+    top_hits = value.get("top_hits")
+    if isinstance(top_hits, list):
+        compact["top_hits"] = [
+            _compact_record(
+                item,
+                ("path", "location", "pattern_id", "phrase", "excerpt"),
+            )
+            for item in top_hits
+            if isinstance(item, dict)
+        ][:6]
+        compact["top_hits"] = [item for item in compact["top_hits"] if item is not None]
+    study_shadow = _compact_record(
+        value.get("study_shadow"),
+        ("status", "generated_at", "updated_at", "emitted_at"),
+    )
+    if study_shadow is not None:
+        compact["study_shadow"] = study_shadow
+    return compact
+
+
 def _compact_readiness_missing_surface(item: dict[str, Any]) -> dict[str, Any] | None:
     return compact_missing_surface_with_action_truth(item)
 
@@ -566,6 +609,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "runtime_efficiency": _compact_runtime_efficiency,
         "module_surfaces": _compact_module_surfaces,
         "medical_paper_readiness": _compact_medical_paper_readiness,
+        "runtime_medical_publication_surface": _compact_runtime_medical_publication_surface,
         "pi_action_projection": compact_pi_action_projection,
         "delivery_inspection": compact_delivery_inspection_projection,
         "open_auto_research_projection": compact_open_auto_research_projection,

@@ -11,6 +11,7 @@ from .completion_evidence import (
 from .milestone_parking import finalize_milestone_parking_active, finalize_milestone_parking_summary
 from .parked_progression import parked_intervention_lane, publication_supervisor_blocks_handoff, task_intake_quality_lane
 from .runtime_liveness_projection import live_managed_runtime_present, runtime_recovery_pending_from_status
+from .runtime_medical_publication_surface import runtime_medical_publication_surface_blocker_summaries
 from .specificity_lane import specificity_intervention_lane, specificity_next_system_action, specificity_stage_summary
 from .stage_state import current_stage_from_runtime_attempt_state, progress_freshness_required
 from .base_progress_freshness import _progress_freshness
@@ -578,6 +579,7 @@ def _current_blockers(
     status: dict[str, Any],
     publication_eval_payload: dict[str, Any] | None,
     domain_health_diagnostic_payload: dict[str, Any] | None,
+    runtime_medical_publication_surface: dict[str, Any] | None = None,
     runtime_escalation_payload: dict[str, Any] | None,
     controller_confirmation_summary: dict[str, Any] | None,
     controller_decision_payload: dict[str, Any] | None,
@@ -597,8 +599,13 @@ def _current_blockers(
         and _non_empty_text(status.get("reason")) == "quest_already_completed"
     ):
         return blockers
+    runtime_surface_blockers = runtime_medical_publication_surface_blocker_summaries(
+        (runtime_medical_publication_surface or {}).get("blockers")
+    )
     manual_finish_active = _manual_finish_active(manual_finish_contract)
     if manual_finish_active or finalize_milestone_parking_active(status):
+        if runtime_surface_blockers:
+            return runtime_surface_blockers
         return blockers
     metadata_wait = _resume_arbitration_external_metadata_wait(
         status=status,
@@ -668,6 +675,8 @@ def _current_blockers(
     for gap in (publication_eval_payload or {}).get("gaps") or []:
         if isinstance(gap, dict) and _publication_eval_gap_is_blocking(gap):
             _append_unique(blockers, _non_empty_text(gap.get("summary")))
+    for blocker in runtime_surface_blockers:
+        _append_unique(blockers, blocker)
     controllers_payload = (domain_health_diagnostic_payload or {}).get("controllers") or {}
     if isinstance(controllers_payload, dict):
         for controller_payload in controllers_payload.values():

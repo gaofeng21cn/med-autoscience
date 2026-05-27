@@ -12,6 +12,24 @@ from typing import Any
 
 LIVE_ATTEMPT_STATES = {"running", "checkpointed", "human_gate"}
 DEFAULT_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
+STAGE_PROGRESS_LOG_KEYS = (
+    "surface_kind",
+    "projection_scope",
+    "attempt_count",
+    "completed_attempt_count",
+    "blocked_attempt_count",
+    "activity_event_count",
+    "runner_progress_event_count",
+    "duration_observed_attempt_count",
+    "missing_usage_telemetry_attempt_count",
+    "temporal_attempt_count",
+    "temporal_webui_ref_count",
+    "temporal_visibility_readiness_statuses",
+    "activity_event_ref_count",
+    "attempt_refs",
+    "temporal_webui_refs",
+    "authority_boundary",
+)
 
 
 def live_provider_attempt_for_study(
@@ -138,6 +156,7 @@ def projection_fields(
         "active_workflow_id": _text(live_attempt.get("active_workflow_id")),
         "running_provider_attempt": bool(live_attempt.get("running_provider_attempt")),
         "runtime_health": _mapping(live_attempt.get("runtime_health")),
+        "stage_progress_log": _stage_progress_log(live_attempt.get("stage_progress_log")),
     }
 
 
@@ -277,7 +296,7 @@ def _live_projection_from_inspect(
     workspace_root = _text(workspace_locator.get("workspace_root"))
     if workspace_root is not None and Path(workspace_root).expanduser().resolve() != profile.workspace_root.resolve():
         return None
-    return {
+    projection = {
         "surface_kind": "opl_current_control_state_provider_attempt",
         "source": "opl_family_runtime_queue_inspect",
         "active_run_id": active_run_id,
@@ -315,6 +334,10 @@ def _live_projection_from_inspect(
             "can_authorize_publication_ready": False,
         },
     }
+    stage_progress_log = _stage_progress_log(control.get("stage_progress_log"))
+    if stage_progress_log:
+        projection["stage_progress_log"] = stage_progress_log
+    return projection
 
 
 def _first_attempt(task_surface: Mapping[str, Any]) -> dict[str, Any]:
@@ -334,6 +357,13 @@ def _iter_values(value: object) -> Iterable[object]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _stage_progress_log(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    projection = {key: value[key] for key in STAGE_PROGRESS_LOG_KEYS if key in value}
+    return projection or None
 
 
 def _text(value: object) -> str | None:
