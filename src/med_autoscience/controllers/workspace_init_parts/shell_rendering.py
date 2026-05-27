@@ -137,9 +137,17 @@ def _render_domain_health_diagnostic_script(*, workspace_root: Path, runtime_que
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
         f'WORKSPACE_RUNTIME_ROOT="${{WORKSPACE_ROOT}}/{relative_runtime_root}"\n\n'
+        'apply_args=(--request-opl-stage-attempts --request-opl-owner-route-reconcile --apply)\n'
+        'for arg in "$@"; do\n'
+        '  if [[ "${arg}" == "--apply" || "${arg}" == "--dry-run" || "${arg}" == "--request-opl-stage-attempts" || "${arg}" == "--request-opl-owner-route-reconcile" ]]; then\n'
+        '    apply_args=()\n'
+        "    break\n"
+        "  fi\n"
+        "done\n\n"
         'run_medautosci runtime domain-health-diagnostic \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         '  --runtime-root "${WORKSPACE_RUNTIME_ROOT}" \\\n'
+        '  ${apply_args[@]+"${apply_args[@]}"} \\\n'
         '  "$@"\n'
     )
 

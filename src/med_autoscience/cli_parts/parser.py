@@ -107,7 +107,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     domain_health_diagnostic_parser.add_argument("--profile", type=str)
     domain_health_diagnostic_parser.add_argument("--request-opl-stage-attempts", action="store_true")
     domain_health_diagnostic_parser.add_argument("--request-opl-owner-route-reconcile", action="store_true")
-    domain_health_diagnostic_parser.add_argument("--apply", action="store_true")
+    domain_health_diagnostic_apply = domain_health_diagnostic_parser.add_mutually_exclusive_group()
+    domain_health_diagnostic_apply.add_argument("--dry-run", action="store_true")
+    domain_health_diagnostic_apply.add_argument("--apply", action="store_true")
 
     domain_handler_parser = subparsers.add_parser("domain-handler")
     domain_handler_subparsers = domain_handler_parser.add_subparsers(

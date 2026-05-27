@@ -122,3 +122,35 @@ def test_domain_health_diagnostic_no_longer_exports_managed_supervisor_tick_alia
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic")
 
     assert not hasattr(module, "run_managed_supervisor_tick")
+
+
+def test_domain_health_diagnostic_cli_accepts_explicit_dry_run() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    args = cli.build_parser().parse_args(
+        [
+            "domain-health-diagnostic",
+            "--runtime-root",
+            "/tmp/runtime/quests",
+            "--dry-run",
+        ]
+    )
+
+    assert args.command == "domain-health-diagnostic"
+    assert args.apply is False
+    assert args.dry_run is True
+
+
+def test_domain_health_diagnostic_cli_rejects_apply_and_dry_run_together() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(
+            [
+                "domain-health-diagnostic",
+                "--runtime-root",
+                "/tmp/runtime/quests",
+                "--apply",
+                "--dry-run",
+            ]
+        )

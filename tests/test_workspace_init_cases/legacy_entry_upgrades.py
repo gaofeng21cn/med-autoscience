@@ -98,9 +98,9 @@ def test_init_workspace_removes_legacy_runtime_entry_scripts_without_force(tmp_p
     assert 'run_medautosci progress-projection --profile "${PROFILE_PATH}" ${args[@]+"${args[@]}"}' in progress_projection_text
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in domain_health_diagnostic_text
     assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
-    assert '--request-opl-stage-attempts' not in domain_health_diagnostic_text
-    assert '--request-opl-owner-route-reconcile' not in domain_health_diagnostic_text
-    assert '--apply' not in domain_health_diagnostic_text
+    assert 'apply_args=(--request-opl-stage-attempts --request-opl-owner-route-reconcile --apply)' in domain_health_diagnostic_text
+    assert '[[ "${arg}" == "--apply" || "${arg}" == "--dry-run" || "${arg}" == "--request-opl-stage-attempts" || "${arg}" == "--request-opl-owner-route-reconcile" ]]' in domain_health_diagnostic_text
+    assert '${apply_args[@]+"${apply_args[@]}"}' in domain_health_diagnostic_text
     assert '--loop' not in domain_health_diagnostic_text
 
 
@@ -206,7 +206,7 @@ def test_init_workspace_removes_flat_watch_runtime_entry_even_when_current_flags
     assert domain_health_diagnostic.is_file()
     domain_health_diagnostic_text = domain_health_diagnostic.read_text(encoding="utf-8")
     assert 'run_medautosci runtime domain-health-diagnostic \\' in domain_health_diagnostic_text
-    assert '--request-opl-owner-route-reconcile' not in domain_health_diagnostic_text
+    assert 'apply_args=(--request-opl-stage-attempts --request-opl-owner-route-reconcile --apply)' in domain_health_diagnostic_text
     assert '--loop' not in domain_health_diagnostic_text
 
 

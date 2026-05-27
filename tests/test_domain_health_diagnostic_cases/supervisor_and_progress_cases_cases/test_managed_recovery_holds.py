@@ -224,6 +224,8 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
     study_root.mkdir(parents=True, exist_ok=True)
     dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
     calls: list[dict[str, object]] = []
+    materialize_calls: list[dict[str, object]] = []
+    dispatch_calls: list[dict[str, object]] = []
 
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -236,6 +238,25 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
         }
 
     monkeypatch.setattr(module.owner_route_reconcile, "scan_domain_routes", fake_scan_domain_routes)
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **kwargs: materialize_calls.append(kwargs)
+        or {
+            "surface": "domain_action_request_materializer",
+            "materialized_count": 1,
+        },
+    )
+    monkeypatch.setattr(
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        lambda **kwargs: dispatch_calls.append(kwargs)
+        or {
+            "surface": "domain_owner_action_dispatch",
+            "executed_count": 1,
+            "codex_dispatch_count": 1,
+        },
+    )
 
     result = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
@@ -256,6 +277,43 @@ def test_domain_health_diagnostic_apply_can_request_opl_owner_route_reconcile(
         "apply_safe_actions": True,
         "study_count": 1,
     }
+    assert len(materialize_calls) == 1
+    assert materialize_calls[0]["profile"] == profile
+    assert materialize_calls[0]["study_ids"] == ("001-risk",)
+    assert materialize_calls[0]["mode"] == "developer_apply_safe"
+    assert materialize_calls[0]["apply"] is True
+    assert len(dispatch_calls) == 1
+    assert dispatch_calls[0]["profile"] == profile
+    assert dispatch_calls[0]["study_ids"] == ("001-risk",)
+    assert dispatch_calls[0]["action_types"] == ()
+    assert dispatch_calls[0]["mode"] == "developer_apply_safe"
+    assert dispatch_calls[0]["apply"] is True
+    assert result["developer_supervisor_same_tick"] == {
+        "surface": "developer_supervisor_same_tick",
+        "schema_version": 1,
+        "mode": "developer_apply_safe",
+        "study_ids": ["001-risk"],
+        "actions": [
+            "domain-action-request-materialize",
+            "domain-owner-action-dispatch",
+        ],
+        "materialize": {
+            "surface": "domain_action_request_materializer",
+            "materialized_count": 1,
+        },
+        "dispatch": {
+            "surface": "domain_owner_action_dispatch",
+            "executed_count": 1,
+            "codex_dispatch_count": 1,
+        },
+        "owner_boundaries": {
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+        },
+    }
 
 def test_domain_health_diagnostic_does_not_request_opl_owner_route_reconcile_by_default(
     tmp_path: Path,
@@ -274,6 +332,16 @@ def test_domain_health_diagnostic_does_not_request_opl_owner_route_reconcile_by_
         "scan_domain_routes",
         lambda **kwargs: pytest.fail("runtime watch must not request owner-route reconcile unless explicitly enabled"),
     )
+    monkeypatch.setattr(
+        module.domain_action_request_materializer,
+        "materialize_domain_action_requests",
+        lambda **kwargs: pytest.fail("runtime watch must not materialize domain actions unless owner-route reconcile is explicitly enabled"),
+    )
+    monkeypatch.setattr(
+        module.domain_owner_action_dispatch,
+        "dispatch_domain_owner_actions",
+        lambda **kwargs: pytest.fail("runtime watch must not dispatch domain actions unless owner-route reconcile is explicitly enabled"),
+    )
 
     result = module.run_domain_health_diagnostic_for_runtime(
         runtime_root=profile.runtime_root,
@@ -284,6 +352,7 @@ def test_domain_health_diagnostic_does_not_request_opl_owner_route_reconcile_by_
     )
 
     assert "opl_owner_route_reconcile_request" not in result
+    assert "developer_supervisor_same_tick" not in result
 
 def test_hard_auto_recovery_ignores_stale_continuation_run_id() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_health_diagnostic_parts.managed_wakeup")

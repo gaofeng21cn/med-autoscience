@@ -9,6 +9,8 @@ from med_autoscience.controllers import (
     autonomy_ai_doctor,
     control_intent,
     data_asset_gate,
+    domain_action_request_materializer,
+    domain_owner_action_dispatch,
     figure_loop_guard,
     medical_literature_audit,
     medical_publication_surface,
@@ -334,7 +336,44 @@ def run_domain_health_diagnostic_for_runtime(
             apply_safe_actions=True,
             developer_supervisor_mode="developer_apply_safe",
         )
+        report["developer_supervisor_same_tick"] = _run_developer_supervisor_same_tick(profile=profile)
     return report
+
+
+def _run_developer_supervisor_same_tick(*, profile: WorkspaceProfile) -> dict[str, Any]:
+    study_ids = owner_route_reconcile.resolve_owner_route_reconcile_study_ids(profile)
+    materialize_result = domain_action_request_materializer.materialize_domain_action_requests(
+        profile=profile,
+        study_ids=study_ids,
+        mode="developer_apply_safe",
+        apply=True,
+    )
+    dispatch_result = domain_owner_action_dispatch.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=study_ids,
+        action_types=(),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+    return {
+        "surface": "developer_supervisor_same_tick",
+        "schema_version": 1,
+        "mode": "developer_apply_safe",
+        "study_ids": list(study_ids),
+        "actions": [
+            "domain-action-request-materialize",
+            "domain-owner-action-dispatch",
+        ],
+        "materialize": materialize_result,
+        "dispatch": dispatch_result,
+        "owner_boundaries": {
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
+        },
+    }
 
 
 def parse_args() -> argparse.Namespace:
