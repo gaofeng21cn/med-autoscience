@@ -391,6 +391,9 @@ _REASON_REGISTRY = {
     "publication_owner_materialization_required": _gate_clearing_entry(
         "DM002:current_ai_reviewer_materialization"
     ),
+    "domain_transition_publication_gate_blocker": _gate_clearing_entry(
+        "DM003:domain_transition_publication_gate_blocker"
+    ),
     "run_gate_clearing_batch": _gate_clearing_entry("tests:legacy_action_reason_gate_clearing"),
     "quest_waiting_opl_runtime_owner_route": _write_entry("DM002:runtime_redrive_route_back"),
     "controller_decision_route_back": _entry(

@@ -185,6 +185,39 @@ def test_owner_route_allows_quality_repair_batch_for_write_route() -> None:
     assert owner_route_module.route_allows_action(action=action, owner_route=owner_route) is True
 
 
+def test_owner_route_registers_domain_transition_publication_gate_blocker() -> None:
+    owner_route = {
+        "surface": "domain_route_owner_route",
+        "schema_version": 2,
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "quest_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "truth_epoch": "truth-epoch-dm003-publication-gate",
+        "runtime_health_epoch": "runtime-health-dm003-publication-gate",
+        "work_unit_fingerprint": "domain-transition::publication_gate_blocker::publication_gate_replay",
+        "failure_signature": "domain_transition_publication_gate_blocker",
+        "trace_id": "owner-route-trace::dm003::publication-gate",
+        "route_epoch": "truth-epoch-dm003-publication-gate",
+        "source_fingerprint": "truth-source-dm003-publication-gate",
+        "current_owner": "mas_controller",
+        "next_owner": "gate_clearing_batch",
+        "owner_reason": "domain_transition_publication_gate_blocker",
+        "active_run_id": None,
+        "allowed_actions": ["run_gate_clearing_batch"],
+        "blocked_actions": [],
+        "source_refs": {"work_unit_id": "publication_gate_replay"},
+        "idempotency_key": "owner-route::dm003::publication-gate",
+    }
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    decorated = protocol.decorate_owner_route(owner_route)
+
+    assert decorated["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["owner"] == "gate_clearing_batch"
+    assert decorated["owner_reason_contract"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
+
+
 def test_scan_domain_routes_projects_parked_macro_state_as_current_truth_owner_route(
     monkeypatch,
     tmp_path: Path,

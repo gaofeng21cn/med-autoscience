@@ -538,7 +538,9 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 ## 2026-05-28：AI reviewer gate-recheck-only readiness 必须交给 publication gate
 
 - 决策：当 AI reviewer-owned `publication_eval/latest.json` 已绑定当前 evidence ledger 和 claim-evidence alignment，`reviewer_operating_system.claim_evidence_alignment.status=ready`、无 alignment missing/blocker，且 `publication_quality_readiness.missing_required_fields` 只剩 `owner_authorized_publication_gate_recheck` 时，domain transition 不得再消费 top-level 旧 `route_back_same_line` 写作修复动作；它必须让 publication gate blocker 投影 `publication_gate_replay` / `run_gate_clearing_batch`。
+- 决策：`domain_transition_publication_gate_blocker` 是注册的 owner-route reason，owner 为 `gate_clearing_batch`，允许 action 为 `run_gate_clearing_batch`，required output 为 `artifacts/controller/gate_clearing_batch/latest.json`。它不得落到 `external_supervisor` 空队列。
 - 理由：DM003 暴露出 write owner 已完成 claim/evidence/review ledger delta，AI reviewer recheck 也消费了新 ledger digest，但 record 内仍保留旧 route-back action。若 transition 继续优先旧 action，会反复执行 `current_manuscript_claim_evidence_alignment_repair`，无法进入 owner-authorized gate replay。该状态的剩余缺口是 publication gate 授权重放，不是新的正文或 claim-evidence 修复。
+- 2026-05-28 追加理由：DM003 首次修复后已正确投影到 `publication_gate_blocker`，但 owner-route registry 未登记 `domain_transition_publication_gate_blocker`，导致 `allowed_actions=[]` 且 `run_gate_clearing_batch` 被 blocked。该缺口属于 MAS owner-route attempt protocol registry，不是 OPL provider lifecycle 或 study-local paper surface 问题。
 - 影响：这是 MAS controller read-model handoff 修复，不放宽 AI reviewer、publication gate 或 submission readiness；缺少任一 digest、alignment 未 ready、存在 blocker、或 missing 字段不止 gate recheck 时仍 fail closed 到原 owner route。
 
 ## 2026-05-25：current AI reviewer eval 可取代旧 quality batch digest mismatch

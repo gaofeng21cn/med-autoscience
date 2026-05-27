@@ -164,6 +164,8 @@ AI reviewer 把当前医学写作质量问题回退到 write owner 时，`medica
 
 当 AI reviewer-owned eval 已证明 claim-evidence alignment ready，且 `publication_quality_readiness` 唯一剩余缺口是 `owner_authorized_publication_gate_recheck` 时，controller transition 必须把下一步交给 `publication_gate_replay` / `run_gate_clearing_batch`。该 gate-recheck-only 状态不得继续执行旧 `route_back_same_line` write repair；只有 alignment 未 ready、缺少 digest、存在 blocker 或 missing 字段超出 gate recheck 时，才保留原 AI reviewer route-back 或 fail-closed owner route。
 
+`domain_transition_publication_gate_blocker` 是 owner-route attempt protocol 的已注册 reason。它归属 `gate_clearing_batch` owner，允许 `run_gate_clearing_batch`，并要求写出 `artifacts/controller/gate_clearing_batch/latest.json` 或相应 typed blocker；owner-route registry 不得把它降成 `external_supervisor` 空队列。
+
 closed `publication_work_unit_lifecycle/latest.json` 只有在 `source_eval_id` 明确等于当前 `publication_eval/latest.json.eval_id` 时，才可以触发 `publication_gate_recheck`。缺少 `source_eval_id` 或指向旧 eval 的 lifecycle 只能作为历史/残留，不得抢占当前 AI reviewer-backed `route_back_same_line`。当当前 route-back 指向 write owner 时，outer-loop、runtime resume preflight、runtime-core turn authorization 与 owner-route reconciliation 必须物化 `run_quality_repair_batch` controller decision，而不是把旧 `request_opl_stage_attempt` 或 `run_gate_clearing_batch` 授权继续传给 runtime。
 
 story-surface delta 的 currentness 必须基于上一轮同一 `source_eval_id`、同一 `manuscript_story_surface_delta_missing` blocked batch 记录的 canonical manuscript surface 指纹。若当前 `paper/draft.md` 或 `paper/build/review_manuscript.md` 只是早已晚于 stale `publication_eval/latest.json`，但内容指纹没有相对上一轮 blocked batch 改变，`repair_execution_evidence` 必须继续 fail closed 到 `manuscript_story_surface_delta_missing`。缺少上一轮 surface fingerprint 时也不能用 publication eval mtime、gate replay mtime、ledger mtime 或文件新旧启发式推断正文修订完成。
