@@ -216,7 +216,7 @@ def test_request_bound_route_back_recomputes_live_evidence_ledger_digest_after_r
             "rubric_version": "medical_publication_critique_v1",
             "owner_attempt_id": f"ai-reviewer-publication-eval::{record['eval_id']}",
             "fail_closed_when_missing": True,
-            "missing_required_fields": ["display_source_reconciliation"],
+            "missing_required_fields": ["claim_evidence_alignment_digest", "display_source_reconciliation"],
         },
     }
     _write_text(Path(refs["manuscript"]), manuscript_text)

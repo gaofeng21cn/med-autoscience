@@ -317,21 +317,23 @@ def _publication_quality_readiness(
         prose_currentness.get("manuscript_digest")
     )
     request_digest = _text(prose_currentness.get("request_digest"))
-    base_missing = [
+    computed_required_fields = {
+        "current_manuscript_digest": manuscript_digest,
+        "review_request_digest": request_digest,
+        "evidence_ledger_digest": evidence_digest,
+        "claim_evidence_alignment_digest": claim_alignment_digest if _text(claim_alignment.get("status")) == "ready" else "",
+    }
+    base_missing = [field for field, value in computed_required_fields.items() if not value]
+    computed_present_fields = {
         field
-        for field, value in (
-            ("current_manuscript_digest", manuscript_digest),
-            ("review_request_digest", request_digest),
-            ("evidence_ledger_digest", evidence_digest),
-            ("claim_evidence_alignment_digest", claim_alignment_digest if _text(claim_alignment.get("status")) == "ready" else ""),
-        )
-        if not value
-    ]
+        for field, value in computed_required_fields.items()
+        if value
+    }
     record_readiness = _record_publication_quality_readiness(record_payload)
     record_missing = [
         _text(item)
         for item in _list(record_readiness.get("missing_required_fields"))
-        if _text(item)
+        if _text(item) and _text(item) not in computed_present_fields
     ]
     missing = list(dict.fromkeys([*base_missing, *record_missing]))
     record_status = _text(record_readiness.get("status"))

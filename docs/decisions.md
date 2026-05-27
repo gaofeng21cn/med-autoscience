@@ -530,7 +530,9 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 
 - 决策：`ai_reviewer_publication_eval_workflow` 物化 `publication_quality_readiness.evidence_ledger_digest` 时，必须从当前 `input_bundle.evidence_ledger` 指向的 live 文件计算 SHA-256，不得从 AI reviewer record 内嵌 `quality_assessment` JSON 派生。
 - 决策：`claim_evidence_alignment_digest` 继续从当前 live `claim_evidence_map` + `evidence_ledger` 构建出的 alignment gate 重算；record 内旧 readiness digest 只提供缺失字段和 blocked/ready intent，不得覆盖 live evidence/source digest。
+- 2026-05-28 追加决策：`publication_quality_readiness.missing_required_fields` 只能保留当前 workflow 仍未满足的字段；当 workflow 已从 live input 重算并写入 `current_manuscript_digest`、`review_request_digest`、`evidence_ledger_digest` 或 ready alignment 对应的 `claim_evidence_alignment_digest` 时，AI reviewer record 内同名旧 missing 字段必须视为 stale 并剔除。其他未被当前 workflow 满足的 publication/display/gate blocker 继续 fail-closed 保留。
 - 理由：DM002 在 write owner 修复 claim/evidence/review ledger 后，`return_to_ai_reviewer_workflow` 可刷新 `publication_eval/latest.json` 的 `emitted_at`，但 readiness 仍携带旧 evidence/claim digest，造成看似 current 的 AI reviewer verdict 实际未绑定最新 owner delta。
+- 2026-05-28 追加理由：DM003 暴露出 readiness 已写入新的 `claim_evidence_alignment_digest`，但 `missing_required_fields` 同时仍包含 `claim_evidence_alignment_digest`，导致 publication gate 继续把已重算的 claim-evidence alignment 当缺失项。这是 record missing 合并规则污染 current workflow 输出，不是论文手工 surface 缺字段。
 - 影响：这是 MAS AI reviewer currentness 修复，不写 study truth、canonical paper、submission package、current package 或质量门宽松判断；修复后必须重走 MAS owner workflow，使 `publication_eval/latest.json` 自然绑定最新 evidence ledger。
 
 ## 2026-05-25：current AI reviewer eval 可取代旧 quality batch digest mismatch
