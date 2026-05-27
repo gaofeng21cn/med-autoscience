@@ -50,6 +50,7 @@ from .projection_runtime_surfaces import (
 )
 from .projection_status_context import build_projection_status_context
 from .task_intake_override import task_intake_override_superseded_by_gate_specificity
+from .user_visible_projection import build_user_visible_projection
 from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness_parts, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
 
@@ -68,6 +69,43 @@ for _module in (
     _ai_first_default_entry,
 ):
     _module_reexport(_module)
+
+
+def _refresh_existing_projection_user_visible_status(payload: dict[str, Any]) -> dict[str, Any]:
+    redrive_next_action = _current_redrive_top_level_next_action(payload)
+    if redrive_next_action is not None:
+        updated = dict(payload)
+        updated["user_visible_projection"] = build_user_visible_projection(updated)
+        updated["next_system_action"] = redrive_next_action
+        status_contract = _mapping_copy(updated.get("status_narration_contract"))
+        if status_contract:
+            status_contract["next_step"] = redrive_next_action
+            updated["status_narration_contract"] = status_contract
+        return updated
+    return payload
+
+
+def _current_redrive_top_level_next_action(payload: dict[str, Any]) -> str | None:
+    transition = _mapping_copy(payload.get("domain_transition"))
+    if _non_empty_text(transition.get("decision_type")) not in {
+        "ai_reviewer_re_eval",
+        "bundle_stage_finalize",
+        "publication_gate_blocker",
+        "route_back_same_line",
+    }:
+        return None
+    macro_state = _mapping_copy(payload.get("study_macro_state"))
+    if _non_empty_text(macro_state.get("writer_state")) == "live":
+        return None
+    intervention_lane = _mapping_copy(payload.get("intervention_lane"))
+    route_repair = _domain_transition_route_repair(payload)
+    next_work_unit = _mapping_copy(transition.get("next_work_unit"))
+    return (
+        _non_empty_text(intervention_lane.get("route_summary"))
+        or _non_empty_text(intervention_lane.get("summary"))
+        or _route_repair_summary(route_repair)
+        or _non_empty_text(next_work_unit.get("unit_id"))
+    )
 
 
 def build_study_progress_projection(
@@ -98,11 +136,13 @@ def build_study_progress_projection(
             payload=normalized_existing,
         )
         return _attach_existing_autonomy_slo_projection(
-            _attach_delivery_inspection_projection(
-                normalized_existing,
-                profile=profile,
-                profile_ref=profile_ref,
-                study_root=study_root,
+            _refresh_existing_projection_user_visible_status(
+                _attach_delivery_inspection_projection(
+                    normalized_existing,
+                    profile=profile,
+                    profile_ref=profile_ref,
+                    study_root=study_root,
+                )
             ),
             study_root=study_root,
         )

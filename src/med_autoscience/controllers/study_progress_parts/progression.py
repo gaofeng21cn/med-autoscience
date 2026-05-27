@@ -466,6 +466,20 @@ def _next_system_action(
     task_intake_progress_override: dict[str, Any] | None,
     evaluation_summary_payload: dict[str, Any] | None,
 ) -> str:
+    runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
+    runtime_health_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
+    runtime_health_attempt_state = _non_empty_text(runtime_health_snapshot.get("attempt_state"))
+    live_managed_runtime = _live_managed_runtime_present(
+        status=status,
+        autonomous_runtime_notice=autonomous_runtime_notice,
+        execution_owner_guard=execution_owner_guard,
+        continuation_state=continuation_state,
+    )
+    domain_transition_repair = _domain_transition_route_repair(status)
+    if domain_transition_repair is not None and not live_managed_runtime:
+        route_summary = _route_repair_summary(domain_transition_repair)
+        if route_summary is not None:
+            return route_summary
     if manual_finish_guard_only(manual_finish_contract):
         if _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
             return (
@@ -498,20 +512,6 @@ def _next_system_action(
     if _supervisor_tick_gap_present(supervisor_tick_audit) and supervisor_tick_next_action is not None:
         return supervisor_tick_next_action
     decision = _non_empty_text(status.get("decision"))
-    runtime_health_snapshot = _mapping_copy(status.get("runtime_health_snapshot"))
-    runtime_health_action = _non_empty_text(runtime_health_snapshot.get("canonical_runtime_action"))
-    runtime_health_attempt_state = _non_empty_text(runtime_health_snapshot.get("attempt_state"))
-    live_managed_runtime = _live_managed_runtime_present(
-        status=status,
-        autonomous_runtime_notice=autonomous_runtime_notice,
-        execution_owner_guard=execution_owner_guard,
-        continuation_state=continuation_state,
-    )
-    domain_transition_repair = _domain_transition_route_repair(status)
-    if domain_transition_repair is not None and not live_managed_runtime:
-        route_summary = _route_repair_summary(domain_transition_repair)
-        if route_summary is not None:
-            return route_summary
     if finalize_milestone_parking_active(status):
         return finalize_milestone_parking_summary(status)
     if (

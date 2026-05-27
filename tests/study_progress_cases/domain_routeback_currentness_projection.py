@@ -149,3 +149,126 @@ def test_study_progress_current_write_routeback_supersedes_stale_runtime_recover
     assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
     assert "OPL current_control_state" not in result["operator_status_card"]["current_focus"]
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+
+
+def test_existing_progress_projection_refreshes_top_level_routeback_action(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    projection_module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    publication_eval_path = _write_publication_eval(study_root, profile.managed_runtime_home / "quests" / study_id)
+    monkeypatch.setattr(
+        projection_module,
+        "_attach_delivery_inspection_projection",
+        lambda payload, **_: dict(payload),
+    )
+
+    result = projection_module.build_study_progress_projection(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        status_payload={
+            "schema_version": 1,
+            "study_id": study_id,
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+            },
+            "progress_projection": {
+                "schema_version": 1,
+                "study_id": study_id,
+                "quest_status": "active",
+                "decision": "blocked",
+                "reason": "quest_parked_on_unchanged_finalize_state",
+                "active_run_id": None,
+                "current_stage": "publication_supervision",
+                "paper_stage": "publishability_gate_blocked",
+                "current_stage_summary": "论文质量监管已转入结构化修复。",
+                "current_blockers": [],
+                "next_system_action": (
+                    "当前包已经可直接交给用户审阅；如需继续补元数据、外投或新增 bounded 任务，"
+                    "再显式 resume 或 relaunch。"
+                ),
+                "status_narration_contract": {
+                    "stage": {"current_stage": "publication_supervision"},
+                    "next_step": "当前包已经可直接交给用户审阅。",
+                },
+                "domain_transition": {
+                    "study_id": study_id,
+                    "decision_type": "route_back_same_line",
+                    "route_target": "write",
+                    "owner": "write",
+                    "next_work_unit": {
+                        "unit_id": (
+                            "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
+                        ),
+                        "lane": "write",
+                        "summary": (
+                            "Expand methods/model/display provenance and keep claims limited to risk ordering "
+                            "plus recalibration-required absolute risk."
+                        ),
+                    },
+                },
+                "intervention_lane": {
+                    "lane_id": "quality_floor_blocker",
+                    "route_target": "write",
+                    "route_summary": (
+                        "回到“论文写作与结果收紧”，回答"
+                        "“dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass”。"
+                    ),
+                    "work_unit_id": (
+                        "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass"
+                    ),
+                },
+                "study_truth_snapshot": {
+                    "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                    "source_signature": "truth-snapshot::stale",
+                    "active_run_id": (
+                        "mas-run-002-dm-china-us-mortality-attribution-20260519T074054793831Z"
+                    ),
+                    "execution_owner": {
+                        "owner": "opl",
+                        "active_run_id": (
+                            "mas-run-002-dm-china-us-mortality-attribution-20260519T074054793831Z"
+                        ),
+                    },
+                },
+                "runtime_liveness_status": "parked",
+                "runtime_liveness_audit": {
+                    "active_run_id": None,
+                    "runtime_audit": {
+                        "active_run_id": None,
+                        "worker_running": False,
+                    },
+                },
+                "runtime_health_snapshot": {
+                    "attempt_state": "escalated",
+                    "canonical_runtime_action": "escalate_runtime",
+                    "worker_liveness_state": {"state": "parked"},
+                },
+                "refs": {"publication_eval_path": str(publication_eval_path)},
+            },
+        },
+    )
+
+    assert result["study_macro_state"]["writer_state"] == "queued"
+    assert result["user_visible_projection"]["writer_state"] == "queued"
+    assert result["user_visible_projection"]["next_system_action"] == "等待质量修复/复审 owner 完成处理。"
+    assert "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass" in (
+        result["next_system_action"]
+    )
+    assert "当前包已经可直接交给用户审阅" not in result["next_system_action"]
+    assert "显式 resume" not in result["next_system_action"]
+    assert "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass" in (
+        result["status_narration_contract"]["next_step"]
+    )
