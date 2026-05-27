@@ -10,6 +10,9 @@ from med_autoscience.controllers import domain_action_requests
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
+from med_autoscience.controllers.claim_evidence_alignment_work_units import (
+    is_claim_evidence_alignment_repair_work_unit,
+)
 from med_autoscience.claim_evidence_alignment import build_claim_evidence_alignment_gate
 from med_autoscience.controllers.medical_prose_story_surface_parts.eval_bound_currentness import (
     eval_bound_current_story_delta_blocker,
@@ -23,7 +26,6 @@ from med_autoscience.controllers.story_surface_work_units import (
 
 _REVIEW_LEDGER_RELATIVE_PATH = Path("review") / "review_ledger.json"
 _MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS = medical_prose_story_surface.MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS
-_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID = "claim_evidence_alignment_repair"
 
 
 def _text(value: object) -> str | None:
@@ -420,7 +422,7 @@ def run_upstream_paper_repair_unit(
     )
     changed_refs = _update_claim_and_evidence_surfaces(paper_root=paper_root, receipt=receipt)
     claim_alignment_repair: dict[str, Any] | None = None
-    if resolved_work_unit_id == _CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID:
+    if is_claim_evidence_alignment_repair_work_unit(resolved_work_unit_id):
         claim_alignment_repair = _repair_claim_evidence_alignment(paper_root=paper_root, receipt=receipt)
         changed_refs.extend(str(ref) for ref in claim_alignment_repair.get("changed_artifact_refs") or [])
     changed_refs.extend(

@@ -17,6 +17,9 @@ from med_autoscience.controllers.quality_repair_batch_parts import repair_execut
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.quality_repair_batch_parts import upstream_route_context
 from med_autoscience.controllers.quality_repair_batch_parts import writer_handoff
+from med_autoscience.controllers.claim_evidence_alignment_work_units import (
+    CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_IDS,
+)
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 from med_autoscience.controllers.authority_route_gate import assert_authority_route_authorized
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
@@ -439,7 +442,7 @@ def _upstream_repair_specificity_targets(publication_eval_payload: Mapping[str, 
 def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any] | None:
     return upstream_route_context.merge_route_contexts(
         *contexts,
-        preferred_controller_work_unit_ids=frozenset({"claim_evidence_alignment_repair"}),
+        preferred_controller_work_unit_ids=CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_IDS,
         non_empty_text=_non_empty_text,
     )
 

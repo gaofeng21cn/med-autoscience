@@ -4,6 +4,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.claim_evidence_alignment_work_units import (
+    CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID,
+)
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 
 
@@ -48,6 +51,7 @@ _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS = frozenset(
 _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "analysis_claim_evidence_repair": frozenset({"paper_write"}),
     "claim_evidence_alignment_repair": frozenset({"paper_write"}),
+    CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID: frozenset({"paper_write"}),
     "controller_owned_publication_repair": frozenset(
         {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
     ),

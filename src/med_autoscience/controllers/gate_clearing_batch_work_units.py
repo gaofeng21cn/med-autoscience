@@ -3,11 +3,17 @@ from __future__ import annotations
 from importlib import import_module
 from typing import Any, Iterable
 
+from med_autoscience.controllers.claim_evidence_alignment_work_units import (
+    CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_IDS,
+    CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID,
+)
+
 
 UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS = frozenset(
     {
         "analysis_claim_evidence_repair",
         "claim_evidence_alignment_repair",
+        CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID,
         "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
         "dm002_current_publication_hardening_after_ai_reviewer_eval",
         "dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass",
@@ -34,6 +40,14 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         }
     ),
     "claim_evidence_alignment_repair": frozenset(
+        {
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "sync_publication_shell_surface",
+            "materialize_display_surface",
+        }
+    ),
+    CURRENT_MANUSCRIPT_CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_ID: frozenset(
         {
             "repair_paper_live_paths",
             "workspace_display_repair_script",
@@ -181,6 +195,8 @@ PUBLICATION_WORK_UNIT_REPAIR_IDS = {
         }
     ),
 }
+
+assert CLAIM_EVIDENCE_ALIGNMENT_REPAIR_WORK_UNIT_IDS.issubset(UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS)
 
 
 def _non_empty_text(value: object) -> str | None:
