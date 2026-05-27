@@ -184,6 +184,13 @@ def _latest_terminal_stage_log_projection(
             continue
         for closeout_path in closeout_root.glob("*.json"):
             closeout = _read_json_object(closeout_path)
+            candidates.extend(
+                _terminal_stage_logs_from_execution_latest(
+                    payload=closeout,
+                    source_path=closeout_path,
+                    study_id=study_id,
+                )
+            )
             projection = _terminal_stage_log_from_closeout(
                 closeout=closeout,
                 closeout_path=closeout_path,
@@ -195,6 +202,71 @@ def _latest_terminal_stage_log_projection(
         return None
     candidates.sort(key=_terminal_stage_log_sort_key, reverse=True)
     return candidates[0]
+
+
+def _terminal_stage_logs_from_execution_latest(
+    *,
+    payload: Mapping[str, Any] | None,
+    source_path: Path,
+    study_id: str,
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, Mapping):
+        return []
+    if _non_empty_text(payload.get("surface")) != "default_executor_dispatch_execution_study_latest":
+        return []
+    if _non_empty_text(payload.get("study_id")) not in {None, study_id}:
+        return []
+    records: list[dict[str, Any]] = []
+    for collection_key in ("executions", "execution_ledger"):
+        collection = payload.get(collection_key)
+        if not isinstance(collection, list):
+            continue
+        for index, item in enumerate(collection):
+            if not isinstance(item, Mapping):
+                continue
+            projection = _terminal_stage_log_from_execution_record(
+                execution=item,
+                source_path=source_path,
+                record_path=f"{source_path}#{collection_key}/{index}",
+                study_id=study_id,
+            )
+            if projection is not None:
+                records.append(projection)
+    return records
+
+
+def _terminal_stage_log_from_execution_record(
+    *,
+    execution: Mapping[str, Any],
+    source_path: Path,
+    record_path: str,
+    study_id: str,
+) -> dict[str, Any] | None:
+    if _non_empty_text(execution.get("study_id")) not in {None, study_id}:
+        return None
+    paper_stage_log = (
+        _stage_log_mapping(execution.get("paper_stage_log"))
+        or _stage_log_mapping(execution.get("user_stage_log"))
+        or _stage_log_mapping(execution.get("stage_log_summary"))
+    )
+    if not paper_stage_log:
+        return None
+    return {
+        "surface_kind": "mas_latest_terminal_stage_log_projection",
+        "read_model": "study_latest_terminal_stage_log_projection",
+        "authority": "observability_only",
+        "source_path": str(source_path),
+        "record_path": record_path,
+        "generated_at": _non_empty_text(execution.get("generated_at")),
+        "study_id": study_id,
+        "stage_attempt_id": _non_empty_text(execution.get("stage_attempt_id")),
+        "stage_id": _non_empty_text(execution.get("stage_id")) or "domain_owner/default-executor-dispatch",
+        "action_type": _non_empty_text(execution.get("action_type")),
+        "status": _non_empty_text(execution.get("execution_status")) or _non_empty_text(execution.get("status")),
+        "paper_stage_log": paper_stage_log,
+        "closeout_refs": _string_list(execution.get("closeout_refs")),
+        "authority_boundary": _terminal_stage_log_authority_boundary(),
+    }
 
 
 def _terminal_stage_log_from_closeout(
@@ -229,13 +301,17 @@ def _terminal_stage_log_from_closeout(
         "status": _non_empty_text(closeout.get("status")),
         "paper_stage_log": paper_stage_log,
         "closeout_refs": _string_list(closeout.get("closeout_refs")),
-        "authority_boundary": {
-            "observability_only": True,
-            "can_mark_live_run": False,
-            "can_authorize_quality_verdict": False,
-            "can_authorize_publication_ready": False,
-            "can_write_paper_or_package": False,
-        },
+        "authority_boundary": _terminal_stage_log_authority_boundary(),
+    }
+
+
+def _terminal_stage_log_authority_boundary() -> dict[str, bool]:
+    return {
+        "observability_only": True,
+        "can_mark_live_run": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_ready": False,
+        "can_write_paper_or_package": False,
     }
 
 

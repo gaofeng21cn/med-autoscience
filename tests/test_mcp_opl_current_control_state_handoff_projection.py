@@ -161,6 +161,113 @@ def test_study_progress_opl_current_control_state_handoff_projects_latest_termin
     assert terminal_log["authority_boundary"]["can_authorize_quality_verdict"] is False
 
 
+def test_study_progress_latest_terminal_stage_log_prefers_direct_owner_execution(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-05-27T21:13:12+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": None,
+                    "running_provider_attempt": False,
+                    "runtime_health": {"health_status": "awaiting_explicit_resume"},
+                }
+            ],
+        },
+    )
+    old_closeout_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat-old.closeout_payload.json"
+    )
+    _write_json(
+        old_closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "generated_at": "2026-05-27T19:46:34Z",
+            "study_id": "001-risk",
+            "stage_attempt_id": "sat-old",
+            "action_type": "run_quality_repair_batch",
+            "status": "blocked_with_domain_owner_refs",
+            "paper_stage_log": {
+                "stage_name": "domain_owner/default-executor-dispatch",
+                "paper_work_done": ["Recorded an older typed blocker."],
+                "outcome": "blocked_with_domain_typed_blocker",
+                "remaining_blockers": ["authority_route_blocked"],
+                "evidence_refs": ["artifacts/publication_eval/latest.json"],
+            },
+        },
+    )
+    latest_execution_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+    _write_json(
+        latest_execution_path,
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "generated_at": "2026-05-27T21:12:39+00:00",
+            "study_id": "001-risk",
+            "executions": [
+                {
+                    "generated_at": "2026-05-27T21:12:39+00:00",
+                    "study_id": "001-risk",
+                    "action_type": "run_quality_repair_batch",
+                    "execution_status": "executed",
+                    "owner_callable_surface": "quality_repair_batch.run_quality_repair_batch",
+                    "paper_stage_log": {
+                        "stage_name": "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck",
+                        "current_owner": "write",
+                        "paper_work_done": [
+                            "Updated claim-evidence and review ledgers through the quality repair owner."
+                        ],
+                        "changed_paper_surfaces": [
+                            "paper/claim_evidence_map.json",
+                            "paper/evidence_ledger.json",
+                        ],
+                        "outcome": "executed",
+                        "remaining_blockers": [],
+                        "evidence_refs": [
+                            "artifacts/controller/quality_repair_batch/latest.json",
+                            "paper/evidence_ledger.json",
+                        ],
+                    },
+                }
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    terminal_log = projection["latest_terminal_stage_log"]
+    assert projection["active_run_id"] is None
+    assert terminal_log["source_path"] == str(latest_execution_path)
+    assert terminal_log["record_path"] == f"{latest_execution_path}#executions/0"
+    assert terminal_log["action_type"] == "run_quality_repair_batch"
+    assert terminal_log["status"] == "executed"
+    assert terminal_log["paper_stage_log"]["outcome"] == "executed"
+    assert terminal_log["paper_stage_log"]["changed_paper_surfaces"] == [
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+    ]
+    assert terminal_log["authority_boundary"]["can_mark_live_run"] is False
+
+
 def test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     payload = {
