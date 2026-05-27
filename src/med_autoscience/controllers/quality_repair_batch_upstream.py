@@ -189,6 +189,7 @@ def _repair_claim_evidence_alignment(*, paper_root: Path, receipt: Mapping[str, 
     evidence_ledger = _read_json_object(evidence_ledger_path)
     claim_rows = _list_mappings(claim_map.get("claims"))
     ledger_rows = _list_mappings(evidence_ledger.get("claims"))
+    ledger_items = _list_mappings(evidence_ledger.get("items"))
     ledger_by_claim = {_text(claim.get("claim_id")): claim for claim in ledger_rows if _text(claim.get("claim_id"))}
     unresolved: list[str] = []
     changed = False
@@ -196,8 +197,17 @@ def _repair_claim_evidence_alignment(*, paper_root: Path, receipt: Mapping[str, 
         claim_id = _text(claim.get("claim_id"))
         ledger_claim = ledger_by_claim.get(claim_id)
         if ledger_claim is None:
-            unresolved.append(f"{claim_id}_missing_from_evidence_ledger")
-            continue
+            ledger_claim = _materialize_ledger_claim_from_items(
+                claim=claim,
+                ledger_items=ledger_items,
+            )
+            if ledger_claim is None:
+                unresolved.append(f"{claim_id}_missing_from_evidence_ledger")
+                continue
+            ledger_rows.append(ledger_claim)
+            evidence_ledger["claims"] = ledger_rows
+            ledger_by_claim[claim_id] = ledger_claim
+            changed = True
         ledger_evidence = _list_mappings(ledger_claim.get("evidence"))
         evidence_by_id = {
             _text(item.get("evidence_id")): item for item in ledger_evidence if _text(item.get("evidence_id"))
@@ -224,6 +234,98 @@ def _repair_claim_evidence_alignment(*, paper_root: Path, receipt: Mapping[str, 
         "claim_evidence_alignment": after,
         **({"unresolved_alignment_refs": unresolved} if unresolved else {}),
     }
+
+
+def _materialize_ledger_claim_from_items(
+    *,
+    claim: Mapping[str, Any],
+    ledger_items: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    claim_id = _text(claim.get("claim_id"))
+    statement = _text(claim.get("statement")) or _text(claim.get("claim_text"))
+    evidence_items = _list_mappings(claim.get("evidence_items"))
+    if claim_id is None or statement is None or not evidence_items:
+        return None
+    ledger_items_by_id = {
+        _text(item.get("item_id")): item
+        for item in ledger_items
+        if _text(item.get("item_id"))
+    }
+    evidence: list[dict[str, Any]] = []
+    for evidence_item in evidence_items:
+        item_id = _text(evidence_item.get("item_id"))
+        if item_id is None:
+            return None
+        ledger_item = ledger_items_by_id.get(item_id)
+        if ledger_item is None:
+            return None
+        source_paths = _source_paths_for_materialized_evidence(
+            evidence_item=evidence_item,
+            ledger_item=ledger_item,
+        )
+        if not source_paths:
+            return None
+        summary = (
+            _text(ledger_item.get("summary"))
+            or _text(ledger_item.get("result_summary"))
+            or _text(evidence_item.get("summary"))
+        )
+        if summary is None:
+            return None
+        evidence.append(
+            {
+                "evidence_id": item_id,
+                "kind": _text(ledger_item.get("kind")) or "analysis_result",
+                "source_paths": source_paths,
+                "support_level": (
+                    _text(evidence_item.get("support_level"))
+                    or _text(ledger_item.get("support_level"))
+                    or "supporting"
+                ),
+                "summary": summary,
+            }
+        )
+    return {
+        "claim_id": claim_id,
+        "statement": statement,
+        "status": _text(claim.get("status")) or _text(claim.get("claim_status")) or "supported_with_limitations",
+        "submission_scope": _text(claim.get("submission_scope")) or _text(claim.get("paper_role")) or "main_text",
+        "evidence": evidence,
+        "gaps": [
+            {
+                "gap_id": f"{claim_id}-alignment-resolved",
+                "description": (
+                    "Claim-level evidence ledger row was materialized from canonical ledger items "
+                    "referenced by the claim map."
+                ),
+                "submission_impact": "none",
+            }
+        ],
+        "recommended_actions": [
+            {
+                "action_id": f"{claim_id}-claim-evidence-recheck",
+                "priority": "required",
+                "description": "Repeat claim-evidence alignment review after ledger repair.",
+            }
+        ],
+    }
+
+
+def _source_paths_for_materialized_evidence(
+    *,
+    evidence_item: Mapping[str, Any],
+    ledger_item: Mapping[str, Any],
+) -> list[str]:
+    source_paths = _normalized_source_paths_list(ledger_item.get("source_paths"))
+    if source_paths:
+        return source_paths
+    return _normalized_source_paths_list(evidence_item.get("source_paths"))
+
+
+def _normalized_source_paths_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return list(dict.fromkeys(path for path in (_text(item) for item in value) if path))
 
 
 def _matching_ledger_evidence(*, evidence_item: Mapping[str, Any], ledger_evidence: list[dict[str, Any]]) -> dict[str, Any] | None:

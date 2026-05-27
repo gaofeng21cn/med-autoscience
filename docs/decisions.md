@@ -5,6 +5,12 @@ Purpose: `decision_log`
 State: `active_decision_record`
 Machine boundary: 本文是人读关键决策日志。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和 repo-native verification。
 
+## 2026-05-27：claim-evidence repair 可从同 ID ledger items 物化缺失 claim row
+
+- 决策：`claim_evidence_alignment` gate 继续要求正式 `evidence_ledger.claims[].evidence[].evidence_id` 与 `claim_evidence_map.claims[].evidence_items[].item_id` 对齐，不把 top-level `items[]` 直接视为 claim-level 对齐成功。`claim_evidence_alignment_repair` / `current_manuscript_claim_evidence_alignment_repair` 在 claim row 缺失时，可以把 claim map 中所有 evidence item 精确匹配到同 ID `evidence_ledger.items[]` 后，物化一条 claim-level ledger row，并继续请求 AI reviewer recheck。
+- 理由：DM003 的 A1 边界证据已经存在于 canonical ledger `items[]`，但缺少 `A1_boundary_metric_provenance` 的 claim-level row，导致已修证据仍被 AI reviewer claim-evidence gate fail closed。修复应落在 MAS paper repair owner，把 evidence inventory 提升为正式 ledger claim 结构，而不是放宽 gate 或手改 study truth。
+- 影响：该 repair 只接受 `item_id` 精确匹配和具备 source paths / summary 的 ledger item；不能用 source path overlap 启发式生成缺失 claim row。修复完成后质量仍由 AI reviewer-backed publication eval 决定，不能由 repair receipt 直接授权 publication ready 或 submission ready。
+
 ## 2026-05-27：非终局 study 必须 always resolve to next owner
 
 - 决策：MAS current-state / read-model / owner-route / materializer / dispatch 闭环必须满足 “always resolve to next owner”。任何非终局 study 的当前回合都只能落到唯一可执行状态：`running`、`ready_for_owner_action`、`waiting_human`、`blocked_with_typed_owner`、`terminal_success` 或 `terminal_stop_loss`。缺 currentness basis、缺 owner callable、OPL retry/dead-letter、authority refusal、stale dispatch、forbidden write 或 missing receipt 时，必须稳定化为 MAS-owned typed blocker、owner receipt、human gate 或 stop-loss，不能静默停住。

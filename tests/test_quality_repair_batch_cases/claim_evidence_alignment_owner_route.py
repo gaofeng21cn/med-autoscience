@@ -364,6 +364,126 @@ def test_run_quality_repair_batch_consumes_current_ai_reviewer_record(
     assert result["repair_execution_evidence"]["review_finding"]["source_eval_id"] == current_eval_id
 
 
+def test_claim_alignment_repair_materializes_missing_claim_from_ledger_items(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch_upstream")
+    study_root = tmp_path / "study"
+    paper_root = study_root / "paper"
+    paper_root.mkdir(parents=True)
+    _write_json(
+        paper_root / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "A1_boundary_metric_provenance",
+                    "statement": "A1 is retained only as boundary metric-provenance evidence.",
+                    "status": "boundary_evidence_only",
+                    "paper_role": "main_text",
+                    "display_bindings": ["F1"],
+                    "sections": ["Results"],
+                    "evidence_items": [
+                        {
+                            "item_id": "a1-metric-provenance-inventory",
+                            "support_level": "weakens_claim",
+                            "source_paths": ["paper/a1-metric-provenance-inventory.md"],
+                            "summary": "Metric provenance inventory weakens the candidate A1 claim.",
+                        },
+                        {
+                            "item_id": "a1-calibration-evidence-audit",
+                            "support_level": "weakens_claim",
+                            "source_paths": ["paper/a1-calibration-evidence-audit.md"],
+                            "summary": "Calibration audit bounds the candidate A1 claim.",
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        paper_root / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "statement": "Another claim is already aligned.",
+                    "status": "supported",
+                    "submission_scope": "main_text",
+                    "evidence": [
+                        {
+                            "evidence_id": "c1-evidence",
+                            "kind": "result",
+                            "source_paths": ["paper/c1.md"],
+                            "support_level": "primary",
+                            "summary": "C1 support.",
+                        }
+                    ],
+                    "gaps": [
+                        {
+                            "gap_id": "c1-none",
+                            "description": "No C1 gap.",
+                            "submission_impact": "none",
+                        }
+                    ],
+                    "recommended_actions": [
+                        {
+                            "action_id": "c1-none",
+                            "priority": "none",
+                            "description": "No C1 action.",
+                        }
+                    ],
+                }
+            ],
+            "items": [
+                {
+                    "item_id": "a1-metric-provenance-inventory",
+                    "kind": "analysis_slice",
+                    "source_paths": ["paper/a1-metric-provenance-inventory.md"],
+                    "result_summary": "No auditable structured discrimination metric provenance was available.",
+                    "paper_contract_role": "boundary_negative_evidence",
+                },
+                {
+                    "item_id": "a1-calibration-evidence-audit",
+                    "kind": "analysis_slice",
+                    "source_paths": ["paper/a1-calibration-evidence-audit.md"],
+                    "result_summary": "Calibration evidence is insufficient for a headline A1 claim.",
+                    "paper_contract_role": "boundary_negative_evidence",
+                },
+            ],
+        },
+    )
+
+    result = module.run_upstream_paper_repair_unit(
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-003",
+        study_root=study_root,
+        gate_report={
+            "gate_fingerprint": "publication-gate::claim-alignment",
+            "blockers": ["claim_evidence_alignment_required"],
+            "medical_publication_surface_named_blockers": ["claim_evidence_alignment_required"],
+        },
+        work_unit_id="current_manuscript_claim_evidence_alignment_repair",
+        source_eval_id="publication-eval::003",
+    )
+
+    assert result is not None
+    assert result["status"] == "updated"
+    repair = result["result"]["claim_evidence_alignment_repair"]
+    assert repair["status"] == "updated"
+    assert repair["claim_evidence_alignment"]["status"] == "ready"
+    ledger = json.loads((paper_root / "evidence_ledger.json").read_text(encoding="utf-8"))
+    a1_claim = next(claim for claim in ledger["claims"] if claim["claim_id"] == "A1_boundary_metric_provenance")
+    assert [item["evidence_id"] for item in a1_claim["evidence"]] == [
+        "a1-metric-provenance-inventory",
+        "a1-calibration-evidence-audit",
+    ]
+    assert a1_claim["submission_scope"] == "main_text"
+    assert a1_claim["gaps"][0]["gap_id"] == "A1_boundary_metric_provenance-alignment-resolved"
+    assert result["result"]["ai_reviewer_recheck_request_ref"]
+
+
 def _write_claim_alignment_fixture(paper_root: Path) -> None:
     _write_json(
         paper_root / "claim_evidence_map.json",
