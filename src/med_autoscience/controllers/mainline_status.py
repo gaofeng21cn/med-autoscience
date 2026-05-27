@@ -26,6 +26,45 @@ CURRENT_STAGE_ID = "mas_owner_truth_hardening"
 CURRENT_STAGE_STATUS = "in_progress"
 CURRENT_PROGRAM_PHASE_ID = "phase_1_mainline_established"
 CURRENT_PROGRAM_PHASE_STATUS = "in_progress"
+CURRENT_STAGE = {
+    "id": CURRENT_STAGE_ID,
+    "status": CURRENT_STAGE_STATUS,
+    "title": "MAS owner truth hardening",
+    "summary": (
+        "repo-side 已完成 MAS functional monolith closeout；当前主线用 autonomy、quality、"
+        "single-project owner 三线继续压实 MAS owner truth，而不是回去新增 MDS 第二治理面。"
+    ),
+}
+CURRENT_PROGRAM_PHASE_BASE = {
+    "id": CURRENT_PROGRAM_PHASE_ID,
+    "status": CURRENT_PROGRAM_PHASE_STATUS,
+    "title": "Phase 1 mainline established",
+    "summary": (
+        "当前总体仍处在第一阶段尾声：主线已成立，正在把自治、质量与单项目 owner "
+        "边界继续收成真实 repo-tracked truth。"
+    ),
+}
+CURRENT_REMAINING_GAPS = [
+    "mature standalone medical product entry is still not landed; the truthful surface is still the repo-tracked shell plus agent-operated CLI/MCP",
+    "OPL stage-runtime handoff is documented and contract-shaped, but not yet a live hosted front door",
+    "optional hosted-runtime clearance still needs broader host/workspace proof; current MAS default runtime does not depend on it",
+    "active study blockers still need continued closeout at publication / completion / human-gate truth surfaces",
+]
+CURRENT_NEXT_FOCUS = [
+    "autonomy: keep task, progress, supervision, stuck-state, recovery, and human-gate truth visible through MAS durable surfaces",
+    "quality: keep publication-grade route truth, same-line repair, bounded analysis, and submission readiness under MAS quality contracts",
+    "single-project owner: keep MedDeepScientist pinned to archive / historical fixture / explicit archive import reference roles instead of second-owner language",
+    "keep core status and runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
+    "only move toward hosted/stage-runtime frontend work without changing MAS truth authority",
+]
+CURRENT_EXPLICITLY_NOT_NOW = [
+    "large platform rewrite without a separate owner/proof gate",
+    "mixing display or paper-figure assetization into the runtime mainline",
+    "claiming the external MedDeepScientist reference repo must be runnable for MAS default operation to work",
+    "treating MedDeepScientist as a second long-term owner or parallel product surface",
+    "claiming optional hosted runtime owns MAS research truth",
+    "claiming a standalone OPL/MAS product frontend is already landed",
+]
 
 
 def _utc_now() -> str:
@@ -276,6 +315,28 @@ def _platform_target() -> dict[str, Any]:
     return build_platform_target()
 
 
+def read_product_entry_mainline_projection() -> dict[str, Any]:
+    current_program_phase = dict(CURRENT_PROGRAM_PHASE_BASE)
+    current_program_phase.update(
+        {
+            "active_tranche_owner_truth": _active_tranche_owner_truth(),
+            "single_project_boundary": _phase_single_project_boundary(CURRENT_PROGRAM_PHASE_ID),
+            "capability_owner_boundary": _phase_capability_owner_boundary(CURRENT_PROGRAM_PHASE_ID),
+        }
+    )
+    return {
+        "program_id": PROGRAM_ID,
+        "current_stage": dict(CURRENT_STAGE),
+        "current_program_phase": current_program_phase,
+        "single_project_boundary": _single_project_boundary(),
+        "capability_owner_boundary": _capability_owner_boundary(),
+        "platform_target": _platform_target(),
+        "remaining_gaps": list(CURRENT_REMAINING_GAPS),
+        "next_focus": list(CURRENT_NEXT_FOCUS),
+        "explicitly_not_now": list(CURRENT_EXPLICITLY_NOT_NOW),
+    }
+
+
 def _phase_ladder() -> list[dict[str, Any]]:
     return [
         {
@@ -478,12 +539,13 @@ def _phase_ladder() -> list[dict[str, Any]]:
 
 
 def read_mainline_status() -> dict[str, Any]:
+    product_entry_projection = read_product_entry_mainline_projection()
     phase_ladder = _phase_ladder()
     unified_enhancement_program = build_unified_enhancement_program_projection()
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
-        "program_id": PROGRAM_ID,
+        "program_id": product_entry_projection["program_id"],
         "framework_position": {
             "opl": "Codex-first stage-led agent runtime framework",
             "research_foundry": "generic Research Ops framework layer",
@@ -512,34 +574,15 @@ def read_mainline_status() -> dict[str, Any]:
                 "MAS 持续做 domain entry / outer-loop / publication judgment owner",
             ],
         },
-        "single_project_boundary": _single_project_boundary(),
-        "capability_owner_boundary": _capability_owner_boundary(),
+        "single_project_boundary": product_entry_projection["single_project_boundary"],
+        "capability_owner_boundary": product_entry_projection["capability_owner_boundary"],
         "active_tranche_owner_truth": _active_tranche_owner_truth(),
-        "current_stage": {
-            "id": CURRENT_STAGE_ID,
-            "status": CURRENT_STAGE_STATUS,
-            "title": "MAS owner truth hardening",
-            "summary": (
-                "repo-side 已完成 MAS functional monolith closeout；当前主线用 autonomy、quality、"
-                "single-project owner 三线继续压实 MAS owner truth，而不是回去新增 MDS 第二治理面。"
-            ),
-        },
-        "current_program_phase": {
-            "id": CURRENT_PROGRAM_PHASE_ID,
-            "status": CURRENT_PROGRAM_PHASE_STATUS,
-            "title": "Phase 1 mainline established",
-            "summary": (
-                "当前总体仍处在第一阶段尾声：主线已成立，正在把自治、质量与单项目 owner "
-                "边界继续收成真实 repo-tracked truth。"
-            ),
-            "active_tranche_owner_truth": _active_tranche_owner_truth(),
-            "single_project_boundary": _phase_single_project_boundary(CURRENT_PROGRAM_PHASE_ID),
-            "capability_owner_boundary": _phase_capability_owner_boundary(CURRENT_PROGRAM_PHASE_ID),
-        },
+        "current_stage": product_entry_projection["current_stage"],
+        "current_program_phase": product_entry_projection["current_program_phase"],
         "phase2_user_product_loop": _phase2_user_product_loop(),
         "phase3_clearance_lane": _phase3_clearance_lane(),
         "phase4_backend_deconstruction": _phase4_backend_deconstruction(),
-        "platform_target": _platform_target(),
+        "platform_target": product_entry_projection["platform_target"],
         "unified_enhancement_program": unified_enhancement_program,
         "phase_ladder": phase_ladder,
         "completed_tranches": [
@@ -569,27 +612,9 @@ def read_mainline_status() -> dict[str, Any]:
                 "summary": "workspace-cockpit / submit-study-task / launch-study / study-progress 已构成真实用户入口壳。",
             },
         ],
-        "remaining_gaps": [
-            "mature standalone medical product entry is still not landed; the truthful surface is still the repo-tracked shell plus agent-operated CLI/MCP",
-            "OPL stage-runtime handoff is documented and contract-shaped, but not yet a live hosted front door",
-            "optional hosted-runtime clearance still needs broader host/workspace proof; current MAS default runtime does not depend on it",
-            "active study blockers still need continued closeout at publication / completion / human-gate truth surfaces",
-        ],
-        "next_focus": [
-            "autonomy: keep task, progress, supervision, stuck-state, recovery, and human-gate truth visible through MAS durable surfaces",
-            "quality: keep publication-grade route truth, same-line repair, bounded analysis, and submission readiness under MAS quality contracts",
-            "single-project owner: keep MedDeepScientist pinned to archive / historical fixture / explicit archive import reference roles instead of second-owner language",
-            "keep core status and runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
-            "only move toward hosted/stage-runtime frontend work without changing MAS truth authority",
-        ],
-        "explicitly_not_now": [
-            "large platform rewrite without a separate owner/proof gate",
-            "mixing display or paper-figure assetization into the runtime mainline",
-            "claiming the external MedDeepScientist reference repo must be runnable for MAS default operation to work",
-            "treating MedDeepScientist as a second long-term owner or parallel product surface",
-            "claiming optional hosted runtime owns MAS research truth",
-            "claiming a standalone OPL/MAS product frontend is already landed",
-        ],
+        "remaining_gaps": product_entry_projection["remaining_gaps"],
+        "next_focus": product_entry_projection["next_focus"],
+        "explicitly_not_now": product_entry_projection["explicitly_not_now"],
         "source_refs": [
             "readme:root",
             "docs:index",

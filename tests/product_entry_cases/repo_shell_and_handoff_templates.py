@@ -47,7 +47,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
 
     monkeypatch.setattr(
         module.mainline_status,
-        "read_mainline_status",
+        "read_product_entry_mainline_projection",
         lambda: {
             "program_id": "research-foundry-medical-mainline",
             "current_stage": {

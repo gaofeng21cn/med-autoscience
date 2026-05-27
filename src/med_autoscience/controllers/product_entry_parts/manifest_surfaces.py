@@ -103,7 +103,7 @@ def build_product_entry_manifest(
     profile_ref: str | Path | None = None,
     opl_production_proof_ref: str | Path | None = None,
 ) -> dict[str, Any]:
-    mainline_payload = mainline_status.read_mainline_status()
+    mainline_payload = mainline_status.read_product_entry_mainline_projection()
     mainline_snapshot = _mainline_snapshot(mainline_payload)
     build_doctor_report_fn = _controller_override("build_doctor_report", build_doctor_report)
     build_user_interaction_contract_fn = _controller_override(
