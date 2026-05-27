@@ -58,6 +58,22 @@ def handle_domain_handler_command(
         ready_statuses = {"typed_blocker_payload_ready", "owner_receipt_payload_ready"}
         return 0 if result.get("status") in ready_statuses else 1
 
+    if args.domain_handler_command == "stage-evidence-payload":
+        profile_ref = Path(args.profile)
+        profile = load_profile(profile_ref)
+        workorder = load_json_object_file(args.workorder)
+        payload_export = load_module(
+            "med_autoscience.controllers.owner_route_handoff_parts.stage_evidence_payload_export"
+        )
+        result = payload_export.build_stage_evidence_payload_export(
+            profile=profile,
+            profile_ref=profile_ref,
+            workorder=workorder,
+        )
+        _print_json(result)
+        ready_statuses = {"typed_blocker_payload_ready", "success_payload_ready"}
+        return 0 if result.get("status") in ready_statuses else 1
+
     return None
 
 
