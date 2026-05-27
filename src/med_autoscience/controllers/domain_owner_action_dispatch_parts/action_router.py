@@ -25,6 +25,7 @@ def execute_owner_dispatch_action(
     executors = {
         "publication_gate_specificity_required": execute_publication_gate_specificity,
         "current_package_freshness_required": action_execution.execute_current_package_freshness,
+        "run_gate_clearing_batch": action_execution.execute_gate_clearing_batch,
         "artifact_display_surface_materialization_required": action_execution.execute_artifact_display_materialization,
         "return_to_ai_reviewer_workflow": execute_ai_reviewer_workflow,
         "canonical_paper_inputs_rehydrate_required": action_execution.execute_canonical_paper_inputs_rehydrate,

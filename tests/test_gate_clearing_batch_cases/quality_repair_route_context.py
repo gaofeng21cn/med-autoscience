@@ -300,6 +300,121 @@ def test_gate_clearing_batch_consumes_current_ai_reviewer_publication_eval_recor
     assert result["explicit_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
 
 
+def test_gate_clearing_batch_route_context_preempts_stale_controller_decision_for_gate_replay(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_gap",
+    )
+    quest_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_root = profile.managed_runtime_home / "quests" / quest_id
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-003" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    current_eval_id = publication_eval_payload["eval_id"]
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "current_manuscript_claim_evidence_alignment_repair",
+        "lane": "write",
+        "summary": "Stale write route should not override owner-route gate replay.",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "study_id": study_root.name,
+            "quest_id": quest_id,
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "requires_human_confirmation": False,
+            "publication_eval_ref": {"eval_id": current_eval_id},
+            "controller_actions": [
+                {
+                    "action_type": "run_quality_repair_batch",
+                    "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                }
+            ],
+            "next_work_unit": {
+                "unit_id": "current_manuscript_claim_evidence_alignment_repair",
+                "lane": "write",
+                "summary": "Stale writer decision from before publication gate replay.",
+            },
+        },
+    )
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["stale_submission_minimal_authority"],
+        "current_required_action": "return_to_publishability_gate",
+        "medical_publication_surface_status": "clear",
+        "study_delivery_status": "current",
+        "submission_minimal_authority_status": "current",
+        "submission_minimal_evaluated_source_signature": "source::current",
+        "submission_minimal_authority_source_signature": "source::current",
+        "current_package_freshness": {
+            "status": "fresh",
+            "proof_path": str(study_root / "paper" / "current_package_freshness.json"),
+            "current_package_root": str(study_root / "paper" / "submission_minimal"),
+            "submission_manifest_path": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+            "source_signature": "source::current",
+            "authority_source_signature": "source::current",
+        },
+        "gate_fingerprint": "publication-gate::dm003-replay",
+    }
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(
+        module,
+        "_repair_paper_live_paths",
+        lambda **_: (_ for _ in ()).throw(AssertionError("stale writer repair must not run")),
+    )
+
+    def run_controller(**kwargs: object) -> dict[str, object]:
+        seen["authority_route_context"] = kwargs.get("authority_route_context")
+        return {"status": "clear", "allow_write": True, "blockers": []}
+
+    monkeypatch.setattr(module.publication_gate, "run_controller", run_controller)
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        authority_route_context={
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "requires_human_confirmation": False,
+                "source_eval_id": current_eval_id,
+                "work_unit_fingerprint": "truth-snapshot::dm003-gate-replay",
+            },
+        },
+    )
+
+    assert result["ok"] is True
+    assert result["selected_publication_work_unit"]["unit_id"] == "publication_gate_replay"
+    assert result["unit_results"] == []
+    route_context = seen["authority_route_context"]["controller_route_context"]
+    assert route_context["control_surface"] == "gate_clearing_batch"
+    assert route_context["controller_action_type"] == "run_gate_clearing_batch"
+    assert route_context["work_unit_id"] == "publication_gate_replay"
+
+
 def test_gate_specificity_targets_preempt_publication_gate_replay_for_upstream_paper_repair() -> None:
     currentness = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_currentness")
 

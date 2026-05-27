@@ -83,6 +83,51 @@ def execute_current_package_freshness(
     }
 
 
+def execute_gate_clearing_batch(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    quest_root: Path | None,
+    dispatch: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if quest_root is None:
+        return {"execution_status": "blocked", "blocked_reason": "quest_root_missing", "owner_callable_surface": None}
+    authority_route_context = _gate_clearing_authority_route_context(dispatch)
+    if authority_route_context is None:
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": "gate_clearing_batch_work_unit_missing",
+            "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+            "quest_root": str(quest_root),
+        }
+    if not apply:
+        return {
+            "execution_status": "dry_run",
+            "blocked_reason": None,
+            "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+            "quest_root": str(quest_root),
+            "authority_route_context": authority_route_context,
+        }
+    try:
+        owner_result = _run_gate_clearing_batch(
+            profile=profile,
+            study_id=study_id,
+            quest_root=quest_root,
+            authority_route_context=authority_route_context,
+        )
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return _blocked_gate_clearing_batch(exc=exc, quest_root=quest_root)
+    executed = bool(owner_result.get("ok")) if isinstance(owner_result, Mapping) else False
+    return {
+        "execution_status": "executed" if executed else "blocked",
+        "blocked_reason": None if executed else _text(_mapping(owner_result).get("status")) or "gate_clearing_batch_not_applied",
+        "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+        "owner_result": dict(owner_result) if isinstance(owner_result, Mapping) else owner_result,
+        "quest_root": str(quest_root),
+    }
+
+
 def _publication_gate_report_with_refs(*, report: Mapping[str, Any], state: Any, json_path: Path) -> dict[str, Any]:
     return {
         **dict(report),
@@ -121,6 +166,23 @@ def _run_current_package_gate_clearing_batch(
     )
 
 
+def _run_gate_clearing_batch(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    quest_root: Path,
+    authority_route_context: dict[str, Any],
+) -> Mapping[str, Any]:
+    return gate_clearing_batch.run_gate_clearing_batch(
+        profile=profile,
+        study_id=study_id,
+        study_root=profile.studies_root / study_id,
+        quest_id=quest_root.name,
+        source="domain_owner_action_dispatch",
+        authority_route_context=authority_route_context,
+    )
+
+
 def _blocked_current_package_freshness(*, exc: Exception, quest_root: Path) -> dict[str, Any]:
     return {
         "execution_status": "blocked",
@@ -132,6 +194,46 @@ def _blocked_current_package_freshness(*, exc: Exception, quest_root: Path) -> d
     }
 
 
+def _blocked_gate_clearing_batch(*, exc: Exception, quest_root: Path) -> dict[str, Any]:
+    return {
+        "execution_status": "blocked",
+        "blocked_reason": "gate_clearing_batch_workflow_failed",
+        "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+        "next_owner": "gate_clearing_batch",
+        "error": str(exc),
+        "quest_root": str(quest_root),
+    }
+
+
+def _gate_clearing_authority_route_context(dispatch: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    dispatch_payload = _mapping(dispatch)
+    prompt_contract = _mapping(dispatch_payload.get("prompt_contract"))
+    owner_route = _mapping(dispatch_payload.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    currentness_basis = (
+        _mapping(_mapping(owner_route.get("currentness_contract")).get("basis"))
+        or _mapping(prompt_contract.get("owner_route_currentness_basis"))
+        or _mapping(source_refs.get("owner_route_currentness_basis"))
+    )
+    work_unit_id = _first_text(
+        source_refs.get("work_unit_id"),
+        currentness_basis.get("work_unit_id"),
+        _mapping(dispatch_payload.get("source_action")).get("next_work_unit"),
+    )
+    if work_unit_id is None:
+        return None
+    controller_route_context: dict[str, Any] = {
+        "control_surface": "gate_clearing_batch",
+        "controller_action_type": "run_gate_clearing_batch",
+        "work_unit_id": work_unit_id,
+        "requires_human_confirmation": False,
+    }
+    for key in ("source_eval_id", "gate_fingerprint", "work_unit_fingerprint"):
+        if text := _first_text(source_refs.get(key), currentness_basis.get(key)):
+            controller_route_context[key] = text
+    return {"controller_route_context": controller_route_context}
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -141,4 +243,15 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-__all__ = ["execute_current_package_freshness", "execute_publication_gate_specificity"]
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        if text := _text(value):
+            return text
+    return None
+
+
+__all__ = [
+    "execute_current_package_freshness",
+    "execute_gate_clearing_batch",
+    "execute_publication_gate_specificity",
+]

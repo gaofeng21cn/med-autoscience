@@ -84,6 +84,107 @@ def test_execute_dispatch_runs_current_package_freshness_owner_workflow(monkeypa
     assert route_context["work_unit_id"] == "submission_minimal_refresh"
 
 
+def test_execute_dispatch_runs_gate_clearing_batch_publication_gate_replay(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    route = _owner_route(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+    )
+    route.update(
+        {
+            "owner_reason": "domain_transition_publication_gate_blocker",
+            "failure_signature": "domain_transition_publication_gate_blocker",
+            "source_refs": {
+                "work_unit_id": "publication_gate_replay",
+                "work_unit_fingerprint": "truth-snapshot::dm003-gate-replay",
+                "study_truth_epoch": "truth-event-dm003",
+                "runtime_health_epoch": "runtime-health-event-dm003",
+            },
+            "currentness_contract": {
+                "status": "currentness_basis_required",
+                "basis": {
+                    "work_unit_id": "publication_gate_replay",
+                    "work_unit_fingerprint": "truth-snapshot::dm003-gate-replay",
+                    "truth_epoch": "truth-event-dm003",
+                    "runtime_health_epoch": "runtime-health-event-dm003",
+                    "owner_reason": "domain_transition_publication_gate_blocker",
+                },
+            },
+        }
+    )
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="run_gate_clearing_batch",
+        owner="gate_clearing_batch",
+        required_output_surface="artifacts/controller/gate_clearing_batch/latest.json",
+        owner_route=route,
+    )
+    dispatch["prompt_contract"]["owner_route"] = route
+    dispatch["prompt_contract"]["owner_route_currentness_basis"] = route["currentness_contract"]["basis"]
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "run_gate_clearing_batch.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    monkeypatch.setattr(
+        module.domain_status_projection,
+        "progress_projection",
+        lambda **_: {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "quest_root": str(quest_root),
+        },
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_gate_clearing_batch(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+        }
+
+    monkeypatch.setattr(module.action_execution.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
+
+    result = module.dispatch_domain_owner_actions(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("run_gate_clearing_batch",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert execution["owner_callable_surface"] == "gate_clearing_batch.run_gate_clearing_batch"
+    assert called["profile"] == profile
+    assert called["study_id"] == study_id
+    assert called["study_root"] == study_root
+    assert called["quest_id"] == study_id
+    assert called["source"] == "domain_owner_action_dispatch"
+    route_context = called["authority_route_context"]["controller_route_context"]
+    assert route_context == {
+        "control_surface": "gate_clearing_batch",
+        "controller_action_type": "run_gate_clearing_batch",
+        "work_unit_id": "publication_gate_replay",
+        "requires_human_confirmation": False,
+        "work_unit_fingerprint": "truth-snapshot::dm003-gate-replay",
+    }
+
+
 def test_execute_dispatch_runs_current_package_freshness_when_stalled_and_previous_attempt_blocked(
     monkeypatch,
     tmp_path: Path,

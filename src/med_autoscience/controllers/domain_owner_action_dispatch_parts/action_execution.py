@@ -150,6 +150,22 @@ def execute_current_package_freshness(
     )
 
 
+def execute_gate_clearing_batch(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return publication_gate_actions.execute_gate_clearing_batch(
+        profile=profile,
+        study_id=study_id,
+        apply=apply,
+        quest_root=quest_root_from_status(profile, study_id),
+        dispatch=dispatch,
+    )
+
+
 def _paper_authority_clean_migration_blocker(*, study_root: Path, exc: Exception, request_path: Path) -> dict[str, Any] | None:
     if not paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
         return None
@@ -755,6 +771,7 @@ __all__ = [
     "execute_artifact_display_materialization",
     "execute_canonical_paper_inputs_rehydrate",
     "execute_current_package_freshness",
+    "execute_gate_clearing_batch",
     "execute_methodology_reframe_route_decision",
     "execute_publication_gate_specificity",
     "execute_provenance_limited_harmonization_audit",

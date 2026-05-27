@@ -5,9 +5,15 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    PUBLICATION_WORK_UNIT_REPAIR_IDS,
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
 )
 from med_autoscience.profiles import WorkspaceProfile
+
+
+GATE_CLEARING_ROUTE_WORK_UNIT_IDS = frozenset(PUBLICATION_WORK_UNIT_REPAIR_IDS) | {
+    "publication_gate_replay",
+}
 
 
 @dataclass(frozen=True)
@@ -190,14 +196,22 @@ def _controller_route_context_publication_work_unit(
         return None
     if bool(controller_route_context.get("requires_human_confirmation")):
         return None
-    if str(controller_route_context.get("control_surface") or "").strip() != "quality_repair_batch":
-        return None
-    if str(controller_route_context.get("controller_action_type") or "").strip() != "run_quality_repair_batch":
+    control_surface = str(controller_route_context.get("control_surface") or "").strip()
+    controller_action_type = str(controller_route_context.get("controller_action_type") or "").strip()
+    if (
+        control_surface,
+        controller_action_type,
+    ) not in {
+        ("quality_repair_batch", "run_quality_repair_batch"),
+        ("gate_clearing_batch", "run_gate_clearing_batch"),
+    }:
         return None
     context_eval_id = str(controller_route_context.get("source_eval_id") or "").strip()
     if source_eval_id and context_eval_id and context_eval_id != source_eval_id:
         return None
     work_unit_id = str(controller_route_context.get("work_unit_id") or "").strip()
-    if work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+    if control_surface == "quality_repair_batch" and work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+        return None
+    if control_surface == "gate_clearing_batch" and work_unit_id not in GATE_CLEARING_ROUTE_WORK_UNIT_IDS:
         return None
     return {"unit_id": work_unit_id}

@@ -554,6 +554,7 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 2026-05-28 追加理由：DM003 首次修复后已正确投影到 `publication_gate_blocker`，但 owner-route registry 未登记 `domain_transition_publication_gate_blocker`，导致 `allowed_actions=[]` 且 `run_gate_clearing_batch` 被 blocked。该缺口属于 MAS owner-route attempt protocol registry，不是 OPL provider lifecycle 或 study-local paper surface 问题。
 - 2026-05-28 再追加理由：registry 登记后，DM003 仍显示 `owner_reason_contract.registered=true` 但 action queue 为空；根因是 `publication_gate_blocker` 仍被映射为 `publication_gate_specificity_required`，route owner/action 与注册合同不一致。修复后同一 transition 直接产出 `run_gate_clearing_batch`。
 - 2026-05-28 第三次追加理由：`publication_gate_blocker` 的 transition `owner` 可保留历史 gate owner，但 owner-route 的 executable owner 必须是 `gate_clearing_batch`。scan 不得让旧 `external_supervisor_required` lifecycle 或 transition owner 覆盖 `run_gate_clearing_batch` action owner，否则 `allowed_actions` 会再次被过滤为空。
+- 2026-05-28 第四次追加理由：`domain-owner-action-dispatch` 必须把 `run_gate_clearing_batch` 视为一等 owner callable，调用 `gate_clearing_batch.run_gate_clearing_batch`，并把当前 owner-route / prompt-contract 中的 `publication_gate_replay` work-unit context 传给 callable。旧 `controller_decisions/latest.json` 仍可能指向上一轮 `run_quality_repair_batch`，dispatch adapter 不得因此回到 stale writer work unit 或返回 `unsupported_action_type`。
 - 影响：这是 MAS controller read-model handoff 修复，不放宽 AI reviewer、publication gate 或 submission readiness；缺少任一 digest、alignment 未 ready、存在 blocker、或 missing 字段不止 gate recheck 时仍 fail closed 到原 owner route。
 
 ## 2026-05-25：current AI reviewer eval 可取代旧 quality batch digest mismatch
