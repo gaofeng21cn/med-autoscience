@@ -282,3 +282,48 @@ def test_canary_closeout_exposes_per_paper_line_owner_payloads(tmp_path: Path) -
         assert evidence_payload["publication_ready_claimed"] is False
         assert evidence_payload["artifact_mutation_authorized"] is False
         assert evidence_payload["current_package_mutation_authorized"] is False
+
+    stage_summary = payload["stage_expected_receipt_payload_summary"]
+    assert stage_summary["surface_kind"] == "mas_stage_expected_receipt_payload_summary"
+    assert stage_summary["owner"] == "med-autoscience"
+    assert stage_summary["consumer"] == "one_person_lab"
+    assert stage_summary["status"] == (
+        "per_stage_expected_receipt_payload_refs_ready_with_live_evidence_typed_blockers"
+    )
+    assert stage_summary["payload_body_allowed"] is False
+    assert stage_summary["empty_payload_template_is_success_evidence"] is False
+    assert stage_summary["required_operator_payload_refs"] == [
+        "domain_receipt_refs",
+        "monitor_freshness_refs",
+        "runtime_event_refs",
+        "typed_blocker_refs",
+    ]
+    assert stage_summary["required_return_shapes"] == [
+        "domain_receipt_ref",
+        "monitor_freshness_ref",
+        "runtime_event_ref",
+        "typed_blocker_ref",
+    ]
+    assert stage_summary["stage_count"] == 1
+    stage = stage_summary["stages"][0]
+    assert stage["stage_id"] == "finalize_and_publication_handoff"
+    assert stage["sequence"] == 6
+    assert stage["current_payload_template"] == {
+        "domain_receipt_refs": [],
+        "monitor_freshness_refs": [],
+        "runtime_event_refs": [],
+        "typed_blocker_refs": [],
+    }
+    assert stage["success_refs_path_payload"]["domain_receipt_refs"] == payloads[
+        "002-dm-china-us-mortality-attribution"
+    ]["record_payload"]["stage_expected_receipt_refs"]
+    assert stage["success_refs_path_payload"]["monitor_freshness_refs"] == payloads[
+        "002-dm-china-us-mortality-attribution"
+    ]["record_payload"]["stage_monitor_freshness_refs"]
+    assert stage["typed_blocker_path_payload"]["typed_blocker_refs"] == payloads[
+        "003-dpcc-primary-care-phenotype-treatment-gap"
+    ]["record_payload"]["typed_blocker_refs"]
+    assert stage["recommended_current_payload_path"] == "typed_blocker_path"
+    assert stage["success_refs_visible_is_completion"] is False
+    assert stage["domain_readiness_claimed"] is False
+    assert stage["production_readiness_claimed"] is False

@@ -79,6 +79,9 @@ def build_owner_chain_closeout_from_guarded_receipts(
         "paper_line_owner_chain_results": paper_line_results,
         "paper_line_domain_dispatch_evidence_record_payloads": paper_line_payloads,
         "paper_line_owner_payload_summary": _paper_line_owner_payload_summary(paper_line_payloads),
+        "stage_expected_receipt_payload_summary": _stage_expected_receipt_payload_summary(
+            paper_line_payloads
+        ),
         "live_paper_line_evidence_refs": live_evidence_refs,
         "domain_dispatch_evidence_record_payload": dispatch_evidence_payload,
         "body_free_evidence_packets": _body_free_owner_chain_packets(
@@ -191,6 +194,150 @@ def _paper_line_owner_payload_summary(payloads: Sequence[Mapping[str, Any]]) -> 
             1 for payload in payloads if payload.get("artifact_mutation_authorized") is True
         ),
     }
+
+
+def _stage_expected_receipt_payload_summary(
+    payloads: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    stage_payloads = [
+        stage
+        for stage in (_stage_expected_receipt_stage_payload(stage_id, payloads) for stage_id in _stage_ids(payloads))
+        if stage
+    ]
+    return {
+        "surface_kind": "mas_stage_expected_receipt_payload_summary",
+        "owner": "med-autoscience",
+        "consumer": "one_person_lab",
+        "status": "per_stage_expected_receipt_payload_refs_ready_with_live_evidence_typed_blockers",
+        "payload_kind": "stage_expected_receipt_or_monitor_freshness_refs",
+        "payload_path_policy": (
+            "operator_must_choose_success_refs_path_or_domain_owned_typed_blocker_path_empty_template_blocks"
+        ),
+        "payload_body_allowed": False,
+        "empty_payload_template_is_success_evidence": False,
+        "required_operator_payload_refs": [
+            "domain_receipt_refs",
+            "monitor_freshness_refs",
+            "runtime_event_refs",
+            "typed_blocker_refs",
+        ],
+        "required_return_shapes": [
+            "domain_receipt_ref",
+            "monitor_freshness_ref",
+            "runtime_event_ref",
+            "typed_blocker_ref",
+        ],
+        "accepted_payload_paths_ref": (
+            "/real_paper_autonomy_guarded_apply_proof/paper_line_provider_canary_closeout/"
+            "stage_expected_receipt_payload_summary"
+        ),
+        "stage_count": len(stage_payloads),
+        "stages": stage_payloads,
+    }
+
+
+def _stage_expected_receipt_stage_payload(
+    stage_id: str,
+    payloads: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    stage_payloads = [
+        payload for payload in payloads if _record_stage_id(payload) == stage_id
+    ]
+    success_payloads = [
+        payload
+        for payload in stage_payloads
+        if _text(payload.get("mode")) == "refs_only_domain_owned_success_payload"
+    ]
+    typed_blocker_payloads = [
+        payload
+        for payload in stage_payloads
+        if _record_payload_refs(payload, "typed_blocker_refs")
+    ]
+    domain_receipt_refs = _dedupe_text(
+        ref
+        for payload in success_payloads
+        for ref in _record_payload_refs(payload, "stage_expected_receipt_refs")
+    )
+    monitor_freshness_refs = _dedupe_text(
+        ref
+        for payload in success_payloads
+        for ref in _record_payload_refs(payload, "stage_monitor_freshness_refs")
+    )
+    runtime_event_refs = _dedupe_text(
+        ref
+        for payload in success_payloads
+        for ref in _record_payload_refs(payload, "stage_runtime_event_refs")
+    )
+    typed_blocker_refs = _dedupe_text(
+        ref
+        for payload in typed_blocker_payloads
+        for ref in _record_payload_refs(payload, "typed_blocker_refs")
+    )
+    if not (domain_receipt_refs or monitor_freshness_refs or runtime_event_refs or typed_blocker_refs):
+        return {}
+    return {
+        "stage_id": stage_id,
+        "sequence": _stage_sequence(stage_id),
+        "payload_kind": "stage_expected_receipt_or_monitor_freshness_refs",
+        "current_payload_template": {
+            "domain_receipt_refs": [],
+            "monitor_freshness_refs": [],
+            "runtime_event_refs": [],
+            "typed_blocker_refs": [],
+        },
+        "success_refs_path_payload": {
+            "domain_receipt_refs": domain_receipt_refs,
+            "monitor_freshness_refs": monitor_freshness_refs,
+            "runtime_event_refs": runtime_event_refs,
+        },
+        "typed_blocker_path_payload": {
+            "typed_blocker_refs": typed_blocker_refs,
+        },
+        "monitor_status": (
+            "success_refs_observed_with_typed_blocker_tail"
+            if domain_receipt_refs and typed_blocker_refs
+            else "success_refs_observed"
+            if domain_receipt_refs or monitor_freshness_refs or runtime_event_refs
+            else "typed_blocker_path_available"
+        ),
+        "operator_payload_submitted": False,
+        "recommended_current_payload_path": (
+            "typed_blocker_path" if typed_blocker_refs else "success_refs_path"
+        ),
+        "success_refs_visible_is_completion": False,
+        "payload_body_allowed": False,
+        "domain_readiness_claimed": False,
+        "production_readiness_claimed": False,
+        "publication_ready_claimed": False,
+        "artifact_mutation_authorized": False,
+        "current_package_mutation_authorized": False,
+        "production_soak_complete_claimed": False,
+    }
+
+
+def _stage_ids(payloads: Sequence[Mapping[str, Any]]) -> list[str]:
+    return _dedupe_text(_record_stage_id(payload) for payload in payloads)
+
+
+def _record_stage_id(payload: Mapping[str, Any]) -> str:
+    return _text(_mapping(payload.get("record_payload")).get("stage_id")) or _text(payload.get("stage_id"))
+
+
+def _record_payload_refs(payload: Mapping[str, Any], key: str) -> list[str]:
+    record_payload = _mapping(payload.get("record_payload"))
+    refs = _sequence(record_payload.get(key))
+    return _dedupe_text(refs or _sequence(payload.get(key)))
+
+
+def _stage_sequence(stage_id: str) -> int:
+    return {
+        "direction_and_route_selection": 1,
+        "baseline_and_evidence_setup": 2,
+        "bounded_analysis_campaign": 3,
+        "manuscript_authoring": 4,
+        "review_and_quality_gate": 5,
+        "finalize_and_publication_handoff": 6,
+    }.get(stage_id, 0)
 
 
 def build_provider_canary_closeout(
