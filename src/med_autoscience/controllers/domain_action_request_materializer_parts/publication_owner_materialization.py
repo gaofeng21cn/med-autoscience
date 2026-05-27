@@ -39,6 +39,8 @@ def materialization_action(
         current_publication_eval=None,
     )
     if current_record is None:
+        current_record = _request_bound_current_ai_reviewer_record(study_root=study_root)
+    if current_record is None:
         return _ai_reviewer_currentness_action(action=action, study_root=study_root, owner_route=owner_route)
     record, record_ref_path = current_record
     record_eval_id = _text(record.get("eval_id"))
@@ -197,6 +199,32 @@ def _current_ai_reviewer_materialization_work_unit(action: Mapping[str, Any]) ->
     )
 
 
+def _request_bound_current_ai_reviewer_record(*, study_root: Path) -> tuple[dict[str, Any], Path] | None:
+    request = domain_action_request_lifecycle.read_ai_reviewer_request(study_root=study_root)
+    if request is None:
+        return None
+    record = _mapping(
+        request.get("ai_reviewer_record")
+        or request.get("publication_eval_record")
+        or request.get("record")
+    )
+    if not record:
+        return None
+    record_ref = _text(request.get("publication_eval_record_ref"))
+    if record_ref is None:
+        return None
+    manuscript = ai_reviewer_publication_eval_records.current_manuscript_binding(study_root=study_root)
+    if manuscript is None:
+        return None
+    if not ai_reviewer_publication_eval_records.record_matches_current_manuscript(
+        record=record,
+        manuscript=manuscript,
+    ):
+        return None
+    record_path = _resolve_study_ref(study_root=study_root, ref=record_ref)
+    return ai_reviewer_publication_eval_records.with_projection_source(record, record_path), record_path
+
+
 def _story_surface_delta_refs(study_root: Path, source_eval_id: str | None) -> list[str]:
     evidence = _read_json_object(
         study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
@@ -312,6 +340,13 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
 
 def _study_root(profile: WorkspaceProfile, study_id: str) -> Path:
     return profile.studies_root / study_id
+
+
+def _resolve_study_ref(*, study_root: Path, ref: str) -> Path:
+    path = Path(ref).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (study_root / path).resolve()
 
 
 def _mapping(value: object) -> dict[str, Any]:

@@ -661,9 +661,15 @@ def _study_projection(
     next_owner = owner_overlay.get("next_owner", next_owner)
     lifecycle = _mapping(owner_overlay.get("lifecycle", lifecycle))
     if default_executor_execution_receipt_consumption:
-        why_not_applied = None
-        blocked_reason = None
-        next_owner = None
+        receipt_blocked_reason = _text(default_executor_execution_receipt_consumption.get("blocked_reason"))
+        if _text(default_executor_execution_receipt_consumption.get("execution_status")) == "blocked" and receipt_blocked_reason:
+            why_not_applied = receipt_blocked_reason
+            blocked_reason = receipt_blocked_reason
+            next_owner = block_state_part.next_owner_for_blocked_reason(receipt_blocked_reason)
+        else:
+            why_not_applied = None
+            blocked_reason = None
+            next_owner = None
     actions = repo_write_policy.attach_repo_write_policy(actions, developer_mode=developer_mode)
     paper_progress_stall_payload, actions = paper_progress_stall_projection.build_and_attach(
         status=status_payload,

@@ -42,6 +42,9 @@ def route_and_consume_current_execution_receipt(
     )
     if not receipt:
         return dict(owner_route), routed_actions, {}
+    blocked_reason_text = _text(receipt.get("blocked_reason"))
+    if _text(receipt.get("execution_status")) == "blocked" and blocked_reason_text:
+        return dict(owner_route), [], {**receipt, "next_action": "honor_typed_blocker_without_redrive"}
     consumed_route, consumed_actions = owner_route_part.route_and_decorate_actions(
         study_id=study_id,
         quest_id=quest_id,
@@ -53,6 +56,11 @@ def route_and_consume_current_execution_receipt(
         active_run_id=active_run_id,
     )
     return consumed_route, consumed_actions, receipt
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 __all__ = ["route_and_consume_current_execution_receipt"]

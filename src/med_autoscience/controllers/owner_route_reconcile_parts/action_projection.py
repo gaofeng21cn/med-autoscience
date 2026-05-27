@@ -521,7 +521,15 @@ def _higher_priority_owner_truth_blocks_pending_ai_reviewer_request(
         return True
     if gate_specificity.get("required") is True:
         return True
-    if _write_story_surface_owner_truth_pending(
+    if current_truth_owner.current_story_surface_delta_blocker_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ) and not _pending_ai_reviewer_recheck_consumes_current_write_routeback(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
+        return True
+    if current_truth_owner.current_ai_reviewer_write_routeback_route(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     ) and not _pending_ai_reviewer_recheck_consumes_current_write_routeback(
@@ -557,7 +565,18 @@ def _higher_priority_owner_truth_blocks_generic_ai_reviewer(
         return True
     if gate_specificity.get("required") is True:
         return True
-    if _write_story_surface_owner_truth_pending(
+    if current_truth_owner.current_story_surface_delta_blocker_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ) and not _pending_ai_reviewer_recheck_consumes_current_write_routeback(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
+        return True
+    if current_truth_owner.current_ai_reviewer_write_routeback_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ) and not _pending_ai_reviewer_recheck_consumes_current_write_routeback(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     ):
@@ -569,17 +588,6 @@ def _higher_priority_owner_truth_blocks_generic_ai_reviewer(
     if source_provenance_owner_result.typed_blocker_state(study_root=study_root):
         return True
     return False
-
-
-def _write_story_surface_owner_truth_pending(
-    *,
-    study_root: Path,
-    publication_eval_payload: Mapping[str, Any],
-) -> bool:
-    return story_surface_delta_actions.write_owner_action(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    ) is not None
 
 
 def _pending_ai_reviewer_recheck_consumes_current_write_routeback(

@@ -90,6 +90,11 @@ def default_executor_execution_receipt_consumption(
             repair_evidence=repair_evidence,
         ):
             continue
+        blocked_reason = _default_executor_consumed_blocked_reason(
+            action_type=action_type,
+            owner_result=owner_result,
+            repair_evidence=repair_evidence,
+        )
         return {
             "status": "consumed",
             "receipt_kind": "default_executor_execution",
@@ -99,6 +104,7 @@ def default_executor_execution_receipt_consumption(
             "execution_status": _text(execution.get("execution_status")),
             "owner_result_status": _text(owner_result.get("status")),
             "repair_execution_evidence_status": _text(repair_evidence.get("status")),
+            **({"blocked_reason": blocked_reason} if blocked_reason else {}),
             "consumed_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
             "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),
             "consumed_owner_route_source_fingerprint": _text(owner_route.get("source_fingerprint")),
@@ -795,6 +801,27 @@ def _default_executor_nonconsumable_reason(
         or _text(repair_evidence.get("status"))
         or "default_executor_closeout_not_consumable"
     )
+
+
+def _default_executor_consumed_blocked_reason(
+    *,
+    action_type: str | None,
+    owner_result: Mapping[str, Any],
+    repair_evidence: Mapping[str, Any],
+) -> str | None:
+    if action_type == "run_quality_repair_batch":
+        if "manuscript_story_surface_delta_missing" in _string_set(repair_evidence.get("blockers")):
+            return "manuscript_story_surface_delta_missing"
+        hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
+        if "manuscript_story_surface_delta_missing" in _string_set(hygiene.get("blockers")):
+            return "manuscript_story_surface_delta_missing"
+        if (
+            hygiene.get("story_surface_delta_required") is True
+            and hygiene.get("story_surface_delta_present") is not True
+            and _text(owner_result.get("status")) == "blocked"
+        ):
+            return "manuscript_story_surface_delta_missing"
+    return _text(owner_result.get("blocked_reason")) or _text(repair_evidence.get("blocked_reason")) or None
 
 
 def _story_surface_changed_refs(value: object) -> list[Mapping[str, Any]]:

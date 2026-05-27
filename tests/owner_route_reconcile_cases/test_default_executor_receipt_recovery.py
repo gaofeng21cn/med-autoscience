@@ -3,10 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import importlib
+
 from med_autoscience.controllers.study_transition_receipt_consumption import (
     default_executor_execution_nonconsumable_closeout,
     default_executor_execution_receipt_consumption,
 )
+
+from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -518,3 +522,167 @@ def test_default_executor_stage_closeout_embedded_currentness_consumes_story_sur
         owner_route=owner_route,
         actions=[{"action_type": "run_quality_repair_batch"}],
     ) == {}
+
+
+def test_scan_keeps_owner_route_and_typed_blocker_after_blocked_story_surface_closeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    scan = importlib.import_module("med_autoscience.controllers.owner_route_reconcile")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    work_unit_id = "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
+    work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::ai-reviewer-routeback",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "ai_reviewer_required": False,
+        },
+    }
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "active",
+        "active_run_id": None,
+        "runtime_health_snapshot": {
+            "runtime_health_epoch": "runtime-health-event-006285-1c4dfb5879325bcc",
+            "canonical_runtime_action": "await_explicit_resume",
+            "attempt_state": "awaiting_explicit_resume",
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        },
+        "publication_eval": publication_eval_payload,
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-event-000024-daa5883571a64a07",
+            "source_signature": "truth-snapshot::a525e582f61776523ce11676",
+        },
+        "domain_transition": {
+            "study_id": study_id,
+            "decision_type": "route_back_same_line",
+            "route_target": "write",
+            "controller_action": "request_opl_stage_attempt",
+            "owner": "write",
+            "next_work_unit": {
+                "unit_id": work_unit_id,
+                "lane": "write",
+                "summary": (
+                    "Repair current manuscript methods/reporting, display provenance, "
+                    "supplement readiness, and package freshness without expanding claims."
+                ),
+            },
+            "typed_blocker": None,
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "publication_supervision",
+        "paper_stage": "publishability_gate_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    monkeypatch.setattr(
+        scan,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval_payload),
+    )
+
+    before_closeout = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+    current_route = before_closeout["studies"][0]["action_queue"][0]["owner_route"]
+    assert current_route["next_owner"] == "write"
+    assert current_route["owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "sat_dm002_live.closeout.json",
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "schema_version": 1,
+            "stage_attempt_id": "sat_dm002_live",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "action_type": "run_quality_repair_batch",
+            "closeout_id": "stage-attempt-closeout::sat_dm002_live::manuscript_story_surface_delta_missing",
+            "owner_route_basis": {
+                "work_unit_id": work_unit_id,
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                "truth_epoch": "truth-event-000024-daa5883571a64a07",
+                "runtime_health_epoch": "runtime-health-event-006285-1c4dfb5879325bcc",
+            },
+            "domain_execution": {
+                "action_type": "run_quality_repair_batch",
+                "execution_status": "blocked",
+                "blocked_reason": "manuscript_story_surface_delta_missing",
+                "domain_owner": "write",
+            },
+            "owner_receipt": {
+                "status": "blocked",
+                "typed_blocker": "manuscript_story_surface_delta_missing",
+                "quality_authorized": False,
+                "submission_authorized": False,
+                "current_package_write_authorized": False,
+            },
+            "status": "blocked_with_domain_owner_refs",
+            "blocked_reason": "manuscript_story_surface_delta_missing",
+            "artifact_delta": {
+                "status": "blocked",
+                "meaningful_artifact_delta": False,
+                "story_surface_delta_present": False,
+                "changed_artifact_refs": [],
+                "manuscript_surface_hygiene": {
+                    "status": "blocked",
+                    "story_surface_delta_required": True,
+                    "story_surface_delta_present": False,
+                    "blockers": ["manuscript_story_surface_delta_missing"],
+                },
+            },
+        },
+    )
+
+    result = scan.scan_domain_routes(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=False,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["action_queue"] == []
+    assert result["action_queue"] == []
+    receipt = study["default_executor_execution_receipt_consumption"]
+    assert receipt["status"] == "consumed"
+    assert receipt["execution_status"] == "blocked"
+    assert receipt["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert study["owner_route"]["next_owner"] == "write"
+    assert study["owner_route"]["owner_reason"] == "quest_waiting_opl_runtime_owner_route"
+    assert study["owner_route"]["currentness_contract"]["missing_required_fields"] == []
+    assert study["blocked_reason"] == "manuscript_story_surface_delta_missing"
+    assert study["next_owner"] == "write"
+    assert study["domain_authority_handoff"]["status"] == "typed_blocker"
+    assert study["domain_authority_handoff"]["typed_blocker"]["reason"] == (
+        "manuscript_story_surface_delta_missing"
+    )
