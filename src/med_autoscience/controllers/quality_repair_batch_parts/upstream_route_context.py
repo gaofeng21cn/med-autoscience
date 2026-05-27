@@ -141,6 +141,57 @@ def route_action_for_controller_context(
     return "bundle_build"
 
 
+def unsupported_explicit_controller_route_record(
+    *,
+    schema_version: int,
+    study_id: str,
+    quest_id: str,
+    source_eval_id: str | None,
+    source_eval_artifact_path: str,
+    source_summary_id: str | None,
+    source_summary_artifact_path: str,
+    route_context: Mapping[str, Any],
+    upstream_work_unit_ids: frozenset[str],
+    non_empty_text,
+) -> dict[str, Any] | None:
+    if not has_explicit_controller_route_context(route_context):
+        return None
+    work_unit_id = route_context_work_unit_id(route_context, non_empty_text=non_empty_text)
+    if work_unit_id in upstream_work_unit_ids:
+        return None
+    return {
+        "schema_version": schema_version,
+        "source_eval_id": source_eval_id,
+        "source_eval_artifact_path": source_eval_artifact_path,
+        "source_summary_id": source_summary_id,
+        "source_summary_artifact_path": source_summary_artifact_path,
+        "status": "blocked",
+        "ok": False,
+        "quest_id": quest_id,
+        "study_id": study_id,
+        "blocked_reason": "controller_route_work_unit_unsupported",
+        "typed_blocker": "controller_route_work_unit_unsupported",
+        "next_owner": "write",
+        "route_work_unit_id": work_unit_id,
+        "repair_execution_evidence": {
+            "surface": "repair_execution_evidence",
+            "schema_version": schema_version,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "source_eval_id": source_eval_id,
+            "source_eval_artifact_path": source_eval_artifact_path,
+            "source_summary_id": source_summary_id,
+            "source_summary_artifact_path": source_summary_artifact_path,
+            "status": "blocked",
+            "blockers": ["controller_route_work_unit_unsupported"],
+            "progress_delta_candidate": False,
+            "repair_work_unit": {"unit_id": work_unit_id},
+            "quality_gate_relaxation_allowed": False,
+            "current_package_write_allowed": False,
+        },
+    }
+
+
 def merge_route_contexts(
     *contexts: Mapping[str, Any] | None,
     preferred_controller_work_unit_ids: frozenset[str],
@@ -175,4 +226,5 @@ __all__ = [
     "merge_route_contexts",
     "route_action_for_controller_context",
     "route_context_work_unit_id",
+    "unsupported_explicit_controller_route_record",
 ]

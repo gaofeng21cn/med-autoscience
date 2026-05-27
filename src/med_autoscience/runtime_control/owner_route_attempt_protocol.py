@@ -97,16 +97,27 @@ def owner_reason_contract(
 def currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     route = _mapping(owner_route)
     source_refs = _mapping(route.get("source_refs"))
+    embedded_basis = _mapping(source_refs.get("owner_route_currentness_basis"))
     return _compact_mapping(
         {
-            "source_eval_id": source_refs.get("source_eval_id") or route.get("source_eval_id"),
-            "work_unit_id": source_refs.get("work_unit_id") or route.get("work_unit_id"),
+            "source_eval_id": source_refs.get("source_eval_id")
+            or route.get("source_eval_id")
+            or embedded_basis.get("source_eval_id"),
+            "work_unit_id": source_refs.get("work_unit_id")
+            or route.get("work_unit_id")
+            or embedded_basis.get("work_unit_id"),
             "work_unit_fingerprint": route.get("work_unit_fingerprint")
-            or source_refs.get("work_unit_fingerprint"),
-            "truth_epoch": route.get("truth_epoch") or source_refs.get("study_truth_epoch"),
+            or source_refs.get("work_unit_fingerprint")
+            or embedded_basis.get("work_unit_fingerprint"),
+            "truth_epoch": route.get("truth_epoch")
+            or source_refs.get("study_truth_epoch")
+            or embedded_basis.get("truth_epoch"),
             "runtime_health_epoch": route.get("runtime_health_epoch")
-            or source_refs.get("runtime_health_epoch"),
-            "owner_reason": route.get("owner_reason") or route.get("failure_signature"),
+            or source_refs.get("runtime_health_epoch")
+            or embedded_basis.get("runtime_health_epoch"),
+            "owner_reason": route.get("owner_reason")
+            or route.get("failure_signature")
+            or embedded_basis.get("owner_reason"),
         }
     )
 

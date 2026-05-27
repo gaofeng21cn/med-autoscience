@@ -15,6 +15,16 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
+CURRENT_MANUSCRIPT_PUBLICATION_SURFACE_RECHECK_WORK_UNIT = (
+    "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck"
+)
+DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT = "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS = frozenset(
+    {
+        CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT,
+        CURRENT_MANUSCRIPT_PUBLICATION_SURFACE_RECHECK_WORK_UNIT,
+    }
+)
 STORY_SURFACE_BRIDGE_AUTHORITY = "domain_action_request_materializer_story_surface_bridge"
 
 
@@ -117,7 +127,7 @@ def _story_surface_delta_action(
         next_owner="write",
         owner_reason="manuscript_story_surface_delta_missing",
         allowed_actions=["run_quality_repair_batch"],
-        work_unit_id="dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+        work_unit_id=DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT,
     )
     return _with_owner_route(
         {
@@ -131,7 +141,7 @@ def _story_surface_delta_action(
                 "canonical manuscript story-surface delta or "
                 "typed blocker:manuscript_story_surface_delta_missing"
             ),
-            "next_work_unit": "dm002_current_publication_hardening_after_current_ai_reviewer_eval",
+            "next_work_unit": DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT,
             "materialization_decision": "story_surface_delta_or_typed_blocker_required",
             "reviewer_record_ref": str(record_ref_path.resolve()),
         },
@@ -190,12 +200,9 @@ def _current_ai_reviewer_materialization_work_unit(action: Mapping[str, Any]) ->
     owner_route = _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
     source_refs = _mapping(owner_route.get("source_refs"))
     return (
-        _text(action.get("controller_work_unit_id"))
-        == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
-        or _text(action.get("next_work_unit"))
-        == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
-        or _text(source_refs.get("work_unit_id"))
-        == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
+        _text(action.get("controller_work_unit_id")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
+        or _text(action.get("next_work_unit")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
+        or _text(source_refs.get("work_unit_id")) in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
     )
 
 
@@ -324,9 +331,9 @@ def _is_runtime_to_story_surface_bridge(
 ) -> bool:
     return (
         original_owner_reason in {"quest_waiting_opl_runtime_owner_route", "ai_reviewer_assessment_required"}
-        and original_work_unit_id == CURRENT_AI_REVIEWER_MATERIALIZATION_WORK_UNIT
+        and original_work_unit_id in AI_REVIEWER_STORY_SURFACE_BRIDGE_WORK_UNIT_IDS
         and owner_reason == "manuscript_story_surface_delta_missing"
-        and work_unit_id == "dm002_current_publication_hardening_after_current_ai_reviewer_eval"
+        and work_unit_id == DM002_CURRENT_AI_REVIEWER_STORY_SURFACE_WORK_UNIT
     )
 
 

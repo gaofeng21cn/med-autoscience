@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
@@ -38,9 +40,17 @@ def _owner_route(
     }
 
 
-def test_materialize_current_ai_reviewer_record_work_unit_bridges_runtime_route_to_story_surface_writer(
+@pytest.mark.parametrize(
+    "work_unit_id",
+    (
+        "materialize_current_ai_reviewer_record_through_mas_owner_surface",
+        "repair_current_manuscript_publication_surface_after_ai_reviewer_recheck",
+    ),
+)
+def test_ai_reviewer_story_surface_work_unit_bridges_runtime_route_to_story_surface_writer(
     monkeypatch,
     tmp_path: Path,
+    work_unit_id: str,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_action_request_materializer")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -87,7 +97,6 @@ def test_materialize_current_ai_reviewer_record_work_unit_bridges_runtime_route_
             "ai_reviewer_record": record_payload,
         },
     )
-    work_unit_id = "materialize_current_ai_reviewer_record_through_mas_owner_surface"
     work_unit_fingerprint = f"domain-transition::route_back_same_line::{work_unit_id}"
     route = _owner_route(
         study_id=study_id,

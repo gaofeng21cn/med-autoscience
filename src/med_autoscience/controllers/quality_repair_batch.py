@@ -14,6 +14,7 @@ from med_autoscience.controllers import quality_repair_paper_owner_surface
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import domain_status_projection
 from med_autoscience.controllers import current_publication_eval
+from med_autoscience.controllers.quality_repair_batch_parts import hard_methodology_handoff
 from med_autoscience.controllers.quality_repair_batch_parts import repair_execution_gate
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.quality_repair_batch_parts import upstream_route_context
@@ -39,9 +40,6 @@ _QUALITY_REPAIR_LANES = frozenset({"general_quality_repair", "quality_floor_bloc
 _ANALYSIS_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
 _ANALYSIS_REPAIR_ROUTE_TARGET = "analysis-campaign"
 _ANALYSIS_REPAIR_ACTION = StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
-_HARD_METHODOLOGY_NEXT_OWNER = "analysis_harmonization_owner"
-_HARD_METHODOLOGY_NEXT_WORK_UNIT = "unit_harmonized_external_validation_rerun"
-_HARD_METHODOLOGY_BLOCKED_REASON = "unit_harmonized_rerun_required"
 
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
@@ -538,43 +536,7 @@ def _compact_publication_work_unit(value: object) -> dict[str, str] | None:
 def _hard_methodology_target_from_publication_work_units(
     publication_work_unit_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    target = publication_work_unit_payload.get("hard_methodology_target")
-    return dict(target) if isinstance(target, Mapping) else None
-
-
-def _hard_methodology_owner_handoff_record(
-    *,
-    study_id: str,
-    quest_id: str,
-    source_eval_id: str | None,
-    source_eval_artifact_path: str,
-    source_summary_id: str | None,
-    source_summary_artifact_path: str,
-    authority_route_gate: Mapping[str, Any],
-    paper_owner_surface_prepare: Mapping[str, Any],
-    gate_clearing_result: Mapping[str, Any],
-    hard_methodology_target: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "source_eval_id": source_eval_id,
-        "source_eval_artifact_path": source_eval_artifact_path,
-        "source_summary_id": source_summary_id,
-        "source_summary_artifact_path": source_summary_artifact_path,
-        "status": "blocked",
-        "ok": False,
-        "quest_id": quest_id,
-        "study_id": study_id,
-        "blocked_reason": _HARD_METHODOLOGY_BLOCKED_REASON,
-        "next_owner": _HARD_METHODOLOGY_NEXT_OWNER,
-        "next_work_unit": _HARD_METHODOLOGY_NEXT_WORK_UNIT,
-        "hard_methodology_target": dict(hard_methodology_target),
-        "gate_clearing_batch": dict(gate_clearing_result),
-        "authority_route_gate": dict(authority_route_gate),
-        "paper_owner_surface_prepare": dict(paper_owner_surface_prepare),
-        "quality_gate_relaxation_allowed": False,
-        "current_package_write_allowed": False,
-    }
+    return hard_methodology_handoff.target_from_publication_work_units(publication_work_unit_payload)
 
 
 def _explicit_upstream_publication_work_unit(
@@ -790,18 +752,40 @@ def run_quality_repair_batch(
         resolved_route_context,
         controller_route_context,
     )
-    authority_route_gate = assert_authority_route_authorized(
-        _route_action_for_controller_context(resolved_route_context),
-        {"projection_only": True} if resolved_route_context is None else resolved_route_context,
-    )
     source_eval_artifact_path = current_publication_eval.publication_eval_source_ref(
         publication_eval_payload,
         fallback_ref=publication_eval_ref,
     )
     source_summary_artifact_path = str(_quality_summary_path(study_root=resolved_study_root).resolve())
     source_summary_id = _non_empty_text(summary_payload.get("summary_id"))
+    unsupported_route_record = upstream_route_context.unsupported_explicit_controller_route_record(
+        schema_version=SCHEMA_VERSION,
+        study_id=study_id,
+        quest_id=quest_id,
+        source_eval_id=current_eval_id,
+        source_eval_artifact_path=source_eval_artifact_path,
+        source_summary_id=source_summary_id,
+        source_summary_artifact_path=source_summary_artifact_path,
+        route_context=resolved_route_context or {},
+        upstream_work_unit_ids=UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+        non_empty_text=_non_empty_text,
+    )
+    if unsupported_route_record is not None:
+        record_path = stable_quality_repair_batch_path(study_root=resolved_study_root)
+        _write_json(record_path, unsupported_route_record)
+        return {
+            "ok": False,
+            "status": "blocked",
+            "record_path": str(record_path),
+            **unsupported_route_record,
+        }
+    authority_route_gate = assert_authority_route_authorized(
+        _route_action_for_controller_context(resolved_route_context),
+        {"projection_only": True} if resolved_route_context is None else resolved_route_context,
+    )
     if hard_methodology_target is not None:
-        record = _hard_methodology_owner_handoff_record(
+        record = hard_methodology_handoff.owner_handoff_record(
+            schema_version=SCHEMA_VERSION,
             study_id=study_id,
             quest_id=quest_id,
             source_eval_id=current_eval_id,
@@ -816,7 +800,7 @@ def run_quality_repair_batch(
             gate_clearing_result={
                 "ok": False,
                 "status": "not_run",
-                "reason": _HARD_METHODOLOGY_BLOCKED_REASON,
+                "reason": hard_methodology_handoff.BLOCKED_REASON,
             },
             hard_methodology_target=hard_methodology_target,
         )

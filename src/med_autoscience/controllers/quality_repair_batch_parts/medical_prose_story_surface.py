@@ -6,6 +6,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers.medical_prose_story_surface_parts.dm002_external_validation import (
     DM002_EXTERNAL_VALIDATION_STORY_SURFACE_WORK_UNIT_IDS,
+    DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID,
     DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID,
     materialize_dm002_external_validation_story_surface,
 )
@@ -619,6 +620,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "DM002_SAME_LINE_DISPLAY_TABLE_PACKAGE_REPAIR_WORK_UNIT_ID",
     "DM002_SAME_LINE_PUBLICATION_PAPER_REPAIR_WORK_UNIT_ID",
     "MANUSCRIPT_STORY_SURFACE_RELATIVE_PATHS",
     "MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID",

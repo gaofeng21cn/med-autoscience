@@ -52,6 +52,43 @@ def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() 
     assert "owner_route_currentness_basis" in route["source_refs"]
 
 
+def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id() -> None:
+    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+
+    route = owner_route_module.ensure_owner_route_v2(
+        {
+            "surface": "domain_route_owner_route",
+            "schema_version": 2,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "quest-dm002",
+            "truth_epoch": "truth-event-000017",
+            "route_epoch": "truth-event-000017",
+            "runtime_health_epoch": "runtime-health-event-006191",
+            "source_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
+            "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
+            "current_owner": "mas_controller",
+            "next_owner": "write",
+            "owner_reason": "quest_waiting_opl_runtime_owner_route",
+            "failure_signature": "quest_waiting_opl_runtime_owner_route",
+            "allowed_actions": ["run_quality_repair_batch"],
+            "idempotency_key": "owner-route::dm002::write::current-publication-hardening",
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    "work_unit_id": "dm002_current_publication_hardening_after_ai_reviewer_eval",
+                    "work_unit_fingerprint": "truth-snapshot::dm002-current-publication-hardening",
+                    "truth_epoch": "truth-event-000017",
+                    "runtime_health_epoch": "runtime-health-event-006191",
+                    "owner_reason": "quest_waiting_opl_runtime_owner_route",
+                }
+            },
+        }
+    )
+
+    basis = route["source_refs"]["owner_route_currentness_basis"]
+    assert basis["work_unit_id"] == "dm002_current_publication_hardening_after_ai_reviewer_eval"
+    assert route["currentness_contract"]["missing_required_fields"] == []
+
+
 def test_owner_route_protocol_marks_unregistered_reason_non_dispatchable() -> None:
     owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
 
