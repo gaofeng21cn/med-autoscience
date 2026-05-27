@@ -14,6 +14,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：OPL scaffold validation 新增 user-stage-log 合同后，MAS 已有 default-executor `paper_stage_log` closeout contract 仍未投影到 stage control plane，导致标准 agent pack admission fail closed。正确修复位置是 MAS stage pack machine contract，不是放宽 OPL validator 或手工编辑 generated contract JSON。
 - 影响：这是 MAS AI reviewer owner-route/currentness 与 production record completeness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。后续 DM003 仍必须通过 MAS owner/controller/runtime path 生成当前 AI reviewer record、publication eval、publication gate 和 package refresh。
 
+## 2026-05-27：当前 AI reviewer write route-back 优先于重复 gate replay
+
+- 决策：`owner-route-reconcile` 必须把 AI reviewer-owned current manuscript eval 中的 `route_back_same_line`、`route_target=write` 或 `next_work_unit.lane=write` 视为当前 write owner route。`current_manuscript_claim_evidence_alignment_repair` / `claim_evidence_alignment_repair` 和注册的 story-surface write work unit 都必须投到 `write` owner 的 `run_quality_repair_batch`，不得被 `publication_gate_blocker` 的 `run_gate_clearing_batch` 重复 replay 抢占。
+- 决策：`run_gate_clearing_batch` 的 required output surface 必须统一为 `artifacts/controller/gate_clearing_batch/latest.json`。domain transition、supervisor request packet、default-executor dispatch 和 prompt contract 不得把它写成 `artifacts/publication_eval/latest.json`；后者仍归 AI reviewer / publication eval authority。
+- 理由：DM003 的 gate-clearing batch 已执行，current package freshness 已 fresh，但 replay 后仍被 `medical_publication_surface_blocked`、`reviewer_first_concerns_unresolved`、`submission_hardening_incomplete` 和 `forbidden_manuscript_terminology` 拦住。当前 AI reviewer eval 同时明确要求 write owner 处理 `current_manuscript_claim_evidence_alignment_repair`。旧 owner-route 只接受 story-surface 白名单，漏掉 claim-evidence write repair，导致低优先级 gate replay 反复排队；另一路 domain transition action 又把 gate-clearing required output 错写成 publication eval latest。
+- 影响：这是 MAS owner-route / materializer contract 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。论文后续仍要由 MAS write owner 产出 claim-evidence / manuscript delta、AI reviewer recheck，再由 publication gate 判定。
+
 ## 2026-05-27：OPL current-control handoff 必须按 study 合并并独立判鲜
 
 - 决策：`artifacts/supervision/opl_current_control_state/latest.json` 是 workspace-level durable handoff。`owner-route-reconcile` 持久化单个 study 扫描时，必须只替换本次扫描的 study 条目和 action queue，保留未扫描 study 的既有 refs-only handoff；非持久化扫描继续返回本次请求的 study 投影，不扩成全 workspace 读面。
