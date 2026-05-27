@@ -20,6 +20,11 @@ from med_autoscience.stage_quality_contract_parts.journal_currentness import (
     build_journal_policy_currentness_pack,
     build_literature_search_source_pack,
 )
+from med_autoscience.stage_quality_contract_parts.life_science_source_discovery import (
+    LIFE_SCIENCE_SOURCE_DISCOVERY_PACK_ID,
+    build_life_science_clean_room_absorption,
+    build_life_science_source_discovery_pack,
+)
 from med_autoscience.stage_quality_contract_parts.maturity import (
     PACK_MATURITY_STATUS,
     STRONG_PROMOTION_EVIDENCE_KINDS,
@@ -50,6 +55,7 @@ REQUIRED_STAGE_QUALITY_PACK_IDS: tuple[str, ...] = (
     "figure_evidence_contract_pack",
     "paper_reader_grounding_pack",
     "paper_presentation_pack",
+    LIFE_SCIENCE_SOURCE_DISCOVERY_PACK_ID,
     "route_memory_pack",
     "stop_loss_pack",
     "artifact_freshness_pack",
@@ -123,6 +129,7 @@ _PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
     "figure_evidence_contract_pack": ("analysis-campaign", "write", "review", "finalize"),
     "paper_reader_grounding_pack": ("scout", "review", "finalize", "decision"),
     "paper_presentation_pack": ("finalize", "delivery_sync"),
+    "life_science_source_discovery_pack": ("scout", "baseline", "analysis-campaign", "review"),
     "route_memory_pack": ("scout", "idea", "analysis-campaign", "review", "decision"),
     "stop_loss_pack": ("idea", "baseline", "experiment", "analysis-campaign", "review", "decision"),
     "artifact_freshness_pack": ("write", "finalize", "delivery_sync"),
@@ -163,6 +170,12 @@ _PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
     "figure_evidence_contract_pack": ("all_figure_supported_manuscripts",),
     "paper_reader_grounding_pack": ("all_source_grounded_paper_lines",),
     "paper_presentation_pack": ("all_human_facing_paper_deliverables",),
+    "life_science_source_discovery_pack": (
+        "observational_or_cohort_or_registry",
+        "diagnostic_or_prognostic_model",
+        "ai_ml_medical_study",
+        "mechanistic_sidecar_extension",
+    ),
     "route_memory_pack": DEFAULT_STUDY_ARCHETYPES,
     "stop_loss_pack": DEFAULT_STUDY_ARCHETYPES,
     "artifact_freshness_pack": ("all_submission_or_delivery_candidates",),
@@ -233,6 +246,11 @@ def build_stage_quality_pack_projection() -> dict[str, Any]:
         ),
         "data_access_levels": _data_access_level_ids(),
         "runtime_permission_authority": False,
+        "source_discovery_pack_ref": (
+            "/product_entry_manifest/stage_quality_pack_contract/packs/life_science_source_discovery_pack"
+        ),
+        "external_source_plugin_dependency": False,
+        "source_discovery_authority": False,
     }
 
 
@@ -315,6 +333,9 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
         pack["journal_policy_currentness_pack"] = build_journal_policy_currentness_pack()
     if pack_id == "citation_integrity_pack":
         pack["citation_verification_pack"] = build_citation_verification_pack()
+    if pack_id == LIFE_SCIENCE_SOURCE_DISCOVERY_PACK_ID:
+        pack["clean_room_absorption"] = build_life_science_clean_room_absorption()
+        pack["life_science_source_discovery_pack"] = build_life_science_source_discovery_pack()
     return pack
 
 

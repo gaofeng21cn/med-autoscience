@@ -30,3 +30,9 @@ MAS 继续持有 source truth、source readiness verdict、medical grounding、s
 每次 provider 查询和物化都必须保留可追溯 ledger，而不是只保存整理后的候选列表。最低可审计信息包括 raw provider response ledger、credential scope、rate-limit state、cache key/status、query fingerprint、citation ledger refs、screening reason、currentness/freshness proof、dedupe/crosswalk decision 和 typed blocker。缺这些 refs 时，stage knowledge packet、workspace canonical literature 或 study reference context 只能 fail closed 或 route to source repair。
 
 `PubMed`、`CrossRef` 和 `PMC` 继续承担医学 grounding、DOI/PMID/PMCID crosswalk、full-text / metadata reconciliation 和 provenance 校准。Semantic Scholar 可以扩展 discovery、citation-neighborhood 和 metadata enrichment，但不能替代 PubMed/CrossRef/PMC 的医学证据 grounding，也不能把 provider ranking、citation count、abstract match 或 cache 命中写成医学结论。
+
+## Life Science Source Discovery Pack
+
+OpenAI Life Science Research 插件的可学习内容已按 clean-room pattern 吸收到 MAS `life_science_source_discovery_pack` 和 refs-only source adapter output。它提供实体规范化、多 evidence lane 路由、公共数据库 / 文献 / 数据集 discovery、cross-source conflict 和 evidence gap synthesis 的 source helper 纪律；不成为 MAS runtime provider、默认 skill source、source readiness authority、publication authority 或质量 verdict owner。
+
+进入 MAS 的输出只能是 source refs、query fingerprint、currentness proof、limitation/caveat refs、typed blocker、source repair route 或 reviewer input refs。完整 intake 见 [Life Science Research Learning Intake](../references/mainline/life_science_research_learning_intake.md)。

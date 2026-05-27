@@ -19,6 +19,7 @@ _PACK_TITLES = {
     "figure_evidence_contract_pack": "Figure evidence contract pack",
     "paper_reader_grounding_pack": "Paper reader grounding pack",
     "paper_presentation_pack": "Paper presentation pack",
+    "life_science_source_discovery_pack": "Life science source discovery pack",
     "route_memory_pack": "Route memory pack",
     "stop_loss_pack": "Stop-loss pack",
     "artifact_freshness_pack": "Artifact freshness pack",
@@ -83,6 +84,11 @@ _PACK_OWNER_REFS = {
     "paper_presentation_pack": [
         _ref("surface_kind", "stage_deliverable_index", "presentation_source_index"),
         _ref("surface_kind", "paper_presentation_projection", "human_facing_projection_owner"),
+    ],
+    "life_science_source_discovery_pack": [
+        _ref("surface_kind", "literature_intelligence_os", "literature_and_public_study_discovery"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "evidence_ref_owner"),
+        _ref("surface_kind", "source_readiness_verdict", "source_readiness_stage_gate_owner"),
     ],
     "route_memory_pack": [
         _ref("surface_kind", "stage_knowledge_packet", "route_memory_retrieval"),
@@ -160,6 +166,11 @@ _PACK_REQUIRED_REFS = {
     "paper_presentation_pack": [
         _ref("surface_kind", "paper_presentation_projection", "evidence_spine_projection"),
         _ref("surface_kind", "stage_deliverable_index", "presentation_source_refs"),
+    ],
+    "life_science_source_discovery_pack": [
+        _ref("surface_kind", "stage_knowledge_packet", "entity_normalization_and_query_scope_refs"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "source_discovery_evidence_refs"),
+        _ref("surface_kind", "typed_blocker", "missing_or_stale_source_discovery_blocker"),
     ],
     "route_memory_pack": [
         _ref("surface_kind", "stage_knowledge_packet", "required_memory_refs"),

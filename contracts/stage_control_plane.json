@@ -190,6 +190,7 @@
           "medical_claim_evidence_pack",
           "manuscript_argument_pack",
           "paper_reader_grounding_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "human_gate_pack"
@@ -397,6 +398,7 @@
           "medical_claim_evidence_pack",
           "manuscript_argument_pack",
           "paper_reader_grounding_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "human_gate_pack"
@@ -411,6 +413,7 @@
         "medical_claim_evidence_pack",
         "manuscript_argument_pack",
         "paper_reader_grounding_pack",
+        "life_science_source_discovery_pack",
         "route_memory_pack",
         "stop_loss_pack",
         "human_gate_pack"
@@ -602,6 +605,7 @@
           "figure_evidence_contract_pack",
           "paper_reader_grounding_pack",
           "paper_presentation_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "artifact_freshness_pack",
@@ -747,6 +751,7 @@
         "quality_pack_refs": [
           "ai_native_expert_judgment_pack",
           "statistical_analysis_pack",
+          "life_science_source_discovery_pack",
           "stop_loss_pack",
           "human_gate_pack"
         ],
@@ -945,6 +950,7 @@
         "pack_refs": [
           "ai_native_expert_judgment_pack",
           "statistical_analysis_pack",
+          "life_science_source_discovery_pack",
           "stop_loss_pack",
           "human_gate_pack"
         ],
@@ -956,6 +962,7 @@
       "quality_pack_refs": [
         "ai_native_expert_judgment_pack",
         "statistical_analysis_pack",
+        "life_science_source_discovery_pack",
         "stop_loss_pack",
         "human_gate_pack"
       ],
@@ -1144,6 +1151,7 @@
           "figure_evidence_contract_pack",
           "paper_reader_grounding_pack",
           "paper_presentation_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "artifact_freshness_pack",
@@ -1297,6 +1305,7 @@
           "statistical_reporting_pack",
           "display_to_claim_pack",
           "figure_evidence_contract_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "human_gate_pack"
@@ -1503,6 +1512,7 @@
           "statistical_reporting_pack",
           "display_to_claim_pack",
           "figure_evidence_contract_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "human_gate_pack"
@@ -1518,6 +1528,7 @@
         "statistical_reporting_pack",
         "display_to_claim_pack",
         "figure_evidence_contract_pack",
+        "life_science_source_discovery_pack",
         "route_memory_pack",
         "stop_loss_pack",
         "human_gate_pack"
@@ -1705,6 +1716,7 @@
           "figure_evidence_contract_pack",
           "paper_reader_grounding_pack",
           "paper_presentation_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "artifact_freshness_pack",
@@ -2265,6 +2277,7 @@
           "figure_evidence_contract_pack",
           "paper_reader_grounding_pack",
           "paper_presentation_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "artifact_freshness_pack",
@@ -2424,6 +2437,7 @@
           "citation_integrity_pack",
           "figure_evidence_contract_pack",
           "paper_reader_grounding_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "human_gate_pack"
@@ -2637,6 +2651,7 @@
           "citation_integrity_pack",
           "figure_evidence_contract_pack",
           "paper_reader_grounding_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "human_gate_pack"
@@ -2658,6 +2673,7 @@
         "citation_integrity_pack",
         "figure_evidence_contract_pack",
         "paper_reader_grounding_pack",
+        "life_science_source_discovery_pack",
         "route_memory_pack",
         "stop_loss_pack",
         "human_gate_pack"
@@ -2847,6 +2863,7 @@
           "figure_evidence_contract_pack",
           "paper_reader_grounding_pack",
           "paper_presentation_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "artifact_freshness_pack",
@@ -3433,6 +3450,7 @@
           "figure_evidence_contract_pack",
           "paper_reader_grounding_pack",
           "paper_presentation_pack",
+          "life_science_source_discovery_pack",
           "route_memory_pack",
           "stop_loss_pack",
           "artifact_freshness_pack",

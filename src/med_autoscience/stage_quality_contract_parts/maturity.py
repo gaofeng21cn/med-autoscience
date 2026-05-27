@@ -22,6 +22,7 @@ PACK_MATURITY_STATUS: dict[str, str] = {
     "figure_evidence_contract_pack": "stable_contract",
     "paper_reader_grounding_pack": "stable_contract",
     "paper_presentation_pack": "beta_contract",
+    "life_science_source_discovery_pack": "beta_contract",
     "route_memory_pack": "stable_contract",
     "stop_loss_pack": "stable_contract",
     "artifact_freshness_pack": "stable_contract",
@@ -37,6 +38,7 @@ UPSTREAM_NATURE_STATUS_SIGNAL: dict[str, str] = {
     "figure_evidence_contract_pack": "draft_beta_stable_skill_status_pattern_learned",
     "paper_reader_grounding_pack": "draft_beta_stable_skill_status_pattern_learned",
     "paper_presentation_pack": "draft_beta_stable_skill_status_pattern_learned",
+    "life_science_source_discovery_pack": "openai_plugin_skill_pack_pattern_learned",
 }
 
 
@@ -260,6 +262,16 @@ PACK_PROMOTION_EVIDENCE: dict[str, tuple[dict[str, str], ...]] = {
             "test",
             "tests/test_nature_skills_learning_contract.py",
             "presentation_source_asset_and_context_refs",
+            strength="strong",
+        ),
+    ),
+    "life_science_source_discovery_pack": (
+        _evidence(
+            "life_science_source_discovery_contract_tests",
+            "focused_tests",
+            "test",
+            "tests/test_life_science_source_discovery_pack.py",
+            "openai_life_science_research_patterns_as_mas_source_refs",
             strength="strong",
         ),
     ),

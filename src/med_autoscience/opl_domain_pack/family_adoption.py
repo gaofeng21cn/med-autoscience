@@ -183,6 +183,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "agent_knowledge_sources": list(AGENT_KNOWLEDGE_REFS),
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "quality_pack_contract_source": STAGE_QUALITY_PACK_CONTRACT_REF,
+            "life_science_source_discovery_pack_source": STAGE_QUALITY_PACK_CONTRACT_REF,
             "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
             "stage_deliverable_index_contract_source": STAGE_DELIVERABLE_INDEX_CONTRACT_REF,
             "packet_contract_surfaces": packet_surfaces,

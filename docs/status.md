@@ -50,6 +50,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - owner-route default-executor materialize / dispatch 的 action allowlist、forbidden / allowed write surfaces、source ref fields、request owner、request output surface 与 request packet ref 已收敛到 `default_executor_action_policy.py` 单一 policy module；`domain_action_request_materializer.py` 与 `domain_owner_action_dispatch.py` 只消费该 policy，角色是 MAS authority-function request/dispatch target，不是 repo-local generic wrapper。它不关闭 provider long-soak 或 paper evidence gates，但 active wrapper tail 已不再记为结构污染。
 - [MAS Stage / Route / Handoff 标准](./runtime/stage_route_handoff_standard.md) 是当前 route/stage 读法：stage 为 OPL provider-backed attempt admission 单位，route 为 MAS domain transition / owner-chain recommendation，handoff 为 body-free refs-only 交接包。指定杂志后的格式整理应进入 `finalize_and_publication_handoff` stage 下的 `journal-resolution` / `finalize` route transition，由 OPL stage graph 调度 journal requirement、format delta、artifact authority、independent review 和 submission handoff 子节点。
 - submission-target 输入当前只接受 canonical `exporter_profile`；`publication_profile` 继续只作为已解析 package/export profile 输出字段和 submission manifest 领域字段存在。
+- OpenAI Life Science Research 插件的可学习内容已按 clean-room 方式落到 `life_science_source_discovery_pack`、MAS refs-only source adapter output、product-entry descriptor locator 和 focused tests。MAS 仍保持单一 `mas` domain app skill；外部插件不是 runtime provider、默认 skill source、source readiness authority、quality verdict authority、publication authority 或 artifact authority。
 
 ## 当前功能/结构状态
 

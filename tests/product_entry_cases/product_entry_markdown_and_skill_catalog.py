@@ -43,6 +43,7 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     assert payload["manifest_command"].endswith(
         "product-entry-manifest --profile " + str(profile_ref.resolve()) + " --format json"
     )
+    assert [skill["skill_id"] for skill in payload["skills"]] == ["mas"]
     assert payload["skills"][0]["domain_projection"]["skill_entry"] == "mas"
     assert payload["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
     assert payload["skills"][0]["descriptor_owner"] == "one-person-lab"
@@ -52,6 +53,8 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     assert payload["skills"][0]["descriptor_role"] == (
         "opl_generated_skill_descriptor_targeting_mas_domain_entry"
     )
+    stage_skill_projection = payload["skills"][0]["domain_projection"]["stage_skill_surface_projection"]
+    assert "life_science_source_discovery_pack" in stage_skill_projection["quality_pack_refs"]
     runtime_manager_registration = payload["skills"][0]["domain_projection"]["opl_runtime_manager_registration"]
     assert payload["skills"][0]["domain_projection"]["opl_stage_runtime_registration"] == runtime_manager_registration
     assert runtime_manager_registration["surface_kind"] == "opl_runtime_manager_domain_registration"

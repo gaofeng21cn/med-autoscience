@@ -22,6 +22,14 @@ SOURCE_ADAPTER_REJECTION_REASONS = [
     "adapter_error",
     "other",
 ]
+LIFE_SCIENCE_SOURCE_ADAPTER_REQUIRED_METADATA = (
+    "source_family_id",
+    "provider_id",
+    "accessed_at",
+    "query_fingerprint",
+    "checked_at",
+    "expires_or_stale_after",
+)
 
 _PASSPORT_SECTION_ROLES = {
     "source_readiness_refs": "source_readiness_ref",
@@ -120,6 +128,38 @@ def build_source_adapter_output(
             "write_mas_truth_on_adapter_failure": False,
             "failure_mode": "raise_loud_error_before_projection",
         },
+    }
+    validate_source_adapter_output(output)
+    return output
+
+
+def build_life_science_source_adapter_output(
+    *,
+    adapter_name: str,
+    adapter_version: str,
+    records: Sequence[Mapping[str, Any]],
+    rejected: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    output = build_source_adapter_output(
+        adapter_name=adapter_name,
+        adapter_version=adapter_version,
+        records=[_life_science_record(record) for record in records],
+        rejected=rejected,
+    )
+    output["source_pattern"] = "openai_life_science_research_clean_room"
+    output["source_pattern_boundary"] = {
+        "source_repository": "https://github.com/openai/plugins",
+        "source_path": "plugins/life-science-research",
+        "copy_external_plugin_code": False,
+        "default_skill_source": False,
+        "runtime_dependency": False,
+    }
+    output["authority_boundary"] = {
+        "can_write_mas_truth": False,
+        "can_authorize_source_readiness_verdict": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_submission_readiness": False,
     }
     validate_source_adapter_output(output)
     return output
@@ -248,6 +288,18 @@ def _record_projection(record: Mapping[str, Any]) -> dict[str, Any]:
     return projection
 
 
+def _life_science_record(record: Mapping[str, Any]) -> dict[str, Any]:
+    if not isinstance(record, Mapping):
+        raise ValueError("life science source adapter record must be a mapping")
+    metadata = record.get("metadata")
+    if not isinstance(metadata, Mapping):
+        raise ValueError("life science source adapter record metadata must be a mapping")
+    normalized_metadata = dict(metadata)
+    for field in LIFE_SCIENCE_SOURCE_ADAPTER_REQUIRED_METADATA:
+        _required_text(f"metadata requires {field}", normalized_metadata.get(field))
+    return {**dict(record), "metadata": normalized_metadata}
+
+
 def _rejection_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(entry, Mapping):
         raise ValueError("source adapter rejection entry must be a mapping")
@@ -350,6 +402,7 @@ __all__ = [
     "SOURCE_PROJECT",
     "TRUTH_OWNER",
     "build_medical_material_passport",
+    "build_life_science_source_adapter_output",
     "build_source_adapter_output",
     "build_source_adapter_rejection_log",
     "validate_medical_material_passport",

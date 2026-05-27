@@ -51,6 +51,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["source_refs"]["stage_skill_surface_projection_source"] == (
         "med_autoscience.stage_skill_surface_projection.build_stage_skill_surface_projection"
     )
+    assert descriptor["source_refs"]["life_science_source_discovery_pack_source"] == (
+        "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract"
+    )
 
     snapshot = descriptor["route_contract_snapshot"]
     assert snapshot["source"] == "agent/stages/stage_route_contract.yaml"
@@ -126,6 +129,11 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
             "reviewer_verdict_only",
         ],
         "runtime_permission_authority": False,
+        "source_discovery_pack_ref": (
+            "/product_entry_manifest/stage_quality_pack_contract/packs/life_science_source_discovery_pack"
+        ),
+        "external_source_plugin_dependency": False,
+        "source_discovery_authority": False,
     }
     stage_skill_projection = stage_skill_surface_projection.build_stage_skill_surface_projection()
     assert descriptor["stage_skill_surface_projection"] == stage_skill_projection
