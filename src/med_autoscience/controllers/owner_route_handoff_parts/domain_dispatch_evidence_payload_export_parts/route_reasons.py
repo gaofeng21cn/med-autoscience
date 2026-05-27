@@ -8,6 +8,7 @@ from med_autoscience.controllers.owner_route_handoff_parts.domain_dispatch_evide
     PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION,
     PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION,
     PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION,
+    PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE,
     PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER,
     PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK,
     RUNTIME_RECOVERY_RETRY_BUDGET_EXHAUSTED_REASON,
@@ -38,6 +39,11 @@ def payload_reason_for_superseded_dispatch(
         and runtime_recovery_retry_budget_terminal_blocker_observed(study_scan)
     ):
         return PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER
+    if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and publication_gate_route_supersession_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_REVIEWER_DISPATCH_SUPERSEDED_BY_PUBLICATION_GATE_ROUTE
     if (
         action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
         and consumed_ai_reviewer_routeback_observed(study_scan)
