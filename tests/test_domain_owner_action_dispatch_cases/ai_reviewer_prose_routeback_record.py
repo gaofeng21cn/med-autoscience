@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import hashlib
 import json
 from pathlib import Path
 
@@ -37,7 +38,8 @@ def test_execute_dispatch_builds_ai_reviewer_routeback_record_from_current_prose
         Path(ref).parent.mkdir(parents=True, exist_ok=True)
         if not Path(ref).exists():
             Path(ref).write_text("{}\n", encoding="utf-8")
-    (study_root / "paper" / "draft.md").write_text("Current manuscript snapshot.\n", encoding="utf-8")
+    manuscript_text = "Current manuscript snapshot.\n"
+    (study_root / "paper" / "draft.md").write_text(manuscript_text, encoding="utf-8")
     _write_json(Path(refs["claim_evidence_map"]), claim_evidence_map_payload(evidence_ledger_ref=refs["evidence_ledger"]))
     _write_json(Path(refs["evidence_ledger"]), evidence_ledger_payload(evidence_ledger_ref=refs["evidence_ledger"]))
     _write_json(Path(refs["review_ledger"]), review_ledger_payload(revision_log_path=study_root / "paper" / "revision_log.json"))
@@ -81,7 +83,7 @@ def test_execute_dispatch_builds_ai_reviewer_routeback_record_from_current_prose
         },
     )
     request_digest = "sha256:" + "a" * 64
-    manuscript_digest = "sha256:" + "c" * 64
+    manuscript_digest = "sha256:" + hashlib.sha256(manuscript_text.encode("utf-8")).hexdigest()
     _write_json(
         study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json",
         {
@@ -229,4 +231,3 @@ def test_execute_dispatch_builds_ai_reviewer_routeback_record_from_current_prose
     assert latest["future_facing_limitations_plan"][0]["current_manuscript_wording_must_be_restrained"] is True
     assert latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]["status"] == "current"
     assert latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]["route_target"] == "write"
-

@@ -342,6 +342,8 @@ def _publication_quality_readiness(
         status = "blocked"
     elif record_status == "ready" and base_missing:
         status = "blocked"
+    if status == "blocked" and not missing:
+        missing.append("claim_evidence_alignment_digest")
     return {
         "surface_kind": "publication_quality_authority_kernel_v1",
         "status": status,
