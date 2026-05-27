@@ -1,0 +1,247 @@
+{
+  "surface_kind": "mas_multiline_guarded_apply_receipt_scaleout_evidence",
+  "schema_version": 1,
+  "version": "mas-multiline-guarded-apply-receipt-scaleout-evidence-20260527.v1",
+  "domain_id": "med-autoscience",
+  "owner": "MedAutoScience",
+  "updated_at": "2026-05-27",
+  "snapshot_status": "refs_only_multiline_owner_chain_snapshot_observed",
+  "source_live_proof": {
+    "command": "scripts/run-python-clean.sh -m med_autoscience.cli real-paper-autonomy-guarded-apply-proof --profile /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.local.toml",
+    "compact_projection_sha256": "d815823fba57e24868713c7dac5e5b204c560f23508a77931382d783738c157d",
+    "body_included": false,
+    "repo_tracks_live_proof_body": false
+  },
+  "selected_acceptance_surface": {
+    "ref": "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence",
+    "role": "selected_existing_mas_evidence_surface",
+    "body_included": false
+  },
+  "live_summary": {
+    "target_study_count": 3,
+    "guarded_receipt_count": 3,
+    "typed_blocker_count": 1,
+    "mas_owner_apply_receipt_count": 2,
+    "artifact_delta_or_gate_progress_count": 0,
+    "memory_final_proof_status": "final_ref_chain_proven",
+    "forbidden_write_guard_result": "fail_closed_no_forbidden_writes",
+    "writes_performed": false,
+    "real_workspace_mutation_allowed": false,
+    "guarded_apply_performed": false,
+    "mas_owner_receipt_observed": true
+  },
+  "paper_line_owner_payload_summary": {
+    "paper_line_count": 3,
+    "success_payload_count": 2,
+    "typed_blocker_payload_count": 1,
+    "domain_ready_claim_count": 0,
+    "production_ready_claim_count": 0,
+    "artifact_mutation_authorized_count": 0
+  },
+  "paper_line_owner_chain_results": [
+    {
+      "surface_kind": "mas_paper_line_owner_chain_result",
+      "paper_line_id": "002-dm-china-us-mortality-attribution",
+      "owner": "MedAutoScience",
+      "result_kind": "owner_receipt",
+      "required_return_shape_satisfied": true,
+      "owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "stable_typed_blocker_refs": [],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "surface_kind": "mas_paper_line_owner_chain_result",
+      "paper_line_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+      "owner": "MedAutoScience",
+      "result_kind": "owner_receipt",
+      "required_return_shape_satisfied": true,
+      "owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "stable_typed_blocker_refs": [],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    },
+    {
+      "surface_kind": "mas_paper_line_owner_chain_result",
+      "paper_line_id": "Obesity",
+      "owner": "MedAutoScience",
+      "result_kind": "stable_typed_blocker",
+      "required_return_shape_satisfied": true,
+      "owner_receipt_refs": [],
+      "stable_typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:obesity"
+      ],
+      "progress_delta_refs": [],
+      "ai_reviewer_gate_receipt_refs": [],
+      "artifact_movement_refs": [],
+      "human_gate_or_resume_refs": [],
+      "no_forbidden_write_proof_ref": "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+      "body_included": false,
+      "readiness_claims": {
+        "claims_paper_closure": false,
+        "claims_publication_ready": false,
+        "claims_artifact_mutation_authorized": false,
+        "claims_current_package_updated": false
+      }
+    }
+  ],
+  "domain_dispatch_payload_summaries": [
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_success_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "002-dm-china-us-mortality-attribution",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_owner_receipt_observed",
+      "domain_owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "typed_blocker_refs": [],
+      "owner_chain_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/repair_execution_receipts/latest.json",
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+        "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence"
+      ],
+      "closeout_semantics": "domain_owner_receipt_refs_only_owner_chain_evidence_not_domain_ready",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_success_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_owner_receipt_observed",
+      "domain_owner_receipt_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json"
+      ],
+      "typed_blocker_refs": [],
+      "owner_chain_refs": [
+        "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/003-dpcc-primary-care-phenotype-treatment-gap/artifacts/controller/gate_replay_requests/latest.json",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+        "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence"
+      ],
+      "closeout_semantics": "domain_owner_receipt_refs_only_owner_chain_evidence_not_domain_ready",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    },
+    {
+      "surface_kind": "mas_domain_dispatch_evidence_record_payload",
+      "mode": "refs_only_domain_owned_typed_blocker_payload",
+      "task_kind": "paper_autonomy/guarded-apply",
+      "study_id": "Obesity",
+      "stage_id": "finalize_and_publication_handoff",
+      "reason": "real_paper_line_stable_typed_blocker_observed",
+      "domain_owner_receipt_refs": [],
+      "typed_blocker_refs": [
+        "mas_owner_apply_receipt_missing:obesity"
+      ],
+      "owner_chain_refs": [
+        "mas_owner_apply_receipt_missing:obesity",
+        "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
+        "contracts/production_acceptance/mas-production-acceptance.json#/paper_line_guarded_apply_evidence"
+      ],
+      "closeout_semantics": "typed_blocker_until_real_owner_receipt_or_live_paper_line_closeout",
+      "body_included": false,
+      "domain_ready_claimed": false,
+      "publication_ready_claimed": false,
+      "artifact_mutation_authorized": false,
+      "current_package_mutation_authorized": false
+    }
+  ],
+  "authority_boundary": {
+    "projection_owner": "med-autoscience",
+    "provider_attempt_owner": "one-person-lab",
+    "domain_truth_owner": "med-autoscience",
+    "quality_gate_owner": "med-autoscience",
+    "artifact_authority_owner": "med-autoscience",
+    "workspace_mutation_owner": "med-autoscience",
+    "owner_chain_authority": "MedAutoScience",
+    "provider_attempt_is_truth": false,
+    "provider_completion_is_publication_quality": false,
+    "provider_completion_can_close_canary": false,
+    "opl_records_refs_only": true,
+    "opl_can_write_mas_truth": false,
+    "opl_can_write_artifact_authority": false,
+    "opl_can_write_artifact_body": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_write_current_package": false,
+    "opl_can_authorize_quality_or_publication": false,
+    "mutation_requires_mas_owner_gate": true,
+    "typed_blocker_is_domain_ready": false
+  },
+  "claim_boundary": {
+    "workspace_receipt_scaleout_claimed": false,
+    "domain_ready_claimed": false,
+    "production_ready_claimed": false,
+    "publication_ready_claimed": false,
+    "medical_ready_claimed": false,
+    "paper_closure_claimed": false,
+    "artifact_mutation_authorized": false,
+    "current_package_update_claimed": false,
+    "long_soak_claimed": false,
+    "writes_artifact_blob": false,
+    "writes_memory_body": false,
+    "writes_publication_eval_body": false,
+    "writes_controller_decision_body": false
+  },
+  "forbidden_payload_fields": [
+    "study_truth_body",
+    "paper_body",
+    "publication_verdict_body",
+    "artifact_body",
+    "memory_body",
+    "current_package_body"
+  ],
+  "verification_refs": [
+    {
+      "ref": "tests/test_mas_multiline_guarded_apply_receipt_scaleout_evidence.py",
+      "role": "focused_contract_test",
+      "body_included": false
+    },
+    {
+      "ref": "tests/test_real_paper_autonomy_soak_inventory_cases/test_canary_body_free_packets.py",
+      "role": "canary_body_free_packet_shape_test",
+      "body_included": false
+    }
+  ]
+}

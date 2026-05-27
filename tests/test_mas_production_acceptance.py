@@ -144,6 +144,20 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
     assert evidence["selected_evidence_surface"] == (
         "product_entry_manifest.provider_guarded_soak_read_model.paper_line_guarded_apply_evidence"
     )
+    assert evidence["latest_live_scaleout_snapshot_ref"] == {
+        "ref": "contracts/production_acceptance/mas-multiline-guarded-apply-receipt-scaleout-evidence-20260527.json",
+        "role": "refs_only_multiline_owner_chain_snapshot",
+        "body_included": False,
+    }
+    assert evidence["latest_live_scaleout_snapshot_summary"] == {
+        "paper_line_count": 3,
+        "success_payload_count": 2,
+        "typed_blocker_payload_count": 1,
+        "domain_ready_claimed": False,
+        "production_ready_claimed": False,
+        "publication_ready_claimed": False,
+        "artifact_mutation_authorized": False,
+    }
     assert evidence["body_included"] is False
     assert evidence["domain_verdict_claimed"] is False
     assert evidence["provider_completion_is_paper_closure"] is False
