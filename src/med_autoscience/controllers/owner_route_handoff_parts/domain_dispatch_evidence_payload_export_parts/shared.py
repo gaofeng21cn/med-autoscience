@@ -13,6 +13,9 @@ PAYLOAD_REASON_WRITER_DISPATCH_SUPERSEDED_BY_CONSUMED_AI_REVIEWER_ROUTEBACK = (
 PAYLOAD_REASON_AI_REVIEWER_CURRENTNESS_SUPERSESSION = (
     "stale_run_quality_repair_dispatch_superseded_by_ai_reviewer_currentness_route"
 )
+PAYLOAD_REASON_PUBLICATION_GATE_ROUTE_SUPERSESSION = (
+    "stale_run_quality_repair_dispatch_superseded_by_publication_gate_route"
+)
 PAYLOAD_REASON_STAGE_ATTEMPT_CLOSEOUT_TYPED_BLOCKER = (
     "stage_attempt_closeout_typed_blocker_observed_for_default_executor_dispatch"
 )

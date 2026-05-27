@@ -105,6 +105,7 @@ def build_dispatch_evidence_payload_export(
     domain_transition = mapping(study_scan.get("domain_transition"))
     completion = mapping(domain_transition.get("completion_receipt_consumption"))
     owner_route = mapping(study_scan.get("owner_route"))
+    domain_authority_handoff = mapping(study_scan.get("domain_authority_handoff"))
     typed_blocker_refs: Sequence[object] = ()
     domain_owner_receipt_refs: Sequence[object] = ()
     no_regression_evidence_refs: Sequence[object] = ()
@@ -131,6 +132,7 @@ def build_dispatch_evidence_payload_export(
             completion=completion,
             owner_route=owner_route,
             study_scan=study_scan,
+            domain_authority_handoff=domain_authority_handoff,
         )
     stage_attempt_source_fingerprint = text(target_identity.get("source_fingerprint"))
     domain_source_fingerprint = text(target_identity.get("domain_source_fingerprint"))
@@ -199,6 +201,7 @@ def _evidence_refs(
     completion: Mapping[str, Any],
     owner_route: Mapping[str, Any],
     study_scan: Mapping[str, Any],
+    domain_authority_handoff: Mapping[str, Any],
 ) -> list[str]:
     refs: list[str] = []
     refs.extend(
@@ -223,6 +226,26 @@ def _evidence_refs(
             ]
         )
     )
+    typed_blocker = mapping(domain_authority_handoff.get("typed_blocker"))
+    if text(domain_authority_handoff.get("status")) == "typed_blocker":
+        attempt_protocol = mapping(owner_route.get("owner_route_attempt_protocol"))
+        refs.extend(
+            texts(
+                [
+                    "domain-authority-handoff:status=typed_blocker",
+                    (
+                        "domain-authority-handoff:typed_blocker_reason="
+                        f"{text(typed_blocker.get('reason'))}"
+                    ),
+                    (
+                        "domain-authority-handoff:owner_route_attempt_dispatchable="
+                        f"{str(attempt_protocol.get('dispatchable')).lower()}"
+                    ),
+                    text(typed_blocker.get("idempotency_key")),
+                    text(typed_blocker.get("source_fingerprint")),
+                ]
+            )
+        )
     return unique(refs)
 
 
