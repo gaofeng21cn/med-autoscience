@@ -33,6 +33,11 @@ def payload_reason_for_superseded_dispatch(
     ):
         return PAYLOAD_REASON_CONSUMED_AI_REVIEWER_SUPERSESSION
     if (
+        action_type == SUPPORTED_SUPERSEDED_ACTION_TYPE
+        and runtime_recovery_retry_budget_terminal_blocker_observed(study_scan)
+    ):
+        return PAYLOAD_REASON_RUNTIME_RECOVERY_RETRY_BUDGET_TERMINAL_BLOCKER
+    if (
         action_type == SUPPORTED_SUPERSEDED_WRITER_ACTION_TYPE
         and consumed_ai_reviewer_routeback_observed(study_scan)
     ):
