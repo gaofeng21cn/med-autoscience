@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.default_executor_action_policy import request_output_surface_for_action_type
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.story_surface_work_units import (
     is_story_surface_delta_write_work_unit,
@@ -115,17 +116,7 @@ def _owner_for_domain_action(action_type: str) -> str:
 
 
 def _required_output_surface(action_type: str) -> str:
-    if action_type == "run_quality_repair_batch":
-        return (
-            "canonical manuscript story-surface delta or "
-            "typed blocker:manuscript_story_surface_delta_missing"
-        )
-    if action_type == "unit_harmonized_external_validation_rerun":
-        return (
-            "unit-harmonized external-validation rerun evidence or "
-            "typed blocker:unit_harmonized_rerun_required"
-        )
-    return "artifacts/publication_eval/latest.json"
+    return request_output_surface_for_action_type(action_type)
 
 
 def _is_unit_harmonized_analysis_route(
