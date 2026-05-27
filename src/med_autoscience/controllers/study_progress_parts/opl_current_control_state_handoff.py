@@ -9,6 +9,32 @@ from med_autoscience.profiles import WorkspaceProfile
 
 from .shared_base import _mapping_copy, _non_empty_text, _read_json_object
 
+TERMINAL_STAGE_CLOSEOUT_ROOT_REFS = (
+    Path("artifacts/supervision/consumer/default_executor_execution"),
+    Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
+)
+TERMINAL_STAGE_LOG_CLOSEOUT_SURFACES = frozenset(
+    {
+        "stage_attempt_closeout_packet",
+        "stage_memory_closeout_packet",
+        "domain_stage_closeout_packet",
+    }
+)
+PAPER_STAGE_LOG_KEYS = (
+    "surface_kind",
+    "schema_version",
+    "status",
+    "stage_name",
+    "current_owner",
+    "problem_summary",
+    "stage_goal",
+    "paper_work_done",
+    "changed_paper_surfaces",
+    "outcome",
+    "remaining_blockers",
+    "evidence_refs",
+)
+
 
 def read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
     try:
@@ -137,6 +163,91 @@ def _string_list(value: object) -> list[str]:
     ]
 
 
+def _stage_log_mapping(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    return {key: value[key] for key in PAPER_STAGE_LOG_KEYS if key in value}
+
+
+def _latest_terminal_stage_log_projection(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+) -> dict[str, Any] | None:
+    study_root = profile.studies_root / study_id
+    if not study_root.is_dir():
+        return None
+    candidates: list[dict[str, Any]] = []
+    for root_ref in TERMINAL_STAGE_CLOSEOUT_ROOT_REFS:
+        closeout_root = study_root / root_ref
+        if not closeout_root.is_dir():
+            continue
+        for closeout_path in closeout_root.glob("*.json"):
+            closeout = _read_json_object(closeout_path)
+            projection = _terminal_stage_log_from_closeout(
+                closeout=closeout,
+                closeout_path=closeout_path,
+                study_id=study_id,
+            )
+            if projection is not None:
+                candidates.append(projection)
+    if not candidates:
+        return None
+    candidates.sort(key=_terminal_stage_log_sort_key, reverse=True)
+    return candidates[0]
+
+
+def _terminal_stage_log_from_closeout(
+    *,
+    closeout: Mapping[str, Any] | None,
+    closeout_path: Path,
+    study_id: str,
+) -> dict[str, Any] | None:
+    if not isinstance(closeout, Mapping):
+        return None
+    if _non_empty_text(closeout.get("surface_kind")) not in TERMINAL_STAGE_LOG_CLOSEOUT_SURFACES:
+        return None
+    if _non_empty_text(closeout.get("study_id")) not in {None, study_id}:
+        return None
+    paper_stage_log = (
+        _stage_log_mapping(closeout.get("paper_stage_log"))
+        or _stage_log_mapping(closeout.get("user_stage_log"))
+        or _stage_log_mapping(closeout.get("stage_log_summary"))
+    )
+    if not paper_stage_log:
+        return None
+    return {
+        "surface_kind": "mas_latest_terminal_stage_log_projection",
+        "read_model": "study_latest_terminal_stage_log_projection",
+        "authority": "observability_only",
+        "source_path": str(closeout_path),
+        "generated_at": _non_empty_text(closeout.get("generated_at")),
+        "study_id": study_id,
+        "stage_attempt_id": _non_empty_text(closeout.get("stage_attempt_id")),
+        "stage_id": _non_empty_text(closeout.get("stage_id")),
+        "action_type": _non_empty_text(closeout.get("action_type")),
+        "status": _non_empty_text(closeout.get("status")),
+        "paper_stage_log": paper_stage_log,
+        "closeout_refs": _string_list(closeout.get("closeout_refs")),
+        "authority_boundary": {
+            "observability_only": True,
+            "can_mark_live_run": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_ready": False,
+            "can_write_paper_or_package": False,
+        },
+    }
+
+
+def _terminal_stage_log_sort_key(value: Mapping[str, Any]) -> tuple[str, float]:
+    source_path = _non_empty_text(value.get("source_path"))
+    try:
+        mtime = Path(source_path).stat().st_mtime if source_path is not None else 0.0
+    except OSError:
+        mtime = 0.0
+    return (_non_empty_text(value.get("generated_at")) or "", mtime)
+
+
 def _opl_current_control_state_mode_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
     scheduler_contract = _mapping_copy(payload.get("scheduler_contract"))
     developer_supervisor = _mapping_copy(payload.get("developer_supervisor"))
@@ -215,6 +326,10 @@ def opl_current_control_state_study_handoff_projection(
         if isinstance(item, Mapping)
     ]
     why_not_applied = _string_list(matching.get("why_not_applied"))
+    latest_terminal_stage_log = _latest_terminal_stage_log_projection(
+        profile=profile,
+        study_id=study_id,
+    )
     projection = {
         "surface_kind": "opl_current_control_state_study_handoff",
         "read_model": "study_opl_current_control_state_handoff_projection",
@@ -279,6 +394,8 @@ def opl_current_control_state_study_handoff_projection(
         "external_supervisor_required": bool(matching.get("external_supervisor_required")),
         "blocked_reason": _non_empty_text(matching.get("blocked_reason")),
     }
+    if latest_terminal_stage_log is not None:
+        projection["latest_terminal_stage_log"] = latest_terminal_stage_log
     projection.update(_opl_current_control_state_mode_fields(payload))
     return projection
 

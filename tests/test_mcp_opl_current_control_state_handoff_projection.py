@@ -77,6 +77,90 @@ def test_study_progress_opl_current_control_state_handoff_projection_preserves_s
     assert projection["why_not_applied"] == ["repeat_suppressed"]
 
 
+def test_study_progress_opl_current_control_state_handoff_projects_latest_terminal_stage_log(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.opl_current_control_state_handoff")
+    profile = make_profile(tmp_path)
+    handoff_path = profile.workspace_root / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json"
+    _write_json(
+        handoff_path,
+        {
+            "surface": "portable_owner_route_reconcile",
+            "generated_at": "2026-05-27T20:32:10+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "active",
+                    "active_run_id": None,
+                    "running_provider_attempt": False,
+                    "runtime_health": {"health_status": "awaiting_explicit_resume"},
+                }
+            ],
+        },
+    )
+    closeout_path = (
+        profile.studies_root
+        / "001-risk"
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "stage_attempt_closeouts"
+        / "sat-terminal.closeout_payload.json"
+    )
+    _write_json(
+        closeout_path,
+        {
+            "surface_kind": "stage_attempt_closeout_packet",
+            "generated_at": "2026-05-27T19:46:34Z",
+            "study_id": "001-risk",
+            "stage_id": "domain_owner/default-executor-dispatch",
+            "stage_attempt_id": "sat-terminal",
+            "action_type": "run_quality_repair_batch",
+            "status": "blocked_with_domain_owner_refs",
+            "paper_stage_log": {
+                "surface_kind": "mas_paper_facing_stage_log_summary",
+                "stage_name": "domain_owner/default-executor-dispatch",
+                "problem_summary": "The repair owner could not write because authority route evidence was blocked.",
+                "stage_goal": "Produce owner-authorized manuscript repair output or a typed blocker.",
+                "paper_work_done": [
+                    "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
+                ],
+                "changed_paper_surfaces": [],
+                "outcome": "blocked_with_domain_typed_blocker",
+                "remaining_blockers": [
+                    "authority_route_blocked",
+                    "opl_current_control_state.handoff_required",
+                ],
+                "evidence_refs": [
+                    "artifacts/supervision/consumer/default_executor_dispatches/run_quality_repair_batch.json",
+                    "artifacts/publication_eval/latest.json",
+                ],
+            },
+            "closeout_refs": [
+                "artifacts/supervision/consumer/stage_attempt_closeouts/sat-terminal.closeout_payload.json"
+            ],
+        },
+    )
+
+    projection = module.opl_current_control_state_study_handoff_projection(profile=profile, study_id="001-risk")
+
+    assert projection["active_run_id"] is None
+    assert projection["stage_progress_log"] == {}
+    terminal_log = projection["latest_terminal_stage_log"]
+    assert terminal_log["surface_kind"] == "mas_latest_terminal_stage_log_projection"
+    assert terminal_log["source_path"] == str(closeout_path)
+    assert terminal_log["stage_attempt_id"] == "sat-terminal"
+    assert terminal_log["action_type"] == "run_quality_repair_batch"
+    assert terminal_log["status"] == "blocked_with_domain_owner_refs"
+    assert terminal_log["paper_stage_log"]["outcome"] == "blocked_with_domain_typed_blocker"
+    assert terminal_log["paper_stage_log"]["remaining_blockers"] == [
+        "authority_route_blocked",
+        "opl_current_control_state.handoff_required",
+    ]
+    assert terminal_log["authority_boundary"]["observability_only"] is True
+    assert terminal_log["authority_boundary"]["can_mark_live_run"] is False
+    assert terminal_log["authority_boundary"]["can_authorize_quality_verdict"] is False
+
+
 def test_mcp_compacts_and_renders_opl_current_control_state_handoff_dashboard() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     payload = {
@@ -163,3 +247,49 @@ def test_mcp_compacts_string_why_not_applied_as_single_reason() -> None:
 
     assert compact["opl_current_control_state_handoff"]["why_not_applied"] == ["repeat_suppressed"]
     assert "`repeat_suppressed`" in markdown
+
+
+def test_mcp_compacts_and_renders_latest_terminal_stage_log() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "opl_current_control_state_handoff": {
+            "surface_kind": "opl_current_control_state_study_handoff",
+            "authority": "observability_only",
+            "active_run_id": None,
+            "latest_terminal_stage_log": {
+                "surface_kind": "mas_latest_terminal_stage_log_projection",
+                "source_path": "/tmp/study/artifacts/supervision/consumer/stage_attempt_closeouts/sat-terminal.closeout_payload.json",
+                "generated_at": "2026-05-27T19:46:34Z",
+                "stage_attempt_id": "sat-terminal",
+                "action_type": "run_quality_repair_batch",
+                "status": "blocked_with_domain_owner_refs",
+                "paper_stage_log": {
+                    "stage_name": "domain_owner/default-executor-dispatch",
+                    "paper_work_done": [
+                        "Read the stage packet, repair request, current publication evaluation, and OPL handoff."
+                    ],
+                    "outcome": "blocked_with_domain_typed_blocker",
+                    "remaining_blockers": ["authority_route_blocked"],
+                    "evidence_refs": ["artifacts/publication_eval/latest.json"],
+                },
+                "authority_boundary": {
+                    "observability_only": True,
+                    "can_mark_live_run": False,
+                    "can_authorize_quality_verdict": False,
+                },
+            },
+        },
+    }
+
+    compact = module.compact_study_progress_projection(payload)
+    markdown = module.render_mcp_study_progress_markdown(payload)
+
+    terminal_log = compact["opl_current_control_state_handoff"]["latest_terminal_stage_log"]
+    assert terminal_log["stage_attempt_id"] == "sat-terminal"
+    assert terminal_log["paper_stage_log"]["outcome"] == "blocked_with_domain_typed_blocker"
+    assert terminal_log["paper_stage_log"]["remaining_blockers"] == ["authority_route_blocked"]
+    assert "latest_terminal_stage_log: action `run_quality_repair_batch`" in markdown
+    assert "latest_terminal_stage_outcome: `blocked_with_domain_typed_blocker`" in markdown
+    assert "authority_route_blocked" in markdown

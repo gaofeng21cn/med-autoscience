@@ -29,6 +29,39 @@ def _compact_string_list(value: Any, *, limit: int = 12) -> list[str]:
     return items
 
 
+def _compact_terminal_stage_log(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        (
+            "surface_kind",
+            "read_model",
+            "authority",
+            "source_path",
+            "generated_at",
+            "study_id",
+            "stage_attempt_id",
+            "stage_id",
+            "action_type",
+            "status",
+            "paper_stage_log",
+            "closeout_refs",
+            "authority_boundary",
+        ),
+    )
+    if compact is None:
+        return None
+    paper_stage_log = compact.get("paper_stage_log")
+    if isinstance(paper_stage_log, dict):
+        for key in ("paper_work_done", "changed_paper_surfaces", "remaining_blockers", "evidence_refs"):
+            if isinstance(paper_stage_log.get(key), list):
+                paper_stage_log[key] = _compact_string_list(paper_stage_log.get(key), limit=6)
+    if isinstance(compact.get("closeout_refs"), list):
+        compact["closeout_refs"] = _compact_string_list(compact.get("closeout_refs"), limit=6)
+    return compact
+
+
 def compact_opl_current_control_state_handoff(value: object) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -55,6 +88,7 @@ def compact_opl_current_control_state_handoff(value: object) -> dict[str, Any] |
             "gate_specificity",
             "ai_reviewer_status",
             "stage_progress_log",
+            "latest_terminal_stage_log",
             "queue_slo",
             "owner_pickup_overdue",
             "developer_supervisor_attention_required",
@@ -73,6 +107,11 @@ def compact_opl_current_control_state_handoff(value: object) -> dict[str, Any] |
         temporal_refs = stage_progress_log.get("temporal_webui_refs")
         if isinstance(temporal_refs, list):
             stage_progress_log["temporal_webui_refs"] = _compact_string_list(temporal_refs, limit=6)
+    latest_terminal_stage_log = _compact_terminal_stage_log(compact.get("latest_terminal_stage_log"))
+    if latest_terminal_stage_log is not None:
+        compact["latest_terminal_stage_log"] = latest_terminal_stage_log
+    else:
+        compact.pop("latest_terminal_stage_log", None)
     action_queue = value.get("action_queue")
     if isinstance(action_queue, list):
         compact["action_queue"] = [
@@ -152,6 +191,27 @@ def render_mcp_progress_opl_current_control_state_handoff(compact: dict[str, Any
                 "- missing_usage_telemetry_attempt_count: "
                 f"`{stage_progress_log.get('missing_usage_telemetry_attempt_count')}`"
             )
+    latest_terminal_stage_log = dashboard.get("latest_terminal_stage_log")
+    if isinstance(latest_terminal_stage_log, dict):
+        paper_stage_log = (
+            latest_terminal_stage_log.get("paper_stage_log")
+            if isinstance(latest_terminal_stage_log.get("paper_stage_log"), dict)
+            else {}
+        )
+        lines.append(
+            f"- latest_terminal_stage_log: action `{latest_terminal_stage_log.get('action_type') or 'unknown'}`；"
+            f"status `{latest_terminal_stage_log.get('status') or 'unknown'}`；"
+            f"attempt `{latest_terminal_stage_log.get('stage_attempt_id') or 'unknown'}`"
+        )
+        outcome = str(paper_stage_log.get("outcome") or "").strip()
+        if outcome:
+            lines.append(f"- latest_terminal_stage_outcome: `{outcome}`")
+        blockers = _compact_string_list(paper_stage_log.get("remaining_blockers"), limit=6)
+        if blockers:
+            lines.append("- latest_terminal_stage_blockers: " + "；".join(f"`{item}`" for item in blockers))
+        evidence_refs = _compact_string_list(paper_stage_log.get("evidence_refs"), limit=4)
+        if evidence_refs:
+            lines.append("- latest_terminal_stage_evidence_refs: " + "；".join(f"`{item}`" for item in evidence_refs))
     for action in dashboard.get("action_queue") or []:
         if not isinstance(action, dict):
             continue
