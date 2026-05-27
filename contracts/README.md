@@ -1,5 +1,10 @@
 # Contracts Root
 
+Owner: `MedAutoScience Contract Surface`
+Purpose: `machine_contract_index`
+State: `active_support`
+Machine boundary: This README is a human index for the `contracts/` root. Machine truth stays in the structured contract payloads, schemas, source, tests, generated descriptors, CLI/product-entry behavior, owner receipts, typed blockers, and runtime/controller durable surfaces. This README must not become a second source of truth for contract fields, readiness claims, quality verdicts, artifact authority, publication authority, or runtime ownership.
+
 `contracts/` is the repo root for machine-readable governance contracts.
 
 Keep structured payloads here when other agents, CLIs, tests, or runtime entry

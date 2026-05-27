@@ -1,5 +1,10 @@
 # Bootstrap
 
+Owner: `MedAutoScience Workspace Bootstrap`
+Purpose: `workspace_bootstrap_operator_guide`
+State: `active_support`
+Machine boundary: 本文是人读 bootstrap / workspace 接入指南；机器真相继续归 profile template、CLI/MCP/controller 行为、workspace contracts、runtime durable surfaces、owner receipts 和 typed blockers。本文不授权 runtime owner、study truth、publication readiness、artifact authority、source readiness 或 production readiness。
+
 这份说明主要写给 Codex 或其他 AI 执行者。
 
 目标是让一台新电脑尽快具备运行 `MedAutoScience` 的基本条件，而不是在界面里手动点来点去。

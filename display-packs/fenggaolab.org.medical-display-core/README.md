@@ -1,5 +1,10 @@
 # fenggaolab.org.medical-display-core
 
+Owner: `MedAutoScience Medical Display`
+Purpose: `repo_local_display_pack_index`
+State: `active_support`
+Machine boundary: This README is a human index for the repo-local built-in display pack. Machine truth stays in `display_pack.toml`, `templates/*/template.toml`, `config/display_packs.toml`, `src/med_autoscience/display_pack_*`, `src/med_autoscience/display_registry.py`, renderer source, tests, and generated display artifacts. It does not authorize artifact freshness, display rendering success, publication readiness, submission readiness, package readiness, or quality verdicts.
+
 Built-in core pack for audited medical display templates.
 
 ## Scope
