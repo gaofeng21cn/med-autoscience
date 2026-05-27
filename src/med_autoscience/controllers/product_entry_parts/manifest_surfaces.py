@@ -30,7 +30,6 @@ from .manifest_status_surface import build_product_entry_status_payload as _buil
 from med_autoscience.controllers import opl_provider_ready_adapter
 from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers.opl_unique_control_plane_boundary_parts import consumer_migration
-from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_contract
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
@@ -464,7 +463,7 @@ def build_product_entry_manifest(
             "domain_memory_descriptor": domain_memory_descriptor,
             "family_stage_control_plane_descriptor": family_stage_control_plane_descriptor,
             "family_transition_spec_descriptor": (
-                study_domain_transition_table.build_family_transition_spec_descriptor()
+                _load_controller("study_domain_transition_table").build_family_transition_spec_descriptor()
             ),
             "family_stage_control_plane": family_stage_control_plane,
         },

@@ -3,13 +3,9 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 import sys
 from datetime import datetime, timezone
+from importlib import import_module
 from pathlib import Path
-from typing import Any, Mapping
-
-from med_autoscience.controllers import (
-    ai_first_cross_study_completion,
-    domain_status_projection,
-)
+from typing import Any, Callable, Mapping
 from med_autoscience.action_catalog import (
     action_catalog_command_map as _action_catalog_command_map,
     build_mas_action_catalog as _build_mas_action_catalog,
@@ -26,7 +22,6 @@ from med_autoscience.domain_entry_contract import (
     build_user_interaction_contract as _build_user_interaction_contract,
     validate_user_interaction_contract as _validate_shared_user_interaction_contract,
 )
-from med_autoscience.doctor import build_doctor_report
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.opl_runtime_contract import (
@@ -142,6 +137,43 @@ from .shared_labels import (
     _user_interaction_mode_label,
     _workspace_status_label,
 )
+
+
+def _load_controller(module_name: str) -> Any:
+    return import_module(f"med_autoscience.controllers.{module_name}")
+
+
+class _LazyModuleProxy:
+    def __init__(self, loader: Callable[[], Any]) -> None:
+        object.__setattr__(self, "_loader", loader)
+        object.__setattr__(self, "_module", None)
+
+    def _resolve(self) -> Any:
+        module = object.__getattribute__(self, "_module")
+        if module is None:
+            module = object.__getattribute__(self, "_loader")()
+            object.__setattr__(self, "_module", module)
+        return module
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._resolve(), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+        setattr(self._resolve(), name, value)
+
+
+study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
+domain_status_projection = _LazyModuleProxy(lambda: _load_controller("domain_status_projection"))
+ai_first_cross_study_completion = _LazyModuleProxy(
+    lambda: _load_controller("ai_first_cross_study_completion")
+)
+
+
+def build_doctor_report(*args: Any, **kwargs: Any) -> Any:
+    return import_module("med_autoscience.doctor").build_doctor_report(*args, **kwargs)
 
 
 def _controller_override(name: str, default: Any) -> Any:

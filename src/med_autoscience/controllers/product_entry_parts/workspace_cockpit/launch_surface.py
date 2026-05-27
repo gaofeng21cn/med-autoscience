@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_progress, domain_status_projection
 from med_autoscience.controllers import study_truth_kernel
 from med_autoscience.controllers.product_entry_parts.shared import (
     SCHEMA_VERSION,
@@ -20,6 +19,8 @@ from med_autoscience.controllers.product_entry_parts.shared import (
     _serialize_runtime_status,
     _study_selector,
     _utc_now,
+    domain_status_projection,
+    study_progress,
 )
 
 

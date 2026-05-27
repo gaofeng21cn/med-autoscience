@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from med_autoscience.controllers import study_progress
-
 from . import shared_base as _shared_base
 
 def _module_reexport(module) -> None:

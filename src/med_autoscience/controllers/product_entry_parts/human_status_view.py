@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from med_autoscience.controllers import study_progress
+from med_autoscience.controllers.study_progress_parts.status_text_labels import (
+    _OPERATOR_STATUS_HANDLING_LABELS,
+    _RECOVERY_ACTION_MODE_LABELS,
+)
 from opl_harness_shared.status_narration import (
     build_status_narration_human_view as _build_shared_status_narration_human_view,
 )
@@ -52,7 +55,7 @@ def _operator_handling_state_label(payload: Mapping[str, Any]) -> str | None:
     handling_state = _non_empty_text(payload.get("handling_state"))
     if handling_state is None:
         return None
-    return study_progress._OPERATOR_STATUS_HANDLING_LABELS.get(
+    return _OPERATOR_STATUS_HANDLING_LABELS.get(
         handling_state,
         handling_state.replace("_", " "),
     )
@@ -62,7 +65,7 @@ def _recovery_action_mode_label(payload: Mapping[str, Any]) -> str | None:
     action_mode = _non_empty_text(payload.get("action_mode"))
     if action_mode is None:
         return None
-    return study_progress._RECOVERY_ACTION_MODE_LABELS.get(
+    return _RECOVERY_ACTION_MODE_LABELS.get(
         action_mode,
         action_mode.replace("_", " "),
     )

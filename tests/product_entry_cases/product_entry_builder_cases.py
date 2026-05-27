@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+
 from . import shared as _shared
 from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
 from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
@@ -16,6 +19,32 @@ _module_reexport(_attention_queue_and_cockpit_base)
 _module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
+
+def test_product_entry_import_is_lightweight_for_manifest_discovery() -> None:
+    script = """
+import importlib
+import sys
+
+blocked = {
+    "med_autoscience.controllers.publication_gate",
+    "med_autoscience.controllers.submission_minimal",
+    "med_autoscience.controllers.domain_status_projection",
+    "med_autoscience.controllers.study_progress",
+}
+
+importlib.import_module("med_autoscience.controllers.product_entry")
+loaded = sorted(name for name in blocked if name in sys.modules)
+if loaded:
+    raise SystemExit("heavy product-entry import modules loaded: " + ",".join(loaded))
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
 
 def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
