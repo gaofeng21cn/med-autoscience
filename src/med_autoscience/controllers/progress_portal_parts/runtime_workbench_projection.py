@@ -1,9 +1,21 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from .runtime_workbench_projection_parts import build_paper_route_lens, paper_route_lens_summary
+from .runtime_workbench_projection_parts.common import (
+    dedupe_refs as _dedupe_refs,
+    first_mapping as _first_mapping,
+    first_non_empty_list as _first_non_empty_list,
+    first_non_empty_text as _first_non_empty_text,
+    mapping as _mapping,
+    non_empty_text as _non_empty_text,
+    projection_source_refs as _projection_source_refs,
+    receipt_refs as _receipt_refs,
+    string_list as _string_list,
+)
 from .stage_review import runtime_stage_review_summary
 
 
@@ -137,7 +149,7 @@ def _workbench_study_row(
         "links": _workbench_links(study_id, selected=study_id == selected_study_id),
         "actions": _workbench_actions(),
     }
-    paper_route_lens = _paper_route_lens_summary(row.get("paper_route_lens"))
+    paper_route_lens = paper_route_lens_summary(row.get("paper_route_lens"))
     if paper_route_lens:
         result["paper_route_lens"] = paper_route_lens
     return result
@@ -156,7 +168,7 @@ def _selected_workbench_study(
     runtime_projection = _mapping(study_workbench.get("runtime"))
     active_run_id = _opl_active_run_id(study_workbench=study_workbench, progress=progress, runtime=runtime)
     stage_review = runtime_stage_review_summary(_mapping(study_workbench.get("stage_review_index")))
-    paper_route_lens = _paper_route_lens(
+    paper_route_lens = build_paper_route_lens(
         study_id=study_id,
         progress=progress,
         runtime=runtime,
@@ -241,366 +253,6 @@ def _reference_projection(
         ],
         "authority": _reference_authority(),
     }
-
-
-def _paper_route_lens(
-    *,
-    study_id: str,
-    progress: Mapping[str, Any],
-    runtime: Mapping[str, Any],
-    study_workbench: Mapping[str, Any],
-    stage_review: Mapping[str, Any],
-    source_refs: list[str],
-) -> dict[str, Any]:
-    explicit = _first_mapping(
-        progress.get("paper_route_lens"),
-        progress.get("paper_route_projection"),
-        runtime.get("paper_route_lens"),
-    )
-    route_decision_trail = _mapping(study_workbench.get("route_decision_trail"))
-    route_nodes = _mapping_list(route_decision_trail.get("nodes"))
-    explicit_attempts = _mapping_list(
-        explicit.get("route_attempts")
-        or explicit.get("attempts")
-        or progress.get("route_attempts")
-        or progress.get("paper_route_attempts")
-    )
-    route_attempts = (
-        _explicit_route_attempts(explicit_attempts)
-        if explicit_attempts
-        else _route_attempts_from_nodes(route_nodes)
-    )
-    current_route = _current_route(
-        explicit=explicit,
-        route_decision_trail=route_decision_trail,
-        route_attempts=route_attempts,
-    )
-    artifact_refs = _artifact_refs_from_study_workbench(study_workbench)
-    reviewer_gate_refs = _reviewer_gate_refs(progress=progress, stage_review=stage_review, explicit=explicit)
-    owner_receipt_refs = _dedupe_refs(
-        [
-            *_receipt_refs(explicit.get("owner_receipt_refs")),
-            *_receipt_refs(progress.get("owner_receipt_refs")),
-            *_receipt_refs(progress.get("domain_owner_receipt_refs")),
-            *[
-                ref
-                for attempt in route_attempts
-                for ref in _string_list(attempt.get("owner_receipt_refs"))
-            ],
-        ]
-    )
-    typed_blocker_refs = _dedupe_refs(
-        [
-            *_receipt_refs(explicit.get("typed_blocker_refs")),
-            *_receipt_refs(explicit.get("blocker_refs")),
-            *_receipt_refs(progress.get("typed_blocker_refs")),
-            *_receipt_refs(progress.get("blocker_refs")),
-            *_receipt_refs(progress.get("stable_typed_blocker_refs")),
-            *[
-                ref
-                for attempt in route_attempts
-                for ref in _string_list(attempt.get("typed_blocker_refs")) + _string_list(attempt.get("blocker_refs"))
-            ],
-        ]
-    )
-    stage_review_refs = _stage_review_refs(stage_review=stage_review, explicit=explicit)
-    next_route_refs = _dedupe_refs(
-        [
-            *_receipt_refs(explicit.get("next_route_refs")),
-            *_receipt_refs(explicit.get("next_refs")),
-            *_receipt_refs(route_decision_trail.get("source_refs")),
-        ]
-    )
-    next_action_refs = _dedupe_refs(
-        [
-            *_receipt_refs(explicit.get("next_action_refs")),
-            *_receipt_refs(progress.get("next_action_refs")),
-            *_receipt_refs(progress.get("runtime_owner_route_handoffs")),
-        ]
-    )
-    workspace_refs = _workspace_refs(progress=progress, runtime=runtime, explicit=explicit)
-    lens_source_refs = _dedupe_refs(
-        [
-            *source_refs,
-            *_projection_source_refs(explicit),
-            *_receipt_refs(route_decision_trail.get("source_refs")),
-            *reviewer_gate_refs,
-            *artifact_refs,
-            *workspace_refs,
-            *next_route_refs,
-            *next_action_refs,
-            *stage_review_refs,
-        ]
-    )
-    missing = []
-    if not current_route:
-        missing.append("current_route")
-    if not route_attempts:
-        missing.append("route_attempts")
-    if not owner_receipt_refs:
-        missing.append("owner_receipt_refs")
-    if not typed_blocker_refs:
-        missing.append("typed_blocker_refs")
-    if not reviewer_gate_refs:
-        missing.append("reviewer_gate_refs")
-    if not artifact_refs:
-        missing.append("artifact_refs")
-    if not workspace_refs:
-        missing.append("workspace_refs")
-    if not next_route_refs and not next_action_refs:
-        missing.append("next_route_or_action_refs")
-    return {
-        "surface_kind": "mas_opl_paper_route_lens",
-        "schema_version": 1,
-        "mode": "refs_only_paper_route_lens",
-        "study_id": study_id,
-        "status": "available" if current_route and route_attempts else "pending",
-        "body_included": False,
-        "manuscript_body_included": False,
-        "artifact_body_included": False,
-        "claims_publication_ready": False,
-        "publication_ready_authorized": False,
-        "current_route": current_route,
-        "route_attempts": route_attempts,
-        "route_attempt_counts": _route_attempt_counts(route_attempts),
-        "owner_receipt_refs": owner_receipt_refs,
-        "blocker_refs": typed_blocker_refs,
-        "typed_blocker_refs": typed_blocker_refs,
-        "stage_review_refs": stage_review_refs,
-        "reviewer_gate_refs": reviewer_gate_refs,
-        "artifact_refs": artifact_refs,
-        "source_refs": lens_source_refs,
-        "workspace_refs": workspace_refs,
-        "next_route_refs": next_route_refs,
-        "next_action_refs": next_action_refs,
-        "authority": _paper_route_lens_authority(),
-        "conditions": {"missing": missing, "stale": [], "conflict": []},
-    }
-
-
-def _explicit_route_attempts(attempts: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
-    for index, attempt in enumerate(attempts, start=1):
-        attempt_id = _first_non_empty_text(attempt.get("attempt_id"), attempt.get("id")) or f"route-attempt-{index}"
-        route_id = _first_non_empty_text(attempt.get("route_id"), attempt.get("route"), attempt.get("current_route"))
-        result.append(
-            {
-                "attempt_id": attempt_id,
-                "route_id": route_id or attempt_id,
-                "status": _route_attempt_status(attempt),
-                "owner": _first_non_empty_text(attempt.get("owner"), attempt.get("next_owner"), attempt.get("route_owner")),
-                "owner_receipt_refs": _receipt_refs(attempt.get("owner_receipt_refs")),
-                "typed_blocker_refs": _dedupe_refs(
-                    [
-                        *_receipt_refs(attempt.get("typed_blocker_refs")),
-                        *_receipt_refs(attempt.get("blocker_refs")),
-                    ]
-                ),
-                "reviewer_gate_refs": _receipt_refs(attempt.get("reviewer_gate_refs")),
-                "artifact_refs": _receipt_refs(attempt.get("artifact_refs")),
-                "source_refs": _projection_source_refs(attempt),
-                "workspace_refs": _receipt_refs(attempt.get("workspace_refs")),
-                "next_route_refs": _receipt_refs(attempt.get("next_route_refs")),
-                "next_action_refs": _receipt_refs(attempt.get("next_action_refs")),
-                "body_included": False,
-            }
-        )
-    return result
-
-
-def _route_attempts_from_nodes(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
-    for node in nodes:
-        route_id = _non_empty_text(node.get("route_id"))
-        if route_id is None:
-            continue
-        result.append(
-            {
-                "attempt_id": route_id,
-                "route_id": route_id,
-                "status": "blocked" if _non_empty_text(node.get("blocker_reason")) else "explored",
-                "owner": _non_empty_text(node.get("next_owner")),
-                "owner_receipt_refs": [],
-                "typed_blocker_refs": [],
-                "reviewer_gate_refs": [],
-                "artifact_refs": [],
-                "source_refs": _string_list(node.get("source_refs")),
-                "workspace_refs": [],
-                "next_route_refs": [],
-                "next_action_refs": [],
-                "body_included": False,
-            }
-        )
-    return result
-
-
-def _current_route(
-    *,
-    explicit: Mapping[str, Any],
-    route_decision_trail: Mapping[str, Any],
-    route_attempts: list[dict[str, Any]],
-) -> dict[str, Any]:
-    current = _mapping(explicit.get("current_route"))
-    if current:
-        route_id = _first_non_empty_text(current.get("route_id"), current.get("id"), current.get("route"))
-        return {
-            "route_id": route_id,
-            "status": _route_attempt_status(current),
-            "owner": _first_non_empty_text(current.get("owner"), current.get("next_owner"), current.get("route_owner")),
-            "source_refs": _projection_source_refs(current),
-            "next_route_refs": _receipt_refs(current.get("next_route_refs")),
-            "next_action_refs": _receipt_refs(current.get("next_action_refs")),
-        }
-    route_id = _first_non_empty_text(
-        explicit.get("current_route"),
-        explicit.get("active_route"),
-        route_decision_trail.get("winning_path"),
-        route_decision_trail.get("active_path"),
-    )
-    if route_id is None:
-        return {}
-    matching_attempt = next(
-        (attempt for attempt in route_attempts if _non_empty_text(attempt.get("route_id")) == route_id),
-        {},
-    )
-    return {
-        "route_id": route_id,
-        "status": _non_empty_text(matching_attempt.get("status")) or "current",
-        "owner": _first_non_empty_text(matching_attempt.get("owner"), route_decision_trail.get("next_owner")),
-        "source_refs": _dedupe_refs(
-            [
-                *_string_list(matching_attempt.get("source_refs")),
-                *_string_list(route_decision_trail.get("source_refs")),
-            ]
-        ),
-        "next_route_refs": _string_list(matching_attempt.get("next_route_refs")),
-        "next_action_refs": _string_list(matching_attempt.get("next_action_refs")),
-    }
-
-
-def _route_attempt_status(attempt: Mapping[str, Any]) -> str:
-    status = _first_non_empty_text(attempt.get("status"), attempt.get("outcome"), attempt.get("decision"))
-    normalized = (status or "unknown").strip().lower().replace("-", "_")
-    if normalized in {"success", "succeeded", "accepted", "completed", "observed"}:
-        return "success"
-    if normalized in {"failure", "failed", "rejected", "dead_lettered"}:
-        return "failure"
-    if normalized in {"blocked", "typed_blocker", "blocker"}:
-        return "blocked"
-    if normalized in {"explored", "superseded", "active", "active_winning", "winning", "current"}:
-        return "explored"
-    return "unknown"
-
-
-def _route_attempt_counts(attempts: list[dict[str, Any]]) -> dict[str, int]:
-    counts = {"total": len(attempts), "success": 0, "failure": 0, "blocked": 0, "explored": 0, "unknown": 0}
-    for attempt in attempts:
-        status = _non_empty_text(attempt.get("status")) or "unknown"
-        counts[status if status in counts else "unknown"] += 1
-    return counts
-
-
-def _paper_route_lens_summary(value: object) -> dict[str, Any]:
-    lens = _mapping(value)
-    if not lens:
-        return {}
-    current_route = _summary_current_route(lens.get("current_route"))
-    route_attempt_counts = _mapping(lens.get("route_attempt_counts"))
-    return {
-        "surface_kind": "mas_opl_paper_route_lens_summary",
-        "schema_version": 1,
-        "mode": "refs_only_paper_route_lens_summary",
-        "body_included": False,
-        "claims_publication_ready": False,
-        "current_route": current_route,
-        "route_attempt_counts": _summary_route_attempt_counts(route_attempt_counts),
-        "blocker_refs": _receipt_refs(lens.get("blocker_refs") or lens.get("typed_blocker_refs")),
-        "next_route_refs": _receipt_refs(lens.get("next_route_refs")),
-        "next_action_refs": _receipt_refs(lens.get("next_action_refs")),
-        "stage_review_refs": _receipt_refs(lens.get("stage_review_refs")),
-        "authority": _paper_route_lens_authority(),
-    }
-
-
-def _summary_current_route(value: object) -> dict[str, Any]:
-    if isinstance(value, str):
-        route_id = _non_empty_text(value)
-        return {"route_id": route_id} if route_id is not None else {}
-    current = _mapping(value)
-    route_id = _first_non_empty_text(current.get("route_id"), current.get("id"), current.get("route"))
-    if route_id is None:
-        return {}
-    return {"route_id": route_id}
-
-
-def _summary_route_attempt_counts(value: Mapping[str, Any]) -> dict[str, int]:
-    return {
-        key: int(raw_value)
-        for key, raw_value in value.items()
-        if key in {"success", "failure", "blocked"} and isinstance(raw_value, int) and not isinstance(raw_value, bool)
-    }
-
-
-def _stage_review_refs(
-    *,
-    stage_review: Mapping[str, Any],
-    explicit: Mapping[str, Any],
-) -> list[str]:
-    return _dedupe_refs(
-        [
-            *_receipt_refs(explicit.get("stage_review_refs")),
-            _non_empty_text(stage_review.get("latest_review_page_ref")),
-            _non_empty_text(stage_review.get("deliverable_index_ref")),
-        ]
-    )
-
-
-def _reviewer_gate_refs(
-    *,
-    progress: Mapping[str, Any],
-    stage_review: Mapping[str, Any],
-    explicit: Mapping[str, Any],
-) -> list[str]:
-    refs = [
-        *_receipt_refs(explicit.get("reviewer_gate_refs")),
-        *_receipt_refs(explicit.get("reviewer_refs")),
-        *_receipt_refs(explicit.get("gate_refs")),
-        *_receipt_refs(progress.get("reviewer_gate_refs")),
-        *_receipt_refs(progress.get("ai_reviewer_refs")),
-        *_receipt_refs(progress.get("publication_gate_refs")),
-        _non_empty_text(_mapping(progress.get("refs")).get("publication_eval")),
-        _non_empty_text(_mapping(progress.get("refs")).get("review_ledger")),
-        _non_empty_text(_mapping(progress.get("refs")).get("evidence_ledger")),
-        _non_empty_text(stage_review.get("latest_review_page_ref")),
-        _non_empty_text(stage_review.get("deliverable_index_ref")),
-    ]
-    return _dedupe_refs(refs)
-
-
-def _artifact_refs_from_study_workbench(study_workbench: Mapping[str, Any]) -> list[str]:
-    artifact_groups = _mapping(study_workbench.get("artifact_groups"))
-    refs: list[str] = []
-    for group in artifact_groups.values():
-        for item in _mapping_list(_mapping(group).get("items")):
-            refs.append(_non_empty_text(item.get("ref")))
-    return _dedupe_refs(refs)
-
-
-def _workspace_refs(
-    *,
-    progress: Mapping[str, Any],
-    runtime: Mapping[str, Any],
-    explicit: Mapping[str, Any],
-) -> list[str]:
-    refs = [
-        *_receipt_refs(explicit.get("workspace_refs")),
-        *_receipt_refs(progress.get("workspace_refs")),
-        *_receipt_refs(runtime.get("workspace_refs")),
-        _non_empty_text(progress.get("study_root")),
-        _non_empty_text(_mapping(progress.get("refs")).get("study_root")),
-        _non_empty_text(runtime.get("workspace_root")),
-    ]
-    return _dedupe_refs(refs)
 
 
 def _provider_attempt_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
@@ -863,18 +515,6 @@ def _reference_authority() -> dict[str, Any]:
     }
 
 
-def _paper_route_lens_authority() -> dict[str, Any]:
-    return {
-        "opl_role": "workbench_projection_consumer_only",
-        "writes_mas_truth": False,
-        "body_free": True,
-        "can_authorize_publication_readiness": False,
-        "can_authorize_quality_verdict": False,
-        "can_authorize_artifact_mutation": False,
-        "can_write_memory_body": False,
-    }
-
-
 def _lane_authority() -> dict[str, Any]:
     return {
         "writes_authority_surface": False,
@@ -962,91 +602,3 @@ def _workbench_terminal_projection(
         "lease_required": True,
         "audit_ref": "OPL current_control_state projection",
     }
-
-
-def _non_empty_text(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    stripped = value.strip()
-    return stripped or None
-
-
-def _first_non_empty_text(*values: object) -> str | None:
-    for value in values:
-        text = _non_empty_text(value)
-        if text is not None:
-            return text
-    return None
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _string_list(value: object) -> list[str]:
-    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
-        return []
-    result: list[str] = []
-    for item in value:
-        if isinstance(item, str) and item.strip():
-            result.append(item.strip())
-    return result
-
-
-def _first_mapping(*values: object) -> dict[str, Any]:
-    for value in values:
-        if isinstance(value, Mapping) and value:
-            return dict(value)
-    return {}
-
-
-def _first_non_empty_list(*values: object) -> list[Any]:
-    for value in values:
-        if isinstance(value, Iterable) and not isinstance(value, (str, bytes, Mapping)):
-            items = list(value)
-            if items:
-                return items
-    return []
-
-
-def _mapping_list(value: object) -> list[dict[str, Any]]:
-    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
-        return []
-    return [dict(item) for item in value if isinstance(item, Mapping)]
-
-
-def _projection_source_refs(value: Mapping[str, Any]) -> list[str]:
-    return _dedupe_refs(
-        [
-            *_string_list(value.get("source_refs")),
-            *_string_list(value.get("evidence_refs")),
-            _non_empty_text(value.get("source_ref")),
-            _non_empty_text(value.get("receipt_ref")),
-            _non_empty_text(value.get("audit_ref")),
-            _non_empty_text(value.get("ref")),
-        ]
-    )
-
-
-def _receipt_refs(value: object) -> list[str]:
-    refs: list[str] = []
-    if isinstance(value, str):
-        text = _non_empty_text(value)
-        return [text] if text is not None else []
-    if isinstance(value, Mapping):
-        refs.extend(_projection_source_refs(value))
-        for key in ("refs", "receipt_refs", "writeback_receipt_refs"):
-            refs.extend(_receipt_refs(value.get(key)))
-    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
-        for item in value:
-            refs.extend(_receipt_refs(item))
-    return _dedupe_refs(refs)
-
-
-def _dedupe_refs(values: Iterable[object]) -> list[str]:
-    result: list[str] = []
-    for value in values:
-        text = _non_empty_text(value)
-        if text is not None and text not in result:
-            result.append(text)
-    return result
