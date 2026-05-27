@@ -117,6 +117,60 @@ def test_current_ai_reviewer_write_routeback_projects_same_line_write_handoff_wh
     assert transition["next_work_unit"]["unit_id"] == "manuscript_story_repair"
 
 
+def test_gate_recheck_only_readiness_preempts_stale_write_routeback(tmp_path: Path) -> None:
+    study_root = tmp_path / "study"
+    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
+    publication_eval["verdict"] = {"overall_verdict": "mixed", "primary_claim_status": "partial"}
+    publication_eval["quality_assessment"]["medical_journal_prose_quality"]["status"] = "partial"
+    publication_eval["quality_assessment"]["medical_journal_prose_quality"][
+        "summary"
+    ] = "The manuscript is publication-shaped but gate replay remains required."
+    publication_eval["reviewer_operating_system"]["currentness_checks"]["current_manuscript"] = {
+        "status": "current",
+        "manuscript_ref": str(study_root / "paper" / "manuscript.md"),
+        "manuscript_digest": "sha256:manuscript",
+    }
+    publication_eval["reviewer_operating_system"]["claim_evidence_alignment"] = {
+        "surface_kind": "claim_evidence_alignment_gate_v1",
+        "status": "ready",
+        "claim_count": 1,
+        "aligned_claim_count": 1,
+        "missing_required_fields": [],
+        "blockers": [],
+    }
+    publication_eval["reviewer_operating_system"]["publication_quality_readiness"] = {
+        "surface_kind": "publication_quality_authority_kernel_v1",
+        "status": "blocked",
+        "current_manuscript_digest": "sha256:manuscript",
+        "review_request_digest": "sha256:request",
+        "evidence_ledger_digest": "sha256:evidence",
+        "claim_evidence_alignment_digest": "sha256:alignment",
+        "rubric_version": "medical_publication_critique_v1",
+        "owner_attempt_id": "ai-reviewer-publication-eval::current",
+        "fail_closed_when_missing": True,
+        "missing_required_fields": ["owner_authorized_publication_gate_recheck"],
+    }
+
+    _write_json(
+        study_root / study_domain_transition_table.PUBLICATION_EVAL_RELATIVE_PATH,
+        publication_eval,
+    )
+
+    transition = study_domain_transition_table.project_domain_transition(
+        study_id="dm003",
+        study_root=study_root,
+        status={},
+        macro_state={},
+        active_run_id=None,
+    )
+
+    assert transition["decision_type"] == "publication_gate_blocker"
+    assert transition["route_target"] == "review"
+    assert transition["owner"] == "publication_gate"
+    assert transition["controller_action"] == "run_gate_clearing_batch"
+    assert transition["next_work_unit"]["unit_id"] == "publication_gate_replay"
+
+
 def test_stale_current_manuscript_ai_reviewer_request_preempts_old_write_routeback(
     tmp_path: Path,
 ) -> None:

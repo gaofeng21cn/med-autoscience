@@ -535,12 +535,24 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 2026-05-28 追加理由：DM003 暴露出 readiness 已写入新的 `claim_evidence_alignment_digest`，但 `missing_required_fields` 同时仍包含 `claim_evidence_alignment_digest`，导致 publication gate 继续把已重算的 claim-evidence alignment 当缺失项。这是 record missing 合并规则污染 current workflow 输出，不是论文手工 surface 缺字段。
 - 影响：这是 MAS AI reviewer currentness 修复，不写 study truth、canonical paper、submission package、current package 或质量门宽松判断；修复后必须重走 MAS owner workflow，使 `publication_eval/latest.json` 自然绑定最新 evidence ledger。
 
+## 2026-05-28：AI reviewer gate-recheck-only readiness 必须交给 publication gate
+
+- 决策：当 AI reviewer-owned `publication_eval/latest.json` 已绑定当前 evidence ledger 和 claim-evidence alignment，`reviewer_operating_system.claim_evidence_alignment.status=ready`、无 alignment missing/blocker，且 `publication_quality_readiness.missing_required_fields` 只剩 `owner_authorized_publication_gate_recheck` 时，domain transition 不得再消费 top-level 旧 `route_back_same_line` 写作修复动作；它必须让 publication gate blocker 投影 `publication_gate_replay` / `run_gate_clearing_batch`。
+- 理由：DM003 暴露出 write owner 已完成 claim/evidence/review ledger delta，AI reviewer recheck 也消费了新 ledger digest，但 record 内仍保留旧 route-back action。若 transition 继续优先旧 action，会反复执行 `current_manuscript_claim_evidence_alignment_repair`，无法进入 owner-authorized gate replay。该状态的剩余缺口是 publication gate 授权重放，不是新的正文或 claim-evidence 修复。
+- 影响：这是 MAS controller read-model handoff 修复，不放宽 AI reviewer、publication gate 或 submission readiness；缺少任一 digest、alignment 未 ready、存在 blocker、或 missing 字段不止 gate recheck 时仍 fail closed 到原 owner route。
+
 ## 2026-05-25：current AI reviewer eval 可取代旧 quality batch digest mismatch
 
 - 决策：`owner-route-reconcile` 消费 `quality_repair_batch_current_manuscript_digest_mismatch` 时，不能只用 `quality_repair_batch.source_eval_id == publication_eval.eval_id` 判定 batch 仍当前。若当前 AI reviewer-owned `publication_eval/latest.json` 已在 `reviewer_operating_system.currentness_checks.current_manuscript` 中证明当前稿件 ref 与 live SHA-256，并且 stale batch 的 story-surface refs/digests 均被该 eval 的 authority refs 覆盖，则旧 digest-mismatch batch 已被当前 eval 消费，必须让顶层 `route_back_same_line -> write` 接管。
 - 决策：上述 supersession 必须 fail closed：缺 AI reviewer owner、缺 current-manuscript proof、live 文件 digest 不匹配、story-surface digest 不匹配、或 story refs 未出现在当前 eval authority refs 中时，仍保留 `return_to_ai_reviewer_workflow` record-only owner route。
 - 理由：DM002 在 2026-05-25 的恢复中，AI reviewer workflow 已把当前 `paper/draft.md` / `paper/build/review_manuscript.md` digest 写入最新 eval，但旧 quality batch 仍携带同一个 eval_id 下的 digest mismatch blocker，导致 owner route 反复派 `return_to_ai_reviewer_workflow`，不能进入 write owner 的 display/table/package repair。根因是 MAS currentness supersession 缺口，不是 OPL worker 或单篇 paper JSON 可手工 patch 的问题。
 - 影响：这是 MAS owner-route currentness 修复，不写 DM002 study truth、canonical paper、`publication_eval/latest.json`、`controller_decisions/latest.json`、submission package 或 current package；修复后仍由 MAS controller/materializer/dispatcher 重新生成 write owner handoff。
+
+## 2026-05-28：write story-surface handoff 必须阻止 pending AI reviewer request 抢占
+
+- 决策：`owner-route-reconcile` 在发现当前 `quality_repair_batch/latest.json` 已对同一 `publication_eval.eval_id` 形成 writer story-surface handoff 时，必须把该 handoff 视为高优先级 owner truth，阻止 pending `ai_reviewer_assessment_required` 抢占，并投影 `run_quality_repair_batch` 给 write owner。
+- 理由：DM003 暴露出 status read-model 仍保留旧 `domain_transition_ai_reviewer_re_eval`，同时 canonical quality repair batch 已明确 `writer_worker_handoff.next_executable_owner=write` 和 `allowed_actions=[run_quality_repair_batch]`。继续派 `return_to_ai_reviewer_workflow` 会让 reviewer redrive 抢在正文 story-surface delta 之前执行，形成空转。
+- 影响：这是 owner-route priority 修复，不跳过 AI reviewer；write owner 必须先产出 canonical manuscript story-surface delta 或 typed blocker，随后再由 MAS owner workflow 触发 AI reviewer recheck。
 
 ## 2026-05-22：workspace profile merge 必须把 root keys 插在 TOML table 之前
 

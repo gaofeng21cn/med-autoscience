@@ -18,6 +18,9 @@ from med_autoscience.publication_eval_reviewer_os import (
 from med_autoscience.study_task_intake import read_latest_task_intake, task_intake_is_reviewer_revision
 
 
+_PUBLICATION_GATE_RECHECK_ONLY_MISSING_FIELDS = frozenset({"owner_authorized_publication_gate_recheck"})
+
+
 def project_transition(
     *,
     study_id: str,
@@ -47,6 +50,8 @@ def project_transition(
     )
     if stale_transition is not None:
         return stale_transition
+    if requires_owner_authorized_publication_gate_recheck_only(publication_eval):
+        return None
     route_back_action = current_ai_reviewer_route_back_action(publication_eval)
     if route_back_action is not None:
         return _route_back_transition(
@@ -212,6 +217,38 @@ def _requires_ai_reviewer_re_eval(publication_eval: Mapping[str, Any]) -> bool:
     )
 
 
+def requires_owner_authorized_publication_gate_recheck_only(publication_eval: Mapping[str, Any]) -> bool:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
+        return False
+
+    reviewer_os = _mapping(publication_eval.get("reviewer_operating_system"))
+    if not reviewer_os:
+        return False
+
+    claim_alignment = _mapping(reviewer_os.get("claim_evidence_alignment"))
+    if _text(claim_alignment.get("status")) != "ready":
+        return False
+    if _text_list(claim_alignment.get("missing_required_fields")) or _text_list(claim_alignment.get("blockers")):
+        return False
+
+    readiness = _mapping(reviewer_os.get("publication_quality_readiness"))
+    if _text(readiness.get("status")) != "blocked":
+        return False
+    if frozenset(_text_list(readiness.get("missing_required_fields"))) != _PUBLICATION_GATE_RECHECK_ONLY_MISSING_FIELDS:
+        return False
+    for field in (
+        "current_manuscript_digest",
+        "review_request_digest",
+        "evidence_ledger_digest",
+        "claim_evidence_alignment_digest",
+    ):
+        if not _text(readiness.get(field)):
+            return False
+
+    return True
+
+
 def _medical_prose_quality_unready(publication_eval: Mapping[str, Any]) -> bool:
     provenance = _mapping(publication_eval.get("assessment_provenance"))
     if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
@@ -375,5 +412,6 @@ __all__ = [
     "project_stale_ai_reviewer_record_transition",
     "project_stale_reviewer_revision_transition",
     "project_transition",
+    "requires_owner_authorized_publication_gate_recheck_only",
     "stale_after_reviewer_revision",
 ]

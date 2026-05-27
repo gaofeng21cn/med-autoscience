@@ -643,6 +643,7 @@ def _publication_gate_blocked(publication_eval: Mapping[str, Any], *, status: Ma
         or bool(publication_eval.get("blockers"))
         or _text(verdict.get("overall_verdict")) == "blocked"
         or any(_text(item.get("severity")) in {"must_fix", "blocking", "blocked"} for item in gaps)
+        or ai_reviewer_transitions.requires_owner_authorized_publication_gate_recheck_only(publication_eval)
     )
 
 
