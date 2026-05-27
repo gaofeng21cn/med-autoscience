@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from . import shared as _shared
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
 
 globals().update({
     name: value
@@ -157,6 +158,146 @@ def test_quality_repair_batch_route_context_preempts_current_submission_refresh_
         "repair_paper_live_paths",
         "materialize_display_surface",
     ]
+
+
+def test_gate_clearing_batch_consumes_current_ai_reviewer_publication_eval_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_gap",
+    )
+    quest_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_root = profile.managed_runtime_home / "quests" / quest_id
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-003" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    manuscript_text = "# Draft\n\nCurrent manuscript surface for gate-clearing repair.\n"
+    current_manuscript = study_root / "paper" / "draft.md"
+    current_manuscript.parent.mkdir(parents=True, exist_ok=True)
+    current_manuscript.write_text(manuscript_text, encoding="utf-8")
+    stale_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    stale_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "gate_needs_specificity",
+        "lane": "controller",
+        "summary": "Stale eval should not drive the current gate-clearing batch.",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", stale_eval_payload)
+    current_eval_id = f"publication-eval::{study_root.name}::{quest_id}::2026-05-27T11:10:37+00:00"
+    current_eval_payload = {
+        **stale_eval_payload,
+        "eval_id": current_eval_id,
+        "emitted_at": "2026-05-27T11:10:37+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [str(current_manuscript.resolve())],
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "quality_assessment": {
+            dimension: {"status": "blocked", "summary": f"{dimension} requires current repair."}
+            for dimension in (
+                "clinical_significance",
+                "evidence_strength",
+                "novelty_positioning",
+                "medical_journal_prose_quality",
+                "human_review_readiness",
+            )
+        },
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "The current record is bound to the present manuscript snapshot.",
+                "impact_on_claim": "Claims remain scoped to current evidence refs.",
+                "required_future_analysis_data_or_design": "Repeat review after substantive changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+        "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+            study_root=study_root,
+            manuscript_path=current_manuscript,
+            manuscript_text=manuscript_text,
+            eval_id=current_eval_id,
+        ),
+        "recommended_actions": [
+            {
+                "action_id": "return-to-current-claim-alignment",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "Use the current AI reviewer record for gate-clearing repair.",
+                "route_target": "write",
+                "work_unit_fingerprint": "current-gate-clearing-fp",
+                "requires_controller_decision": True,
+                "next_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                    "summary": "Repair current claim-evidence traceability.",
+                },
+            }
+        ],
+    }
+    current_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260527T111037Z_publication_eval_record.json"
+    )
+    _write_json(current_record_path, current_eval_payload)
+    gate_report = {
+        "status": "blocked",
+        "blockers": ["medical_publication_surface_blocked"],
+        "current_required_action": "return_to_publishability_gate",
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+        "study_delivery_status": "current",
+    }
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module, "_repair_paper_live_paths", lambda **_: {"status": "updated", "repaired_files": []})
+    monkeypatch.setattr(module, "_materialize_display_surface", lambda *, paper_root: {"status": "materialized"})
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["medical_publication_surface_blocked"],
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        authority_route_context={
+            "controller_route_context": {
+                "control_surface": "quality_repair_batch",
+                "controller_action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "requires_human_confirmation": False,
+                "source_eval_id": current_eval_id,
+                "work_unit_fingerprint": "current-gate-clearing-fp",
+            },
+        },
+    )
+
+    assert result["source_eval_id"] == current_eval_id
+    assert result["explicit_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
 
 
 def test_gate_specificity_targets_preempt_publication_gate_replay_for_upstream_paper_repair() -> None:

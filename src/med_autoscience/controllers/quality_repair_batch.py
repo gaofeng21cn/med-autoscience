@@ -13,6 +13,7 @@ from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import quality_repair_paper_owner_surface
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import domain_status_projection
+from med_autoscience.controllers import current_publication_eval
 from med_autoscience.controllers.quality_repair_batch_parts import repair_execution_gate
 from med_autoscience.controllers.quality_repair_batch_parts import story_surface_delta
 from med_autoscience.controllers.quality_repair_batch_parts import upstream_route_context
@@ -25,11 +26,9 @@ from med_autoscience.controllers.authority_route_gate import assert_authority_ro
 from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
     _load_controller_decision_authorization_context,
 )
-from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience import study_task_intake
+from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
-
 
 SCHEMA_VERSION = 1
 STABLE_QUALITY_REPAIR_BATCH_RELATIVE_PATH = Path("artifacts/controller/quality_repair_batch/latest.json")
@@ -725,7 +724,9 @@ def run_quality_repair_batch(
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
+    publication_eval_payload, publication_eval_ref = current_publication_eval.read_current_publication_eval_with_ref(
+        study_root=resolved_study_root
+    )
     current_eval_id = _non_empty_text(publication_eval_payload.get("eval_id"))
     resolved_route_context = (
         authority_route_context
@@ -793,8 +794,9 @@ def run_quality_repair_batch(
         _route_action_for_controller_context(resolved_route_context),
         {"projection_only": True} if resolved_route_context is None else resolved_route_context,
     )
-    source_eval_artifact_path = str(
-        (resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve()
+    source_eval_artifact_path = current_publication_eval.publication_eval_source_ref(
+        publication_eval_payload,
+        fallback_ref=publication_eval_ref,
     )
     source_summary_artifact_path = str(_quality_summary_path(study_root=resolved_study_root).resolve())
     source_summary_id = _non_empty_text(summary_payload.get("summary_id"))
@@ -840,9 +842,7 @@ def run_quality_repair_batch(
         record = {
             "schema_version": SCHEMA_VERSION,
             "source_eval_id": current_eval_id,
-            "source_eval_artifact_path": str(
-                (resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve()
-            ),
+            "source_eval_artifact_path": source_eval_artifact_path,
             "status": "blocked_no_paper_root",
             "ok": False,
             "quest_id": quest_id,

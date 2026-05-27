@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
 from tests.study_runtime_test_helpers import make_profile, write_study
 from tests.test_quality_repair_batch_cases.upstream_paper_owner_surface import (
     _paper_write_supervisor_route_context,
@@ -216,6 +217,151 @@ def test_run_quality_repair_batch_honors_current_manuscript_claim_alignment_owne
     ledger = json.loads((paper_root / "evidence_ledger.json").read_text(encoding="utf-8"))
     assert ledger["claims"][0]["evidence"][0]["evidence_id"] == "C1_main_result_observed_gap"
     assert result["repair_execution_evidence"]["evidence_ledger_update_done"] is True
+
+
+def test_run_quality_repair_batch_consumes_current_ai_reviewer_record(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+        study_archetype="clinical_classifier",
+        endpoint_type="cross_sectional_quality_gap",
+        manuscript_family="primary_care_diabetes",
+    )
+    quest_id = "quest-003"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
+    paper_root = study_root / "paper"
+    current_manuscript_text = "# Draft\n\nCurrent manuscript surface with revised claim-evidence alignment.\n"
+    (paper_root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (paper_root / "draft.md").write_text(current_manuscript_text, encoding="utf-8")
+    _write_claim_alignment_fixture(paper_root)
+    stale_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    stale_eval_payload["recommended_actions"][0]["route_target"] = "write"
+    stale_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "current_manuscript_claim_evidence_alignment_repair",
+        "lane": "write",
+        "summary": "Align the stale manuscript claim-evidence map and evidence ledger.",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", stale_eval_payload)
+    current_eval_id = f"publication-eval::{study_root.name}::{quest_id}::2026-05-27T11:10:37+00:00"
+    current_record_path = (
+        study_root
+        / "artifacts"
+        / "publication_eval"
+        / "ai_reviewer_responses"
+        / "20260527T111037Z_publication_eval_record.json"
+    )
+    dimensions = (
+        "clinical_significance",
+        "evidence_strength",
+        "novelty_positioning",
+        "medical_journal_prose_quality",
+        "human_review_readiness",
+    )
+    current_eval_payload = {
+        **stale_eval_payload,
+        "eval_id": current_eval_id,
+        "emitted_at": "2026-05-27T11:10:37+00:00",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [str((paper_root / "draft.md").resolve())],
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "quality_assessment": {
+            dimension: {"status": "blocked", "summary": f"{dimension} requires manuscript repair."}
+            for dimension in dimensions
+        },
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "The current AI reviewer record is bound to one manuscript snapshot.",
+                "impact_on_claim": "Claims must stay tied to the reviewed manuscript and evidence ledger.",
+                "required_future_analysis_data_or_design": "Repeat reviewer evaluation after manuscript changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+        "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+            study_root=study_root,
+            manuscript_path=paper_root / "draft.md",
+            manuscript_text=current_manuscript_text,
+            eval_id=current_eval_id,
+        ),
+        "recommended_actions": [
+            {
+                "action_id": "return-to-write-current-claim-alignment",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "Current AI reviewer record routes claim-evidence alignment repair to write.",
+                "route_target": "write",
+                "work_unit_fingerprint": "current-claim-alignment-fp",
+                "requires_controller_decision": True,
+                "next_work_unit": {
+                    "unit_id": "current_manuscript_claim_evidence_alignment_repair",
+                    "lane": "write",
+                    "summary": "Align the current manuscript claim-evidence map and evidence ledger.",
+                },
+            }
+        ],
+    }
+    _write_json(current_record_path, current_eval_payload)
+    _write_quality_summary(study_root)
+    route_context = _claim_evidence_alignment_route_context(
+        publication_eval_id=current_eval_id,
+        work_unit_id="current_manuscript_claim_evidence_alignment_repair",
+    )
+
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": ["claim_evidence_alignment_required"],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["claim_evidence_alignment_required"],
+            "current_required_action": "return_to_publishability_gate",
+            "gate_fingerprint": "publication-gate::claim-alignment",
+        },
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **_kwargs: {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+            "selected_publication_work_unit": {"unit_id": "manuscript_story_repair"},
+            "gate_replay": {"status": "blocked", "blockers": ["claim_evidence_alignment_required"]},
+            "unit_results": [],
+        },
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        authority_route_context=route_context,
+    )
+
+    assert result["status"] == "executed"
+    assert result["source_eval_id"] == current_eval_id
+    assert result["source_eval_artifact_path"] == str(current_record_path.resolve())
+    assert result["repair_execution_evidence"]["review_finding"]["source_eval_id"] == current_eval_id
 
 
 def _write_claim_alignment_fixture(paper_root: Path) -> None:

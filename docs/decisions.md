@@ -15,6 +15,13 @@ Machine boundary: 本文是人读关键决策日志。机器真相继续归 `con
 - 理由：DM002 长时间卡住的共同根因不是单个 paper 文稿、单个 OPL worker 或某条 queue 状态，而是 MAS owner-route / currentness / read-model / dispatch 闭环没有把每次非终局状态收敛到唯一 next owner。结果表现为旧 live run 误报当前、route-back 被 package handoff 覆盖、OPL closeout/dead-letter 后无人接、materializer 或 dispatcher 因 stale route 空转。
 - 影响：这是 MAS controller/read-model/contract 修复，不写 DM002 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission package。它不声明 DM002 paper ready、publication ready、package ready 或 submission ready；论文推进仍必须由后续 MAS owner/controller/runtime path 产生 canonical delta、AI reviewer-backed eval、publication gate verdict、owner receipt、typed blocker、human gate 或 stop-loss。
 
+## 2026-05-27：quality repair 必须消费 effective current AI reviewer eval
+
+- 决策：`quality_repair_batch` 和嵌套 `gate_clearing_batch` 的 controller 执行面必须使用同一 effective current publication eval reader。该 reader 优先选择通过 reviewer OS currentness contract 的 `artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json`；若不存在 current record，才回退到 stable `artifacts/publication_eval/latest.json`。
+- 决策：quality repair 的 `source_eval_id`、`source_eval_artifact_path`、repair execution evidence、gate-clearing `source_eval_id` 和 route context 必须绑定同一个 effective eval。旧 stable latest 不得在执行面关闭旧 eval，同时让 owner-route/read-model 继续以更新 AI reviewer record 排同一 work unit。
+- 理由：DM003 暴露出 `current_manuscript_claim_evidence_alignment_repair` 已执行并产出 canonical claim/evidence/review delta，但 batch 绑定的是旧 `publication_eval/latest.json` 的 eval id；owner-route read model 看到更新的 current AI reviewer record 后继续排同一 `run_quality_repair_batch`，造成“修了但仍重驱”的 currentness split-brain。
+- 影响：这是 MAS controller currentness 修复，不写 DM003 canonical paper、`paper/submission_minimal/`、`manuscript/current_package/`、`publication_eval/latest.json`、`controller_decisions/latest.json` 或 submission-ready verdict。论文后续仍必须经 MAS owner/controller/runtime path 生成 AI reviewer recheck、publication eval、publication gate 和 package refresh。
+
 ## 2026-05-26：DM002 story-surface work unit 与 non-consumable closeout redrive
 
 - 决策：`dm002_current_manuscript_methods_model_reporting_and_package_currentness_write_pass` 属于 DM002 external-validation manuscript-facing story-surface work unit，必须进入 canonical story-surface registry、gate-clearing upstream work-unit registry 和 authority route gate。该 work unit 的完成证据必须包含 `paper/draft.md` 或 `paper/build/review_manuscript.md` 的 canonical story-surface delta，ledger-only delta 不能关闭 write route。

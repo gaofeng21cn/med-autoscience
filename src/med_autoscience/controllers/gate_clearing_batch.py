@@ -4,8 +4,8 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, Callable
 
-from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers import current_publication_eval
 from med_autoscience.controllers.gate_clearing_batch_blockers import (
     medical_surface_display_repair_requested,
     repairable_medical_surface,
@@ -624,7 +624,7 @@ def run_gate_clearing_batch(
         route_context=route_context,
         quest_root_for_profile=_quest_root,
         publication_gate_controller=publication_gate,
-        read_publication_eval_latest_fn=read_publication_eval_latest,
+        read_publication_eval_latest_fn=current_publication_eval.read_current_publication_eval_for_controller,
         latest_batch_record=_latest_batch_record,
         latest_batch_closed_for_eval=_latest_batch_closed_for_eval,
         current_workspace_root_fn=_current_workspace_root,
