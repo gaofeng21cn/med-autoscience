@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -87,9 +88,52 @@ def build_current_medical_prose_routeback_record(
         evidence_ref=evidence_ref,
         review_ref=review_ref,
     )
+    eval_id = f"publication-eval::{study_id}::{quest_id}::medical-prose-routeback::{_fingerprint_token(request_digest)}"
+    quality_assessment = {
+        "clinical_significance": {
+            "status": "partial",
+            "summary": "The clinical management question remains meaningful, but publication readiness depends on manuscript repair against the current reviewer findings.",
+            "evidence_refs": [charter_ref, manuscript_ref],
+            "reviewer_reason": "AI reviewer medical-prose review did not clear the current manuscript for publication-facing closure.",
+        },
+        "evidence_strength": {
+            "status": "partial",
+            "summary": "The evidence base can support a bounded descriptive manuscript after the required reporting details are repaired.",
+            "evidence_refs": [evidence_ref, str(prose_path.resolve())],
+            "reviewer_reason": route_reason,
+        },
+        "novelty_positioning": {
+            "status": "partial",
+            "summary": "The contribution remains tied to a descriptive primary-care phenotype and treatment-review atlas, pending clearer methods and display-to-claim reporting.",
+            "evidence_refs": [charter_ref, manuscript_ref],
+            "reviewer_reason": "Novelty should be framed through reproducible routine-care phenotype reporting and service-review interpretation.",
+        },
+        "medical_journal_prose_quality": {
+            "status": _publication_quality_status(quality.get("status")),
+            "summary": prose_summary,
+            "evidence_refs": [str(prose_path.resolve()), manuscript_ref],
+            "reviewer_reason": route_reason,
+            "reviewer_revision_advice": route_reason,
+            "reviewer_next_round_focus": next_round_focus,
+        },
+        "human_review_readiness": {
+            "status": "blocked",
+            "summary": "Human-facing review should wait until write-owner repair is completed and the publication gate is replayed.",
+            "evidence_refs": [review_ref, str(prose_path.resolve())],
+            "reviewer_reason": "The current AI reviewer verdict is revise, not clear.",
+        },
+    }
+    future_facing_limitations_plan = [
+        {
+            "limitation": "The current reviewer judgment identifies manuscript reporting gaps rather than a new medical effect estimate.",
+            "impact_on_claim": "Publication claims remain partial until the write owner repairs reproducibility, treatment-gap definitions, display interpretation, and limitation placement.",
+            "required_future_analysis_data_or_design": "Complete write-owner manuscript repair using the current evidence surfaces, then rerun AI reviewer, publication gate, and delivery refresh before any submission-facing claim.",
+            "current_manuscript_wording_must_be_restrained": True,
+        }
+    ]
     return {
         "schema_version": 1,
-        "eval_id": f"publication-eval::{study_id}::{quest_id}::medical-prose-routeback::{_fingerprint_token(request_digest)}",
+        "eval_id": eval_id,
         "study_id": study_id,
         "quest_id": quest_id,
         "emitted_at": _text(request.get("generated_at")) or "2026-05-21T00:00:00+00:00",
@@ -121,40 +165,7 @@ def build_current_medical_prose_routeback_record(
             "summary": prose_summary,
             "stop_loss_pressure": "watch",
         },
-        "quality_assessment": {
-            "clinical_significance": {
-                "status": "partial",
-                "summary": "The clinical management question remains meaningful, but publication readiness depends on manuscript repair against the current reviewer findings.",
-                "evidence_refs": [charter_ref, manuscript_ref],
-                "reviewer_reason": "AI reviewer medical-prose review did not clear the current manuscript for publication-facing closure.",
-            },
-            "evidence_strength": {
-                "status": "partial",
-                "summary": "The evidence base can support a bounded descriptive manuscript after the required reporting details are repaired.",
-                "evidence_refs": [evidence_ref, str(prose_path.resolve())],
-                "reviewer_reason": route_reason,
-            },
-            "novelty_positioning": {
-                "status": "partial",
-                "summary": "The contribution remains tied to a descriptive primary-care phenotype and treatment-review atlas, pending clearer methods and display-to-claim reporting.",
-                "evidence_refs": [charter_ref, manuscript_ref],
-                "reviewer_reason": "Novelty should be framed through reproducible routine-care phenotype reporting and service-review interpretation.",
-            },
-            "medical_journal_prose_quality": {
-                "status": _publication_quality_status(quality.get("status")),
-                "summary": prose_summary,
-                "evidence_refs": [str(prose_path.resolve()), manuscript_ref],
-                "reviewer_reason": route_reason,
-                "reviewer_revision_advice": route_reason,
-                "reviewer_next_round_focus": next_round_focus,
-            },
-            "human_review_readiness": {
-                "status": "blocked",
-                "summary": "Human-facing review should wait until write-owner repair is completed and the publication gate is replayed.",
-                "evidence_refs": [review_ref, str(prose_path.resolve())],
-                "reviewer_reason": "The current AI reviewer verdict is revise, not clear.",
-            },
-        },
+        "quality_assessment": quality_assessment,
         "gaps": [
             {
                 "gap_id": "medical-prose-write-routeback",
@@ -183,14 +194,20 @@ def build_current_medical_prose_routeback_record(
                 },
             }
         ],
-        "future_facing_limitations_plan": [
-            {
-                "limitation": "The current reviewer judgment identifies manuscript reporting gaps rather than a new medical effect estimate.",
-                "impact_on_claim": "Publication claims remain partial until the write owner repairs reproducibility, treatment-gap definitions, display interpretation, and limitation placement.",
-                "required_future_analysis_data_or_design": "Complete write-owner manuscript repair using the current evidence surfaces, then rerun AI reviewer, publication gate, and delivery refresh before any submission-facing claim.",
-                "current_manuscript_wording_must_be_restrained": True,
-            }
-        ],
+        "future_facing_limitations_plan": future_facing_limitations_plan,
+        "reviewer_operating_system": _routeback_reviewer_operating_system(
+            eval_id=eval_id,
+            study_root=study_root,
+            manuscript_ref=manuscript_ref,
+            evidence_ref=evidence_ref,
+            review_ref=review_ref,
+            charter_ref=charter_ref,
+            prose_ref=str(prose_path.resolve()),
+            request_digest=request_digest,
+            route_reason=route_reason,
+            quality_assessment=quality_assessment,
+            future_facing_limitations_plan=future_facing_limitations_plan,
+        ),
     }
 
 
@@ -245,6 +262,133 @@ def _current_prose_source_refs(
             request_path = study_root / request_path
         refs.append(str(request_path.resolve()))
     return list(dict.fromkeys(refs))
+
+
+def _routeback_reviewer_operating_system(
+    *,
+    eval_id: str,
+    study_root: Path,
+    manuscript_ref: str,
+    evidence_ref: str,
+    review_ref: str,
+    charter_ref: str,
+    prose_ref: str,
+    request_digest: str,
+    route_reason: str,
+    quality_assessment: Mapping[str, Any],
+    future_facing_limitations_plan: list[dict[str, Any]],
+) -> dict[str, Any]:
+    claim_evidence_ref = str(study_root / "paper" / "claim_evidence_map.json")
+    manuscript_digest = _sha256_path(Path(manuscript_ref))
+    evidence_digest = _sha256_path(Path(evidence_ref))
+    claim_alignment = {
+        "surface_kind": "claim_evidence_alignment_gate_v1",
+        "source_project": "academic-research-skills",
+        "absorbed_as": "mas_native_claim_evidence_alignment_gate",
+        "status": "blocked",
+        "input_refs": {
+            "claim_evidence_map": claim_evidence_ref,
+            "evidence_ledger": evidence_ref,
+        },
+        "claim_count": 1,
+        "aligned_claim_count": 0,
+        "fail_closed_when_missing": True,
+        "missing_required_fields": ["claim_evidence_alignment_digest"],
+        "blockers": ["write_owner_repair_required_before_claim_evidence_alignment"],
+        "body_included": False,
+        "may_authorize_publication_readiness": False,
+        "may_authorize_quality_verdict": False,
+        "can_write_domain_truth": False,
+    }
+    return {
+        "contract_id": "medical_publication_ai_reviewer_os_v1",
+        "input_bundle": {
+            "manuscript": manuscript_ref,
+            "study_charter": charter_ref,
+            "evidence_ledger": evidence_ref,
+            "review_ledger": review_ref,
+            "medical_manuscript_blueprint": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+            "claim_evidence_map": claim_evidence_ref,
+            "medical_prose_review": prose_ref,
+            "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        },
+        "rubric_scores": {
+            dimension: {
+                "status": _text(_mapping(payload).get("status")) or "partial",
+                "rationale": _text(_mapping(payload).get("reviewer_reason"))
+                or _text(_mapping(payload).get("summary"))
+                or route_reason,
+                "evidence_refs": _mapping(payload).get("evidence_refs") or [manuscript_ref, evidence_ref],
+            }
+            for dimension, payload in quality_assessment.items()
+        },
+        "decision_matrix": [
+            {
+                "dimension": dimension,
+                "status": _text(_mapping(payload).get("status")) or "partial",
+                "rationale": _text(_mapping(payload).get("reviewer_reason"))
+                or _text(_mapping(payload).get("summary"))
+                or route_reason,
+            }
+            for dimension, payload in quality_assessment.items()
+        ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": request_digest,
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+                "route_back_required": True,
+                "route_target": "write",
+            },
+            "current_manuscript": {
+                "status": "current",
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": manuscript_digest,
+            },
+            "current_package_freshness": {
+                "status": "downstream_pending",
+                "source_eval_id": eval_id,
+            },
+        },
+        "claim_evidence_alignment": claim_alignment,
+        "publication_quality_readiness": {
+            "surface_kind": "publication_quality_authority_kernel_v1",
+            "status": "blocked",
+            "current_manuscript_digest": manuscript_digest,
+            "review_request_digest": request_digest,
+            "evidence_ledger_digest": evidence_digest,
+            "claim_evidence_alignment_digest": _digest_mapping(claim_alignment),
+            "rubric_version": "medical_publication_critique_v1",
+            "owner_attempt_id": f"ai-reviewer-publication-eval::{eval_id}",
+            "fail_closed_when_missing": True,
+            "missing_required_fields": ["claim_evidence_alignment_digest"],
+        },
+        "future_facing_limitations_plan": future_facing_limitations_plan,
+        "provenance_checks": {
+            "assessment_owner": "ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "route_back_decision": {
+            "recommended_action": "route_back_same_line",
+            "rationale": route_reason,
+        },
+    }
+
+
+def _sha256_path(path: Path) -> str:
+    try:
+        data = path.expanduser().read_bytes()
+    except OSError:
+        data = str(path).encode("utf-8")
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
+def _digest_mapping(payload: Mapping[str, Any]) -> str:
+    encoded = json.dumps(dict(payload), ensure_ascii=False, sort_keys=True).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
 def _fingerprint_token(value: object) -> str:

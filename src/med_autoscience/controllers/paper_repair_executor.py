@@ -27,6 +27,9 @@ from med_autoscience.controllers.paper_repair_executor_parts.authority_contract 
     authority_boundary as _authority_boundary,
     would_write as _would_write,
 )
+from med_autoscience.controllers.paper_repair_executor_parts.ai_reviewer_currentness import (
+    runtime_health_epoch_for_ai_reviewer_route,
+)
 from med_autoscience.controllers.paper_repair_executor_parts.owner_callable_results import (
     ai_reviewer_record_worker_handoff,
     changed_refs as owner_result_changed_refs,
@@ -334,6 +337,7 @@ def _ai_reviewer_owner_consumer_payload(
     owner_route = _ai_reviewer_owner_route(
         study_id=study_id,
         quest_id=quest_id,
+        study_root=study_root,
         work_unit=work_unit,
         action_type=action_type,
         route_context=control_plane_route_context or route_context,
@@ -370,6 +374,7 @@ def _ai_reviewer_owner_route(
     *,
     study_id: str,
     quest_id: str,
+    study_root: Path,
     work_unit: Mapping[str, Any],
     action_type: str,
     route_context: Mapping[str, Any] | None = None,
@@ -383,10 +388,12 @@ def _ai_reviewer_owner_route(
         or _text(work_unit.get("source_fingerprint"))
         or hashlib.sha256(_work_unit_id(work_unit).encode("utf-8")).hexdigest()
     )
-    runtime_health_epoch = (
-        _text(controller_context.get("runtime_health_epoch"))
-        or _text(current_owner_route.get("runtime_health_epoch"))
-        or _text(work_unit.get("runtime_health_epoch"))
+    runtime_health_epoch = runtime_health_epoch_for_ai_reviewer_route(
+        study_root=study_root,
+        route_context=route_context_mapping,
+        controller_context=controller_context,
+        current_owner_route=current_owner_route,
+        work_unit=work_unit,
     )
     route_epoch = (
         _text(current_owner_route.get("truth_epoch"))

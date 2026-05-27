@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -668,25 +669,12 @@ def test_materialize_current_ai_reviewer_record_work_unit_routes_to_publication_
                 "current_manuscript_wording_must_be_restrained": True,
             }
         ],
-        "reviewer_operating_system": {
-            "currentness_checks": {
-                "current_manuscript": {
-                    "status": "current",
-                    "manuscript_ref": str(manuscript_path.resolve()),
-                    "manuscript_digest": _sha256_text(manuscript_text),
-                },
-                "draft": {
-                    "status": "current",
-                    "manuscript_ref": str(manuscript_path.resolve()),
-                    "manuscript_digest": _sha256_text(manuscript_text),
-                },
-                "review_manuscript": {
-                    "status": "current",
-                    "manuscript_ref": str(review_manuscript_path.resolve()),
-                    "manuscript_digest": _sha256_text(manuscript_text),
-                },
-            }
-        },
+        "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+            study_root=study_root,
+            manuscript_path=manuscript_path,
+            manuscript_text=manuscript_text,
+            eval_id=eval_id,
+        ),
     }
     _write_json(record_path, record_payload)
     _write_json(

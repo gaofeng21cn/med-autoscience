@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_reviewer_os
 from tests.study_runtime_test_helpers import make_profile
 
 
@@ -417,9 +418,17 @@ def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before
     study_id = "006d-dpcc"
     quest_id = "quest-006d"
     study_root = profile.studies_root / study_id
+    _write_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {
+            "surface": "runtime_health_snapshot",
+            "runtime_health_epoch": "runtime-health-event-inline-ai-reviewer",
+        },
+    )
     manuscript = study_root / "paper" / "draft.md"
     manuscript.parent.mkdir(parents=True, exist_ok=True)
-    manuscript.write_text("Methods need clearer reporting.\n", encoding="utf-8")
+    manuscript_text = "Methods need clearer reporting.\n"
+    manuscript.write_text(manuscript_text, encoding="utf-8")
     _write_json(study_root / "paper" / "evidence_ledger.json", {"schema_version": 1})
     _write_json(study_root / "paper" / "review" / "review_ledger.json", {"schema_version": 1})
     _write_json(study_root / "artifacts" / "controller" / "study_charter.json", {"study_id": study_id})
@@ -454,26 +463,40 @@ def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before
 
     def fake_run_ai_reviewer_publication_eval_workflow(**kwargs) -> dict[str, object]:
         calls.append(kwargs)
+        eval_id = "publication-eval-current"
         _write_json(
             study_root / "artifacts" / "publication_eval" / "latest.json",
             {
-                "eval_id": "publication-eval-current",
+                "eval_id": eval_id,
+                "study_id": study_id,
+                "quest_id": quest_id,
+                "evaluation_scope": "publication",
                 "assessment_provenance": {
                     "owner": "ai_reviewer",
                     "source_kind": "publication_eval_ai_reviewer",
                     "ai_reviewer_required": False,
                 },
                 "quality_assessment": {
+                    "clinical_significance": {"status": "ready"},
+                    "evidence_strength": {"status": "ready"},
+                    "novelty_positioning": {"status": "ready"},
                     "medical_journal_prose_quality": {"status": "partial"},
+                    "human_review_readiness": {"status": "ready"},
                 },
                 "future_facing_limitations_plan": [{"limitation": "test"}],
+                "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+                    study_root=study_root,
+                    manuscript_path=manuscript,
+                    manuscript_text=manuscript_text,
+                    eval_id=eval_id,
+                ),
             },
         )
         return {
             "surface": "ai_reviewer_publication_eval_workflow",
             "status": "materialized",
             "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "eval_id": "publication-eval-current",
+            "eval_id": eval_id,
         }
 
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -511,7 +534,84 @@ def test_paper_repair_executor_ai_reviewer_callable_materializes_dispatch_before
         )
     )
     assert request["owner_route"]["next_owner"] == "ai_reviewer"
+    assert request["owner_route"]["runtime_health_epoch"] == "runtime-health-event-inline-ai-reviewer"
+    assert (
+        request["owner_route"]["source_refs"]["owner_route_currentness_basis"]["runtime_health_epoch"]
+        == "runtime-health-event-inline-ai-reviewer"
+    )
+    assert request["owner_route"]["currentness_contract"]["missing_required_fields"] == []
     assert not (study_root / "manuscript" / "current_package").exists()
+
+
+def test_paper_repair_executor_ai_reviewer_handoff_uses_work_unit_owner_route_runtime_health_epoch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_executor")
+    owner_dispatch = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    profile = make_profile(tmp_path)
+    study_id = "006e-dpcc"
+    quest_id = "quest-006e"
+    study_root = profile.studies_root / study_id
+    calls: list[dict[str, object]] = []
+
+    def fake_dispatch_domain_owner_actions(**kwargs) -> dict[str, object]:
+        calls.append(kwargs)
+        return {
+            "surface": "default_executor_dispatch_executor",
+            "executed_count": 0,
+            "blocked_count": 1,
+            "executions": [
+                {
+                    "execution_status": "blocked",
+                    "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
+                    "owner_callable_surface": (
+                        "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                    ),
+                }
+            ],
+        }
+
+    monkeypatch.setattr(owner_dispatch, "dispatch_domain_owner_actions", fake_dispatch_domain_owner_actions)
+    work_unit = {
+        **_work_unit("ai_reviewer_recheck", unit_id="unit-ai-reviewer-owner-route-currentness"),
+        "owner": "ai_reviewer",
+        "callable_surface": (
+            "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+        ),
+        "owner_route": {
+            "runtime_health_epoch": "runtime-health-event-from-work-unit-route",
+            "source_refs": {
+                "owner_route_currentness_basis": {
+                    "runtime_health_epoch": "runtime-health-event-from-work-unit-route",
+                }
+            },
+        },
+    }
+
+    result = module.dispatch_repair_work_unit(
+        profile=profile,
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=study_root,
+        repair_work_unit=work_unit,
+        apply=True,
+    )
+
+    assert result["accepted"] is False
+    dispatch = calls[0]["consumer_payload"]["default_executor_dispatches"][0]
+    assert dispatch["owner_route"]["runtime_health_epoch"] == "runtime-health-event-from-work-unit-route"
+    assert (
+        dispatch["owner_route"]["source_refs"]["owner_route_currentness_basis"]["runtime_health_epoch"]
+        == "runtime-health-event-from-work-unit-route"
+    )
+    assert dispatch["owner_route"]["currentness_contract"]["missing_required_fields"] == []
+    envelope = attempt_protocol.default_executor_attempt_envelope(dispatch=dispatch)
+    assert envelope["owner_route_currentness_basis"]["runtime_health_epoch"] == (
+        "runtime-health-event-from-work-unit-route"
+    )
+    assert envelope["dispatchable"] is True
 
 
 def test_paper_repair_executor_preserves_ai_reviewer_dispatch_blocked_reason(
