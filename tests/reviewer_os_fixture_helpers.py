@@ -150,6 +150,102 @@ def current_manuscript_routeback_reviewer_os(
     }
 
 
+def current_routeback_quality_assessment(*, manuscript_ref: str, evidence_ref: str, review_ref: str) -> dict[str, Any]:
+    return {
+        "clinical_significance": {
+            "status": "ready",
+            "summary": "The clinical framing remains bounded and current.",
+            "evidence_refs": [manuscript_ref],
+        },
+        "evidence_strength": {
+            "status": "ready",
+            "summary": "The evidence ledger supports restrained manuscript repair.",
+            "evidence_refs": [evidence_ref],
+        },
+        "novelty_positioning": {
+            "status": "ready",
+            "summary": "The contribution remains positioned within current evidence limits.",
+            "evidence_refs": [manuscript_ref],
+        },
+        "medical_journal_prose_quality": {
+            "status": "blocked",
+            "summary": "The manuscript still requires publication prose hardening.",
+            "evidence_refs": [manuscript_ref, evidence_ref],
+            "reviewer_reason": "Current reviewer judgment routes the manuscript back to write.",
+        },
+        "human_review_readiness": {
+            "status": "ready",
+            "summary": "Human review can follow after the routed manuscript repair.",
+            "evidence_refs": [review_ref],
+        },
+    }
+
+
+def current_routeback_future_plan() -> list[dict[str, Any]]:
+    return [
+        {
+            "limitation": "AI reviewer authorization is scoped to the current manuscript snapshot.",
+            "impact_on_claim": "Claims must remain tied to the reviewed manuscript and evidence refs.",
+            "required_future_analysis_data_or_design": "Repeat AI reviewer evaluation after substantive manuscript changes.",
+            "current_manuscript_wording_must_be_restrained": True,
+        }
+    ]
+
+
+def current_manuscript_routeback_record(
+    *,
+    study_root: Path,
+    manuscript_path: Path,
+    manuscript_text: str,
+    study_id: str,
+    quest_id: str,
+    eval_id: str,
+    emitted_at: str = "2026-05-24T17:58:27+00:00",
+) -> dict[str, Any]:
+    manuscript_ref = str(manuscript_path.resolve())
+    evidence_ref = str(study_root / "paper" / "evidence_ledger.json")
+    review_ref = str(study_root / "paper" / "review" / "review_ledger.json")
+    future_plan = current_routeback_future_plan()
+    return {
+        "schema_version": 1,
+        "eval_id": eval_id,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "emitted_at": emitted_at,
+        "evaluation_scope": "publication",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [manuscript_ref],
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": current_routeback_quality_assessment(
+            manuscript_ref=manuscript_ref,
+            evidence_ref=evidence_ref,
+            review_ref=review_ref,
+        ),
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::route-back-write::current-manuscript",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "Route the current manuscript back to write for publication hardening.",
+                "route_target": "write",
+                "evidence_refs": [manuscript_ref],
+                "requires_controller_decision": True,
+            }
+        ],
+        "future_facing_limitations_plan": future_plan,
+        "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+            study_root=study_root,
+            manuscript_path=manuscript_path,
+            manuscript_text=manuscript_text,
+            eval_id=eval_id,
+        ),
+    }
+
+
 def claim_evidence_map_payload(*, evidence_ledger_ref: str) -> dict[str, Any]:
     return {
         "claims": [

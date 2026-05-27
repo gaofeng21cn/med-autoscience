@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import importlib
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
 from tests.domain_owner_action_dispatch_helpers import write_json as _write_json
-from tests.reviewer_os_fixture_helpers import claim_evidence_map_payload, evidence_ledger_payload, review_ledger_payload
+from tests.reviewer_os_fixture_helpers import (
+    claim_evidence_map_payload,
+    current_manuscript_routeback_reviewer_os,
+    evidence_ledger_payload,
+    review_ledger_payload,
+)
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -135,7 +141,12 @@ def _full_ai_reviewer_record(study_root: Path, *, study_id: str, quest_id: str, 
 def _write_ai_reviewer_currentness_inputs(study_root: Path, *, eval_id: str) -> None:
     refs = _ai_reviewer_refs(study_root)
     request_digest = "sha256:" + "a" * 64
-    manuscript_digest = "sha256:" + "c" * 64
+    manuscript_path = Path(refs["manuscript"])
+    manuscript_path.parent.mkdir(parents=True, exist_ok=True)
+    if not manuscript_path.exists():
+        manuscript_path.write_text("# Draft\n\nCurrent manuscript snapshot.\n", encoding="utf-8")
+    manuscript_text = manuscript_path.read_text(encoding="utf-8")
+    manuscript_digest = "sha256:" + hashlib.sha256(manuscript_text.encode("utf-8")).hexdigest()
     request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
     _write_json(
         request_path,
@@ -210,7 +221,15 @@ def _write_ai_reviewer_request(study_root: Path, *, study_id: str, quest_id: str
                 study_id=study_id,
                 quest_id=quest_id,
                 eval_id=eval_id,
-            ),
+            )
+            | {
+                "reviewer_operating_system": current_manuscript_routeback_reviewer_os(
+                    study_root=study_root,
+                    manuscript_path=Path(refs["manuscript"]),
+                    manuscript_text=Path(refs["manuscript"]).read_text(encoding="utf-8"),
+                    eval_id=eval_id,
+                )
+            },
         },
     )
 

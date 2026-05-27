@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-import hashlib
 import importlib
 import json
 from pathlib import Path
 
+from tests.reviewer_os_fixture_helpers import current_manuscript_routeback_record
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _sha256_text(text: str) -> str:
-    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _owner_route(
@@ -67,55 +63,15 @@ def test_materialize_current_ai_reviewer_record_work_unit_bridges_runtime_route_
         / "ai_reviewer_responses"
         / "20260526T083000Z_publication_eval_record.json"
     )
-    record_payload = {
-        "eval_id": eval_id,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "emitted_at": "2026-05-26T08:30:00+00:00",
-        "assessment_provenance": {
-            "owner": "ai_reviewer",
-            "source_kind": "publication_eval_ai_reviewer",
-            "ai_reviewer_required": False,
-            "source_refs": [str(manuscript_path.resolve()), str(review_manuscript_path.resolve())],
-        },
-        "quality_assessment": {
-            dimension: {"status": "ready", "summary": f"{dimension} current."}
-            for dimension in (
-                "clinical_significance",
-                "evidence_strength",
-                "novelty_positioning",
-                "medical_journal_prose_quality",
-                "human_review_readiness",
-            )
-        },
-        "future_facing_limitations_plan": [
-            {
-                "limitation": "External-validation limitations remain explicit.",
-                "impact_on_claim": "Claims stay restrained.",
-                "required_future_analysis_data_or_design": "None for this replay.",
-                "current_manuscript_wording_must_be_restrained": True,
-            }
-        ],
-        "reviewer_operating_system": {
-            "currentness_checks": {
-                "current_manuscript": {
-                    "status": "current",
-                    "manuscript_ref": str(manuscript_path.resolve()),
-                    "manuscript_digest": _sha256_text(manuscript_text),
-                },
-                "draft": {
-                    "status": "current",
-                    "manuscript_ref": str(manuscript_path.resolve()),
-                    "manuscript_digest": _sha256_text(manuscript_text),
-                },
-                "review_manuscript": {
-                    "status": "current",
-                    "manuscript_ref": str(review_manuscript_path.resolve()),
-                    "manuscript_digest": _sha256_text(manuscript_text),
-                },
-            }
-        },
-    }
+    record_payload = current_manuscript_routeback_record(
+        study_root=study_root,
+        manuscript_path=manuscript_path,
+        manuscript_text=manuscript_text,
+        study_id=study_id,
+        quest_id=quest_id,
+        eval_id=eval_id,
+        emitted_at="2026-05-26T08:30:00+00:00",
+    )
     _write_json(record_path, record_payload)
     _write_json(
         study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
