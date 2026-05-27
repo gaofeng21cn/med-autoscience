@@ -654,6 +654,12 @@ def _next_action(capability_surfaces: list[Mapping[str, Any]]) -> dict[str, Any]
 
 
 def build_medical_paper_readiness_surface(*, study_root: Path) -> dict[str, Any]:
+    payload = build_medical_paper_readiness_payload(study_root=study_root)
+    _write_json(stable_medical_paper_readiness_path(study_root=study_root), payload)
+    return payload
+
+
+def build_medical_paper_readiness_payload(*, study_root: Path) -> dict[str, Any]:
     root = Path(study_root).expanduser().resolve()
     capability_surfaces = [
         _capability_status(study_root=root, spec=spec)
@@ -673,7 +679,6 @@ def build_medical_paper_readiness_surface(*, study_root: Path) -> dict[str, Any]
         "capability_surfaces": capability_surfaces,
         "next_action": _next_action(capability_surfaces),
     }
-    _write_json(stable_medical_paper_readiness_path(study_root=root), payload)
     return payload
 
 

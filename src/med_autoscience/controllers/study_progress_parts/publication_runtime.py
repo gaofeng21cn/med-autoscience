@@ -397,6 +397,7 @@ def _runtime_module_surface(
     manual_finish_contract: dict[str, Any] | None,
     auto_runtime_parked: dict[str, Any] | None,
     publication_gate_stationary: bool = False,
+    materialize_read_model_artifacts: bool = True,
 ) -> dict[str, Any]:
     manual_finish_active = _manual_finish_active(manual_finish_contract)
     runtime_parked = bool((auto_runtime_parked or {}).get("parked"))
@@ -478,7 +479,13 @@ def _runtime_module_surface(
         next_action_summary=next_action_summary,
         needs_human_intervention=needs_physician_decision,
     )
-    summary_ref = materialize_runtime_status_summary(study_root=study_root, summary=summary)
+    if materialize_read_model_artifacts:
+        summary_ref = materialize_runtime_status_summary(study_root=study_root, summary=summary)
+    else:
+        summary_ref = {
+            "summary_id": summary["summary_id"],
+            "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_status_summary.json"),
+        }
     return {
         "module": "runtime",
         "surface_kind": "runtime_module_surface",
@@ -542,6 +549,7 @@ def _refresh_publication_surfaces_from_gate_report(
     publication_eval_path: Path,
     runtime_escalation_path: Path | None,
     domain_health_diagnostic_payload: dict[str, Any] | None,
+    materialize_read_model_artifacts: bool = True,
 ) -> tuple[dict[str, Any] | None, Path | None, dict[str, Any] | None]:
     publishability_gate_path = _publishability_gate_report_path(
         domain_health_diagnostic_payload=domain_health_diagnostic_payload,
@@ -571,6 +579,7 @@ def _refresh_publication_surfaces_from_gate_report(
                 publishability_gate_payload=publishability_gate_payload,
             )
         )
+        and materialize_read_model_artifacts
     ):
         try:
             decision_module = import_module("med_autoscience.controllers.study_runtime_decision")
@@ -596,6 +605,7 @@ def _refresh_publication_surfaces_from_gate_report(
         and runtime_escalation_path.exists()
         and refreshed_eval_emitted_at is not None
         and refreshed_eval_emitted_at != evaluation_summary_emitted_at
+        and materialize_read_model_artifacts
     ):
         try:
             materialize_evaluation_summary_artifacts(
@@ -672,6 +682,7 @@ def _evaluation_module_surface(
     runtime_escalation_path: Path | None,
     domain_health_diagnostic_payload: dict[str, Any] | None,
     quest_root: Path | None,
+    materialize_read_model_artifacts: bool = True,
 ) -> dict[str, Any] | None:
     evaluation_summary_path = stable_evaluation_summary_path(study_root=study_root)
     promotion_gate_path = stable_promotion_gate_path(study_root=study_root)
@@ -689,6 +700,8 @@ def _evaluation_module_surface(
             or not gate_report_path.exists()
             or not charter_path.exists()
         ):
+            return None
+        if not materialize_read_model_artifacts:
             return None
         materialize_evaluation_summary_artifacts(
             study_root=study_root,

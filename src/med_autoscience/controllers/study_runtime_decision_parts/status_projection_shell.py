@@ -85,6 +85,7 @@ def finalize_status_projection_shell(
         recorded_at=router._utc_now(),
         entry_mode=entry_mode,
         include_progress_projection=include_progress_projection,
+        materialize_read_model_artifacts=sync_runtime_summary,
     )
     return status
 

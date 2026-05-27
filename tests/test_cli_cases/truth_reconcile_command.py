@@ -16,11 +16,19 @@ def test_reconcile_study_truth_command_materializes_from_runtime_status(monkeypa
     study_root = tmp_path / "studies" / "001-risk"
     called: dict[str, object] = {}
 
-    def fake_status(*, profile, study_id: str | None, study_root: Path | None, entry_mode: str | None) -> dict:
+    def fake_status(
+        *,
+        profile,
+        study_id: str | None,
+        study_root: Path | None,
+        entry_mode: str | None,
+        sync_runtime_summary: bool,
+    ) -> dict:
         called["status_profile"] = profile
         called["status_study_id"] = study_id
         called["status_study_root"] = study_root
         called["status_entry_mode"] = entry_mode
+        called["status_sync_runtime_summary"] = sync_runtime_summary
         return {
             "study_id": "001-risk",
             "study_root": str(study_root if study_root is not None else tmp_path / "studies" / "001-risk"),
@@ -67,6 +75,7 @@ def test_reconcile_study_truth_command_materializes_from_runtime_status(monkeypa
     assert called["status_study_id"] is None
     assert called["status_study_root"] == study_root
     assert called["status_entry_mode"] == "full_research"
+    assert called["status_sync_runtime_summary"] is False
     assert called["reconcile_study_root"] == study_root
     assert called["reconcile_study_id"] == "001-risk"
     assert called["reconcile_status_payload"]["execution_owner_guard"]["active_run_id"] == "run-live"

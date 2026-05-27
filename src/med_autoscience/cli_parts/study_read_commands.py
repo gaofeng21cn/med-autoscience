@@ -27,6 +27,7 @@ def handle_study_read_command(
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
+            sync_runtime_summary=False,
         )
         print(json.dumps(serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
         return 0
@@ -40,6 +41,8 @@ def handle_study_read_command(
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
+            sync_runtime_summary=False,
+            materialize_read_model_artifacts=False,
         )
         if args.format == "json":
             print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -132,6 +135,7 @@ def _read_status_payload(
         study_id=args.study_id,
         study_root=Path(args.study_root) if args.study_root else None,
         entry_mode=args.entry_mode,
+        sync_runtime_summary=False,
     )
     return serialize_study_runtime_result(status)
 

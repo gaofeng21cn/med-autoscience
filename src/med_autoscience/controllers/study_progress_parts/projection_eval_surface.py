@@ -42,9 +42,10 @@ def read_projection_surface_payloads(
     status: dict[str, Any],
     paths: ProjectionInputPaths,
     runtime_health_status: str | None,
+    materialize_read_model_artifacts: bool = True,
 ) -> ProjectionSurfacePayloads:
     controller_decision_payload = _read_json_object(paths.controller_decision_path)
-    if controller_decision_payload is not None:
+    if controller_decision_payload is not None and materialize_read_model_artifacts:
         try:
             materialize_controller_confirmation_summary(
                 study_root=study_root,
@@ -69,6 +70,7 @@ def read_projection_surface_payloads(
             publication_eval_path=paths.publication_eval_path,
             runtime_escalation_path=paths.runtime_escalation_path,
             domain_health_diagnostic_payload=domain_health_diagnostic_payload,
+            materialize_read_model_artifacts=materialize_read_model_artifacts,
         )
     )
     return ProjectionSurfacePayloads(

@@ -112,13 +112,14 @@ def _status_state(
             quest_root=quest_root,
             publication_gate_report=publication_gate_report,
         )
-        _materialize_publication_eval_from_gate_report(
-            study_root=study_root,
-            study_id=study_id,
-            quest_root=quest_root,
-            quest_id=quest_id,
-            publication_gate_report=publication_gate_report,
-        )
+        if sync_runtime_summary:
+            _materialize_publication_eval_from_gate_report(
+                study_root=study_root,
+                study_id=study_id,
+                quest_root=quest_root,
+                quest_id=quest_id,
+                publication_gate_report=publication_gate_report,
+            )
     else:
         publication_gate_report = None
         manual_finish_state = _derive_manual_finish_dominance_state(
@@ -317,15 +318,22 @@ def _status_state(
         )
         return _finalize_result()
 
-    startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
-        startup_contract=router._build_startup_contract(
+    if sync_runtime_summary:
+        startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
+            startup_contract=router._build_startup_contract(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                study_payload=study_payload,
+                execution=execution,
+            )
+        )
+    else:
+        startup_contract_validation = _read_only_startup_contract_validation(
             profile=profile,
-            study_id=study_id,
             study_root=study_root,
             study_payload=study_payload,
-            execution=execution,
         )
-    )
     result.record_startup_contract_validation(startup_contract_validation.to_dict())
     if startup_contract_validation.status is not study_runtime_protocol.StartupContractValidationStatus.CLEAR:
         result.set_decision(
@@ -471,6 +479,35 @@ def _status_payload(
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=include_progress_projection,
     ).to_dict()
+
+
+def _read_only_startup_contract_validation(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    study_payload: dict[str, object],
+) -> study_runtime_protocol.StartupContractValidation:
+    from med_autoscience.controllers import (
+        medical_analysis_contract as medical_analysis_contract_controller,
+        medical_reporting_contract as medical_reporting_contract_controller,
+    )
+
+    medical_analysis_contract_summary = medical_analysis_contract_controller.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=study_payload,
+        profile=profile,
+    )
+    medical_reporting_contract_summary = medical_reporting_contract_controller.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=study_payload,
+        profile=profile,
+    )
+    return study_runtime_protocol.validate_startup_contract_resolution(
+        startup_contract={
+            "medical_analysis_contract_summary": medical_analysis_contract_summary,
+            "medical_reporting_contract_summary": medical_reporting_contract_summary,
+        }
+    )
 
 
 def _unknown_opl_current_control_state_runtime_liveness(

@@ -116,6 +116,7 @@ def build_study_progress_projection(
     status_payload: dict[str, Any] | Any,
     profile_ref: str | Path | None = None,
     entry_mode: str | None = None,
+    materialize_read_model_artifacts: bool = True,
 ) -> dict[str, Any]:
     del entry_mode
     status = _status_payload(status_payload)
@@ -173,6 +174,7 @@ def build_study_progress_projection(
         status=status,
         paths=input_paths,
         runtime_health_status=runtime_health_status,
+        materialize_read_model_artifacts=materialize_read_model_artifacts,
     )
     launch_report_payload = surface_payloads.launch_report_payload
     controller_decision_payload = surface_payloads.controller_decision_payload
@@ -211,9 +213,12 @@ def build_study_progress_projection(
     authority_snapshot = status_context.authority_snapshot
     manual_finish_contract = status_context.manual_finish_contract
     medical_writing_quality_surfaces = medical_writing_quality_surface_status(study_root=resolved_study_root)
-    medical_paper_readiness_surface = medical_paper_readiness.build_medical_paper_readiness_surface(
-        study_root=resolved_study_root,
+    readiness_builder = (
+        medical_paper_readiness.build_medical_paper_readiness_surface
+        if materialize_read_model_artifacts
+        else medical_paper_readiness.build_medical_paper_readiness_payload
     )
+    medical_paper_readiness_surface = readiness_builder(study_root=resolved_study_root)
     medical_paper_ops_health_surface = medical_paper_ops_health.build_medical_paper_ops_health(
         medical_paper_readiness_surface,
     )
@@ -588,6 +593,7 @@ def build_study_progress_projection(
         runtime_escalation_path=runtime_escalation_path,
         domain_health_diagnostic_payload=domain_health_diagnostic_payload,
         quest_root=quest_root,
+        materialize_read_model_artifacts=materialize_read_model_artifacts,
     )
     publication_gate_stationary = _current_status_publication_gate_stationary(status)
     runtime_module_surface = _runtime_module_surface(
@@ -612,6 +618,7 @@ def build_study_progress_projection(
         manual_finish_contract=manual_finish_contract,
         auto_runtime_parked=auto_runtime_parked,
         publication_gate_stationary=publication_gate_stationary,
+        materialize_read_model_artifacts=materialize_read_model_artifacts,
     )
     quality_projection = _quality_projection_surfaces(
         controller_module_surface=controller_module_surface,
@@ -933,6 +940,7 @@ def read_study_progress(
     study_root: Path | None = None,
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
+    materialize_read_model_artifacts: bool | None = None,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
         profile=profile,
@@ -954,5 +962,8 @@ def read_study_progress(
         status_payload=status,
         profile_ref=profile_ref,
         entry_mode=entry_mode,
+        materialize_read_model_artifacts=sync_runtime_summary
+        if materialize_read_model_artifacts is None
+        else materialize_read_model_artifacts,
     )
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

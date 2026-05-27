@@ -16,6 +16,7 @@ def attach_status_read_model_projections(
     recorded_at: str,
     entry_mode: str | None,
     include_progress_projection: bool,
+    materialize_read_model_artifacts: bool = True,
 ) -> None:
     """Attach generic read-model snapshots after MAS authority has produced status refs."""
     status.extras["study_truth_snapshot"] = study_truth_kernel.derive_truth_snapshot_from_status_payload(
@@ -35,6 +36,7 @@ def attach_status_read_model_projections(
                 study_root=study_root,
                 status_payload=status,
                 entry_mode=entry_mode,
+                materialize_read_model_artifacts=materialize_read_model_artifacts,
             )
         )
 
