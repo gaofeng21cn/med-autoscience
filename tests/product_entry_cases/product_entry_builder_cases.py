@@ -125,6 +125,44 @@ def test_build_phase5_platform_target_uses_shared_builder(monkeypatch) -> None:
     assert captured["sequence_scope"] == "monorepo_landing_readiness"
     assert len(captured["landing_sequence"]) == 9
 
+def test_product_entry_manifest_reuses_single_mainline_status_read(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    calls = 0
+
+    def _fake_read_mainline_status() -> dict[str, object]:
+        nonlocal calls
+        calls += 1
+        return {
+            "program_id": "research-foundry-medical-mainline",
+            "current_stage": {
+                "id": "mas_owner_truth_hardening",
+                "status": "in_progress",
+                "summary": "Keep MAS owner truth visible.",
+            },
+            "current_program_phase": {
+                "id": "phase_1_mainline_established",
+                "status": "in_progress",
+                "summary": "Mainline remains active.",
+            },
+            "next_focus": ["keep manifest live refresh bounded"],
+            "explicitly_not_now": [],
+            "remaining_gaps": [],
+            "single_project_boundary": module.mainline_status._single_project_boundary(),
+            "capability_owner_boundary": module.mainline_status._capability_owner_boundary(),
+            "platform_target": module.mainline_program_surfaces.build_platform_target(),
+        }
+
+    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _fake_read_mainline_status)
+
+    payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+
+    assert payload["target_domain_id"] == "med-autoscience"
+    assert payload["repo_mainline"]["current_stage_id"] == "mas_owner_truth_hardening"
+    assert payload["phase5_platform_target"]["surface_kind"] == "phase5_platform_target"
+    assert calls == 1
+
 def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestration(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)

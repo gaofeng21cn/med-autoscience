@@ -525,8 +525,8 @@ def _coerce_int(value: object) -> int:
         return 0
 
 
-def _mainline_snapshot() -> dict[str, Any]:
-    payload = mainline_status.read_mainline_status()
+def _mainline_snapshot(mainline_payload: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    payload = dict(mainline_payload) if mainline_payload is not None else mainline_status.read_mainline_status()
     current_stage = dict(payload.get("current_stage") or {})
     current_program_phase = dict(payload.get("current_program_phase") or {})
     next_focus = _normalized_strings(payload.get("next_focus") or [])

@@ -21,8 +21,8 @@ _module_reexport(_family_lifecycle_surfaces)
 _build_backend_deconstruction_lane = mainline_program_surfaces.build_backend_deconstruction_lane
 
 
-def _build_phase5_platform_target() -> dict[str, Any]:
-    payload = mainline_status.read_mainline_status()
+def _build_phase5_platform_target(mainline_payload: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    payload = dict(mainline_payload) if mainline_payload is not None else mainline_status.read_mainline_status()
     source = payload.get("platform_target")
     if not isinstance(source, Mapping):
         source = mainline_program_surfaces.build_platform_target()

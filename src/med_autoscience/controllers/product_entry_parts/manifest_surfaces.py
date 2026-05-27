@@ -104,7 +104,7 @@ def build_product_entry_manifest(
     opl_production_proof_ref: str | Path | None = None,
 ) -> dict[str, Any]:
     mainline_payload = mainline_status.read_mainline_status()
-    mainline_snapshot = _mainline_snapshot()
+    mainline_snapshot = _mainline_snapshot(mainline_payload)
     build_doctor_report_fn = _controller_override("build_doctor_report", build_doctor_report)
     build_user_interaction_contract_fn = _controller_override(
         "_build_user_interaction_contract",
@@ -168,7 +168,7 @@ def build_product_entry_manifest(
     )
     phase4_backend_deconstruction = _build_phase4_backend_deconstruction()
     source_provenance = _build_source_provenance_refs_surface()
-    phase5_platform_target = _build_phase5_platform_target()
+    phase5_platform_target = _build_phase5_platform_target(mainline_payload)
     product_entry_quickstart = manifest_shell_surfaces["product_entry_quickstart"]
     product_entry_start = manifest_shell_surfaces["product_entry_start"]
     product_entry_overview = manifest_shell_surfaces["product_entry_overview"]
