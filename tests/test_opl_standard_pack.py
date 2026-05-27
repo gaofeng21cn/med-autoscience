@@ -280,6 +280,25 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
         assert stage["stage_contract"]["monitor_refs"]
         assert stage["stage_contract"]["dashboard_metric_refs"]
         assert any(ref["role"] == "opl_provider_stage_launch_trigger" for ref in stage["stage_contract"]["trigger_refs"])
+        user_stage_log = stage["stage_contract"]["user_stage_log_contract"]
+        assert user_stage_log["surface_kind"] == "opl_standard_agent_user_stage_log_contract"
+        assert user_stage_log["standard_agent_requirement"] == (
+            "domain_stage_closeout_must_return_user_readable_stage_semantics_or_typed_blocker"
+        )
+        assert user_stage_log["opl_projection_surface"] == "stage_progress_log.user_stage_log"
+        assert set(user_stage_log["required_domain_semantic_fields"]) >= {
+            "problem_summary",
+            "stage_work_done",
+            "changed_stage_surfaces",
+            "remaining_blockers",
+        }
+        assert set(user_stage_log["required_observability_fields"]) >= {"duration", "token_usage"}
+        assert user_stage_log["mas_paper_alias_fields"] == {
+            "stage_work_done_alias": "paper_work_done",
+            "changed_stage_surfaces_alias": "changed_paper_surfaces",
+        }
+        assert user_stage_log["authority_boundary"]["opl_can_infer_domain_semantics"] is False
+        assert user_stage_log["authority_boundary"]["mas_retains_publication_quality_authority"] is True
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
     assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][
