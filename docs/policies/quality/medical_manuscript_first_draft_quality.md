@@ -82,6 +82,8 @@ Before a first full draft is treated as generated:
 - author-confirmation placeholders in the manuscript body
 - figure self-explanation paragraphs
 - paper-scaffold labels such as `paper protagonist` or `bounded complexity benchmark`
+- paper-facing figure layout sidecars with invalid normalized box geometry or overlapping text boxes
+- reference databases that are substantially larger than the manuscript's cited reference footprint
 
 The gate is not the primary writing strategy. The primary strategy is contract-first generation through study charter and quality OS surfaces.
 

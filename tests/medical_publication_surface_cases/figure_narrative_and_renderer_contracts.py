@@ -258,6 +258,56 @@ def test_build_report_accepts_complete_required_display_catalog_coverage(tmp_pat
     assert "required_display_catalog_coverage_incomplete" not in report["blockers"]
 
 
+def test_build_report_blocks_invalid_or_overlapping_figure_layout_sidecar(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = _paper_root_from_quest(quest_root)
+    dump_json(
+        paper_root / "figures" / "generated" / "F4.layout.json",
+        {
+            "schema_version": 1,
+            "layout_boxes": [
+                {
+                    "box_id": "metrics_panel",
+                    "box_type": "row_metric",
+                    "x0": 0.10,
+                    "y0": 0.10,
+                    "x1": 0.60,
+                    "y1": 0.25,
+                },
+                {
+                    "box_id": "action_panel",
+                    "box_type": "row_action",
+                    "x0": 0.20,
+                    "y0": 0.12,
+                    "x1": 0.70,
+                    "y1": 0.27,
+                },
+                {
+                    "box_id": "zero_width_ci",
+                    "box_type": "row_metric",
+                    "x0": 0.80,
+                    "y0": 0.30,
+                    "x1": 0.80,
+                    "y1": 0.40,
+                },
+            ],
+            "metrics": {"panels": [{"panel_label": "A"}]},
+        },
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "figure_layout_sidecar_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "figure_layout_box_invalid_extent" for hit in report["top_hits"])
+    assert any(hit["pattern_id"] == "figure_layout_text_box_overlap" for hit in report["top_hits"])
+
+
 def test_build_report_accepts_required_display_catalog_coverage_for_supplementary_figure(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

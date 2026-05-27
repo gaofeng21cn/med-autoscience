@@ -421,6 +421,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
                 "excerpt": "Endpoint provenance caveat is documented upstream but not durably projected onto the manuscript-facing surface.",
             }
         )
+    reference_citation_coverage, reference_citation_hits = inspect_reference_citation_coverage(
+        paper_root=state.paper_root,
+        manuscript_paths=[state.draft_path, state.review_manuscript_path],
+    )
     defined_method_labels = medical_surface_policy.extract_defined_method_labels(methods_manifest_payload)
     undefined_methodology_label_hits: list[dict[str, Any]] = []
     for hit in methodology_label_hits:
@@ -490,6 +494,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(results_section_structure_hits)
     hits.extend(non_formal_question_hits)
     hits.extend(endpoint_note_hits)
+    hits.extend(reference_citation_hits)
     hits.extend(undefined_methodology_label_hits)
     hits.extend(results_narration_hits)
     hits.extend(numeric_trace_hits)
@@ -559,6 +564,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("missing_data_policy_inconsistent")
     if endpoint_caveat_sources and not endpoint_note_applied:
         blockers.append("endpoint_provenance_note_missing_or_unapplied")
+    if reference_citation_hits:
+        blockers.append("reference_citation_coverage_incomplete")
     if undefined_methodology_label_hits:
         blockers.append("undefined_methodology_labels_present")
     if analysis_plane_jargon_hits:
@@ -695,6 +702,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "endpoint_provenance_note_valid": endpoint_note_valid,
         "endpoint_provenance_note_applied": endpoint_note_applied,
         "endpoint_provenance_caveat_source_count": len(endpoint_caveat_sources),
+        "reference_citation_coverage": reference_citation_coverage,
+        "reference_citation_coverage_valid": not reference_citation_hits,
         "paper_pdf_path": str(state.paper_pdf_path),
         "paper_pdf_present": state.paper_pdf_path.exists(),
         "charter_contract_linkage": charter_contract_linkage,
@@ -773,6 +782,7 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- endpoint_provenance_note_present: `{report['endpoint_provenance_note_present']}`",
         f"- endpoint_provenance_note_valid: `{report['endpoint_provenance_note_valid']}`",
         f"- endpoint_provenance_note_applied: `{report['endpoint_provenance_note_applied']}`",
+        f"- reference_citation_coverage_valid: `{report.get('reference_citation_coverage_valid', True)}`",
         "",
         "## Charter Contract Linkage",
         "",

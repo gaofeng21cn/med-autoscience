@@ -1,6 +1,86 @@
 from .shared import *
 from .asset_scans import *
 
+BIBTEX_ENTRY_KEY_RE = re.compile(r"@\w+\s*\{\s*([^,\s]+)", flags=re.MULTILINE)
+MANUSCRIPT_CITATION_KEY_RE = re.compile(r"(?<![A-Za-z0-9_])@([A-Za-z0-9_:.+\-]+)")
+REFERENCE_CITATION_MIN_BIB_ENTRIES_FOR_COVERAGE_GATE = 15
+REFERENCE_CITATION_MIN_CITED_KEYS = 12
+REFERENCE_CITATION_MIN_COVERAGE_RATIO = 0.50
+
+
+def _unique_sorted(values: list[str]) -> list[str]:
+    return sorted({str(value).strip() for value in values if str(value).strip()})
+
+
+def extract_bibtex_keys(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    return _unique_sorted(BIBTEX_ENTRY_KEY_RE.findall(path.read_text(encoding="utf-8")))
+
+
+def extract_manuscript_citation_keys(paths: list[Path]) -> list[str]:
+    keys: list[str] = []
+    for path in paths:
+        if not path.exists():
+            continue
+        keys.extend(MANUSCRIPT_CITATION_KEY_RE.findall(path.read_text(encoding="utf-8")))
+    return _unique_sorted(keys)
+
+
+def inspect_reference_citation_coverage(
+    *,
+    paper_root: Path,
+    manuscript_paths: list[Path],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    references_path = paper_root / "references.bib"
+    bib_keys = extract_bibtex_keys(references_path)
+    cited_keys = extract_manuscript_citation_keys(manuscript_paths)
+    cited_reference_keys = sorted(set(bib_keys) & set(cited_keys))
+    uncited_reference_keys = sorted(set(bib_keys) - set(cited_reference_keys))
+    bib_entry_count = len(bib_keys)
+    cited_key_count = len(cited_reference_keys)
+    required_cited_key_count = min(
+        bib_entry_count,
+        max(
+            REFERENCE_CITATION_MIN_CITED_KEYS,
+            int(bib_entry_count * REFERENCE_CITATION_MIN_COVERAGE_RATIO + 0.999),
+        ),
+    )
+    coverage_ratio = cited_key_count / bib_entry_count if bib_entry_count else None
+    coverage = {
+        "references_bib_path": str(references_path),
+        "bib_entry_count": bib_entry_count,
+        "cited_key_count": cited_key_count,
+        "cited_reference_keys": cited_reference_keys,
+        "uncited_reference_key_count": len(uncited_reference_keys),
+        "uncited_reference_keys": uncited_reference_keys[:50],
+        "minimum_bib_entries_for_gate": REFERENCE_CITATION_MIN_BIB_ENTRIES_FOR_COVERAGE_GATE,
+        "required_cited_key_count": required_cited_key_count,
+        "coverage_ratio": coverage_ratio,
+        "status": "not_applicable",
+    }
+    hits: list[dict[str, Any]] = []
+    if bib_entry_count < REFERENCE_CITATION_MIN_BIB_ENTRIES_FOR_COVERAGE_GATE:
+        return coverage, hits
+    if cited_key_count >= required_cited_key_count:
+        coverage["status"] = "clear"
+        return coverage, hits
+    coverage["status"] = "blocked"
+    hits.append(
+        {
+            "path": str(references_path),
+            "location": "references.bib",
+            "pattern_id": "reference_citation_coverage_low",
+            "phrase": "references.bib",
+            "excerpt": (
+                f"Manuscript cites {cited_key_count} of {bib_entry_count} bibliography entries; "
+                f"at least {required_cited_key_count} integrated citations are required before submission-facing export."
+            ),
+        }
+    )
+    return coverage, hits
+
+
 def normalize_heading(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "").strip().lower().replace("&", "and"))
 
@@ -351,5 +431,4 @@ def iter_non_formal_question_sentences(line: str) -> list[str]:
                 sentences.append(sentence)
         sentence_start = index + 1
     return sentences
-
 
