@@ -46,10 +46,10 @@ def _operator_status_handling_state(
         return "waiting_user_decision"
     if any(str(item or "").strip() in _HUMAN_SURFACE_REFRESH_BLOCKER_LABELS for item in current_blockers):
         return "paper_surface_refresh_in_progress"
-    if current_stage == "managed_runtime_escalated":
-        return "runtime_recovering"
     if lane_id == "quality_floor_blocker":
         return "scientific_or_quality_repair_in_progress"
+    if current_stage == "managed_runtime_escalated":
+        return "runtime_recovering"
     if current_stage in {"managed_runtime_recovering", "managed_runtime_degraded", "managed_runtime_escalated"}:
         return "runtime_recovering"
     if _manual_finish_active(manual_finish_contract):

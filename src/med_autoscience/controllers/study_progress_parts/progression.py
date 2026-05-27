@@ -142,6 +142,9 @@ def _current_stage(
         return "waiting_user_decision"
     if finalize_milestone_parking_active(status) and not publication_supervisor_blocks_handoff(publication_supervisor_state):
         return "manual_finishing"
+    domain_transition_repair = _domain_transition_route_repair(status)
+    if domain_transition_repair is not None and not live_managed_runtime:
+        return "publication_supervision"
     if runtime_health_action == "recover_runtime" or runtime_health_attempt_state == "recovering":
         return "managed_runtime_recovering"
     attempt_stage = current_stage_from_runtime_attempt_state(runtime_health_attempt_state)
@@ -257,6 +260,11 @@ def _stage_summary(
             summary += f" 最近一次可见推进是：{latest_progress_message}"
         return summary
     if current_stage == "publication_supervision":
+        domain_transition_repair = _domain_transition_route_repair(status)
+        if domain_transition_repair is not None:
+            route_summary = _route_repair_summary(domain_transition_repair, include_rationale=True)
+            if route_summary is not None:
+                return f"论文质量监管已转入结构化修复：{route_summary}"
         specificity_request = _publication_eval_specificity_request(publication_eval_payload)
         if specificity_request is not None:
             return specificity_stage_summary()
@@ -501,6 +509,11 @@ def _next_system_action(
         execution_owner_guard=execution_owner_guard,
         continuation_state=continuation_state,
     )
+    domain_transition_repair = _domain_transition_route_repair(status)
+    if domain_transition_repair is not None and not live_managed_runtime:
+        route_summary = _route_repair_summary(domain_transition_repair)
+        if route_summary is not None:
+            return route_summary
     if (
         runtime_health_action in {"recover_runtime", "escalate_runtime"}
         or runtime_health_attempt_state in {"recovering", "degraded", "escalated"}
@@ -511,11 +524,6 @@ def _next_system_action(
         )
     ):
         return "等待 OPL current_control_state 或 stage attempt refs 恢复，并确认 meaningful artifact delta 刷新。"
-    domain_transition_repair = _domain_transition_route_repair(status)
-    if domain_transition_repair is not None and not live_managed_runtime:
-        route_summary = _route_repair_summary(domain_transition_repair)
-        if route_summary is not None:
-            return route_summary
     if decision == "blocked":
         if action := completion_next_action_or_reason(
             status,

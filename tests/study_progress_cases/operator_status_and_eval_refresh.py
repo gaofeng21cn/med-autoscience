@@ -478,7 +478,7 @@ def test_study_progress_domain_routeback_supersedes_auditable_metadata_parking(
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
-    assert result["current_stage"] == "runtime_blocked"
+    assert result["current_stage"] == "publication_supervision"
     assert result["active_run_id"] is None
     assert result["auto_runtime_parked"]["parked"] is False
     assert result["parked_state"] is None
@@ -600,7 +600,7 @@ def test_study_progress_domain_routeback_operator_card_supersedes_stale_recovery
 
     result = module.read_study_progress(profile=profile, study_id=study_id)
 
-    assert result["current_stage"] == "runtime_blocked"
+    assert result["current_stage"] == "publication_supervision"
     assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
     assert result["operator_status_card"]["handling_state"] == "scientific_or_quality_repair_in_progress"
     assert result["operator_status_card"]["latest_truth_source"] == "publication_eval"
